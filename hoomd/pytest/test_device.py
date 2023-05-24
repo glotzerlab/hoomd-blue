@@ -157,7 +157,7 @@ def test_noticefile(device, tmp_path):
             assert fh.read() == test_msg + "\n"
 
     # Test the level argument
-    msg = "This message should not output./n"
+    msg = "This message should not output.\n"
     device.message_filename = str(tmp_path / "empty_notice")
     notice_file = hoomd.device.NoticeFile(device, level=5)
     notice_file.write(msg)
