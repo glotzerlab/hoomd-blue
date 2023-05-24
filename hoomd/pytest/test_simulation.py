@@ -30,7 +30,7 @@ class SleepUpdater(hoomd.custom.Action):
         return hoomd.update.CustomUpdater(1, cls())
 
 
-def make_gsd_snapshot(hoomd_snapshot):
+def make_gsd_frame(hoomd_snapshot):
     s = gsd.hoomd.Frame()
     for attr in dir(hoomd_snapshot):
         if attr[0] != '_' and attr not in [
@@ -216,7 +216,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
     snapshot_dict[0] = snap
 
     if device.communicator.rank == 0:
-        f.append(make_gsd_snapshot(snap))
+        f.append(make_gsd_frame(snap))
 
     box = sim.state.box
     for step in range(1, nsteps):
@@ -226,7 +226,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
                   particle_type)
 
         if device.communicator.rank == 0:
-            f.append(make_gsd_snapshot(snap))
+            f.append(make_gsd_frame(snap))
             snapshot_dict[step] = snap
         else:
             snapshot_dict[step] = None
@@ -265,7 +265,7 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
     checks = range(3)
     if device.communicator.rank == 0:
         for step in checks:
-            f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
+            f.append(modify_gsd_snap(make_gsd_frame(snap)))
         f.close()
 
     for step in checks:
@@ -278,7 +278,7 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
 
 
 @skip_gsd
-def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
+def test_state_from_gsd_frame(simulation_factory, lattice_snapshot_factory,
                                  device, state_args, tmp_path):
     snap_params, nsteps = state_args
 
@@ -286,7 +286,7 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
         lattice_snapshot_factory(n=snap_params[0],
                                  particle_types=snap_params[1]))
     snap = sim.state.get_snapshot()
-    snap = make_gsd_snapshot(snap)
+    snap = make_gsd_frame(snap)
     gsd_snapshot_list = [snap]
     box = sim.state.box
     for _ in range(1, nsteps):
@@ -294,7 +294,7 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
         snap = update_positions(sim.state.get_snapshot())
         set_types(snap, random_inds(snap_params[0]), snap_params[1],
                   particle_type)
-        snap = make_gsd_snapshot(snap)
+        snap = make_gsd_frame(snap)
         gsd_snapshot_list.append(snap)
 
     for snap in gsd_snapshot_list:
