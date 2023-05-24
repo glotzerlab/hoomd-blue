@@ -148,13 +148,9 @@ def test_noticefile(device, tmp_path):
 
     # Test notice with a message that is not a string.
     msg = 123456
-    test_msg = str(msg) + "\n"
     device.message_filename = str(tmp_path / "int_message")
-    notice_file.write(msg)
-
-    if device.communicator.rank == 0:
-        with open(device.message_filename) as fh:
-            assert fh.read() == test_msg + "\n"
+    with pytest.raises(TypeError):
+         notice_file.write(msg)
 
     # Test the level argument
     msg = "This message should not output.\n"
