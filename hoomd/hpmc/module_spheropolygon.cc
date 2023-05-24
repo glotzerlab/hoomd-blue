@@ -10,7 +10,6 @@
 #include "ShapeSpheropolygon.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
@@ -44,7 +43,6 @@ void export_spheropolygon(pybind11::module& m)
     export_HarmonicField<ShapeSpheropolygon>(m, "ExternalFieldHarmonicSpheropolygon");
     export_ExternalFieldComposite<ShapeSpheropolygon>(m, "ExternalFieldCompositeSpheropolygon");
     export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallConvexSpheropolygon");
-    export_ExternalCallback<ShapeSpheropolygon>(m, "ExternalCallbackSpheropolygon");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeSpheropolygon>(m, "IntegratorHPMCMonoSpheropolygonGPU");

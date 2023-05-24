@@ -97,22 +97,12 @@ class EvaluatorExternalPeriodic
         {
         }
 
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
-
     //! External Periodic doesn't need charges
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter value
+    //! Accept the optional charge value.
     /*! \param qi Charge of particle i
      */
     DEVICE void setCharge(Scalar qi) { }

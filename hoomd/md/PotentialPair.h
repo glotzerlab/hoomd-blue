@@ -631,9 +631,6 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
                                     access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     // force arrays
@@ -661,11 +658,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter and charge (if needed)
-        Scalar di = Scalar(0.0);
+        // access charge (if needed)
         Scalar qi = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            di = h_diameter.data[i];
         if (evaluator::needsCharge())
             qi = h_charge.data[i];
 
@@ -696,11 +690,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
+            // access charge (if needed)
             Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
 
@@ -734,8 +725,6 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
@@ -840,9 +829,6 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     if (evaluator::needsCharge())
         flags[comm_flag::charge] = 1;
 
-    if (evaluator::needsDiameter())
-        flags[comm_flag::diameter] = 1;
-
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
@@ -902,9 +888,6 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
     ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     const BoxDim box = m_pdata->getGlobalBox();
@@ -925,11 +908,8 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter and charge (if needed)
-        Scalar di = Scalar(0.0);
+        // access charge (if needed)
         Scalar qi = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            di = h_diameter.data[i];
         if (evaluator::needsCharge())
             qi = h_charge.data[i];
 
@@ -948,11 +928,8 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
+            // access charge (if needed)
             Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
 
@@ -986,8 +963,6 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 

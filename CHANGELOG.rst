@@ -4,6 +4,87 @@
 Change Log
 ==========
 
+v4.x
+----
+
+v4.0.0 (net yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.md.ConstantVolume`` integration method
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* ``hoomd.md.ConstantPressure`` integration method, implementing the Langevin piston barostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* Thermostats in ``hoomd.md.methods.thermostats`` that work with ``ConstantVolume`` and
+  ``ConstantPressure``, including the new Bussi-Donadio-Parrinello thermostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* ``hoomd.md.external.wall.Gaussian``
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/pull/1499>`__).
+
+*Changed*
+
+* ``hoomd.md.constrain.Rigid`` no longer takes ``diameters`` or ``charges`` as keys in the ``body``
+  parameters. ``create_bodies`` method now takes an optional ``charges`` argument to set charges
+  (`#1350 <https://github.com/glotzerlab/hoomd-blue/issues/1350>`__).
+* Control the precision with the CMake options ``HOOMD_LONGREAL_SIZE`` (default: 64) and
+  ``HOOMD_SHORTREAL_SIZE`` (default: 32)
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* [developers] ``ShortReal`` and ``LongReal`` types enable mixed precision implementations
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* ``hoomd.md.constrain.Rigid`` now updates constituent particle types each step
+  (`#1440 <https://github.com/glotzerlab/hoomd-blue/pull/1440>`__).
+* Moved ``hoomd.mesh.Mesh.triangles`` to ``hoomd.mesh.Mesh.triangulation``
+  (`#1464 <https://github.com/glotzerlab/hoomd-blue/pull/1464>`__).
+* ``hoomd.write.GSD`` does not write ``particles/diameter`` by default
+  (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+* Updated tutorials to use HOOMD-blue v4 API, work with up to date releases of freud, gsd, and
+  signac. Also make general improvements to the tutorials.
+* Document changes needed to migrate from v3 to v4 in the migration guide.
+
+*Deprecated*
+
+* ``Scalar``, ``Scalar2``, ``Scalar3``, and ``Scalar4`` data types. Use ``LongReal[N]`` instead in
+  new code
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+
+*Removed*
+
+* ``fix_cudart_rpath`` CMake macro
+  (`#1383 <https://github.com/glotzerlab/hoomd-blue/issues/1383>`__).
+* ``ENABLE_MPI_CUDA`` CMake option
+  (`#1401 <https://github.com/glotzerlab/hoomd-blue/issues/1401>`__).
+* ``Berendsen``, ``NPH``, ``NPT``, ``NVE``, ``NVT`` MD integration methods
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* ``hoomd.write.GSD.log``
+  (`#1480 <https://github.com/glotzerlab/hoomd-blue/issues/1480>`__).
+* CMake option and compiler definition ``SINGLE_PRECISION``
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``diameter`` key in ``hoomd.md.constrain.Rigid.body``.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.dihedral.Harmonic``.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.device.GPU.memory_traceback parameter``.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.pair.aniso.Dipole.mode`` parameter.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.pair.Gauss``
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* ``hoomd.md.external.wall.Gauss``
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* ``msg_file`` property and argument in ``hoomd.device.Device``.
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
+  (`#1523 <https://github.com/glotzerlab/hoomd-blue/pull/1523>`__).
+* ``alpha`` parameter and attribute in ``Langevin``, ``BD``, and ``OverdampedViscous`` integration
+  methods (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+* ``needsDiameter`` and ``setDiameter`` API in C++ potential evaluators
+  (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+
 v3.x
 ----
 

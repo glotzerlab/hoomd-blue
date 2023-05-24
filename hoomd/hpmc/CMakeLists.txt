@@ -57,7 +57,6 @@ set(_hpmc_headers
     GPUTree.h
     HPMCCounters.h
     HPMCMiscFunctions.h
-    HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPUMoves.cuh
@@ -161,8 +160,6 @@ if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
 target_link_libraries(_hpmc PUBLIC CUDA::cusparse )
 endif()
 
-fix_cudart_rpath(_hpmc)
-
 # install the library
 install(TARGETS _hpmc EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
@@ -265,8 +262,6 @@ if (ENABLE_LLVM)
     else()
     set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
     endif()
-
-    fix_cudart_rpath(_${PACKAGE_NAME})
 
     # install the library
     install(TARGETS _${PACKAGE_NAME}

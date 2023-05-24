@@ -94,18 +94,6 @@ class EvaluatorBondFENE
         {
         }
 
-    //! This evaluator uses diameter information
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle b
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
-
     //! FENE  doesn't use charge
     DEVICE static bool needsCharge()
         {

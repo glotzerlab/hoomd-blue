@@ -533,15 +533,15 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
             Shape tmp_a(quat<Scalar>(), params[type_a]);
             Shape tmp_b(quat<Scalar>(), params[type_b]);
-            OverlapReal d_dep_a = tmp_a.getCircumsphereDiameter();
-            OverlapReal d_dep_b = tmp_b.getCircumsphereDiameter();
+            ShortReal d_dep_a = tmp_a.getCircumsphereDiameter();
+            ShortReal d_dep_b = tmp_b.getCircumsphereDiameter();
 
             // the relevant search radius is the one for the larger depletant
-            OverlapReal d_dep_search = std::max(d_dep_a, d_dep_b);
+            ShortReal d_dep_search = std::max(d_dep_a, d_dep_b);
 
             // we're sampling in the larger volume, so that it strictly covers the insertion volume of
             // the smaller depletant
-            OverlapReal r_dep_sample = 0.5f*d_dep_search;
+            ShortReal r_dep_sample = 0.5f*d_dep_search;
 
             // get AABB and extend
             vec3<Scalar> lower = aabb_i_local.getLower();
@@ -648,7 +648,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // initialize
                 unsigned int sz = initializeDepletionTemporaryStorage(shape_i,
                     shape_j, pos_j[k] - pos_i, r_dep_sample,
-                    ndim, &storage.front(), (OverlapReal) V_all[k], detail::SamplingMethod::accurate);
+                    ndim, &storage.front(), (ShortReal) V_all[k], detail::SamplingMethod::accurate);
 
                 temp_storage.push_back(storage);
                 storage_sz.push_back(sz);
@@ -688,7 +688,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // rejection sampling
                 Shape shape_j(orientation_j[k], params[type_j[k]]);
 
-                vec3<OverlapReal> dr_test;
+                vec3<ShortReal> dr_test;
                 if (!sampleInExcludedVolumeIntersection(my_rng, shape_i, shape_j,
                     pos_j[k] - pos_i, r_dep_sample,
                     dr_test, ndim, storage_sz[k], &temp_storage[k].front(),
@@ -735,9 +735,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 bool overlap_i_b = false;
 
                     {
-                    OverlapReal rsq = dot(dr_test,dr_test);
-                    OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = dot(dr_test,dr_test);
+                    ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     if (h_overlaps[overlap_idx(type_a, typ_i)])
                         {
@@ -756,9 +756,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     }
                 else
                     {
-                    OverlapReal rsq = dot(dr_test,dr_test);
-                    OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = dot(dr_test,dr_test);
+                    ShortReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     if (h_overlaps[overlap_idx(type_b, typ_i)])
                         {
@@ -793,7 +793,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                 // wrap back into into i's image (after transformation)
                 pos_test_transf = box.shift(pos_test_transf,-img_i);
-                vec3<OverlapReal> dr_test_transf = pos_test_transf - pos_i;
+                vec3<ShortReal> dr_test_transf = pos_test_transf - pos_i;
 
                 Shape shape_test_transf_a(shape_test_a.orientation, params[type_a]);
                 if (shape_test_a.hasOrientation())
@@ -802,9 +802,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 if (shape_test_b.hasOrientation())
                     shape_test_transf_b.orientation = q*shape_test_transf_b.orientation;
 
-                OverlapReal rsq = dot(dr_test_transf,dr_test_transf);
-                OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                ShortReal rsq = dot(dr_test_transf,dr_test_transf);
+                ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                 if (h_overlaps[overlap_idx(type_a, typ_i)])
                     {
@@ -822,9 +822,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     }
                 else
                     {
-                    OverlapReal rsq = dot(dr_test_transf,dr_test_transf);
-                    OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = dot(dr_test_transf,dr_test_transf);
+                    ShortReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     if (h_overlaps[overlap_idx(type_b, typ_i)])
                         {
@@ -854,9 +854,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     unsigned int err = 0;
 
                     // check circumsphere overlap
-                    OverlapReal rsq = (OverlapReal) dot(r_mk,r_mk);
-                    OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = (ShortReal) dot(r_mk,r_mk);
+                    ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     bool overlap_j_a = h_overlaps[overlap_idx(type_a,type_m)]
                         && circumsphere_overlap
@@ -870,7 +870,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     else
                         {
                         DaDb = shape_test_b.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                        circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                        circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                         overlap_j_b = h_overlaps[overlap_idx(type_b,type_m)]
                             && circumsphere_overlap
@@ -922,11 +922,11 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                                         // check excluded volume overlap
                                         vec3<Scalar> r_jk(pos_test_image - pj);
-                                        OverlapReal rsq = (OverlapReal) dot(r_jk,r_jk);
-                                        OverlapReal DaDb = shape_test_transf_a.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                                        ShortReal rsq = (ShortReal) dot(r_jk,r_jk);
+                                        ShortReal DaDb = shape_test_transf_a.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                         unsigned int err = 0;
                                         if (h_overlaps[overlap_idx(type_a, typ_j)] &&
-                                            (rsq*OverlapReal(4.0) <= DaDb * DaDb) &&
+                                            (rsq*ShortReal(4.0) <= DaDb * DaDb) &&
                                             test_overlap(r_jk, shape_j, shape_test_transf_a, err) &&
                                             ((type_a == type_b) || (h_overlaps[overlap_idx(type_b, typ_j)] &&
                                             test_overlap(r_jk, shape_j, shape_test_transf_b, err))))
@@ -975,11 +975,11 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                                             // check excluded volume overlap
                                             vec3<Scalar> r_jk(pos_test_image - pj);
-                                            OverlapReal rsq = (OverlapReal) dot(r_jk,r_jk);
-                                            OverlapReal DaDb = shape_test_transf_b.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                                            ShortReal rsq = (ShortReal) dot(r_jk,r_jk);
+                                            ShortReal DaDb = shape_test_transf_b.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                             unsigned int err = 0;
                                             if (h_overlaps[overlap_idx(type_b, typ_j)] &&
-                                                (rsq*OverlapReal(4.0) <= DaDb * DaDb) &&
+                                                (rsq*ShortReal(4.0) <= DaDb * DaDb) &&
                                                 test_overlap(r_jk, shape_j, shape_test_transf_b, err) &&
                                                 h_overlaps[overlap_idx(type_b, typ_j)] &&
                                                 test_overlap(r_jk, shape_j, shape_test_transf_b, err))
@@ -1016,9 +1016,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         unsigned int err = 0;
 
                         // check circumsphere overlap
-                        OverlapReal rsq = (OverlapReal) dot(r_mk,r_mk);
-                        OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                        ShortReal rsq = (ShortReal) dot(r_mk,r_mk);
+                        ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                        bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                         bool overlap_j_a = h_overlaps[overlap_idx(type_a,type_m)]
                             && circumsphere_overlap
@@ -1032,7 +1032,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         else
                             {
                             DaDb = shape_test_b.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                            circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                            circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                             overlap_j_b = h_overlaps[overlap_idx(type_b,type_m)]
                                 && circumsphere_overlap
@@ -1211,7 +1211,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
 
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(ShortReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             const unsigned int n_images = (unsigned int) image_list.size();
@@ -1377,7 +1377,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             {
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(ShortReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             // compute V(r'-r)

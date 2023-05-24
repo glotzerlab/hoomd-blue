@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string.h>
 
+#include <pybind11/stl.h>
+
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
 */
@@ -49,9 +51,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         h_body_len.data[i] = 0;
         }
 
-    m_body_charge.resize(m_pdata->getNTypes());
-    m_body_diameter.resize(m_pdata->getNTypes());
-
     m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
 
@@ -87,15 +86,11 @@ ForceComposite::~ForceComposite()
 void ForceComposite::setParam(unsigned int body_typeid,
                               std::vector<unsigned int>& type,
                               std::vector<Scalar3>& pos,
-                              std::vector<Scalar4>& orientation,
-                              std::vector<Scalar>& charge,
-                              std::vector<Scalar>& diameter)
+                              std::vector<Scalar4>& orientation)
     {
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
-    assert(m_body_charge.size() >= m_pdata->getNTypes());
-    assert(m_body_diameter.size() >= m_pdata->getNTypes());
 
     if (body_typeid >= m_pdata->getNTypes())
         {
@@ -109,21 +104,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
                   << " (position, orientation, type) are of unequal length.";
         throw std::runtime_error(error_msg.str());
         }
-    if (charge.size() && charge.size() != pos.size())
-        {
-        std::ostringstream error_msg;
-        error_msg << "Error initializing ForceComposite: Charges are non-empty but of different "
-                  << "length than the positions.";
-        throw std::runtime_error(error_msg.str());
-        }
-    if (diameter.size() && diameter.size() != pos.size())
-        {
-        std::ostringstream error_msg;
-        error_msg << "Error initializing ForceComposite: Diameters are non-empty but of different "
-                  << "length than the positions.";
-        throw std::runtime_error(error_msg.str());
-        }
-
     bool body_updated = false;
 
     bool body_len_changed = false;
@@ -191,18 +171,12 @@ void ForceComposite::setParam(unsigned int body_typeid,
                                                     access_location::host,
                                                     access_mode::readwrite);
 
-            m_body_charge[body_typeid].resize(type.size());
-            m_body_diameter[body_typeid].resize(type.size());
-
             // store body data in GlobalArray
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
                 h_body_type.data[m_body_idx(body_typeid, i)] = type[i];
                 h_body_pos.data[m_body_idx(body_typeid, i)] = pos[i];
                 h_body_orientation.data[m_body_idx(body_typeid, i)] = orientation[i];
-
-                m_body_charge[body_typeid][i] = charge[i];
-                m_body_diameter[body_typeid][i] = diameter[i];
                 }
             }
         m_bodies_changed = true;
@@ -343,10 +317,6 @@ void ForceComposite::validateRigidBodies()
         {
         // access body data
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_type(m_body_types,
-                                              access_location::host,
-                                              access_mode::read);
-
         typedef std::map<unsigned int, unsigned int> map_t;
         // This will count the length of all molecules (realized rigid bodies) in the system.
         map_t body_particle_count;
@@ -409,14 +379,6 @@ void ForceComposite::validateRigidBodies()
                         "Error validating rigid bodies: Too many constituent particles for "
                         "rigid body.");
                     }
-
-                if (h_body_type.data[m_body_idx(body_type, current_molecule_size)] != snap.type[i])
-                    {
-                    throw std::runtime_error(
-                        "Error validating rigid bodies: Constituent particle types must be "
-                        "consistent with the rigid body definition.  Rigid body definition "
-                        "is in order of particle tag.");
-                    }
                 // increase molecule size by one as particle is validated
                 it->second++;
                 // Mark consistent particle in molecule as belonging to its central particle.
@@ -470,7 +432,39 @@ void ForceComposite::validateRigidBodies()
     m_particles_added_removed = false;
     }
 
-void ForceComposite::createRigidBodies()
+void ForceComposite::pyCreateRigidBodies(pybind11::dict charges)
+    {
+    if (pybind11::len(charges) == 0)
+        {
+        createRigidBodies(std::unordered_map<unsigned int, std::vector<Scalar>>());
+        return;
+        }
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+    std::unordered_map<unsigned int, std::vector<Scalar>> charges_map;
+    for (const auto& item : charges)
+        {
+        const auto type = m_pdata->getTypeByName(item.first.cast<std::string>());
+        if (h_body_len.data[type] == 0)
+            {
+            throw std::runtime_error("Charge provided for non-central particle type.");
+            }
+        const auto charges_list = item.second.cast<pybind11::list>();
+        if (pybind11::len(charges_list) != h_body_len.data[type])
+            {
+            throw std::runtime_error("Charges provided not consistent with rigid body size.");
+            }
+        std::vector<Scalar> charges_vector;
+        for (auto& charge : charges_list)
+            {
+            charges_vector.emplace_back(charge.cast<Scalar>());
+            }
+        charges_map.insert({type, charges_vector});
+        }
+    createRigidBodies(charges_map);
+    }
+
+void ForceComposite::createRigidBodies(
+    const std::unordered_map<unsigned int, std::vector<Scalar>> charges)
     {
     SnapshotParticleData<Scalar> snap;
     const BoxDim& global_box = m_pdata->getGlobalBox();
@@ -568,10 +562,11 @@ void ForceComposite::createRigidBodies()
                 // Update constituent particle snapshot properties from default.
                 snap.type[constituent_particle_tag] = h_body_type.data[body_idx];
                 snap.body[constituent_particle_tag] = particle_tag;
-                snap.charge[constituent_particle_tag]
-                    = m_body_charge[body_type][current_body_index];
-                snap.diameter[constituent_particle_tag]
-                    = m_body_diameter[body_type][current_body_index];
+                if (!charges.empty())
+                    {
+                    snap.charge[constituent_particle_tag]
+                        = charges.at(body_type)[current_body_index];
+                    }
 
                 // Set position and orientation of constituents
                 vec3<Scalar> body_position(snap.pos[particle_tag]);
@@ -842,9 +837,9 @@ void ForceComposite::computeForces(uint64_t timestep)
         }
     }
 
-/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of
- * integration on the CPU based on the body center of mass and particle relative position in each
- * body frame.
+/* Set position, velocity, and type of constituent particles in rigid bodies in the 1st or second
+ * half of integration on the CPU based on the body center of mass and particle relative position in
+ * each body frame.
  */
 
 void ForceComposite::updateCompositeParticles(uint64_t timestep)
@@ -888,6 +883,7 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
                                             access_location::host,
                                             access_mode::read);
+    ArrayHandle<unsigned int> h_body_types(m_body_types, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
@@ -983,10 +979,11 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
         updated_pos = global_box.shift(updated_pos, negimgi);
 
-        h_postype.data[particle_index] = make_scalar4(updated_pos.x,
-                                                      updated_pos.y,
-                                                      updated_pos.z,
-                                                      h_postype.data[particle_index].w);
+        h_postype.data[particle_index]
+            = make_scalar4(updated_pos.x,
+                           updated_pos.y,
+                           updated_pos.z,
+                           __int_as_scalar(h_body_types.data[m_body_idx(type, idx_in_body)]));
         h_orientation.data[particle_index] = quat_to_scalar4(updated_orientation);
         h_image.data[particle_index] = img + imgi;
         }
@@ -1003,7 +1000,7 @@ void export_ForceComposite(pybind11::module& m)
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
-        .def("createRigidBodies", &ForceComposite::createRigidBodies)
+        .def("createRigidBodies", &ForceComposite::pyCreateRigidBodies)
         .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }
 

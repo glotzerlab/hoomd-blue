@@ -236,24 +236,24 @@ Other option changes take effect at any time:
 - ``ENABLE_LLVM`` - Enable run time code generation with LLVM.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
 - ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
-- ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
+- ``HOOMD_SHORTREAL_SIZE`` - Size in bits of the ``ShortReal`` type (default: ``32``).
 
-  - When set to ``on``, all calculations are performed in single precision.
-  - When set to ``off``, all calculations are performed in double precision.
+  - When set to ``32``, perform force computations, overlap checks, and other local calculations
+    in single precision.
+  - When set to ``64``, perform **all** calculations in double precision.
 
-- ``ENABLE_HPMC_MIXED_PRECISION`` - Controls mixed precision in the ``hpmc`` component. When on,
-  single precision is forced in expensive shape overlap checks.
+- ``HOOMD_LONGREAL_SIZE`` - Size in bits of the ``LongReal`` type (default: ``64``).
+
+  - When set to ``64``, store particle coordinates, sum quantities, and perform integration in
+    double precision.
+  - When set to ``32``, store particle coordinates, sum quantities, and perform integration in
+    single precision. **NOT RECOMMENDED**, HOOMD-blue fails validation tests when
+    ``HOOMD_LONGREAL_SIZE == HOOMD_SHORTREAL_SIZE == 32``.
+
 - ``ENABLE_MPI`` - Enable multi-processor/GPU simulations using MPI.
 
   - When set to ``on``, multi-processor/multi-GPU simulations are supported.
   - When set to ``off`` (the default), always run in single-processor/single-GPU mode.
-
-- ``ENABLE_MPI_CUDA`` - Enable CUDA-aware MPI library support.
-
-  - Requires a MPI library with CUDA support to be installed.
-  - When set to ``on``, **HOOMD-blue** will make use of the capability of the MPI library to
-    accelerate CUDA-buffer transfers.
-  - When set to ``off``, standard MPI calls will be used.
 
 - ``ENABLE_TBB`` - Enable support for Intel's Threading Building Blocks (TBB).
 
