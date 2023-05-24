@@ -25,6 +25,47 @@ import hoomd
 from hoomd import _hoomd
 
 
+class NoticeFile:
+    """A file-like object that writes to a `Device` notice stream.
+
+    Args:
+        device (`Device`): The `Device` object.
+        level (int): Message notice level. Default value is 1.
+
+    Note:
+        Use this in combination with `Device.message_filename` to combine notice
+        messages with output from code that expects file-like objects (such as
+        `hoomd.write.Table`).
+    """
+
+    def __init__(self, device, level=1):
+        self._msg = device._cpp_msg
+        self._buff = ""
+        self._level = level
+
+    def write(self, message):
+        """Writes data to the associated devices notice stream.
+
+        Args:
+            message (str): Message to write.
+        """
+        self._buff += message
+
+        lines = self._buff.split("\n")
+        for line in lines[:-1]:
+            self._msg.notice(self._level, line + "\n")
+
+        if self._buff.endswith("\n"):
+            self._msg.notice(self._level, lines[-1] + "\n")
+            self._buff = ""
+        else:
+            self._buff = lines[-1]
+
+    def flush(self):
+        """Flush the output."""
+        pass
+
+
 class Device:
     """Base class device object.
 
