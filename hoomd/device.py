@@ -26,16 +26,16 @@ from hoomd import _hoomd
 
 
 class NoticeFile:
-    """A file-like object that writes to a `hoomd.Device` notice stream.
+    """A file-like object that writes to a `Device` notice stream.
 
     Args:
-        device (`hoomd.Device`): The `Device` object.
+        device (`Device`): The `Device` object.
         level (int): Message notice level. Default value is 1.
 
     Note:
         Use this in combination with `Device.message_filename` to combine notice
         messages with output from code that expects file-like objects (such as
-        `hoomd.write.Table`.
+        `hoomd.write.Table`).
     """
 
     def __init__(self, device, level=1):
