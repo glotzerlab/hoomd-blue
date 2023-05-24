@@ -51,8 +51,7 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
 
     if (m_flags == 0)
         {
-        m_exec_conf->msg->warning()
-            << "ConstantPressure: No box degrees of freedom." << std::endl;
+        m_exec_conf->msg->warning() << "ConstantPressure: No box degrees of freedom." << std::endl;
         }
 
     bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
