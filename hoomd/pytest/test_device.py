@@ -150,7 +150,7 @@ def test_noticefile(device, tmp_path):
     msg = 123456
     device.message_filename = str(tmp_path / "int_message")
     with pytest.raises(TypeError):
-         notice_file.write(msg)
+        notice_file.write(msg)
 
     # Test the level argument
     msg = "This message should not output.\n"
