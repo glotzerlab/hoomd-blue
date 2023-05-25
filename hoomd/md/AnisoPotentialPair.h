@@ -15,7 +15,6 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
-#include "hoomd/GSDShapeSpecWriter.h"
 
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"

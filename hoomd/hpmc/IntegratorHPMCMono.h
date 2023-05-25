@@ -22,7 +22,6 @@
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
-#include "hoomd/GSDShapeSpecWriter.h"
 #include "ShapeSpheropolyhedron.h"
 
 #ifdef ENABLE_TBB
