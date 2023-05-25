@@ -144,7 +144,7 @@ def test_noticefile(device, tmp_path):
 
     if device.communicator.rank == 0:
         with open(device.message_filename) as fh:
-            assert fh.read() == str(msg) + "\n"
+            assert fh.read() == str(msg)
 
     # Test notice with a message that is not a string.
     msg = 123456

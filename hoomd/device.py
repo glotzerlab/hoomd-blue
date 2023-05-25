@@ -52,14 +52,14 @@ class NoticeFile:
         self._buff += message
 
         lines = self._buff.split("\n")
+
         for line in lines[:-1]:
             self._msg.notice(self._level, line + "\n")
 
-        if self._buff.endswith("\n"):
-            self._msg.notice(self._level, lines[-1] + "\n")
-            self._buff = ""
-        else:
-            self._buff = lines[-1]
+        self._buff = lines[-1]
+
+    def writable(self):
+        return True
 
     def flush(self):
         """Flush the output."""
