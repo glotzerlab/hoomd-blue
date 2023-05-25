@@ -221,8 +221,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     std::unordered_map<std::string, bool>
         m_nondefault; //!< Map of quantities (true when non-default in frame 0)
 
-    hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
-
     /// Copy of the state properties local to this rank, in ascending tag order.
     GSDFrame m_local_frame;
 

@@ -397,9 +397,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
             }
         }
 
-    // emit on all ranks, the slot needs to handle the mpi logic.
-    m_write_signal.emit(m_handle);
-
     if (!m_log_writer.is_none())
         {
         m_log_writer.attr("_write_frame")(this);
