@@ -59,6 +59,7 @@ class NoticeFile:
         self._buff = lines[-1]
 
     def writable(self):
+        """Provide file-like API call writable."""
         return True
 
     def flush(self):
