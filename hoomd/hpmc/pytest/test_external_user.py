@@ -213,12 +213,12 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
 
     # expand box and add gravity field
     old_box = sim.state.box
-    new_box = hoomd.Box(Lx=1.5 * old_box.Lx,
-                        Ly=1.5 * old_box.Ly,
-                        Lz=20 * old_box.Lz)
+    new_box = hoomd.Box(Lx=3 * old_box.Lx,
+                        Ly=3 * old_box.Ly,
+                        Lz=5 * old_box.Lz)
     sim.state.set_box(new_box)
     ext = hoomd.hpmc.external.user.CPPExternalPotential(
-        code="return 1000*r_i.z;")
+        code="return 1000*r_i.z*r_i.z;")
     mc.external_potential = ext
     sim.operations.integrator = mc
 
@@ -233,5 +233,6 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
         new_avg_z = np.mean(snapshot.particles.position[:, 2])
-        assert new_avg_z < old_avg_z
+        assert abs(new_avg_z) < 0.5
+        assert np.ptp(snapshot.particles.position[:, 2]) < 1
     assert ext.energy < old_energy

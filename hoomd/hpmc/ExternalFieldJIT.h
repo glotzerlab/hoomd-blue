@@ -103,7 +103,9 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
             unsigned int typ_i = __scalar_as_int(postype_i.w);
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i) - vec3<Scalar>(this->m_pdata->getOrigin());
+            int3 image = make_int3(0, 0, 0);
+            box.wrap(pos_i, image);
 
             total_energy += energy(box,
                                    typ_i,
@@ -161,7 +163,12 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
             unsigned int typ_i = __scalar_as_int(postype_i.w);
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+            int3 image = make_int3(0, 0, 0);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i) - vec3<Scalar>(this->m_pdata->getOrigin());
+            box_new.wrap(pos_i, image);
+            image = make_int3(0, 0, 0);
+            vec3<Scalar> old_pos_i = vec3<Scalar>(*(position_old + i));
+            box_old.wrap(old_pos_i, image);
             dE += energy(box_new,
                          typ_i,
                          pos_i,
@@ -170,7 +177,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                          h_charge.data[i]);
             dE -= energy(box_old,
                          typ_i,
-                         vec3<Scalar>(*(position_old + i)),
+                         old_pos_i,
                          quat<Scalar>(*(orientation_old + i)),
                          h_diameter.data[i],
                          h_charge.data[i]);
@@ -209,17 +216,24 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
                                      access_location::host,
                                      access_mode::read);
+        const BoxDim box = this->m_pdata->getGlobalBox();
+        int3 image = make_int3(0, 0, 0);
+        vec3<Scalar> pos_new_shifted = position_new - vec3<Scalar>(this->m_pdata->getOrigin());
+        vec3<Scalar> pos_old_shifted = position_old - vec3<Scalar>(this->m_pdata->getOrigin());
+        box.wrap(pos_new_shifted, image);
+        image = make_int3(0, 0, 0);
+        box.wrap(pos_old_shifted, image);
 
         double dE = 0.0;
         dE += energy(this->m_pdata->getGlobalBox(),
                      typ_i,
-                     position_new,
+                     pos_new_shifted,
                      shape_new.orientation,
                      h_diameter.data[index],
                      h_charge.data[index]);
         dE -= energy(this->m_pdata->getGlobalBox(),
                      typ_i,
-                     position_old,
+                     pos_old_shifted,
                      shape_old.orientation,
                      h_diameter.data[index],
                      h_charge.data[index]);
