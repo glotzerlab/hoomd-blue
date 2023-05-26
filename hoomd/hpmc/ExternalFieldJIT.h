@@ -131,7 +131,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     virtual double calculateDeltaE(uint64_t timestep,
                                    const Scalar4* const position_old_arg,
                                    const Scalar4* const orientation_old_arg,
-                                   const BoxDim& box_old)
+                                   const BoxDim& box_old,
+                                   const Scalar3& origin_old)
         {
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
                                        access_location::host,
@@ -167,7 +168,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             vec3<Scalar> pos_i = vec3<Scalar>(postype_i) - vec3<Scalar>(this->m_pdata->getOrigin());
             box_new.wrap(pos_i, image);
             image = make_int3(0, 0, 0);
-            vec3<Scalar> old_pos_i = vec3<Scalar>(*(position_old + i));
+            vec3<Scalar> old_pos_i = vec3<Scalar>(*(position_old + i)) - vec3<Scalar>(origin_old);
             box_old.wrap(old_pos_i, image);
             dE += energy(box_new,
                          typ_i,
