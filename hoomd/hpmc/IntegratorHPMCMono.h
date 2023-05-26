@@ -1335,7 +1335,10 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     // build an up to date AABB tree
     buildAABBTree();
     // update the image list
-    updateImageList();
+    if (m_pdata->getCoordinateType() == ParticleData::cartesian)
+    {
+        updateImageList();
+    }
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1545,7 +1548,10 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     // build an up to date AABB tree
     buildAABBTree();
     // update the image list
-    updateImageList();
+    if (m_pdata->getCoordinateType() == ParticleData::cartesian)
+    {
+        updateImageList();
+    }
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -2041,7 +2047,8 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         {
         img_warning = 27;
         }
-    if (!m_image_list_warning_issued && m_image_list.size() > img_warning)
+    if (!m_image_list_warning_issued && m_image_list.size() > img_warning && 
+        m_pdata->getCoordinateType() == ParticleData::cartesian)
         {
         m_image_list_warning_issued = true;
         m_exec_conf->msg->warning() << "Box size is too small or move size is too large for the minimum image convention." << std::endl
@@ -2254,8 +2261,11 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
     // build an up to date AABB tree
     buildAABBTree();
     // update the image list
-    updateImageList();
 
+    if (m_pdata->getCoordinateType() == ParticleData::cartesian)
+    {
+        updateImageList();
+    }
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);

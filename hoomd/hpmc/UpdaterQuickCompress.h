@@ -176,6 +176,7 @@ class UpdaterQuickCompress : public Updater
 
     /// Track whether the compression is complete
     bool m_is_complete = false;
+    bool use_spherical_coord = false;
     };
 
 namespace detail

@@ -38,10 +38,11 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            double min_scale,
                                            std::shared_ptr<Sphere> target_sphere)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
-      m_target_box(target_sphere)
+      m_target_sphere(target_sphere)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterQuickCompress" << std::endl;
     setMinScale(min_scale);
+    this->use_spherical_coord = true;
 
     // allocate memory for m_pos_backup
     unsigned int MaxN = m_pdata->getMaxN();
@@ -69,7 +70,9 @@ void UpdaterQuickCompress::update(uint64_t timestep)
 
     // count the number of overlaps in the current configuration
     auto n_overlaps = m_mc->countOverlaps(false);
-    if(m_pdata.use_spherical_coord)
+    //if(m_pdata.use_spherical_coord)
+    //std::cout << "Number of overlaps is " << n_overlaps << std::endl;
+    if(this->use_spherical_coord)
         {
         Sphere current_sphere = m_pdata->getSphere();
     
@@ -140,9 +143,12 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
 
 void UpdaterQuickCompress::performSphereScale(uint64_t timestep)
     {
+
+    //std::cout << "performSphereScale line 149" << std::endl;
     auto new_sphere = getNewSphere(timestep);
     auto old_sphere = m_pdata->getSphere();
 
+    //std::cout << "performSphereScale line 153" << std::endl;
     // Make a backup copy of position data
     // (Gabby) I don't think we need to do this since the positions are a direct function of R
     /*
@@ -160,10 +166,11 @@ void UpdaterQuickCompress::performSphereScale(uint64_t timestep)
 
     //m_mc->attemptSphereResize(timestep, new_sphere);
 
-    m_pdata->setGlobalSphere(new_sphere);
+    m_pdata->setSphere(new_sphere);
     auto n_overlaps = m_mc->countOverlaps(false);
     if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getNGlobal())
         {
+        //std::cout << "the sphere move generated too many overlaps, undo the move" << std::endl;
         // the sphere move generated too many overlaps, undo the move
         /*
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -174,13 +181,17 @@ void UpdaterQuickCompress::performSphereScale(uint64_t timestep)
         assert(N == N_backup);
         memcpy(h_pos.data, h_pos_backup.data, sizeof(Scalar4) * N);
         */
-        m_pdata->setGlobalSphere(old_sphere);
+        m_pdata->setSphere(old_sphere);
 
         // we have moved particles, communicate those changes
         m_mc->communicate(false);
         }
-    }
+    else
+        {
+        m_pdata->setGlobalBox(BoxDim(4*(new_sphere.getR())));
+        }
 
+    }
 /** Adjust a value by the scale.
 
     Scales the current value toward a target without exceeding the target.
@@ -313,7 +324,7 @@ Sphere UpdaterQuickCompress::getNewSphere(uint64_t timestep)
     new_R = scaleValue(current_sphere.getR(), target_sphere.getR(), scale);
         
     Sphere new_sphere = current_sphere;
-    new_sphere.setL(new_R);
+    new_sphere.setR(new_R);
     return new_sphere;
     }
 

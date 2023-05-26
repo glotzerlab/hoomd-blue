@@ -1628,11 +1628,21 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
         std::vector<Scalar3> inertia(m_nparticles);
         std::vector<unsigned int> tag(m_nparticles);
         std::map<unsigned int, unsigned int> rtag_map;
+
+	    bool cartesianType = getCoordinateType() == cartesian;
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
-            pos[idx]
-                = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
-            vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+                if(cartesianType)
+                {
+                    pos[idx]
+                        = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+                }
+                else{
+                    pos[idx]
+                        = sphere.sphericalToCartesian(h_quat_pos.data[idx]);
+ 
+                }
+           vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             accel[idx] = h_accel.data[idx];
             type[idx] = __scalar_as_int(h_pos.data[idx].w);
             mass[idx] = h_vel.data[idx].w;
@@ -1732,6 +1742,7 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
             assert(m_tag_set.size() == getNGlobal());
             std::set<unsigned int>::const_iterator tag_set_it = m_tag_set.begin();
 
+        	bool cartesianType = getCoordinateType() == cartesian;
             std::map<unsigned int, std::pair<unsigned int, unsigned int>>::iterator rank_rtag_it;
             for (unsigned int snap_id = 0; snap_id < getNGlobal(); snap_id++)
                 {
@@ -1755,7 +1766,14 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
                 // store tag in index map
                 index.insert(std::make_pair(tag, snap_id));
 
-                snapshot.pos[snap_id] = vec3<Real>(pos_proc[rank][idx]);
+                if(cartesianType)
+                {
+                    snapshot.pos[snap_id] = vec3<Real>(pos_proc[rank][idx]);
+                }
+                else{
+                    snapshot.pos[snap_id] = sphere.sphericalToCartesian(vec3<Real>(quat_pos_proc[rank][idx]));
+                }
+                //snapshot.pos[snap_id] = vec3<Real>(pos_proc[rank][idx]);
                 snapshot.vel[snap_id] = vec3<Real>(vel_proc[rank][idx]);
                 snapshot.accel[snap_id] = vec3<Real>(accel_proc[rank][idx]);
                 snapshot.type[snap_id] = type_proc[rank][idx];
@@ -1770,10 +1788,12 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
                 snapshot.inertia[snap_id] = vec3<Real>(inertia_proc[rank][idx]);
 
                 // make sure the position stored in the snapshot is within the boundaries
-                Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
-                m_global_box->wrap(tmp, snapshot.image[snap_id]);
-                snapshot.pos[snap_id] = vec3<Real>(tmp);
-
+                if(cartesianType)
+                {
+                    Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
+                    m_global_box->wrap(tmp, snapshot.image[snap_id]);
+                    snapshot.pos[snap_id] = vec3<Real>(tmp);
+                }
                 std::advance(tag_set_it, 1);
                 }
             }
@@ -1788,6 +1808,9 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
         std::set<unsigned int>::const_iterator it = m_tag_set.begin();
 
 	bool cartesianType = getCoordinateType() == cartesian;
+    float possibleRadius = float(fast::sqrt(pow(h_pos.data[0].x, 2) + pow(h_pos.data[0].y, 2) + pow(h_pos.data[0].z, 2)));
+    hoomd::Sphere sphere = Sphere(possibleRadius);
+
 
         // iterate through active tags
         for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++)
@@ -1800,9 +1823,18 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
             // store tag in index map
             index.insert(std::make_pair(tag, snap_id));
 
-            snapshot.pos[snap_id] = vec3<Real>(
-                make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin);
-            snapshot.vel[snap_id]
+            if(cartesianType)
+            {
+                snapshot.pos[snap_id] = vec3<Real>(
+                    make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin); 
+            }
+            else{
+                snapshot.pos[snap_id] =// vec3<Real>(
+                    //make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin); 
+                    vec3<Real>(sphere.sphericalToCartesian(quat<Real>(h_quat_pos.data[idx]))); 
+                    //m_sphere.sphericalToCartesian(h_quat_pos.data[idx]));
+            }
+           snapshot.vel[snap_id]
                 = vec3<Real>(make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z));
             snapshot.accel[snap_id] = vec3<Real>(h_accel.data[idx]);
             snapshot.type[snap_id] = __scalar_as_int(h_pos.data[idx].w);
