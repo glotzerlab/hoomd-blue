@@ -106,11 +106,6 @@ void SphereResizeUpdater::update(uint64_t timestep)
         {
         // set the new sphere
         m_pdata->setSphere(new_sphere);
-
-        // scale the particle positions (if we have been asked to)
-        // move the particles to be inside the new sphere
-        //(Gabby) The particles aren't going to be outside of the new sphere, it's closed
-        //scaleAndWrapParticles(cur_sphere, new_sphere);
         }
     }
 

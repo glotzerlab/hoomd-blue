@@ -81,10 +81,6 @@ class PYBIND11_EXPORT SphereResizeUpdater : public Updater
     /// Update sphere interpolation based on provided timestep
     virtual void update(uint64_t timestep);
 
-    /// Scale particles to the new sphere and wrap any back into the sphere
-    /// Nope it's a closed system (Gabby)
-    //virtual void scaleAndWrapParticles(const Sphere& cur_sphere, const Sphere& new_sphere);
-
     protected:
     std::shared_ptr<Sphere> m_sphere1;         ///< C++ sphere assoc with min
     std::shared_ptr<Sphere> m_sphere2;         ///< C++ sphere assoc with max

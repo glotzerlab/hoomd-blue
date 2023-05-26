@@ -1829,10 +1829,8 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
                     make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin); 
             }
             else{
-                snapshot.pos[snap_id] =// vec3<Real>(
-                    //make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin); 
+                snapshot.pos[snap_id] =
                     vec3<Real>(sphere.sphericalToCartesian(quat<Real>(h_quat_pos.data[idx]))); 
-                    //m_sphere.sphericalToCartesian(h_quat_pos.data[idx]));
             }
            snapshot.vel[snap_id]
                 = vec3<Real>(make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z));

@@ -148,39 +148,10 @@ void UpdaterQuickCompress::performSphereScale(uint64_t timestep)
     auto new_sphere = getNewSphere(timestep);
     auto old_sphere = m_pdata->getSphere();
 
-    //std::cout << "performSphereScale line 153" << std::endl;
-    // Make a backup copy of position data
-    // (Gabby) I don't think we need to do this since the positions are a direct function of R
-    /*
-    unsigned int N_backup = m_pdata->getN();
-        {
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), //(Gabby) assuming this is fine, check back later
-                                   access_location::host,
-                                   access_mode::read);
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup,
-                                          access_location::host,
-                                          access_mode::overwrite);
-        memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * N_backup);
-        }
-    */
-
-    //m_mc->attemptSphereResize(timestep, new_sphere);
-
     m_pdata->setSphere(new_sphere);
     auto n_overlaps = m_mc->countOverlaps(false);
     if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getNGlobal())
         {
-        //std::cout << "the sphere move generated too many overlaps, undo the move" << std::endl;
-        // the sphere move generated too many overlaps, undo the move
-        /*
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::read);
-        unsigned int N = m_pdata->getN();
-        assert(N == N_backup);
-        memcpy(h_pos.data, h_pos_backup.data, sizeof(Scalar4) * N);
-        */
         m_pdata->setSphere(old_sphere);
 
         // we have moved particles, communicate those changes
