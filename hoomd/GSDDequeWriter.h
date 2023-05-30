@@ -22,8 +22,11 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
                    std::shared_ptr<Trigger> trigger,
                    const std::string& fname,
                    std::shared_ptr<ParticleGroup> group,
+                   pybind11::object logger,
                    int queue_size,
-                   std::string mode = "ab");
+                   std::string mode,
+                   bool write_on_init,
+                   uint64_t timestep);
     ~GSDDequeWriter() = default;
 
     void analyze(uint64_t timestep) override;
@@ -35,7 +38,6 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
 
     protected:
     int m_queue_size;
-    bool m_write_initial_frame;
     std::deque<GSDDumpWriter::GSDFrame> m_frame_queue;
     std::deque<pybind11::dict> m_log_queue;
     };

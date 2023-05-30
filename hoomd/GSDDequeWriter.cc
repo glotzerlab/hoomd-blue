@@ -10,23 +10,40 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<Trigger> trigger,
                                const std::string& fname,
                                std::shared_ptr<ParticleGroup> group,
+                               pybind11::object logger,
                                int queue_size,
-                               std::string mode)
+                               std::string mode,
+                               bool write_at_init,
+                               uint64_t timestep)
     : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size)
     {
+    setLogWriter(logger);
+    bool file_empty = true;
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         if (m_exec_conf->isRoot())
             {
-            m_write_initial_frame = gsd_get_nframes(&m_handle) == 0;
+            file_empty = gsd_get_nframes(&m_handle) == 0;
             }
-        bcast(m_write_initial_frame, 0, m_exec_conf->getMPICommunicator());
+        bcast(file_empty, 0, m_exec_conf->getMPICommunicator());
         }
     else
 #endif
         {
-        m_write_initial_frame = gsd_get_nframes(&m_handle) == 0;
+        file_empty = gsd_get_nframes(&m_handle) == 0;
+        }
+    if (file_empty)
+        {
+        if (!write_at_init)
+            {
+            throw std::runtime_error("Must set write_at_start to write to a new file.");
+            }
+        else
+            {
+            analyze(timestep);
+            dump();
+            }
         }
     }
 
@@ -35,12 +52,6 @@ void GSDDequeWriter::analyze(uint64_t timestep)
     m_frame_queue.emplace_front();
     populateLocalFrame(m_frame_queue.front(), timestep);
     m_log_queue.push_front(getLogData());
-    if (m_write_initial_frame)
-        {
-        dump();
-        m_write_initial_frame = false;
-        return;
-        }
     if (m_queue_size != -1 && m_frame_queue.size() > static_cast<size_t>(m_queue_size))
         {
         m_frame_queue.pop_back();
@@ -88,8 +99,11 @@ void export_GSDDequeWriter(pybind11::module& m)
                             std::shared_ptr<Trigger>,
                             std::string,
                             std::shared_ptr<ParticleGroup>,
+                            pybind11::object,
                             int,
-                            std::string>())
+                            std::string,
+                            bool,
+                            uint64_t>())
         .def_property("max_burst_size",
                       &GSDDequeWriter::getMaxQueueSize,
                       &GSDDequeWriter::setMaxQueueSize)
