@@ -138,6 +138,12 @@ class GSD(Writer):
     When you set a category string (``'property'``, ``'momentum'``,
     ``'attribute'``), `GSD` makes all the category member's fields dynamic.
 
+    Warning:
+        `GSD` buffers writes in memory. Abnormal exits (e.g. ``kill``,
+        ``scancel``, reaching walltime limits) may cause loss of data. Ensure
+        that your scripts exit cleanly and call `flush()` as needed to write
+        buffered frames to the file.
+
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
         Schema <https://gsd.readthedocs.io/en/stable/schema-hoomd.html>`__, and
@@ -280,7 +286,18 @@ class GSD(Writer):
         return self.logger
 
     def flush(self):
-        """Flush the write buffer to the file."""
+        """Flush the write buffer to the file.
+
+        Example::
+
+            gsd_writer.flush()
+
+        Flush all write buffers::
+
+            for writer in simulation.operations.writers:
+                if hasattr(writer, 'flush'):
+                    writer.flush()
+        """
         if not self._attached:
             raise RuntimeError("The GSD file is unavailable until the"
                                "simulation runs for 0 or more steps.")
