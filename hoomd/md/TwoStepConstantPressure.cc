@@ -46,12 +46,13 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
     : IntegrationMethodTwoStep(sysdef, group), m_S(S), m_tauS(tauS), m_ndof(0), m_gamma(gamma),
       m_thermostat(thermostat), m_thermo_full_step(thermo_full_step), m_rescale_all(false)
     {
-    if (m_flags == 0)
-        m_exec_conf->msg->warning()
-            << "integrate.npt: No barostat couplings specified." << std::endl;
-
     setCouple(couple);
     setFlags(flags);
+
+    if (m_flags == 0)
+        {
+        m_exec_conf->msg->warning() << "ConstantPressure: No box degrees of freedom." << std::endl;
+        }
 
     bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
     m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions); // volume
