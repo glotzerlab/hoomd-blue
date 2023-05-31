@@ -88,10 +88,7 @@ def sim(simulation_factory, hoomd_snapshot):
     return sim
 
 
-def check_write(sim: hoomd.Simulation,
-                filename: str,
-                trigger_period: int,
-                skip_first: bool = True):
+def check_write(sim: hoomd.Simulation, filename: str, trigger_period: int):
     snaps = []
     for _ in range(N_RUN_STEPS):
         sim.run(trigger_period)
@@ -103,8 +100,7 @@ def check_write(sim: hoomd.Simulation,
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             # have to skip first frame which is from the first call.
-            sl_ = slice(1, None) if skip_first else slice(None)
-            for snap, gsd_snap in zip(snaps, traj[sl_]):
+            for snap, gsd_snap in zip(snaps, traj[1:]):
                 assert_equivalent_snapshots(gsd_snap, snap)
 
 
@@ -116,7 +112,8 @@ def test_burst_dump(sim, tmp_path):
                                      filename=filename,
                                      mode='wb',
                                      dynamic=['property', 'momentum'],
-                                     max_burst_size=3)
+                                     max_burst_size=3,
+                                     write_at_start=True)
     sim.operations.writers.append(burst_writer)
     sim.run(8)
     burst_writer.flush()
@@ -130,7 +127,7 @@ def test_burst_dump(sim, tmp_path):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
-            assert [frame.configuration.step for frame in traj] == [1, 3, 5, 7]
+            assert [frame.configuration.step for frame in traj] == [0, 3, 5, 7]
 
 
 def test_burst_max_size(sim, tmp_path):
@@ -139,7 +136,8 @@ def test_burst_max_size(sim, tmp_path):
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='wb',
                                      dynamic=['property', 'momentum'],
-                                     max_burst_size=N_RUN_STEPS)
+                                     max_burst_size=N_RUN_STEPS,
+                                     write_at_start=True)
     sim.operations.writers.append(burst_writer)
     # Run 1 extra step to fill the burst which does not include the first frame
     sim.run(N_RUN_STEPS + 1)
@@ -154,7 +152,8 @@ def test_burst_mode_xb(sim, tmp_path):
     burst_writer = hoomd.write.Burst(filename=filename,
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='xb',
-                                     dynamic=['property', 'momentum'])
+                                     dynamic=['property', 'momentum'],
+                                     write_at_start=True)
     sim.operations.writers.append(burst_writer)
     if sim.device.communicator.rank == 0:
         with pytest.raises(RuntimeError):
@@ -167,9 +166,10 @@ def test_burst_mode_xb(sim, tmp_path):
     burst_writer = hoomd.write.Burst(filename=filename_xb,
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='xb',
-                                     dynamic=['property', 'momentum'])
+                                     dynamic=['property', 'momentum'],
+                                     write_at_start=True)
     sim.operations.writers.append(burst_writer)
-    check_write(sim, filename_xb, 1, skip_first=False)
+    check_write(sim, filename_xb, 1)
 
 
 def test_write_burst_log(sim, tmp_path):
@@ -178,6 +178,7 @@ def test_write_burst_log(sim, tmp_path):
 
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
     sim.operations.computes.append(thermo)
+    sim.run(0)
 
     logger = hoomd.logging.Logger()
     logger.add(thermo)
@@ -186,7 +187,8 @@ def test_write_burst_log(sim, tmp_path):
                                      trigger=hoomd.trigger.Periodic(1),
                                      filter=hoomd.filter.Null(),
                                      mode='wb',
-                                     logger=logger)
+                                     logger=logger,
+                                     write_at_start=True)
     sim.operations.writers.append(burst_writer)
 
     kinetic_energies = []
@@ -198,5 +200,5 @@ def test_write_burst_log(sim, tmp_path):
     if sim.device.communicator.rank == 0:
         key = "md/compute/ThermodynamicQuantities/kinetic_energy"
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
-            for frame, sim_ke in zip(traj, kinetic_energies):
+            for frame, sim_ke in zip(traj[1:], kinetic_energies):
                 assert frame.log[key] == sim_ke
