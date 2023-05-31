@@ -632,7 +632,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
-                           const BoxDim& box_old)
+                           const BoxDim& box_old,
+                           const Scalar3& origin_old)
         {
         unsigned int numOverlaps = countOverlaps(0, false);
         if (numOverlaps > 0)
