@@ -292,7 +292,8 @@ class ActiveRotationalDiffusion(Updater):
             self.rotational_diffusion, self.active_force._cpp_obj)
 
     def _handle_removed_dependency(self, active_force):
-        if (sim := self._simulation) is not None:
+        sim = self._simulation
+        if sim is not None:
             sim._operations.updaters.remove(self)
         super()._handle_removed_dependency(active_force)
 
