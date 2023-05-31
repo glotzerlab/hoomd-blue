@@ -48,7 +48,6 @@ def test_adding_typeparams(type_param, base_op):
     assert 'type_param' in base_op._typeparam_dict.keys()
     expected_dict = {"foo": 1, "bar": RequiredArg}
     assert base_op._typeparam_dict['type_param']['A'] == expected_dict
-    return base_op
 
 
 def test_extending_typeparams(base_op):
