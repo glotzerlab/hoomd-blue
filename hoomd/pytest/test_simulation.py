@@ -31,7 +31,7 @@ class SleepUpdater(hoomd.custom.Action):
 
 
 def make_gsd_snapshot(hoomd_snapshot):
-    s = gsd.hoomd.Snapshot()
+    s = gsd.hoomd.Frame()
     for attr in dir(hoomd_snapshot):
         if attr[0] != '_' and attr not in [
                 'exists', 'replicate', 'communicator'
