@@ -1197,7 +1197,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
       m_decomposition(decomposition), m_is_communicating(false), m_force_migrate(false),
       m_nneigh(0), m_n_unique_neigh(0), m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf),
       m_diameter_copybuf(m_exec_conf), m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf),
-      m_velocity_copybuf(m_exec_conf), m_orientation_copybuf(m_exec_conf),
+      m_velocity_copybuf(m_exec_conf), m_orientation_copybuf(m_exec_conf), m_quat_pos_copybuf(m_exec_conf),
       m_plan_copybuf(m_exec_conf), m_tag_copybuf(m_exec_conf), m_netforce_copybuf(m_exec_conf),
       m_nettorque_copybuf(m_exec_conf), m_netvirial_copybuf(m_exec_conf),
       m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf), m_plan_reverse(m_exec_conf),
@@ -1313,9 +1313,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     initializeNeighborArrays();
 
     /* create a type for pdata_element */
-    const int nitems = 14;
-    int blocklengths[14] = {4, 4, 3, 1, 1, 3, 1, 4, 4, 3, 1, 4, 4, 6};
-    MPI_Datatype types[14] = {MPI_HOOMD_SCALAR,
+    const int nitems = 15;
+    int blocklengths[15] = {4, 4, 3, 1, 1, 3, 1, 4, 4, 3, 1, 4, 4, 6,4};
+    MPI_Datatype types[15] = {MPI_HOOMD_SCALAR,
                               MPI_HOOMD_SCALAR,
                               MPI_HOOMD_SCALAR,
                               MPI_HOOMD_SCALAR,
@@ -1328,8 +1328,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
                               MPI_UNSIGNED,
                               MPI_HOOMD_SCALAR,
                               MPI_HOOMD_SCALAR,
+                              MPI_HOOMD_SCALAR,
                               MPI_HOOMD_SCALAR};
-    MPI_Aint offsets[14];
+    MPI_Aint offsets[15];
 
     offsets[0] = offsetof(detail::pdata_element, pos);
     offsets[1] = offsetof(detail::pdata_element, vel);
@@ -1345,6 +1346,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     offsets[11] = offsetof(detail::pdata_element, net_force);
     offsets[12] = offsetof(detail::pdata_element, net_torque);
     offsets[13] = offsetof(detail::pdata_element, net_virial);
+    offsets[14] = offsetof(detail::pdata_element, quat_pos);
 
     MPI_Datatype tmp;
     MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
@@ -1965,6 +1967,11 @@ void Communicator::exchangeGhosts()
             m_orientation_copybuf.resize(max_copy_ghosts);
             }
 
+        if (flags[comm_flag::quat_pos])
+            {
+            m_quat_pos_copybuf.resize(max_copy_ghosts);
+            }
+
             {
             // we fill all fields, but send only those that are requested by the CommFlags bitset
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -1986,6 +1993,9 @@ void Communicator::exchangeGhosts()
                                        access_location::host,
                                        access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                               access_location::host,
+                                               access_mode::read);
+            ArrayHandle<Scalar4> h_quat_pos(m_pdata->getPosQuaternionArray(),
                                                access_location::host,
                                                access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
@@ -2020,6 +2030,9 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf,
                                                        access_location::host,
                                                        access_mode::overwrite);
+            ArrayHandle<Scalar4> h_quat_pos_copybuf(m_quat_pos_copybuf,
+                                                       access_location::host,
+                                                       access_mode::overwrite);
 
             for (unsigned int idx = 0; idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
                 {
@@ -2041,6 +2054,9 @@ void Communicator::exchangeGhosts()
                     if (flags[comm_flag::orientation])
                         h_orientation_copybuf.data[m_num_copy_ghosts[dir]]
                             = h_orientation.data[idx];
+                    if (flags[comm_flag::quat_pos])
+                        h_quat_pos_copybuf.data[m_num_copy_ghosts[dir]]
+                            = h_quat_pos.data[idx];
                     h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
 
                     h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_tag.data[idx];
@@ -2119,6 +2135,9 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf,
                                                        access_location::host,
                                                        access_mode::read);
+            ArrayHandle<Scalar4> h_quat_pos_copybuf(m_quat_pos_copybuf,
+                                                       access_location::host,
+                                                       access_mode::read);
 
             ArrayHandle<unsigned int> h_plan(m_plan, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -2140,6 +2159,9 @@ void Communicator::exchangeGhosts()
                                        access_location::host,
                                        access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                               access_location::host,
+                                               access_mode::readwrite);
+            ArrayHandle<Scalar4> h_quat_pos(m_pdata->getPosQuaternionArray(),
                                                access_location::host,
                                                access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
@@ -2279,6 +2301,26 @@ void Communicator::exchangeGhosts()
                           MPI_BYTE,
                           recv_neighbor,
                           7,
+                          m_mpi_comm,
+                          &req);
+                m_reqs.push_back(req);
+                }
+
+            if (flags[comm_flag::quat_pos])
+                {
+                MPI_Isend(h_quat_pos_copybuf.data,
+                          int(m_num_copy_ghosts[dir] * sizeof(Scalar4)),
+                          MPI_BYTE,
+                          send_neighbor,
+                          14,
+                          m_mpi_comm,
+                          &req);
+                m_reqs.push_back(req);
+                MPI_Irecv(h_quat_pos.data + start_idx,
+                          int(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
+                          MPI_BYTE,
+                          recv_neighbor,
+                          14,
                           m_mpi_comm,
                           &req);
                 m_reqs.push_back(req);
@@ -2734,6 +2776,33 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
 
                 // copy orientation into send buffer
                 h_orientation_copybuf.data[ghost_idx] = h_orientation.data[idx];
+                }
+            }
+
+        if (flags[comm_flag::quat_pos])
+            {
+            ArrayHandle<Scalar4> h_quat_pos(m_pdata->getPosQuaternionArray(),
+                                               access_location::host,
+                                               access_mode::read);
+            ArrayHandle<Scalar4> h_quat_pos_copybuf(m_quat_pos_copybuf,
+                                                       access_location::host,
+                                                       access_mode::overwrite);
+            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir],
+                                                    access_location::host,
+                                                    access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                             access_location::host,
+                                             access_mode::read);
+
+            // copy quat_pos of ghost particles
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                {
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                // copy quat_pos into send buffer
+                h_quat_pos_copybuf.data[ghost_idx] = h_quat_pos.data[idx];
                 }
             }
 

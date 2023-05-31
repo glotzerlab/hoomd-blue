@@ -251,6 +251,17 @@ void SFCPackTuner::applySortOrder()
             h_orientation.data[i] = scal4_tmp[i];
         }
 
+        {
+        ArrayHandle<Scalar4> h_quat_pos(m_pdata->getPosQuaternionArray(),
+                                           access_location::host,
+                                           access_mode::readwrite);
+
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            scal4_tmp[i] = h_quat_pos.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            h_quat_pos.data[i] = scal4_tmp[i];
+        }
+
     // sort image
     int3* int3_tmp = new int3[m_pdata->getN()];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
