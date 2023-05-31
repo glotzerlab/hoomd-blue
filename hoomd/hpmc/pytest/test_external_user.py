@@ -212,7 +212,7 @@ def test_z_bias(device, simulation_factory, lattice_snapshot_factory):
     mc.shape['A'] = dict(diameter=1)
     mc.nselect = 1
 
-    # expand box and add gravity field
+    # expand box and add external field
     old_box = sim.state.box
     new_box = hoomd.Box(Lx=3 * old_box.Lx, Ly=3 * old_box.Ly, Lz=3 * old_box.Lz)
     sim.state.set_box(new_box)
