@@ -179,12 +179,12 @@ class Operations(Collection):
             self.integrator._attach(sim)
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
-        if not self.writers._synced:
-            self.writers._sync(sim, sim._cpp_sys.analyzers)
         if not self.tuners._synced:
             self.tuners._sync(sim, sim._cpp_sys.tuners)
         if not self.computes._synced:
             self.computes._sync(sim, sim._cpp_sys.computes)
+        if not self.writers._synced:
+            self.writers._sync(sim, sim._cpp_sys.analyzers)
         self._scheduled = True
 
     def _unschedule(self):

@@ -202,7 +202,6 @@ def test_write_burst_log(sim, tmp_path):
 
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
     sim.operations.computes.append(thermo)
-    sim.run(0)
 
     logger = hoomd.logging.Logger()
     logger.add(thermo)
