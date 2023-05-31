@@ -104,6 +104,30 @@ def check_write(sim: hoomd.Simulation, filename: str, trigger_period: int):
                 assert_equivalent_snapshots(gsd_snap, snap)
 
 
+def test_write_on_start(sim, tmp_path):
+    filename = tmp_path / "temporary_test_file.gsd"
+    burst_writer = hoomd.write.Burst(trigger=1,
+                                     filename=filename,
+                                     mode='wb',
+                                     dynamic=['property', 'momentum'],
+                                     max_burst_size=3)
+    sim.operations.writers.append(burst_writer)
+    # Errors when file does not exist
+    with pytest.raises(RuntimeError):
+        # still creates file before erroring.
+        sim.run(0)
+    sim.operations.writers.clear()
+    burst_writer = hoomd.write.Burst(trigger=1,
+                                     filename=filename,
+                                     mode='wb',
+                                     dynamic=['property', 'momentum'],
+                                     max_burst_size=3)
+    sim.operations.writers.append(burst_writer)
+    # Errors when file exists without frame
+    with pytest.raises(RuntimeError):
+        sim.run(0)
+
+
 def test_burst_dump(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
 
