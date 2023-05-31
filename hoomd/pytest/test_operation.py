@@ -1,6 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import hoomd
 from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -166,3 +167,24 @@ def test_pickling(full_op, attached):
     sim = attached.__simulation  # noqa: F841
     del attached.__simulation
     pickling_check(attached)
+
+
+def test_operation_lifetime(simulation_factory, two_particle_snapshot_factory):
+
+    def drop_sim(attach=False):
+        sim = simulation_factory(two_particle_snapshot_factory())
+        # Use operation available regardless of build
+        box_resize = hoomd.update.BoxResize(10, hoomd.Box.cube(4),
+                                            hoomd.Box.cube(5),
+                                            hoomd.variant.Ramp(0, 1, 0, 10_000))
+        sim.operations.updaters.append(box_resize)
+        if attach:
+            sim.run(0)
+        return box_resize
+
+    box_resize = drop_sim()
+    assert box_resize._simulation is None
+
+    box_resize = drop_sim(True)
+    assert box_resize._simulation is None
+    assert box_resize._cpp_obj is None
