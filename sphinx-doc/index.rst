@@ -105,7 +105,7 @@ Molecular dynamics:
 
     import hoomd
 
-    cell = hoomd.md.nlist.Cell()
+    cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.r_cut[('A', 'A')] = 2.5

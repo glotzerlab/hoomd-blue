@@ -14,6 +14,22 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
+import atexit
+import weakref
+
+# Track open gsd writers to flush at exit.
+_open_gsd_writers = []
+
+
+def _flush_open_gsd_writers():
+    """Flush all open gsd writers at exit."""
+    for weak_writer in _open_gsd_writers:
+        writer = weak_writer()
+        if writer is not None:
+            writer.flush()
+
+
+atexit.register(_flush_open_gsd_writers)
 
 
 def _array_to_strings(value):
@@ -26,6 +42,12 @@ def _array_to_strings(value):
         return string_list
     else:
         return value
+
+
+def _finalize_gsd(weak_writer, cpp_obj):
+    """Finalize a GSD writer."""
+    _open_gsd_writers.remove(weak_writer)
+    cpp_obj.flush()
 
 
 class GSD(Writer):
@@ -83,6 +105,8 @@ class GSD(Writer):
 
     * ``'property'``
 
+      * ``'configuration/box'``
+      * ``'particles/N'``
       * ``'particles/position'``
       * ``'particles/orientation'``
 
@@ -113,6 +137,12 @@ class GSD(Writer):
 
     When you set a category string (``'property'``, ``'momentum'``,
     ``'attribute'``), `GSD` makes all the category member's fields dynamic.
+
+    Warning:
+        `GSD` buffers writes in memory. Abnormal exits (e.g. ``kill``,
+        ``scancel``, reaching walltime limits) may cause loss of data. Ensure
+        that your scripts exit cleanly and call `flush()` as needed to write
+        buffered frames to the file.
 
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
@@ -167,6 +197,8 @@ class GSD(Writer):
             'property',
             'momentum',
             'topology',
+            'configuration/box',
+            'particles/N',
             'particles/position',
             'particles/orientation',
             'particles/velocity',
@@ -202,6 +234,12 @@ class GSD(Writer):
             self.truncate)
 
         self._cpp_obj.log_writer = self.logger
+
+        # Maintain a list of open gsd writers
+        weak_writer = weakref.ref(self)
+        _open_gsd_writers.append(weak_writer)
+        self._finalizer = weakref.finalize(self, _finalize_gsd, weak_writer,
+                                           self._cpp_obj),
 
     @staticmethod
     def write(state, filename, filter=All(), mode='wb', logger=None):
@@ -248,7 +286,18 @@ class GSD(Writer):
         return self.logger
 
     def flush(self):
-        """Flush the write buffer to the file."""
+        """Flush the write buffer to the file.
+
+        Example::
+
+            gsd_writer.flush()
+
+        Flush all write buffers::
+
+            for writer in simulation.operations.writers:
+                if hasattr(writer, 'flush'):
+                    writer.flush()
+        """
         if not self._attached:
             raise RuntimeError("The GSD file is unavailable until the"
                                "simulation runs for 0 or more steps.")

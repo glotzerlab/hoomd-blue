@@ -94,6 +94,7 @@ _default_excepthook = sys.excepthook
 
 def _hoomd_sys_excepthook(type, value, traceback):
     """Override Python's excepthook to abort MPI runs."""
+    write.gsd._flush_open_gsd_writers()
     _default_excepthook(type, value, traceback)
     sys.stderr.flush()
     _hoomd.abort_mpi(communicator._current_communicator.cpp_mpi_conf, 1)

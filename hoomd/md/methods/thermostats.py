@@ -62,10 +62,25 @@ class MTTK(Thermostat):
     these quantities using `translational_dof` and
     `rotational_dof`.
 
+    Note:
+        The coupling constant `tau` should be set within a
+        reasonable range to avoid abrupt fluctuations in the kinetic temperature
+        and to avoid long time to equilibration. The recommended value for most
+        systems is :math:`\tau = 100 \delta t`.
+
     See Also:
         `G. J. Martyna, D. J. Tobias, M. L. Klein 1994
         <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
         <http://dx.doi.org/10.1063/1.470959>`_.
+
+    Example::
+
+        # NVT integration using MTTK Nose-Hoover thermostat
+        dt = 0.005
+        MTTK = hoomd.md.methods.thermostats.Berendsen(kT=1.0, tau=dt*100)
+        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
+                                            thermostat=MTTK)
+        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt])
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point for the
@@ -147,6 +162,13 @@ class Bussi(Thermostat):
     See Also:
         `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`_.
 
+    Example::
+
+        # NVT integration using Bussi thermostat
+        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.0)
+        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
+                                            thermostat=bussi)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt])
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point
@@ -185,6 +207,15 @@ class Berendsen(Thermostat):
 
     See Also:
         `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
+
+    Example::
+
+        # NVT integration using Berendsen thermostat
+        dt = 0.005
+        berendsen = hoomd.md.methods.thermostats.Berendsen(kT=1.0, tau=dt*100)
+        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
+                                            thermostat=berendsen)
+        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt])
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature of the simulation.

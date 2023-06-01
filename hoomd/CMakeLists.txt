@@ -153,7 +153,6 @@ set(_hoomd_headers
     GSDDequeWriter.h
     GSDDumpWriter.h
     GSDReader.h
-    GSDShapeSpecWriter.h
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
