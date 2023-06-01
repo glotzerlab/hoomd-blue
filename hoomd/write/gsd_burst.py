@@ -10,18 +10,17 @@ from hoomd.write.gsd import GSD
 
 
 class Burst(GSD):
-    r"""Write last :math:`N` stored frames at user trigger in the GSD format.
+    r"""Write the last :math:`N` stored frames in the GSD format.
 
-    This class stores up to the last :math:`N` frames in an interal deque
-    which only writes the frames out when `dump` is called. When the writer is
-    triggered and the next frame would result in :math:`N + 1` frames being
-    stored, the oldest frame is removed from the deque and the new frame is
-    added.
+    When triggered, `Burst` stores up to the last :math:`N` frames in a buffer.
+    `Burst` writes the contents of the buffer to the file when `dump` is called.
+    When the the next frame would result in :math:`N + 1` frames being stored,
+    the oldest frame is removed and the new frame is added.
 
     Args:
         trigger (hoomd.trigger.trigger_like): Select the timesteps to store
-            configuration.
-        filename (str): File name to write to when calling `dump`.
+            in the buffer.
+        filename (str): File name to write.
         filter (hoomd.filter.filter_like): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
@@ -31,19 +30,17 @@ class Burst(GSD):
             to `None`.
         max_burst_frames (int): The maximum number of frames to store before
             between writes. -1 represents no limit. Defaults to -1.
-        write_at_start (bool): Whether to write frame for new file if none
-            exists at first run call. (This will run on adding to a simulation
-            after run has been called.) Note this does nothing for files that
-            already have a frame regardless of setting. Defaults to ``False``.
+        write_at_start (bool): When ``True`` **and** the file does not exist or
+            has 0 frames: write one frame with the current state of the system
+            when `hoomd.Simulation.run` is called. Defaults to ``False``.
 
     Warning:
         `Burst` errors when attempting to create a file or writing to one with
-        zero frames, unless ``write_at_start`` is true. This is necessary to
-        keep performance as expected.
+        zero frames, unless ``write_at_start`` is ``True``.
 
     Note:
-        When analyzing files created by `Burst` generally the first frame is not
-        associated with the call to `Burst.dump`.
+        When analyzing files created by `Burst`, generally the first frame is
+        not associated with the call to `Burst.dump`.
 
     Note:
         For more tips and qualifications see the `hoomd.write.GSD`
@@ -51,7 +48,8 @@ class Burst(GSD):
 
     Attributes:
         filename (str): File name to write.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to store
+            in the buffer.
         filter (hoomd.filter.filter_like): Select the particles to write.
         mode (str): The file open mode.
         dynamic (list[str]): Field names and/or field categores to save in
@@ -61,11 +59,9 @@ class Burst(GSD):
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
             diameters.
-        write_at_start (bool): Whether to write frame for new file if none
-            exists after first run call. (This will run on adding to a
-            simulation after run has been called.) Note this does nothing for
-            files that already have a frame regardless of setting. Changing this
-            after calling `Simulation.run` does nothing.
+        write_at_start (bool): When ``True`` **and** the file does not exist or
+            has 0 frames: write one frame with the current state of the system
+            when `hoomd.Simulation.run` is called.
     """
 
     def __init__(self,
@@ -101,10 +97,10 @@ class Burst(GSD):
                                               sim.timestep)
 
     def dump(self):
-        """Write all currently stored frames.
+        """Write all currently stored frames to the file and empties the buffer.
 
         This method alllows for custom writing of frames at user specified
-        conditions. Empties the C++ frame buffer.
+        conditions.
         """
         if self._attached:
             self._cpp_obj.dump()
