@@ -79,11 +79,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     //! Write out the data for the current timestep
     void analyze(uint64_t timestep);
 
-    hoomd::detail::SharedSignal<int(gsd_handle&)>& getWriteSignal()
-        {
-        return m_write_signal;
-        }
-
     /// Write a logged quantities
     void writeLogQuantities(pybind11::dict dict);
 
@@ -225,8 +220,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     std::shared_ptr<ParticleGroup> m_group; //!< Group to write out to the file
     std::unordered_map<std::string, bool>
         m_nondefault; //!< Map of quantities (true when non-default in frame 0)
-
-    hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
 
     /// Copy of the state properties local to this rank, in ascending tag order.
     GSDFrame m_local_frame;
