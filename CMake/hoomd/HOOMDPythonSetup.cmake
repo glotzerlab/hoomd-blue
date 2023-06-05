@@ -1,5 +1,5 @@
 set(PYBIND11_PYTHON_VERSION 3)
-find_package(pybind11 2.2 CONFIG REQUIRED)
+find_package(pybind11 2.2 CONFIG REQUIRED QUIET)
 
 if (pybind11_FOUND)
     find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
