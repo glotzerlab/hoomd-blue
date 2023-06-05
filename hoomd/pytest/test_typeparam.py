@@ -12,6 +12,7 @@ from pytest import fixture, raises
 def default_value():
     return {"foo": 1, "bar": 4}
 
+
 @fixture()
 def typedict(default_value):
     return TypeParameterDict(**default_value, len_keys=1)
@@ -59,7 +60,6 @@ def test_setitem_attached(attached, default_value):
     new_value = {"bar": 2}
     attached['A'] = new_value
     assert attached._cpp_obj.getTypeParam("A") == {**default_value, **new_value}
-
 
 
 def test_default(all_):
