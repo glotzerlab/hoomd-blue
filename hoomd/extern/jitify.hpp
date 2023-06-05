@@ -2889,7 +2889,7 @@ inline void load_program(std::string const& cuda_source,
 #endif
       // There was a non include-related compilation error
       // TODO: How to handle error?
-      throw std::runtime_error("Runtime compilation failed");
+      throw std::runtime_error("Runtime compilation failed:\n" + log);
     }
 
     bool is_included_with_quotes = false;
