@@ -2934,11 +2934,11 @@ inline void load_program(std::string const& cuda_source,
       }
       std::string& parent_source = (*program_sources)[include_parent];
       parent_source = detail::comment_out_code_line(line_num, parent_source);
-#if JITIFY_PRINT_LOG
+// #if JITIFY_PRINT_LOG
       std::cout << include_parent << "(" << line_num
                 << "): warning: " << include_name << ": [jitify] File not found"
                 << std::endl;
-#endif
+// #endif
     }
   }
   if (ret != NVRTC_SUCCESS) {
