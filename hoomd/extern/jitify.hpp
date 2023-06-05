@@ -678,6 +678,8 @@ inline bool load_source(
       // TODO: Handle block comments (currently they cause a compilation error).
       size_t comment_start = line_after_pragma.find("//");
       std::string pragma_args = line_after_pragma.substr(0, comment_start);
+      // handle quote character used in #pragma expression
+      pragma_args = replace_token(pragma_args, "\"", "\\\"");
       std::string comment = comment_start != std::string::npos
                                 ? line_after_pragma.substr(comment_start)
                                 : "";
@@ -688,7 +690,7 @@ inline bool load_source(
     source += line + "\n";
   }
   // HACK TESTING (WAR for cub)
-  // source = "#define cudaDeviceSynchronize() cudaSuccess\n" + source;
+  source = "#define cudaDeviceSynchronize() cudaSuccess\n" + source;
   ////source = "cudaError_t cudaDeviceSynchronize() { return cudaSuccess; }\n" +
   /// source;
 
@@ -2406,6 +2408,18 @@ static const char* jitsafe_header_tuple = R"(
     #if __cplusplus >= 201103L
     namespace std {
     template<class... Types > class tuple;
+
+    template< size_t I, class T >
+    struct tuple_element;
+    // recursive case
+    template< size_t I, class Head, class... Tail >
+    struct tuple_element<I, tuple<Head, Tail...>>
+        : tuple_element<I-1, tuple<Tail...>> { };
+    // base case
+    template< class Head, class... Tail >
+    struct tuple_element<0, tuple<Head, Tail...>> {
+      using type = Head;
+    };
     } // namespace std
     #endif
  )";
