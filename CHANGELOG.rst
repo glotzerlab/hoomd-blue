@@ -4,11 +4,11 @@
 Change Log
 ==========
 
-v4.x
-----
+4.x
+---
 
-v4.0.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+4.0.0 (2023-06-06)
+^^^^^^^^^^^^^^^^^^
 
 *Fixed*
 
@@ -18,6 +18,8 @@ v4.0.0 (not yet released)
   (`#1548 <https://github.com/glotzerlab/hoomd-blue/pull/1548>`__).
 * Work around cases where Python's garbage collector fails to collect ``Operation`` objects
   (`#1457 <https://github.com/glotzerlab/hoomd-blue/issues/1457>`__).
+* Incorrect behavior with ``hpmc.external.user.CPPExternalPotential`` in MPI domain decomposition
+  simulations (`#1562 <https://github.com/glotzerlab/hoomd-blue/issues/1562>`__).
 
 *Added*
 
@@ -38,6 +40,16 @@ v4.0.0 (not yet released)
   (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
 * More descriptive error messages when calling ``Simulation.run``
   (`#1552 <https://github.com/glotzerlab/hoomd-blue/pull/1552>`__).
+* `hoomd.Snapshot.from_gsd_frame` - convert a `gsd.hoomd.Frame` object to `hoomd.Snapshot`
+  (`#1559 <https://github.com/glotzerlab/hoomd-blue/pull/1559>`__).
+* `hoomd.device.NoticeFile` - a file-like object that writes to `hoomd.device.Device.notice`
+  (`#1449 <https://github.com/glotzerlab/hoomd-blue/issues/1449>`__).
+* `hoomd.write.Burst` - selective high-frequency frame writing to GSD files
+  (`#1543 <https://github.com/glotzerlab/hoomd-blue/pull/1543>`__).
+* Support LLVM 16
+  (`#1568 <https://github.com/glotzerlab/hoomd-blue/pull/1568>`__).
+* More detailed status message for found CUDA libraries
+  (`#1566 <https://github.com/glotzerlab/hoomd-blue/pull/1566>`__).
 
 *Changed*
 
@@ -68,12 +80,16 @@ v4.0.0 (not yet released)
   (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
 * No longer test with GCC 7-8, Python 3.6-3.7, or Clang 6-9)
   (`#1544 <https://github.com/glotzerlab/hoomd-blue/pull/1544>`__).
+* Improved error messages with NVRTC compiled code
+  (`#1567 <https://github.com/glotzerlab/hoomd-blue/pull/1567>`__).
 
 *Deprecated*
 
 * ``Scalar``, ``Scalar2``, ``Scalar3``, and ``Scalar4`` data types. Use ``LongReal[N]`` instead in
   new code
   (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* ``hoomd.Snapshot.from_gsd_snapshot`` - use `hoomd.Snapshot.from_gsd_frame`
+  (`#1559 <https://github.com/glotzerlab/hoomd-blue/pull/1559>`__).
 
 *Removed*
 
