@@ -73,7 +73,7 @@ body:
     attributes:
       label: Python version
       description: What version of Python are you using?
-      placeholder: 3.10.6
+      placeholder: 3.11.3
     validations:
       required: true
   - type: markdown
