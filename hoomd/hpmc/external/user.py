@@ -67,9 +67,9 @@ class CPPExternalPotential(ExternalField):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.11.0/hoomd/VectorMath.h
+            v4.0.0/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.11.0/hoomd/BoxDim.h
+            v4.0.0/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
