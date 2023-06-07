@@ -57,10 +57,15 @@ mpcd::SystemData::SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
     auto pdata = m_sysdef->getParticleData();
     m_global_box = std::make_shared<const BoxDim>(pdata->getGlobalBox());
     m_particles = std::shared_ptr<mpcd::ParticleData>(
+#ifdef ENABLE_MPI
         new mpcd::ParticleData(snapshot,
                                m_global_box,
                                pdata->getExecConf(),
-                               pdata->getDomainDecomposition()));
+                               pdata->getDomainDecomposition())
+#else
+        new mpcd::ParticleData(snapshot, m_global_box, pdata->getExecConf())
+#endif
+    );
 
 // Generate one companion cell list for the system
 /*
@@ -102,9 +107,10 @@ std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd::SystemData::takeParticleSnapsh
     }
 
 /*!
-    * \param snapshot HOOMD system snapshot to initialize from
-    */
-void mpcd::SystemData::initializeFromParticleSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot)
+ * \param snapshot HOOMD system snapshot to initialize from
+ */
+void mpcd::SystemData::initializeFromParticleSnapshot(
+    std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot)
     {
     m_particles->initializeFromSnapshot(snapshot, m_global_box);
     }
