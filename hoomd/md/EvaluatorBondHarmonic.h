@@ -56,7 +56,7 @@ struct harmonic_params
         }
 #endif
     }
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
     __attribute__((aligned(8)));
 #else
     __attribute__((aligned(16)));
@@ -82,18 +82,6 @@ class EvaluatorBondHarmonic
         : rsq(_rsq), K(_params.k), r_0(_params.r_0)
         {
         }
-
-    //! Harmonic doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle b
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
 
     //! Harmonic doesn't use charge
     DEVICE static bool needsCharge()

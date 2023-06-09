@@ -282,20 +282,20 @@ class LJ(WallPotential):
         self._add_typeparam(params)
 
 
-class Gauss(WallPotential):
+class Gaussian(WallPotential):
     r"""Gaussian wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the force.
 
-    Wall force evaluated using the Gaussian force.  See `hoomd.md.pair.Gauss`
+    Wall force evaluated using the Gaussian force.  See `hoomd.md.pair.Gaussian`
     for the functional form of the force and parameter definitions.
 
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        gaussian_wall = hoomd.md.external.wall.Gauss(walls=walls)
+        gaussian_wall = hoomd.md.external.wall.Gaussian(walls=walls)
         gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
         gaussian_wall.params[['A','B']] = {
             "epsilon": 2.0, "sigma": 1.0, "r_cut": 1.0}

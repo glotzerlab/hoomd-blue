@@ -50,8 +50,8 @@ struct RNGIdentifier
     static const uint8_t TwoStepBD = 24;
     static const uint8_t TwoStepLangevin = 25;
     static const uint8_t TwoStepLangevinAngular = 26;
-    static const uint8_t TwoStepNPTMTK = 27;
-    static const uint8_t TwoStepNVTMTK = 28;
+    static const uint8_t TwoStepConstantPressureThermalizeBarostat = 27;
+    static const uint8_t MTTKThermostat = 28;
     static const uint8_t ATCollisionMethod = 29;
     static const uint8_t CollisionMethod = 30;
     static const uint8_t SRDCollisionMethod = 31;
@@ -68,6 +68,8 @@ struct RNGIdentifier
     static const uint8_t UpdaterShapeUpdate = 42;
     static const uint8_t UpdaterShapeConstruct = 43;
     static const uint8_t HPMCShapeMoveUpdateOrder = 44;
+    static const uint8_t BussiThermostat = 45;
+    static const uint8_t ConstantPressure = 46;
     };
 
     } // namespace hoomd

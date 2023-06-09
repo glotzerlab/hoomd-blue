@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.11.0")
+set(HOOMD_VERSION_RAW "4.0.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -83,17 +83,18 @@ endif()
 
 #################################
 ## Build options
-option(SINGLE_PRECISION "Use single precision math" OFF)
+set(HOOMD_SHORTREAL_SIZE "32" CACHE STRING "Size of the ShortReal type in bits.")
+SET_PROPERTY(CACHE HOOMD_SHORTREAL_SIZE PROPERTY STRINGS "32" "64")
+set(HOOMD_LONGREAL_SIZE "64" CACHE STRING "Size of the LongReal type in bits.")
+SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
 set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
 option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
-option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-
 # Components
 option(BUILD_MD "Build the md package" on)
-if (NOT SINGLE_PRECISION)
+if (HOOMD_LONGREAL_SIZE STREQUAL "64")
 option(BUILD_HPMC "Build the hpmc package" on)
 else ()
 option(BUILD_HPMC "Build the hpmc package" off)
@@ -164,13 +165,10 @@ exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
 
-################################
-# set up long validation tests
-option(BUILD_VALIDATION "Build validation tests" OFF)
-if (BUILD_TESTING OR BUILD_VALIDATION)
+if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
-endif (BUILD_TESTING OR BUILD_VALIDATION)
+endif (BUILD_TESTING)
 
 ################################
 ## Process subdirectories

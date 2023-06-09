@@ -14,11 +14,16 @@ hoomd.device
     CPU
     Device
     GPU
+    NoticeFile
     auto_select
 
 .. rubric:: Details
 
 .. automodule:: hoomd.device
     :synopsis: Devices used for simulation runs
-    :members: Device, CPU, GPU, auto_select
+    :members: auto_select,
+        Device,
+        CPU,
+        GPU,
+        NoticeFile
     :show-inheritance:

@@ -97,18 +97,6 @@ class EvaluatorPairLJGauss
         {
         }
 
-    //! LJGauss doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! LJGauss doesn't use charge
     DEVICE static bool needsCharge()
         {

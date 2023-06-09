@@ -29,39 +29,6 @@ namespace hoomd
 namespace md
     {
 //! Class for evaluating the Expanded Mie pair potential
-/*! <b>General Overview</b>
-
-    See EvaluatorPairMie
-
-    <b>ExpandedMie specifics</b>
-
-    EvaluatorPairExpandedMie evaluates the function:
-    \f{eqnarray*}
-    V_{\mathrm{ExpMie}}(r)  = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
-   \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r-\Delta} \right)^{n} -
-                \left( \frac{\sigma}{r-\Delta} \right)^{m} \right] r \l (r_{\mathrm{cut}} +
-   \Delta)\\
-                = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
-    \f}
-    where  \f$ \Delta is specified by the user, conventionally calcualted as, \f$ \Delta = (d_i +
-   d_j)/2 - \sigma \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
-
-   The ExpandedMie potential needs neither charge nor diameter. Five parameters are specified and
-   stored in a Scalar5. \a repulsive \a attractive \a n_pow \a m_pow \a delta are stored in \a
-   params
-
-
-    These are related to the standard lj parameters sigma and epsilon and the variable exponents n
-   and m by:
-    - \a repulsive = epsilon * pow(sigma,n) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a attractive = epsilon * pow(sigma,m) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a n_pow = n
-    - \a m_pow = m
-    - \a delta = delta
-
-    Due to the way that ExpandedMie modifies the cutoff condition, it will not function properly
-   with the xplor shifting mode.
-*/
 class EvaluatorPairExpandedMie
     {
     public:
@@ -137,23 +104,12 @@ class EvaluatorPairExpandedMie
         {
         }
 
-    //! ExpandedMie doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) const { }
-
     //! ExpandedMie doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

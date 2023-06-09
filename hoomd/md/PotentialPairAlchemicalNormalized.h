@@ -40,7 +40,7 @@ template<class evaluator> struct Normalized : public evaluator
         m_normValue = value;
         }
 
-    bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+    bool evalForceAndEnergy(ShortReal& force_divr, ShortReal& pair_eng, bool energy_shift)
         {
         bool evaluated = evaluator::evalForceAndEnergy(force_divr, pair_eng, energy_shift);
         force_divr *= m_normValue;

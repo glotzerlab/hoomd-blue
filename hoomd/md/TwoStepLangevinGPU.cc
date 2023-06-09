@@ -190,9 +190,6 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(),
                                      access_location::device,
                                      access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
-                                       access_location::device,
-                                       access_mode::read);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),
                                         access_location::device,
                                         access_mode::read);
@@ -200,9 +197,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         // perform the update on the GPU
         kernel::langevin_step_two_args args(d_gamma.data,
                                             (unsigned int)m_gamma.getNumElements(),
-                                            m_use_alpha,
-                                            m_alpha,
-                                            (*m_T)(timestep),
+                                            m_T->operator()(timestep),
                                             timestep,
                                             m_sysdef->getSeed(),
                                             d_sumBD.data,
@@ -218,7 +213,6 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         kernel::gpu_langevin_step_two(d_pos.data,
                                       d_vel.data,
                                       d_accel.data,
-                                      d_diameter.data,
                                       d_tag.data,
                                       d_index_array.data,
                                       group_size,

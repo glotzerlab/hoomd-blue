@@ -39,24 +39,19 @@ struct rattle_bd_step_one_args
     {
     rattle_bd_step_one_args(Scalar* _d_gamma,
                             size_t _n_types,
-                            bool _use_alpha,
-                            Scalar _alpha,
                             Scalar _T,
                             Scalar _tolerance,
                             uint64_t _timestep,
                             uint16_t _seed,
                             const hipDeviceProp_t& _devprop,
                             unsigned int _block_size)
-        : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), T(_T),
-          tolerance(_tolerance), timestep(_timestep), seed(_seed), devprop(_devprop),
-          block_size(_block_size)
+        : d_gamma(_d_gamma), n_types(_n_types), T(_T), tolerance(_tolerance), timestep(_timestep),
+          seed(_seed), devprop(_devprop), block_size(_block_size)
         {
         }
 
     Scalar* d_gamma;                //!< Device array listing per-type gammas
     size_t n_types;                 //!< Number of types in \a d_gamma
-    bool use_alpha;                 //!< Set to true to scale diameters by alpha to get gamma
-    Scalar alpha;                   //!< Scale factor to convert diameter to alpha
     Scalar T;                       //!< Current temperature
     Scalar tolerance;
     uint64_t timestep;              //!< Current timestep
@@ -70,7 +65,6 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                                         int3* d_image,
                                         Scalar4* d_vel,
                                         const BoxDim& box,
-                                        const Scalar* d_diameter,
                                         const unsigned int* d_tag,
                                         const unsigned int* d_group_members,
                                         const unsigned int group_size,
@@ -93,7 +87,6 @@ template<class Manifold>
 hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
                                        Scalar4* d_net_force,
                                        Scalar* d_net_virial,
-                                       const Scalar* d_diameter,
                                        const unsigned int* d_tag,
                                        const unsigned int* d_group_members,
                                        const unsigned int group_size,
@@ -111,7 +104,6 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
                                                     int3* d_image,
                                                     Scalar4* d_vel,
                                                     const BoxDim box,
-                                                    const Scalar* d_diameter,
                                                     const unsigned int* d_tag,
                                                     const unsigned int* d_group_members,
                                                     const unsigned int nwork,
@@ -123,8 +115,6 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
                                                     Scalar4* d_angmom,
                                                     const Scalar* d_gamma,
                                                     const size_t n_types,
-                                                    const bool use_alpha,
-                                                    const Scalar alpha,
                                                     const uint64_t timestep,
                                                     const uint16_t seed,
                                                     const Scalar T,
@@ -141,17 +131,14 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
     Scalar3* s_gammas_r = (Scalar3*)s_data;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
 
-    if (!use_alpha)
+    // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
+    // convention)
+    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
-        // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
-        // convention)
-        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
-            {
-            if (cur_offset + threadIdx.x < n_types)
-                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
-            }
-        __syncthreads();
+        if (cur_offset + threadIdx.x < n_types)
+            s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
         }
+    __syncthreads();
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type], which is s_gamma_r[0:n_type]
 
@@ -180,17 +167,10 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_alpha)
-            {
-            // determine gamma from diameter
-            gamma = alpha * d_diameter[idx];
-            }
-        else
-            {
-            // determine gamma from type
-            unsigned int typ = __scalar_as_int(postype.w);
-            gamma = s_gammas[typ];
-            }
+        // determine gamma from type
+        unsigned int typ = __scalar_as_int(postype.w);
+        gamma = s_gammas[typ];
+
         Scalar deltaT_gamma = deltaT / gamma;
 
         // compute the random force
@@ -372,7 +352,6 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                                         int3* d_image,
                                         Scalar4* d_vel,
                                         const BoxDim& box,
-                                        const Scalar* d_diameter,
                                         const unsigned int* d_tag,
                                         const unsigned int* d_group_members,
                                         const unsigned int group_size,
@@ -423,7 +402,6 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                            d_image,
                            d_vel,
                            box,
-                           d_diameter,
                            d_tag,
                            d_group_members,
                            nwork,
@@ -435,8 +413,6 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                            d_angmom,
                            rattle_bd_args.d_gamma,
                            rattle_bd_args.n_types,
-                           rattle_bd_args.use_alpha,
-                           rattle_bd_args.alpha,
                            rattle_bd_args.timestep,
                            rattle_bd_args.seed,
                            rattle_bd_args.T,
@@ -456,14 +432,11 @@ template<class Manifold>
 __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
                                                    Scalar4* d_net_force,
                                                    Scalar* d_net_virial,
-                                                   const Scalar* d_diameter,
                                                    const unsigned int* d_tag,
                                                    const unsigned int* d_group_members,
                                                    const unsigned int nwork,
                                                    const Scalar* d_gamma,
                                                    const size_t n_types,
-                                                   const bool use_alpha,
-                                                   const Scalar alpha,
                                                    const uint64_t timestep,
                                                    const uint16_t seed,
                                                    const Scalar T,
@@ -479,17 +452,14 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
     Scalar3* s_gammas_r = (Scalar3*)s_data2;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
 
-    if (!use_alpha)
+    // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
+    // convention)
+    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
-        // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
-        // convention)
-        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
-            {
-            if (cur_offset + threadIdx.x < n_types)
-                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
-            }
-        __syncthreads();
+        if (cur_offset + threadIdx.x < n_types)
+            s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
         }
+    __syncthreads();
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int local_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -515,17 +485,10 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_alpha)
-            {
-            // determine gamma from diameter
-            gamma = alpha * d_diameter[idx];
-            }
-        else
-            {
-            // determine gamma from type
-            unsigned int typ = __scalar_as_int(postype.w);
-            gamma = s_gammas[typ];
-            }
+        // determine gamma from type
+        unsigned int typ = __scalar_as_int(postype.w);
+        gamma = s_gammas[typ];
+
         Scalar deltaT_gamma = deltaT / gamma;
 
         // compute the random force
@@ -642,7 +605,6 @@ template<class Manifold>
 hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
                                        Scalar4* d_net_force,
                                        Scalar* d_net_virial,
-                                       const Scalar* d_diameter,
                                        const unsigned int* d_tag,
                                        const unsigned int* d_group_members,
                                        const unsigned int group_size,
@@ -685,14 +647,11 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
                            d_pos,
                            d_net_force,
                            d_net_virial,
-                           d_diameter,
                            d_tag,
                            d_group_members,
                            nwork,
                            rattle_bd_args.d_gamma,
                            rattle_bd_args.n_types,
-                           rattle_bd_args.use_alpha,
-                           rattle_bd_args.alpha,
                            rattle_bd_args.timestep,
                            rattle_bd_args.seed,
                            rattle_bd_args.T,

@@ -136,7 +136,6 @@ from . import aniso
 from .pair import (
     Pair,
     LJ,
-    Gauss,
     Gaussian,
     ExpandedLJ,
     ExpandedGaussian,
