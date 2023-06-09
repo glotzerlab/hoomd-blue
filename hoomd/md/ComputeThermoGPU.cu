@@ -679,8 +679,6 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
         block_offset += grid.x;
         }
 
-    assert(block_offset <= args.n_blocks);
-
     return hipSuccess;
     }
 
@@ -710,8 +708,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
                                     const BoxDim& box,
                                     const compute_thermo_args& args,
                                     bool compute_pressure_tensor,
-                                    bool compute_rotational_energy,
-                                    unsigned int num_partial_sums)
+                                    bool compute_rotational_energy)
     {
     assert(d_properties);
     assert(d_vel);
@@ -722,7 +719,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
 
     // clamp the block size for this kernel
     auto bs_thermo_final = clamp_block_size(args.block_size, (const void *) gpu_compute_thermo_final_sums);
-    dim3 grid = dim3(num_partial_sums / bs_thermo_final + 1, 1, 1);
+    dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(bs_thermo_final, 1, 1);
     size_t shared_bytes = sizeof(Scalar4) * bs_thermo_final;
 
@@ -751,7 +748,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
         {
         // clamp the block size for this kernel
         auto bs_pt_final = clamp_block_size(args.block_size, (const void *) gpu_compute_pressure_tensor_final_sums);
-        grid = dim3(num_partial_sums / bs_pt_final + 1, 1, 1);
+        grid = dim3(1, 1, 1);
         threads = dim3(bs_pt_final, 1, 1);
         shared_bytes = 6 * sizeof(Scalar) * bs_pt_final;
         // run the kernel

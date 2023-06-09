@@ -63,17 +63,17 @@ void ComputeThermoGPU::computeProperties()
 
     assert(m_pdata);
 
-    // number of blocks in partial reduction (round up for every GPU)
+    // maximum possible number of blocks in partial reduction (round up for every GPU)
     unsigned int block_size_partial = m_tuner->getParam()[0];
-    unsigned int num_blocks_partial
-        = m_group->getNumMembers() / block_size_partial + m_exec_conf->getNumActiveGPUs();
+    unsigned int max_num_blocks_partial
+        = m_group->getNumMembers() / m_exec_conf->dev_prop.warpSize + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
     size_t old_size = m_scratch.size();
 
-    m_scratch.resize(num_blocks_partial);
-    m_scratch_pressure_tensor.resize(num_blocks_partial * 6);
-    m_scratch_rot.resize(num_blocks_partial);
+    m_scratch.resize(max_num_blocks_partial);
+    m_scratch_pressure_tensor.resize(max_num_blocks_partial * 6);
+    m_scratch_rot.resize(max_num_blocks_partial);
 
     if (m_scratch.size() != old_size)
         {
@@ -165,7 +165,6 @@ void ComputeThermoGPU::computeProperties()
 
         // build up args list
         kernel::compute_thermo_args args;
-        args.n_blocks = num_blocks_partial;
         args.d_net_force = d_net_force.data;
         args.d_net_virial = d_net_virial.data;
         args.d_orientation = d_orientation.data;
@@ -209,13 +208,8 @@ void ComputeThermoGPU::computeProperties()
         // reset block size and number of blocks for the final reduction kernel
         auto block_size_final = m_tuner->getParam()[1];
         args.block_size = block_size_final;
-        args.n_blocks = num_blocks_partial / block_size_final + 1;
 
         // perform the computation on GPU 0
-        // TODO adding num_blocks_partial fixes it for now, but in general the
-        // number of blocks for the partial sums now depend on the kernel, so the
-        // number of threads needed for the final kernel will also depend on
-        // the kernel. TODO
         gpu_compute_thermo_final(d_properties.data,
                                  d_vel.data,
                                  d_body.data,
@@ -225,8 +219,7 @@ void ComputeThermoGPU::computeProperties()
                                  box,
                                  args,
                                  flags[pdata_flag::pressure_tensor],
-                                 flags[pdata_flag::rotational_kinetic_energy],
-                                 num_blocks_partial);
+                                 flags[pdata_flag::rotational_kinetic_energy]);
         m_tuner->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())

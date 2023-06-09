@@ -35,7 +35,6 @@ struct compute_thermo_args
                                        //!< the pressure tensor
     Scalar* d_scratch_rot;             //!< Scratch space for rotational kinetic energy partial sums
     unsigned int block_size;           //!< Block size to execute on the GPU
-    unsigned int n_blocks; //!< Number of blocks to execute / n_blocks * block_size >= group_size
     Scalar external_virial_xx; //!< xx component of the external virial
     Scalar external_virial_xy; //!< xy component of the external virial
     Scalar external_virial_xz; //!< xz component of the external virial
@@ -68,8 +67,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
                                     const BoxDim& box,
                                     const compute_thermo_args& args,
                                     bool compute_pressure_tensor,
-                                    bool compute_rotational_energy,
-                                    unsigned int num_blocks_partial);
+                                    bool compute_rotational_energy);
 
     } // end namespace kernel
     } // end namespace md
