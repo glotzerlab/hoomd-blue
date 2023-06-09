@@ -37,9 +37,7 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
         }
 
     auto block_range = AutotunerBase::makeBlockSizeRangePow2(m_exec_conf);
-    m_tuner.reset(new Autotuner<2>({block_range, block_range},
-                                   m_exec_conf,
-                                   "reduction_tuner"));
+    m_tuner.reset(new Autotuner<2>({block_range, block_range}, m_exec_conf, "reduction_tuner"));
     m_autotuners.push_back(m_tuner); // add to autotuner list
 
     hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
@@ -65,8 +63,8 @@ void ComputeThermoGPU::computeProperties()
 
     // maximum possible number of blocks in partial reduction (round up for every GPU)
     unsigned int block_size_partial = m_tuner->getParam()[0];
-    unsigned int max_num_blocks_partial
-        = m_group->getNumMembers() / m_exec_conf->dev_prop.warpSize + m_exec_conf->getNumActiveGPUs();
+    unsigned int max_num_blocks_partial = m_group->getNumMembers() / m_exec_conf->dev_prop.warpSize
+                                          + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
     size_t old_size = m_scratch.size();

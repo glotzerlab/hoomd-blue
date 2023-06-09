@@ -516,10 +516,9 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar* d_properties,
         }
     }
 
-
 /* Get the largest power of 2 less than of equal to n, assuming n>=1 */
 unsigned int clampToPow2(unsigned int n)
-{
+    {
     if (n == 1)
         {
         return 1;
@@ -527,18 +526,19 @@ unsigned int clampToPow2(unsigned int n)
 
     // count how many times we divide by 2 before we get to 1
     unsigned int num_divisions = 0;
-    for(unsigned int cur_value = n; cur_value > 1; cur_value >>= 1, ++num_divisions) {}
+    for (unsigned int cur_value = n; cur_value > 1; cur_value >>= 1, ++num_divisions)
+        {
+        }
 
     // bit shift by the number of divisions
     return 0x00000001 << num_divisions;
-}
-
+    }
 
 //! Make sure the block size doesn't exceed the maximum for the given kernel
 /*! \param unclampled_block_size The original block size.
     \param kernel The GPU kernel to get the maximum block size for
  */
-unsigned int clamp_block_size(unsigned int unclamped_block_size, const void *kernel)
+unsigned int clamp_block_size(unsigned int unclamped_block_size, const void* kernel)
     {
     hipFuncAttributes attr;
     hipFuncGetAttributes(&attr, kernel);
@@ -546,7 +546,6 @@ unsigned int clamp_block_size(unsigned int unclamped_block_size, const void *ker
     auto max_bs_pow2 = clampToPow2(max_block_size);
     return min(unclamped_block_size, max_block_size);
     }
-
 
 //! Compute partial sums of thermodynamic properties of a group on the GPU,
 /*! \param d_properties Array to write computed properties
@@ -594,7 +593,8 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
         unsigned int nwork = range.second - range.first;
 
         // clamp the block size by the maximum allowed by the kernel
-        auto bs_thermo_partial = clamp_block_size(args.block_size, (const void *) gpu_compute_thermo_partial_sums);
+        auto bs_thermo_partial
+            = clamp_block_size(args.block_size, (const void*)gpu_compute_thermo_partial_sums);
 
         dim3 grid(nwork / bs_thermo_partial + 1, 1, 1);
         dim3 threads(bs_thermo_partial, 1, 1);
@@ -623,7 +623,9 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
             assert(args.d_scratch_pressure_tensor);
 
             // clamp the block size for this kernel
-            auto bs_pt_partial = clamp_block_size(args.block_size, (const void *) gpu_compute_pressure_tensor_partial_sums);
+            auto bs_pt_partial
+                = clamp_block_size(args.block_size,
+                                   (const void*)gpu_compute_pressure_tensor_partial_sums);
             grid = dim3(nwork / bs_pt_partial + 1, 1, 1);
             threads = dim3(bs_pt_partial, 1, 1);
             shared_bytes = 6 * sizeof(Scalar) * bs_pt_partial;
@@ -653,7 +655,9 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
             assert(args.d_scratch_pressure_tensor);
 
             // clamp the block size for this kernel
-            auto bs_rke_partial = clamp_block_size(args.block_size, (const void *) gpu_compute_rotational_ke_partial_sums);
+            auto bs_rke_partial
+                = clamp_block_size(args.block_size,
+                                   (const void*)gpu_compute_rotational_ke_partial_sums);
             grid = dim3(nwork / bs_rke_partial + 1, 1, 1);
             threads = dim3(bs_rke_partial, 1, 1);
             shared_bytes = sizeof(Scalar) * bs_rke_partial;
@@ -718,7 +722,8 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
     assert(args.d_scratch);
 
     // clamp the block size for this kernel
-    auto bs_thermo_final = clamp_block_size(args.block_size, (const void *) gpu_compute_thermo_final_sums);
+    auto bs_thermo_final
+        = clamp_block_size(args.block_size, (const void*)gpu_compute_thermo_final_sums);
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(bs_thermo_final, 1, 1);
     size_t shared_bytes = sizeof(Scalar4) * bs_thermo_final;
@@ -747,7 +752,8 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
     if (compute_pressure_tensor)
         {
         // clamp the block size for this kernel
-        auto bs_pt_final = clamp_block_size(args.block_size, (const void *) gpu_compute_pressure_tensor_final_sums);
+        auto bs_pt_final = clamp_block_size(args.block_size,
+                                            (const void*)gpu_compute_pressure_tensor_final_sums);
         grid = dim3(1, 1, 1);
         threads = dim3(bs_pt_final, 1, 1);
         shared_bytes = 6 * sizeof(Scalar) * bs_pt_final;

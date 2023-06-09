@@ -35,13 +35,13 @@ struct compute_thermo_args
                                        //!< the pressure tensor
     Scalar* d_scratch_rot;             //!< Scratch space for rotational kinetic energy partial sums
     unsigned int block_size;           //!< Block size to execute on the GPU
-    Scalar external_virial_xx; //!< xx component of the external virial
-    Scalar external_virial_xy; //!< xy component of the external virial
-    Scalar external_virial_xz; //!< xz component of the external virial
-    Scalar external_virial_yy; //!< yy component of the external virial
-    Scalar external_virial_yz; //!< yz component of the external virial
-    Scalar external_virial_zz; //!< zz component of the external virial
-    Scalar external_energy;    //!< External potential energy
+    Scalar external_virial_xx;         //!< xx component of the external virial
+    Scalar external_virial_xy;         //!< xy component of the external virial
+    Scalar external_virial_xz;         //!< xz component of the external virial
+    Scalar external_virial_yy;         //!< yy component of the external virial
+    Scalar external_virial_yz;         //!< yz component of the external virial
+    Scalar external_virial_zz;         //!< zz component of the external virial
+    Scalar external_energy;            //!< External potential energy
     };
 
 //! Computes the partial sums of thermodynamic properties for ComputeThermo
