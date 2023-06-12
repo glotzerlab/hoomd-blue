@@ -10,7 +10,6 @@
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
@@ -54,7 +53,6 @@ void export_convex_spheropolyhedron(pybind11::module& m)
     export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
                                                          "ExternalFieldCompositeSpheropolyhedron");
     export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallConvexSpheropolyhedron");
-    export_ExternalCallback<ShapeSpheropolyhedron>(m, "ExternalCallbackSpheropolyhedron");
 
 #ifdef ENABLE_HIP
 

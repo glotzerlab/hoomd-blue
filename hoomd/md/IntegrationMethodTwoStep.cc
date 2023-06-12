@@ -117,7 +117,7 @@ void IntegrationMethodTwoStep::validateGroup()
                                             access_location::host,
                                             access_mode::read);
 
-    bool error = false;
+    unsigned int error = 0;
     for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
         {
         unsigned int i = h_group_index.data[gidx];
@@ -126,7 +126,7 @@ void IntegrationMethodTwoStep::validateGroup()
 
         if (body < MIN_FLOPPY && body != tag)
             {
-            error = true;
+            error = 1;
             }
         }
 
@@ -136,7 +136,7 @@ void IntegrationMethodTwoStep::validateGroup()
         MPI_Allreduce(MPI_IN_PLACE,
                       &error,
                       1,
-                      MPI_CXX_BOOL,
+                      MPI_UNSIGNED,
                       MPI_LOR,
                       this->m_exec_conf->getMPICommunicator());
         }

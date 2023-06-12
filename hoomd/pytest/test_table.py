@@ -220,6 +220,9 @@ combinations = [
     if set(combo) - {"string", "scalar"} != set()
 ]
 
+# reduce number of tests to perform
+combinations = combinations[::50]
+
 
 @pytest.mark.parametrize(
     argnames="combination",

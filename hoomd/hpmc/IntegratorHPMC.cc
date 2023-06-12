@@ -153,6 +153,12 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
 
     m_pdata->setGlobalBox(new_box);
 
+    // scale the origin
+    Scalar3 old_origin = m_pdata->getOrigin();
+    Scalar3 fractional_old_origin = curBox.makeFraction(old_origin);
+    Scalar3 new_origin = new_box.makeCoordinates(fractional_old_origin);
+    m_pdata->translateOrigin(new_origin - old_origin);
+
     // we have moved particles, communicate those changes
     this->communicate(false);
 

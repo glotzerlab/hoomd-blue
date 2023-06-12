@@ -12,7 +12,6 @@
 
 #include "ComputeFreeVolume.h"
 #include "ComputeFreeVolumeGPU.cuh"
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoGPU.cuh"
 

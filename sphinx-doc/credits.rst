@@ -7,6 +7,7 @@ Credits
 The following people have contributed to the to HOOMD-blue:
 
 * Aaron Keys, University of Michigan
+* Adrien Chen, University of Florida
 * Alain Kadar, University of Michigan
 * Alex Travesset, Iowa State University and Ames Laboratory
 * Alex Yang, Vanderbilt University
@@ -51,6 +52,7 @@ The following people have contributed to the to HOOMD-blue:
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan
 * Ian Graham, University of Pennsylvania
+* Ignacio Blanco Varela, University of Michigan
 * Igor Morozov, Joint Institute for High Temperatures of RAS
 * Isaac Bruss, University of Michigan
 * Jakin B. Delony, University of South Florida
@@ -75,6 +77,7 @@ The following people have contributed to the to HOOMD-blue:
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
+* Martin Girard, Max-Planck-Institut für Polymerforschung
 * Matthew Spellings, University of Michgan
 * Melody Zhang, University of Michigan
 * Michael Howard, University of Texas
@@ -116,3 +119,4 @@ The following people have contributed to the to HOOMD-blue:
 * Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF
 * Nathan Barrett, Pritzker School of Molecular Engineering
+* Domagoj Fijan, University of Michigan

@@ -81,7 +81,7 @@ def test_attach_detach(simulation_factory, polymer_snapshot_factory):
     # attached
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -101,7 +101,7 @@ def test_pickling(simulation_factory, polymer_snapshot_factory):
     # attached
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -115,7 +115,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
 
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 

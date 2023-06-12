@@ -5,6 +5,7 @@
 
 import hoomd
 from hoomd import _hoomd
+import warnings
 
 
 class _ConfigurationData:
@@ -323,11 +324,11 @@ class Snapshot:
         self._cpp_obj._broadcast_box(self.communicator.cpp_mpi_conf)
 
     @classmethod
-    def from_gsd_snapshot(cls, gsd_snap, communicator):
-        """Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
+    def from_gsd_frame(cls, gsd_snap, communicator):
+        """Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Frame` object.
 
         Args:
-            gsd_snap (gsd.hoomd.Snapshot): The gsd snapshot to convert to a
+            gsd_snap (gsd.hoomd.Frame): The gsd frame to convert to a
                 `hoomd.Snapshot`.
             communicator (hoomd.communicator.Communicator): The MPI communicator
                 to use for the snapshot. This prevents the snapshot from being
@@ -338,7 +339,7 @@ class Snapshot:
             the system state from a GSD file.
 
         Note:
-            `from_gsd_snapshot` only accesses the ``gsd_snap`` argument on rank
+            `from_gsd_frame` only accesses the ``gsd_snap`` argument on rank
             0. In MPI simulations, avoid duplicating memory and file reads by
             reading GSD files only on rank 0 and passing ``gsd_snap=None`` on
             other ranks.
@@ -383,3 +384,15 @@ class Snapshot:
 
         snap._broadcast_box()
         return snap
+
+    @classmethod
+    def from_gsd_snapshot(cls, gsd_snap, communicator):
+        """Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
+
+        .. deprecated:: 4.0.0
+
+            Use `from_gsd_frame`.
+        """
+        warnings.warn("gsd.hoomd.Snapshot is deprecated, use gsd.hoomd.Frame",
+                      FutureWarning)
+        return cls.from_gsd_frame(gsd_snap, communicator)

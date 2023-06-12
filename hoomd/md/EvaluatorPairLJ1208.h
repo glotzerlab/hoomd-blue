@@ -49,14 +49,6 @@ namespace md
     \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{LJ}}}{\partial r} = r^{-2} \cdot r^{-8} \cdot
             \left( 12 \cdot 4 \varepsilon \sigma^{12} \cdot r^{-4} - 8 \cdot 4 \varepsilon
    \sigma^{8} \right) \f]
-
-    The LJ potential does not need diameter or charge. Two parameters are specified and stored in a
-   Scalar2. \a lj1 is placed in \a params.x and \a lj2 is in \a params.y.
-
-    These are related to the standard lj parameters sigma and epsilon by:
-    - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-    - \a lj2 = 4.0 * epsilon * pow(sigma,8.0);
-
 */
 class EvaluatorPairLJ1208
     {
@@ -103,7 +95,7 @@ class EvaluatorPairLJ1208
             }
 #endif
         }
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
         __attribute__((aligned(8)));
 #else
         __attribute__((aligned(16)));
@@ -121,23 +113,12 @@ class EvaluatorPairLJ1208
         {
         }
 
-    //! LJ doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! LJ doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

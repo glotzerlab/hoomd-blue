@@ -8,7 +8,6 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Compute.h"
 
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
 
@@ -97,7 +96,7 @@ ComputeFreeVolume<Shape>::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sy
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
 
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 

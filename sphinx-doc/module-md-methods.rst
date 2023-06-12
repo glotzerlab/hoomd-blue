@@ -11,31 +11,26 @@ md.methods
 .. autosummary::
     :nosignatures:
 
-    Method
-    Berendsen
     Brownian
+    ConstantPressure
+    ConstantVolume
     DisplacementCapped
     Langevin
-    NPH
-    NPT
-    NVE
-    NVT
+    Method
     OverdampedViscous
-
+    Thermostatted
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
     :members: Method,
-              Berendsen,
+              Thermostatted,
+              ConstantVolume,
+              ConstantPressure,
               Brownian,
               DisplacementCapped,
               Langevin,
-              NPH,
-              NPT,
-              NVE,
-              NVT,
               OverdampedViscous
     :show-inheritance:
 
@@ -44,4 +39,5 @@ md.methods
 .. toctree::
    :maxdepth: 3
 
+   module-md-methods-thermostats
    module-md-methods-rattle

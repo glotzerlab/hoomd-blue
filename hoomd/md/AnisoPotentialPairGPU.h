@@ -114,9 +114,6 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -156,7 +153,6 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                               this->m_pdata->getN(),
                               this->m_pdata->getMaxN(),
                               d_pos.data,
-                              d_diameter.data,
                               d_charge.data,
                               d_orientation.data,
                               d_tag.data,

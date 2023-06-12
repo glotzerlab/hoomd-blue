@@ -75,9 +75,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Computes the forces
     virtual void compute(uint64_t timestep);
 
-    //! Benchmark the force compute
-    virtual double benchmark(unsigned int num_iters);
-
     //! Total the potential energy
     Scalar calcEnergySum();
 

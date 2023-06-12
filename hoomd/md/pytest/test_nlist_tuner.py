@@ -20,9 +20,10 @@ def simulation(simulation_factory, lattice_snapshot_factory, nlist):
     sim = simulation_factory(snap)
     lj = md.pair.LJ(nlist, default_r_cut=2.5)
     lj.params[("A", "A")] = {"sigma": 1.0, "epsilon": 1.0}
+    thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
     integrator = md.Integrator(
         dt=0.005,
-        methods=[md.methods.NVT(kT=1.0, tau=0.5, filter=hoomd.filter.All())],
+        methods=[md.methods.ConstantVolume(hoomd.filter.All(), thermostat)],
         forces=[lj])
     sim.operations.integrator = integrator
     return sim
