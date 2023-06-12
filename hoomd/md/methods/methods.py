@@ -86,15 +86,15 @@ class ConstantVolume(Thermostatted):
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat to
             control temperature. Setting this to ``None`` yields constant energy
-            (NVE) dynamics. Defaults to ``None``.
+            (NVE, microcanonical) dynamics. Defaults to ``None``.
 
     `ConstantVolume` numerically integrates the translational degrees of freedom
     using Velocity-Verlet and the rotational degrees of freedom with a scheme
     based on `Kamberaj 2005`_.
 
-    When set, the `thermostat` rescales the particle velocities to model an
-    isothermal ensemble. Use no thermostat (``thermostat = None``) to perform
-    constant energy integration.
+    When set, the `thermostat` rescales the particle velocities to model a
+    canonical (NVT) ensemble. Use no thermostat (``thermostat = None``) to
+    perform constant energy integration.
 
     See Also:
         `hoomd.md.methods.thermostats`.
@@ -200,8 +200,8 @@ class ConstantPressure(Thermostatted):
     freedom of the system held at constant pressure with a barostat. The
     barostat introduces additional degrees of freedom in the Hamiltonian that
     couple with box parameters. Use a thermostat to model an isothermal-isobaric
-    ensemble. Use no thermostat (``thermostat = None``) to model a
-    isoenthalpic-isobaric ensemble.
+    (NPT) ensemble. Use no thermostat (``thermostat = None``) to model a
+    isoenthalpic-isobaric (NPH) ensemble.
 
     See Also:
         `hoomd.md.methods.thermostats`.
@@ -538,9 +538,8 @@ class ConstantPressure(Thermostatted):
 class DisplacementCapped(ConstantVolume):
     r"""Newtonian dynamics with a cap on the maximum displacement per time step.
 
-    The method employs a maximum displacement allowed each time step. This
-    method can be helpful to relax a system with too much overlaps without
-    "blowing up" the system.
+    The method limits particle motion to a maximum displacement allowed each
+    time step which may be helpful to relax a high energy initial condition.
 
     Warning:
         This method does not conserve energy or momentum.
@@ -556,19 +555,26 @@ class DisplacementCapped(ConstantVolume):
     degrees of freedom using modified microcanoncial dynamics. See `NVE` for the
     basis of the algorithm.
 
-    Examples::
+    .. rubric:: Example
 
-        relaxer = hoomd.md.methods.DisplacementCapped(
-            filter=hoomd.filter.All(), maximum_displacement=1e-3)
-        integrator = hoomd.md.Integrator(
-            dt=0.005, methods=[relaxer], forces=[lj])
+    .. code-block:: python
+
+        displacement_capped = hoomd.md.methods.DisplacementCapped(
+            filter=hoomd.filter.All(),
+            maximum_displacement=1e-3)
+        simulation.operations.integrator.methods = [displacement_capped]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this method.
+
         maximum_displacement (hoomd.variant.variant_like): The maximum
             displacement allowed for a particular timestep
             :math:`[\mathrm{length}]`.
+
+            .. code-block:: python
+
+                displacement_capped.maximum_displacement = 1e-5
     """
 
     def __init__(self, filter,
