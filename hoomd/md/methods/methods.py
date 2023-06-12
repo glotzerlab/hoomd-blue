@@ -788,8 +788,7 @@ class Brownian(Method):
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics or the
-    diffusive limit. It integrates both the translational and rotational
-    degrees of freedom.
+    diffusive limit.
 
     The translational degrees of freedom follow:
 
@@ -813,7 +812,7 @@ class Brownian(Method):
     force, :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
     dimensionality of the system. The magnitude of the random force is chosen
     via the fluctuation-dissipation theorem to be consistent with the specified
-    drag and temperature, :math:`T`.
+    drag and temperature, :math:`kT`.
 
     About axes where :math:`I^i > 0`, the rotational degrees of freedom follow:
 
@@ -838,7 +837,7 @@ class Brownian(Method):
     momentum and :math:`I^i` is the i-th component of the particle's
     moment of inertia. The magnitude of the random torque is chosen
     via the fluctuation-dissipation theorem to be consistent with the specified
-    drag and temperature, :math:`T`.
+    drag and temperature, :math:`kT`.
 
     `Brownian` uses the numerical integration method from `I. Snook 2007`_, The
     Langevin and Generalised Langevin Approach to the Dynamics of Atomic,
@@ -848,42 +847,64 @@ class Brownian(Method):
 
     .. _I. Snook 2007: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
+    Warning:
+
+        This numerical method has errors in :math:`O(\delta t)`, which is much
+        larger than the errors of the other integration methods which are in
+        :math:`O(\delta t^2)`. As a consequence, expect to use much smaller
+        values of :math:`\delta t` with `Brownian` compared to e.g. `Langevin`
+        or `ConstantVolume`.
+
     In Brownian dynamics, particle velocities and angular momenta are completely
     decoupled from positions. At each time step, `Brownian` draws a new velocity
     distribution consistent with the current set temperature so that
     `hoomd.md.compute.ThermodynamicQuantities` will report appropriate
     temperatures and pressures when logged or used by other methods.
 
-    Brownian dynamics neglects the acceleration term in the Langevin equation.
-    This assumption is valid when overdamped:
-    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
-    system is not overdamped.
-
     The attributes `gamma` and `gamma_r` set the translational and rotational
     damping coefficients, respectivley, by particle type.
 
-    Examples::
+    .. rubric:: Example
 
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2)
-        brownian.gamma.default = 2.0
-        brownian.gamma_r.default = [1.0, 2.0, 3.0]
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
-        forces=[lj])
+    .. code-block:: python
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=1.5)
+        simulation.operations.integrator.dt = 0.0001
+        simulation.operations.integrator.methods = [brownian]
 
     Attributes:
-        filter (hoomd.filter.filter_like): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
+            method to.
 
-        kT (hoomd.variant.Variant): Temperature of the
-            simulation :math:`[\mathrm{energy}]`.
+        kT (hoomd.variant.Variant): Temperature of the simulation
+            :math:`[\mathrm{energy}]`.
+
+            .. code-block:: python
+
+                brownian.kT = 1.0
+
+            .. code-block:: python
+
+                brownian.kT = hoomd.variant.Ramp(A=2.0,
+                                                 B=1.0,
+                                                 t_start=0,
+                                                 t_ramp=1_000_000)
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient for each particle type
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
+            .. code-block:: python
+
+                brownian.gamma['A'] = 0.5
+
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
             :math:`[\mathrm{time}^{-1}]`.
+
+            .. code-block:: python
+
+                brownian.gamma_r['A'] = [1.0, 2.0, 3.0]
     """
 
     def __init__(
