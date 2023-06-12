@@ -3,6 +3,7 @@
 
 """Utilities."""
 
+import hoomd
 import io
 from collections.abc import Iterable, Mapping, MutableMapping
 
@@ -32,7 +33,7 @@ def dict_map(dict_, func):
 
     Args:
         dict\_ (dict): The nested mapping to perform the map on.
-        func (callable): A callable taking in one value use to map over
+        func (``callable``): A callable taking in one value use to map over
             dictionary values.
 
     Returns:
@@ -67,10 +68,10 @@ def dict_fold(dict_, func, init_value, use_keys=False):
 
     Args:
         dict\_ (dict): The nested mapping to perform the map on.
-        func (callable): A callable taking in one value use to fold over
+        func (``callable``): A callable taking in one value use to fold over
             dictionary values or keys if ``use_keys`` is set.
         init_value: An initial value to use for the fold.
-        use_keys (bool, optional): If true use keys instead of values for the
+        use_keys (`bool`, optional): If true use keys instead of values for the
             fold. Defaults to ``False``.
 
     Returns:
@@ -124,7 +125,7 @@ def dict_filter(dict_, filter_):
 
     Args:
         dict\_ (dict): The nested mapping to perform the filter on.
-        func (callable): A callable taking in one value use to filter over
+        func (``callable``): A callable taking in one value use to filter over
             mapping values.
 
     Returns:
@@ -262,3 +263,47 @@ class _NoGPU:
     def __init__(self, *args, **kwargs):
         raise GPUNotAvailableError(
             "This build of HOOMD-blue does not support GPUs.")
+
+
+def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
+    """Make an example Simulation object.
+
+    The simulation state contains two particles at positions (-1, 0, 0) and
+    (1, 0, 0).
+
+    Args:
+        device (hoomd.device.Device): The device to use. Create a
+            `hoomd.device.CPU` when `None`.
+
+        dimensions (int): Number of dimensions (2 or 3).
+
+        particle_types (list[str]): Particle type names.
+
+    Returns:
+        hoomd.Simulation: The simulation object.
+
+    Note:
+        `make_example_simulation` is intended for use in the documentation and
+        other minimal working examples. Use `hoomd.Simulation` directly in other
+        cases.
+    """
+    if device is None:
+        device = hoomd.device.CPU()
+
+    snapshot = hoomd.Snapshot()
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.N = 2
+        snapshot.particles.position[:] = [(-1, 0, 0), (1, 0, 0)]
+        snapshot.particles.types = particle_types
+        Lz = 10
+        if dimensions == 2:
+            Lz = 0
+        snapshot.configuration.box = [10, 10, Lz, 0, 0, 0]
+
+    simulation = hoomd.Simulation(device=device)
+    simulation.create_state_from_snapshot(snapshot)
+
+    # Ensure that documentation examples test attached objects.
+    simulation.run(0)
+
+    return simulation
