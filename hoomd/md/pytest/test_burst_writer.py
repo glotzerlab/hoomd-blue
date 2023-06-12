@@ -98,7 +98,7 @@ def check_write(sim: hoomd.Simulation, filename: str, trigger_period: int):
     sim.operations.writers[0].dump()
     sim.operations.writers[0].flush()
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        with gsd.hoomd.open(name=filename, mode='r') as traj:
             # have to skip first frame which is from the first call.
             for snap, gsd_snap in zip(snaps, traj[1:]):
                 assert_equivalent_snapshots(gsd_snap, snap)
@@ -143,14 +143,14 @@ def test_burst_dump(sim, tmp_path):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         assert Path(filename).exists()
-        with gsd.hoomd.open(filename, "rb") as traj:
+        with gsd.hoomd.open(filename, "r") as traj:
             # First frame is always written
             assert len(traj) == 1
 
     burst_writer.dump()
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        with gsd.hoomd.open(name=filename, mode='r') as traj:
             assert [frame.configuration.step for frame in traj] == [0, 3, 5, 7]
 
 
@@ -222,6 +222,6 @@ def test_write_burst_log(sim, tmp_path):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         key = "md/compute/ThermodynamicQuantities/kinetic_energy"
-        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        with gsd.hoomd.open(name=filename, mode='r') as traj:
             for frame, sim_ke in zip(traj[1:], kinetic_energies):
                 assert frame.log[key] == sim_ke
