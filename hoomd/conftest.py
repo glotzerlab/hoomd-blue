@@ -14,6 +14,9 @@ import hoomd
 import atexit
 import os
 import numpy
+import sybil
+import sybil.parsers.rest
+
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
@@ -31,6 +34,25 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
         devices.pop(0)
 
     devices.append(hoomd.device.GPU)
+
+
+def setup_sybil_tests(namespace):
+    """Sybil setup function."""
+    # Allow documentation tests to call pytest.skip when needed.
+    namespace['pytest'] = pytest
+
+
+pytest_collect_file = sybil.Sybil(
+    parsers=[
+        sybil.parsers.rest.PythonCodeBlockParser(),
+    ],
+    # Despite being documented as fnmatch syntax, in practice patterns matches
+    # whole relative paths. TODO:when all code examples function, search
+    # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
+    patterns=['md/methods/methods.py'],
+    setup=setup_sybil_tests,
+    fixtures=[]
+).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
