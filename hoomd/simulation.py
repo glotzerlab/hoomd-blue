@@ -469,9 +469,7 @@ class Simulation(metaclass=Loggable):
 
     def __del__(self):
         """Clean up dangling references to simulation."""
-        # del is called apparently when the arguments passed to init are wrong
-        # as well. Since _operations is only set at __init__ time we have to
-        # return early not to raise an exception.
+        # _operations may not be set, check before unscheduling
         if hasattr(self, "_operations"):
             self._operations._unschedule()
 
