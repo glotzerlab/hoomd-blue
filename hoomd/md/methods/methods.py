@@ -1,7 +1,13 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""MD integration methods."""
+"""MD integration methods.
+
+.. code-block:: python
+
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+"""
 
 from hoomd.md import _md
 import hoomd
@@ -155,41 +161,41 @@ class ConstantPressure(Thermostatted):
             this method.
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat used to
-            control temperature. Setting this to ``None`` yields NPH
-            integration.
+            control temperature. Setting this to ``None`` yields constant
+            enthalpy (NPH) integration.
 
         S (tuple[variant.variant_like, ...] or variant.variant_like):
-            Stress components set point for the barostat.
+            Stress component set points for the barostat.
 
             In Voigt notation:
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\mathrm{pressure}]`. In case of isotropic
-            pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+            pressure P use ``S = p`` to imply (:math:`[p, p, p, 0, 0, 0]`).
 
         tauS (float): Coupling constant for the barostat
            :math:`[\mathrm{time}]`.
 
-        couple (str): Couplings of diagonal elements of the stress tensor,
-            can be "none", "xy", "xz","yz", or "xyz".
+        couple (str): Couplings of diagonal elements of the stress tensor.
+            One of "none", "xy", "xz","yz", or "xyz".
 
         box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
-            elements corresponding to x, y, z, xy, xz, yz, each. Default to
-            [True,True,True,False,False,False]). If True, rescale corresponding
-            lengths or tilt factors and components of particle coordinates and
-            velocities.
+            elements in the order x, y, z, xy, xz, yz. Defaults to
+            [True,True,True,False,False,False]). When True, rescale
+            corresponding lengths or tilt factors and components of particle
+            coordinates and velocities.
 
-        rescale_all (bool): if True, rescale all particles, not only those
-            in the group, Default to False.
+        rescale_all (bool): When True, rescale all particles, not only those
+            selected by the filter. Defaults to False.
 
-        gamma (float): Friction constant for the box degrees of freedom, Default
-            to 0 :math:`[\mathrm{time}^{-1}]`.
+        gamma (float): Friction constant for the box degrees of freedom.
+            Defaults to 0 :math:`[\mathrm{time}^{-1}]`.
 
     `ConstantPressure` integrates translational and rotational degrees of
-    freedom of the system held at constant pressure. The barostat introduces
-    additional degrees of freedom in the Hamiltonian that couple with box
-    parameters. Using a thermostat yields an isobaric-isothermal ensemble,
-    whereas its absence (`thermostat` = `None`) yields an isoenthalpic-isobaric
-    ensemble.
+    freedom of the system held at constant pressure with a barostat. The
+    barostat introduces additional degrees of freedom in the Hamiltonian that
+    couple with box parameters. Use a thermostat to model an isothermal-isobaric
+    ensemble. Use no thermostat (`thermostat` = `None`) to model a
+    isoenthalpic-isobaric ensemble.
 
     See Also:
         `hoomd.md.methods.thermostats` for the available thermostats.
@@ -203,8 +209,8 @@ class ConstantPressure(Thermostatted):
     box degrees of freedom to change this default.
 
     Couplings define which diagonal elements of the pressure tensor
-    :math:`P_{\alpha,\beta}` should be averaged over, so that the
-    corresponding box lengths are rescaled by the same amount.
+    :math:`P_{\alpha,\beta}` should be averaged over, so that the corresponding
+    box lengths are rescaled by the same amount.
 
     Valid couplings are:
 
@@ -227,18 +233,9 @@ class ConstantPressure(Thermostatted):
     ``[True,True,True,False,False,False]``
 
     Note:
-        If any of the diagonal *x*, *y*, *z* degrees of freedom is not being
+        When any of the diagonal *x*, *y*, *z* degrees of freedom is not being
         integrated, pressure tensor components along that direction are not
         considered for the remaining degrees of freedom.
-
-    For example:
-
-    - Setting all couplings and *x*, *y*, and *z* degrees of freedom amounts to
-      cubic symmetry (default)
-    - Setting *xy* coupling and *x*, *y*, and *z* degrees of freedom amounts to
-      tetragonal symmetry.
-    - Setting no couplings and all degrees of freedom amounts to a fully
-      deformable triclinic unit cell
 
     `ConstantPressure` numerically integrates the equations of motion using the
     symplectic Martyna-Tobias-Klein integrator with a Langevin piston. The
@@ -282,38 +279,69 @@ class ConstantPressure(Thermostatted):
 
     Note:
         Set `gamma` = 0 to obtain the same MTK equations of motion used in
-        HOOMD-blue releases prior to v4.0.0.
+        HOOMD-blue releases prior to 4.0.0.
 
-    Examples::
+    .. rubric:: Examples
 
-        # NPH integrator with cubic symmetry
+    NPH integrator with cubic symmetry:
+
+    .. code-block:: python
+
         nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="xyz")
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nph], forces=[lj])
+                                                tauS=1.0,
+                                                S=2.0,
+                                                couple="xyz")
+        simulation.operations.integrator.methods = [nph]
 
-        # NPT integrator with cubic symmetry
-        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="xyz",
-        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+    NPT integrator with cubic symmetry:
 
-        # NPT integrator with orthorhombic symmetry
-        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="none",
-        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+    .. code-block:: python
 
-        # NPT integrator with tetragonal symmetry
-        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="xy",
-        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+        npt = hoomd.md.methods.ConstantPressure(
+            filter=hoomd.filter.All(),
+            tauS=1.0,
+            S=2.0,
+            couple="xyz",
+            thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.5))
+        simulation.operations.integrator.methods = [npt]
 
-        # NPT integrator with triclinic symmetry
-        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="none", rescale_all=True,
-        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+    NPT integrator with tetragonal symmetry:
+
+    .. code-block:: python
+
+        npt = hoomd.md.methods.ConstantPressure(
+            filter=hoomd.filter.All(),
+            tauS = 1.0,
+            S=2.0,
+            couple="xy",
+            thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.5))
+        simulation.operations.integrator.methods = [npt]
+
+    NPT integrator with orthorhombic symmetry:
+
+    .. code-block:: python
+
+        npt = hoomd.md.methods.ConstantPressure(
+            filter=hoomd.filter.All(),
+            tauS = 1.0,
+            S=2.0,
+            couple="none",
+            thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.5))
+        simulation.operations.integrator.methods = [npt]
+
+
+    NPT integrator with triclinic symmetry:
+
+    .. code-block:: python
+
+        npt = hoomd.md.methods.ConstantPressure(
+            filter=hoomd.filter.All(),
+            tauS = 1.0,
+            S=2.0,
+            couple="none",
+            box_dof=[True, True, True, True, True, True],
+            thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.5))
+        simulation.operations.integrator.methods = [npt]
 
 
     Attributes:
@@ -327,29 +355,67 @@ class ConstantPressure(Thermostatted):
             the barostat.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
-            :math:`[\mathrm{pressure}]`. Stress can be reset after the method
-            object is created. For example, an isotropic pressure can be set by
-            ``npt.S = 4.``
+            :math:`[\mathrm{pressure}]`.
+
+            .. code-block:: python
+
+                npt.S = 4.0
+
+            .. code-block:: python
+
+                npt.S = hoomd.variant.Ramp(A=1.0,
+                                           B=2.0,
+                                           t_start=0,
+                                           t_ramp=1_000_000)
 
         tauS (float): Coupling constant for the barostat
             :math:`[\mathrm{time}]`.
 
+            .. code-block:: python
+
+                npt.tauS = 2.0
+
         couple (str): Couplings of diagonal elements of the stress tensor,
-            can be "none", "xy", "xz","yz", or "xyz".
+            can be 'none', 'xy', 'xz', 'yz', or 'xyz'.
 
-        box_dof(list[bool]): Box degrees of freedom with six boolean elements
-            corresponding to x, y, z, xy, xz, yz, each.
+            .. code-block:: python
 
-        rescale_all (bool): if True, rescale all particles, not only those in
-            the group.
+                npt.couple = 'none'
 
-        gamma (float): Friction constant for the box degrees of freedom, Default
-            to 0  :math:`[\mathrm{time^{-1}}]`.
+        box_dof(list[bool]): Box degrees of freedom with six boolean elements in
+            the order [x, y, z, xy, xz, yz].
+
+            .. code-block:: python
+
+                npt.box_dof = [False, False, True, False, False, False]
+
+        rescale_all (bool): When True, rescale all particles, not only those
+            selected by the filter.
+
+            .. code-block:: python
+
+                npt.rescale_all = True
+
+        gamma (float): Friction constant for the box degrees of freedom
+            :math:`[\mathrm{time^{-1}}]`.
 
         barostat_dof (tuple[float, float, float, float, float, float]):
             Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
             :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
             :math:`\nu_{yz}`, :math:`\nu_{zz}`)
+
+            Save and restore the barostat degrees of freedom when continuing
+            simulations:
+
+            .. code-block:: python
+
+                saved_barostat_dof = npt.barostat_dof
+                # Save to a file.
+
+            .. code-block:: python
+
+                # Load from the file on next execution.
+                npt.barostat_dof = saved_barostat_dof
     """
 
     def __init__(self,
@@ -432,19 +498,22 @@ class ConstantPressure(Thermostatted):
     def thermalize_barostat_dof(self):
         r"""Set the thermostat and barostat momenta to random values.
 
-        `thermalize_barostat_dof` sets a random value for the
-        momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
-        `Integrator.integrate_rotational_dof` is `True`, it also sets a random
-        value for the rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`.
-        Call `thermalize_barostat_dof` to set a new random state
-        for the thermostat and barostat.
+        `thermalize_barostat_dof` sets random values for the the barostat
+        momentum :math:`\nu_{\mathrm{ij}}`.
 
         .. important::
-            You must call `Simulation.run` before
-            `thermalize_barostat_dof`. Call ``run(steps=0)`` to
-            prepare a newly created `hoomd.Simulation`.
+            You must call `Simulation.run` before `thermalize_barostat_dof`.
 
-        .. seealso:: `State.thermalize_particle_momenta`
+            .. code-block:: python
+
+                simulation.run(0)
+                npt.thermalize_barostat_dof()
+
+        .. seealso::
+
+            `State.thermalize_particle_momenta`
+
+            `hoomd.md.methods.thermostats.MTTK.thermalize_dof`
         """
         if not self._attached:
             raise RuntimeError("Call Simulation.run(0) before"

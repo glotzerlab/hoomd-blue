@@ -15,6 +15,15 @@ Thermostatted methods require usage of a thermostat, see
 .. rubric:: Integration methods with constraints
 
 For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`.
+
+.. rubric:: Preparation
+
+Create a `hoomd.md.Integrator` to accept an integration method (or methods):
+
+.. code-block:: python
+
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
 """
 
 from . import rattle
