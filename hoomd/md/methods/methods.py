@@ -610,7 +610,7 @@ class Langevin(Method):
             coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `Langevin` integrates particles forward in time according to the
-    Langevin equations of motion.
+    Langevin equations of motion, modelling a canonical ensemble (NVT).
 
     The translational degrees of freedom follow:
 
@@ -629,7 +629,7 @@ class Langevin(Method):
     uniform random force, and :math:`d` is the dimensionality of the system (2
     or 3).  The magnitude of the random force is chosen via the
     fluctuation-dissipation theorem to be consistent with the specified drag and
-    temperature, :math:`T`.
+    temperature, :math:`kT`.
 
     About axes where :math:`I^i > 0`, the rotational degrees of freedom follow:
 
@@ -649,30 +649,21 @@ class Langevin(Method):
     the torque, :math:`\vec{L}` is the particle's angular momentum and :math:`I`
     is the the particle's moment of inertia. The magnitude of the random torque
     is chosen via the fluctuation-dissipation theorem to be consistent with the
-    specified drag and temperature, :math:`T`.
+    specified drag and temperature, :math:`kT`.
 
     `Langevin` numerically integrates the translational degrees of freedom
     using Velocity-Verlet and the rotational degrees of freedom with a scheme
     based on `Kamberaj 2005`_.
 
-    Langevin dynamics includes the acceleration term in the Langevin equation.
-    This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg
-    \delta t`. Use `Brownian` if your system is not underdamped.
-
     The attributes `gamma` and `gamma_r` set the translational and rotational
     damping coefficients, respectivley, by particle type.
 
-    Example::
+    .. rubric:: Example
 
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2)
-        langevin.gamma.default = 2.0
-        langevin.gamma_r.default = [1.0,2.0,3.0]
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
-        forces=[lj])
+    .. code-block:: python
 
-    Warning:
-        When restarting a simulation, the energy of the reservoir will be reset
-        to zero.
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
+        simulation.operations.integrator.methods = [langevin]
 
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
 
@@ -683,17 +674,39 @@ class Langevin(Method):
         kT (hoomd.variant.Variant): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
 
+            .. code-block:: python
+
+                langevin.kT = 1.0
+
+            .. code-block:: python
+
+                langevin.kT = hoomd.variant.Ramp(A=2.0,
+                                                 B=1.0,
+                                                 t_start=0,
+                                                 t_ramp=1_000_000)
+
         tally_reservoir_energy (bool): When True, track the energy exchange
             between the thermal reservoir and the particles.
-            :math:`[\mathrm{energy}]`.
+
+            .. code-block:: python
+
+                langevin.tally_reservoir_energy = True
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient for each particle type
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
+            .. code-block:: python
+
+                langevin.gamma['A'] = 0.5
+
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
             :math:`[\mathrm{time}^{-1}]`.
+
+            .. code-block:: python
+
+                langevin.gamma_r['A'] = [1.0, 2.0, 3.0]
     """
 
     def __init__(
@@ -749,6 +762,10 @@ class Langevin(Method):
         """Energy absorbed by the reservoir :math:`[\\mathrm{energy}]`.
 
         Set `tally_reservoir_energy` to `True` to track the reservoir energy.
+
+        Warning:
+            When continuing a simulation, the energy of the reservoir will be
+            reset to zero.
         """
         return self._cpp_obj.reservoir_energy
 
