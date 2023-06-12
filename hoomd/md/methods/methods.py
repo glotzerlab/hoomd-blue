@@ -78,45 +78,51 @@ class Thermostatted(Method):
 
 
 class ConstantVolume(Thermostatted):
-    r"""Constant volume, constant temperature dynamics.
+    r"""Constant volume dynamics.
 
     Args:
         filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this method.
 
-        thermostat (hoomd.md.methods.thermostats.Thermostat): thermostat use do
-            to control temperature. Setting this to ``None`` produces NVE
-            dynamics. Defaults to ``None``
+        thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat to
+            control temperature. Setting this to ``None`` yields constant energy
+            (NVE) dynamics. Defaults to ``None``.
 
-    `ConstantVolume` `Langevin` numerically integrates the translational degrees
-    of freedom using Velocity-Verlet and the rotational degrees of freedom with
-    a scheme based on `Kamberaj 2005`_.
+    `ConstantVolume` numerically integrates the translational degrees of freedom
+    using Velocity-Verlet and the rotational degrees of freedom with a scheme
+    based on `Kamberaj 2005`_.
 
-    When set, the `thermostat` rescales the particle velocities to control the
-    temperature of the system. When `thermostat` = `None`, perform constant
-    energy integration.
+    When set, the `thermostat` rescales the particle velocities to model an
+    isothermal ensemble. Use no thermostat (``thermostat = None``) to perform
+    constant energy integration.
 
     See Also:
-        `hoomd.md.methods.thermostats` for the available thermostats.
+        `hoomd.md.methods.thermostats`.
 
-    Examples::
+    .. rubric Examples
 
-        # NVE integration
+    NVE integration:
+
+    .. code-block:: python
+
         nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
+        simulation.operations.integrator.methods = [nve]
 
-        # NVT integration using Bussi thermostat
-        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.0)
-        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
-                                            thermostat=bussi)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+    NVT integration:
+
+    .. code-block:: python
+
+        nvt = hoomd.md.methods.ConstantVolume(
+            filter=hoomd.filter.All(),
+            thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.5))
+        simulation.operations.integrator.methods = [nvt]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Temperature
-            control for the integrator
+            control for the integrator.
 
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
     """
@@ -160,7 +166,7 @@ class ConstantPressure(Thermostatted):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
-        thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat used to
+        thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat to
             control temperature. Setting this to ``None`` yields constant
             enthalpy (NPH) integration.
 
@@ -194,11 +200,11 @@ class ConstantPressure(Thermostatted):
     freedom of the system held at constant pressure with a barostat. The
     barostat introduces additional degrees of freedom in the Hamiltonian that
     couple with box parameters. Use a thermostat to model an isothermal-isobaric
-    ensemble. Use no thermostat (`thermostat` = `None`) to model a
+    ensemble. Use no thermostat (``thermostat = None``) to model a
     isoenthalpic-isobaric ensemble.
 
     See Also:
-        `hoomd.md.methods.thermostats` for the available thermostats.
+        `hoomd.md.methods.thermostats`.
 
     The barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities
     using `barostat_dof`.
