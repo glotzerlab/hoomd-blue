@@ -44,20 +44,14 @@ set(_hpmc_sources   module.cc
                     )
 
 set(_hpmc_headers
-    ClangCompiler.h
     ComputeFreeVolumeGPU.cuh
     ComputeFreeVolumeGPU.h
     ComputeFreeVolume.h
     ComputeSDF.h
-    EvalFactory.h
-    Evaluator.cuh
-    EvaluatorUnionGPU.cuh
     ExternalFieldComposite.h
     ExternalField.h
     ExternalFieldHarmonic.h
-    ExternalFieldJIT.h
     ExternalFieldWall.h
-    GPUEvalFactory.h
     GSDHPMCSchema.h
     GPUHelpers.cuh
     GPUTree.h
@@ -75,16 +69,11 @@ set(_hpmc_headers
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMonoNEC.h
     IntegratorHPMCMono.h
-    KaleidoscopeJIT.h
     MinkowskiMath.h
     modules.h
     Moves.h
     OBB.h
     OBBTree.h
-    PatchEnergyJIT.h
-    PatchEnergyJITGPU.h
-    PatchEnergyJITUnion.h
-    PatchEnergyJITUnionGPU.h
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
