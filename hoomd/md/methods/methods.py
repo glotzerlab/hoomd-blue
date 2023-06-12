@@ -850,7 +850,7 @@ class Brownian(Method):
     Warning:
 
         This numerical method has errors in :math:`O(\delta t)`, which is much
-        larger than the errors of the other integration methods which are in
+        larger than the errors of most other integration methods which are in
         :math:`O(\delta t^2)`. As a consequence, expect to use much smaller
         values of :math:`\delta t` with `Brownian` compared to e.g. `Langevin`
         or `ConstantVolume`.
@@ -986,30 +986,39 @@ class OverdampedViscous(Method):
     where :math:`\vec{F}_\mathrm{C} = \vec{F}_\mathrm{net}` is the net force on
     the particle from all forces (`hoomd.md.Integrator.forces`) and constraints
     (`hoomd.md.Integrator.constraints`), :math:`\gamma` is the translational
-    drag coefficient (`gamma`) :math:`\vec{v}` is the particle's velocity,
-    :math:`d` is the dimensionality of the system, :math:`\tau_\mathrm{C}^i` is
-    the i-th component of the net torque from all forces and constraints, and
-    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
-    (`gamma_r`).
+    drag coefficient (`gamma`), :math:`\vec{v}` is the particle's velocity,
+    :math:`\tau_\mathrm{C}^i` is the i-th component of the net torque from all
+    forces and constraints, and :math:`\gamma_r^i` is the i-th component of the
+    rotational drag coefficient (`gamma_r`).
 
     The attributes `gamma` and `gamma_r` set the translational and rotational
     damping coefficients, respectivley, by particle type.
 
+    Warning:
+
+        This numerical method has errors in :math:`O(\delta t)`, which is much
+        larger than the errors of most other integration methods which are in
+        :math:`O(\delta t^2)`. As a consequence, expect to use much smaller
+        values of :math:`\delta t` with `Brownian` compared to e.g. `Langevin`
+        or `ConstantVolume`.
+
     Tip:
         `OverdampedViscous` can be used to simulate systems of athermal active
-        matter, such as athermal Active Brownian Particles.
+        matter.
 
     Note:
-        Even though `OverdampedViscous` models systems in the limit that
-        :math:`m` and moment of inertia :math:`I` go to 0, you must still set
+        `OverdampedViscous` models systems in the limit that :math:`m` and
+        moment of inertia :math:`I` go to 0. However, you must still set
         non-zero moments of inertia to enable the integration of rotational
         degrees of freedom.
 
-    Examples::
+    .. rubric:: Example
 
-        odv = hoomd.md.methods.OverdampedViscous(filter=hoomd.filter.All())
-        odv.gamma.default = 2.0
-        odv.gamma_r.default = [1.0, 2.0, 3.0]
+    .. code-block:: python
+
+        overdamped_viscous = hoomd.md.methods.OverdampedViscous(
+            filter=hoomd.filter.All())
+        simulation.operations.integrator.methods = [overdamped_viscous]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to apply this
@@ -1019,9 +1028,18 @@ class OverdampedViscous(Method):
             coefficient for each particle type
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
+            .. code-block:: python
+
+                overdamped_viscous.gamma['A'] = 0.5
+
+
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
             :math:`[\mathrm{time}^{-1}]`.
+
+            .. code-block:: python
+
+                overdamped_viscous.gamma_r['A'] = [1.0, 2.0, 3.0]
     """
 
     def __init__(
