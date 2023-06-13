@@ -302,23 +302,36 @@ class Berendsen(Thermostat):
         \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 
     .. attention::
-        `Berendsen` does not yield a proper canonical ensemble
+        `Berendsen` does **NOT** sample the correct distribution of kinetic
+        energies.
 
     See Also:
         `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
 
-    Example::
+    .. rubric:: Example:
 
-        # NVT integration using Berendsen thermostat
-        dt = 0.005
-        berendsen = hoomd.md.methods.thermostats.Berendsen(kT=1.0, tau=dt*100)
-        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
-                                            thermostat=berendsen)
-        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt])
+    .. code-block:: python
+
+        berendsen = hoomd.md.methods.thermostats.Berendsen(kT=1.5,
+            tau=simulation.operations.integrator.dt * 10_000)
+        simulation.operations.integrator.methods[0].thermostat = berendsen
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature of the simulation.
             :math:`[energy]`
+
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                berendsen.kT = 1.0
+
+            .. code-block:: python
+
+                berendsen.kT = hoomd.variant.Ramp(A=1.0,
+                                                  B=2.0,
+                                                  t_start=0,
+                                                  t_ramp=1_000_000)
 
         tau (float): Time constant of thermostat. :math:`[time]`
     """
