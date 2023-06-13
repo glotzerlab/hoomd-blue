@@ -59,6 +59,7 @@ set(_hpmc_headers
     HPMCMiscFunctions.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPUMoves.cuh
     IntegratorHPMCMonoGPUTypes.cuh
     IntegratorHPMCMonoGPUDepletants.cuh
