@@ -106,7 +106,7 @@ class MTTK(Thermostat):
 
         mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
             tau=simulation.operations.integrator.dt*100)
-        constant_volume.thermostat = mttk
+        simulation.operations.integrator.methods[0].thermostat = mttk
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point for the
@@ -249,17 +249,29 @@ class Bussi(Thermostat):
     See Also:
         `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`_.
 
-    Example::
+    .. rubric:: Example:
 
-        # NVT integration using Bussi thermostat
-        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.0)
-        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
-                                            thermostat=bussi)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt])
+    .. code-block:: python
+
+        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+        simulation.operations.integrator.methods[0].thermostat = bussi
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point
             for the thermostat :math:`[\mathrm{energy}]`.
+
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                bussi.kT = 1.0
+
+            .. code-block:: python
+
+                bussi.kT = hoomd.variant.Ramp(A=1.0,
+                                              B=2.0,
+                                              t_start=0,
+                                              t_ramp=1_000_000)
     """
 
     def __init__(self, kT):
