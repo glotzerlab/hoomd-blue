@@ -24,6 +24,12 @@ Create a `hoomd.md.Integrator` to accept an integration method (or methods):
 
     simulation = hoomd.util.make_example_simulation()
     simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+
+Create a `hoomd.logging.Logger` that will be used in the examples below:
+
+.. code-block:: python
+
+    logger = hoomd.logging.Logger()
 """
 
 from . import rattle

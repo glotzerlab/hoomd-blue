@@ -7,6 +7,7 @@
 
     simulation = hoomd.util.make_example_simulation()
     simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    logger = hoomd.logging.Logger()
 """
 
 from hoomd.md import _md
@@ -123,6 +124,16 @@ class ConstantVolume(Thermostatted):
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Temperature
             control for the integrator.
+
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                nvt.thermostat.kT = 1.0
+
+            .. code-block:: python
+
+                nvt.thermostat = hoomd.md.methods.thermostats.Bussi(kT=0.5)
 
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
     """
@@ -287,7 +298,7 @@ class ConstantPressure(Thermostatted):
         Set `gamma` = 0 to obtain the same MTK equations of motion used in
         HOOMD-blue releases prior to 4.0.0.
 
-    .. rubric:: Examples
+    .. rubric:: Examples:
 
     NPH integrator with cubic symmetry:
 
@@ -363,6 +374,8 @@ class ConstantPressure(Thermostatted):
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\mathrm{pressure}]`.
 
+            .. rubric:: Examples:
+
             .. code-block:: python
 
                 npt.S = 4.0
@@ -377,12 +390,16 @@ class ConstantPressure(Thermostatted):
         tauS (float): Coupling constant for the barostat
             :math:`[\mathrm{time}]`.
 
+            .. rubric:: Example:
+
             .. code-block:: python
 
                 npt.tauS = 2.0
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be 'none', 'xy', 'xz', 'yz', or 'xyz'.
+
+            .. rubric:: Example:
 
             .. code-block:: python
 
@@ -391,12 +408,16 @@ class ConstantPressure(Thermostatted):
         box_dof(list[bool]): Box degrees of freedom with six boolean elements in
             the order [x, y, z, xy, xz, yz].
 
+            .. rubric:: Example:
+
             .. code-block:: python
 
                 npt.box_dof = [False, False, True, False, False, False]
 
         rescale_all (bool): When True, rescale all particles, not only those
             selected by the filter.
+
+            .. rubric:: Example:
 
             .. code-block:: python
 
@@ -412,6 +433,8 @@ class ConstantPressure(Thermostatted):
 
             Save and restore the barostat degrees of freedom when continuing
             simulations:
+
+            .. rubric:: Examples:
 
             .. code-block:: python
 
@@ -531,7 +554,14 @@ class ConstantPressure(Thermostatted):
     @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
         """Energy the barostat contributes to the Hamiltonian \
-        :math:`[\\mathrm{energy}]`."""
+        :math:`[\\mathrm{energy}]`.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            logger.add(obj=npt, quantities=['barostat_energy'])
+        """
         return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
@@ -555,7 +585,7 @@ class DisplacementCapped(ConstantVolume):
     degrees of freedom using modified microcanoncial dynamics. See `NVE` for the
     basis of the algorithm.
 
-    .. rubric:: Example
+    .. rubric:: Example:
 
     .. code-block:: python
 
@@ -658,7 +688,7 @@ class Langevin(Method):
     The attributes `gamma` and `gamma_r` set the translational and rotational
     damping coefficients, respectivley, by particle type.
 
-    .. rubric:: Example
+    .. rubric:: Example:
 
     .. code-block:: python
 
@@ -674,6 +704,8 @@ class Langevin(Method):
         kT (hoomd.variant.Variant): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
 
+            .. rubric:: Examples:
+
             .. code-block:: python
 
                 langevin.kT = 1.0
@@ -688,6 +720,8 @@ class Langevin(Method):
         tally_reservoir_energy (bool): When True, track the energy exchange
             between the thermal reservoir and the particles.
 
+            .. rubric:: Example:
+
             .. code-block:: python
 
                 langevin.tally_reservoir_energy = True
@@ -696,6 +730,8 @@ class Langevin(Method):
             coefficient for each particle type
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
+            .. rubric:: Example:
+
             .. code-block:: python
 
                 langevin.gamma['A'] = 0.5
@@ -703,6 +739,8 @@ class Langevin(Method):
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
             :math:`[\mathrm{time}^{-1}]`.
+
+            .. rubric:: Example:
 
             .. code-block:: python
 
@@ -762,6 +800,13 @@ class Langevin(Method):
         """Energy absorbed by the reservoir :math:`[\\mathrm{energy}]`.
 
         Set `tally_reservoir_energy` to `True` to track the reservoir energy.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            langevin.tally_reservoir_energy = True
+            logger.add(obj=langevin, quantities=['reservoir_energy'])
 
         Warning:
             When continuing a simulation, the energy of the reservoir will be
@@ -864,7 +909,7 @@ class Brownian(Method):
     The attributes `gamma` and `gamma_r` set the translational and rotational
     damping coefficients, respectivley, by particle type.
 
-    .. rubric:: Example
+    .. rubric:: Example:
 
     .. code-block:: python
 
@@ -878,6 +923,8 @@ class Brownian(Method):
 
         kT (hoomd.variant.Variant): Temperature of the simulation
             :math:`[\mathrm{energy}]`.
+
+            .. rubric:: Examples:
 
             .. code-block:: python
 
@@ -894,6 +941,8 @@ class Brownian(Method):
             coefficient for each particle type
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
+            .. rubric:: Example:
+
             .. code-block:: python
 
                 brownian.gamma['A'] = 0.5
@@ -901,6 +950,8 @@ class Brownian(Method):
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
             :math:`[\mathrm{time}^{-1}]`.
+
+            .. rubric:: Example:
 
             .. code-block:: python
 
@@ -1012,7 +1063,7 @@ class OverdampedViscous(Method):
         non-zero moments of inertia to enable the integration of rotational
         degrees of freedom.
 
-    .. rubric:: Example
+    .. rubric:: Example:
 
     .. code-block:: python
 
@@ -1028,6 +1079,8 @@ class OverdampedViscous(Method):
             coefficient for each particle type
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
+            .. rubric:: Example:
+
             .. code-block:: python
 
                 overdamped_viscous.gamma['A'] = 0.5
@@ -1036,6 +1089,8 @@ class OverdampedViscous(Method):
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
             :math:`[\mathrm{time}^{-1}]`.
+
+            .. rubric:: Example:
 
             .. code-block:: python
 
