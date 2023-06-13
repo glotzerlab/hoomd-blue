@@ -3,8 +3,27 @@
 
 """Provide classes for thermostatting simulations.
 
-Classes are for use with `hoomd.md.methods.ConstantVolume` and
+The thermostat classes are for use with `hoomd.md.methods.ConstantVolume` and
 `hoomd.md.methods.ConstantPressure`.
+
+.. rubric:: Preparation
+
+Create a `hoomd.md.Integrator` and `hoomd.md.methods.ConstantVolume` (for
+example) to accept the thermostats:
+
+.. code-block:: python
+
+    simulation = hoomd.util.make_example_simulation()
+    constant_volume = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    simulation.operations.integrator = hoomd.md.Integrator(
+        dt=0.001,
+        methods=[constant_volume])
+
+Create a `hoomd.logging.Logger` that will be used in the examples below:
+
+.. code-block:: python
+
+    logger = hoomd.logging.Logger()
 
 Important:
     Ensure that your initial condition includes non-zero particle velocities and
@@ -12,6 +31,14 @@ Important:
     the velocities / angular momenta occurs via multiplication, so the
     thermostat cannot convert a zero velocity into a non-zero one except
     through particle collisions.
+
+    .. rubric:: Example
+
+    .. code-block:: python
+
+        simulation.state.thermalize_particle_momenta(
+            filter=hoomd.filter.All(),
+            kT=1.5)
 """
 
 from hoomd.md import _md
@@ -47,7 +74,8 @@ class Thermostat(_HOOMDBaseObject):
 class MTTK(Thermostat):
     r"""The Nosé-Hoover thermostat.
 
-    Produces temperature control through a Nosé-Hoover thermostat.
+    Controls the system temperature using velocity rescaling with the
+    Nosé-Hoover thermostat.
 
     Args:
         kT (hoomd.variant.variant_like): Temperature set point for the
@@ -59,8 +87,7 @@ class MTTK(Thermostat):
     The translational thermostat has a momentum :math:`\xi` and position
     :math:`\eta`. The rotational thermostat has momentum
     :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. Access
-    these quantities using `translational_dof` and
-    `rotational_dof`.
+    these quantities using `translational_dof` and `rotational_dof`.
 
     Note:
         The coupling constant `tau` should be set within a
@@ -73,29 +100,77 @@ class MTTK(Thermostat):
         <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
         <http://dx.doi.org/10.1063/1.470959>`_.
 
-    Example::
+    .. rubric:: Examples:
 
-        # NVT integration using MTTK Nose-Hoover thermostat
-        dt = 0.005
-        MTTK = hoomd.md.methods.thermostats.Berendsen(kT=1.0, tau=dt*100)
-        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
-                                            thermostat=MTTK)
-        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt])
+    .. code-block:: python
+
+        mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
+            tau=simulation.operations.integrator.dt*100)
+        constant_volume.thermostat = mttk
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point for the
             thermostat :math:`[\mathrm{energy}]`.
 
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                mttk.kT = 1.0
+
+            .. code-block:: python
+
+                mttk.kT = hoomd.variant.Ramp(A=1.0,
+                                             B=2.0,
+                                             t_start=0,
+                                             t_ramp=1_000_000)
+
         tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                mttk.tau = 0.2
 
         translational_dof (tuple[float, float]): Additional degrees
             of freedom for the translational thermostat (:math:`\xi`,
             :math:`\eta`)
 
+            Save and restore the thermostat degrees of freedom when continuing
+            simulations:
+
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                saved_translational_dof = mttk.translational_dof
+                # Save to a file.
+
+            .. code-block:: python
+
+                # Load from the file on next execution.
+                mttk.translational_dof = saved_translational_dof
+
         rotational_dof (tuple[float, float]): Additional degrees
             of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
             :math:`\eta_\mathrm{rot}`)
+
+            Save and restore the thermostat degrees of freedom when continuing
+            simulations:
+
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                saved_rotational_dof = mttk.rotational_dof
+                # Save to a file.
+
+            .. code-block:: python
+
+                # Load from the file on next execution.
+                mttk.rotational_dof = saved_rotational_dof
     """
 
     def __init__(self, kT, tau):
@@ -115,7 +190,14 @@ class MTTK(Thermostat):
     @hoomd.logging.log(requires_run=True)
     def energy(self):
         """Energy the thermostat contributes to the Hamiltonian \
-        :math:`[\\mathrm{energy}]`."""
+        :math:`[\\mathrm{energy}]`.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            logger.add(obj=mttk, quantities=['energy'])
+        """
         return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
     def thermalize_dof(self):
@@ -127,9 +209,14 @@ class MTTK(Thermostat):
         :math:`\xi_{\mathrm{rot}}`. Call `thermalize_dof` to set a
         new random state for the thermostat.
 
+        .. rubric:: Example
+
+        .. code-block:: python
+
+            mttk.thermalize_dof()
+
         .. important::
             You must call `Simulation.run` before `thermalize_dof`.
-            Call ``run(steps=0)`` to prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
         """

@@ -49,7 +49,9 @@ pytest_collect_file = sybil.Sybil(
     # Despite being documented as fnmatch syntax, in practice patterns matches
     # whole relative paths. TODO:when all code examples function, search
     # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
-    patterns=['md/methods/methods.py'],
+    patterns=['md/methods/methods.py',
+              'md/methods/thermostats.py',
+              ],
     setup=setup_sybil_tests,
     fixtures=[]
 ).pytest()
