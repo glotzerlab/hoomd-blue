@@ -74,6 +74,11 @@ int GSDDequeWriter::getMaxQueueSize() const
     return m_queue_size;
     }
 
+size_t GSDDequeWriter::getCurrentQueueSize() const
+    {
+    return m_frame_queue.size();
+    }
+
 void GSDDequeWriter::setMaxQueueSize(int new_max_size)
     {
     m_queue_size = new_max_size;
@@ -107,6 +112,7 @@ void export_GSDDequeWriter(pybind11::module& m)
         .def_property("max_burst_size",
                       &GSDDequeWriter::getMaxQueueSize,
                       &GSDDequeWriter::setMaxQueueSize)
+        .def("__len__", &GSDDequeWriter::getCurrentQueueSize)
         .def("dump", &GSDDequeWriter::dump);
     }
     } // namespace detail
