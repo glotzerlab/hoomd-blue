@@ -128,6 +128,23 @@ def test_write_on_start(sim, tmp_path):
         sim.run(0)
 
 
+def test_len(sim, tmp_path):
+    filename = tmp_path / "temporary_test_file.gsd"
+
+    burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
+    burst_writer = hoomd.write.Burst(trigger=burst_trigger,
+                                     filename=filename,
+                                     mode='wb',
+                                     dynamic=['property', 'momentum'],
+                                     max_burst_size=3,
+                                     write_at_start=True)
+    sim.operations.writers.append(burst_writer)
+    sim.run(8)
+    assert (burst_writer) == 3
+    burst_writer.dump()
+    assert (burst_writer) == 0
+
+
 def test_burst_dump(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
 
