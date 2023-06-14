@@ -38,8 +38,11 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
 
 def setup_sybil_tests(namespace):
     """Sybil setup function."""
-    # Allow documentation tests to call pytest.skip when needed.
-    namespace['pytest'] = pytest
+    # Allow documentation tests to use numpy.
+    namespace['numpy'] = numpy
+
+    # Rename tmp_path to path to not confuse users with `path / 'file.ext'`
+    # namespace['path'] = namespace['tmp_path']
 
 
 pytest_collect_file = sybil.Sybil(
@@ -54,7 +57,7 @@ pytest_collect_file = sybil.Sybil(
         'md/methods/thermostats.py',
     ],
     setup=setup_sybil_tests,
-    fixtures=[]).pytest()
+    fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)

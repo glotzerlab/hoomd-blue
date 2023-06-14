@@ -39,6 +39,11 @@ Important:
         simulation.state.thermalize_particle_momenta(
             filter=hoomd.filter.All(),
             kT=1.5)
+
+.. invisible-code-block: python
+
+    # Rename tmp_path to path to avoid giving the users the wrong signal.
+    path = tmp_path
 """
 
 from hoomd.md import _md
@@ -143,15 +148,24 @@ class MTTK(Thermostat):
 
             .. rubric:: Examples:
 
-            .. code-block:: python
-
-                saved_translational_dof = mttk.translational_dof
-                # Save to a file.
+            Save before exiting:
 
             .. code-block:: python
 
-                # Load from the file on next execution.
-                mttk.translational_dof = saved_translational_dof
+                numpy.save(file=path / 'translational_dof.npy',
+                           arr=mttk.translational_dof)
+
+            Load when continuing:
+
+            .. code-block:: python
+
+                mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
+                    tau=simulation.operations.integrator.dt*100)
+                simulation.operations.integrator.methods[0].thermostat = mttk
+
+                mttk.translational_dof = numpy.load(
+                    file=path / 'translational_dof.npy')
+
 
         rotational_dof (tuple[float, float]): Additional degrees
             of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
@@ -162,15 +176,23 @@ class MTTK(Thermostat):
 
             .. rubric:: Examples:
 
-            .. code-block:: python
-
-                saved_rotational_dof = mttk.rotational_dof
-                # Save to a file.
+            Save before exiting:
 
             .. code-block:: python
 
-                # Load from the file on next execution.
-                mttk.rotational_dof = saved_rotational_dof
+                numpy.save(file=path / 'rotational_dof.npy',
+                           arr=mttk.rotational_dof)
+
+            Load when continuing:
+
+            .. code-block:: python
+
+                mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
+                    tau=simulation.operations.integrator.dt*100)
+                simulation.operations.integrator.methods[0].thermostat = mttk
+
+                mttk.rotational_dof = numpy.load(
+                    file=path / 'rotational_dof.npy')
     """
 
     def __init__(self, kT, tau):

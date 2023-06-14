@@ -8,6 +8,9 @@
     simulation = hoomd.util.make_example_simulation()
     simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
     logger = hoomd.logging.Logger()
+
+    # Rename tmp_path to path to avoid giving the users the wrong signal.
+    path = tmp_path
 """
 
 from hoomd.md import _md
@@ -436,15 +439,26 @@ class ConstantPressure(Thermostatted):
 
             .. rubric:: Examples:
 
-            .. code-block:: python
-
-                saved_barostat_dof = npt.barostat_dof
-                # Save to a file.
+            Save before exiting:
 
             .. code-block:: python
 
-                # Load from the file on next execution.
-                npt.barostat_dof = saved_barostat_dof
+                numpy.save(file=path / 'barostat_dof.npy',
+                           arr=npt.barostat_dof)
+
+            Load when continuing:
+
+            .. code-block:: python
+
+                npt = hoomd.md.methods.ConstantPressure(
+                    filter=hoomd.filter.All(),
+                    tauS=1.0,
+                    S=2.0,
+                    couple="xyz",
+                    thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.5))
+                simulation.operations.integrator.methods = [npt]
+
+                npt.barostat_dof = numpy.load(file=path / 'barostat_dof.npy')
     """
 
     def __init__(self,
