@@ -41,18 +41,19 @@ def setup_sybil_tests(namespace):
     # Allow documentation tests to use numpy.
     namespace['numpy'] = numpy
 
-    # Rename tmp_path to path to not confuse users with `path / 'file.ext'`
-    # namespace['path'] = namespace['tmp_path']
+    namespace['gpu_not_available'] = _n_available_gpu == 0
 
 
 pytest_collect_file = sybil.Sybil(
     parsers=[
         sybil.parsers.rest.PythonCodeBlockParser(),
+        sybil.parsers.rest.SkipParser(),
     ],
     # Despite being documented as fnmatch syntax, in practice patterns matches
     # whole relative paths. TODO:when all code examples function, search
     # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
     patterns=[
+        'device.py',
         'md/methods/methods.py',
         'md/methods/thermostats.py',
     ],
