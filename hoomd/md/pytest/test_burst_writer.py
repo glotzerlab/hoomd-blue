@@ -140,9 +140,9 @@ def test_len(sim, tmp_path):
                                      write_at_start=True)
     sim.operations.writers.append(burst_writer)
     sim.run(8)
-    assert (burst_writer) == 3
+    assert len(burst_writer) == 3
     burst_writer.dump()
-    assert (burst_writer) == 0
+    assert len(burst_writer) == 0
 
 
 def test_burst_dump(sim, tmp_path):
