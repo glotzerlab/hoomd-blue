@@ -16,13 +16,13 @@ with many `hoomd.Simulation` objects.
 
 .. code-block:: python
 
-    cpu = hoomd.device.CPU()
+    device = hoomd.device.CPU()
 
 .. skip: next if(gpu_not_available)
 
 .. code-block:: python
 
-    gpu = hoomd.device.GPU()
+    device = hoomd.device.GPU()
 
 Tip:
     Reuse `Device` objects when possible. There is a non-negligible overhead
@@ -53,7 +53,7 @@ class NoticeFile:
 
     .. code-block:: python
 
-        notice_file = hoomd.device.NoticeFile(device=cpu)
+        notice_file = hoomd.device.NoticeFile(device=device)
 
     Note:
         Use this in combination with `Device.message_filename` to combine notice
@@ -154,7 +154,7 @@ class Device:
 
         .. code-block:: python
 
-            cpu.notice_level = 4
+            device.notice_level = 4
         """
         return self._cpp_msg.getNoticeLevel()
 
@@ -180,11 +180,11 @@ class Device:
 
         .. code-block:: python
 
-            cpu.message_filename = str(path / 'messages.log')
+            device.message_filename = str(path / 'messages.log')
 
         .. code-block:: python
 
-            cpu.message_filename = None
+            device.message_filename = None
 
         Note:
             All MPI ranks within a given partition must open the same file.
@@ -192,7 +192,7 @@ class Device:
             other ranks. Different partitions may open separate files. For
             example:
 
-            .. skip: next if(cpu.communicator.num_ranks % 2 != 0)
+            .. skip: next if(device.communicator.num_ranks != 2)
 
             .. code-block:: python
 
@@ -248,7 +248,7 @@ class Device:
 
         .. code-block:: python
 
-            cpu.notice('Message')
+            device.notice('Message')
 
         Hint:
             Use `notice` instead of `print` to write status messages and your

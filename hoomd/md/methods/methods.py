@@ -89,8 +89,8 @@ class ConstantVolume(Thermostatted):
             apply this method.
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat to
-            control temperature. Setting this to ``None`` yields constant energy
-            (NVE, microcanonical) dynamics. Defaults to ``None``.
+            control temperature. Setting this to ``None`` samples a constant
+            energy (NVE, microcanonical) dynamics. Defaults to ``None``.
 
     `ConstantVolume` numerically integrates the translational degrees of freedom
     using Velocity-Verlet and the rotational degrees of freedom with a scheme
@@ -181,7 +181,7 @@ class ConstantPressure(Thermostatted):
             this method.
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat to
-            control temperature. Setting this to ``None`` yields constant
+            control temperature. Setting this to ``None`` samples a constant
             enthalpy (NPH) integration.
 
         S (tuple[variant.variant_like, ...] or variant.variant_like):
@@ -928,7 +928,6 @@ class Brownian(Method):
     .. code-block:: python
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=1.5)
-        simulation.operations.integrator.dt = 0.0001
         simulation.operations.integrator.methods = [brownian]
 
     Attributes:

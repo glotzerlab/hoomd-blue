@@ -6,24 +6,13 @@
 The thermostat classes are for use with `hoomd.md.methods.ConstantVolume` and
 `hoomd.md.methods.ConstantPressure`.
 
-.. rubric:: Preparation
-
-Create a `hoomd.md.Integrator` and `hoomd.md.methods.ConstantVolume` (for
-example) to accept the thermostats:
-
-.. code-block:: python
+.. invisible-code-block: python
 
     simulation = hoomd.util.make_example_simulation()
     constant_volume = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     simulation.operations.integrator = hoomd.md.Integrator(
         dt=0.001,
         methods=[constant_volume])
-
-Create a `hoomd.logging.Logger` that will be used in the examples below:
-
-.. code-block:: python
-
-    logger = hoomd.logging.Logger()
 
 Important:
     Ensure that your initial condition includes non-zero particle velocities and
@@ -44,6 +33,8 @@ Important:
 
     # Rename tmp_path to path to avoid giving the users the wrong signal.
     path = tmp_path
+
+    logger = hoomd.logging.Logger()
 """
 
 from hoomd.md import _md
