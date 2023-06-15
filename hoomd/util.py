@@ -28,7 +28,7 @@ def _bad_iterable_type(obj):
     return isinstance(obj, (str, dict, io.IOBase))
 
 
-def dict_map(dict_, func):
+def _dict_map(dict_, func):
     r"""Perform a recursive map on a nested mapping.
 
     Args:
@@ -47,13 +47,13 @@ def dict_map(dict_, func):
     new_dict = dict()
     for key, value in dict_.items():
         if isinstance(value, Mapping):
-            new_dict[key] = dict_map(value, func)
+            new_dict[key] = _dict_map(value, func)
         else:
             new_dict[key] = func(value)
     return new_dict
 
 
-def dict_fold(dict_, func, init_value, use_keys=False):
+def _dict_fold(dict_, func, init_value, use_keys=False):
     r"""Perform a recursive fold on a nested mapping's values or keys.
 
     A fold is for a unnested mapping looks as follows.
@@ -80,7 +80,7 @@ def dict_fold(dict_, func, init_value, use_keys=False):
     final_value = init_value
     for key, value in dict_.items():
         if isinstance(value, dict):
-            final_value = dict_fold(value, func, final_value)
+            final_value = _dict_fold(value, func, final_value)
         else:
             if use_keys:
                 final_value = func(key, final_value)
@@ -89,7 +89,7 @@ def dict_fold(dict_, func, init_value, use_keys=False):
     return final_value
 
 
-def dict_flatten(dict_):
+def _dict_flatten(dict_):
     r"""Flattens a nested mapping into a flat mapping.
 
     Args:
@@ -102,25 +102,25 @@ def dict_flatten(dict_):
         This can be useful for handling dictionaries returned by
         `hoomd.logging.Logger.log`.
     """
-    return _dict_flatten(dict_, None)
+    return _dict_flatten_implementation(dict_, None)
 
 
-def _dict_flatten(value, key):
+def _dict_flatten_implementation(value, key):
     if key is None:
         new_dict = dict()
         for key, inner in value.items():
-            new_dict.update(_dict_flatten(inner, (key,)))
+            new_dict.update(_dict_flatten_implementation(inner, (key,)))
         return new_dict
     elif not isinstance(value, dict):
         return {key: value}
     else:
         new_dict = dict()
         for k, val in value.items():
-            new_dict.update(_dict_flatten(val, key + (k,)))
+            new_dict.update(_dict_flatten_implementation(val, key + (k,)))
         return new_dict
 
 
-def dict_filter(dict_, filter_):
+def _dict_filter(dict_, filter_):
     r"""Perform a recursive filter on a nested mapping.
 
     Args:
@@ -144,7 +144,7 @@ def dict_filter(dict_, filter_):
             if filter_(dict_[key]):
                 new_dict[key] = dict_[key]
         else:
-            sub_dict = dict_filter(dict_[key], filter_)
+            sub_dict = _dict_filter(dict_[key], filter_)
             if sub_dict:
                 new_dict[key] = sub_dict
     return new_dict
@@ -165,7 +165,7 @@ class _NamespaceDict(MutableMapping):
         self._dict = {} if dict_ is None else dict_
 
     def __len__(self):
-        return dict_fold(self._dict, lambda x, incr: incr + 1, 0)
+        return _dict_fold(self._dict, lambda x, incr: incr + 1, 0)
 
     def __iter__(self):
         yield from _keys_helper(self._dict)

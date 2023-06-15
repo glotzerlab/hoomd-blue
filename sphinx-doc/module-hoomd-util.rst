@@ -12,10 +12,6 @@ hoomd.util
     :nosignatures:
 
     GPUNotAvailableError
-    dict_filter
-    dict_flatten
-    dict_fold
-    dict_map
     make_example_simulation
 
 .. rubric:: Details
@@ -23,8 +19,4 @@ hoomd.util
 .. automodule:: hoomd.util
     :synopsis: Utilities
     :members: GPUNotAvailableError,
-              dict_filter,
-              dict_flatten,
-              dict_fold,
-              dict_map,
               make_example_simulation

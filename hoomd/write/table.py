@@ -14,7 +14,7 @@ from hoomd.custom.custom_action import _InternalAction
 from hoomd.logging import LoggerCategories, Logger
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
-from hoomd.util import dict_flatten
+from hoomd.util import _dict_flatten
 from hoomd.custom import Action
 
 
@@ -241,7 +241,7 @@ class _TableInternal(_InternalAction):
         """Get a flattened dict for writing to output."""
         return {
             key: value[0]
-            for key, value in dict_flatten(self.logger.log()).items()
+            for key, value in _dict_flatten(self.logger.log()).items()
         }
 
     def _update_headers(self, new_keys):
