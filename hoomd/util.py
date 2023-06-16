@@ -3,6 +3,7 @@
 
 """Utilities."""
 
+import hoomd
 import io
 from collections.abc import Iterable, Mapping, MutableMapping
 
@@ -27,12 +28,12 @@ def _bad_iterable_type(obj):
     return isinstance(obj, (str, dict, io.IOBase))
 
 
-def dict_map(dict_, func):
+def _dict_map(dict_, func):
     r"""Perform a recursive map on a nested mapping.
 
     Args:
         dict\_ (dict): The nested mapping to perform the map on.
-        func (callable): A callable taking in one value use to map over
+        func (``callable``): A callable taking in one value use to map over
             dictionary values.
 
     Returns:
@@ -46,13 +47,13 @@ def dict_map(dict_, func):
     new_dict = dict()
     for key, value in dict_.items():
         if isinstance(value, Mapping):
-            new_dict[key] = dict_map(value, func)
+            new_dict[key] = _dict_map(value, func)
         else:
             new_dict[key] = func(value)
     return new_dict
 
 
-def dict_fold(dict_, func, init_value, use_keys=False):
+def _dict_fold(dict_, func, init_value, use_keys=False):
     r"""Perform a recursive fold on a nested mapping's values or keys.
 
     A fold is for a unnested mapping looks as follows.
@@ -67,10 +68,10 @@ def dict_fold(dict_, func, init_value, use_keys=False):
 
     Args:
         dict\_ (dict): The nested mapping to perform the map on.
-        func (callable): A callable taking in one value use to fold over
+        func (``callable``): A callable taking in one value use to fold over
             dictionary values or keys if ``use_keys`` is set.
         init_value: An initial value to use for the fold.
-        use_keys (bool, optional): If true use keys instead of values for the
+        use_keys (`bool`, optional): If true use keys instead of values for the
             fold. Defaults to ``False``.
 
     Returns:
@@ -79,7 +80,7 @@ def dict_fold(dict_, func, init_value, use_keys=False):
     final_value = init_value
     for key, value in dict_.items():
         if isinstance(value, dict):
-            final_value = dict_fold(value, func, final_value)
+            final_value = _dict_fold(value, func, final_value)
         else:
             if use_keys:
                 final_value = func(key, final_value)
@@ -88,7 +89,7 @@ def dict_fold(dict_, func, init_value, use_keys=False):
     return final_value
 
 
-def dict_flatten(dict_):
+def _dict_flatten(dict_):
     r"""Flattens a nested mapping into a flat mapping.
 
     Args:
@@ -101,30 +102,30 @@ def dict_flatten(dict_):
         This can be useful for handling dictionaries returned by
         `hoomd.logging.Logger.log`.
     """
-    return _dict_flatten(dict_, None)
+    return _dict_flatten_implementation(dict_, None)
 
 
-def _dict_flatten(value, key):
+def _dict_flatten_implementation(value, key):
     if key is None:
         new_dict = dict()
         for key, inner in value.items():
-            new_dict.update(_dict_flatten(inner, (key,)))
+            new_dict.update(_dict_flatten_implementation(inner, (key,)))
         return new_dict
     elif not isinstance(value, dict):
         return {key: value}
     else:
         new_dict = dict()
         for k, val in value.items():
-            new_dict.update(_dict_flatten(val, key + (k,)))
+            new_dict.update(_dict_flatten_implementation(val, key + (k,)))
         return new_dict
 
 
-def dict_filter(dict_, filter_):
+def _dict_filter(dict_, filter_):
     r"""Perform a recursive filter on a nested mapping.
 
     Args:
         dict\_ (dict): The nested mapping to perform the filter on.
-        func (callable): A callable taking in one value use to filter over
+        func (``callable``): A callable taking in one value use to filter over
             mapping values.
 
     Returns:
@@ -143,7 +144,7 @@ def dict_filter(dict_, filter_):
             if filter_(dict_[key]):
                 new_dict[key] = dict_[key]
         else:
-            sub_dict = dict_filter(dict_[key], filter_)
+            sub_dict = _dict_filter(dict_[key], filter_)
             if sub_dict:
                 new_dict[key] = sub_dict
     return new_dict
@@ -164,7 +165,7 @@ class _NamespaceDict(MutableMapping):
         self._dict = {} if dict_ is None else dict_
 
     def __len__(self):
-        return dict_fold(self._dict, lambda x, incr: incr + 1, 0)
+        return _dict_fold(self._dict, lambda x, incr: incr + 1, 0)
 
     def __iter__(self):
         yield from _keys_helper(self._dict)
@@ -262,3 +263,47 @@ class _NoGPU:
     def __init__(self, *args, **kwargs):
         raise GPUNotAvailableError(
             "This build of HOOMD-blue does not support GPUs.")
+
+
+def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
+    """Make an example Simulation object.
+
+    The simulation state contains two particles at positions (-1, 0, 0) and
+    (1, 0, 0).
+
+    Args:
+        device (hoomd.device.Device): The device to use. Create a
+            `hoomd.device.CPU` when `None`.
+
+        dimensions (int): Number of dimensions (2 or 3).
+
+        particle_types (list[str]): Particle type names.
+
+    Returns:
+        hoomd.Simulation: The simulation object.
+
+    Note:
+        `make_example_simulation` is intended for use in the documentation and
+        other minimal working examples. Use `hoomd.Simulation` directly in other
+        cases.
+    """
+    if device is None:
+        device = hoomd.device.CPU()
+
+    snapshot = hoomd.Snapshot()
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.N = 2
+        snapshot.particles.position[:] = [(-1, 0, 0), (1, 0, 0)]
+        snapshot.particles.types = particle_types
+        Lz = 10
+        if dimensions == 2:
+            Lz = 0
+        snapshot.configuration.box = [10, 10, Lz, 0, 0, 0]
+
+    simulation = hoomd.Simulation(device=device)
+    simulation.create_state_from_snapshot(snapshot)
+
+    # Ensure that documentation examples test attached objects.
+    simulation.run(0)
+
+    return simulation

@@ -6,7 +6,7 @@
 from collections.abc import Mapping, Collection
 from hoomd.trigger import Periodic
 from hoomd import _hoomd
-from hoomd.util import dict_flatten
+from hoomd.util import _dict_flatten
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
@@ -360,7 +360,7 @@ class _GSDLogWriter:
     def log(self):
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
-        for key, value in dict_flatten(self.logger.log()).items():
+        for key, value in _dict_flatten(self.logger.log()).items():
             if 'state' in key and _iterable_is_incomplete(value[0]):
                 pass
             log_value, type_category = value

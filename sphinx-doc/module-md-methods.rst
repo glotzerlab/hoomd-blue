@@ -37,7 +37,7 @@ md.methods
 .. rubric:: Modules
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    module-md-methods-thermostats
    module-md-methods-rattle
