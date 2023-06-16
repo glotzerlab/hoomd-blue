@@ -33,7 +33,7 @@ See Also:
 
 .. invisible-code-block: python
 
-    # Rename pytest's tmp_path fixture for clarity.
+    # Rename pytest's tmp_path fixture for clarity in the documentation.
     path = tmp_path
 """
 
