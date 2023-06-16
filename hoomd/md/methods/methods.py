@@ -9,7 +9,7 @@
     simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
     logger = hoomd.logging.Logger()
 
-    # Rename tmp_path to path to avoid giving the users the wrong signal.
+    # Rename pytest's tmp_path fixture for clarity in the documentation.
     path = tmp_path
 """
 
