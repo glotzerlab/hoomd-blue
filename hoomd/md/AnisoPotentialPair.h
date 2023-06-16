@@ -747,8 +747,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &AnisoPotentialPair<T>::setParamsPython)
         .def("getParams", &AnisoPotentialPair<T>::getParamsPython)
-        .def("setShape", &AnisoPotentialPair<T>::setShapePython)
-        .def("getShape", &AnisoPotentialPair<T>::getShapePython)
+        .def(("set" + T::getShapeParamName()).c_str(), &AnisoPotentialPair<T>::setShapePython)
+        .def(("get" + T::getShapeParamName()).c_str(), &AnisoPotentialPair<T>::getShapePython)
         .def("setRCut", &AnisoPotentialPair<T>::setRCutPython)
         .def("getRCut", &AnisoPotentialPair<T>::getRCut)
         .def_property("mode",

@@ -49,46 +49,81 @@ public:
             {
                 cosalpha = fast::cos(params["alpha"].cast<Scalar>());
                 omega = params["omega"].cast<Scalar>();
-                auto ni_ = (pybind11::tuple)params["ni"];
-                auto nj_ = (pybind11::tuple)params["nj"];
-
-                ni = vec3<Scalar>(ni_[0].cast<Scalar>(), ni_[1].cast<Scalar>(), ni_[2].cast<Scalar>());
-                nj = vec3<Scalar>(nj_[0].cast<Scalar>(), nj_[1].cast<Scalar>(), nj_[2].cast<Scalar>());
-
-                // normalize
-                ni = ni * fast::rsqrt(dot(ni, ni));
-                nj = nj * fast::rsqrt(dot(nj, nj));
-
-                // std::cout << "nj local " << vecString(nj) << "\n";
-                // std::cout << "ni local " << vecString(ni) << "\n";
             }
 
         pybind11::dict asDict()
             {
                 pybind11::dict v;
-
                 v["alpha"] = fast::acos(cosalpha);
                 v["omega"] = omega;
-
-                v["ni"] = pybind11::make_tuple(ni.x, ni.y, ni.z);
-                v["nj"] = pybind11::make_tuple(nj.x, nj.y, nj.z);
-
                 return v;
             }
 
-        vec3<Scalar> ni;
-        vec3<Scalar> nj;
         Scalar cosalpha;
         Scalar omega;
     }__attribute__((aligned(16)));
+
+    struct shape_type
+    {
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+          \param available_bytes Size of remaining shared memory allocation
+        */
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
+
+        }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
+
+        }
+
+        HOSTDEVICE shape_type() { }
+
+#ifndef __HIPCC__
+
+        shape_type(pybind11::object shape_params, bool managed)
+            {
+            pybind11::list n_py = shape_params["n"];
+            
+            if (len(n_py) != 3)
+                throw std::runtime_error("Each patch position must have 3 elements");
+            vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
+                                              pybind11::cast<Scalar>(n_py[1]),
+                                              pybind11::cast<Scalar>(n_py[2]));
+                    // normalize
+            n = n * fast::rsqrt(dot(n, n));
+            m_n = n;
+
+            }
+
+        pybind11::dict asDict()
+            {
+                pybind11::dict v;
+                auto n_py = pybind11::make_tuple(m_n.x,
+                                                 m_n.y,
+                                                 m_n.z);
+                v["n"] = n_py;
+                return v;
+            }
+#endif
+
+#ifdef ENABLE_HIP
+        //! Attach managed memory to CUDA stream
+        void set_memory_hint() const { 
+        }
+#endif
+        vec3<Scalar> m_n;
+    };
 
     DEVICE GeneralEnvelope( // TODO: Change name to PatchModulator. It is not general. It assumes a single off-center patch
         const Scalar3& _dr,
         const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
         const Scalar4& _quat_j,
         const Scalar _rcutsq,
-        const param_type& _params)
-        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params)
+        const param_type& _params,
+        const shape_type& _shape_i,
+        const shape_type& _shape_j)
+        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), shape_i(_shape_i), shape_j(_shape_j)
         {
             // compute current janus direction vectors
             
@@ -102,7 +137,7 @@ public:
             a2 = rotate(qi, ey);
             a3 = rotate(qi, ez);
             // patch direction of particle a in world frame
-            ni_world = rotate(qi, params.ni);
+            ni_world = rotate(qi, shape_i.m_n);
             // std::cout << "ni world: " << vecString(ni_world);
 
             // orientation vectors of particle b in world frame
@@ -110,7 +145,7 @@ public:
             b2 = rotate(qj, ey);
             b3 = rotate(qj, ez);
 
-            nj_world = rotate(qj, params.nj);
+            nj_world = rotate(qj, shape_j.m_n);
 
 
             // compute distance
@@ -234,20 +269,20 @@ public:
             vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above (afuyeaad)
             
             torque_div_energy_i =
-                vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), dfi_dni)) +
-                vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), dfi_dni)) +
-                vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), dfi_dni));
+                vec_to_scalar3( shape_i.m_n.x * cross( vec3<Scalar>(a1), dfi_dni)) +
+                vec_to_scalar3( shape_i.m_n.y * cross( vec3<Scalar>(a2), dfi_dni)) +
+                vec_to_scalar3( shape_i.m_n.z * cross( vec3<Scalar>(a3), dfi_dni));
 
             torque_div_energy_i *= Scalar(-1) * Modulatorj();
 
             vec3<Scalar> dfj_dnj = dfj_du() * rhat; // still positive
             
             torque_div_energy_j =
-                vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
-                vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
-                vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dfj_dnj));
+                vec_to_scalar3( shape_j.m_n.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
+                vec_to_scalar3( shape_j.m_n.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
+                vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dfj_dnj));
             
-            // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr)));
+            // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dr)));
             
             torque_div_energy_j *= Scalar(-1) * Modulatori();
 
@@ -347,6 +382,8 @@ private:
     vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;
+    const shape_type& shape_i;
+    const shape_type& shape_j;
 
     vec3<Scalar> a1, a2, a3;
     vec3<Scalar> b1, b2, b3;

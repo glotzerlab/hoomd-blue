@@ -50,74 +50,44 @@ public:
 
         param_type(typename PairEvaluator::param_type _pairP, typename DirectionalEnvelope::param_type _envelP)
             {
-                // temporary width is 1
-                num_patches = 1;
-                pairP = ManagedArray<typename PairEvaluator::param_type>(1);
-                envelP = ManagedArray<typename DirectionalEnvelope::param_type>(1);
-                pairP[0] = _pairP;
-                envelP[0] = _envelP;
+                pairP = _pairP;
+                envelP = _envelP;
             }
 
         param_type(pybind11::dict params, bool managed)
             {
-                // temporary width is 1
-                num_patches = 1;
-                pairP = ManagedArray<typename PairEvaluator::param_type>(1, managed);
-                envelP = ManagedArray<typename DirectionalEnvelope::param_type>(1, managed);
-                pairP[0] = typename PairEvaluator::param_type(params["pair_params"], managed);
-                envelP[0] = typename DirectionalEnvelope::param_type(params["envelope_params"]);
+                pairP = typename PairEvaluator::param_type(params["pair_params"], managed);
+                envelP = typename DirectionalEnvelope::param_type(params["envelope_params"]);
             }
 
         pybind11::dict asDict()
             {
                 pybind11::dict v;
 
-                v["pair_params"] = pairP[0].asDict();
-                v["envelope_params"] = envelP[0].asDict();
+                v["pair_params"] = pairP.asDict();
+                v["envelope_params"] = envelP.asDict();
 
                 return v;
             }
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
             {
-                // TODO: might have problem with Table potential?
                 pairP.load_shared(ptr, available_bytes);
-                envelP.load_shared(ptr, available_bytes);
-                for (unsigned int i = 0; i < pairP.size(); i++)
-                    {
-                        pairP[i].load_shared(ptr, available_bytes);
-                        // no envelopes with managed arrays in them
-                    }
             }
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
             {
-                // TODO: might have problem with Table potential?
-                pairP.load_shared(ptr, available_bytes);
-                envelP.load_shared(ptr, available_bytes);
-                for (unsigned int i = 0; i < pairP.size(); i++)
-                    {
-                        pairP[i].load_shared(ptr, available_bytes);
-                        // no envelopes with managed arrays in them
-                    }
+                pairP.allocate_shared(ptr, available_bytes);
             }
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {
-                // TODO: might have problem with Table potential?
                 pairP.set_memory_hint();
-                envelP.set_memory_hint();
-                for (unsigned int i = 0; i < pairP.size(); i++)
-                    {
-                        pairP[i].set_memory_hint();
-                        // no envelopes with managed arrays in them
-                    }
             }
 #endif
-        ManagedArray<typename PairEvaluator::param_type> pairP;
-        ManagedArray<typename DirectionalEnvelope::param_type> envelP;
-        unsigned int num_patches;
+        typename PairEvaluator::param_type pairP;
+        typename DirectionalEnvelope::param_type envelP;
     };
 
 // Nullary structure required by AnisoPotentialPair.
@@ -127,26 +97,49 @@ public:
         /*! \param ptr Pointer to load data to (will be incremented)
           \param available_bytes Size of remaining shared memory allocation
         */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
+            envelope.load_shared();
+}
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
+            envelope.allocate_shared();
+}
 
         HOSTDEVICE shape_type() { }
 
 #ifndef __HIPCC__
 
-        shape_type(pybind11::object shape_params, bool managed) { }
+        shape_type(pybind11::object shape_params, bool managed)
+            : envelope(pybind11::len(shape_params["envelope"]), managed)
+            {
+                pybind11::list shape_param = shape_params["envelope"];
+                for (size_t i = 0; i < pybind11::len(shape_param); i++)
+                    {
+                        
+                        envelope[i] = typename DirectionalEnvelope::shape_type(shape_param[i], managed);
+                    }
+            }
 
         pybind11::dict asDict()
             {
-                return pybind11::none();
+                pybind11::list envelope_py;
+                pybind11::dict v;
+                for (size_t i = 0; i < envelope.size();  i++)
+                    {
+                        envelope_py.append(envelope[i].asDict());
+                    }
+                v["envelope"] = envelope_py;
+                return v;
             }
 #endif
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
-        void set_memory_hint() const { }
+        void set_memory_hint() const {
+            envelope.set_memory_hint()
+}
 #endif
+        ManagedArray<typename DirectionalEnvelope::shape_type> envelope;
     };
 
     //! Constructs the pair potential evaluator
@@ -208,7 +201,7 @@ public:
     //! Whether the pair potential uses shape.
     DEVICE static bool needsShape()
         {
-            return false;
+            return true;
         }
 
     //! Accept the optional tags
@@ -216,7 +209,10 @@ public:
       \param tag_i Tag of particle i
       \param tag_j Tag of particle j
     */
-    DEVICE void setShape(const shape_type* shapei, const shape_type* shapej) { }
+    DEVICE void setShape(const shape_type* _shapei, const shape_type* _shapej) {
+        shape_i = _shapei;
+        shape_j = _shapej;
+    }
 
     //! Whether the pair potential needs particle tags.
     HOSTDEVICE static bool needsTags()
@@ -253,18 +249,17 @@ public:
             torque_i = make_scalar3(0,0,0);
             torque_j = make_scalar3(0,0,0);
 
-            //for loop over patchi and patchj
-            for (unsigned int patchi = 0; patchi < params.num_patches; patchi++)
+            //for loop over patchi and patchj, without double counting
+            for (unsigned int patchi = 0; patchi < shape_i->envelope.size(); patchi++)
                 {
-                    for (unsigned int patchj = 0; patchj < params.num_patches; patchj++)
+                    for (unsigned int patchj = patchi; patchj < shape_j->envelope.size(); patchj++)
                         {
                             Scalar3 this_force = make_scalar3(0,0,0);
                             Scalar this_pair_eng = Scalar(0);
                             Scalar3 this_torque_i = make_scalar3(0,0,0);
                             Scalar3 this_torque_j = make_scalar3(0,0,0);
 
-                            Index2D patch_indexer(params.num_patches, params.num_patches); // num_patches comes from width of square matrix of passed parameters
-                            PairEvaluator pair_eval(rsq, rcutsq, params.pairP[patch_indexer(patchi, patchj)]);
+                            PairEvaluator pair_eval(rsq, rcutsq, params.pairP);
                             // compute pair potential
                             Scalar force_divr(Scalar(0));
                             if (!pair_eval.evalForceAndEnergy(force_divr, this_pair_eng, energy_shift))
@@ -272,12 +267,13 @@ public:
                                     return false;
                                 }
 
-                            DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP[patch_indexer(patchi, patchj)]);
+                            DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP, shape_i->envelope[patchi], shape_j->envelope[patchj]);
                             // compute envelope
                             Scalar envelope(Scalar(0));
                             // here, this_torque_i and this_torque_j get populated with the
                             // torque envelopes and are missing the factor of pair energy
                             envel_eval.evaluate(this_force, envelope, this_torque_i, this_torque_j);
+                            // TODO probably should change the name of envelope on the line above
 
                             // modulate forces
                             // TODO check this math. yes.
@@ -330,10 +326,12 @@ public:
         {
             return PairEvaluator::getName() + "_" + DirectionalEnvelope::getName();
         }
-
+    static std::string getShapeParamName()
+        {
+        return "Envelope";
+        }
     std::string getShapeSpec() const
         {
-            // TODO this is just copied in:
             throw std::runtime_error("Shape definition not supported for this pair potential.");
         }
 #endif
@@ -346,6 +344,8 @@ protected:
     const Scalar4& quat_i;
     const Scalar4& quat_j;
     const param_type& params;
+    const shape_type* shape_i;
+    const shape_type* shape_j;
 
     // PairEvaluator pairEval;           //!< An isotropic pair evaluator
     // DirectionalEnvelope envelEval;    //!< A directional envelope evaluator

@@ -588,9 +588,19 @@ class ALJ(AnisotropicPair):
 
 class Patchy(AnisotropicPair):
     """"""
-    pass
+    # pair.lj get rcut from base class
 
-class PatchyLJ(AnisotropicPair):
+    # don't call         self._add_typeparam(params) in base class but store it
+    @staticmethod
+    def _check_0_pi(input):
+        if 0 <= input <= np.pi:
+            return input
+        else:
+            raise ValueError(f"Value {input} is not between 0 and pi")
+        # can we get the keys here to check for A A being ni=nj
+
+
+class PatchyLJ(Patchy):
     r"""Patchy Lennard-Jones pair force.
 
     Args:
@@ -651,28 +661,21 @@ class PatchyLJ(AnisotropicPair):
     """
     _cpp_class_name = "AnisoPotentialPairJanusLJ"
 
-    @staticmethod
-    def _check_0_pi(input):
-        if 0 <= input <= np.pi:
-            return input
-        else:
-            raise ValueError(f"Value {input} is not between 0 and pi")
-        # can we get the keys here to check for A A being ni=nj
-
     def __init__(self, nlist, default_r_cut=None, mode='none'):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict({
                 "pair_params": {"epsilon": float,
-                                 "sigma": float},
+                                "sigma": float},
                 "envelope_params": {"alpha": OnlyTypes(float,
                                                        postprocess = self._check_0_pi),
                                     "omega": float,
-                                    "ni": (float, float, float),
-                                    "nj": (float, float, float)}},
+                                    }},
                               len_keys=2))
-        self._add_typeparam(params)
+        envelope = TypeParameter('envelope', 'particle_types',
+                                 TypeParameterDict([{"n": (float, float, float)}], len_keys=1))
+        self._extend_typeparam((params, envelope))
 
 
     @log(category="object")

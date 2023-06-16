@@ -309,7 +309,10 @@ class EvaluatorPairGB
         {
         return "gb";
         }
-
+    static std::string getShapeParamName()
+        {
+        return "shape";
+        }
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;

@@ -15,10 +15,14 @@ namespace md
     {
 namespace detail
     {
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairExpandedGaussian, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+
+
+
+// template void export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+// template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+// template void export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+// template void export_AnisoPotentialPair<PairModulator<EvaluatorPairExpandedGaussian, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
