@@ -63,7 +63,7 @@ _particle_data = dict(
     # We don't care about a valid body specification here just that we can
     # retrieve and set it correctly.
     body=dict(np_type=np.uint32,
-              value=np.linspace(-1, 10, Np, dtype=np.uint32),
+              value=np.linspace(4294967295, 10, Np, dtype=np.uint32),
               new_value=np.linspace(1, 20, Np, dtype=np.uint32),
               shape=(Np,)),
     # typeid is a signed integer in C++ despite always being nonnegative
