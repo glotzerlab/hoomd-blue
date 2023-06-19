@@ -104,3 +104,9 @@ class Burst(GSD):
         """
         if self._attached:
             self._cpp_obj.dump()
+
+    def __len__(self):
+        """Get the current length of the internal frame buffer."""
+        if self._attached:
+            return len(self._cpp_obj)
+        return 0
