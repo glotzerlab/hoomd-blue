@@ -104,4 +104,7 @@ sys.excepthook = _hoomd_sys_excepthook
 
 # Install a SIGTERM handler that gracefully exits, allowing open files to flush
 # buffered writes and close.
-signal.signal(signal.SIGTERM, lambda n, f: sys.exit(1))
+try:
+    signal.signal(signal.SIGTERM, lambda n, f: sys.exit(1))
+except ValueError:
+    pass
