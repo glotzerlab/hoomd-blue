@@ -26,10 +26,15 @@ Install the ``hoomd`` package from the conda-forge_ channel into a conda environ
 
     $ conda install hoomd=4.0.0
 
-Recent versions of ``conda`` auto-detect whether your system has a GPU and installs the appropriate
-package. Override this and force GPU package installation with::
+``conda`` auto-detects whether your system has a GPU and attempts to install the appropriate
+package. Override this and force the GPU enabled package installation with::
 
+    $ export CONDA_OVERRIDE_CUDA="11.2"
     $ conda install "hoomd=4.0.0=*gpu*"
+
+Similarly, you can force CPU only package installation with::
+
+    $ conda install "hoomd=4.0.0=*cpu*"
 
 .. note::
 
@@ -43,9 +48,9 @@ package. Override this and force GPU package installation with::
 .. tip::
 
     Use mambaforge_, miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid
-    package conflicts with conda-forge_ packages. When using miniconda_, follow the conda-forge_
-    instructions to configure the channel selection so that all packages are installed from
-    the conda-forge_ channel.
+    package conflicts with conda-forge_ packages. When using miniconda_, follow the instructions
+    provided in the conda-forge_ documentation to configure the channel selection so that all
+    packages are installed from the conda-forge_ channel.
 
 .. _mambaforge: https://github.com/conda-forge/miniforge
 .. _miniforge: https://github.com/conda-forge/miniforge
