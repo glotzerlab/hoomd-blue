@@ -24,18 +24,18 @@ Conda package
 **HOOMD-blue** is available on conda-forge_ on the *linux-64*, *osx-64*, and *osx-arm64* platforms.
 Install the ``hoomd`` package from the conda-forge_ channel into a conda environment::
 
-    $ conda install -c conda-forge hoomd
+    $ conda install hoomd=4.0.0
 
 Recent versions of ``conda`` auto-detect whether your system has a GPU and installs the appropriate
 package. Override this and force GPU package installation with::
 
-    $ conda install -c conda-forge "hoomd=*=*gpu*"
+    $ conda install "hoomd=4.0.0=*gpu*"
 
 .. note::
 
     To use :ref:`run time compilation` on **macOS**, install the ``compilers`` package::
 
-        $ conda install -c conda-forge compilers
+        $ conda install compilers
 
     Without this package you will get *file not found* errors when HOOMD-blue performs the run time
     compilation.
@@ -43,7 +43,9 @@ package. Override this and force GPU package installation with::
 .. tip::
 
     Use mambaforge_, miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid
-    package conflicts with conda-forge_ packages.
+    package conflicts with conda-forge_ packages. When using miniconda_, follow the conda-forge_
+    instructions to configure the channel selection so that all packages are installed from
+    the conda-forge_ channel.
 
 .. _mambaforge: https://github.com/conda-forge/miniforge
 .. _miniforge: https://github.com/conda-forge/miniforge
