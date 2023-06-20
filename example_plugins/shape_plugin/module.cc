@@ -2,28 +2,31 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
-#include "ComputeFreeVolume.h"
-#include "IntegratorHPMC.h"
-#include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoNEC.h"
+#include "hoomd/hpmc/ComputeFreeVolume.h"
+#include "hoomd/hpmc/IntegratorHPMC.h"
+#include "hoomd/hpmc/IntegratorHPMCMono.h"
+#include "hoomd/hpmc/IntegratorHPMCMonoNEC.h"
 
-#include "ComputeSDF.h"
+#include "hoomd/hpmc/ComputeSDF.h"
+#include "hoomd/hpmc/ShapeUnion.h"
+
+#include "hoomd/hpmc/ExternalField.h"
+#include "hoomd/hpmc/ExternalFieldComposite.h"
+#include "hoomd/hpmc/ExternalFieldHarmonic.h"
+#include "hoomd/hpmc/ExternalFieldWall.h"
+
+#include "hoomd/hpmc/UpdaterClusters.h"
+#include "hoomd/hpmc/UpdaterMuVT.h"
+
 #include "ShapeMySphere.h"
-#include "ShapeUnion.h"
-
-#include "ExternalField.h"
-#include "ExternalFieldComposite.h"
-#include "ExternalFieldHarmonic.h"
-#include "ExternalFieldWall.h"
-
-#include "UpdaterClusters.h"
-#include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
-#include "ComputeFreeVolumeGPU.h"
-#include "IntegratorHPMCMonoGPU.h"
-#include "UpdaterClustersGPU.h"
+#include "hoomd/hpmc/ComputeFreeVolumeGPU.h"
+#include "hoomd/hpmc/IntegratorHPMCMonoGPU.h"
+#include "hoomd/hpmc/UpdaterClustersGPU.h"
 #endif
+
+using namespace hoomd::hpmc::detail;
 
 namespace hoomd
     {
@@ -53,6 +56,7 @@ PYBIND11_MODULE(_shape_plugin, m)
     export_ComputeFreeVolumeGPU<ShapeMySphere>(m, "ComputeFreeVolumeMySphereGPU");
     export_UpdaterClustersGPU<ShapeMySphere>(m, "UpdaterClustersMySphereGPU");
 #endif
+    }
 
     } // namespace hpmc
     } // namespace hoomd

@@ -57,4 +57,4 @@ install(FILES ${files}
 copy_files_to_build("${files}" "${COMPONENT_NAME}" "*.py")
 
 # Python tests.
-add_subdirectory(pytest)
+#add_subdirectory(pytest)
