@@ -189,9 +189,10 @@ if (HIP_PLATFORM STREQUAL "nvcc")
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
 endif()
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(CUDALibs
-  REQUIRED_VARS
-    ${REQUIRED_CUDA_LIB_VARS}
-    ${REQUIRED_HIP_LIB_VARS}
-)
+if (HIP_PLATFORM STREQUAL "nvcc")
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(CUDALibs
+      REQUIRED_VARS
+        ${REQUIRED_CUDA_LIB_VARS}
+    )
+endif()
