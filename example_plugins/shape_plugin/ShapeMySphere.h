@@ -177,61 +177,8 @@ DEVICE inline bool test_overlap<ShapeMySphere, ShapeMySphere>(const vec3<Scalar>
     }
 
 
-//! sphere sweep distance
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \param err in/out variable incremented when error conditions occur in the overlap test
-    \returns true when *a* and *b* overlap, and false when they are disjoint
-
-    \ingroup shape
-*/
-DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
-                                       const ShapeMySphere& a,
-                                       const ShapeMySphere& b,
-                                       const vec3<Scalar>& direction,
-                                       unsigned int& err,
-                                       vec3<Scalar>& collisionPlaneVector)
-    {
-    ShortReal sumR = a.params.radius + b.params.radius;
-    ShortReal distSQ = ShortReal(dot(r_ab, r_ab));
-
-    ShortReal d_parallel = ShortReal(dot(r_ab, direction));
-    if (d_parallel <= 0) // Moving apart
-        {
-        return -1.0;
-        };
-
-    ShortReal discriminant = sumR * sumR - distSQ + d_parallel * d_parallel;
-    if (discriminant < 0) // orthogonal distance larger than sum of radii
-        {
-        return -2.0;
-        };
-
-    ShortReal newDist = d_parallel - fast::sqrt(discriminant);
-
-    if (newDist > 0)
-        {
-        collisionPlaneVector = r_ab - direction * Scalar(newDist);
-        return newDist;
-        }
-    else
-        {
-        // Two particles overlapping [with negative sweepable distance]
-        collisionPlaneVector = r_ab;
-        return -10.0;
-        }
-    }
 
 
-#ifndef __HIPCC__
-template<> inline std::string getShapeSpec(const ShapeMySphere& sphere)
-    {
-    std::ostringstream shapedef;
-    shapedef << "{\"type\": \"MySphere\", \"radius\": " << sphere.params.radius << "}";
-    return shapedef.str();
-    }
-#endif
 
     } // end namespace hpmc
     } // end namespace hoomd
