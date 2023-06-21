@@ -5,7 +5,6 @@
 #include "hoomd/hpmc/ComputeFreeVolume.h"
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/IntegratorHPMCMono.h"
-#include "hoomd/hpmc/IntegratorHPMCMonoNEC.h"
 
 #include "hoomd/hpmc/ComputeSDF.h"
 #include "hoomd/hpmc/ShapeUnion.h"
@@ -36,7 +35,6 @@ namespace hpmc
 PYBIND11_MODULE(_shape_plugin, m)
     {
     export_IntegratorHPMCMono<ShapeMySphere>(m, "IntegratorHPMCMonoMySphere");
-    export_IntegratorHPMCMonoNEC<ShapeMySphere>(m, "IntegratorHPMCMonoNECMySphere");
     export_ComputeFreeVolume<ShapeMySphere>(m, "ComputeFreeVolumeMySphere");
     export_ComputeSDF<ShapeMySphere>(m, "ComputeSDFMySphere");
     export_UpdaterMuVT<ShapeMySphere>(m, "UpdaterMuVTMySphere");
