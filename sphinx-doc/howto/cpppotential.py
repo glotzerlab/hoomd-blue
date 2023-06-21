@@ -10,7 +10,7 @@ frame.particles.types = ['S']
 frame.particles.typeid = [0] * 2
 frame.configuration.box = [20, 20, 20, 0, 0, 0]
 
-with gsd.hoomd.open(name='cpppotential.gsd', mode='xb') as f:
+with gsd.hoomd.open(name='cpppotential.gsd', mode='x') as f:
     f.append(frame)
 
 # The square well potential

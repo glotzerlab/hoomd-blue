@@ -469,7 +469,9 @@ class Simulation(metaclass=Loggable):
 
     def __del__(self):
         """Clean up dangling references to simulation."""
-        self._operations._unschedule()
+        # _operations may not be set, check before unscheduling
+        if hasattr(self, "_operations"):
+            self._operations._unschedule()
 
 
 def _match_class_path(obj, *matches):
