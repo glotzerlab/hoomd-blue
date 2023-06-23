@@ -291,12 +291,12 @@ void ExecutionConfiguration::handleHIPError(hipError_t err,
             file += strlen(HOOMD_SOURCE_DIR);
 
         std::ostringstream s;
-        #ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
         cudaError_t cuda_error = cudaPeekAtLastError();
         s << "CUDA Error: " << string(cudaGetErrorString(cuda_error));
-        #else
+#else
         s << "HIP Error: " << string(hipGetErrorString(err));
-        #endif
+#endif
         s << " before " << file << ":" << line;
 
         // throw an error exception
