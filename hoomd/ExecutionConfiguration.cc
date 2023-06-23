@@ -189,7 +189,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         // select first device by default
         hipSetDevice(m_gpu_id[0]);
 
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         handleHIPError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
@@ -291,7 +291,13 @@ void ExecutionConfiguration::handleHIPError(hipError_t err,
             file += strlen(HOOMD_SOURCE_DIR);
 
         std::ostringstream s;
-        s << "HIP Error: " << string(hipGetErrorString(err)) << " before " << file << ":" << line;
+        #ifdef __HIP_PLATFORM_NVCC__
+        cudaError_t cuda_error = cudaPeekAtLastError();
+        s << "CUDA Error: " << string(cudaGetErrorString(cuda_error));
+        #else
+        s << "HIP Error: " << string(hipGetErrorString(err));
+        #endif
+        s << " before " << file << ":" << line;
 
         // throw an error exception
         throw(runtime_error(s.str()));
@@ -358,7 +364,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     // add to list of active GPUs
     m_gpu_id.push_back(hip_gpu_id);
 
-    hipError_t err_sync = hipGetLastError();
+    hipError_t err_sync = hipPeekAtLastError();
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
@@ -571,7 +577,7 @@ void ExecutionConfiguration::beginMultiGPU() const
 
         if (isCUDAErrorCheckingEnabled())
             {
-            hipError_t err_sync = hipGetLastError();
+            hipError_t err_sync = hipPeekAtLastError();
             handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
@@ -602,7 +608,7 @@ void ExecutionConfiguration::endMultiGPU() const
 
         if (isCUDAErrorCheckingEnabled())
             {
-            hipError_t err_sync = hipGetLastError();
+            hipError_t err_sync = hipPeekAtLastError();
             handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
