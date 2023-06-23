@@ -141,10 +141,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         {
         if (!m_concurrent && gpu_id.size() > 1)
             {
-            msg->errorAllRanks() << "Multi-GPU execution requested, but not all GPUs support "
-                                    "concurrent managed access"
-                                 << endl;
-            throw runtime_error("Error initializing execution configuration");
+            throw runtime_error("Multi-GPU execution requested, but not all GPUs support "
+                                "concurrent managed access");
             }
 
 #ifndef ALWAYS_USE_MANAGED_MEMORY
@@ -278,12 +276,11 @@ void ExecutionConfiguration::handleHIPError(hipError_t err,
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
             file += strlen(HOOMD_SOURCE_DIR);
 
-        // print an error message
-        msg->errorAllRanks() << string(hipGetErrorString(err)) << " before " << file << ":" << line
-                             << endl;
+        std::ostringstream s;
+        s << "HIP Error: " << string(hipGetErrorString(err)) << " before " << file << ":" << line;
 
         // throw an error exception
-        throw(runtime_error("HIP Error"));
+        throw(runtime_error(s.str()));
         }
     }
 
@@ -483,7 +480,6 @@ void ExecutionConfiguration::setupStats()
             cudaError_t error = cudaGetDeviceProperties(&cuda_prop, m_gpu_id[idev]);
             if (error != cudaSuccess)
                 {
-                msg->errorAllRanks() << "" << endl;
                 throw runtime_error("Failed to get device properties: "
                                     + string(cudaGetErrorString(error)));
                 }
