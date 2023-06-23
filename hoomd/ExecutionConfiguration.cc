@@ -110,11 +110,16 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             {
             // if we found a local rank, use that to select the GPU
             gpu_id.push_back((local_rank % dev_count));
+
+            ostringstream s;
+            s << "Selected GPU " << gpu_id[0] << " by MPI rank." << endl;
+            msg->collectiveNoticeStr(4, s.str());
             }
 
         if (!gpu_id.size())
             {
             // auto-detect a single GPU
+            msg->collectiveNoticeStr(4, "Asking the driver to choose a GPU.\n");
             initializeGPU(-1);
             }
         else
@@ -135,6 +140,15 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #endif
 
     setupStats();
+
+    s.clear();
+    s << "Device is running on ";
+    for (const auto& device_description : m_active_device_descriptions)
+        {
+        s << device_description << " ";
+        }
+    s << endl;
+    msg->collectiveNoticeStr(3, s.str());
 
 #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
