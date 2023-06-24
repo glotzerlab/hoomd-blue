@@ -15,12 +15,11 @@
 
 namespace hoomd
     {
-mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
-    : Compute(sysdef), m_mpcd_pdata(mpcd_pdata), m_cell_size(1.0), m_cell_np_max(4),
-      m_cell_np(m_exec_conf), m_cell_list(m_exec_conf), m_embed_cell_ids(m_exec_conf),
-      m_conditions(m_exec_conf), m_needs_compute_dim(true), m_particles_sorted(false),
-      m_virtual_change(false)
+mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
+    : Compute(sysdef), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_cell_size(1.0),
+      m_cell_np_max(4), m_cell_np(m_exec_conf), m_cell_list(m_exec_conf),
+      m_embed_cell_ids(m_exec_conf), m_conditions(m_exec_conf), m_needs_compute_dim(true),
+      m_particles_sorted(false), m_virtual_change(false)
     {
     assert(m_mpcd_pdata);
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellList" << std::endl;
@@ -933,8 +932,7 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
 void mpcd::detail::export_CellList(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<mpcd::ParticleData>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup);

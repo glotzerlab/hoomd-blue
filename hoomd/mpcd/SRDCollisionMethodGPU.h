@@ -24,7 +24,7 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     {
     public:
     //! Constructor
-    SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    SRDCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int cur_timestep,
                           unsigned int period,
                           int phase,

@@ -13,14 +13,12 @@ set(_mpcd_sources
     Communicator.cc
     ExternalField.cc
     Integrator.cc
-    ParticleData.cc
     SlitGeometryFiller.cc
     SlitPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
     StreamingGeometry.cc
     StreamingMethod.cc
-    SystemData.cc
     VirtualParticleFiller.cc
     )
 
@@ -38,8 +36,6 @@ set(_mpcd_headers
     CommunicatorUtilities.h
     ExternalField.h
     Integrator.h
-    ParticleData.h
-    ParticleDataSnapshot.h
     ParticleDataUtilities.h
     SlitGeometry.h
     SlitGeometryFiller.h
@@ -49,7 +45,6 @@ set(_mpcd_headers
     SRDCollisionMethod.h
     StreamingGeometry.h
     StreamingMethod.h
-    SystemData.h
     VirtualParticleFiller.h
     )
 

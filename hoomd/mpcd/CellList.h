@@ -34,8 +34,7 @@ class PYBIND11_EXPORT CellList : public Compute
     {
     public:
     //! Constructor
-    CellList(std::shared_ptr<SystemDefinition> sysdef,
-             std::shared_ptr<mpcd::ParticleData> mpcd_pdata);
+    CellList(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~CellList();
@@ -266,7 +265,7 @@ class PYBIND11_EXPORT CellList : public Compute
     BoxDim m_cover_box;                     //!< Box covered by the cell list
 
     /// The systems's communicator.
-    std::shared_ptr<Communicator> m_comm;
+    std::shared_ptr<hoomd::Communicator> m_comm;
 
     //! Determine if embedded particles require migration
     virtual bool needsEmbedMigrate(uint64_t timestep);

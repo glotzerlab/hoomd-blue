@@ -12,14 +12,14 @@
 namespace hoomd
     {
 mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
-    std::shared_ptr<mpcd::SystemData> sysdata,
+    std::shared_ptr<SystemDefinition> sysdef,
     uint64_t cur_timestep,
     uint64_t period,
     int phase,
     std::shared_ptr<mpcd::CellThermoCompute> thermo,
     std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
     std::shared_ptr<Variant> T)
-    : mpcd::ATCollisionMethod(sysdata, cur_timestep, period, phase, thermo, rand_thermo, T)
+    : mpcd::ATCollisionMethod(sysdef, cur_timestep, period, phase, thermo, rand_thermo, T)
     {
     m_tuner_draw.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
@@ -183,7 +183,7 @@ void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
     pybind11::class_<mpcd::ATCollisionMethodGPU,
                      mpcd::ATCollisionMethod,
                      std::shared_ptr<mpcd::ATCollisionMethodGPU>>(m, "ATCollisionMethodGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             uint64_t,
                             uint64_t,
                             int,

@@ -13,10 +13,11 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "CellList.h"
 #include "ExternalField.h"
-#include "SystemData.h"
 #include "hoomd/Autotuned.h"
 #include "hoomd/GPUPolymorph.h"
+#include "hoomd/SystemDefinition.h"
 
 #include <pybind11/pybind11.h>
 
@@ -33,7 +34,7 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
     {
     public:
     //! Constructor
-    StreamingMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    StreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
                     unsigned int cur_timestep,
                     unsigned int period,
                     int phase);
@@ -81,10 +82,10 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
     void setPeriod(unsigned int cur_timestep, unsigned int period);
 
     protected:
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
     Scalar m_mpcd_dt;                                          //!< Integration time step

@@ -26,7 +26,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     {
     public:
     //! Constructor
-    SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    SRDCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int cur_timestep,
                        unsigned int period,
                        int phase,

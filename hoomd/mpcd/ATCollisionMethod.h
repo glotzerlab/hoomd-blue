@@ -26,7 +26,7 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     {
     public:
     //! Constructor
-    ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    ATCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                       uint64_t cur_timestep,
                       uint64_t period,
                       int phase,

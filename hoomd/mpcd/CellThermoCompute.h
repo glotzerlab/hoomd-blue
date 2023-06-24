@@ -15,12 +15,12 @@
 
 #include "CellList.h"
 #include "CellThermoTypes.h"
-#include "SystemData.h"
 #ifdef ENABLE_MPI
 #include "CellCommunicator.h"
 #endif // ENABLE_MPI
 
 #include "hoomd/Compute.h"
+#include "hoomd/SystemDefinition.h"
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <pybind11/pybind11.h>
 
@@ -33,7 +33,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     {
     public:
     //! Constructor
-    CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata);
+    CellThermoCompute(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~CellThermoCompute();

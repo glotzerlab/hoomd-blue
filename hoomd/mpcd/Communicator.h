@@ -15,9 +15,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "CellList.h"
 #include "CommunicatorUtilities.h"
 #include "ParticleData.h"
-#include "SystemData.h"
 
 #include "hoomd/Autotuned.h"
 #include "hoomd/Autotuner.h"
@@ -25,6 +25,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/SystemDefinition.h"
 
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <memory>
@@ -59,7 +60,7 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     {
     public:
     //! Constructor
-    Communicator(std::shared_ptr<mpcd::SystemData> system_data);
+    Communicator(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~Communicator();
@@ -154,11 +155,11 @@ class PYBIND11_EXPORT Communicator : public Autotuned
         return res;
         }
 
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
 

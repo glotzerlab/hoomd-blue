@@ -24,7 +24,7 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     {
     public:
     //! Constructor
-    ATCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    ATCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                          uint64_t cur_timestep,
                          uint64_t period,
                          int phase,

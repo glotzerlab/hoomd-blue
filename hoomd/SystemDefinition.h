@@ -11,6 +11,9 @@
 
 #include "BondedGroupData.h"
 #include "ParticleData.h"
+#ifdef ENABLE_MPCD
+#include "hoomd/mpcd/ParticleData.h"
+#endif
 
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -199,6 +202,14 @@ class PYBIND11_EXPORT SystemDefinition
         return m_pair_data;
         }
 
+#ifdef ENABLE_MPCD
+    //! Get the MPCD particle data
+    std::shared_ptr<mpcd::ParticleData> getMPCDParticleData() const
+        {
+        return m_mpcd_data;
+        }
+#endif
+
     //! Return a snapshot of the current system data
     template<class Real> std::shared_ptr<SnapshotSystemData<Real>> takeSnapshot();
 
@@ -216,6 +227,9 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ImproperData> m_improper_data;     //!< Improper data for the system
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
+#ifdef ENABLE_MPCD
+    std::shared_ptr<mpcd::ParticleData> m_mpcd_data;   //!< MPCD particle data
+#endif
 
 #ifdef ENABLE_MPI
     /// The system communicator

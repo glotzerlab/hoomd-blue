@@ -25,10 +25,9 @@ const unsigned int mpcd::Communicator::neigh_max = 27;
  * \param sysdef System definition the communicator is associated with
  * \param decomposition Domain decomposition of the global box
  */
-mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
-    : m_mpcd_sys(system_data), m_sysdef(system_data->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_pdata(m_mpcd_sys->getParticleData()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
+mpcd::Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
       m_decomposition(m_pdata->getDomainDecomposition()), m_is_communicating(false),
       m_check_decomposition(true), m_nneigh(0), m_n_unique_neigh(0), m_sendbuf(m_exec_conf),
       m_recvbuf(m_exec_conf), m_force_migrate(false)
@@ -51,9 +50,8 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     m_adj_mask.swap(adj_mask);
 
     // attach decomposition check to the box change signal
-    m_mpcd_sys->getCellList()
-        ->getSizeChangeSignal()
-        .connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+    m_cl->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(
+        this);
 
     // create new data type for the pdata_element
     const int nitems = 4;
@@ -78,9 +76,8 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
 mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
-    m_mpcd_sys->getCellList()
-        ->getSizeChangeSignal()
-        .disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+    m_cl->getSizeChangeSignal().disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(
+        this);
     MPI_Type_free(&m_pdata_element);
     }
 
@@ -204,7 +201,7 @@ void mpcd::Communicator::communicate(uint64_t timestep)
 
     // force the cell list to adopt the correct dimensions before proceeding,
     // which will trigger any size change signals
-    m_mpcd_sys->getCellList()->computeDimensions();
+    m_cl->computeDimensions();
 
     if (m_check_decomposition)
         {
@@ -268,7 +265,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
         }
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_cl->getCoverageBox();
     setCommFlags(box);
 
     // fill send buffer once
@@ -498,7 +495,7 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
 void mpcd::Communicator::checkDecomposition()
     {
     // determine the bounds of this box
-    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_cl->getCoverageBox();
     const Scalar3 lo = box.getLo();
     const Scalar3 hi = box.getHi();
 
@@ -666,7 +663,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
 void mpcd::detail::export_Communicator(pybind11::module& m)
     {
     pybind11::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     }  // end namespace hoomd

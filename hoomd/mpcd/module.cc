@@ -2,12 +2,10 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // particle data
-#include "ParticleData.h"
 #include "Sorter.h"
 #ifdef ENABLE_HIP
 #include "SorterGPU.h"
 #endif // ENABLE_HIP
-#include "SystemData.h"
 
 // cell list
 #include "CellList.h"
@@ -108,12 +106,10 @@ using namespace hoomd;
 
 PYBIND11_MODULE(_mpcd, m)
     {
-    mpcd::detail::export_ParticleData(m);
     mpcd::detail::export_Sorter(m);
 #ifdef ENABLE_HIP
     mpcd::detail::export_SorterGPU(m);
 #endif // ENABLE_HIP
-    mpcd::detail::export_SystemData(m);
 
     mpcd::detail::export_CellList(m);
     mpcd::detail::export_CellThermoCompute(m);

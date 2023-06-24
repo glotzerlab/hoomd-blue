@@ -214,16 +214,26 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
 
+# add the MPCD base parts that should go into _hoomd (i.e., core particle data)
+if (BUILD_MPCD)
+    list(APPEND _hoomd_sources
+        mpcd/ParticleData.cc
+        mpcd/ParticleDataSnapshot.cc
+        )
+    list(APPEND _hoomd_headers
+        mpcd/ParticleData.cuh
+        mpcd/ParticleData.h
+        mpcd/ParticleDataSnapshot.h
+        )
+    list(APPEND _hoomd_cu_sources
+        mpcd/ParticleData.cu
+    )
+endif(BUILD_MPCD)
+
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
 set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
-
-# add the MPCD base parts that should go into _hoomd (i.e., core particle data)
-if (BUILD_MPCD)
-    list(APPEND _hoomd_sources mpcd/ParticleDataSnapshot.cc)
-    list(APPEND _hoomd_headers mpcd/ParticleDataSnapshot.h)
-endif(BUILD_MPCD)
 
 #########################
 ## Build the module

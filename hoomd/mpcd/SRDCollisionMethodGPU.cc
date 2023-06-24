@@ -11,13 +11,13 @@
 
 namespace hoomd
     {
-mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
                                                    int phase,
                                                    uint16_t seed,
                                                    std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::SRDCollisionMethod(sysdata, cur_timestep, period, phase, seed, thermo)
+    : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, seed, thermo)
     {
     m_tuner_rotvec.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                           m_exec_conf,
@@ -160,7 +160,7 @@ void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     pybind11::class_<mpcd::SRDCollisionMethodGPU,
                      mpcd::SRDCollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,

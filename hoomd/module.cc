@@ -42,6 +42,12 @@
 // ParticleFilter objects
 #include "filter/export_filters.h"
 
+// optional MPCD classes
+#ifdef ENABLE_MPCD
+#include "hoomd/mpcd/ParticleData.h"
+#include "hoomd/mpcd/ParticleDataSnapshot.h"
+#endif
+
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "BoxResizeUpdaterGPU.h"
@@ -270,6 +276,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
 #endif
 #ifdef ENABLE_MPCD
+    mpcd::detail::export_ParticleData(m);
     mpcd::detail::export_ParticleDataSnapshot(m);
 #endif
 

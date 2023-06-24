@@ -13,20 +13,19 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  * \param cur_timestep Current system timestep
  * \param period Number of timesteps between collisions
  * \param phase Phase shift for periodic updates
  * \param seed Seed to pseudo-random number generator
  */
-mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                        uint64_t cur_timestep,
                                        uint64_t period,
                                        int phase)
-    : m_mpcd_sys(sysdata), m_sysdef(m_mpcd_sys->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()), m_mpcd_pdata(m_mpcd_sys->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()), m_cl(m_mpcd_sys->getCellList()), m_period(period),
-      m_enable_grid_shift(true)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+      m_mpcd_pdata(sysdef->getMPCDParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_period(period), m_enable_grid_shift(true)
     {
     // setup next timestep for collision
     m_next_timestep = cur_timestep;
@@ -168,7 +167,7 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     pybind11::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(
         m,
         "CollisionMethod")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, uint64_t, uint64_t, int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
         .def("setPeriod", &mpcd::CollisionMethod::setPeriod)

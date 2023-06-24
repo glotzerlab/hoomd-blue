@@ -12,13 +12,13 @@
 
 namespace hoomd
     {
-mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
                                              uint16_t seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::CollisionMethod(sysdata, cur_timestep, period, phase), m_thermo(thermo),
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_thermo(thermo),
       m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
@@ -256,7 +256,7 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
     pybind11::class_<mpcd::SRDCollisionMethod,
                      mpcd::CollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,

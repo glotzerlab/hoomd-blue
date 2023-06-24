@@ -12,15 +12,12 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  */
-mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata)
-    : Compute(sysdata->getSystemDefinition()), m_mpcd_pdata(sysdata->getParticleData()),
-      m_cl(sysdata->getCellList()), m_needs_net_reduce(true), m_cell_vel(m_exec_conf),
-      m_cell_energy(m_exec_conf), m_ncells_alloc(0)
+mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<SystemDefinition> sysdef)
+    : Compute(sysdef), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_needs_net_reduce(true),
+      m_cell_vel(m_exec_conf), m_cell_energy(m_exec_conf), m_ncells_alloc(0)
     {
-    assert(m_mpcd_pdata);
-    assert(m_cl);
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellThermoCompute" << std::endl;
 
     GPUArray<double> net_properties(mpcd::detail::thermo_index::num_quantities, m_exec_conf);
@@ -584,7 +581,7 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     pybind11::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute>>(
         m,
         "CellThermoCompute")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace hoomd

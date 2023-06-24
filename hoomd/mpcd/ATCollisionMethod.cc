@@ -12,14 +12,14 @@
 
 namespace hoomd
     {
-mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                            uint64_t cur_timestep,
                                            uint64_t period,
                                            int phase,
                                            std::shared_ptr<mpcd::CellThermoCompute> thermo,
                                            std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                                            std::shared_ptr<Variant> T)
-    : mpcd::CollisionMethod(sysdata, cur_timestep, period, phase), m_thermo(thermo),
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_thermo(thermo),
       m_rand_thermo(rand_thermo), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
@@ -222,7 +222,7 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     pybind11::class_<mpcd::ATCollisionMethod,
                      mpcd::CollisionMethod,
                      std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             uint64_t,
                             uint64_t,
                             int,
