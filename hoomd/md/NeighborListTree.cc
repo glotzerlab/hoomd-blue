@@ -243,11 +243,11 @@ void NeighborListTree::buildTree()
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
                                             access_location::host,
                                             access_mode::read);
-            m_exec_conf->msg->errorAllRanks()
-                << "nlist.tree(): Particle " << h_tag.data[i] << " is out of bounds "
-                << "(x: " << my_pos.x << ", y: " << my_pos.y << ", z: " << my_pos.z
-                << ", fx: " << f.x << ", fy: " << f.y << ", fz:" << f.z << ")" << endl;
-            throw runtime_error("Error updating neighborlist");
+            ostringstream s;
+            s << "Particle " << h_tag.data[i] << " is out of bounds "
+              << "(x: " << my_pos.x << ", y: " << my_pos.y << ", z: " << my_pos.z << ", fx: " << f.x
+              << ", fy: " << f.y << ", fz:" << f.z << ")" << endl;
+            throw runtime_error(s.str());
             return;
             }
 

@@ -210,8 +210,6 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Compute capability of the GPU formatted as a tuple (major, minor)
     std::pair<unsigned int, unsigned int> getComputeCapability(unsigned int igpu = 0) const;
 
-    //! Handle cuda error message
-    void handleCUDAError(hipError_t err, const char* file, unsigned int line) const;
     //! Handle hip error message
     void handleHIPError(hipError_t err, const char* file, unsigned int line) const;
 #endif
@@ -418,7 +416,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #if defined(ENABLE_HIP)
 #define CHECK_CUDA_ERROR()                                                            \
         {                                                                             \
-        hipError_t err_sync = hipGetLastError();                                      \
+        hipError_t err_sync = hipPeekAtLastError();                                   \
         this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);              \
         auto gpu_map = this->m_exec_conf->getGPUIds();                                \
         for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
