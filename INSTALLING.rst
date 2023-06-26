@@ -24,17 +24,17 @@ Conda package
 **HOOMD-blue** is available on conda-forge_ on the *linux-64*, *osx-64*, and *osx-arm64* platforms.
 Install the ``hoomd`` package from the conda-forge_ channel into a conda environment::
 
-    $ conda install hoomd=4.0.0
+    $ conda install hoomd=4.0.1
 
 ``conda`` auto-detects whether your system has a GPU and attempts to install the appropriate
 package. Override this and force the GPU enabled package installation with::
 
     $ export CONDA_OVERRIDE_CUDA="11.2"
-    $ conda install "hoomd=4.0.0=*gpu*"
+    $ conda install "hoomd=4.0.1=*gpu*"
 
 Similarly, you can force CPU only package installation with::
 
-    $ conda install "hoomd=4.0.0=*cpu*"
+    $ conda install "hoomd=4.0.1=*cpu*"
 
 .. note::
 
