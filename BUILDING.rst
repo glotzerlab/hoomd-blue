@@ -145,7 +145,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v4.0.1.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.0.1.tar.gz`_.
 
 .. seealso::
 

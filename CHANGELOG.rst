@@ -30,7 +30,7 @@ Change Log
 
 *Changed*
 
-* Package source in `hoomd-x.y.z.tar.gz` (previously `hoomd-vx.y.z.tar.gz`)
+* Package source in ``hoomd-x.y.z.tar.gz`` (previously ``hoomd-vx.y.z.tar.gz``)
   (`#1572 <https://github.com/glotzerlab/hoomd-blue/pull/1572>`__).
 
 4.0.0 (2023-06-06)
