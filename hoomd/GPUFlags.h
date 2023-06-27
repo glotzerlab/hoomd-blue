@@ -226,8 +226,7 @@ template<class T> void GPUFlags<T>::allocate()
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
-                m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-                throw std::runtime_error("Error allocating GPUArray.");
+                throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
             hipHostRegister(h_data, sizeof(T), hipHostRegisterMapped);
@@ -245,8 +244,7 @@ template<class T> void GPUFlags<T>::allocate()
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
-                m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-                throw std::runtime_error("Error allocating GPUArray.");
+                throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
             hipHostRegister(h_data, sizeof(T), hipHostRegisterDefault);

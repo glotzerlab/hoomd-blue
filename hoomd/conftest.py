@@ -223,7 +223,7 @@ def lattice_snapshot_factory(device):
                 box[2] = 0
             s.configuration.box = box
 
-            s.particles.N = numpy.product(n)
+            s.particles.N = numpy.prod(n)
             s.particles.types = particle_types
 
             if any(nx == 0 for nx in n):
@@ -745,7 +745,7 @@ class Generator:
         A value of None in shape means any length.
         """
         shape = tuple(i if i is not None else self.int(20) for i in shape)
-        return (100 * self.rng.random(numpy.product(shape))
+        return (100 * self.rng.random(numpy.prod(shape))
                 - 50).reshape(shape).astype(dtype)
 
     def variant(self):

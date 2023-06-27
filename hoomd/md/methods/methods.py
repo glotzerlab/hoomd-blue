@@ -38,7 +38,8 @@ class Method(AutotunedObject):
         self._simulation.state.update_group_dof()
 
     def _detach_hook(self):
-        self._simulation.state.update_group_dof()
+        if (sim := self._simulation) is not None:
+            sim.state.update_group_dof()
 
 
 class Thermostatted(Method):

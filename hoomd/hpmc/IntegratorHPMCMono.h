@@ -1638,8 +1638,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
         int retval = posix_memalign((void**)&m_aabbs, 32, N*sizeof(hoomd::detail::AABB));
         if (retval != 0)
             {
-            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-            throw std::runtime_error("Error allocating AABB memory");
+            throw std::runtime_error("Error allocating aligned memory.");
             }
         }
     }

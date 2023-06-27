@@ -110,11 +110,16 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             {
             // if we found a local rank, use that to select the GPU
             gpu_id.push_back((local_rank % dev_count));
+
+            ostringstream s;
+            s << "Selected GPU " << gpu_id[0] << " by MPI rank." << endl;
+            msg->collectiveNoticeStr(4, s.str());
             }
 
         if (!gpu_id.size())
             {
             // auto-detect a single GPU
+            msg->collectiveNoticeStr(4, "Asking the driver to choose a GPU.\n");
             initializeGPU(-1);
             }
         else
@@ -136,15 +141,22 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     setupStats();
 
+    s.clear();
+    s << "Device is running on ";
+    for (const auto& device_description : m_active_device_descriptions)
+        {
+        s << device_description << " ";
+        }
+    s << endl;
+    msg->collectiveNoticeStr(3, s.str());
+
 #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
         if (!m_concurrent && gpu_id.size() > 1)
             {
-            msg->errorAllRanks() << "Multi-GPU execution requested, but not all GPUs support "
-                                    "concurrent managed access"
-                                 << endl;
-            throw runtime_error("Error initializing execution configuration");
+            throw runtime_error("Multi-GPU execution requested, but not all GPUs support "
+                                "concurrent managed access");
             }
 
 #ifndef ALWAYS_USE_MANAGED_MEMORY
@@ -177,7 +189,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         // select first device by default
         hipSetDevice(m_gpu_id[0]);
 
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         handleHIPError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
@@ -278,12 +290,17 @@ void ExecutionConfiguration::handleHIPError(hipError_t err,
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
             file += strlen(HOOMD_SOURCE_DIR);
 
-        // print an error message
-        msg->errorAllRanks() << string(hipGetErrorString(err)) << " before " << file << ":" << line
-                             << endl;
+        std::ostringstream s;
+#ifdef __HIP_PLATFORM_NVCC__
+        cudaError_t cuda_error = cudaPeekAtLastError();
+        s << "CUDA Error: " << string(cudaGetErrorString(cuda_error));
+#else
+        s << "HIP Error: " << string(hipGetErrorString(err));
+#endif
+        s << " before " << file << ":" << line;
 
         // throw an error exception
-        throw(runtime_error("HIP Error"));
+        throw(runtime_error(s.str()));
         }
     }
 
@@ -347,7 +364,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     // add to list of active GPUs
     m_gpu_id.push_back(hip_gpu_id);
 
-    hipError_t err_sync = hipGetLastError();
+    hipError_t err_sync = hipPeekAtLastError();
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
@@ -483,7 +500,6 @@ void ExecutionConfiguration::setupStats()
             cudaError_t error = cudaGetDeviceProperties(&cuda_prop, m_gpu_id[idev]);
             if (error != cudaSuccess)
                 {
-                msg->errorAllRanks() << "" << endl;
                 throw runtime_error("Failed to get device properties: "
                                     + string(cudaGetErrorString(error)));
                 }
@@ -561,7 +577,7 @@ void ExecutionConfiguration::beginMultiGPU() const
 
         if (isCUDAErrorCheckingEnabled())
             {
-            hipError_t err_sync = hipGetLastError();
+            hipError_t err_sync = hipPeekAtLastError();
             handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
@@ -592,7 +608,7 @@ void ExecutionConfiguration::endMultiGPU() const
 
         if (isCUDAErrorCheckingEnabled())
             {
-            hipError_t err_sync = hipGetLastError();
+            hipError_t err_sync = hipPeekAtLastError();
             handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }

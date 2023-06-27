@@ -43,11 +43,11 @@ class Snapshot:
         communicator (Communicator): MPI communicator to be used when accessing
             the snapshot.
 
-    See `State` and `gsd.hoomd.Snapshot` for detailed documentation on the
+    See `State` and `gsd.hoomd.Frame` for detailed documentation on the
     components of `Snapshot`.
 
     Note:
-        `Snapshot` is duck-type compatible with `gsd.hoomd.Snapshot` except
+        `Snapshot` is duck-type compatible with `gsd.hoomd.Frame` except
         that arrays in `Snapshot` are not assignable. You can edit their
         contents: e.g. ``snapshot.particles.typeid[:] == 0``.
 
@@ -387,7 +387,7 @@ class Snapshot:
 
     @classmethod
     def from_gsd_snapshot(cls, gsd_snap, communicator):
-        """Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
+        """Constructs a `hoomd.Snapshot` from a ``gsd.hoomd.Snapshot`` object.
 
         .. deprecated:: 4.0.0
 

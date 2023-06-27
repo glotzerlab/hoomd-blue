@@ -59,7 +59,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -168,7 +168,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -229,7 +229,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -283,7 +283,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -334,7 +334,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -445,7 +445,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -512,7 +512,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.06-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.06.19-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
