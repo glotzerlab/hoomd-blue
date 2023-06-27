@@ -13,11 +13,11 @@ Change Log
 *Fixed*
 
 * Prevent ``ValueError: signal only works in main thread of the main interpreter`` when importing
-  gsd in a non-main thread
+  hoomd in a non-main thread
   (`#1576 <https://github.com/glotzerlab/hoomd-blue/pull/1576>`__).
 * The recommended conda install commands find the documented version
   (`#1578 <https://github.com/glotzerlab/hoomd-blue/pull/1578>`__).
-* CMake error when ``HOOMD_GPU_PLATFORM=HIP``
+* CMake completes without error when ``HOOMD_GPU_PLATFORM=HIP``
   (`#1579 <https://github.com/glotzerlab/hoomd-blue/pull/1579>`__).
 * Tests pass with GSD 3.0.0 installed
   (`#1577 <https://github.com/glotzerlab/hoomd-blue/pull/1577>`__).
