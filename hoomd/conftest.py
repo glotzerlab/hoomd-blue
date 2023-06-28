@@ -14,8 +14,11 @@ import hoomd
 import atexit
 import os
 import numpy
-import sybil
-import sybil.parsers.rest
+try:
+    import sybil
+    import sybil.parsers.rest
+except ImportError:
+    sybil = None
 
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
@@ -43,22 +46,22 @@ def setup_sybil_tests(namespace):
 
     namespace['gpu_not_available'] = _n_available_gpu == 0
 
-
-pytest_collect_file = sybil.Sybil(
-    parsers=[
-        sybil.parsers.rest.PythonCodeBlockParser(),
-        sybil.parsers.rest.SkipParser(),
-    ],
-    # Despite being documented as fnmatch syntax, in practice patterns matches
-    # whole relative paths. TODO:when all code examples function, search
-    # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
-    patterns=[
-        'device.py',
-        'md/methods/methods.py',
-        'md/methods/thermostats.py',
-    ],
-    setup=setup_sybil_tests,
-    fixtures=['tmp_path']).pytest()
+if sybil is not None:
+    pytest_collect_file = sybil.Sybil(
+        parsers=[
+            sybil.parsers.rest.PythonCodeBlockParser(),
+            sybil.parsers.rest.SkipParser(),
+        ],
+        # Despite being documented as fnmatch syntax, in practice patterns
+        # matches whole relative paths. TODO: when all code examples function,
+        # search *.py, */*.py, */*/*.py, ... as many levels deep as needed.
+        patterns=[
+            'device.py',
+            'md/methods/methods.py',
+            'md/methods/thermostats.py',
+        ],
+        setup=setup_sybil_tests,
+        fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
