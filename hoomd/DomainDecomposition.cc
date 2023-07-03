@@ -733,7 +733,7 @@ void export_DomainDecomposition(pybind11::module& m)
                             const std::vector<Scalar>&>())
         .def("getCumulativeFractions", &DomainDecomposition::getCumulativeFractions);
     }
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace hoomd
 #endif // ENABLE_MPI

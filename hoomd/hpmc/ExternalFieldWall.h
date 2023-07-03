@@ -186,8 +186,8 @@ struct PlaneWall
     vec3<Scalar> normal; // unit normal n = (a, b, c)
     Scalar d;            // ax + by + cz + d =  0
     };
-    }                    // namespace hpmc
-    }                    // namespace hoomd
+    } // namespace hpmc
+    } // namespace hoomd
 
 #ifndef __HIPCC__
 // This is required to be here before any uses of these vectors to work
@@ -750,8 +750,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     private:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< integrator
     };
-    }                                                // namespace hpmc
-    }                                                // namespace hoomd
+    } // namespace hpmc
+    } // namespace hoomd
 
 #ifndef __HIPCC__
 namespace hoomd

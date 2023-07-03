@@ -174,11 +174,11 @@ def test_kernel_parameters(snapshot_factory, simulation_factory, bond_cls,
 
 
 # Test Logging
-@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA,
-                              md.bond.Table, md.bond.Tether),
-                             itertools.repeat(('md', 'bond')),
-                             itertools.repeat(expected_loggable_params)))
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA, md.bond.Table,
+         md.bond.Tether), itertools.repeat(('md', 'bond')),
+        itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

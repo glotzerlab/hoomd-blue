@@ -260,7 +260,7 @@ class EvaluatorPairLJGauss
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJGAUSS_H__

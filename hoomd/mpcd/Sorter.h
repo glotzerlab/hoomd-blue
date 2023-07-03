@@ -66,14 +66,14 @@ class PYBIND11_EXPORT Sorter : public Autotuned
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
-    std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
-    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
+    std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
 
     GPUVector<unsigned int> m_order;  //!< Maps new sorted index onto old particle indexes
     GPUVector<unsigned int> m_rorder; //!< Maps old particle indexes onto new sorted indexes
 
-    unsigned int m_period;            //!< Sorting period
-    uint64_t m_next_timestep;         //!< Next step to apply sorting
+    unsigned int m_period;    //!< Sorting period
+    uint64_t m_next_timestep; //!< Next step to apply sorting
 
     //! Compute the sorting order at the current timestep
     virtual void computeOrder(uint64_t timestep);

@@ -158,9 +158,7 @@ class _SmartDefaultMapping(_SmartDefault):
         return value in self.default
 
     def to_base(self):
-        return {
-            key: _from_default(value) for key, value in self.default.items()
-        }
+        return {key: _from_default(value) for key, value in self.default.items()}
 
 
 def _to_default(value, defaults=_NoDefault):

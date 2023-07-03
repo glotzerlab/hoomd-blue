@@ -55,8 +55,8 @@ struct PYBIND11_EXPORT AABBNode
 
     unsigned int particles[NODE_CAPACITY]; //!< Indices of the particles contained in the node
     unsigned int
-        particle_tags[NODE_CAPACITY];      //!< Corresponding particle tags for particles in node
-    unsigned int num_particles;            //!< Number of particles contained in the node
+        particle_tags[NODE_CAPACITY]; //!< Corresponding particle tags for particles in node
+    unsigned int num_particles;       //!< Number of particles contained in the node
     } __attribute__((aligned(32)));
 
 //! AABB Tree

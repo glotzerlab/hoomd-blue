@@ -138,7 +138,7 @@ class EvaluatorBondHarmonic
     Scalar r_0; //!< r_0 parameter
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_HARMONIC_H__

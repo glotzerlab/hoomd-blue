@@ -817,27 +817,27 @@ void TwoStepConstantPressure::updatePropagator()
        They are fully time reversible  */
 
     // Matrix exp. for velocity update
-    m_mat_exp_v[0] = exp_v_fac_2.x;                                                           // xx
+    m_mat_exp_v[0] = exp_v_fac_2.x; // xx
     m_mat_exp_v[1]
         = -m_deltaT * Scalar(1.0 / 4.0) * m_barostat.nu_xy * (exp_v_fac_2.x + exp_v_fac_2.y); // xy
     m_mat_exp_v[2]
         = -m_deltaT * Scalar(1.0 / 4.0) * m_barostat.nu_xz * (exp_v_fac_2.x + exp_v_fac_2.z)
           + m_deltaT * m_deltaT * Scalar(1.0 / 32.0) * m_barostat.nu_xy * m_barostat.nu_yz
-                * (exp_v_fac_2.x + Scalar(2.0) * exp_v_fac_2.y + exp_v_fac_2.z);              // xz
-    m_mat_exp_v[3] = exp_v_fac_2.y;                                                           // yy
+                * (exp_v_fac_2.x + Scalar(2.0) * exp_v_fac_2.y + exp_v_fac_2.z); // xz
+    m_mat_exp_v[3] = exp_v_fac_2.y;                                              // yy
     m_mat_exp_v[4]
         = -m_deltaT * Scalar(1.0 / 4.0) * m_barostat.nu_yz * (exp_v_fac_2.y + exp_v_fac_2.z); // yz
     m_mat_exp_v[5] = exp_v_fac_2.z;                                                           // zz
 
     // Matrix exp. for position update
-    m_mat_exp_r[0] = exp_r_fac_2.x;                                                          // xx
+    m_mat_exp_r[0] = exp_r_fac_2.x; // xx
     m_mat_exp_r[1]
         = m_deltaT * Scalar(1.0 / 2.0) * m_barostat.nu_xy * (exp_r_fac_2.x + exp_r_fac_2.y); // xy
     m_mat_exp_r[2]
         = m_deltaT * Scalar(1.0 / 2.0) * m_barostat.nu_xz * (exp_r_fac_2.x + exp_r_fac_2.z)
           + m_deltaT * m_deltaT * Scalar(1.0 / 8.0) * m_barostat.nu_xy * m_barostat.nu_yz
-                * (exp_r_fac_2.x + Scalar(2.0) * exp_r_fac_2.y + exp_r_fac_2.z);             // xz
-    m_mat_exp_r[3] = exp_r_fac_2.y;                                                          // yy
+                * (exp_r_fac_2.x + Scalar(2.0) * exp_r_fac_2.y + exp_r_fac_2.z); // xz
+    m_mat_exp_r[3] = exp_r_fac_2.y;                                              // yy
     m_mat_exp_r[4]
         = m_deltaT * Scalar(1.0 / 2.0) * m_barostat.nu_yz * (exp_r_fac_2.y + exp_r_fac_2.z); // yz
     m_mat_exp_r[5] = exp_r_fac_2.z;                                                          // zz

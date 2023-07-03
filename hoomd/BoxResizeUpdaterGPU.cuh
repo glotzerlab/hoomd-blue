@@ -25,7 +25,7 @@ hipError_t gpu_box_resize_wrap(const unsigned int N,
                                const BoxDim& new_box,
                                unsigned int block_size);
 
-    }  // end namespace kernel
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace hoomd
 
 #endif // __BOX_RESIZE_UPDATER_GPU_CUH__
