@@ -115,11 +115,11 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
 
     protected:
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>
-        m_methods;                                  //!< List of all the integration methods
+        m_methods; //!< List of all the integration methods
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
 
-    bool m_prepared;                                //!< True if preprun has been called
+    bool m_prepared;     //!< True if preprun has been called
     bool m_gave_warning; //!< True if a warning has been given about no methods added
 
     /// True when orientation degrees of freedom should be integrated

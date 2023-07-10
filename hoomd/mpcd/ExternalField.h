@@ -178,8 +178,8 @@ void export_ExternalFieldPolymorph(pybind11::module& m);
     }  // end namespace detail
 #endif // __HIPCC__
 
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #undef HOSTDEVICE
 
 #endif // MPCD_EXTERNAL_FIELD_H_

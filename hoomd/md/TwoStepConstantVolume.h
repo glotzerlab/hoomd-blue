@@ -108,6 +108,6 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
     std::shared_ptr<Variant> m_limit;
     };
 
-    }  // namespace hoomd::md
+    } // namespace hoomd::md
 
 #endif // HOOMD_TWOSTEPCONSTANTVOLUME_H

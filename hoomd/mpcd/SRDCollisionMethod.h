@@ -90,8 +90,8 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     GPUVector<double3> m_rotvec;                       //!< MPCD rotation vectors
     double m_angle;                                    //!< MPCD rotation angle (radians)
 
-    std::shared_ptr<Variant> m_T;                      //!< Temperature for thermostat
-    GPUVector<double> m_factors;                       //!< Cell-level rescale factors
+    std::shared_ptr<Variant> m_T; //!< Temperature for thermostat
+    GPUVector<double> m_factors;  //!< Cell-level rescale factors
 
     //! Implementation of the collision rule
     virtual void rule(uint64_t timestep);
@@ -107,7 +107,7 @@ namespace detail
     {
 //! Export SRDCollisionMethod to python
 void export_SRDCollisionMethod(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

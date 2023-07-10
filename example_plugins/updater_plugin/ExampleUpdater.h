@@ -76,10 +76,10 @@ namespace detail
 //! Export the ExampleUpdaterGPU class to python
 void export_ExampleUpdaterGPU(pybind11::module& m);
 
-    }  // end namespace detail
+    } // end namespace detail
 
 #endif // ENABLE_HIP
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // _EXAMPLE_UPDATER_H_
