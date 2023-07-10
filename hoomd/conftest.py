@@ -41,8 +41,9 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
 
 def setup_sybil_tests(namespace):
     """Sybil setup function."""
-    # Allow documentation tests to use numpy.
+    # Common imports.
     namespace['numpy'] = numpy
+    namespace['hoomd'] = hoomd
 
     namespace['gpu_not_available'] = _n_available_gpu == 0
 
@@ -56,6 +57,7 @@ if sybil is not None:
         # matches whole relative paths. TODO: when all code examples function,
         # search *.py, */*.py, */*/*.py, ... as many levels deep as needed.
         patterns=[
+            'box.py',
             'device.py',
             'md/methods/methods.py',
             'md/methods/thermostats.py',
