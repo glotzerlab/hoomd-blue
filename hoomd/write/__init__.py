@@ -30,3 +30,4 @@ from hoomd.write.gsd import GSD
 from hoomd.write.gsd_burst import Burst
 from hoomd.write.dcd import DCD
 from hoomd.write.table import Table
+from hoomd.write.hdf5_logger import HDF5Logger

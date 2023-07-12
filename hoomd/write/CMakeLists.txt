@@ -4,6 +4,7 @@ set(files __init__.py
           gsd.py
           gsd_burst.py
           dcd.py
+          hdf5_writer.py
           )
 
 install(FILES ${files}
