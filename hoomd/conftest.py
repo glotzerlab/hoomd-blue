@@ -47,6 +47,7 @@ def setup_sybil_tests(namespace):
 
     namespace['gpu_not_available'] = _n_available_gpu == 0
 
+
 if sybil is not None:
     pytest_collect_file = sybil.Sybil(
         parsers=[
@@ -61,6 +62,7 @@ if sybil is not None:
             'device.py',
             'operations.py',
             'simulation.py',
+            'snapshot.py',
             'md/methods/methods.py',
             'md/methods/thermostats.py',
         ],
