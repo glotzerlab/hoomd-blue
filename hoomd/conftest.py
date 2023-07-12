@@ -68,6 +68,7 @@ if sybil is not None:
             'communicator.py',
             'device.py',
             'operations.py',
+            'logging.py',
             'simulation.py',
             'snapshot.py',
             'state.py',
