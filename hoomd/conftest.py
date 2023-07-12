@@ -59,6 +59,7 @@ if sybil is not None:
         patterns=[
             'box.py',
             'device.py',
+            'operations.py',
             'md/methods/methods.py',
             'md/methods/thermostats.py',
         ],
