@@ -65,6 +65,7 @@ if sybil is not None:
         # search *.py, */*.py, */*/*.py, ... as many levels deep as needed.
         patterns=[
             'box.py',
+            'communicator.py',
             'device.py',
             'operations.py',
             'simulation.py',
