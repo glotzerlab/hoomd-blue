@@ -47,6 +47,12 @@ def setup_sybil_tests(namespace):
 
     namespace['gpu_not_available'] = _n_available_gpu == 0
 
+    try:
+        import cupy
+    except ImportError:
+        cupy = None
+
+    namespace['cupy_not_available'] = cupy is None
 
 if sybil is not None:
     pytest_collect_file = sybil.Sybil(
@@ -63,6 +69,7 @@ if sybil is not None:
             'operations.py',
             'simulation.py',
             'snapshot.py',
+            'state.py',
             'md/methods/methods.py',
             'md/methods/thermostats.py',
         ],
