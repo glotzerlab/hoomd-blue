@@ -60,6 +60,7 @@ if sybil is not None:
             'box.py',
             'device.py',
             'operations.py',
+            'simulation.py',
             'md/methods/methods.py',
             'md/methods/thermostats.py',
         ],
