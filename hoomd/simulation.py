@@ -47,7 +47,7 @@ class Simulation(metaclass=Loggable):
     `create_state_from_gsd` or `create_state_from_snapshot` to initialize the
     simulation's `state`.
 
-    .. rubric:: Examples:
+    .. rubric:: Example:
 
     .. code-block:: python
 
@@ -117,7 +117,7 @@ class Simulation(metaclass=Loggable):
         unique identifying values as needed to sample uncorrelated values:
         ``random_value = f(seed, timestep, ...)``
 
-        .. rubric:: Examples:
+        .. rubric:: Example:
 
         .. code-block:: python
 
