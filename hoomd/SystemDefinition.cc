@@ -134,6 +134,13 @@ SystemDefinition::SystemDefinition(std::shared_ptr<SnapshotSystemData<Real>> sna
     m_constraint_data = std::shared_ptr<ConstraintData>(
         new ConstraintData(m_particle_data, snapshot->constraint_data));
     m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, snapshot->pair_data));
+
+#ifdef ENABLE_MPCD
+    m_mpcd_data = std::make_shared<mpcd::ParticleData>(snapshot->mpcd_data,
+                                                       snapshot->global_box,
+                                                       exec_conf,
+                                                       decomposition);
+#endif
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of
