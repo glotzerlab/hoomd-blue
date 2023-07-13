@@ -30,11 +30,16 @@ Install the ``hoomd`` package from the conda-forge_ channel into a conda environ
 package. Override this and force the GPU enabled package installation with::
 
     $ export CONDA_OVERRIDE_CUDA="12.0"
-    $ conda install "hoomd=4.0.1=*gpu*"
+    $ conda install "hoomd=4.0.1=*gpu*" "cuda-version=12.0"
 
 Similarly, you can force CPU only package installation with::
 
     $ conda install "hoomd=4.0.1=*cpu*"
+
+.. note::
+
+    CUDA 11.2 compatible packages are also available. Replace "12.0" with "11.2" above when
+    installing HOOMD-blue on systems with CUDA 11 compatible drivers.
 
 .. note::
 
