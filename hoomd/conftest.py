@@ -74,6 +74,7 @@ if sybil is not None:
             'snapshot.py',
             'state.py',
             'trigger.py',
+            'variant.py',
             'md/methods/methods.py',
             'md/methods/thermostats.py',
         ],
