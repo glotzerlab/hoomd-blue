@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Triggers determine when `hoomd.operation.Operation` instances activate.
+"""Triggers determine when most `hoomd.operation.Operation` instances activate.
 
 A `Trigger` is a boolean valued function of the timestep. The operation will
 perform its action when Trigger returns `True`. A single trigger object
@@ -11,18 +11,17 @@ may be assigned to multiple operations.
 
 You can define your own triggers by subclassing `Trigger` in Python. When you do
 so, override the `Trigger.compute` method and explicitly call the base class
-constructor in ``__init__``.
+constructor in ``__init__``:
 
-Example:
-    Define a custom trigger::
+.. code-block:: python
 
-        class CustomTrigger(hoomd.trigger.Trigger):
+    class CustomTrigger(hoomd.trigger.Trigger):
 
-            def __init__(self):
-                hoomd.trigger.Trigger.__init__(self)
+        def __init__(self):
+            hoomd.trigger.Trigger.__init__(self)
 
-            def compute(self, timestep):
-                return (timestep**(1 / 2)).is_integer()
+        def compute(self, timestep):
+            return (timestep**(1 / 2)).is_integer()
 """
 
 import typing
