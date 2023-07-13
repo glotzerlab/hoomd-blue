@@ -99,10 +99,12 @@ public:
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
             envelope.load_shared();
+            m_ns.load_shared();
 }
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
             envelope.allocate_shared();
+            m_ns.allocate_shared();
 }
 
         HOSTDEVICE shape_type() { }
@@ -116,7 +118,7 @@ public:
                 for (size_t i = 0; i < pybind11::len(shape_param); i++)
                     {
                         
-                        envelope[i] = typename DirectionalEnvelope::shape_type(shape_param[i], managed);
+                        envelope[int(i)] = typename DirectionalEnvelope::shape_type(shape_param[i], managed);
                     }
             }
 
@@ -126,7 +128,7 @@ public:
                 pybind11::dict v;
                 for (size_t i = 0; i < envelope.size();  i++)
                     {
-                        envelope_py.append(envelope[i].asDict());
+                        envelope_py.append(envelope[int(i)].asDict());
                     }
                 v["envelope"] = envelope_py;
                 return v;
@@ -137,9 +139,11 @@ public:
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const {
             envelope.set_memory_hint()
+                m_ns.set_memory_hint()
 }
 #endif
         ManagedArray<typename DirectionalEnvelope::shape_type> envelope;
+        ManagedArray<Scalar3> m_ns;
     };
 
     //! Constructs the pair potential evaluator
@@ -250,9 +254,9 @@ public:
             torque_j = make_scalar3(0,0,0);
 
             //for loop over patchi and patchj, without double counting
-            for (unsigned int patchi = 0; patchi < shape_i->envelope.size(); patchi++)
+            for (unsigned int patchi = 0; patchi < shape_i->m_ns.size(); patchi++)
                 {
-                    for (unsigned int patchj = patchi; patchj < shape_j->envelope.size(); patchj++)
+                    for (unsigned int patchj = patchi; patchj < shape_j->m_ns.size(); patchj++)
                         {
                             Scalar3 this_force = make_scalar3(0,0,0);
                             Scalar this_pair_eng = Scalar(0);
@@ -267,7 +271,7 @@ public:
                                     return false;
                                 }
 
-                            DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP, shape_i->envelope[patchi], shape_j->envelope[patchj]);
+                            DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP, shape_i->m_ns[patchi], shape_j->m_ns[patchj]);
                             // compute envelope
                             Scalar envelope(Scalar(0));
                             // here, this_torque_i and this_torque_j get populated with the

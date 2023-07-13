@@ -70,11 +70,11 @@ public:
           \param available_bytes Size of remaining shared memory allocation
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
-
+            m_ns.load_shared(ptr, available_bytes);
         }
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
-
+            m_ns.allocate_shared(ptr, available_bytes);
         }
 
         HOSTDEVICE shape_type() { }
@@ -83,36 +83,47 @@ public:
 
         shape_type(pybind11::object shape_params, bool managed)
             {
-            pybind11::list n_py = shape_params["n"];
+            pybind11::list patch_locations = shape_params;
             
-            if (len(n_py) != 3)
-                throw std::runtime_error("Each patch position must have 3 elements");
-            vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
+            m_ns = ManagedArray<Scalar3>(static_cast<unsigned int>(pybind11::len(patch_locations)), managed);
+            
+            for (size_t i = 0; i < pybind11::len(patch_locations); ++i){
+                pybind11::tuple n_py = patch_locations[i];
+                if (len(n_py) != 3)
+                    throw std::runtime_error("Each patch position must have 3 elements");
+                vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
                                               pybind11::cast<Scalar>(n_py[1]),
                                               pybind11::cast<Scalar>(n_py[2]));
-                    // normalize
-            n = n * fast::rsqrt(dot(n, n));
-            m_n = n;
+
+                // normalize
+                n = n * fast::rsqrt(dot(n, n));
+                m_ns[int(i)] = vec_to_scalar3(n);
+            }
 
             }
 
-        pybind11::dict asDict()
+        pybind11::object asDict() //asPython
             {
-                pybind11::dict v;
-                auto n_py = pybind11::make_tuple(m_n.x,
-                                                 m_n.y,
-                                                 m_n.z);
-                v["n"] = n_py;
-                return v;
+                pybind11::list l;
+                // std::vec of vec3 to list of tuples
+
+                for (size_t i = 0; i < m_ns.size(); ++i) {
+                    auto n_py = pybind11::make_tuple(m_ns[int(i)].x,
+                                                     m_ns[int(i)].y,
+                                                     m_ns[int(i)].z);
+                    l[i] = n_py;
+                }
+                return std::move(l);
             }
 #endif
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const { 
+            m_ns.set_memory_hint();
         }
 #endif
-        vec3<Scalar> m_n;
+        ManagedArray<Scalar3> m_ns;
     };
 
     DEVICE GeneralEnvelope( // TODO: Change name to PatchModulator. It is not general. It assumes a single off-center patch
@@ -121,9 +132,9 @@ public:
         const Scalar4& _quat_j,
         const Scalar _rcutsq,
         const param_type& _params,
-        const shape_type& _shape_i,
-        const shape_type& _shape_j)
-        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), shape_i(_shape_i), shape_j(_shape_j)
+        const Scalar3& _n_i,
+        const Scalar3& _n_j)
+        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(_n_i), n_j(_n_j)
         {
             // compute current janus direction vectors
             
@@ -137,7 +148,7 @@ public:
             a2 = rotate(qi, ey);
             a3 = rotate(qi, ez);
             // patch direction of particle a in world frame
-            ni_world = rotate(qi, shape_i.m_n);
+            ni_world = rotate(qi, n_i);
             // std::cout << "ni world: " << vecString(ni_world);
 
             // orientation vectors of particle b in world frame
@@ -145,7 +156,7 @@ public:
             b2 = rotate(qj, ey);
             b3 = rotate(qj, ez);
 
-            nj_world = rotate(qj, shape_j.m_n);
+            nj_world = rotate(qj, n_j);
 
 
             // compute distance
@@ -269,18 +280,18 @@ public:
             vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above (afuyeaad)
             
             torque_div_energy_i =
-                vec_to_scalar3( shape_i.m_n.x * cross( vec3<Scalar>(a1), dfi_dni)) +
-                vec_to_scalar3( shape_i.m_n.y * cross( vec3<Scalar>(a2), dfi_dni)) +
-                vec_to_scalar3( shape_i.m_n.z * cross( vec3<Scalar>(a3), dfi_dni));
+                vec_to_scalar3( n_i.x * cross( vec3<Scalar>(a1), dfi_dni)) +
+                vec_to_scalar3( n_i.y * cross( vec3<Scalar>(a2), dfi_dni)) +
+                vec_to_scalar3( n_i.z * cross( vec3<Scalar>(a3), dfi_dni));
 
             torque_div_energy_i *= Scalar(-1) * Modulatorj();
 
             vec3<Scalar> dfj_dnj = dfj_du() * rhat; // still positive
             
             torque_div_energy_j =
-                vec_to_scalar3( shape_j.m_n.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
-                vec_to_scalar3( shape_j.m_n.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
-                vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dfj_dnj));
+                vec_to_scalar3( n_j.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
+                vec_to_scalar3( n_j.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
+                vec_to_scalar3( n_j.z * cross( vec3<Scalar>(b3), dfj_dnj));
             
             // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dr)));
             
@@ -382,9 +393,7 @@ private:
     vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;
-    const shape_type& shape_i;
-    const shape_type& shape_j;
-
+    vec3<Scalar> n_i, n_j;
     vec3<Scalar> a1, a2, a3;
     vec3<Scalar> b1, b2, b3;
     Scalar drsq;

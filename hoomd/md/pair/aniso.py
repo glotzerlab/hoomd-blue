@@ -673,8 +673,9 @@ class PatchyLJ(Patchy):
                                     "omega": float,
                                     }},
                               len_keys=2))
-        envelope = TypeParameter('envelope', 'particle_types',
-                                 TypeParameterDict([{"n": (float, float, float)}], len_keys=1))
+        envelope = TypeParameter('patches', 'particle_types',
+                                 TypeParameterDict([(float, float, float)], len_keys=1))
+        #Brandon: for future changes would need to use a dictionary.
         self._extend_typeparam((params, envelope))
 
 
