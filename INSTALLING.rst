@@ -29,7 +29,7 @@ Install the ``hoomd`` package from the conda-forge_ channel into a conda environ
 ``conda`` auto-detects whether your system has a GPU and attempts to install the appropriate
 package. Override this and force the GPU enabled package installation with::
 
-    $ export CONDA_OVERRIDE_CUDA="11.2"
+    $ export CONDA_OVERRIDE_CUDA="12.0"
     $ conda install "hoomd=4.0.1=*gpu*"
 
 Similarly, you can force CPU only package installation with::
