@@ -60,23 +60,13 @@ if sybil is not None:
             sybil.parsers.rest.PythonCodeBlockParser(),
             sybil.parsers.rest.SkipParser(),
         ],
-        # Despite being documented as fnmatch syntax, in practice patterns
-        # matches whole relative paths. TODO: when all code examples function,
-        # search *.py, */*.py, */*/*.py, ... as many levels deep as needed.
-        patterns=[
-            'box.py',
-            'communicator.py',
-            'device.py',
-            'operations.py',
-            'logging.py',
-            'mesh.py',
-            'simulation.py',
-            'snapshot.py',
-            'state.py',
-            'trigger.py',
-            'variant.py',
-            'md/methods/methods.py',
-            'md/methods/thermostats.py',
+        pattern='*.py',
+        # exclude files not yet tested with sybil
+        excludes=['custom/custom_action.py',
+                 'data/typeconverter.py',
+                 'data/typeparam.py',
+                 'hpmc/external/user.py',
+                 'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,
         fixtures=['tmp_path']).pytest()
