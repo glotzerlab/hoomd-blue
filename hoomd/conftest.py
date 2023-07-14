@@ -54,6 +54,7 @@ def setup_sybil_tests(namespace):
 
     namespace['cupy_not_available'] = cupy is None
 
+
 if sybil is not None:
     pytest_collect_file = sybil.Sybil(
         parsers=[
@@ -62,11 +63,12 @@ if sybil is not None:
         ],
         pattern='*.py',
         # exclude files not yet tested with sybil
-        excludes=['custom/custom_action.py',
-                 'data/typeconverter.py',
-                 'data/typeparam.py',
-                 'hpmc/external/user.py',
-                 'hpmc/pair/user.py',
+        excludes=[
+            'custom/custom_action.py',
+            'data/typeconverter.py',
+            'data/typeparam.py',
+            'hpmc/external/user.py',
+            'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,
         fixtures=['tmp_path']).pytest()

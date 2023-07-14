@@ -544,7 +544,9 @@ class Box:
 
     def to_matrix(self):
         """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that \
-        defines the box::
+        defines the box.
+
+        .. code-block::
 
             [[Lx, Ly * xy, Lz * xz],
              [0,  Ly,      Lz * yz],

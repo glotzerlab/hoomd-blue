@@ -258,8 +258,8 @@ class GSD(Writer):
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1),
-                                      str(filename),
-                                      state._get_group(filter), mode, False)
+                                      str(filename), state._get_group(filter),
+                                      mode, False)
 
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)
