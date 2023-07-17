@@ -11,7 +11,8 @@ import hoomd.write
 try:
     import h5py
 except ImportError:
-    pytestmark = pytest.skip("h5py required to test this feature.")
+    pytestmark = pytest.skip("h5py required to test this feature.",
+                             allow_module_level=True)
 
 
 def lj_integrator():
