@@ -3,6 +3,8 @@
 
 """Provides an HDF5 logging backend for a fast binary logging format."""
 
+import copy
+
 import h5py
 import numpy as np
 from pathlib import PurePath
@@ -46,9 +48,10 @@ class _HDF5LoggerInternal(custom._InternalAction):
             "mode": mode
         })
         self._param_dict = param_dict
-        self._fh = h5py.File(self.filename, mode=mode)
+        self._fh = h5py.File(self.filename, mode=self.mode)
         self._validate_scheme()
         self._frame = self._find_frame()
+        self._attached_ = False
 
     def __del__(self):
         """Closes file upon destruction."""
@@ -58,6 +61,15 @@ class _HDF5LoggerInternal(custom._InternalAction):
     def _setattr_param(self, attr, value):
         """Makes self._param_dict attributes read only."""
         raise ValueError("Attribute {} is read-only.".format(attr))
+
+    def attach(self, simulation):
+        self._attached_ = True
+
+    def _attached(self):
+        return self._attached_
+
+    def detach(self):
+        self._attached_ = False
 
     def act(self, timestep):
         """Write a new frame of logger data to the HDF5 file."""
@@ -137,6 +149,15 @@ class _HDF5LoggerInternal(custom._InternalAction):
             group = self._fh.create_group("hoomd-data")
             group.attrs["hoomd-schema"] = [0, 1]
             group.attrs["frames"] = 0
+
+    def __getstate__(self):
+        state = copy.copy(self.__dict__)
+        del state["_fh"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._fh = h5py.File(self.filename, mode=self.mode)
 
 
 class HDF5Logger(_InternalCustomWriter):
