@@ -110,7 +110,10 @@ class LoggerCategories(Flag):
 
     @classmethod
     def _get_string_list(cls, category):
-        return [mem.name for mem in cls.__members__.values() if mem in category]
+        c = [mem.name for mem in cls.__members__.values() if mem in category]
+        # Remove NONE from list
+        c.pop(0)
+        return c
 
 
 LoggerCategories.ALL = LoggerCategories.any()
