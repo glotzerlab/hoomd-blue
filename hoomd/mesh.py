@@ -62,7 +62,7 @@ class Mesh(_HOOMDBaseObject):
 
         Names of the triangle types.
 
-        Type: `list`[`str`]
+        Type: `list` [`str`]
 
     .. py:attribute:: triangulation
 
