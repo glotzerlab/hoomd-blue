@@ -10,8 +10,11 @@ import hoomd.custom as custom
 import hoomd.logging as logging
 import hoomd.util as util
 
+from hoomd.write.custom_writer import _InternalCustomWriter
+from hoomd.data.parameterdicts import ParameterDict
 
-class HDF5Logger(custom.Action):
+
+class _HDF5LoggerInternal(custom._InternalAction):
     """A HDF5 HOOMD logging backend."""
 
     flags = (
@@ -26,17 +29,27 @@ class HDF5Logger(custom.Action):
         logging.LoggerCategories.string,
     ))
 
-    def __init__(self, fn, logger, mode="a"):
-        self.fn = fn
-        self.logger = logger
-        self.mode = mode
-        self._fh = h5py.File(self.fn, mode=mode)
+    def __init__(self, filename, logger, mode="a"):
+        param_dict = ParameterDict(filename=str,
+                                   logger=logging.Logger,
+                                   mode=str)
+        param_dict.update({
+            "filename": filename,
+            "logger": logger,
+            "mode": mode
+        })
+        self._param_dict = param_dict
+        self._fh = h5py.File(self.filename, mode=mode)
         self._validate_scheme()
         self._frame = self._find_frame()
 
     def __del__(self):
         """Closes file upon destruction."""
         self._fh.close()
+
+    def _setattr_param(self, attr, value):
+        """Makes self._param_dict attributes read only."""
+        raise ValueError("Attribute {} is read-only.".format(attr))
 
     def act(self, timestep):
         """Write a new frame of logger data to the HDF5 file."""
@@ -48,7 +61,7 @@ class HDF5Logger(custom.Action):
                 continue
             if value is None:
                 continue
-            str_key = "/".join(("data",) + key)
+            str_key = "/".join(("hoomd-data",) + key)
             if str_key not in self._fh:
                 raise RuntimeError(
                     "The logged quantities cannot change within a file.")
@@ -56,7 +69,7 @@ class HDF5Logger(custom.Action):
             dataset.resize(self._frame + 1, axis=0)
             dataset[self._frame, ...] = value
         self._frame += 1
-        self._fh["data"].attrs["frames"] = self._frame
+        self._fh["hoomd-data"].attrs["frames"] = self._frame
 
     def _create_database(self, key: str, shape, dtype, chunk_size):
         self._fh.create_dataset(
@@ -92,22 +105,62 @@ class HDF5Logger(custom.Action):
                 chunk_size = [dim if dim <= 10 else dim for dim in data_shape]
                 chunk_size[0] = 1
                 chunk_size = tuple(chunk_size)
-            self._create_database("/".join(("data",) + key), data_shape, dtype,
-                                  chunk_size)
+            self._create_database("/".join(("hoomd-data",) + key), data_shape,
+                                  dtype, chunk_size)
 
     def _find_frame(self):
-        if "data" in self._fh:
-            return self._fh["data"].attrs["frames"]
+        if "hoomd-data" in self._fh:
+            return self._fh["hoomd-data"].attrs["frames"]
         return 0
 
     def _validate_scheme(self):
-        if "data" in self._fh:
-            if "hoomd-schema" not in self._fh["data"].attrs:
+        if "hoomd-data" in self._fh:
+            if "hoomd-schema" not in self._fh["hoomd-data"].attrs:
                 raise RuntimeError("Validation of existing HDF5 file failed.")
         else:
-            group = self._fh.create_group("data")
+            group = self._fh.create_group("hoomd-data")
             group.attrs["hoomd-schema"] = [0, 1]
             group.attrs["frames"] = 0
+
+
+class HDF5Logger(_InternalCustomWriter):
+    """An HDF5 logger backend.
+
+    This class handles scalar and array data storing them in HDF5 resizable
+    datasets.
+
+    Important:
+        The HDF5 can be used for other data storage; however, the "hoomd-data"
+        key is reserved for use by this class. An exception will be thrown if
+        this requirement is not met.
+
+    Warning:
+        This class cannot handle string loggables.
+
+    Args:
+        trigger (hoomd.trigger.trigger_like): The trigger to determine when to
+            run the HDF5 backend.
+        filename (str): The filename of the HDF5 file to write to.
+        logger (hoomd.logging.Logger): The logger instance to use for querying
+            log data.
+        mode (`str`, optional): The mode to open the file in. Defaults to "a".
+
+    Attributes:
+        trigger (hoomd.trigger.trigger_like): The trigger to determine when to
+            run the HDF5 backend.
+        filename (str): The filename of the HDF5 file written to.
+        logger (hoomd.logging.Logger): The logger instance used for querying
+            log data.
+        mode (str): The mode the file was opened in.
+    """
+    _internal_class = _HDF5LoggerInternal
+
+    def write(self):
+        """Write out data to the HDF5 file.
+
+        Writes out a frame from the composed logger.
+        """
+        self._action.act()
 
 
 __all__ = ["HDF5Logger"]
