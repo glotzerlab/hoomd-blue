@@ -71,6 +71,14 @@ class _HDF5LoggerInternal(custom._InternalAction):
         self._frame += 1
         self._fh["hoomd-data"].attrs["frames"] = self._frame
 
+    def flush(self):
+        """Write out all data currently buffered in memory.
+
+        Without calling this, data may be stored in the h5py.File object without
+        being written to the on disk file yet.
+        """
+        self._fh.flush()
+
     def _create_database(self, key: str, shape, dtype, chunk_size):
         self._fh.create_dataset(
             key,
