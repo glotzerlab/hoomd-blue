@@ -33,6 +33,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
         logging.LoggerCategories.string,
     ))
 
+    accepted_categories = logging.LoggerCategories.ALL - _reject_categories
+
     def __init__(self, filename, logger, mode="a"):
         param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
             (str, PurePath)),
@@ -186,6 +188,8 @@ class HDF5Logger(_InternalCustomWriter):
         mode (`str`, optional): The mode to open the file in. Defaults to "a".
 
     Attributes:
+        cls.accepted_categories (hoomd.logging.LoggerCategories): The enum value
+            for all accepted categories for `HDF5Logger` instances.
         trigger (hoomd.trigger.trigger_like): The trigger to determine when to
             run the HDF5 backend.
         filename (str): The filename of the HDF5 file written to.
@@ -200,10 +204,11 @@ class HDF5Logger(_InternalCustomWriter):
         import hoomd
 
         simulation = hoomd.util.make_example_simulation()
-        logger = hoomd.logging.Logger()
 
     .. code-block:: python
 
+        logger = hoomd.logging.Logger(
+            hoomd.write.HDF5Logger.accepted_categories)
         h5_writer = hoomd.write.HDF5Logger(10_000, "simulation-log.h5", logger)
         simulation.operations += h5_writer
     """
