@@ -49,7 +49,7 @@ class Mesh(_HOOMDBaseObject):
     The mesh is defined by an array of triangles that make up a
     triangulated surface of particles. Each triangle consists of
     three particle tags and is assigned to a defined triangle 
-    type.".
+    type.
 
     Examples::
 
@@ -62,7 +62,7 @@ class Mesh(_HOOMDBaseObject):
 
         Names of the triangle types.
 
-        Type: `list` [`str`]
+        Type: `list`[`str`]
 
     .. py:attribute:: triangulation
 
@@ -70,7 +70,6 @@ class Mesh(_HOOMDBaseObject):
 
         * ``type_ids`` ((*N*) `numpy.ndarray` of ``uint32``): List of 
            triangle type ids.
-
         * ``triangles`` ((*N*, 3) `numpy.ndarray` of ``uint32``): List 
           of triplets of particle tags which encodes the triangulation 
           of the mesh structure.
