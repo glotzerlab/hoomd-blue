@@ -1,6 +1,6 @@
 import hoomd
 from hoomd import hpmc
-from . import _shape_plugin
+from hoomd.shape_plugin import _shape_plugin
 
 
 class MySphere(hpmc.integrate.HPMCIntegrator)

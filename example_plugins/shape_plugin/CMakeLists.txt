@@ -48,6 +48,8 @@ install(TARGETS _${COMPONENT_NAME}
 # Copy python modules to the build directory to make it a working python package. Any files that
 # should be copied to the install directory should be listed here.
 set(files
+    __init__.py
+    integrate.py
     )
 
 install(FILES ${files}
