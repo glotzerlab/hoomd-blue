@@ -196,10 +196,11 @@ class HDF5Logger(_InternalCustomWriter):
     .. rubric:: Example
 
     .. invisible-code-block: python
+
         import hoomd
 
         simulation = hoomd.util.make_example_simulation()
-        logger = hoomd.loging.Logger()
+        logger = hoomd.logging.Logger()
 
     .. code-block:: python
 
