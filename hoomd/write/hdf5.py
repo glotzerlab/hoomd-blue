@@ -137,6 +137,9 @@ class HDF5Logger(_InternalCustomWriter):
     This class handles scalar and array data storing them in HDF5 resizable
     datasets.
 
+    Note:
+        This class requires that ``h5py`` be installed.
+
     Important:
         The HDF5 can be used for other data storage; however, the "hoomd-data"
         key is reserved for use by this class. An exception will be thrown if
