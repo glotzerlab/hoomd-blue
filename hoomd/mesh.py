@@ -10,7 +10,7 @@ mesh triangles.
 
 .. rubric:: Mesh triangles and mesh bonds
 
-``Mesh.triangulation`` is a dictonary with a list of triangle data that 
+``Mesh.triangulation`` is a dictionary with a list of triangles that 
 constitutes the triangulation. Each triangle is defined by a triplet of 
 particle tags. For a given triangulation HOOMD-blue also constructs a 
 list of mesh bonds automatically. Each mesh bond is defined by a pair 
@@ -68,10 +68,11 @@ class Mesh(_HOOMDBaseObject):
 
         The mesh triangulation. The dictionary has the following keys:
 
-        * ``type_ids`` ((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids.
+        * ``type_ids`` ((*N*) `numpy.ndarray` of ``uint32``): List of 
+           triangle type ids.
 
-        * ``triangles`` ((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangles.
-          A list of triplets of particle tags which encodes the triangulation 
+        * ``triangles`` ((*N*, 3) `numpy.ndarray` of ``uint32``): List 
+          of triplets of particle tags which encodes the triangulation 
           of the mesh structure.
 
         Type: `dict`
