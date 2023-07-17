@@ -1,3 +1,4 @@
+h5py
 ipython
 ipython_genutils
 nbconvert
