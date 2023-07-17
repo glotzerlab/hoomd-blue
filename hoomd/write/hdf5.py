@@ -163,6 +163,19 @@ class HDF5Logger(_InternalCustomWriter):
         logger (hoomd.logging.Logger): The logger instance used for querying
             log data.
         mode (str): The mode the file was opened in.
+
+    .. rubric:: Example
+
+    .. invisible-code-block: python
+        import hoomd
+
+        simulation = hoomd.util.make_example_simulation()
+        logger = hoomd.loging.Logger()
+
+    .. code-block:: python
+
+        h5_writer = hoomd.write.HDF5Logger(10_000, "simulation-log.h5", logger)
+        simulation.operations += h5_writer
     """
     _internal_class = _HDF5LoggerInternal
 

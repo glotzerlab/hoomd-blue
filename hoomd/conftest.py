@@ -53,9 +53,8 @@ pytest_collect_file = sybil.Sybil(
     # whole relative paths. TODO:when all code examples function, search
     # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
     patterns=[
-        'device.py',
-        'md/methods/methods.py',
-        'md/methods/thermostats.py',
+        'device.py', 'md/methods/methods.py', 'md/methods/thermostats.py',
+        "write/hdf5.py"
     ],
     setup=setup_sybil_tests,
     fixtures=['tmp_path']).pytest()
