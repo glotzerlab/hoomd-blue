@@ -83,7 +83,7 @@ namespace detail
     {
 //! Export mpcd::SystemDataSnapshot to python
 void export_SystemDataSnapshot(pybind11::module& m);
-    }  // namespace detail
+    } // namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

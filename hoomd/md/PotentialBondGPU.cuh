@@ -337,8 +337,8 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                         unsigned int* d_flags);
 #endif
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_BOND_GPU_CUH__

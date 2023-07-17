@@ -3683,9 +3683,9 @@ void export_CommunicatorGPU(pybind11::module& m)
                             std::shared_ptr<DomainDecomposition>>())
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
-    }  // end namespace detail
+    } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

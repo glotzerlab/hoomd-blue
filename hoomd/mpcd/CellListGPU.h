@@ -61,7 +61,7 @@ namespace detail
     {
 //! Export the CellListGPU class to python
 void export_CellListGPU(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

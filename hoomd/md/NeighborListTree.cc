@@ -389,7 +389,7 @@ void NeighborListTree::traverseTree()
                 }     // end loop over images
             }         // end loop over pair types
         h_n_neigh.data[i] = n_neigh_i;
-        }             // end loop over particles
+        } // end loop over particles
     }
 
 namespace detail

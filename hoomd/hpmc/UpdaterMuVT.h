@@ -153,16 +153,16 @@ template<class Shape> class UpdaterMuVT : public Updater
     protected:
     std::vector<std::shared_ptr<Variant>> m_fugacity; //!< Reservoir concentration per particle-type
     std::shared_ptr<IntegratorHPMCMono<Shape>>
-        m_mc;                                //!< The MC Integrator this Updater is associated with
-    unsigned int m_npartition;               //!< The number of partitions to use for Gibbs ensemble
-    bool m_gibbs;                            //!< True if we simulate a Gibbs ensemble
+        m_mc;                  //!< The MC Integrator this Updater is associated with
+    unsigned int m_npartition; //!< The number of partitions to use for Gibbs ensemble
+    bool m_gibbs;              //!< True if we simulate a Gibbs ensemble
 
-    GPUVector<Scalar4> m_postype_backup;     //!< Backup of postype array
+    GPUVector<Scalar4> m_postype_backup; //!< Backup of postype array
 
-    Scalar m_max_vol_rescale;                //!< Maximum volume ratio rescaling factor
-    Scalar m_volume_move_probability;        //!< Ratio between exchange/transfer and volume moves
+    Scalar m_max_vol_rescale;         //!< Maximum volume ratio rescaling factor
+    Scalar m_volume_move_probability; //!< Ratio between exchange/transfer and volume moves
 
-    unsigned int m_gibbs_other;              //!< The root-rank of the other partition
+    unsigned int m_gibbs_other; //!< The root-rank of the other partition
 
     hpmc_muvt_counters_t m_count_total;      //!< Accept/reject total count
     hpmc_muvt_counters_t m_count_run_start;  //!< Count saved at run() start
