@@ -1,13 +1,17 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import h5py
 import numpy as np
 import pytest
 
 from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
+
+try:
+    import h5py
+except ImportError:
+    pytestmark = pytest.skip("h5py required to test this feature.")
 
 
 def lj_integrator():
@@ -37,7 +41,7 @@ def logger():
 
 
 def test_invalid_attrs(tmp_path, logger):
-    h5_writer = hoomd.write.Table(1, tmp_path / "eg.h5", logger)
+    h5_writer = hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
     with pytest.raises(AttributeError):
         h5_writer.action
     with pytest.raises(AttributeError):
@@ -70,7 +74,7 @@ def test_write(create_md_sim, tmp_path):
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
     sim.operations.computes.append(thermo)
 
-    logger = hoomd.logging.Logger()
+    logger = hoomd.logging.Logger(["scalar", "particle", "sequence"])
     logger.add(thermo)
 
     h5_writer = hoomd.write.HDF5Logger(filename=filename,
@@ -89,7 +93,7 @@ def test_write(create_md_sim, tmp_path):
     if sim.device.communicator.rank == 0:
         key = 'hoomd-data/md/compute/ThermodynamicQuantities/kinetic_energy'
         with h5py.File(filename, mode='r') as fh:
-            assert np.alclose(fh[key], kinetic_energy_list)
+            assert np.allclose(fh[key], kinetic_energy_list)
 
 
 def test_mode(tmp_path, logger, create_md_sim):
@@ -97,6 +101,7 @@ def test_mode(tmp_path, logger, create_md_sim):
     fn = tmp_path / "eg.py"
     logger[("foo", "bar")] = (lambda: 42, "scalar")
     h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="w")
+    sim.operations.writers.append(h5_writer)
     sim.run(2)
     h5_writer.flush()
     sim.operations.writers.clear()
@@ -105,6 +110,7 @@ def test_mode(tmp_path, logger, create_md_sim):
         assert len(fh["hoomd-data/foo/bar"]) == 2
 
     h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="a")
+    sim.operations.writers.append(h5_writer)
     sim.run(2)
     h5_writer.flush()
     sim.operations.writers.clear()
@@ -113,6 +119,7 @@ def test_mode(tmp_path, logger, create_md_sim):
         assert len(fh["hoomd-data/foo/bar"]) == 4
 
     h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="w")
+    sim.operations.writers.append(h5_writer)
     sim.run(2)
     h5_writer.flush()
     sim.operations.writers.clear()

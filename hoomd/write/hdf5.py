@@ -5,9 +5,11 @@
 
 import h5py
 import numpy as np
+from pathlib import PurePath
 
 import hoomd.custom as custom
 import hoomd.logging as logging
+import hoomd.data.typeconverter as typeconverter
 import hoomd.util as util
 
 from hoomd.write.custom_writer import _InternalCustomWriter
@@ -30,9 +32,14 @@ class _HDF5LoggerInternal(custom._InternalAction):
     ))
 
     def __init__(self, filename, logger, mode="a"):
-        param_dict = ParameterDict(filename=str,
+        param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
+            (str, PurePath)),
                                    logger=logging.Logger,
                                    mode=str)
+        if (rejects := self._reject_categories
+                & logger.categories) != logging.LoggerCategories["NONE"]:
+            reject_str = logging.LoggerCategories._get_string_list(rejects)
+            raise ValueError(f"Cannot have {reject_str} in logger categories.")
         param_dict.update({
             "filename": filename,
             "logger": logger,
@@ -45,7 +52,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
 
     def __del__(self):
         """Closes file upon destruction."""
-        self._fh.close()
+        if hasattr(self, "_fh"):
+            self._fh.close()
 
     def _setattr_param(self, attr, value):
         """Makes self._param_dict attributes read only."""
