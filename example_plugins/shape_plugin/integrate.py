@@ -1,3 +1,5 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Example Shape Integrator."""
 
@@ -19,9 +21,14 @@ class MySphere(hpmc.integrate.HPMCIntegrator):
     _ext_module = _shape_plugin
     _cpp_cls = "IntegratorHPMCMonoMySphere"
 
-    def __init__(self, default_d=0.1, default_a=0.1, translation_move_probability=0.5, nselect=4):
+    def __init__(self,
+                 default_d=0.1,
+                 default_a=0.1,
+                 translation_move_probability=0.5,
+                 nselect=4):
         # initialize base class
-        super().__init__(default_d, default_a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',

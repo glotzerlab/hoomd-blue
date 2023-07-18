@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include "hoomd/hpmc/Moves.h"
 #include "hoomd/AABB.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/HPMCMiscFunctions.h"
+#include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/OBB.h"
 
 #include "hoomd/hpmc/Moves.h"
@@ -72,7 +72,6 @@ struct MySphereParams : ShapeParams
 
 #endif
     } __attribute__((aligned(32)));
-
 
 struct ShapeMySphere
     {
@@ -145,7 +144,6 @@ struct ShapeMySphere
     const MySphereParams& params;
     };
 
-
 //! MySphere-MySphere overlap
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -175,10 +173,6 @@ DEVICE inline bool test_overlap<ShapeMySphere, ShapeMySphere>(const vec3<Scalar>
         return false;
         }
     }
-
-
-
-
 
     } // end namespace hpmc
     } // end namespace hoomd
