@@ -724,6 +724,7 @@ class State:
             if not (gpu_not_available or cupy_not_available):
                 gpu=hoomd.device.GPU()
                 simulation = hoomd.util.make_example_simulation(device=gpu)
+                simulation.state.replicate(nx=2, ny=2, nz=2)
 
         .. skip: next if(gpu_not_available or cupy_not_available)
 
