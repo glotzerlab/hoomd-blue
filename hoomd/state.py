@@ -719,6 +719,12 @@ class State:
         change the data across the HOOMD-blue simulation. For a trivial example,
         this example would set all particle z-axis positions to 0.
 
+        .. invisible-code-block: python
+
+            if not (gpu_not_available or cupy_not_available)
+                gpu=hoomd.device.GPU()
+                simulation = hoomd.util.make_example_simulation(device=gpu)
+
         .. skip: next if(gpu_not_available or cupy_not_available)
 
         .. code-block:: python
