@@ -3,7 +3,7 @@ from hoomd import hpmc
 from hoomd.shape_plugin import _shape_plugin
 
 
-class MySphere(hpmc.integrate.HPMCIntegrator)
+class MySphere(hpmc.integrate.HPMCIntegrator):
     """Example shape integrator."""
 
     # set static class data
