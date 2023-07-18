@@ -35,7 +35,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
 
     accepted_categories = ~_reject_categories
 
-    def __init__(self, filename, logger, mode="a"):
+    def __init__(self, filename, logger, mode="a", communicator=None):
         param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
             (str, PurePath)),
                                    logger=logging.Logger,
@@ -50,7 +50,10 @@ class _HDF5LoggerInternal(custom._InternalAction):
             "mode": mode
         })
         self._param_dict = param_dict
-        self._fh = h5py.File(self.filename, mode=self.mode)
+        if communicator is None or communicator.rank == 0:
+            self._fh = h5py.File(self.filename, mode=self.mode)
+        else:
+            self._fh = None
         self._validate_scheme()
         self._frame = self._find_frame()
         self._attached_ = False
@@ -76,6 +79,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
     def act(self, timestep):
         """Write a new frame of logger data to the HDF5 file."""
         log_dict = util._dict_flatten(self.logger.log())
+        if self._fh is None:
+            return
         if self._frame == 0:
             self._initialize_datasets(log_dict)
         for key, (value, category) in log_dict.items():
@@ -102,6 +107,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
         self._fh.flush()
 
     def _create_dataset(self, key: str, shape, dtype, chunk_size):
+        if self._fh is None:
+            return
         self._fh.create_dataset(
             key,
             shape,
@@ -121,6 +128,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
         Tests were done on 1,000 frame files for writes and reads and tested for
         writing and reading speed.
         """
+        if self._fh is None:
+            return
         for key, (value, category) in log_dict.items():
             chunk_size = None
             if category == "scalar":
@@ -139,11 +148,15 @@ class _HDF5LoggerInternal(custom._InternalAction):
                                  dtype, chunk_size)
 
     def _find_frame(self):
+        if self._fh is None:
+            return
         if "hoomd-data" in self._fh:
             return self._fh["hoomd-data"].attrs["frames"]
         return 0
 
     def _validate_scheme(self):
+        if self._fh is None:
+            return
         if "hoomd-data" in self._fh:
             if "hoomd-schema" not in self._fh["hoomd-data"].attrs:
                 raise RuntimeError("Validation of existing HDF5 file failed.")
