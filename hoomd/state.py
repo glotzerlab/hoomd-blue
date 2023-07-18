@@ -733,7 +733,8 @@ class State:
                 local_snapshot.particles.position[:, 2] = 0
 
         Warning:
-            This property is only available when running on a GPU(s).
+            This property is only available when running on a GPU (or multiple
+            GPUs).
 
         Note:
             The state's box and the number of particles, bonds, angles,
