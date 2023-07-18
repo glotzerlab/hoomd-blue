@@ -34,6 +34,7 @@ optional requirements are missing.
 
 - `CuPy`_ (optional)
 - `gsd`_ (optional)
+- `h5py`_ (optional)
 - `mpi4py`_ (optional)
 - `pytest`_
 - `rowan`_ (optional)
@@ -41,6 +42,7 @@ optional requirements are missing.
 
 .. _CuPy: https://cupy.dev/
 .. _gsd: https://gsd.readthedocs.io/
+.. _h5py: https://www.h5py.org/
 .. _mpi4py: https://mpi4py.readthedocs.io/
 .. _pytest: https://docs.pytest.org/
 .. _rowan: https://rowan.readthedocs.io/
