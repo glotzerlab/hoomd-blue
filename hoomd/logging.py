@@ -660,19 +660,42 @@ class Logger(_SafeNamespaceDict):
         occur for user specified names that are reused.
 
     Args:
-        categories (`list` of `str`, optional): A list of string categories
-            (list of categories can be found in `LoggerCategories`). These are
-            the only types of loggable quantities that can be logged by this
-            logger. Defaults to allowing every type.
+        categories (`list`[`str` ], `LoggerCategories`, optional): Either a
+            list of string categories (list of categories can be found in
+            `LoggerCategories`) or a `LoggerCategories` instance with the
+            desired flags set. These are the only types of loggable quantities
+            that can be logged by this logger. Defaults to allowing every type
+            ``LoggerCategories.ALL``.
         only_default (`bool`, optional): Whether to log only quantities that are
             logged by default. Defaults to ``True``. Non-default quantities
             are typically measures of operation performance rather than
             information about simulation state.
+
+    .. rubric:: Example
+
+    .. code-block:: python
+
+        import hoomd
+        from hoomd.logging import LoggerCategories
+
+        # Accept all loggables
+        logger = hoomd.logging.Logger()
+
+        # Accept only string(s)
+        logger = hoomd.logging.Logger(categories=["string", "strings"])
+
+        # Accept particle and bond categories
+        logger = hoomd.logging.Logger(
+            categories=LoggerCategories.particle | LoggerCategories.bond)
     """
 
     def __init__(self, categories=None, only_default=True):
-        self._categories = LoggerCategories.ALL if categories is None else \
-            LoggerCategories.any(categories)
+        if categories is None:
+            self._categories = LoggerCategories.ALL
+        if isinstance(categories, LoggerCategories):
+            self._categories = categories
+        else:
+            self._categories = LoggerCategories.any(categories)
         self._only_default = only_default
         super().__init__()
 
