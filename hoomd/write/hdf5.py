@@ -33,7 +33,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
         logging.LoggerCategories.string,
     ))
 
-    accepted_categories = logging.LoggerCategories.ALL - _reject_categories
+    accepted_categories = ~_reject_categories
 
     def __init__(self, filename, logger, mode="a"):
         param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
