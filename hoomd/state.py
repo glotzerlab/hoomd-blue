@@ -721,7 +721,7 @@ class State:
 
         .. invisible-code-block: python
 
-            if not (gpu_not_available or cupy_not_available)
+            if not (gpu_not_available or cupy_not_available):
                 gpu=hoomd.device.GPU()
                 simulation = hoomd.util.make_example_simulation(device=gpu)
 
