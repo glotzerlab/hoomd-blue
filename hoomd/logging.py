@@ -13,11 +13,10 @@ See Also:
 
     Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`
 
-    .. skip: next if(not hoomd.version.md_built)
+.. invisible-code-block: python
 
-    .. invisible-code-block: python
-
-     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4))
+    if hoomd.version.md_built:
+        lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4))
 """
 
 import copy
