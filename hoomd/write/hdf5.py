@@ -168,6 +168,9 @@ class HDF5Logger(_InternalCustomWriter):
     This class handles scalar and array data storing them in HDF5 resizable
     datasets.
 
+    .. _h5py:
+        https://docs.h5py.org/en/stable/high/file.html#opening-creating-files
+
     Note:
         This class requires that ``h5py`` be installed.
 
@@ -188,8 +191,6 @@ class HDF5Logger(_InternalCustomWriter):
         mode (`str`, optional): The mode to open the file in. Available values
             are "w", "x" and "w-", "a", and "r+". Defaults to "a". See the
                 h5py_ documentation for more).
-
-    .. _h5py: https://docs.h5py.org/en/stable/high/file.html#opening-creating-files
 
     Attributes:
         cls.accepted_categories (hoomd.logging.LoggerCategories): The enum value
@@ -217,7 +218,7 @@ class HDF5Logger(_InternalCustomWriter):
             hoomd.write.HDF5Logger.accepted_categories)
         h5_writer = hoomd.write.HDF5Logger(10_000, "simulation-log.h5", logger)
         simulation.operations += h5_writer
-    """  # noqa: E501, W505
+    """
     _internal_class = _HDF5LoggerInternal
 
     def write(self):

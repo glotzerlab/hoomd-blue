@@ -660,7 +660,7 @@ class Logger(_SafeNamespaceDict):
         occur for user specified names that are reused.
 
     Args:
-        categories (`list`[`str` ], `LoggerCategories`, optional): Either a
+        categories (`list` [`str` ], `LoggerCategories`, optional): Either a
             list of string categories (list of categories can be found in
             `LoggerCategories`) or a `LoggerCategories` instance with the
             desired flags set. These are the only types of loggable quantities
