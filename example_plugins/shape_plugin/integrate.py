@@ -1,6 +1,15 @@
+
+"""Example Shape Integrator."""
+
+# Import the C++ module
+from hoomd.shape_plugin import _shape_plugin
+
+# Import the hoomd Python package and other necessary components
 import hoomd
 from hoomd import hpmc
-from hoomd.shape_plugin import _shape_plugin
+from hoomd.logging import log
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
 
 
 class MySphere(hpmc.integrate.HPMCIntegrator):
