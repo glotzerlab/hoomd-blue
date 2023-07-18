@@ -35,13 +35,8 @@ def create_md_sim(simulation_factory, device, two_particle_snapshot_factory):
     return sim
 
 
-@pytest.fixture
-def logger():
+def test_invalid_attrs(tmp_path):
     logger = hoomd.logging.Logger(categories=['scalar'])
-    return logger
-
-
-def test_invalid_attrs(tmp_path, logger):
     h5_writer = hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
     with pytest.raises(AttributeError):
         h5_writer.action
@@ -60,8 +55,8 @@ def test_only_error_on_strings(tmp_path):
         hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
 
 
-def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path,
-                  logger):
+def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path):
+    logger = hoomd.logging.Logger(categories=['scalar'])
     sim = simulation_factory(two_particle_snapshot_factory())
     h5_writer = hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
     operation_pickling_check(h5_writer, sim)
@@ -97,7 +92,8 @@ def test_write(create_md_sim, tmp_path):
             assert np.allclose(fh[key], kinetic_energy_list)
 
 
-def test_mode(tmp_path, logger, create_md_sim):
+def test_mode(tmp_path, create_md_sim):
+    logger = hoomd.logging.Logger(categories=['scalar'])
     sim = create_md_sim
     fn = tmp_path / "eg.py"
     logger[("foo", "bar")] = (lambda: 42, "scalar")
