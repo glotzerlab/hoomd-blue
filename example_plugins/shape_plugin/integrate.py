@@ -7,7 +7,6 @@
 from hoomd.shape_plugin import _shape_plugin
 
 # Import the hoomd Python package and other necessary components
-import hoomd
 from hoomd import hpmc
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict

@@ -2,7 +2,6 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd import shape_plugin
-from hoomd.conftest import two_particle_snapshot_factory
 
 
 def test_attach(simulation_factory, two_particle_snapshot_factory):
