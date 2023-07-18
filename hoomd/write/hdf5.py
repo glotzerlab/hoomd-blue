@@ -101,7 +101,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
         """
         self._fh.flush()
 
-    def _create_database(self, key: str, shape, dtype, chunk_size):
+    def _create_dataset(self, key: str, shape, dtype, chunk_size):
         self._fh.create_dataset(
             key,
             shape,
@@ -135,8 +135,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
                 chunk_size = [dim if dim <= 10 else dim for dim in data_shape]
                 chunk_size[0] = 1
                 chunk_size = tuple(chunk_size)
-            self._create_database("/".join(("hoomd-data",) + key), data_shape,
-                                  dtype, chunk_size)
+            self._create_dataset("/".join(("hoomd-data",) + key), data_shape,
+                                 dtype, chunk_size)
 
     def _find_frame(self):
         if "hoomd-data" in self._fh:
