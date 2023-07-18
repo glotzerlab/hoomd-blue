@@ -21,8 +21,8 @@ class Variant(_hoomd.Variant):
     Provides methods common to all variants and a base class for user-defined
     variants.
 
-    Subclasses should override the `__call___`, `_min`, and `_max` methods and
-    must explicitly call the base class constructor in ``__init__``:
+    Subclasses should override the ``__call__``, ``_min``, and ``_max`` methods
+    and must explicitly call the base class constructor in ``__init__``:
 
     .. code-block:: python
 
