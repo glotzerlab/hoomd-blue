@@ -21,6 +21,10 @@ from hoomd.data.parameterdicts import ParameterDict
 class _HDF5LoggerInternal(custom._InternalAction):
     """A HDF5 HOOMD logging backend."""
 
+    _skip_for_equality = custom._InternalAction._skip_for_equality | {
+        "_fh", "_attached_"
+    }
+
     flags = (
         custom.Action.Flags.ROTATIONAL_KINETIC_ENERGY,
         custom.Action.Flags.PRESSURE_TENSOR,
@@ -35,7 +39,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
 
     accepted_categories = ~_reject_categories
 
-    def __init__(self, filename, logger, mode="a", communicator=None):
+    def __init__(self, filename, logger, mode="a"):
         param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
             (str, PurePath)),
                                    logger=logging.Logger,
@@ -50,17 +54,20 @@ class _HDF5LoggerInternal(custom._InternalAction):
             "mode": mode
         })
         self._param_dict = param_dict
+        self._fh = None
+        self._attached_ = False
+
+    def _initialize(self, communicator):
         if communicator is None or communicator.rank == 0:
             self._fh = h5py.File(self.filename, mode=self.mode)
         else:
             self._fh = None
         self._validate_scheme()
         self._frame = self._find_frame()
-        self._attached_ = False
 
     def __del__(self):
         """Closes file upon destruction."""
-        if hasattr(self, "_fh"):
+        if getattr(self, "_fh", None) is not None:
             self._fh.close()
 
     def _setattr_param(self, attr, value):
@@ -68,6 +75,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
         raise ValueError("Attribute {} is read-only.".format(attr))
 
     def attach(self, simulation):
+        self._initialize(simulation.device.communicator)
         self._attached_ = True
 
     def _attached(self):
@@ -75,6 +83,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
 
     def detach(self):
         self._attached_ = False
+        if self._fh is not None:
+            self._fh.close()
 
     def act(self, timestep):
         """Write a new frame of logger data to the HDF5 file."""
@@ -168,11 +178,11 @@ class _HDF5LoggerInternal(custom._InternalAction):
     def __getstate__(self):
         state = copy.copy(self.__dict__)
         del state["_fh"]
+        state["_attached_"] = False
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
-        self._fh = h5py.File(self.filename, mode=self.mode)
 
 
 class HDF5Logger(_InternalCustomWriter):
