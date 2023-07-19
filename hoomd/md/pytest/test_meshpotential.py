@@ -272,7 +272,7 @@ def test_volume(simulation_factory, tetrahedron_snapshot_factory):
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
-                                         alpha=0.1)
+                                         default_gamma=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
