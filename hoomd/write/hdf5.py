@@ -4,6 +4,7 @@
 """Provides an HDF5 logging backend for a fast binary logging format."""
 
 import copy
+import functools
 
 import h5py
 import numpy as np
@@ -16,6 +17,25 @@ import hoomd.util as util
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.data.parameterdicts import ParameterDict
+
+
+class _SkipIfNone:
+
+    def __init__(self, attr):
+        self._attr = attr
+
+    def __call__(self, method):
+
+        @functools.wraps(method)
+        def func(s, *args, **kwargs):
+            if getattr(s, self._attr, None) is None:
+                return
+            return method(s, *args, **kwargs)
+
+        return func
+
+
+_skip_fh = _SkipIfNone("_fh")
 
 
 class _HDF5LoggerInternal(custom._InternalAction):
@@ -108,6 +128,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
         self._frame += 1
         self._fh["hoomd-data"].attrs["frames"] = self._frame
 
+    @_skip_fh
     def flush(self):
         """Write out all data currently buffered in memory.
 
@@ -116,9 +137,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
         """
         self._fh.flush()
 
+    @_skip_fh
     def _create_dataset(self, key: str, shape, dtype, chunk_size):
-        if self._fh is None:
-            return
         self._fh.create_dataset(
             key,
             shape,
@@ -127,6 +147,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
             maxshape=(None,) + shape[1:],
         )
 
+    @_skip_fh
     def _initialize_datasets(self, log_dict):
         """Create datasets setting shape, dtype, and chunk size.
 
@@ -138,8 +159,6 @@ class _HDF5LoggerInternal(custom._InternalAction):
         Tests were done on 1,000 frame files for writes and reads and tested for
         writing and reading speed.
         """
-        if self._fh is None:
-            return
         for key, (value, category) in log_dict.items():
             chunk_size = None
             if category == "scalar":
@@ -157,16 +176,14 @@ class _HDF5LoggerInternal(custom._InternalAction):
             self._create_dataset("/".join(("hoomd-data",) + key), data_shape,
                                  dtype, chunk_size)
 
+    @_skip_fh
     def _find_frame(self):
-        if self._fh is None:
-            return
         if "hoomd-data" in self._fh:
             return self._fh["hoomd-data"].attrs["frames"]
         return 0
 
+    @_skip_fh
     def _validate_scheme(self):
-        if self._fh is None:
-            return
         if "hoomd-data" in self._fh:
             if "hoomd-schema" not in self._fh["hoomd-data"].attrs:
                 raise RuntimeError("Validation of existing HDF5 file failed.")
