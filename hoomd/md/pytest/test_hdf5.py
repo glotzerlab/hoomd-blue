@@ -103,8 +103,9 @@ def test_mode(tmp_path, create_md_sim):
     h5_writer.flush()
     sim.operations.writers.clear()
     del h5_writer
-    with h5py.File(fn, "r") as fh:
-        assert len(fh["hoomd-data/foo/bar"]) == 2
+    if sim.device.communicator.rank == 0:
+        with h5py.File(fn, "r") as fh:
+            assert len(fh["hoomd-data/foo/bar"]) == 2
 
     h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="a")
     sim.operations.writers.append(h5_writer)
@@ -112,8 +113,9 @@ def test_mode(tmp_path, create_md_sim):
     h5_writer.flush()
     sim.operations.writers.clear()
     del h5_writer
-    with h5py.File(fn, "r") as fh:
-        assert len(fh["hoomd-data/foo/bar"]) == 4
+    if sim.device.communicator.rank == 0:
+        with h5py.File(fn, "r") as fh:
+            assert len(fh["hoomd-data/foo/bar"]) == 4
 
     h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="w")
     sim.operations.writers.append(h5_writer)
@@ -121,5 +123,6 @@ def test_mode(tmp_path, create_md_sim):
     h5_writer.flush()
     sim.operations.writers.clear()
     del h5_writer
-    with h5py.File(fn, "r") as fh:
-        assert len(fh["hoomd-data/foo/bar"]) == 2
+    if sim.device.communicator.rank == 0:
+        with h5py.File(fn, "r") as fh:
+            assert len(fh["hoomd-data/foo/bar"]) == 2
