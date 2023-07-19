@@ -74,15 +74,10 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     void setDynamic(pybind11::object dynamic);
 
     //! Destructor
-    ~GSDDumpWriter();
+    virtual ~GSDDumpWriter();
 
     //! Write out the data for the current timestep
-    void analyze(uint64_t timestep);
-
-    hoomd::detail::SharedSignal<int(gsd_handle&)>& getWriteSignal()
-        {
-        return m_write_signal;
-        }
+    virtual void analyze(uint64_t timestep);
 
     /// Write a logged quantities
     void writeLogQuantities(pybind11::dict dict);
@@ -134,6 +129,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     uint64_t getMaximumWriteBufferSize();
 
     protected:
+    gsd_handle m_handle; //!< Handle to the file
+
     /// Flags for dynamic/default bitsets.
     struct gsd_flag
         {
@@ -203,13 +200,38 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             }
         };
 
+    //! Initializes the output file for writing
+    void initFileIO();
+
+    //! Get the current frame's logged data
+    pybind11::dict getLogData() const;
+
+    //! Write a frame to the GSD file buffer
+    void write(GSDFrame& frame, pybind11::dict log_data);
+
+    //! Check and raise an exception if an error occurs
+    void checkError(int retval);
+
+    //! Populate the non-default map
+    void populateNonDefault();
+
+    /// Populate local frame with data.
+    void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
+
+#ifdef ENABLE_MPI
+    /// Copy of the state properties on all ranks, in ascending tag order globally.
+    GSDFrame m_global_frame;
+    GatherTagOrder m_gather_tag_order;
+
+    void gatherGlobalFrame(const GSDFrame& local_frame);
+#endif
+
     private:
     std::string m_fname;           //!< The file name we are writing to
     std::string m_mode;            //!< The file open mode
     bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
     bool m_write_topology = false; //!< True if topology should be written
     bool m_write_diameter = false; //!< True if the diameter attribute should be written
-    gsd_handle m_handle;           //!< Handle to the file
 
     /// Flags indicating which particle fields are dynamic.
     std::bitset<n_gsd_flags> m_dynamic;
@@ -226,8 +248,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     std::unordered_map<std::string, bool>
         m_nondefault; //!< Map of quantities (true when non-default in frame 0)
 
-    hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
-
     /// Copy of the state properties local to this rank, in ascending tag order.
     GSDFrame m_local_frame;
 
@@ -236,9 +256,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
-
-    //! Initializes the output file for writing
-    void initFileIO();
 
     //! Write frame header
     void writeFrameHeader(const GSDFrame& frame);
@@ -259,23 +276,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                        ImproperData::Snapshot& improper,
                        ConstraintData::Snapshot& constraint,
                        PairData::Snapshot& pair);
-
-    //! Check and raise an exception if an error occurs
-    void checkError(int retval);
-
-    //! Populate the non-default map
-    void populateNonDefault();
-
-    /// Populate local frame with data.
-    void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
-
-#ifdef ENABLE_MPI
-    /// Copy of the state properties on all ranks, in ascending tag order globally.
-    GSDFrame m_global_frame;
-    GatherTagOrder m_gather_tag_order;
-
-    void gatherGlobalFrame(const GSDFrame& local_frame);
-#endif
 
     friend void export_GSDDumpWriter(pybind11::module& m);
     };

@@ -6,7 +6,7 @@
 from collections.abc import Mapping, Collection
 from hoomd.trigger import Periodic
 from hoomd import _hoomd
-from hoomd.util import dict_flatten
+from hoomd.util import _dict_flatten
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
@@ -137,6 +137,12 @@ class GSD(Writer):
 
     When you set a category string (``'property'``, ``'momentum'``,
     ``'attribute'``), `GSD` makes all the category member's fields dynamic.
+
+    Warning:
+        `GSD` buffers writes in memory. Abnormal exits (e.g. ``kill``,
+        ``scancel``, reaching walltime limits) may cause loss of data. Ensure
+        that your scripts exit cleanly and call `flush()` as needed to write
+        buffered frames to the file.
 
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
@@ -280,7 +286,18 @@ class GSD(Writer):
         return self.logger
 
     def flush(self):
-        """Flush the write buffer to the file."""
+        """Flush the write buffer to the file.
+
+        Example::
+
+            gsd_writer.flush()
+
+        Flush all write buffers::
+
+            for writer in simulation.operations.writers:
+                if hasattr(writer, 'flush'):
+                    writer.flush()
+        """
         if not self._attached:
             raise RuntimeError("The GSD file is unavailable until the"
                                "simulation runs for 0 or more steps.")
@@ -343,7 +360,7 @@ class _GSDLogWriter:
     def log(self):
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
-        for key, value in dict_flatten(self.logger.log()).items():
+        for key, value in _dict_flatten(self.logger.log()).items():
             if 'state' in key and _iterable_is_incomplete(value[0]):
                 pass
             log_value, type_category = value
@@ -375,9 +392,6 @@ class _GSDLogWriter:
             else:
                 pass
         return log
-
-    def _write_frame(self, _gsd):
-        _gsd.writeLogQuantities(self.log())
 
     def _log_special(self, dict_, key, value):
         """Handles special keys such as type_shapes.

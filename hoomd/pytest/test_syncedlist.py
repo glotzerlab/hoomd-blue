@@ -3,7 +3,9 @@
 
 import numpy as np
 import pytest
-from hoomd.conftest import BaseListTest, pickling_check
+
+import hoomd
+from hoomd.conftest import (BaseListTest, pickling_check)
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
 from hoomd.data.syncedlist import SyncedList
 
@@ -66,7 +68,9 @@ class TestSyncedList(BaseListTest):
         list_ = SyncedList(validation=item_cls, attach_members=attach_items)
         if attached:
             self._synced_list = []
-            list_._sync(DummySimulation(), self._synced_list)
+            # have to store reference since SyncedList only stores weak ref.
+            self.__simulation = DummySimulation()
+            list_._sync(self.__simulation, self._synced_list)
         return list_
 
     def is_equal(self, a, b):
@@ -150,3 +154,24 @@ class TestSyncedList(BaseListTest):
     def test_pickling(self, populated_collection):
         test_list, _ = populated_collection
         pickling_check(test_list)
+
+    def test_sim_weakref(self, simulation_factory,
+                         two_particle_snapshot_factory):
+
+        def drop_sim(attach=False):
+            sim = simulation_factory(two_particle_snapshot_factory())
+            # Use operation available regardless of build
+            box_resize = hoomd.update.BoxResize(
+                10, hoomd.Box.cube(4), hoomd.Box.cube(5),
+                hoomd.variant.Ramp(0, 1, 0, 10_000))
+            sim.operations.updaters.append(box_resize)
+            if attach:
+                sim.run(0)
+            return sim.operations.updaters
+
+        synced_list = drop_sim()
+        assert synced_list._simulation is None
+
+        synced_list = drop_sim(True)
+        assert synced_list._simulation is None
+        assert not synced_list._synced

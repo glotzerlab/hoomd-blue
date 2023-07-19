@@ -47,6 +47,7 @@ hoomd
    module-hoomd-triggers
    module-hoomd-tune
    module-hoomd-update
+   module-hoomd-util
    module-hoomd-variant
    module-hoomd-version
    module-hoomd-wall

@@ -12,7 +12,6 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
-#include "hoomd/GSDShapeSpecWriter.h"
 #include "hoomd/GlobalArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -110,12 +109,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
     Scalar getROn(pybind11::tuple types);
     /// Set the r_on for a single type using a tuple of string
     virtual void setROnPython(pybind11::tuple types, Scalar r_on);
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int slotWriteGSDShapeSpec(gsd_handle&) const;
     /// Validate that types are within Ntypes
     void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
-    //! Method that is called to connect to the gsd write state signal
-    void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
     //! Shifting modes that can be applied to the energy
     enum energyShiftMode
@@ -584,26 +579,6 @@ void PotentialPair<evaluator>::setROnPython(pybind11::tuple types, Scalar r_on)
     setRon(typ1, typ2, r_on);
     }
 
-template<class evaluator>
-void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func
-        = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template<class evaluator>
-int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
-    {
-    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: "
-                                 << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping());
-    return retval;
-    }
-
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is
    called to ensure that it is up to date before proceeding.
 
@@ -1057,9 +1032,7 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def_property("tail_correction",
                       &PotentialPair<T>::getTailCorrectionEnabled,
                       &PotentialPair<T>::setTailCorrectionEnabled)
-        .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList)
-        .def("slotWriteGSDShapeSpec", &PotentialPair<T>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec);
+        .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList);
     }
 
     }  // end namespace detail

@@ -94,7 +94,7 @@ def test_scale(base_box):
 
 
 def test_volume(base_box):
-    assert isclose(base_box.volume, np.product(base_box.L))
+    assert isclose(base_box.volume, np.prod(base_box.L))
     for L in np.linspace(1, 10, 10):
         box = Box.cube(L)
         assert isclose(box.volume, L**3)

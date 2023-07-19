@@ -67,7 +67,9 @@ ClangCompiler::ClangCompiler()
     llvm::initializeAnalysis(Registry);
     llvm::initializeTransformUtils(Registry);
     llvm::initializeInstCombine(Registry);
+#if LLVM_VERSION_MAJOR < 16
     llvm::initializeInstrumentation(Registry);
+#endif
     llvm::initializeTarget(Registry);
     }
 

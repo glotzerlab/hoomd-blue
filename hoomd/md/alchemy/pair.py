@@ -199,7 +199,8 @@ class AlchemicalDOF(_HOOMDBaseObject):
 
     def _detach_hook(self):
         self._force.params[self.typepair][self.name] = self.value
-        self._force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
+        if self._force._attached:
+            self._force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
     @log(requires_run=True)
     def value(self):

@@ -34,9 +34,6 @@ inline void export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
         .def_property("mode",
                       &AnisoPotentialPair<EvaluatorPairDipole>::getShiftMode,
                       &AnisoPotentialPair<EvaluatorPairDipole>::setShiftModePython)
-        .def("slotWriteGSDShapeSpec",
-             &AnisoPotentialPair<EvaluatorPairDipole>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &AnisoPotentialPair<EvaluatorPairDipole>::connectGSDShapeSpec)
         .def("getTypeShapesPy", &AnisoPotentialPair<EvaluatorPairDipole>::getTypeShapesPy);
     }
 
