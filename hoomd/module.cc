@@ -13,6 +13,7 @@
 #include "ExecutionConfiguration.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
+#include "GSDDequeWriter.h"
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
 #include "HOOMDMath.h"
@@ -294,6 +295,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonAnalyzer(m);
     export_DCDDumpWriter(m);
     export_GSDDumpWriter(m);
+    export_GSDDequeWriter(m);
 
     // updaters
     export_Updater(m);

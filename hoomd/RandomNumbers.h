@@ -418,7 +418,7 @@ template<typename Real> class SpherePointGenerator
         do
             {
             u = UniformDistribution<Real>(Real(-1.0), Real(1.0))(rng);
-            one_minus_u2 = 1.0f - u * u;
+            one_minus_u2 = Real(1.0) - u * u;
             } while (one_minus_u2 < Real(0.0));
 
         // project onto the sphere surface
@@ -448,6 +448,8 @@ template<typename Real> class SpherePointGenerator
  *      "A simple method for generating gamma variables", ACM Transactions on
  *      Mathematical Software (TOMS), vol. 26, issue 3, Sept. 2000, 363--372.
  *      https://doi.org/10.1145/358407.358414
+ *
+ * WARNING: This implementation assumes alpha > 1.
  *
  * \tparam Real Precision of the random number
  */
@@ -487,18 +489,18 @@ template<typename Real> class GammaDistribution
             do
                 {
                 x = m_normal(rng);
-                v = 1.0f + m_c * x;
+                v = Real(1.0) + m_c * x;
                 } while (v <= Real(0.));
             v = v * v * v;
 
             // draw uniform and perform cheap squeeze test first
             const Real x2 = x * x;
             Real u = detail::generate_canonical<Real>(rng);
-            if (u < 1.0f - 0.0331f * x2 * x2)
+            if (u < Real(1.0) - Real(0.0331) * x2 * x2)
                 break;
 
             // otherwise, do expensive log comparison
-            if (fast::log(u) < 0.5f * x2 + m_d * (1.0f - v + fast::log(v)))
+            if (fast::log(u) < Real(0.5) * x2 + m_d * (Real(1.0) - v + fast::log(v)))
                 break;
             }
 
@@ -507,9 +509,9 @@ template<typename Real> class GammaDistribution
         }
 
     private:
-    Real m_b; //!< Gamma-distribution b-parameter
-    Real m_c; //!< c-parameter for Marsaglia and Tsang method
-    Real m_d; //!< d-parameter for Marasglia and Tsang method
+    Real m_b;                          //!< Gamma-distribution b-parameter
+    Real m_c;                          //!< c-parameter for Marsaglia and Tsang method
+    Real m_d;                          //!< d-parameter for Marasglia and Tsang method
 
     NormalDistribution<Real> m_normal; //!< Normal variate generator
     };
@@ -657,6 +659,6 @@ template<class Real> class PoissonDistribution
         }
     };
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 #undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

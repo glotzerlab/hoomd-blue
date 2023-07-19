@@ -139,20 +139,6 @@ template<class evaluator> class EvaluatorWalls
         {
         }
 
-    //! Test if evaluator needs Diameter
-    DEVICE static bool needsDiameter()
-        {
-        return evaluator::needsDiameter();
-        }
-
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar diameter)
-        {
-        di = diameter;
-        }
-
     //! Charges not supported by walls evals
     DEVICE static bool needsCharge()
         {
@@ -183,8 +169,6 @@ template<class evaluator> class EvaluatorWalls
         Scalar force_divr = Scalar(0.0);
         Scalar pair_eng = Scalar(0.0);
         evaluator eval(rsq, m_params.rcutsq, m_params.params);
-        if (evaluator::needsDiameter())
-            eval.setDiameter(di, Scalar(0.0));
         if (evaluator::needsCharge())
             eval.setCharge(qi, Scalar(0.0));
 
@@ -220,8 +204,6 @@ template<class evaluator> class EvaluatorWalls
         Scalar pair_eng = Scalar(0.0);
 
         evaluator eval(rextrapsq, m_params.rcutsq, m_params.params);
-        if (evaluator::needsDiameter())
-            eval.setDiameter(di, Scalar(0.0));
         if (evaluator::needsCharge())
             eval.setCharge(qi, Scalar(0.0));
 
@@ -396,7 +378,6 @@ template<class evaluator> class EvaluatorWalls
     Scalar3 m_pos;             //!< particle position
     const field_type& m_field; //!< contains all information about the walls.
     param_type m_params;
-    Scalar di;
     Scalar qi;
     };
 

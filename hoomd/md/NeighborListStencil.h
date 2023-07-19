@@ -77,7 +77,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     std::shared_ptr<CellListStencil> m_cls; //!< The cell list stencil
     bool m_override_cell_width = false;     //!< Flag to override the cell width
 
-    bool m_needs_restencil = true; //!< Flag for updating the stencil
+    bool m_needs_restencil = true;          //!< Flag for updating the stencil
 
     /// Track when the cell size needs to be updated
     bool m_update_cell_size = true;
@@ -86,7 +86,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     void updateRStencil();
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __NEIGHBORLISTSTENCIL_H__

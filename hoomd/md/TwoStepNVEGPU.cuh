@@ -66,8 +66,8 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     Scalar scale,
                                     const unsigned int block_size);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__TWO_STEP_NVE_GPU_CUH__

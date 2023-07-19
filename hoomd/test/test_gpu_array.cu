@@ -41,7 +41,7 @@ hipError_t gpu_add_one(int* d_data, size_t num)
     hipLaunchKernelGGL((gpu_add_one_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
 
     hipDeviceSynchronize();
-    return hipGetLastError();
+    return hipPeekAtLastError();
     }
 
 /*! \param d_data Device pointer to the array where the data is held
@@ -79,7 +79,7 @@ hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
                        num);
 
     hipDeviceSynchronize();
-    return hipGetLastError();
+    return hipPeekAtLastError();
     }
 
     } // end namespace test

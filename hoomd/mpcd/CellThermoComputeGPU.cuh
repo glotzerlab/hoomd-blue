@@ -70,8 +70,8 @@ struct thermo_args_t
         {
         }
 
-    double4* cell_vel;    //!< Cell velocities (output)
-    double3* cell_energy; //!< Cell energies (output)
+    double4* cell_vel;             //!< Cell velocities (output)
+    double3* cell_energy;          //!< Cell energies (output)
 
     const unsigned int* cell_np;   //!< Number of particles per cell
     const unsigned int* cell_list; //!< MPCD cell list

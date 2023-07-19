@@ -44,7 +44,7 @@ namespace md
                         - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot
    \left(r_{\mathrm{cut}}^2 - r^2 \right)\f]
 
-    The DPD Conservative potential does not need charge or diameter. One parameter is specified and
+    The DPD Conservative potential does not need charge. One parameter is specified and
    stored in a Scalar. \a A is placed in \a param.
 
     EvaluatorPairDPDThermo::evalForceEnergyThermo evaluates the function:
@@ -66,7 +66,7 @@ namespace md
     where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i
    - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed random number in the range [-1, 1].
 
-    The DPD Thermostat potential does not need charge or diameter. Two parameters are specified and
+    The DPD Thermostat potential does not need charge. Two parameters are specified and
    stored in a Scalar. \a A and \a gamma are placed in \a param.
 
     These are related to the standard lj parameters sigma and epsilon by:
@@ -167,23 +167,12 @@ class EvaluatorPairDPDThermoDPD
         m_T = Temp;
         }
 
-    //! Does not use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Yukawa doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
@@ -329,7 +318,7 @@ class EvaluatorPairDPDThermoDPD
 
 #undef DEVICE
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DPD_H__

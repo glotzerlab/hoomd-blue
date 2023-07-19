@@ -417,6 +417,6 @@ class BerendsenThermostat : public Thermostat
     Scalar m_tau;
     };
 
-    } // namespace hoomd::md
+    }  // namespace hoomd::md
 
 #endif // HOOMD_THERMOSTAT_H

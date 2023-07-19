@@ -52,6 +52,7 @@ The following people have contributed to the to HOOMD-blue:
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan
 * Ian Graham, University of Pennsylvania
+* Ignacio Blanco Varela, University of Michigan
 * Igor Morozov, Joint Institute for High Temperatures of RAS
 * Isaac Bruss, University of Michigan
 * Jakin B. Delony, University of South Florida
@@ -118,3 +119,4 @@ The following people have contributed to the to HOOMD-blue:
 * Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF
 * Nathan Barrett, Pritzker School of Molecular Engineering
+* Domagoj Fijan, University of Michigan

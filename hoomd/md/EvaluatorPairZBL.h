@@ -73,17 +73,6 @@ class EvaluatorPairZBL
         {
         }
 
-    //! ZBL potential does not use particle diameters.
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! ZBL potential does not use particle charges
     DEVICE static bool needsCharge()
         {
@@ -165,7 +154,7 @@ class EvaluatorPairZBL
     Scalar aF;     //!< aF parameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_ZBL__

@@ -136,15 +136,9 @@ class EvaluatorPairDipole
                                    Scalar4& _quat_j,
                                    Scalar _rcutsq,
                                    const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), q_i(0), q_j(0), quat_i(_quat_i),
-          quat_j(_quat_j), mu_i {0, 0, 0}, mu_j {0, 0, 0}, A(_params.A), kappa(_params.kappa)
+        : dr(_dr), rcutsq(_rcutsq), q_i(0), q_j(0), quat_i(_quat_i), quat_j(_quat_j),
+          mu_i {0, 0, 0}, mu_j {0, 0, 0}, A(_params.A), kappa(_params.kappa)
         {
-        }
-
-    //! uses diameter
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return false;
         }
 
     //! Whether the pair potential uses shape.
@@ -170,12 +164,6 @@ class EvaluatorPairDipole
         {
         return false;
         }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
@@ -354,7 +342,7 @@ class EvaluatorPairDipole
     // const param_type &params;   //!< The pair potential parameters
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

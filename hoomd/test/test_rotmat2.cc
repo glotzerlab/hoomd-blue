@@ -35,7 +35,7 @@ UP_TEST(construction)
     MY_CHECK_CLOSE(B.row1.y, 4.0, tol);
 
     Scalar pi = M_PI;
-    Scalar alpha = pi / 2.0; // angle of rotation
+    Scalar alpha = pi / 2.0;                                           // angle of rotation
     quat<Scalar> q1(cos(alpha / 2.0),
                     (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     rotmat2<Scalar> C(q1);
@@ -55,8 +55,8 @@ UP_TEST(rotation_2)
     {
     // test rotating a vec2
     Scalar pi = M_PI;
-    Scalar alpha = pi / 2.0; // angle of rotation
-    vec2<Scalar> v(1, 1);    // test vector
+    Scalar alpha = pi / 2.0;                                           // angle of rotation
+    vec2<Scalar> v(1, 1);                                              // test vector
     quat<Scalar> q1(cos(alpha / 2.0),
                     (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     vec2<Scalar> a;
@@ -72,8 +72,8 @@ UP_TEST(transpose_2)
     {
     // test rotating a vec2
     Scalar pi = M_PI;
-    Scalar alpha = pi / 2.0;         // angle of rotation
-    vec2<Scalar> v(0.1234, 1.76123); // test vector
+    Scalar alpha = pi / 2.0;                                           // angle of rotation
+    vec2<Scalar> v(0.1234, 1.76123);                                   // test vector
     quat<Scalar> q1(cos(alpha / 2.0),
                     (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     vec2<Scalar> a, b;

@@ -17,6 +17,7 @@ See Also:
 
 from copy import copy
 import itertools
+import weakref
 
 import hoomd
 from hoomd.logging import Loggable
@@ -52,8 +53,9 @@ class _HOOMDGetSetAttrBase:
 
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs:
-            default = self._reserved_default_attrs[attr]
-            value = default() if callable(default) else default
+            value = self._reserved_default_attrs[attr]
+            if callable(value):
+                value = value()
             object.__setattr__(self, attr, value)
             return value
         elif attr in self._param_dict:
@@ -206,7 +208,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs,
         '_cpp_obj': None,
-        '_simulation': None,
+        '_simulation_': None,
         '_dependents': list,
         '_dependencies': list,
         # Keeps track of the number of times _attach is called to avoid
@@ -215,22 +217,29 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation', "_use_count"
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation_', "_use_count"
     }
     # _use_count must be included or attaching and detaching won't work as
     # expected as _use_count may not equal 0.
-    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
+    _remove_for_pickling = ('_simulation_', '_cpp_obj', "_use_count")
 
-    def _detach(self):
+    def _detach(self, force=False):
         """Decrement attach count and destroy C++ object if count == 0.
 
         This method is not designed to be overwritten, but handles the necessary
         detaching procedures for all `_HOOMDBaseObject` subclasses.
 
+        Args:
+            force (`bool`, optional): Whether to ignore ``_use_count`` or not.
+                Defaults to ``False``. When ``True`` the object will remove all
+                C++ connections regardless of usage elsewhere.
+
         Note:
             Use `~._detach_hook` in subclasses to provide custom detaching
             logic.
         """
+        if force:
+            self._use_count = 0
         if self._use_count == 0:
             return self
         self._use_count -= 1
@@ -302,13 +311,35 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         except hoomd.error.SimulationDefinitionError as err:
             self._use_count -= 1
             raise err
-        self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        try:
+            self._apply_param_dict()
+            self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        except Exception as err:
+            raise type(err)(
+                f"Error applying parameters for object of type {type(self)}."
+            ) from err
         self._post_attach_hook()
 
     @property
     def _attached(self):
         return self._cpp_obj is not None
+
+    @property
+    def _simulation(self):
+        """Get/set reference to weakly referenced simulation."""
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()  # grab weakref
+            if sim is not None:
+                return sim
+            else:
+                self._detach(force=True)
+
+    @_simulation.setter
+    def _simulation(self, simulation):
+        if simulation is not None:
+            simulation = weakref.ref(simulation)
+        self._simulation_ = simulation
 
     def _apply_param_dict(self):
         self._param_dict._attach(self._cpp_obj)

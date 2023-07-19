@@ -450,12 +450,6 @@ template<unsigned int ndim> class EvaluatorPairALJ
         {
         }
 
-    //! Whether the pair potential needs particle diameters.
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
     //! Whether the pair potential uses shape.
     HOSTDEVICE static bool needsShape()
         {
@@ -479,12 +473,6 @@ template<unsigned int ndim> class EvaluatorPairALJ
         {
         return false;
         }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
@@ -1698,7 +1686,7 @@ template<> inline std::string EvaluatorPairALJ<3>::getShapeSpec() const
 
 #endif
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __EVALUATOR_PAIR_ALJ_H__

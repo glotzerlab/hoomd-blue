@@ -355,9 +355,6 @@ class ExpandedLJ(Pair):
                \left( \frac{\sigma}{r - \Delta}
                \right)^{6} \right]
 
-    Note:
-        To replicate the behavior of the SLJ potential in HOOMD-blue v2, set
-        `hoomd.md.pair.Pair.r_cut` to ``r_cut_unshifted + delta``.
 
     Example::
 
