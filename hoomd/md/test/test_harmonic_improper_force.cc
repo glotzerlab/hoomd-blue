@@ -53,7 +53,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator,
 
         h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = Scalar(1.0); // put atom b at (1,1,1)
 
-        h_pos.data[2].x = Scalar(6.0); // put atom c at (6,-7,8)
+        h_pos.data[2].x = Scalar(6.0);                                     // put atom c at (6,-7,8)
         h_pos.data[2].y = Scalar(-7.0);
         h_pos.data[2].z = Scalar(8.0);
 

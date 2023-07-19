@@ -169,7 +169,7 @@ template<class Real> std::shared_ptr<SnapshotSystemData<Real>> SystemDefinition:
     snap->dimensions = m_n_dimensions;
     snap->global_box = std::make_shared<BoxDim>(m_particle_data->getGlobalBox());
 
-    snap->map = m_particle_data->takeSnapshot(snap->particle_data);
+    m_particle_data->takeSnapshot(snap->particle_data);
     m_bond_data->takeSnapshot(snap->bond_data);
     m_angle_data->takeSnapshot(snap->angle_data);
     m_dihedral_data->takeSnapshot(snap->dihedral_data);

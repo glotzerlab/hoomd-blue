@@ -63,8 +63,8 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K;   //!< K parameter for multiple improper types
-    Scalar* m_chi; //!< Chi parameter for multiple impropers
+    Scalar* m_K;                                   //!< K parameter for multiple improper types
+    Scalar* m_chi;                                 //!< Chi parameter for multiple impropers
 
     std::shared_ptr<ImproperData> m_improper_data; //!< Improper data to use in computing impropers
 

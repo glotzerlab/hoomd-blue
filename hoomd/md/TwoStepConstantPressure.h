@@ -229,6 +229,6 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     virtual void advanceBarostat(uint64_t timestep);
     };
 
-    } // namespace hoomd::md
+    }  // namespace hoomd::md
 
 #endif // HOOMD_TWOSTEPCONSTANTPRESSURE_H

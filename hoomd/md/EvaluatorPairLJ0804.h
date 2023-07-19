@@ -107,23 +107,12 @@ class EvaluatorPairLJ0804
         {
         }
 
-    //! LJ doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! LJ doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
@@ -195,7 +184,7 @@ class EvaluatorPairLJ0804
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJ0804_H__

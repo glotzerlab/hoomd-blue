@@ -301,8 +301,8 @@ template<class T> void export_PotentialPairDPDThermo(pybind11::module& m, const 
         .def_property("kT", &PotentialPairDPDThermo<T>::getT, &PotentialPairDPDThermo<T>::setT);
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__

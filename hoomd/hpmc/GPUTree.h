@@ -354,13 +354,13 @@ class GPUTree
     ManagedArray<unsigned int> m_leaf_obb_ptr; //!< Pointer to leaf node OBBs
     ManagedArray<unsigned int> m_particles;    //!< Stores the leaf nodes' indices
 
-    ManagedArray<unsigned int> m_left;      //!< Left nodes
-    ManagedArray<unsigned int> m_escape;    //!< Escape indices
-    ManagedArray<unsigned int> m_ancestors; //!< Number of right-most ancestors
+    ManagedArray<unsigned int> m_left;         //!< Left nodes
+    ManagedArray<unsigned int> m_escape;       //!< Escape indices
+    ManagedArray<unsigned int> m_ancestors;    //!< Number of right-most ancestors
 
-    unsigned int m_num_nodes;     //!< Number of nodes in the tree
-    unsigned int m_num_leaves;    //!< Number of leaf nodes
-    unsigned int m_leaf_capacity; //!< Capacity of OBB leaf nodes
+    unsigned int m_num_nodes;                  //!< Number of nodes in the tree
+    unsigned int m_num_leaves;                 //!< Number of leaf nodes
+    unsigned int m_leaf_capacity;              //!< Capacity of OBB leaf nodes
     };
 
 // Tandem stack traversal routines
@@ -639,10 +639,10 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a,
     return leaf;
     }
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hpmc
+    }  // end namespace hpmc
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // __GPU_TREE_H__

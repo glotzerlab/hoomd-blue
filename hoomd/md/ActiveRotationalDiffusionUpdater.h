@@ -64,7 +64,7 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
     std::shared_ptr<Variant>
         m_rotational_diffusion; //!< Variant that determines the current rotational diffusion
     std::shared_ptr<ActiveForceCompute>
-        m_active_force; //!< Active force to call rotationalDiffusion on
+        m_active_force;         //!< Active force to call rotationalDiffusion on
     };
 
     } // end namespace md

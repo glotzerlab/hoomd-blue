@@ -86,18 +86,6 @@ class EvaluatorSpecialPairCoulomb
         {
         }
 
-    //! Coulomb doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Coulomb use charge
     DEVICE static bool needsCharge()
         {
@@ -155,7 +143,7 @@ class EvaluatorSpecialPairCoulomb
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_COULOMB_H__

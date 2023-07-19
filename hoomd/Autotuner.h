@@ -664,6 +664,6 @@ template<size_t n_dimensions> size_t Autotuner<n_dimensions>::computeOptimalPara
     return min_idx;
     }
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // _AUTOTUNER_H_

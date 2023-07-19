@@ -10,7 +10,6 @@
 #include "ShapeConvexPolygon.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
@@ -44,7 +43,6 @@ void export_convex_polygon(pybind11::module& m)
     export_HarmonicField<ShapeConvexPolygon>(m, "ExternalFieldHarmonicConvexPolygon");
     export_ExternalFieldComposite<ShapeConvexPolygon>(m, "ExternalFieldCompositeConvexPolygon");
     export_ExternalFieldWall<ShapeConvexPolygon>(m, "WallConvexPolygon");
-    export_ExternalCallback<ShapeConvexPolygon>(m, "ExternalCallbackConvexPolygon");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeConvexPolygon>(m, "IntegratorHPMCMonoConvexPolygonGPU");
