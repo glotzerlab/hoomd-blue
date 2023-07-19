@@ -103,18 +103,6 @@ class EvaluatorBondTether
         {
         }
 
-    //! This evaluator doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
-
     //! Tether doesn't use charge
     DEVICE static bool needsCharge()
         {
@@ -193,7 +181,7 @@ class EvaluatorBondTether
     Scalar l_max; //!< l_max parameter
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_TETHER_H__

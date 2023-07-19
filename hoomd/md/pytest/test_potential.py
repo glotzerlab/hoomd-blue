@@ -688,9 +688,6 @@ def _update_snap(pair_potential, snap):
     if (any(name in str(pair_potential) for name in ['Ewald'])
             and snap.communicator.rank == 0):
         snap.particles.charge[:] = 1.
-    if 'DLVO' in str(pair_potential) and snap.communicator.rank == 0:
-        snap.particles.diameter[0] = 0.2
-        snap.particles.diameter[1] = 0.5
 
 
 def _skip_if_triplet_gpu_mpi(sim, pair_potential):

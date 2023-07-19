@@ -80,7 +80,6 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
     if (exec_conf->getNRanks() > 1)
         {
         particle_data.bcast(root, communicator);
-        bcast(map, root, communicator);
         bond_data.bcast(root, communicator);
         angle_data.bcast(root, communicator);
         dihedral_data.bcast(root, communicator);
@@ -103,8 +102,6 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
     if (n_ranks > 0)
         {
         particle_data.bcast(root, hoomd_world);
-        bcast(map, root, hoomd_world);
-
         bond_data.bcast(root, hoomd_world);
         angle_data.bcast(root, hoomd_world);
         dihedral_data.bcast(root, hoomd_world);

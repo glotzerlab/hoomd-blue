@@ -35,9 +35,6 @@ namespace md
     EvaluatorPairExpandedGaussian evaluates the function:
     \f[ V_{\mathrm{expanded_gauss}}(r) = \varepsilon \exp \left[ -
     \frac{1}{2}\left( \frac{r-\delta}}{\sigma}\right)^2 \right] \f]
-
-    The expanded Gaussian potential does not need diameter or charge.
-
 */
 class EvaluatorPairExpandedGaussian
     {
@@ -95,23 +92,12 @@ class EvaluatorPairExpandedGaussian
         {
         }
 
-    //! Gauss doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Gauss doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
@@ -193,7 +179,7 @@ class EvaluatorPairExpandedGaussian
     Scalar delta;   //!< delta parameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDGAUSSIAN_H__

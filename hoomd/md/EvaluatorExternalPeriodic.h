@@ -97,22 +97,12 @@ class EvaluatorExternalPeriodic
         {
         }
 
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
-
     //! External Periodic doesn't need charges
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter value
+    //! Accept the optional charge value.
     /*! \param qi Charge of particle i
      */
     DEVICE void setCharge(Scalar qi) { }
@@ -194,13 +184,13 @@ class EvaluatorExternalPeriodic
     Scalar3 m_pos; //!< particle position
     BoxDim m_box;  //!< box dimensions
     unsigned int
-        m_index; //!< cartesian index of direction along which the lamellae should be oriented
+        m_index;   //!< cartesian index of direction along which the lamellae should be oriented
     Scalar m_orderParameter;    //!< ordering parameter
     Scalar m_interfaceWidth;    //!< width of interface between lamellae (relative to box length)
     unsigned int m_periodicity; //!< number of lamellae of each type
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

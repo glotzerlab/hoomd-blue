@@ -43,8 +43,8 @@ hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
                                        const Scalar3 last_min_vel,
                                        const flow_enum::Direction flow_direction);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__MUELLER_PLATHE_FLOW_GPU_CUH__

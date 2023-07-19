@@ -7,6 +7,7 @@
 particle positions, system bonds).
 
 """
+import weakref
 from collections import defaultdict
 
 from . import _hoomd
@@ -686,3 +687,17 @@ class State:
             len(particle_data.getDomainDecomposition().getCumulativeFractions(
                 dir)) - 1 for dir in range(3)
         ])
+
+    @property
+    def _simulation(self):
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, sim):
+        if sim is not None:
+            sim = weakref.ref(sim)
+        self._simulation_ = sim

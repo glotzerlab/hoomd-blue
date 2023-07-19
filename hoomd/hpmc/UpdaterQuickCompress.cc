@@ -64,6 +64,8 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
     auto new_box = getNewBox(timestep);
     auto old_box = m_pdata->getGlobalBox();
 
+    Scalar3 old_origin = m_pdata->getOrigin();
+
     // Make a backup copy of position data
     unsigned int N_backup = m_pdata->getN();
         {
@@ -77,6 +79,8 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
         }
 
     m_mc->attemptBoxResize(timestep, new_box);
+    Scalar3 new_origin = m_pdata->getOrigin();
+    Scalar3 origin_shift = new_origin - old_origin;
 
     auto n_overlaps = m_mc->countOverlaps(false);
     if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getNGlobal())
@@ -90,6 +94,7 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
         assert(N == N_backup);
         memcpy(h_pos.data, h_pos_backup.data, sizeof(Scalar4) * N);
         m_pdata->setGlobalBox(old_box);
+        m_pdata->translateOrigin(-origin_shift);
 
         // we have moved particles, communicate those changes
         m_mc->communicate(false);

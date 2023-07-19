@@ -131,3 +131,33 @@ def test_device_notice(device, tmp_path):
     if device.communicator.rank == 0:
         with open(device.message_filename) as fh:
             assert fh.read() == ""
+
+
+def test_noticefile(device, tmp_path):
+
+    # Message file declared. Should output in specified file.
+    device.message_filename = str(tmp_path / "str_message")
+    msg = "This message should output.\n"
+    device.notice_level = 4
+    notice_file = hoomd.device.NoticeFile(device)
+    notice_file.write(msg)
+
+    if device.communicator.rank == 0:
+        with open(device.message_filename) as fh:
+            assert fh.read() == str(msg)
+
+    # Test notice with a message that is not a string.
+    msg = 123456
+    device.message_filename = str(tmp_path / "int_message")
+    with pytest.raises(TypeError):
+        notice_file.write(msg)
+
+    # Test the level argument
+    msg = "This message should not output.\n"
+    device.message_filename = str(tmp_path / "empty_notice")
+    notice_file = hoomd.device.NoticeFile(device, level=5)
+    notice_file.write(msg)
+
+    if device.communicator.rank == 0:
+        with open(device.message_filename) as fh:
+            assert fh.read() == ""

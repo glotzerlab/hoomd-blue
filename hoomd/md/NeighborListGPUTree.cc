@@ -464,8 +464,8 @@ void NeighborListGPUTree::buildTree()
  * Traversal is performed for each particle type against all LBVHs. This is done using one CUDA
  * stream for each particle type, and traversal of each LBVH is loaded into the stream so that there
  * are no race conditions. The traversal should have good concurrency, as there are no blocking
- * calls on the host. For efficiency, body filtering and diameter shifting are templated out, and
- * the correct template is selected at dispatch.
+ * calls on the host. For efficiency, body filtering is templated out, and the correct template is
+ * selected at dispatch.
  *
  * As for the build, I note that the use of autotuners in neighbor should break concurrency, since
  * these CUDA timing events are placed in the default stream. This might be reconsidered in future
@@ -532,8 +532,6 @@ void NeighborListGPUTree::traverseTree()
                 {
                 rcut += m_r_buff;
                 rlist = rcut;
-                if (m_diameter_shift)
-                    rlist += m_d_max - Scalar(1.0);
                 }
             else
                 {
@@ -550,7 +548,6 @@ void NeighborListGPUTree::traverseTree()
             // particles
             args.positions = d_pos.data;
             args.bodies = (m_filter_body) ? d_body.data : NULL;
-            args.diams = (m_diameter_shift) ? d_diam.data : NULL;
             args.order = d_traverse_order.data + first;
             args.N = Ni;
             args.Nown = m_pdata->getN();

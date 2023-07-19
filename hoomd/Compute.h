@@ -68,9 +68,6 @@ class PYBIND11_EXPORT Compute : public Action
     */
     virtual void compute(uint64_t timestep) { }
 
-    //! Abstract method that performs a benchmark
-    virtual double benchmark(unsigned int num_iters);
-
     //! Reset stat counters
     /*! If derived classes provide statistics for the last run, they should resetStats() to
         clear any counters. System will reset the stats before any run() so that stats printed
