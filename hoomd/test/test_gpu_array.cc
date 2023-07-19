@@ -107,7 +107,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -130,7 +130,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -154,7 +154,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -173,7 +173,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -192,7 +192,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 

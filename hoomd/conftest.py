@@ -14,6 +14,9 @@ import hoomd
 import atexit
 import os
 import numpy
+import sybil
+import sybil.parsers.rest
+
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
@@ -31,6 +34,31 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
         devices.pop(0)
 
     devices.append(hoomd.device.GPU)
+
+
+def setup_sybil_tests(namespace):
+    """Sybil setup function."""
+    # Allow documentation tests to use numpy.
+    namespace['numpy'] = numpy
+
+    namespace['gpu_not_available'] = _n_available_gpu == 0
+
+
+pytest_collect_file = sybil.Sybil(
+    parsers=[
+        sybil.parsers.rest.PythonCodeBlockParser(),
+        sybil.parsers.rest.SkipParser(),
+    ],
+    # Despite being documented as fnmatch syntax, in practice patterns matches
+    # whole relative paths. TODO:when all code examples function, search
+    # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
+    patterns=[
+        'device.py',
+        'md/methods/methods.py',
+        'md/methods/thermostats.py',
+    ],
+    setup=setup_sybil_tests,
+    fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
@@ -195,7 +223,7 @@ def lattice_snapshot_factory(device):
                 box[2] = 0
             s.configuration.box = box
 
-            s.particles.N = numpy.product(n)
+            s.particles.N = numpy.prod(n)
             s.particles.types = particle_types
 
             if any(nx == 0 for nx in n):
@@ -426,7 +454,9 @@ def _check_obj_attr_compatibility(a, b):
     filtered_differences = set(different_keys)
     for key in different_keys:
         if key in a._reserved_default_attrs:
-            default = a._reserved_default_attrs[key]()
+            default = a._reserved_default_attrs[key]
+            if callable(default):
+                default = default()
             if getattr(a, key, default) == getattr(b, key, default):
                 filtered_differences.remove(key)
                 continue
@@ -715,7 +745,7 @@ class Generator:
         A value of None in shape means any length.
         """
         shape = tuple(i if i is not None else self.int(20) for i in shape)
-        return (100 * self.rng.random(numpy.product(shape))
+        return (100 * self.rng.random(numpy.prod(shape))
                 - 50).reshape(shape).astype(dtype)
 
     def variant(self):

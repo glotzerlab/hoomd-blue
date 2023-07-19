@@ -115,6 +115,12 @@ void BoxResizeUpdater::update(uint64_t timestep)
         // scale the particle positions (if we have been asked to)
         // move the particles to be inside the new box
         scaleAndWrapParticles(cur_box, new_box);
+
+        // scale the origin
+        Scalar3 old_origin = m_pdata->getOrigin();
+        Scalar3 fractional_old_origin = cur_box.makeFraction(old_origin);
+        Scalar3 new_origin = new_box.makeCoordinates(fractional_old_origin);
+        m_pdata->translateOrigin(new_origin - old_origin);
         }
     }
 

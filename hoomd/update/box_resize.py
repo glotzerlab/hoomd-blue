@@ -27,9 +27,9 @@ class BoxResize(Updater):
         L_{x}' &= \\lambda L_{2x} + (1 - \\lambda) L_{1x} \\\\
         L_{y}' &= \\lambda L_{2y} + (1 - \\lambda) L_{1y} \\\\
         L_{z}' &= \\lambda L_{2z} + (1 - \\lambda) L_{1z} \\\\
-        xy' &= \\lambda xy_{2} + (1 - \\lambda) xy_{2} \\\\
-        xz' &= \\lambda xz_{2} + (1 - \\lambda) xz_{2} \\\\
-        yz' &= \\lambda yz_{2} + (1 - \\lambda) yz_{2} \\\\
+        xy' &= \\lambda xy_{2} + (1 - \\lambda) xy_{1} \\\\
+        xz' &= \\lambda xz_{2} + (1 - \\lambda) xz_{1} \\\\
+        yz' &= \\lambda yz_{2} + (1 - \\lambda) yz_{1} \\\\
         \\end{align*}
 
     Where `box1` is :math:`(L_{1x}, L_{1y}, L_{1z}, xy_1, xz_1, yz_1)`,
