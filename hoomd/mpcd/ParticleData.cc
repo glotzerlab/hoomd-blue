@@ -85,13 +85,6 @@ mpcd::ParticleData::ParticleData(const mpcd::ParticleDataSnapshot& snapshot,
 #endif
 
     initializeFromSnapshot(snapshot, global_box);
-
-    if (snapshot.type_mapping.size() == 0)
-        {
-        m_exec_conf->msg->warning()
-            << "Number of MPCD types in snapshot is 0, incrementing to 1" << std::endl;
-        m_type_mapping.push_back("A");
-        }
     }
 
 mpcd::ParticleData::~ParticleData()

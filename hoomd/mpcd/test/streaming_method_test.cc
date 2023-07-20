@@ -24,6 +24,7 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
 
     // 2 particle system
     snap->mpcd_data.resize(2);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(1.0, 4.85, 3.0);
     snap->mpcd_data.position[1] = vec3<Scalar>(-3.0, -4.75, -1.0);
 

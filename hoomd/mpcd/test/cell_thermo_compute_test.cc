@@ -24,6 +24,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     snap->particle_data.type_mapping.push_back("A");
     // place each particle in a different cell, doubling the first cell
     snap->mpcd_data.resize(5);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
     snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, -0.5);
     snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
@@ -242,6 +243,7 @@ template<class CT> void cell_thermo_embed_test(std::shared_ptr<ExecutionConfigur
         pdata_snap.vel[3] = vec3<Scalar>(0.0, 0.0, -5.0);
         }
     snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
     snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, 0.5);
     snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.5);

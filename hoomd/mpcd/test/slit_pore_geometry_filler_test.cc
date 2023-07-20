@@ -19,6 +19,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(1, -2, 3);
     snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));

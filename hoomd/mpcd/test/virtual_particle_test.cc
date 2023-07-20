@@ -65,6 +65,7 @@ UP_TEST(virtual_add_remove_test)
 
     // 1 particle system
     snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
     snap->mpcd_data.velocity[0] = vec3<Scalar>(1.0, 2.0, 3.0);
 

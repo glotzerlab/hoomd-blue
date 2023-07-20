@@ -22,6 +22,7 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
     snap->global_box = std::make_shared<BoxDim>(6.0, 8.0, 10.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     auto pdata_1 = sysdef->getMPCDParticleData();
@@ -100,6 +101,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
     snap->particle_data.type_mapping.push_back("A");
     // place each particle in a different cell, doubling the first cell
     snap->mpcd_data.resize(9);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
     snap->mpcd_data.position[1] = vec3<Scalar>(0.5, -0.5, -0.5);
     snap->mpcd_data.position[2] = vec3<Scalar>(-0.5, 0.5, -0.5);
@@ -278,6 +280,7 @@ template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfig
     snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(0.1, 0.1, 0.1);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -390,6 +393,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
         pdata_snap.type[7] = 1;
         }
     snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
     snap->mpcd_data.position[1] = vec3<Scalar>(0.5, -0.5, -0.5);
     snap->mpcd_data.position[2] = vec3<Scalar>(-0.5, 0.5, -0.5);

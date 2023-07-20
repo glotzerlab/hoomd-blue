@@ -24,6 +24,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     snap->particle_data.type_mapping.push_back("A");
     // 4 particle system
     snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
     snap->mpcd_data.position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
     snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
@@ -115,6 +116,7 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
         }
     // 4 particle system
     snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
     snap->mpcd_data.position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
     snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
