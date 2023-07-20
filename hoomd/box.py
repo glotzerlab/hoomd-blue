@@ -218,17 +218,22 @@ class Box:
 
     @classmethod
     def from_matrix(cls, box_matrix):
-        """Create a box from an upper triangular matrix.
+        r"""Create a box from an upper triangular matrix.
 
         Args:
             box_matrix ((3, 3) `numpy.ndarray` of `float`): An upper
                 triangular matrix representing a box. The values for ``Lx``,
                 ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` are related to the
-                matrix by the following expressions::
+                matrix:
 
-                    [[Lx, Ly * xy, Lz * xz],
-                    [0,  Ly,      Lz * yz],
-                    [0,  0,       Lz]]
+
+                .. math::
+
+                    \begin{bmatrix}
+                    L_x & L_y \cdot xy & L_z \cdot xz \\
+                    0 & L_y & L_z \cdot yz \\
+                    0 & 0 & L_z
+                    \end{bmatrix}
 
         Returns:
             hoomd.Box: The created box.
