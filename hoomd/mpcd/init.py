@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD system initialization
+r""" MPCD system initialization
 
 Commands to initialize the MPCD system data. Currently, random initialization
 and snapshot initialization (see :py:mod:`hoomd.mpcd.data`) are supported.
@@ -18,7 +18,7 @@ from . import data
 
 
 def make_random(N, kT, seed):
-    R"""Initialize particles randomly
+    r"""Initialize particles randomly
 
     Args:
         N (int): Total number of MPCD particles
@@ -76,7 +76,7 @@ def make_random(N, kT, seed):
 
 
 def read_snapshot(snapshot):
-    R"""Initialize from a snapshot
+    r"""Initialize from a snapshot
 
     Args:
         snapshot (:py:class:`hoomd.mpcd.data.snapshot`): MPCD system data snapshot

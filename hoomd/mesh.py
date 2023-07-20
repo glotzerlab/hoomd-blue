@@ -16,7 +16,6 @@ For a given triangulation HOOMD-blue also constructs a list of mesh bonds
 automatically. Each mesh bond is defined by a pair of particle tags. The
 corresponding vertex particles share a common edge in the triangulation.
 
-
 .. rubric:: Mesh potentials
 
 In MD simulations different bond potentials can be attached which connect
@@ -28,9 +27,6 @@ See Also:
   See the documentation in `hoomd.md.mesh` for more information on how
   to apply potentials to the mesh object and in `hoomd.md.nlist` on
   adding mesh bond exceptions to the neighbor list.
-
-
-
 """
 
 import hoomd
@@ -50,13 +46,14 @@ class Mesh(_HOOMDBaseObject):
     three particle tags. The mesh object consists of only one
     mesh triangle type with the default type name "mesh".
 
-    Examples::
+    .. rubric:: Example:
 
-        mesh_obj = mesh.Mesh()
+    .. code-block:: python
+
+        mesh_obj = hoomd.mesh.Mesh()
         mesh_obj.types = ["mesh"]
         mesh_obj.triangulation = dict(type_ids = [0,0,0,0],
               triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]])
-
     """
 
     def __init__(self):

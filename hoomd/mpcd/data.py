@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD data structures
+r""" MPCD data structures
 
 .. rubric:: MPCD and HOOMD
 
@@ -109,7 +109,7 @@ from . import update
 
 
 class snapshot():
-    R""" MPCD system snapshot
+    r""" MPCD system snapshot
 
     Args:
         sys_snap (object): The C++ representation of the system data snapshot
@@ -132,12 +132,12 @@ class snapshot():
 
     @property
     def particles(self):
-        R""" MPCD particle data snapshot
+        r""" MPCD particle data snapshot
         """
         return self.sys_snap.particles
 
     def replicate(self, nx=1, ny=1, nz=1):
-        R""" Replicate the MPCD system snapshot
+        r""" Replicate the MPCD system snapshot
 
         Args:
             nx (int): Number of times to replicate snapshot in *x*
@@ -172,7 +172,7 @@ class snapshot():
 
 
 class system():
-    R""" MPCD system data
+    r""" MPCD system data
 
     Args:
         sysdata (object): C++ representation of the MPCD system data
@@ -222,7 +222,7 @@ class system():
         return self.data.getCellList()
 
     def restore_snapshot(self, snapshot):
-        R""" Replaces the current MPCD system state
+        r""" Replaces the current MPCD system state
 
         Args:
             snapshot (:py:class:`hoomd.mpcd.data.snapshot`): MPCD system snapshot
@@ -240,7 +240,7 @@ class system():
         self.data.initializeFromSnapshot(snapshot.sys_snap)
 
     def set_params(self, cell=None):
-        R""" Set parameters of the MPCD system
+        r""" Set parameters of the MPCD system
 
         Args:
             cell (float): Edge length of an MPCD cell.
@@ -258,7 +258,7 @@ class system():
             self.cell.cell_size = cell
 
     def take_snapshot(self, particles=True):
-        R""" Takes a snapshot of the current state of the MPCD system
+        r""" Takes a snapshot of the current state of the MPCD system
 
         Args:
             particles (bool): If true, include particle data in snapshot
@@ -272,7 +272,7 @@ class system():
 
 
 def make_snapshot(N=0):
-    R"""Creates an empty MPCD system snapshot
+    r"""Creates an empty MPCD system snapshot
 
     Args:
         N (int): Number of MPCD particles in the snapshot
