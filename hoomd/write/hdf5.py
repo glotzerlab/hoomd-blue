@@ -275,12 +275,12 @@ class HDF5Logger(_InternalCustomWriter):
     _internal_class = _HDF5LoggerInternal
     _wrap_methods = ("flush",)
 
-    def write(self):
+    def write(self, timestep=None):
         """Write out data to the HDF5 file.
 
         Writes out a frame from the composed logger.
         """
-        self._action.act()
+        self._action.act(timestep)
 
 
 __all__ = ["HDF5Logger"]
