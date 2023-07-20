@@ -63,6 +63,9 @@ class _HDF5LoggerInternal(custom._InternalAction):
 
     accepted_categories = ~_reject_categories
 
+    _SCALAR_CHUNK = 512
+    _MULTIFRAME_ARRAY_CHUNK_MAXIMUM = 4096
+
     def __init__(self, filename, logger, mode="a"):
         if h5py is None:
             raise ImportError(f"{type(self)} requires the h5py pacakge.")
@@ -170,15 +173,15 @@ class _HDF5LoggerInternal(custom._InternalAction):
             if category == "scalar":
                 data_shape = (1,)
                 dtype = "f8" if isinstance(value, float) else "i8"
-                chunk_size = (500,)
+                chunk_size = (self._SCALAR_CHUNK,)
             else:
                 if not isinstance(value, np.ndarray):
                     value = np.asarray(value)
                 data_shape = (1,) + value.shape
                 dtype = value.dtype
-                chunk_size = [dim if dim <= 10 else dim for dim in data_shape]
-                chunk_size[0] = 1
-                chunk_size = tuple(chunk_size)
+                chunk_size = (max(
+                    self._MULTIFRAME_ARRAY_CHUNK_MAXIMUM // value.nbytes,
+                    1),) + data_shape[1:]
             self._create_dataset("/".join(("hoomd-data",) + key), data_shape,
                                  dtype, chunk_size)
 
