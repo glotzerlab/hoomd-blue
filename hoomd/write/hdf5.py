@@ -5,10 +5,9 @@
 
 import copy
 import functools
-
-import h5py
-import numpy as np
 from pathlib import PurePath
+
+import numpy as np
 
 import hoomd.custom as custom
 import hoomd.logging as logging
@@ -17,6 +16,11 @@ import hoomd.util as util
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.data.parameterdicts import ParameterDict
+
+try:
+    import h5py
+except ImportError:
+    h5py = None
 
 
 class _SkipIfNone:
@@ -60,6 +64,8 @@ class _HDF5LoggerInternal(custom._InternalAction):
     accepted_categories = ~_reject_categories
 
     def __init__(self, filename, logger, mode="a"):
+        if h5py is None:
+            raise ImportError(f"{type(self)} requires the h5py pacakge.")
         param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
             (str, PurePath)),
                                    logger=logging.Logger,
