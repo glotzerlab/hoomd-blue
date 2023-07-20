@@ -236,7 +236,7 @@ class HDF5Logger(_InternalCustomWriter):
             log data.
         mode (`str`, optional): The mode to open the file in. Available values
             are "w", "x" and "w-", "a", and "r+". Defaults to "a". See the
-            h5py_ documentation for more).
+            h5py_ documentation for more details).
 
     .. _h5py:
         https://docs.h5py.org/en/stable/high/file.html#opening-creating-files
@@ -260,15 +260,20 @@ class HDF5Logger(_InternalCustomWriter):
         import hoomd
 
         simulation = hoomd.util.make_example_simulation()
+        h5_filename = tmp_path / "simulation_log.h5"
 
     .. code-block:: python
 
         logger = hoomd.logging.Logger(
             hoomd.write.HDF5Logger.accepted_categories)
-        h5_writer = hoomd.write.HDF5Logger(10_000, "simulation-log.h5", logger)
+        h5_writer = hoomd.write.HDF5Logger(
+            trigger=10_000,
+            filename=h5_filename,
+            logger=logger)
         simulation.operations += h5_writer
     """
     _internal_class = _HDF5LoggerInternal
+    _wrap_methods = ("flush",)
 
     def write(self):
         """Write out data to the HDF5 file.
