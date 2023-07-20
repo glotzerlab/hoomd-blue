@@ -160,8 +160,8 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, `from_matrix`, and `from_box`. See the each methods documentation
-    for more details.
+    `square`, `from_matrix`, and `from_box`. See each method's documentation for
+    more details.
 
     .. rubric:: Example:
 
