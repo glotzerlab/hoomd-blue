@@ -10,8 +10,9 @@
     simulation = hoomd.util.make_example_simulation()
 
     snapshot = simulation.state.get_snapshot()
+    gsd_filename = path / 'file.gsd'
     hoomd.write.GSD.write(state=simulation.state,
-                          filename = path / 'file.gsd',
+                          filename = gsd_filename,
                           filter=hoomd.filter.All())
 
     logger = hoomd.logging.Logger()
@@ -220,7 +221,7 @@ class Simulation(metaclass=Loggable):
 
         .. code-block:: python
 
-            simulation.create_state_from_gsd(filename = path / 'file.gsd')
+            simulation.create_state_from_gsd(filename=gsd_filename)
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
