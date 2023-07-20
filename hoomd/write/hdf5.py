@@ -142,7 +142,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
         """Write out all data currently buffered in memory.
 
         Without calling this, data may be stored in the h5py.File object without
-        being written to the on disk file yet.
+        being written to disk yet.
         """
         self._fh.flush()
 
@@ -221,12 +221,12 @@ class HDF5Logger(_InternalCustomWriter):
         This class requires that ``h5py`` be installed.
 
     Important:
-        The HDF5 can be used for other data storage; however, the "hoomd-data"
-        key is reserved for use by this class. An exception will be thrown if
-        this requirement is not met.
+        The HDF5 file can be used for other data storage; however, the
+        "hoomd-data" key is reserved for use by this class. An exception will be
+        thrown if this requirement is not met.
 
     Warning:
-        This class cannot handle string loggables.
+        This class cannot handle string, strings, or object loggables.
 
     Args:
         trigger (hoomd.trigger.trigger_like): The trigger to determine when to
