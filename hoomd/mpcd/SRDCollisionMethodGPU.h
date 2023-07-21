@@ -28,8 +28,9 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                           unsigned int cur_timestep,
                           unsigned int period,
                           int phase,
-                          uint16_t seed,
-                          std::shared_ptr<mpcd::CellThermoCompute> thermo);
+                          uint16_t seed);
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     protected:
     //! Randomly draw cell rotation vectors

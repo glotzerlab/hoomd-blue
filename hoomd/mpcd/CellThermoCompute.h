@@ -33,7 +33,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     {
     public:
     //! Constructor
-    CellThermoCompute(std::shared_ptr<SystemDefinition> sysdef);
+    CellThermoCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<mpcd::CellList> cl);
 
     //! Destructor
     virtual ~CellThermoCompute();

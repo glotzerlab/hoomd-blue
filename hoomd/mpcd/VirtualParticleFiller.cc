@@ -22,6 +22,11 @@ mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<SystemDefinit
 
 void mpcd::VirtualParticleFiller::fill(uint64_t timestep)
     {
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     // update the fill volume
     computeNumFill();
 

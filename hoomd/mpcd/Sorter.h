@@ -62,6 +62,12 @@ class PYBIND11_EXPORT Sorter : public Autotuned
         m_next_timestep = multiple * m_period;
         }
 
+    //! Set the cell list used for sorting
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        }
+
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data

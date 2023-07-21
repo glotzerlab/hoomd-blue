@@ -84,6 +84,18 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
         return m_instance;
         }
 
+    //! Get the cell list used for collisions
+    std::shared_ptr<mpcd::CellList> getCellList() const
+        {
+        return m_cl;
+        }
+
+    //! Set the cell list used for collisions
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        }
+
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data

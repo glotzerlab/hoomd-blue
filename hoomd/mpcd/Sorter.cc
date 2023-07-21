@@ -40,6 +40,11 @@ void mpcd::Sorter::update(uint64_t timestep)
     if (!shouldSort(timestep))
         return;
 
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
     m_rorder.resize(m_mpcd_pdata->getN());

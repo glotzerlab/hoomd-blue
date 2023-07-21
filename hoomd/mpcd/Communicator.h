@@ -126,6 +126,18 @@ class PYBIND11_EXPORT Communicator : public Autotuned
         }
     //@}
 
+    //! Get the cell list used for determining when communication is needed
+    std::shared_ptr<mpcd::CellList> getCellList() const
+        {
+        return m_cl;
+        }
+
+    //! Set the cell list used for determining when communication is needed
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        }
+
     protected:
     //! Set the communication flags for the particle data
     virtual void setCommFlags(const BoxDim& box);

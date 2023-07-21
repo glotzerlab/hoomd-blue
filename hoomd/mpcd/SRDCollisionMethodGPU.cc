@@ -7,6 +7,7 @@
  */
 
 #include "SRDCollisionMethodGPU.h"
+#include "CellThermoComputeGPU.h"
 #include "SRDCollisionMethodGPU.cuh"
 
 namespace hoomd
@@ -15,9 +16,8 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<SystemDefinit
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
                                                    int phase,
-                                                   uint16_t seed,
-                                                   std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, seed, thermo)
+                                                   uint16_t seed)
+    : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, seed)
     {
     m_tuner_rotvec.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                           m_exec_conf,
@@ -152,6 +152,15 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
         }
     }
 
+void mpcd::SRDCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+        m_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -164,8 +173,7 @@ void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
                             unsigned int,
                             unsigned int,
                             int,
-                            unsigned int,
-                            std::shared_ptr<mpcd::CellThermoCompute>>());
+                            unsigned int>());
     }
 
     } // end namespace hoomd

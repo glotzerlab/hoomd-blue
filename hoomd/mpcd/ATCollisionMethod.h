@@ -30,12 +30,12 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
                       uint64_t cur_timestep,
                       uint64_t period,
                       int phase,
-                      std::shared_ptr<mpcd::CellThermoCompute> thermo,
-                      std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                       std::shared_ptr<Variant> T);
 
     //! Destructor
     virtual ~ATCollisionMethod();
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     //! Set the temperature and enable the thermostat
     void setTemperature(std::shared_ptr<Variant> T)

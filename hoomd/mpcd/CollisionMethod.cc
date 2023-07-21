@@ -42,6 +42,11 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
     if (!shouldCollide(timestep))
         return;
 
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     // set random grid shift
     drawGridShift(timestep);
 

@@ -59,6 +59,12 @@ class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
         m_T = T;
         }
 
+    //! Set the cell list used for filling
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        }
+
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data

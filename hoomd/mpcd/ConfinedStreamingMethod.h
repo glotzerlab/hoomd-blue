@@ -97,6 +97,11 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
     if (!shouldStream(timestep))
         return;
 
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     if (m_validate_geom)
         {
         validate();

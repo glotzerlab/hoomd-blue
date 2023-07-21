@@ -16,11 +16,8 @@ mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<SystemDefinition> sys
                                            uint64_t cur_timestep,
                                            uint64_t period,
                                            int phase,
-                                           std::shared_ptr<mpcd::CellThermoCompute> thermo,
-                                           std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                                            std::shared_ptr<Variant> T)
-    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_thermo(thermo),
-      m_rand_thermo(rand_thermo), m_T(T)
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
 
@@ -214,6 +211,16 @@ void mpcd::ATCollisionMethod::applyVelocities()
         }
     }
 
+void mpcd::ATCollisionMethod::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+        m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+        m_rand_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -226,8 +233,6 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
                             uint64_t,
                             uint64_t,
                             int,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
                             std::shared_ptr<Variant>>())
         .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
     }

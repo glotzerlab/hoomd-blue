@@ -30,11 +30,12 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
                        unsigned int cur_timestep,
                        unsigned int period,
                        int phase,
-                       uint16_t seed,
-                       std::shared_ptr<mpcd::CellThermoCompute> thermo);
+                       uint16_t seed);
 
     //! Destructor
     virtual ~SRDCollisionMethod();
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     //! Get the MPCD rotation angle
     double getRotationAngle() const

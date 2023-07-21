@@ -16,10 +16,9 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<SystemDefinition> s
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             uint16_t seed,
-                                             std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_thermo(thermo),
-      m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
+                                             uint16_t seed)
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_rotvec(m_exec_conf),
+      m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
 
@@ -248,6 +247,15 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
         }
     }
 
+void mpcd::SRDCollisionMethod::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+        m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -260,8 +268,7 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
                             unsigned int,
                             unsigned int,
                             int,
-                            unsigned int,
-                            std::shared_ptr<mpcd::CellThermoCompute>>())
+                            unsigned int>())
         .def("setRotationAngle", &mpcd::SRDCollisionMethod::setRotationAngle)
         .def("setTemperature", &mpcd::SRDCollisionMethod::setTemperature)
         .def("unsetTemperature", &mpcd::SRDCollisionMethod::unsetTemperature);

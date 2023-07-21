@@ -8,18 +8,16 @@
 
 #include "ATCollisionMethodGPU.h"
 #include "ATCollisionMethodGPU.cuh"
+#include "CellThermoComputeGPU.h"
 
 namespace hoomd
     {
-mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
-    std::shared_ptr<SystemDefinition> sysdef,
-    uint64_t cur_timestep,
-    uint64_t period,
-    int phase,
-    std::shared_ptr<mpcd::CellThermoCompute> thermo,
-    std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-    std::shared_ptr<Variant> T)
-    : mpcd::ATCollisionMethod(sysdef, cur_timestep, period, phase, thermo, rand_thermo, T)
+mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                 uint64_t cur_timestep,
+                                                 uint64_t period,
+                                                 int phase,
+                                                 std::shared_ptr<Variant> T)
+    : mpcd::ATCollisionMethod(sysdef, cur_timestep, period, phase, T)
     {
     m_tuner_draw.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
@@ -175,6 +173,16 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
         }
     }
 
+void mpcd::ATCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+        m_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+        m_rand_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -187,8 +195,6 @@ void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
                             uint64_t,
                             uint64_t,
                             int,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
                             std::shared_ptr<Variant>>());
     }
 
