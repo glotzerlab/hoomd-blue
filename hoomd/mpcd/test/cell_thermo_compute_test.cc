@@ -39,9 +39,8 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     std::shared_ptr<mpcd::ParticleData> pdata_5 = sysdef->getMPCDParticleData();
-
-    std::shared_ptr<mpcd::CellList> cl;
-    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {
@@ -259,9 +258,9 @@ template<class CT> void cell_thermo_embed_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
 
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->setEmbeddedGroup(group);
-    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef);
+    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {

@@ -25,16 +25,11 @@ if(ENABLE_MPI)
     SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
     ENDMACRO(ADD_TO_MPI_TESTS)
 
-    # define every test together with the number of processors
-    # these are long running tests
-    if (BUILD_VALIDATION)
-    ADD_TO_MPI_TESTS(communicator 8)
-    endif()
-    # these are tests that are shorter running
     if (BUILD_TESTING)
     ADD_TO_MPI_TESTS(cell_communicator 8)
     ADD_TO_MPI_TESTS(cell_list 8)
     ADD_TO_MPI_TESTS(cell_thermo_compute 8)
+    ADD_TO_MPI_TESTS(communicator 8)
     ADD_TO_MPI_TESTS(slit_geometry_filler 8)
     ADD_TO_MPI_TESTS(slit_pore_geometry_filler 8)
     endif()

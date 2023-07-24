@@ -88,11 +88,12 @@ void test_communicator_migrate(communicator_creator comm_creator,
     snap->mpcd_data.type[7] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     // set a small cell size so that nothing will lie in the diffusion layer
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->setCellSize(0.05);
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
+    comm->setCellList(cl);
 
     // check that all particles were initialized onto their proper ranks
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
@@ -714,6 +715,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
 
     // place eight mpcd particles
     snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-1.5, -0.5, 0.0);
     snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, 0.0);
     snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.0);
@@ -724,11 +726,12 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     snap->mpcd_data.position[7] = vec3<Scalar>(1.5, 0.5, 0.0);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     // set a small cell size so that nothing will lie in the diffusion layer
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->setCellSize(0.05);
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
+    comm->setCellList(cl);
     MigrateSelectOp migrate_op(comm);
 
     // check that all particles were initialized onto their proper ranks
@@ -916,8 +919,9 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
     auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
 
     // initialize the communicator
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     auto comm = std::make_shared<mpcd::Communicator>(sysdef);
+    comm->setCellList(cl);
     if (should_fail)
         {
         UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm->communicate(0); });

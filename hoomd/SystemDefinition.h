@@ -208,6 +208,12 @@ class PYBIND11_EXPORT SystemDefinition
         {
         return m_mpcd_data;
         }
+
+    //! Set the MPCD particle data
+    void setMPCDParticleData(std::shared_ptr<mpcd::ParticleData> mpcd_data)
+        {
+        m_mpcd_data = mpcd_data;
+        }
 #endif
 
     //! Return a snapshot of the current system data

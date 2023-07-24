@@ -38,6 +38,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
     snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
 
     // configure domain decompsition
     std::vector<Scalar> fx, fy, fz;
@@ -744,6 +745,7 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
      * 7: + + +
      */
     snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-0.1, -0.1, -0.1);
     snap->mpcd_data.position[1] = vec3<Scalar>(0.1, -0.1, -0.1);
     snap->mpcd_data.position[2] = vec3<Scalar>(-0.1, 0.1, -0.1);
@@ -965,6 +967,7 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
      * 7: + + +
      */
     snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
     snap->mpcd_data.position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
     snap->mpcd_data.position[2] = vec3<Scalar>(-1.0, 1.0, -1.0);

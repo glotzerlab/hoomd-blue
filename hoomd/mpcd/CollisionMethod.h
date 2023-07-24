@@ -66,7 +66,10 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     void setEmbeddedGroup(std::shared_ptr<ParticleGroup> embed_group)
         {
         m_embed_group = embed_group;
-        m_cl->setEmbeddedGroup(m_embed_group);
+        if (m_cl)
+            {
+            m_cl->setEmbeddedGroup(embed_group);
+            }
         }
 
     //! Set the period of the collision method
@@ -94,6 +97,10 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
         {
         m_cl = cl;
+        if (m_cl)
+            {
+            m_cl->setEmbeddedGroup(m_embed_group);
+            }
         }
 
     protected:

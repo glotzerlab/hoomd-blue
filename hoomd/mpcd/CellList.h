@@ -210,13 +210,17 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Sets a group of particles that is coupled to the MPCD solvent through the collision step
     void setEmbeddedGroup(std::shared_ptr<ParticleGroup> embed_group)
         {
-        m_embed_group = embed_group;
+        if (embed_group != m_embed_group)
+            {
+            m_embed_group = embed_group;
+            m_force_compute = true;
+            }
         }
 
     //! Removes all embedded particles from collision coupling
     void removeEmbeddedGroup()
         {
-        m_embed_group = std::shared_ptr<ParticleGroup>();
+        setEmbeddedGroup(std::shared_ptr<ParticleGroup>());
         }
 
     //! Gets the cell id array for the embedded particles

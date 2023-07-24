@@ -20,17 +20,12 @@ mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<SystemDefinition> sys
     : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
-
-    m_thermo->getCallbackSignal()
-        .connect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
     }
 
 mpcd::ATCollisionMethod::~ATCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD AT collision method" << std::endl;
-
-    m_thermo->getCallbackSignal()
-        .disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
+    detachCallbacks();
     }
 
 /*!
@@ -216,8 +211,35 @@ void mpcd::ATCollisionMethod::setCellList(std::shared_ptr<mpcd::CellList> cl)
     if (cl != m_cl)
         {
         CollisionMethod::setCellList(cl);
-        m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
-        m_rand_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+            m_rand_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoCompute>();
+            m_rand_thermo = std::shared_ptr<mpcd::CellThermoCompute>();
+            }
+        }
+    }
+
+void mpcd::ATCollisionMethod::attachCallbacks()
+    {
+    assert(m_thermo);
+    m_thermo->getCallbackSignal()
+        .connect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
+    }
+
+void mpcd::ATCollisionMethod::detachCallbacks()
+    {
+    if (m_thermo)
+        {
+        m_thermo->getCallbackSignal()
+            .disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
         }
     }
 

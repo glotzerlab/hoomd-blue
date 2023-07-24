@@ -49,10 +49,6 @@ mpcd::Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef)
     GPUArray<unsigned int> adj_mask(neigh_max, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
-    // attach decomposition check to the box change signal
-    m_cl->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(
-        this);
-
     // create new data type for the pdata_element
     const int nitems = 4;
     int blocklengths[nitems] = {4, 4, 1, 1};
@@ -76,8 +72,7 @@ mpcd::Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef)
 mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
-    m_cl->getSizeChangeSignal().disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(
-        this);
+    detachCallbacks();
     MPI_Type_free(&m_pdata_element);
     }
 
@@ -655,6 +650,22 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
     periodic.z = (isCommunicating(mpcd::detail::face::up)) ? 1 : 0;
 
     return BoxDim(global_lo + shift, global_hi + shift, periodic);
+    }
+
+void mpcd::Communicator::attachCallbacks()
+    {
+    assert(m_cl);
+    m_cl->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(
+        this);
+    }
+
+void mpcd::Communicator::detachCallbacks()
+    {
+    if (m_cl)
+        {
+        m_cl->getSizeChangeSignal()
+            .disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+        }
     }
 
 /*!

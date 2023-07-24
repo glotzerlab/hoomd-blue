@@ -56,6 +56,12 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
 
     //! Apply the random velocities to particles in each cell
     virtual void applyVelocities();
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
     };
 
 namespace detail

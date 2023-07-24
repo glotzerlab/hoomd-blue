@@ -47,6 +47,9 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
         throw std::runtime_error("Cell list has not been set");
         }
 
+    // sync the embedded group
+    m_cl->setEmbeddedGroup(m_embed_group);
+
     // set random grid shift
     drawGridShift(timestep);
 

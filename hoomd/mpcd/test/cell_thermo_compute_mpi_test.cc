@@ -26,6 +26,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     snap->particle_data.type_mapping.push_back("A");
     // place each particle all in the same cell
     snap->mpcd_data.resize(9);
+    snap->mpcd_data.type_mapping.push_back("A");
     // start all particles in the middle of their domains (no overlapping comms)
     snap->mpcd_data.position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
     snap->mpcd_data.position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
@@ -55,9 +56,9 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     sysdef->setCommunicator(pdata_comm);
 
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
 
-    std::shared_ptr<mpcd::CellList> cl;
-    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef);
+    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {

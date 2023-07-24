@@ -135,7 +135,15 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     //! Set the cell list used for determining when communication is needed
     virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
         {
-        m_cl = cl;
+        if (cl != m_cl)
+            {
+            detachCallbacks();
+            m_cl = cl;
+            if (m_cl)
+                {
+                attachCallbacks();
+                }
+            }
         }
 
     protected:
@@ -194,6 +202,12 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     GPUVector<mpcd::detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
     GPUVector<mpcd::detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
     std::vector<MPI_Request> m_reqs;                  //!< MPI requests
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
 
     private:
     //! Notify communicator that box has changed and so decomposition needs to be checked

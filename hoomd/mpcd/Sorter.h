@@ -65,7 +65,10 @@ class PYBIND11_EXPORT Sorter : public Autotuned
     //! Set the cell list used for sorting
     virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
         {
-        m_cl = cl;
+        if (cl != m_cl)
+            {
+            m_cl = cl;
+            }
         }
 
     protected:

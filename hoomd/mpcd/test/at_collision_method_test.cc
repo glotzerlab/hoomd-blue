@@ -42,17 +42,15 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
 
     // initialize system and collision method
     std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
-
-    // thermos and temperature variant
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef);
-    AllThermoRequest thermo_req(thermo);
-
-    auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
-
-    std::shared_ptr<mpcd::ATCollisionMethod> collide
-        = std::make_shared<CM>(sysdef, 0, 2, 1, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 2, 1, T);
+    collide->setCellList(cl);
     collide->enableGridShifting(false);
+
+    // thermo to test properties
+    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
+    AllThermoRequest thermo_req(thermo);
 
     // nothing should happen on the first step
     UP_ASSERT(!collide->peekCollide(0));
@@ -129,17 +127,15 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
 
     // initialize system and collision method
     std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
-
-    // thermos and temperature variant
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef);
-    AllThermoRequest thermo_req(thermo);
-
-    auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
-
-    std::shared_ptr<mpcd::ATCollisionMethod> collide
-        = std::make_shared<CM>(sysdef, 0, 1, -1, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, T);
+    collide->setCellList(cl);
     collide->enableGridShifting(false);
+
+    // thermo to check properties
+    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
+    AllThermoRequest thermo_req(thermo);
 
     // embed the particle group into the mpcd system
     std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterAll());

@@ -21,19 +21,12 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<SystemDefinition> s
       m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
-
-    m_thermo->getFlagsSignal()
-        .connect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(
-            this);
     }
 
 mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD SRD collision method" << std::endl;
-
-    m_thermo->getFlagsSignal()
-        .disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(
-            this);
+    detachCallbacks();
     }
 
 void mpcd::SRDCollisionMethod::rule(uint64_t timestep)
@@ -252,7 +245,34 @@ void mpcd::SRDCollisionMethod::setCellList(std::shared_ptr<mpcd::CellList> cl)
     if (cl != m_cl)
         {
         CollisionMethod::setCellList(cl);
-        m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoCompute>();
+            }
+        }
+    }
+
+void mpcd::SRDCollisionMethod::attachCallbacks()
+    {
+    assert(m_thermo);
+    m_thermo->getFlagsSignal()
+        .connect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(
+            this);
+    }
+
+void mpcd::SRDCollisionMethod::detachCallbacks()
+    {
+    if (m_thermo)
+        {
+        m_thermo->getFlagsSignal()
+            .disconnect<mpcd::SRDCollisionMethod,
+                        &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
         }
     }
 

@@ -22,6 +22,7 @@ template<class F> void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration
     snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
     snap->mpcd_data.position[0] = vec3<Scalar>(1, 1, 1);
     snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
 
@@ -32,6 +33,7 @@ template<class F> void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration
     sysdef->setCommunicator(pdata_comm);
 
     auto pdata = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 
@@ -42,6 +44,7 @@ template<class F> void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::SlitGeometryFiller> filler
         = std::make_shared<F>(sysdef, 2.0, 0, kT, slit);
+    filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list

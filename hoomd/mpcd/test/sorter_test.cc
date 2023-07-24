@@ -66,7 +66,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
     snap->mpcd_data.type[0] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
 
     // add an embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
@@ -76,6 +76,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
 
     // run the sorter
     std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    sorter->setCellList(cl);
     sorter->update(0);
 
         // check that all particles are properly ordered
@@ -244,7 +245,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
     snap->mpcd_data.type[0] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
 
     // add 2 virtual particles to fill in the rest of the cells
     auto pdata = sysdef->getMPCDParticleData();
@@ -273,6 +274,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
 
     // run the sorter
     std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    sorter->setCellList(cl);
     sorter->update(0);
 
         // check that all particles are properly ordered

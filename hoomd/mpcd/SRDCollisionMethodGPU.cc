@@ -157,7 +157,17 @@ void mpcd::SRDCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl
     if (cl != m_cl)
         {
         CollisionMethod::setCellList(cl);
-        m_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoComputeGPU>();
+            }
         }
     }
 

@@ -25,7 +25,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     auto pdata = sysdef->getMPCDParticleData();
-    std::shared_ptr<mpcd::CellList> cl;
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->setCellSize(2.0);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
@@ -38,6 +38,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
         = std::make_shared<F>(sysdef, 2.0, 1, kT, 42, slit);
+    filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list

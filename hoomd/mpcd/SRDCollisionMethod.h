@@ -102,6 +102,12 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
 
     //! Apply rotation matrix to velocities
     virtual void rotate(uint64_t timestep);
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
     };
 
 namespace detail
