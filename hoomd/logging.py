@@ -653,11 +653,13 @@ class Logger(_SafeNamespaceDict):
     When restricting to a subset of categories you can use a list of strings.
 
     .. code-block:: python
+
         logger = hoomd.logging.Logger(categories=["string", "strings"])
 
     The `LoggerCategories` enum values can also be used directly.
 
     .. code-block:: python
+
         logger = hoomd.logging.Logger(
             categories=LoggerCategories.particle | LoggerCategories.bond)
     """
