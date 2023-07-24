@@ -812,6 +812,10 @@ class Logger(_SafeNamespaceDict):
 
         .. rubric:: Example:
 
+        .. invisible-code-block: python
+
+            logger = hoomd.logging.Logger()
+
         .. code-block:: python
 
             logger[('custom', 'name')] = (lambda: 42, 'scalar')
