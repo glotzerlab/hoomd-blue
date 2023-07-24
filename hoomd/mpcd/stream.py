@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD streaming methods
+r""" MPCD streaming methods
 
 An MPCD streaming method is required to update the particle positions over time.
 It is meant to be used in conjunction with an :py:class:`~hoomd.mpcd.integrator`
@@ -234,7 +234,7 @@ class bulk(_streaming_method):
 
     :py:class:`bulk` performs the streaming step for MPCD particles in a fully
     periodic geometry (2D or 3D). This geometry is appropriate for modeling
-    bulk fluids. The streaming time :math:`\Delta t` is equal to *period* steps
+    bulk fluids. The streaming time :math:`\\Delta t` is equal to *period* steps
     of the :py:class:`~hoomd.mpcd.integrator`. For a pure MPCD fluid,
     typically *period* should be 1. When particles are embedded in the MPCD fluid
     through the collision step, *period* should be equal to the MPCD collision

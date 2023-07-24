@@ -38,7 +38,7 @@ optional requirements are missing.
 - `mpi4py`_ (optional)
 - `pytest`_
 - `rowan`_ (optional)
-- `sybil`_
+- `sybil`_ (optional)
 
 .. _CuPy: https://cupy.dev/
 .. _gsd: https://gsd.readthedocs.io/

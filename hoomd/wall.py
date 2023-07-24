@@ -83,6 +83,12 @@ class Sphere(WallGeometry):
     Note:
         `Sphere` objects are immutable.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            sphere = hoomd.wall.Sphere(radius=10.0)
+
     Attributes:
         radius (float):
             The radius of the sphere :math:`[\mathrm{length}]`.
@@ -172,6 +178,12 @@ class Cylinder(WallGeometry):
 
     Note:
         `Cylinder` objects are immutable.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            cylinder = hoomd.wall.Cylinder(radius=10.0, axis=(0,0,1))
 
     Attributes:
         radius (float):
@@ -263,6 +275,12 @@ class Plane(WallGeometry):
 
     Note:
         `Plane` objects are immutable.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            plane = hoomd.wall.Plane(origin=(-10, 0, 0), normal=(1, 0, 0))
 
     Attributes:
         origin (`tuple` [`float`, `float`, `float`]):

@@ -14,8 +14,11 @@ import hoomd
 import atexit
 import os
 import numpy
-import sybil
-import sybil.parsers.rest
+try:
+    import sybil
+    import sybil.parsers.rest
+except ImportError:
+    sybil = None
 
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
@@ -38,26 +41,37 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
 
 def setup_sybil_tests(namespace):
     """Sybil setup function."""
-    # Allow documentation tests to use numpy.
+    # Common imports.
     namespace['numpy'] = numpy
+    namespace['hoomd'] = hoomd
 
     namespace['gpu_not_available'] = _n_available_gpu == 0
 
+    try:
+        import cupy
+    except ImportError:
+        cupy = None
 
-pytest_collect_file = sybil.Sybil(
-    parsers=[
-        sybil.parsers.rest.PythonCodeBlockParser(),
-        sybil.parsers.rest.SkipParser(),
-    ],
-    # Despite being documented as fnmatch syntax, in practice patterns matches
-    # whole relative paths. TODO:when all code examples function, search
-    # *.py, */*.py, */*/*.py, ... as many levels deep as needed.
-    patterns=[
-        'device.py', 'md/methods/methods.py', 'md/methods/thermostats.py',
-        "write/hdf5.py"
-    ],
-    setup=setup_sybil_tests,
-    fixtures=['tmp_path']).pytest()
+    namespace['cupy_not_available'] = cupy is None
+
+
+if sybil is not None:
+    pytest_collect_file = sybil.Sybil(
+        parsers=[
+            sybil.parsers.rest.PythonCodeBlockParser(),
+            sybil.parsers.rest.SkipParser(),
+        ],
+        pattern='*.py',
+        # exclude files not yet tested with sybil
+        excludes=[
+            'custom/custom_action.py',
+            'data/typeconverter.py',
+            'data/typeparam.py',
+            'hpmc/external/user.py',
+            'hpmc/pair/user.py',
+        ],
+        setup=setup_sybil_tests,
+        fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
