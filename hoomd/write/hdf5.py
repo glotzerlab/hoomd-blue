@@ -259,8 +259,17 @@ class HDF5Logger(_InternalCustomWriter):
 
         import hoomd
 
+        try:
+            import h5py
+            h5py_not_available = False
+        except ImportError:
+            h5py_not_available = True
+
+
         simulation = hoomd.util.make_example_simulation()
         h5_filename = tmp_path / "simulation_log.h5"
+
+    .. skip: start if(h5py_not_available)
 
     .. code-block:: python
 
