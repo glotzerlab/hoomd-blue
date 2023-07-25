@@ -247,6 +247,10 @@ class Table(Bond):
         width (int): Number of points in the table.
     """
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def __init__(self, width):
         super().__init__()
         param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
@@ -266,9 +270,9 @@ class Table(Bond):
     def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = _md.BondTablePotential
+            cpp_cls = self._ext_module.BondTablePotential
         else:
-            cpp_cls = _md.BondTablePotentialGPU
+            cpp_cls = self._ext_module.BondTablePotentialGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
 
