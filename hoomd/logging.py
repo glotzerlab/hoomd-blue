@@ -642,26 +642,17 @@ class Logger(_SafeNamespaceDict):
     .. rubric:: Examples
 
     There are various ways to create a logger with different available
-    loggables. To allow all loggable categories just create a logger.
+    loggables. Create a `Logger` with no options to allow all categories.
 
     .. code-block:: python
 
-        from hoomd.logging import LoggerCategories
-
         logger = hoomd.logging.Logger()
 
-    When restricting to a subset of categories you can use a list of strings.
+    Use a list of strings to log a subset of categories:
 
     .. code-block:: python
 
         logger = hoomd.logging.Logger(categories=["string", "strings"])
-
-    The `LoggerCategories` enum values can also be used directly.
-
-    .. code-block:: python
-
-        logger = hoomd.logging.Logger(
-            categories=LoggerCategories.particle | LoggerCategories.bond)
     """
 
     def __init__(self, categories=None, only_default=True):
