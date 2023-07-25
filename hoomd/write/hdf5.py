@@ -212,10 +212,9 @@ class _HDF5LoggerInternal(custom._InternalAction):
 
 
 class HDF5Logger(_InternalCustomWriter):
-    """An HDF5 logger backend.
+    """Write loggable simulation data to HDF5 files.
 
-    This class handles scalar and array data storing them in HDF5 resizable
-    datasets.
+    This class stores resizable scalar and array data in the HDF5 file format.
 
     Note:
         This class requires that ``h5py`` be installed.
@@ -230,7 +229,7 @@ class HDF5Logger(_InternalCustomWriter):
 
     Args:
         trigger (hoomd.trigger.trigger_like): The trigger to determine when to
-            run the HDF5 backend.
+            write to the HDF5 file.
         filename (str): The filename of the HDF5 file to write to.
         logger (hoomd.logging.Logger): The logger instance to use for querying
             log data.
@@ -267,7 +266,7 @@ class HDF5Logger(_InternalCustomWriter):
 
 
         simulation = hoomd.util.make_example_simulation()
-        h5_filename = tmp_path / "simulation_log.h5"
+        hdf5_filename = tmp_path / "simulation_log.h5"
 
     .. skip: start if(h5py_not_available)
 
@@ -275,11 +274,11 @@ class HDF5Logger(_InternalCustomWriter):
 
         logger = hoomd.logging.Logger(
             hoomd.write.HDF5Logger.accepted_categories)
-        h5_writer = hoomd.write.HDF5Logger(
-            trigger=10_000,
-            filename=h5_filename,
+        hdf5_log_writer = hoomd.write.HDF5Logger(
+            trigger=hoomd.trigger.Periodic(10_000),
+            filename=hdf5_filename,
             logger=logger)
-        simulation.operations += h5_writer
+        simulation.operations += hdf5_writer
     """
     _internal_class = _HDF5LoggerInternal
     _wrap_methods = ("flush",)

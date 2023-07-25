@@ -8,11 +8,7 @@ from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
 
-try:
-    import h5py
-except ImportError:
-    pytestmark = pytest.skip("h5py required to test this feature.",
-                             allow_module_level=True)
+pytest.importorskip("h5py")
 
 
 def lj_integrator():
