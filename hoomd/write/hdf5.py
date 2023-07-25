@@ -302,7 +302,7 @@ class HDF5Log(_InternalCustomWriter):
     def write(self, timestep=None):
         """Write out data to the HDF5 file.
 
-        Writes out a frame from the composed logger.
+        Writes out a frame at the current timestep from the composed logger.
 
         Warning:
             This may not be able to write out quantities which require the
