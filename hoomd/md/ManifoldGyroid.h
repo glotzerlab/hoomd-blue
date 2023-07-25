@@ -134,7 +134,7 @@ class ManifoldGyroid
     Scalar epsilon;
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_GYROID_H__

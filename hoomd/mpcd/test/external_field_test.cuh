@@ -13,6 +13,6 @@ cudaError_t test_external_field(Scalar3* out,
                                 const mpcd::ExternalField* field,
                                 const Scalar3* pos,
                                 const unsigned int N);
-    }  // end namespace gpu
+    } // end namespace gpu
 
 #endif // HOOMD_MPCD_TEST_EXTERNAL_FIELD_TEST_CUH_

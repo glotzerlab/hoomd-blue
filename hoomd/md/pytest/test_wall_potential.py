@@ -263,10 +263,10 @@ def test_r_extrap(simulation, cls, params):
 
 
 # Test Logging
-@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip(_potential_cls,
-                             itertools.repeat(('md', 'external', 'wall')),
-                             itertools.repeat(expected_loggable_params)))
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip(_potential_cls, itertools.repeat(('md', 'external', 'wall')),
+        itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

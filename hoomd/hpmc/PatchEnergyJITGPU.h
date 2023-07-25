@@ -111,8 +111,8 @@ inline void export_PatchEnergyJITGPU(pybind11::module& m)
                             unsigned int>());
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif
 #endif // _PATCH_ENERGY_JIT_GPU_H_

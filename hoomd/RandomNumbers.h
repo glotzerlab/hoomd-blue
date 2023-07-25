@@ -509,9 +509,9 @@ template<typename Real> class GammaDistribution
         }
 
     private:
-    Real m_b;                          //!< Gamma-distribution b-parameter
-    Real m_c;                          //!< c-parameter for Marsaglia and Tsang method
-    Real m_d;                          //!< d-parameter for Marasglia and Tsang method
+    Real m_b; //!< Gamma-distribution b-parameter
+    Real m_c; //!< c-parameter for Marsaglia and Tsang method
+    Real m_d; //!< d-parameter for Marasglia and Tsang method
 
     NormalDistribution<Real> m_normal; //!< Normal variate generator
     };
@@ -659,6 +659,6 @@ template<class Real> class PoissonDistribution
         }
     };
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

@@ -317,7 +317,7 @@ class EvaluatorPairDPDThermoLJ
 
 #undef DEVICE
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DPDLJ_H__
