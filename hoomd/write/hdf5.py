@@ -303,6 +303,17 @@ class HDF5Log(_InternalCustomWriter):
         """Write out data to the HDF5 file.
 
         Writes out a frame from the composed logger.
+
+        Warning:
+            This may not be able to write out quantities which require the
+            pressure tensor, rotational kinetic energy, or external field
+            virial.
+
+        .. rubric:: Example
+
+        .. code-block:: python
+
+            hdf5_writer.write()
         """
         self._action.act(timestep)
 
