@@ -42,7 +42,7 @@ class _SkipIfNone:
 _skip_fh = _SkipIfNone("_fh")
 
 
-class _HDF5LoggerInternal(custom._InternalAction):
+class _HDF5LogInternal(custom._InternalAction):
     """A HDF5 HOOMD logging backend."""
 
     _skip_for_equality = custom._InternalAction._skip_for_equality | {
@@ -211,7 +211,7 @@ class _HDF5LoggerInternal(custom._InternalAction):
         self.__dict__ = state
 
 
-class HDF5Logger(_InternalCustomWriter):
+class HDF5Log(_InternalCustomWriter):
     """Write loggable simulation data to HDF5 files.
 
     This class stores resizable scalar and array data in the HDF5 file format.
@@ -242,7 +242,7 @@ class HDF5Logger(_InternalCustomWriter):
 
     Attributes:
         cls.accepted_categories (hoomd.logging.LoggerCategories): The enum value
-            for all accepted categories for `HDF5Logger` instances which is all
+            for all accepted categories for `HDF5Log` instances which is all
             categories other than "string", "strings", and "object" (see
             `hoomd.logging.LoggerCategories`).
         trigger (hoomd.trigger.trigger_like): The trigger to determine when to
@@ -273,14 +273,14 @@ class HDF5Logger(_InternalCustomWriter):
     .. code-block:: python
 
         logger = hoomd.logging.Logger(
-            hoomd.write.HDF5Logger.accepted_categories)
-        hdf5_log_writer = hoomd.write.HDF5Logger(
+            hoomd.write.HDF5Log.accepted_categories)
+        hdf5_log_writer = hoomd.write.HDF5Log(
             trigger=hoomd.trigger.Periodic(10_000),
             filename=hdf5_filename,
             logger=logger)
         simulation.operations += hdf5_writer
     """
-    _internal_class = _HDF5LoggerInternal
+    _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
 
     def write(self, timestep=None):
@@ -291,4 +291,4 @@ class HDF5Logger(_InternalCustomWriter):
         self._action.act(timestep)
 
 
-__all__ = ["HDF5Logger"]
+__all__ = ["HDF5Log"]

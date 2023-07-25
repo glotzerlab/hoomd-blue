@@ -8,7 +8,7 @@ from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
 
-pytest.importorskip("h5py")
+h5py = pytest.importorskip("h5py")
 
 
 def lj_integrator():
@@ -33,7 +33,7 @@ def create_md_sim(simulation_factory, device, two_particle_snapshot_factory):
 
 def test_invalid_attrs(tmp_path):
     logger = hoomd.logging.Logger(categories=['scalar'])
-    h5_writer = hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
+    h5_writer = hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
     with pytest.raises(AttributeError):
         h5_writer.action
     with pytest.raises(AttributeError):
@@ -45,16 +45,16 @@ def test_invalid_attrs(tmp_path):
 def test_only_error_on_strings(tmp_path):
     logger = hoomd.logging.Logger(categories=["strings"])
     with pytest.raises(ValueError):
-        hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
+        hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
     logger = hoomd.logging.Logger(categories=['string'])
     with pytest.raises(ValueError):
-        hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
+        hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path):
     logger = hoomd.logging.Logger(categories=['scalar'])
     sim = simulation_factory(two_particle_snapshot_factory())
-    h5_writer = hoomd.write.HDF5Logger(1, tmp_path / "eg.h5", logger)
+    h5_writer = hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
     operation_pickling_check(h5_writer, sim)
 
 
@@ -69,10 +69,10 @@ def test_write(create_md_sim, tmp_path):
     logger = hoomd.logging.Logger(["scalar", "particle", "sequence"])
     logger.add(thermo)
 
-    h5_writer = hoomd.write.HDF5Logger(filename=filename,
-                                       trigger=hoomd.trigger.Periodic(1),
-                                       mode='w',
-                                       logger=logger)
+    h5_writer = hoomd.write.HDF5Log(filename=filename,
+                                    trigger=hoomd.trigger.Periodic(1),
+                                    mode='w',
+                                    logger=logger)
     sim.operations.writers.append(h5_writer)
 
     kinetic_energy_list = []
@@ -93,7 +93,7 @@ def test_mode(tmp_path, create_md_sim):
     sim = create_md_sim
     fn = tmp_path / "eg.py"
     logger[("foo", "bar")] = (lambda: 42, "scalar")
-    h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="w")
+    h5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="w")
     sim.operations.writers.append(h5_writer)
     sim.run(2)
     h5_writer.flush()
@@ -103,7 +103,7 @@ def test_mode(tmp_path, create_md_sim):
         with h5py.File(fn, "r") as fh:
             assert len(fh["hoomd-data/foo/bar"]) == 2
 
-    h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="a")
+    h5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="a")
     sim.operations.writers.append(h5_writer)
     sim.run(2)
     h5_writer.flush()
@@ -113,7 +113,7 @@ def test_mode(tmp_path, create_md_sim):
         with h5py.File(fn, "r") as fh:
             assert len(fh["hoomd-data/foo/bar"]) == 4
 
-    h5_writer = hoomd.write.HDF5Logger(1, fn, logger, mode="w")
+    h5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="w")
     sim.operations.writers.append(h5_writer)
     sim.run(2)
     h5_writer.flush()
