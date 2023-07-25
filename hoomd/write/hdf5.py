@@ -15,6 +15,10 @@
 
     simulation = hoomd.util.make_example_simulation()
     hdf5_filename = tmp_path / "simulation_log.h5"
+    logger = hoomd.logging.Logger(
+        hoomd.write.HDF5Log.accepted_categories)
+    hdf5_writer = hoomd.write.HDF5Log(
+        10_000, hdf5_filename, logger)
 
 .. skip: start if(h5py_not_available)
 """
@@ -166,7 +170,7 @@ class _HDF5LogInternal(custom._InternalAction):
 
             .. code-block:: python
 
-                hdf5_log_writer.flush()
+                hdf5_writer.flush()
 
             Flush all write buffers:
 
@@ -290,7 +294,7 @@ class HDF5Log(_InternalCustomWriter):
 
         logger = hoomd.logging.Logger(
             hoomd.write.HDF5Log.accepted_categories)
-        hdf5_log_writer = hoomd.write.HDF5Log(
+        hdf5_writer = hoomd.write.HDF5Log(
             trigger=hoomd.trigger.Periodic(10_000),
             filename=hdf5_filename,
             logger=logger)
