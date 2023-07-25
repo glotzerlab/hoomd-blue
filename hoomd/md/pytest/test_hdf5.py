@@ -33,13 +33,13 @@ def create_md_sim(simulation_factory, device, two_particle_snapshot_factory):
 
 def test_invalid_attrs(tmp_path):
     logger = hoomd.logging.Logger(categories=['scalar'])
-    h5_writer = hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
+    hdf5_writer = hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
     with pytest.raises(AttributeError):
-        h5_writer.action
+        hdf5_writer.action
     with pytest.raises(AttributeError):
-        h5_writer.detach
+        hdf5_writer.detach
     with pytest.raises(AttributeError):
-        h5_writer.attach
+        hdf5_writer.attach
 
 
 def test_only_error_on_strings(tmp_path):
@@ -54,8 +54,8 @@ def test_only_error_on_strings(tmp_path):
 def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path):
     logger = hoomd.logging.Logger(categories=['scalar'])
     sim = simulation_factory(two_particle_snapshot_factory())
-    h5_writer = hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
-    operation_pickling_check(h5_writer, sim)
+    hdf5_writer = hoomd.write.HDF5Log(1, tmp_path / "eg.h5", logger)
+    operation_pickling_check(hdf5_writer, sim)
 
 
 def test_write(create_md_sim, tmp_path):
@@ -69,18 +69,18 @@ def test_write(create_md_sim, tmp_path):
     logger = hoomd.logging.Logger(["scalar", "particle", "sequence"])
     logger.add(thermo)
 
-    h5_writer = hoomd.write.HDF5Log(filename=filename,
-                                    trigger=hoomd.trigger.Periodic(1),
-                                    mode='w',
-                                    logger=logger)
-    sim.operations.writers.append(h5_writer)
+    hdf5_writer = hoomd.write.HDF5Log(filename=filename,
+                                      trigger=hoomd.trigger.Periodic(1),
+                                      mode='w',
+                                      logger=logger)
+    sim.operations.writers.append(hdf5_writer)
 
     kinetic_energy_list = []
     for _ in range(5):
         sim.run(1)
         kinetic_energy_list.append(thermo.kinetic_energy)
 
-    h5_writer.flush()
+    hdf5_writer.flush()
 
     if sim.device.communicator.rank == 0:
         key = 'hoomd-data/md/compute/ThermodynamicQuantities/kinetic_energy'
@@ -99,19 +99,19 @@ def test_write_method(create_md_sim, tmp_path):
     logger.add(thermo)
 
     # Writer should never run on its own.
-    h5_writer = hoomd.write.HDF5Log(filename=filename,
-                                    trigger=hoomd.trigger.Periodic(100),
-                                    mode='w',
-                                    logger=logger)
-    sim.operations.writers.append(h5_writer)
+    hdf5_writer = hoomd.write.HDF5Log(filename=filename,
+                                      trigger=hoomd.trigger.Periodic(100),
+                                      mode='w',
+                                      logger=logger)
+    sim.operations.writers.append(hdf5_writer)
 
     kinetic_energy_list = []
     for _ in range(5):
         sim.run(1)
         kinetic_energy_list.append(thermo.kinetic_energy)
-        h5_writer.write()
+        hdf5_writer.write()
 
-    h5_writer.flush()
+    hdf5_writer.flush()
 
     if sim.device.communicator.rank == 0:
         key = 'hoomd-data/md/compute/ThermodynamicQuantities/kinetic_energy'
@@ -124,32 +124,32 @@ def test_mode(tmp_path, create_md_sim):
     sim = create_md_sim
     fn = tmp_path / "eg.py"
     logger[("foo", "bar")] = (lambda: 42, "scalar")
-    h5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="w")
-    sim.operations.writers.append(h5_writer)
+    hdf5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="w")
+    sim.operations.writers.append(hdf5_writer)
     sim.run(2)
-    h5_writer.flush()
+    hdf5_writer.flush()
     sim.operations.writers.clear()
-    del h5_writer
+    del hdf5_writer
     if sim.device.communicator.rank == 0:
         with h5py.File(fn, "r") as fh:
             assert len(fh["hoomd-data/foo/bar"]) == 2
 
-    h5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="a")
-    sim.operations.writers.append(h5_writer)
+    hdf5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="a")
+    sim.operations.writers.append(hdf5_writer)
     sim.run(2)
-    h5_writer.flush()
+    hdf5_writer.flush()
     sim.operations.writers.clear()
-    del h5_writer
+    del hdf5_writer
     if sim.device.communicator.rank == 0:
         with h5py.File(fn, "r") as fh:
             assert len(fh["hoomd-data/foo/bar"]) == 4
 
-    h5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="w")
-    sim.operations.writers.append(h5_writer)
+    hdf5_writer = hoomd.write.HDF5Log(1, fn, logger, mode="w")
+    sim.operations.writers.append(hdf5_writer)
     sim.run(2)
-    h5_writer.flush()
+    hdf5_writer.flush()
     sim.operations.writers.clear()
-    del h5_writer
+    del hdf5_writer
     if sim.device.communicator.rank == 0:
         with h5py.File(fn, "r") as fh:
             assert len(fh["hoomd-data/foo/bar"]) == 2
