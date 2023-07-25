@@ -88,6 +88,37 @@ def test_write(create_md_sim, tmp_path):
             assert np.allclose(fh[key], kinetic_energy_list)
 
 
+def test_write_method(create_md_sim, tmp_path):
+    filename = tmp_path / "temporary_test_file.h5"
+
+    sim = create_md_sim
+    thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
+    sim.operations.computes.append(thermo)
+
+    logger = hoomd.logging.Logger(["scalar", "particle", "sequence"])
+    logger.add(thermo)
+
+    # Writer should never run on its own.
+    h5_writer = hoomd.write.HDF5Log(filename=filename,
+                                    trigger=hoomd.trigger.Periodic(100),
+                                    mode='w',
+                                    logger=logger)
+    sim.operations.writers.append(h5_writer)
+
+    kinetic_energy_list = []
+    for _ in range(5):
+        sim.run(1)
+        kinetic_energy_list.append(thermo.kinetic_energy)
+        h5_writer.write()
+
+    h5_writer.flush()
+
+    if sim.device.communicator.rank == 0:
+        key = 'hoomd-data/md/compute/ThermodynamicQuantities/kinetic_energy'
+        with h5py.File(filename, mode='r') as fh:
+            assert np.allclose(fh[key], kinetic_energy_list)
+
+
 def test_mode(tmp_path, create_md_sim):
     logger = hoomd.logging.Logger(categories=['scalar'])
     sim = create_md_sim
