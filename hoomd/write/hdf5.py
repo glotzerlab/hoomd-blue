@@ -1,7 +1,23 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Provides an HDF5 logging backend for a fast binary logging format."""
+"""Provides an HDF5 logging backend for a fast binary logging format.
+
+.. invisible-code-block: python
+
+    import hoomd
+
+    try:
+        import h5py
+        h5py_not_available = False
+    except ImportError:
+        h5py_not_available = True
+
+    simulation = hoomd.util.make_example_simulation()
+    hdf5_filename = tmp_path / "simulation_log.h5"
+
+.. skip: start if(h5py_not_available)
+"""
 
 import copy
 import functools
@@ -143,6 +159,22 @@ class _HDF5LogInternal(custom._InternalAction):
 
         Without calling this, data may be stored in the h5py.File object without
         being written to disk yet.
+
+        .. rubric:: Examples
+
+            Flush one writer:
+
+            .. code-block:: python
+
+                hdf5_log_writer.flush()
+
+            Flush all write buffers:
+
+            .. code-block:: python
+
+                for writer in simulation.operations.writers:
+                    if hasattr(writer, 'flush'):
+                        writer.flush()
         """
         self._fh.flush()
 
@@ -253,22 +285,6 @@ class HDF5Log(_InternalCustomWriter):
         mode (str): The mode the file was opened in.
 
     .. rubric:: Example
-
-    .. invisible-code-block: python
-
-        import hoomd
-
-        try:
-            import h5py
-            h5py_not_available = False
-        except ImportError:
-            h5py_not_available = True
-
-
-        simulation = hoomd.util.make_example_simulation()
-        hdf5_filename = tmp_path / "simulation_log.h5"
-
-    .. skip: start if(h5py_not_available)
 
     .. code-block:: python
 
