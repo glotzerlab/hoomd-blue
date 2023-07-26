@@ -146,18 +146,30 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
             Scalar stepsize = this->m_step_size[type_id];
-            Scalar a = fmax(-stepsize, -(m_params[type_id][i]));
-            Scalar b = fmin(stepsize, (1.0 - m_params[type_id][i]));
+            Scalar a = -stepsize;
+            Scalar b = stepsize;
+
             hoomd::UniformDistribution<Scalar> uniform(a, b);
             Scalar r = hoomd::detail::generate_canonical<double>(rng);
             Scalar x = (r < this->m_move_probability) ? uniform(rng) : 0.0;
-            m_params[type_id][i] += x;
+            // Reflect trial moves about boundaries
+            if (m_params[type_id][i] + x > 1)
+                {
+                m_params[type_id][i] = 2 - (m_params[type_id][i] + x);
+                }
+            else if (m_params[type_id][i] + x < 0)
+                {
+                m_params[type_id][i] = x - m_params[type_id][i];
+                }
+            else
+                {
+                m_params[type_id][i] += x;
+                }
+            pybind11::object d = m_python_callback(type_id, m_params[type_id]);
+            pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
+            shape = typename Shape::param_type(shape_dict);
             }
-        pybind11::object d = m_python_callback(type_id, m_params[type_id]);
-        pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
-        shape = typename Shape::param_type(shape_dict);
         }
-
     void retreat(uint64_t timestep, unsigned int type)
         {
         // move has been rejected.
