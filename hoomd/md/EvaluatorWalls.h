@@ -121,7 +121,7 @@ template<class evaluator> class EvaluatorWalls
             {
             }
 
-        pybind11::object asDict()
+        pybind11::object toPython()
             {
             auto py_params = params.asDict();
             py_params["r_cut"] = sqrt(rcutsq);

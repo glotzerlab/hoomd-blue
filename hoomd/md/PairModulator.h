@@ -60,12 +60,12 @@ public:
                 envelP = typename DirectionalEnvelope::param_type(params["envelope_params"]);
             }
 
-        pybind11::dict asDict()
+        pybind11::dict toPython()
             {
                 pybind11::dict v;
 
                 v["pair_params"] = pairP.asDict();
-                v["envelope_params"] = envelP.asDict();
+                v["envelope_params"] = envelP.toPython();
 
                 return v;
             }
@@ -122,13 +122,13 @@ public:
                     }
             }
 
-        pybind11::dict asDict()
+        pybind11::dict toPython()
             {
                 pybind11::list envelope_py;
                 pybind11::dict v;
                 for (size_t i = 0; i < envelope.size();  i++)
                     {
-                        envelope_py.append(envelope[int(i)].asDict());
+                        envelope_py.append(envelope[int(i)].toPython());
                     }
                 v["envelope"] = envelope_py;
                 return v;

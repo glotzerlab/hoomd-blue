@@ -69,7 +69,7 @@ class EvaluatorExternalPeriodic
 
         param_type(int i_, Scalar A_, Scalar w_, int p_) : A(A_), w(w_), i(i_), p(p_) { }
 
-        pybind11::dict asDict()
+        pybind11::dict toPython()
             {
             pybind11::dict d;
             d["i"] = i;

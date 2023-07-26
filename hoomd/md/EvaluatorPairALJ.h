@@ -190,7 +190,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             {
             }
 
-        pybind11::object asDict()
+        pybind11::object toPython()
             {
             using namespace pybind11::literals;
             return pybind11::dict("epsilon"_a = epsilon,
@@ -346,7 +346,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
                 }
             }
 
-        pybind11::object asDict()
+        pybind11::object toPython()
             {
             pybind11::list vertices;
 

@@ -176,19 +176,6 @@ class EvaluatorPairLJ
     */
     DEVICE void setCharge(Scalar qi, Scalar qj) { }
 
-    //! LJ doesn't use tags
-    DEVICE static bool needsTags()
-        {
-        return false;
-        }
-
-
-    //! Accept the optional tags
-    /*! \param tag_i Tag of particle i
-        \param tag_j Tag of particle j
-    */
-    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
-
     //! Evaluate the force and energy
     /*! \param force_divr Output parameter to write the computed force divided by r.
         \param pair_eng Output parameter to write the computed pair energy

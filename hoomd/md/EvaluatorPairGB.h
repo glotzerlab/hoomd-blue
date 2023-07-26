@@ -83,7 +83,7 @@ class EvaluatorPairGB
             lpar = v["lpar"].cast<Scalar>();
             }
 
-        pybind11::dict asDict()
+        pybind11::dict toPython()
             {
             pybind11::dict v;
             v["epsilon"] = epsilon;
@@ -117,7 +117,7 @@ class EvaluatorPairGB
 
         shape_type(pybind11::object shape_params, bool managed) { }
 
-        pybind11::object asDict()
+        pybind11::object toPython()
             {
             return pybind11::none();
             }

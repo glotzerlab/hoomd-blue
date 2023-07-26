@@ -58,7 +58,7 @@ class EvaluatorExternalElectricField
             E.z = pybind11::cast<Scalar>(py_E[2]);
             }
 
-        pybind11::object asDict()
+        pybind11::object toPython()
             {
             pybind11::tuple params;
             params = pybind11::make_tuple(E.x, E.y, E.z);
