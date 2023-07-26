@@ -24,7 +24,6 @@ set(files __init__.py
     test_potential.py
     test_pppm_coulomb.py
     test_manifolds.py
-    test_meshbond.py
     test_meta_wall_list.py
     test_methods.py
     test_meshpotential.py
