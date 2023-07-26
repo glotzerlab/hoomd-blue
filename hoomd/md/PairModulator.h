@@ -43,7 +43,7 @@ class PairModulator
 public:
 
     struct param_type
-    {   
+    {
         param_type()
             {
             }
@@ -98,13 +98,13 @@ public:
           \param available_bytes Size of remaining shared memory allocation
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
-            envelope.load_shared();
-            m_ns.load_shared();
+            envelope.load_shared(ptr, available_bytes);
+            m_ns.load_shared(ptr, available_bytes);
 }
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
-            envelope.allocate_shared();
-            m_ns.allocate_shared();
+            envelope.allocate_shared(ptr, available_bytes);
+            m_ns.allocate_shared(ptr, available_bytes);
 }
 
         HOSTDEVICE shape_type() { }
@@ -117,7 +117,7 @@ public:
                 pybind11::list shape_param = shape_params["envelope"];
                 for (size_t i = 0; i < pybind11::len(shape_param); i++)
                     {
-                        
+
                         envelope[int(i)] = typename DirectionalEnvelope::shape_type(shape_param[i], managed);
                     }
             }
@@ -281,13 +281,13 @@ public:
 
                             // modulate forces
                             // TODO check this math. yes.
-            
+
                             // second term has the negative sign for force calculation in force_divr
 
                             // term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
 
 
-            
+
                             //        [term2         ]   [term1                 ]
                             // TODO call this grad of modulators
                             this_force.x = this_pair_eng*this_force.x + dr.x*force_divr*envelope;
