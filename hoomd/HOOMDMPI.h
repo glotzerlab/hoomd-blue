@@ -19,7 +19,10 @@
 
 #include <mpi.h>
 
+#include <numeric>
+#include <queue>
 #include <sstream>
+#include <tuple>
 #include <vector>
 
 #include <cereal/archives/binary.hpp>
@@ -156,7 +159,7 @@ inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unorde
 
 namespace hoomd
     {
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
 const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
@@ -485,6 +488,225 @@ template<typename T> void recv(T& val, const unsigned int src, const MPI_Comm mp
     delete[] buf;
     }
 
+/// Helper class that gathers local values from ranks and orders them in ascending tag order.
+/**
+    To use:
+    1) Call setLocalTagsSorted() to establish the sizes and orders of the arrays to be gathered.
+    2) Call gatherArray() to combine the per-rank local arrays into a global array in ascending tag
+       order.
+    3) Repeat step 2 for as many arrays as needed (all must be in the same tag order).
+
+    GatherTagOrder maintains internal cache variables. Reuse an existing GatherTagOrder instances
+    to avoid costly memory reallocations.
+
+    Future expansion: Provide an alternate entry point setLocalTagsUnsorted() that allows callers
+    to provide arrays directly in index order.
+**/
+class GatherTagOrder
+    {
+    public:
+    /// Construct GatherTagOrder
+    /** \param mpi_comm MPI Communicator.
+        \param root Rank to gather on.
+    */
+
+    GatherTagOrder(const MPI_Comm mpi_comm = MPI_COMM_WORLD, int root = 0)
+        : m_mpi_communicator(mpi_comm), m_root(root)
+        {
+        int rank;
+        int n_ranks;
+        MPI_Comm_rank(m_mpi_communicator, &rank);
+        MPI_Comm_size(m_mpi_communicator, &n_ranks);
+
+        if (rank == m_root)
+            {
+            m_recv_counts.resize(n_ranks);
+            m_recv_bytes.resize(n_ranks);
+            m_displacements.resize(n_ranks);
+            m_displacement_bytes.resize(n_ranks);
+            }
+        }
+
+    ~GatherTagOrder()
+        {
+        if (m_gather_buffer != nullptr)
+            {
+            free(m_gather_buffer);
+            }
+        }
+
+    /// Provide the tag order for the local arrays to be gathered.
+    void setLocalTagsSorted(std::vector<unsigned int> local_tag)
+        {
+        setLocalTagsSorted(local_tag.data(), static_cast<int>(local_tag.size()));
+        }
+
+    /// Provide the tag order for the local arrays to be gathered.
+    void setLocalTagsSorted(unsigned int* local_tag, int n_local_tags)
+        {
+        // First, gather all the rank local tags onto the root processor.
+        int rank, n_ranks;
+        MPI_Comm_rank(m_mpi_communicator, &rank);
+        MPI_Comm_size(m_mpi_communicator, &n_ranks);
+
+        MPI_Gather(&n_local_tags,
+                   1,
+                   MPI_INT,
+                   m_recv_counts.data(),
+                   1,
+                   MPI_INT,
+                   m_root,
+                   m_mpi_communicator);
+
+        unsigned int* gathered_tags = nullptr;
+        if (rank == m_root)
+            {
+            // std::exclusive requires gcc10+:
+            // https://stackoverflow.com/questions/55771604/g-with-stdexclusive-scan-c17
+            m_displacements[0] = 0;
+            for (size_t i = 1; i < m_displacements.size(); i++)
+                {
+                m_displacements[i] = m_displacements[i - 1] + m_recv_counts[i - 1];
+                }
+            m_n_global_tags = m_displacements[n_ranks - 1] + m_recv_counts[n_ranks - 1];
+            gathered_tags = allocateGatherBuffer<unsigned int>(m_n_global_tags);
+            }
+
+        MPI_Gatherv(static_cast<void*>(local_tag),
+                    n_local_tags,
+                    MPI_UNSIGNED,
+                    static_cast<void*>(gathered_tags),
+                    m_recv_counts.data(),
+                    m_displacements.data(),
+                    MPI_UNSIGNED,
+                    m_root,
+                    m_mpi_communicator);
+
+        // Next, perform a k-way mergesort to sort the tags. The output of this sort is a
+        // list that indicates the global index order in which to read gathered arrays.
+        if (rank == m_root)
+            {
+            m_order.resize(0);
+            assert(m_sort_queue.empty());
+
+            for (int i = 0; i < n_ranks; i++)
+                {
+                if (m_recv_counts[i] > 0)
+                    {
+                    m_sort_queue.push(std::make_tuple(gathered_tags[m_displacements[i]], i, 0));
+                    }
+                }
+
+            while (!m_sort_queue.empty())
+                {
+                unsigned int item_rank = std::get<1>(m_sort_queue.top());
+                unsigned int local_index = std::get<2>(m_sort_queue.top());
+                unsigned int global_index = m_displacements[item_rank] + local_index;
+                m_order.push_back(global_index);
+
+                local_index++;
+                if (local_index < static_cast<unsigned int>(m_recv_counts[item_rank]))
+                    {
+                    m_sort_queue.push(
+                        std::make_tuple(gathered_tags[global_index + 1], item_rank, local_index));
+                    }
+
+                m_sort_queue.pop();
+                }
+
+            assert(m_order.size() == static_cast<size_t>(m_n_global_tags));
+            }
+        }
+
+    /// Gather a given local array into a global array in tag order
+    template<class T>
+    void gatherArray(std::vector<T>& global_array, const std::vector<T>& local_array)
+        {
+        gatherArray(global_array, local_array.data(), static_cast<int>(local_array.size()));
+        }
+
+    /// Gather a given local array into a global array in tag order
+    template<class T>
+    void gatherArray(std::vector<T>& global_array, const T* local_array, int local_size)
+        {
+        int rank;
+
+        MPI_Comm_rank(m_mpi_communicator, &rank);
+
+        T* gathered_array = nullptr;
+        if (rank == m_root)
+            {
+            gathered_array = allocateGatherBuffer<T>(m_n_global_tags);
+            std::transform(m_recv_counts.begin(),
+                           m_recv_counts.end(),
+                           m_recv_bytes.begin(),
+                           [](int v) { return v * sizeof(T); });
+            std::transform(m_displacements.begin(),
+                           m_displacements.end(),
+                           m_displacement_bytes.begin(),
+                           [](int v) { return v * sizeof(T); });
+            }
+
+        MPI_Gatherv((void*)(local_array),
+                    static_cast<int>(local_size * sizeof(T)),
+                    MPI_BYTE,
+                    (void*)(gathered_array),
+                    m_recv_bytes.data(),
+                    m_displacement_bytes.data(),
+                    MPI_BYTE,
+                    m_root,
+                    m_mpi_communicator);
+
+        global_array.resize(0);
+        if (rank == m_root)
+            {
+            for (unsigned int i : m_order)
+                {
+                global_array.push_back(gathered_array[i]);
+                }
+            }
+        }
+
+    private:
+    MPI_Comm m_mpi_communicator;
+    int m_root;
+
+    std::vector<int> m_recv_counts, m_recv_bytes;
+    std::vector<int> m_displacements, m_displacement_bytes;
+    std::vector<unsigned int> m_order;
+
+    /// Number of global tags (only set on root rank).
+    unsigned int m_n_global_tags;
+
+    /// Priority queue for k-way merge sort: tuple of tag, rank, local index
+    typedef std::tuple<unsigned int, unsigned int, unsigned int> queue_item;
+    std::priority_queue<queue_item, std::vector<queue_item>, std::greater<queue_item>> m_sort_queue;
+
+    void* m_gather_buffer = nullptr;
+    size_t m_gather_buffer_size = 0;
+
+    /// Allocate or return an existing pointer to the gather buffer with space for n T objects.
+    template<class T> T* allocateGatherBuffer(int n)
+        {
+        size_t needed_bytes = sizeof(T) * n;
+        if (needed_bytes > m_gather_buffer_size)
+            {
+            if (m_gather_buffer != nullptr)
+                {
+                free(m_gather_buffer);
+                }
+
+            m_gather_buffer = malloc(needed_bytes);
+
+            if (m_gather_buffer == nullptr)
+                {
+                throw std::bad_alloc();
+                }
+            }
+
+        return static_cast<T*>(m_gather_buffer);
+        }
+    };
     } // namespace hoomd
 
 #endif // ENABLE_MPI

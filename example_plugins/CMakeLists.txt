@@ -6,7 +6,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 project(example_plugins LANGUAGES C CXX)
 
 # Find the installed HOOMD
-find_package(HOOMD 3.0.0 REQUIRED)
+find_package(HOOMD 4.0.0 REQUIRED)
 
 message(STATUS "Found HOOMD ${HOOMD_VERSION}: ${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}")
 

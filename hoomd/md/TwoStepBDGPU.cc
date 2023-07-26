@@ -17,8 +17,6 @@ namespace md
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
 */
 TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
@@ -64,9 +62,6 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     // for rotational noise
@@ -86,9 +81,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 
     kernel::langevin_step_two_args args(d_gamma.data,
                                         static_cast<unsigned int>(m_gamma.getNumElements()),
-                                        m_use_alpha,
-                                        m_alpha,
-                                        (*m_T)(timestep),
+                                        m_T->operator()(timestep),
                                         timestep,
                                         m_sysdef->getSeed(),
                                         NULL,
@@ -130,7 +123,6 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                           d_vel.data,
                           d_image.data,
                           box,
-                          d_diameter.data,
                           d_tag.data,
                           d_index_array.data,
                           group_size,

@@ -5,7 +5,7 @@
 
 A `Variant` object represents a scalar function of the time step. Some
 operations accept `Variant` values for certain parameters, such as the
-``kT`` parameter to `hoomd.md.methods.NVT`.
+``kT`` parameter to `hoomd.md.methods.thermostats.Bussi`.
 
 Use one of the built in variant types, or define your own custom function
 in Python:

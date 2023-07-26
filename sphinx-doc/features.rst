@@ -27,21 +27,22 @@ At runtime, `hoomd.version.hpmc_built` indicates whether the build supports HPMC
 Molecular dynamics
 ------------------
 
-HOOMD-blue can perform molecular dynamics simulations (`md`) with NVE, NVT, NPT, NPH, Langevin,
-Brownian, overdamped viscous integration methods (`md.methods`), and energy minimization
-(`md.minimize`). Unless otherwise stated in the documentation, all integration methods integrate
-both translational and rotational degrees of freedom. Some integration methods support manifold
-constraints (`md.methods.rattle`). HOOMD-blue provides a number of pair potentials (`md.pair`)
-including pair potentials that depend on particle orientation (`md.pair.aniso`) and many body
-potentials (`md.many_body`). HOOMD-blue also provides bond potentials and distance constraints
-commonly used in atomistic and coarse-grained force fields (`md.angle`, `md.bond`,
-`md.constrain.Distance`, `md.dihedral`, `md.improper`, `md.special_pair`) and can model rigid bodies
-(`md.constrain.Rigid`). External fields `md.external.field` apply potentials based only on the
-particle's position and orientation, including walls (`md.external.wall`) to confine particles in a
-specific region of space. `md.long_range` provides long ranged interactions, including the PPPM
-method for electrostatics. HOOMD-blue enables active matter simulations with `md.force.Active` and
-`md.update.ActiveRotationalDiffusion`. At runtime, `hoomd.version.md_built` indicates whether the
-build supports MD simulations.
+HOOMD-blue can perform molecular dynamics simulations (`md`) with constant volume, constant
+pressure, Langevin, Brownian, overdamped viscous integration methods (`md.methods`), and energy
+minimization (`md.minimize`). The constant volume and constant pressure methods may be applied with
+or without a thermostat (`md.methods.thermostats`). Unless otherwise stated in the documentation,
+all integration methods integrate both translational and rotational degrees of freedom. Some
+integration methods support manifold constraints (`md.methods.rattle`). HOOMD-blue provides a number
+of cutoff potentials including pair potentials (`md.pair`), pair potentials that depend on particle
+orientation (`md.pair.aniso`), and many body potentials (`md.many_body`). HOOMD-blue also provides
+bond potentials and distance constraints commonly used in atomistic/coarse-grained force fields
+(`md.angle`, `md.bond`, `md.constrain.Distance`, `md.dihedral`, `md.improper`, `md.special_pair`)
+and can model rigid bodies (`md.constrain.Rigid`). External fields `md.external.field` apply
+potentials based only on the particle's position and orientation, including walls
+(`md.external.wall`) to confine particles in a specific region of space. `md.long_range` provides
+long ranged interactions, including the PPPM method for electrostatics. HOOMD-blue enables active
+matter simulations with `md.force.Active` and `md.update.ActiveRotationalDiffusion`. At runtime,
+`hoomd.version.md_built` indicates whether the build supports MD simulations.
 
 .. seealso::
 
@@ -142,10 +143,10 @@ type and a **reduced precision** type. All particle properties are stored in the
 type, and most operations also perform all computations with high precision. Operations that do not
 mention "Mixed precision" in their documentation perform all calculations in high percision. Some
 operations use reduced precision when possible to improve performance, as detailed in the
-documentation for each operation. In this release, only `hpmc` implements mixed precision.
+documentation for each operation.
 
-The precision is set at compile time with the ``SINGLE_PRECISION`` and
-``ENABLE_HPMC_MIXED_PRECISION`` CMake options (see :doc:`building`). By default, the high precision
+The precision is set at compile time with the ``HOOMD_LONGREAL_SIZE`` and
+``HOOMD_SHORTREAL_SIZE`` CMake options (see :doc:`building`). By default, the high precision
 width is 64 bits and the reduced precision width is 32 bits. At runtime,
 `hoomd.version.floating_point_precision` indicates the width of the floating point types.
 

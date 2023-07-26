@@ -42,11 +42,11 @@ def make_simulation(simulation_factory, two_particle_snapshot_factory):
 def integrator_elements():
     nlist = md.nlist.Cell(buffer=0.4)
     lj = md.pair.LJ(nlist=nlist, default_r_cut=2.5)
-    gauss = md.pair.Gauss(nlist, default_r_cut=3.0)
+    gauss = md.pair.Gaussian(nlist, default_r_cut=3.0)
     lj.params[("A", "A")] = {"epsilon": 1.0, "sigma": 1.0}
     gauss.params[("A", "A")] = {"epsilon": 1.0, "sigma": 1.0}
     return {
-        "methods": [md.methods.NVE(hoomd.filter.All())],
+        "methods": [md.methods.ConstantVolume(hoomd.filter.All())],
         "forces": [lj, gauss],
         "constraints": [md.constrain.Distance()]
     }

@@ -39,14 +39,6 @@ namespace md
     EvaluatorPairGauss evaluates the function:
     \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma}
    \right)^2 \right] \f]
-
-    The Gaussian potential does not need diameter or charge. Two parameters are specified and stored
-   in a Scalar2. \a epsilon is placed in \a params.x and \a sigma is in \a params.y.
-
-    These are related to the standard lj parameters sigma and epsilon by:
-    - \a epsilon = \f$ \varepsilon \f$
-    - \a sigma = \f$ \sigma \f$
-
 */
 class EvaluatorPairGauss
     {
@@ -94,7 +86,7 @@ class EvaluatorPairGauss
             }
 #endif
         }
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
         __attribute__((aligned(8)));
 #else
         __attribute__((aligned(16)));
@@ -110,23 +102,12 @@ class EvaluatorPairGauss
         {
         }
 
-    //! Gauss doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Gauss doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

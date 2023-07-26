@@ -97,9 +97,10 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
             ],
             max_move_size=OnlyIf(
                 to_type_converter({
-                    attr: OnlyTypes(float,
-                                    allow_none=True,
-                                    postprocess=self._flag_move_size_update)
+                    attr:
+                        OnlyTypes(float,
+                                  allow_none=True,
+                                  postprocess=self._flag_move_size_update)
                     for attr in _MoveSizeTuneDefinition.acceptable_attrs
                 }),))
         params["boxmc"] = boxmc

@@ -40,7 +40,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     mpf = hoomd.md.update.ReversePerturbationFlow(filt, ramp, slab_direction,
                                                   flow_direction, n_slabs)
 
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
     sim.operations.add(mpf)

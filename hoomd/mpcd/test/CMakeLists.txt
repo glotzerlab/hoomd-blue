@@ -54,7 +54,6 @@ macro(compile_test TEST_EXE TEST_SRC)
     target_include_directories(${TEST_EXE} PRIVATE ${PYTHON_INCLUDE_DIR})
     add_dependencies(test_all ${TEST_EXE})
     target_link_libraries(${TEST_EXE} _mpcd ${PYTHON_LIBRARIES})
-    fix_cudart_rpath(${TEST_EXE})
 
 endmacro(compile_test)
 

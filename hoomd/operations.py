@@ -11,6 +11,7 @@ added and removed from a `Simulation`.
 # Operations also automatically handles attaching and detaching (creating and
 # destroying C++ objects) for all hoomd operations.
 
+import weakref
 from collections.abc import Collection
 from copy import copy
 from itertools import chain
@@ -179,12 +180,12 @@ class Operations(Collection):
             self.integrator._attach(sim)
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
-        if not self.writers._synced:
-            self.writers._sync(sim, sim._cpp_sys.analyzers)
         if not self.tuners._synced:
             self.tuners._sync(sim, sim._cpp_sys.tuners)
         if not self.computes._synced:
             self.computes._sync(sim, sim._cpp_sys.computes)
+        if not self.writers._synced:
+            self.writers._sync(sim, sim._cpp_sys.analyzers)
         self._scheduled = True
 
     def _unschedule(self):
@@ -321,3 +322,17 @@ class Operations(Collection):
         state['_simulation'] = None
         state['_scheduled'] = False
         return state
+
+    @property
+    def _simulation(self):
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, sim):
+        if sim is not None:
+            sim = weakref.ref(sim)
+        self._simulation_ = sim

@@ -42,7 +42,6 @@
 #include "DomainDecomposition.h"
 
 #include <bitset>
-#include <map>
 #include <stack>
 #include <stdlib.h>
 #include <string>
@@ -908,6 +907,12 @@ class PYBIND11_EXPORT ParticleData
     //! Gets the name of a given particle type index
     std::string getNameByType(unsigned int type) const;
 
+    /// Get the complete type mapping
+    const std::vector<std::string>& getTypeMapping() const
+        {
+        return m_type_mapping;
+        }
+
     //! Get the types for python
     pybind11::list getTypesPy()
         {
@@ -1149,8 +1154,7 @@ class PYBIND11_EXPORT ParticleData
                                 bool ignore_bodies = false);
 
     //! Take a snapshot
-    template<class Real>
-    std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real>& snapshot);
+    template<class Real> void takeSnapshot(SnapshotParticleData<Real>& snapshot);
 
     //! Add ghost particles at the end of the local particle data
     void addGhostParticles(const unsigned int nghosts);

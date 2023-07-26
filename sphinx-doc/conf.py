@@ -52,7 +52,7 @@ autodoc_mock_imports = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'figures']
+exclude_patterns = ['_build', 'figures', '**/create-figures.ipynb']
 
 source_suffix = '.rst'
 
@@ -63,8 +63,8 @@ year = datetime.date.today().year
 copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.10.0'
-release = '3.10.0'
+version = '4.0.1'
+release = '4.0.1'
 
 language = 'en'
 

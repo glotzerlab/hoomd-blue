@@ -7,6 +7,7 @@
 particle positions, system bonds).
 
 """
+import weakref
 from collections import defaultdict
 
 from . import _hoomd
@@ -649,9 +650,9 @@ class State:
         as determine by its moment of inertia.
 
         .. seealso::
-            `md.methods.NVT.thermalize_thermostat_dof`
+            `md.methods.thermostats.MTTK.thermalize_dof`
 
-            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
+            `md.methods.ConstantPressure.thermalize_barostat_dof`
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)
@@ -686,3 +687,17 @@ class State:
             len(particle_data.getDomainDecomposition().getCumulativeFractions(
                 dir)) - 1 for dir in range(3)
         ])
+
+    @property
+    def _simulation(self):
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, sim):
+        if sim is not None:
+            sim = weakref.ref(sim)
+        self._simulation_ = sim

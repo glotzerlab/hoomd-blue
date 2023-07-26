@@ -40,11 +40,6 @@ namespace md
     \f[ V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
         \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]\f]
 
-    The reaction field potential does not require charge or diameter. Two parameters,
-    \f$ \varepsilon \f$ and \f$ \epsilon_{RF} \f$ are needed.
-
-    \a \varepsilon is placed in \a params.x and \a \epsilon_{RF} is in \a params.y.
-
     If \epsilon_{RF} is zero, it will be treated as infinity.
 */
 class EvaluatorPairReactionField
@@ -98,17 +93,6 @@ class EvaluatorPairReactionField
           use_charge(_params.use_charge), qiqj(1.0)
         {
         }
-
-    //! ReactionField doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! ReactionField uses charge
     DEVICE static bool needsCharge()

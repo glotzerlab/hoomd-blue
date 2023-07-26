@@ -56,7 +56,7 @@ class Force(Compute):
 
     .. math::
 
-        W^{kl}_i = \sum_j F^k_{ij} \cdot
+        W^{kl}_i = \frac{1}{2} \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
 
     Tip:
@@ -134,7 +134,7 @@ class Force(Compute):
         Attention:
             To improve performance `Force` objects only compute virials when
             needed. When not computed, `virials` is `None`. Virials are computed
-            on every step when using a `md.methods.NPT` or `md.methods.NPH`
+            on every step when using a `md.methods.ConstantPressure`
             integrator, on steps where a writer is triggered (such as
             `write.GSD` which may log pressure or virials), or when
             `Simulation.always_compute_pressure` is `True`.

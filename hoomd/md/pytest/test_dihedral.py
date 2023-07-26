@@ -35,27 +35,6 @@ dihedral_test_parameters = [
         0.0852,
     ),
     (
-        hoomd.md.dihedral.Harmonic,
-        dict(),
-        dict(k=3.0, d=-1, n=2, phi0=numpy.pi / 2),
-        0,
-        3,
-    ),
-    (
-        hoomd.md.dihedral.Harmonic,
-        dict(),
-        dict(k=10.0, d=1, n=1, phi0=numpy.pi / 4),
-        5.0,
-        5.0,
-    ),
-    (
-        hoomd.md.dihedral.Harmonic,
-        dict(),
-        dict(k=5.0, d=1, n=3, phi0=numpy.pi / 6),
-        1.9411,
-        0.0852,
-    ),
-    (
         hoomd.md.dihedral.OPLS,
         dict(),
         dict(k1=1.0, k2=1.5, k3=0.5, k4=0.75),
@@ -221,9 +200,8 @@ def test_kernel_parameters(dihedral_snapshot_factory, simulation_factory,
 # Test Logging
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
-    zip((md.dihedral.Dihedral, md.dihedral.Harmonic, md.dihedral.Periodic,
-         md.dihedral.Table, md.dihedral.OPLS),
-        itertools.repeat(('md', 'dihedral')),
+    zip((md.dihedral.Dihedral, md.dihedral.Periodic, md.dihedral.Table,
+         md.dihedral.OPLS), itertools.repeat(('md', 'dihedral')),
         itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)

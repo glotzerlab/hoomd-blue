@@ -4,16 +4,195 @@
 Change Log
 ==========
 
+4.x
+---
+
+4.0.1 (2023-06-27)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Prevent ``ValueError: signal only works in main thread of the main interpreter`` when importing
+  hoomd in a non-main thread
+  (`#1576 <https://github.com/glotzerlab/hoomd-blue/pull/1576>`__).
+* The recommended conda install commands find the documented version
+  (`#1578 <https://github.com/glotzerlab/hoomd-blue/pull/1578>`__).
+* CMake completes without error when ``HOOMD_GPU_PLATFORM=HIP``
+  (`#1579 <https://github.com/glotzerlab/hoomd-blue/pull/1579>`__).
+* Tests pass with GSD 3.0.0 installed
+  (`#1577 <https://github.com/glotzerlab/hoomd-blue/pull/1577>`__).
+* Provide full CUDA error message when possible
+  (`#1581 <https://github.com/glotzerlab/hoomd-blue/pull/1581>`__).
+* Notice level 4 gives additional GPU initialization details
+  (`#1581 <https://github.com/glotzerlab/hoomd-blue/pull/1581>`__).
+* Show particle out of bounds error messages in exception description
+  (`#1581 <https://github.com/glotzerlab/hoomd-blue/pull/1581>`__).
+
+*Changed*
+
+* Package source in ``hoomd-x.y.z.tar.gz`` (previously ``hoomd-vx.y.z.tar.gz``)
+  (`#1572 <https://github.com/glotzerlab/hoomd-blue/pull/1572>`__).
+
+4.0.0 (2023-06-06)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Fix error with ``MPI_Allreduce`` on OLCF Frontier
+  (`#1547 <https://github.com/glotzerlab/hoomd-blue/pull/1547>`__).
+* Correct equations in virial pressure documentation
+  (`#1548 <https://github.com/glotzerlab/hoomd-blue/pull/1548>`__).
+* Work around cases where Python's garbage collector fails to collect ``Operation`` objects
+  (`#1457 <https://github.com/glotzerlab/hoomd-blue/issues/1457>`__).
+* Incorrect behavior with ``hpmc.external.user.CPPExternalPotential`` in MPI domain decomposition
+  simulations (`#1562 <https://github.com/glotzerlab/hoomd-blue/issues/1562>`__).
+
+*Added*
+
+* ``hoomd.md.ConstantVolume`` integration method
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* ``hoomd.md.ConstantPressure`` integration method, implementing the Langevin piston barostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* Thermostats in ``hoomd.md.methods.thermostats`` that work with ``ConstantVolume`` and
+  ``ConstantPressure``, including the new Bussi-Donadio-Parrinello thermostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* ``hoomd.md.external.wall.Gaussian``
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/pull/1499>`__).
+* ``hoomd.write.GSD.maximum_write_buffer_size`` - Set the maximum size of the GSD write buffer
+  (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
+* ``hoomd.write.GSD.flush`` - flush the write buffer of an open GSD file
+  (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
+* On importing ``hoomd``, install a ``SIGTERM`` handler that calls ``sys.exit(1)``
+  (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
+* More descriptive error messages when calling ``Simulation.run``
+  (`#1552 <https://github.com/glotzerlab/hoomd-blue/pull/1552>`__).
+* `hoomd.Snapshot.from_gsd_frame` - convert a `gsd.hoomd.Frame` object to `hoomd.Snapshot`
+  (`#1559 <https://github.com/glotzerlab/hoomd-blue/pull/1559>`__).
+* `hoomd.device.NoticeFile` - a file-like object that writes to `hoomd.device.Device.notice`
+  (`#1449 <https://github.com/glotzerlab/hoomd-blue/issues/1449>`__).
+* `hoomd.write.Burst` - selective high-frequency frame writing to GSD files
+  (`#1543 <https://github.com/glotzerlab/hoomd-blue/pull/1543>`__).
+* Support LLVM 16
+  (`#1568 <https://github.com/glotzerlab/hoomd-blue/pull/1568>`__).
+* More detailed status message for found CUDA libraries
+  (`#1566 <https://github.com/glotzerlab/hoomd-blue/pull/1566>`__).
+
+*Changed*
+
+* ``hoomd.md.constrain.Rigid`` no longer takes ``diameters`` or ``charges`` as keys in the ``body``
+  parameters. ``create_bodies`` method now takes an optional ``charges`` argument to set charges
+  (`#1350 <https://github.com/glotzerlab/hoomd-blue/issues/1350>`__).
+* Control the precision with the CMake options ``HOOMD_LONGREAL_SIZE`` (default: 64) and
+  ``HOOMD_SHORTREAL_SIZE`` (default: 32)
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* [developers] ``ShortReal`` and ``LongReal`` types enable mixed precision implementations
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* ``hoomd.md.constrain.Rigid`` now updates constituent particle types each step
+  (`#1440 <https://github.com/glotzerlab/hoomd-blue/pull/1440>`__).
+* Moved ``hoomd.mesh.Mesh.triangles`` to ``hoomd.mesh.Mesh.triangulation``
+  (`#1464 <https://github.com/glotzerlab/hoomd-blue/pull/1464>`__).
+* ``hoomd.write.GSD`` does not write ``particles/diameter`` by default
+  (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+* Updated tutorials to use HOOMD-blue v4 API, work with up to date releases of freud, gsd, and
+  signac. Also make general improvements to the tutorials.
+* Document changes needed to migrate from v3 to v4 in the migration guide.
+* More descriptive error messages when calling ``Simulation.run``
+  (`#1552 <https://github.com/glotzerlab/hoomd-blue/pull/1552>`__).
+* Increase performance of ``hoomd.write.GSD``
+  (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
+* Increase performance of ``hoomd.State.get_snapshot`` in serial
+  (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
+* `hoomd.write.GSD.dynamic` now allows fine grained control over individual particle fields
+  (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
+* No longer test with GCC 7-8, Python 3.6-3.7, or Clang 6-9)
+  (`#1544 <https://github.com/glotzerlab/hoomd-blue/pull/1544>`__).
+* Improved error messages with NVRTC compiled code
+  (`#1567 <https://github.com/glotzerlab/hoomd-blue/pull/1567>`__).
+
+*Deprecated*
+
+* ``Scalar``, ``Scalar2``, ``Scalar3``, and ``Scalar4`` data types. Use ``LongReal[N]`` instead in
+  new code
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* ``hoomd.Snapshot.from_gsd_snapshot`` - use `hoomd.Snapshot.from_gsd_frame`
+  (`#1559 <https://github.com/glotzerlab/hoomd-blue/pull/1559>`__).
+
+*Removed*
+
+* ``fix_cudart_rpath`` CMake macro
+  (`#1383 <https://github.com/glotzerlab/hoomd-blue/issues/1383>`__).
+* ``ENABLE_MPI_CUDA`` CMake option
+  (`#1401 <https://github.com/glotzerlab/hoomd-blue/issues/1401>`__).
+* ``Berendsen``, ``NPH``, ``NPT``, ``NVE``, ``NVT`` MD integration methods
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
+* ``hoomd.write.GSD.log``
+  (`#1480 <https://github.com/glotzerlab/hoomd-blue/issues/1480>`__).
+* CMake option and compiler definition ``SINGLE_PRECISION``
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`__).
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``diameter`` key in ``hoomd.md.constrain.Rigid.body``.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.dihedral.Harmonic``.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.device.GPU.memory_traceback parameter``.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.pair.aniso.Dipole.mode`` parameter.
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+  (`#1496 <https://github.com/glotzerlab/hoomd-blue/issues/1496>`__).
+* ``hoomd.md.pair.Gauss``
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* ``hoomd.md.external.wall.Gauss``
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* ``msg_file`` property and argument in ``hoomd.device.Device``.
+  (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
+  (`#1523 <https://github.com/glotzerlab/hoomd-blue/pull/1523>`__).
+* ``alpha`` parameter and attribute in ``Langevin``, ``BD``, and ``OverdampedViscous`` integration
+  methods (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+* ``needsDiameter`` and ``setDiameter`` API in C++ potential evaluators
+  (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+
 v3.x
 ----
 
-v3.11.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.11.0 (2023-04-14)
+^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* ``hoomd.md.Integrator.validate_groups`` verifies that MD integration methods are applied to
+  distinct subsets of the system and that those subsets consist of integrable particles
+  (automatically called when attached)
+  (`#1466 <https://github.com/glotzerlab/hoomd-blue/issues/1466>`__).
+
+Changed:
+
+* ``hoomd.hpmc.compute.SDF`` computes pressures for systems of concave and non-monotonic patch
+  interactions (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
+* Reorganize documentation contents to fit in the sidebar, including landing pages for tutorials and
+  how-to guides (`#1526 <https://github.com/glotzerlab/hoomd-blue/pull/1526>`_).
 
 Fixed:
 
 * Improved readability of images in the documentation
   (`#1521 <https://github.com/glotzerlab/hoomd-blue/issues/1521>`__).
+* ``hoomd.write.Table`` now raises a meaningful error when given incorrect logger categories
+  (`#1510 <https://github.com/glotzerlab/hoomd-blue/issues/1510>`__).
+* Correctly document the 1/2 scaling factor in the pairwise virial computation
+  (`#1525 <https://github.com/glotzerlab/hoomd-blue/pull/1525>`_).
+* ``thermalize_particle_momenta`` now sets 0 velocity and angular momentum for rigid constituent
+  particles  (`#1472 <https://github.com/glotzerlab/hoomd-blue/issues/1472>`__).
+* Reduce likelihood of data corruption when writing GSD files
+  (`#1531 <https://github.com/glotzerlab/hoomd-blue/pull/1531>`__).
+* Clarify migration process for ``hoomd.md.pair.ExpandedLJ``
+  (`#1501 <https://github.com/glotzerlab/hoomd-blue/pull/1501>`__).
+
+Deprecated:
+
+* The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
+  (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
 
 v3.10.0 (2023-03-14)
 ^^^^^^^^^^^^^^^^^^^^

@@ -85,9 +85,6 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -114,6 +111,9 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
         ArrayHandle<typename PairData::members_t> d_gpu_bondlist(gpu_bond_list,
                                                                  access_location::device,
                                                                  access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_bond_pos_list(this->m_pair_data->getGPUPosTable(),
+                                                      access_location::device,
+                                                      access_mode::read);
         ArrayHandle<unsigned int> d_gpu_n_bonds(this->m_pair_data->getNGroupsArray(),
                                                 access_location::device,
                                                 access_mode::read);
@@ -130,10 +130,10 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
                                    this->m_pdata->getMaxN(),
                                    d_pos.data,
                                    d_charge.data,
-                                   d_diameter.data,
                                    box,
                                    d_gpu_bondlist.data,
                                    gpu_table_indexer,
+                                   d_gpu_bond_pos_list.data,
                                    d_gpu_n_bonds.data,
                                    this->m_pair_data->getNTypes(),
                                    m_tuner->getParam()[0],
