@@ -220,14 +220,10 @@ if (BUILD_MPCD)
         mpcd/ParticleData.cc
         mpcd/ParticleDataSnapshot.cc
         )
-    list(APPEND _hoomd_headers
-        mpcd/ParticleData.cuh
-        mpcd/ParticleData.h
-        mpcd/ParticleDataSnapshot.h
-        )
     list(APPEND _hoomd_cu_sources
         mpcd/ParticleData.cu
     )
+    # headers will be installed by MPCD itself so they go in the right subdirectory
 endif(BUILD_MPCD)
 
 if (ENABLE_HIP)

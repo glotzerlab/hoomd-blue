@@ -36,6 +36,8 @@ set(_mpcd_headers
     CommunicatorUtilities.h
     ExternalField.h
     Integrator.h
+    ParticleData.h
+    ParticleDataSnapshot.h
     ParticleDataUtilities.h
     SlitGeometry.h
     SlitGeometryFiller.h
