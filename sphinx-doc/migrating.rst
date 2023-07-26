@@ -7,20 +7,112 @@ Migrating to the latest version
 Migrating to HOOMD v4
 ---------------------
 
-Removed functionality
-^^^^^^^^^^^^^^^^^^^^^
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-HOOMD v4 removes functionality deprecated in v3.x releases.
+For some functionalities, you will need to update your scripts to use a new API:
+
+* ``hoomd.md.dihedral.Harmonic``
+
+  * Use `hoomd.md.dihedral.Periodic`.
+
+* ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`.
+
+  * Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in
+    the system state.
+
+* ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`.
+
+  * Set diameters in system state.
+
+* ``hoomd.md.methods.NVE``.
+
+  * Use `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
+
+* ``hoomd.md.methods.NVT``.
+
+  * Use `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+
+* ``hoomd.md.methods.Berendsen``.
+
+  * Use `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen`
+    thermostat.
+
+* ``hoomd.md.methods.NPH``.
+
+  * Use `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
+
+* ``hoomd.md.methods.NPT``.
+
+  * Use `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+
+* ``hoomd.write.GSD.log``.
+
+  * Use `hoomd.write.GSD.logger`.
+
+* ``hoomd.mesh.Mesh().triangles``.
+
+  * Use ``hoomd.mesh.Mesh().triangulation`` in `hoomd.mesh.Mesh` to define the mesh triangulation.
+
+* ``hoomd.md.pair.Gauss``.
+
+  * Use `hoomd.md.pair.Gaussian`.
+
+* ``hoomd.md.external.wall.Gauss``.
+
+  * Use `hoomd.md.external.wall.Gaussian`.
+
+* ``msg_file`` property and argument in `hoomd.device.Device`.
+
+  * Use `message_filename <hoomd.device.Device.message_filename>`.
+
+* ``sdf`` property of `hoomd.hpmc.compute.SDF`.
+
+  * Use `sdf_compression <hoomd.hpmc.compute.SDF.sdf_compression>`.
+
+* `hoomd.write.GSD` no longer writes ``particles/diameter`` by default.
+
+  * Set `write_diameter <hoomd.write.GSD.write_diameter>` as needed.
+
+* ``alpha`` property of `hoomd.md.methods.Langevin`, `hoomd.md.methods.Brownian`,
+  `hoomd.md.methods.OverdampedViscous`, `hoomd.md.methods.rattle.Langevin`,
+  `hoomd.md.methods.rattle.Brownian`, and `hoomd.md.methods.rattle.OverdampedViscous`.
+
+  * Use the ``gamma`` property.
+
+* The ``dynamic`` property and argument of `hoomd.write.GSD` no longer enforces ``'property'`` as
+  an always dynamic quantity. Users must include ``'property'``, ``'particles/position'`` and/or
+  ``'particles/orientation'`` as needed in ``dynamic`` lists that contain other fields.
+
+* `hoomd.write.GSD` aggressively buffers output. Call `hoomd.write.GSD.flush` to write the buffer
+  to disk when opening a file for reading that is still open for writing. There is **no need** to
+  call ``flush`` in normal workflows when files are closed and then opened later for reading.
+
+Removed functionalities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
+
+* ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+* ``hoomd.md.pair.aniso.Dipole.mode`` parameter
+* ``hoomd.device.GPU.memory_traceback`` parameter
 
 Compiling
 ^^^^^^^^^
 
-* HOOMD v4 no longer builds on macOS with ``ENABLE_GPU=on``.
+* HOOMD-blue v4 no longer builds on macOS with ``ENABLE_GPU=on``.
+* Use the CMake options ``HOOMD_LONGREAL_SIZE`` and ``HOOMD_SHORTREAL_SIZE`` to control the floating
+  point precision of the calculations. These replace the ``SINGLE_PRECISION`` and
+  ``HPMC_MIXED_PRECISION`` options from v3.
 
 Components
 ^^^^^^^^^^
 
 * Remove ``fix_cudart_rpath(_${COMPONENT_NAME})`` from your components ``CMakeLists.txt``
+* Use ``LongReal`` and ``ShortReal`` types in new code. ``Scalar`` will be removed in a future
+  release (v5 or later).
+* Replace any use of ``hpmc::OverlapReal`` with ``ShortReal``.
+* Remove ``needsDiameter`` and ``setDiameter`` methods in potential evaluator classes.
 
 Migrating to HOOMD v3
 ---------------------

@@ -36,8 +36,6 @@ def test_rigid_filter(make_filter_snapshot, simulation_factory):
             [0, 1, 1 / (2**(1. / 2.))],
         ],
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
-        "charges": [0.0, 1.0, 2.0, 3.5],
-        "diameters": [1.0, 1.5, 0.5, 1.0]
     }
 
     snapshot = make_filter_snapshot(n=100, particle_types=["A", "B", "C"])

@@ -5,7 +5,7 @@ import itertools
 
 import pytest
 
-from hoomd.conftest import BaseMappingTest, pickling_check
+from hoomd.conftest import BaseMappingTest, Either, pickling_check
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj
 from hoomd.data.collections import _HOOMDSyncedCollection
@@ -46,21 +46,19 @@ class TestTypeParameterDict(BaseMappingTest):
 
     def _generate_value(self):
         if self._spec == "int":
-            return self.int()
+            return self.generator.int()
         value = {}
         for key in ("foo", "bar", "baz"):
-            if self.rng.random() > 0.5:
+            if self.generator.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.int()
+                value["foo"] = self.generator.int()
             elif key == "bar":
-                value["bar"] = self.rng.choice(
-                    [self.int(), None,
-                     self.float(), self.str()])
+                value["bar"] = self.generator(Either(int, None, float, str))
             elif key == "baz":
-                value["baz"] = self.str()
+                value["baz"] = self.generator.str()
             else:
-                value["gar"] = [self.int() for _ in range(self.rng.int(10))]
+                value["gar"] = self.generator([int])
         return value
 
     @pytest.fixture
@@ -120,7 +118,7 @@ class TestTypeParameterDict(BaseMappingTest):
         keys = list(self._generate_keys(n))
         value = self._generate_value()
         if request.param:
-            return keys[self.int(len(keys))], value
+            return keys[self.generator.int(len(keys))], value
         key = next(filter(lambda x: x not in keys, self.random_keys()))
         return key, value
 
@@ -247,19 +245,17 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
 
     def _generate_value(self):
         if self._spec == "int":
-            return self.int()
+            return self.generator.int()
         value = {}
         for key in ("foo", "baz"):
-            if self.rng.random() > 0.5:
+            if self.generator.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.int()
+                value["foo"] = self.generator.int()
             else:
-                value["baz"] = self.str()
-        value["bar"] = self.rng.choice(
-            [self.int(), None, self.str(),
-             self.float()])
-        value["gar"] = [self.int() for _ in range(self.int(10))]
+                value["baz"] = self.generator.str()
+        value["bar"] = self.generator(Either(int, None, str, float))
+        value["gar"] = self.generator([int])
         return value
 
     def test_detach(self, populated_collection):

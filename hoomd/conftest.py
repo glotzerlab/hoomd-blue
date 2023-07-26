@@ -14,6 +14,12 @@ import hoomd
 import atexit
 import os
 import numpy
+try:
+    import sybil
+    import sybil.parsers.rest
+except ImportError:
+    sybil = None
+
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
@@ -31,6 +37,41 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
         devices.pop(0)
 
     devices.append(hoomd.device.GPU)
+
+
+def setup_sybil_tests(namespace):
+    """Sybil setup function."""
+    # Common imports.
+    namespace['numpy'] = numpy
+    namespace['hoomd'] = hoomd
+
+    namespace['gpu_not_available'] = _n_available_gpu == 0
+
+    try:
+        import cupy
+    except ImportError:
+        cupy = None
+
+    namespace['cupy_not_available'] = cupy is None
+
+
+if sybil is not None:
+    pytest_collect_file = sybil.Sybil(
+        parsers=[
+            sybil.parsers.rest.PythonCodeBlockParser(),
+            sybil.parsers.rest.SkipParser(),
+        ],
+        pattern='*.py',
+        # exclude files not yet tested with sybil
+        excludes=[
+            'custom/custom_action.py',
+            'data/typeconverter.py',
+            'data/typeparam.py',
+            'hpmc/external/user.py',
+            'hpmc/pair/user.py',
+        ],
+        setup=setup_sybil_tests,
+        fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
@@ -195,7 +236,7 @@ def lattice_snapshot_factory(device):
                 box[2] = 0
             s.configuration.box = box
 
-            s.particles.N = numpy.product(n)
+            s.particles.N = numpy.prod(n)
             s.particles.types = particle_types
 
             if any(nx == 0 for nx in n):
@@ -426,7 +467,9 @@ def _check_obj_attr_compatibility(a, b):
     filtered_differences = set(different_keys)
     for key in different_keys:
         if key in a._reserved_default_attrs:
-            default = a._reserved_default_attrs[key]()
+            default = a._reserved_default_attrs[key]
+            if callable(default):
+                default = default()
             if getattr(a, key, default) == getattr(b, key, default):
                 filtered_differences.remove(key)
                 continue
@@ -601,6 +644,180 @@ def index_id(i):
     return f"(i={i})"
 
 
+class Options:
+    """Item should be one of a set number of values.
+
+    For use with `Generator`.
+    """
+
+    def __init__(self, *options):
+        self.options = options
+
+
+class Either:
+    """Item should be a value from a set number of specs.
+
+    For use with `Generator`.
+    """
+
+    def __init__(self, *options):
+        self.options = options
+
+
+class Generator:
+    """Generates random values of various specifications based on method.
+
+    The purpose is similar to property testing libraries like hypothesis in that
+    it enables automatic testing with a variety of values. This implementation
+    is nowhere near as sophicisticated as those packages. However, for general
+    purpose testing of property setting and manipulation, this is sufficient.
+
+    Note:
+        Developers should use this over adding ad-hoc values to tests. This
+        should not be used when testing the behavior of an object in a
+        simulation where manual specified values is often important.
+
+    Note:
+        If more flexibility is needed small classes like `Options` would work
+        well for instance a ``Float`` class which specified the range of values
+        to assume would be quite simple to add.
+    """
+    alphabet = [
+        char for char in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    ]
+
+    def __init__(self, rng, max_float=1e9, max_int=1_000_000):
+        self.rng = rng
+        self.max_float = max_float
+        self.max_int = max_int
+
+    def __call__(self, spec):
+        """Return a random valid value from the specification."""
+        if isinstance(spec, dict):
+            return self.dict(spec)
+        if isinstance(spec, tuple):
+            return self.tuple(spec)
+        if isinstance(spec, list):
+            return self.list(spec)
+        if isinstance(spec, Either):
+            return self.either(spec)
+        if isinstance(spec, Options):
+            return self.option(spec)
+        return {
+            str: self.str,
+            float: self.float,
+            int: self.int,
+            bool: self.bool,
+            numpy.ndarray: self.ndarray,
+            hoomd.variant.Variant: self.variant,
+            None: self.none
+        }[spec]()
+
+    def tuple(self, spec):
+        """Return an appropriately structured tuple."""
+        return tuple(self(inner_spec) for inner_spec in spec)
+
+    def list(self, spec, max_size=20):
+        """Return an appropriately structured list."""
+        return [self(spec[0]) for _ in range(self.rng.integers(max_size))]
+
+    def dict(self, spec):
+        """Return an appropriately structured dict."""
+        return {k: self(inner_spec) for k, inner_spec in spec.items()}
+
+    def none(self):
+        """Return ``None``."""
+        return None
+
+    def int(self, max_=None):
+        """Return a random integer."""
+        max_ = self.max_int if max_ is None else max_
+        return self.rng.integers(max_).item()
+
+    def float(self, max_=None):
+        """Return a random float."""
+        max_ = self.max_float if max_ is None else max_
+        return max_ * (self.rng.random() - 0.5)
+
+    def bool(self):
+        """Return a random Boolean."""
+        return bool(self.int(2))
+
+    def str(self, max_length=20):
+        """Return a random string."""
+        length = self.int(max_length) + 1
+        characters = [
+            self.rng.choice(self.alphabet)
+            for _ in range(self.rng.integers(length))
+        ]
+        return "".join(characters)
+
+    def ndarray(self, shape=(None,), dtype="float64"):
+        """Return a ndarray of specified shape and dtype.
+
+        A value of None in shape means any length.
+        """
+        shape = tuple(i if i is not None else self.int(20) for i in shape)
+        return (100 * self.rng.random(numpy.prod(shape))
+                - 50).reshape(shape).astype(dtype)
+
+    def variant(self):
+        """Return a random `hoomd.variant.Variant` or `float`."""
+        classes = ((hoomd.variant.Constant, (float,)),
+                   (hoomd.variant.Cycle, (float, float, int, int, int, int,
+                                          int)), (hoomd.variant.Ramp,
+                                                  (float, float, int, int)),
+                   (hoomd.variant.Power, (float, float, int, int,
+                                          int)), (float, (float,)))
+        cls, spec = classes[self.rng.integers(len(classes))]
+        return cls(*self(spec))
+
+    def option(self, spec):
+        """Return one of the specified options."""
+        return spec.options[self.rng.integers(len(spec.options))]
+
+    def either(self, spec):
+        """Return a random value from one of the specified specifications."""
+        return self(spec.options[self.rng.integers(len(spec.options))])
+
+
+class ClassDefinition:
+    """Provides a class interface for working with classes with `Generator`.
+
+    See methods for usage.
+
+    Note:
+        For further development, methods for dealing with type_parameters would
+        be helpful for testing.
+    """
+
+    def __init__(
+        self,
+        cls,
+        constructor_spec,
+        attribute_spec=None,
+        generator=None,
+    ):
+        self.cls = cls
+        self.constructor_spec = constructor_spec
+        if attribute_spec is None:
+            attribute_spec = constructor_spec
+        self.attribute_spec = attribute_spec
+        if generator is None:
+            generator = Generator(numpy.random.default_rng())
+        self.generator = generator
+
+    def generate_init_args(self):
+        """Get arguments necessary for constructing the object."""
+        return self.generator(self.constructor_spec)
+
+    def generate_all_attr_change(self):
+        """Get arguments to test setting attributes."""
+        return {
+            k: self.generator(spec) for k, spec in self.attribute_spec.items()
+        }
+
+
 class BaseCollectionsTest:
     """Basic extensible test suite for collection classes.
 
@@ -683,46 +900,16 @@ class BaseCollectionsTest:
         """
         assert True
 
-    _rng = numpy.random.default_rng(15656456)
+    _generator = Generator(numpy.random.default_rng(15656456))
 
     @property
-    def rng(self):
-        """Return a randon number generator.
+    def generator(self):
+        """Return the value generator.
 
         Many test rely on the generation of random numbers. To ensure
         reproducible this should have a constant seed.
         """
-        return self._rng
-
-    def int(self, max_=100_000_000):
-        """Return a random integer."""
-        return self.rng.integers(max_).item()
-
-    def float(self, max_=1e9):
-        """Return a random float."""
-        return max_ * (self.rng.random() - 0.5)
-
-    def bool(self):
-        """Return a random Boolean."""
-        return bool(self.int(2))
-
-    def str(self, max_length=20):
-        """Return a random string."""
-        length = self.int(max_length) + 1
-        characters = [
-            self.rng.choice(self.alphabet)
-            for _ in range(self.rng.integers(length))
-        ]
-        return "".join(characters)
-
-    def ndarray(self, shape=(None,), dtype="float64"):
-        """Return a ndarray of specified shape and dtype.
-
-        A value of None in shape means any length.
-        """
-        shape = tuple(i if i is not None else self.int(20) for i in shape)
-        return (100 * self.rng.random(numpy.product(shape))
-                - 50).reshape(shape).astype(dtype)
+        return self._generator
 
     @pytest.fixture(autouse=True, params=(5, 10, 20))
     def n(self, request):
@@ -998,7 +1185,7 @@ class BaseListTest(BaseSequenceTest):
     def test_remove(self, populated_collection):
         """Test remove."""
         test_list, plain_list = populated_collection
-        remove_index = self.int(len(plain_list))
+        remove_index = self.generator.int(len(plain_list))
         test_list.remove(plain_list[remove_index])
         assert plain_list[remove_index] not in test_list
         plain_list.remove(plain_list[remove_index])
@@ -1039,14 +1226,14 @@ class BaseMappingTest(BaseCollectionsTest):
             This is an infinite generator.
         """
         while True:
-            yield self.str()
+            yield self.generator.str()
 
     def choose_random_key(self, mapping):
         """Pick a random existing key from mapping.
 
         Fails on an empty mapping.
         """
-        return list(mapping)[self.int(len(mapping))]
+        return list(mapping)[self.generator.int(len(mapping))]
 
     def test_iter(self, populated_collection):
         """Test __iter__."""

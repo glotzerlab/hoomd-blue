@@ -284,8 +284,7 @@ void BondTablePotential::computeForces(uint64_t timestep)
             }
         else
             {
-            m_exec_conf->msg->errorAllRanks() << "Table bond out of bounds" << endl;
-            throw std::runtime_error("Error in bond calculation");
+            throw std::runtime_error("Table bond out of bounds.");
             }
         }
     }

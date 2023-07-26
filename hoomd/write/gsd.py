@@ -6,7 +6,7 @@
 from collections.abc import Mapping, Collection
 from hoomd.trigger import Periodic
 from hoomd import _hoomd
-from hoomd.util import dict_flatten
+from hoomd.util import _dict_flatten
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
@@ -14,7 +14,22 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
-import warnings
+import atexit
+import weakref
+
+# Track open gsd writers to flush at exit.
+_open_gsd_writers = []
+
+
+def _flush_open_gsd_writers():
+    """Flush all open gsd writers at exit."""
+    for weak_writer in _open_gsd_writers:
+        writer = weak_writer()
+        if writer is not None:
+            writer.flush()
+
+
+atexit.register(_flush_open_gsd_writers)
 
 
 def _array_to_strings(value):
@@ -29,34 +44,35 @@ def _array_to_strings(value):
         return value
 
 
+def _finalize_gsd(weak_writer, cpp_obj):
+    """Finalize a GSD writer."""
+    _open_gsd_writers.remove(weak_writer)
+    cpp_obj.flush()
+
+
 class GSD(Writer):
     r"""Write simulation trajectories in the GSD format.
 
     Args:
         trigger (hoomd.trigger.trigger_like): Select the timesteps to write.
-        filename (str): File name to write.
+        filename (any type that converts to `str`): File name to write.
         filter (hoomd.filter.filter_like): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers. Defaults to `False`.
-        dynamic (list[str]): Quantity categories to save in every frame.
-            Defaults to ``['property']``.
+        dynamic (list[str]): Field names and/or field categores to save in
+            all frames. Defaults to ``['property']``.
         logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
             to `None`.
-        log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
-            `None`.
-
-            .. deprecated:: v3.9.0
-               ``log`` will be renamed to ``logger`` in v4.
 
     `GSD` writes the simulation trajectory to the specified file in the GSD
     format. `GSD` can store all particle, bond, angle, dihedral, improper,
     pair, and constraint data fields in every frame of the trajectory.  `GSD`
     can write trajectories where the number of particles, number of particle
     types, particle types, diameter, mass, charge, or other quantities change
-    over time. `GSD` can also store scalar, string, and array quantities
-    provided by a `hoomd.logging.Logger` instance.
+    over time. `GSD` can also store arbitrary, scalar, string, and array
+    quantities provided by a `hoomd.logging.Logger` instance in `logger`.
 
     Valid file open modes:
 
@@ -76,47 +92,57 @@ class GSD(Writer):
     To reduce file size, `GSD` does not write properties that are set to
     defaults. When masses, orientations, angular momenta, etc... are left
     default for all particles, these fields will not take up any space in the
-    file. Additionally, `GSD` only writes *dynamic* quantities to all frames. It
-    writes non-dynamic quantities only the first frame. When reading a GSD file,
-    the data in frame 0 is read when a quantity is missing in frame *i*,
-    supplying data that is static over the entire trajectory.  Set the *dynamic*
+    file, except on frame 1+ when the field is also non-default in frame 0.
+    `GSD` writes all non-default fields to frame 0 in the file.
 
-    Specify the one or more of the following strings in **dynamic** to make the
-    corresponding quantities dynamic (**property** is always dynamic):
+    To further reduce file sizes, `GSD` allows the user to select which specific
+    fields will be considered for writing to frame 1+ in the `dynamic` list.
+    When reading a GSD file, the data in frame 0 is read when a quantity is
+    missing in frame *i*, so any fields not in `dynamic` are fixed for the
+    entire trajectory.
 
-    * **property**
+    The `dynamic` list can contain one or more of the following strings:
 
-        * particles/position
-        * particles/orientation (*only written when values are not the
-          default: [1,0,0,0]*)
+    * ``'property'``
 
-    * **momentum**
+      * ``'configuration/box'``
+      * ``'particles/N'``
+      * ``'particles/position'``
+      * ``'particles/orientation'``
 
-        * particles/velocity
-        * particles/angmom (*only written when values are not the
-          default: [0,0,0,0]*)
-        * particles/image (*only written when values are not the
-          default: [0,0,0]*)
+    * ``'momentum'``
 
-    * **attribute**
+      * ``'particles/velocity'``
+      * ``'particles/angmom'``
+      * ``'particles/image'``
 
-        * particles/N
-        * particles/types
-        * particles/typeid
-        * particles/mass
-        * particles/charge
-        * particles/diameter
-        * particles/body
-        * particles/moment_inertia
+    * ``'attribute'``
 
-    * **topology**
+      * ``'particles/types'``
+      * ``'particles/typeid'``
+      * ``'particles/mass'``
+      * ``'particles/charge'``
+      * ``'particles/diameter'``
+      * ``'particles/body'``
+      * ``'particles/moment_inertia'``
 
-        * bonds/*
-        * angles/*
-        * dihedrals/*
-        * impropers/*
-        * constraints/*
-        * pairs/*
+    * ``'topology'``
+
+      * bonds/*
+      * angles/*
+      * dihedrals/*
+      * impropers/*
+      * constraints/*
+      * pairs/*
+
+    When you set a category string (``'property'``, ``'momentum'``,
+    ``'attribute'``), `GSD` makes all the category member's fields dynamic.
+
+    Warning:
+        `GSD` buffers writes in memory. Abnormal exits (e.g. ``kill``,
+        ``scancel``, reaching walltime limits) may cause loss of data. Ensure
+        that your scripts exit cleanly and call `flush()` as needed to write
+        buffered frames to the file.
 
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
@@ -130,14 +156,14 @@ class GSD(Writer):
         **not** write out **topology**.
 
     Tip:
-        All logged data chunks must be present in the first frame in the gsd
-        file to provide the default value. To achieve this, set the `log`
+        All logged data fields must be present in the first frame in the gsd
+        file to provide the default value. To achieve this, set the `logger`
         attribute before the operation is triggered to write the first frame
         in the file.
 
-        Some (or all) chunks may be omitted on later frames. You can set `log`
-        to `None` or remove specific quantities from the logger, but do not
-        add additional quantities after the first frame.
+        Some (or all) fields may be omitted on later frames. You can set
+        `logger` to `None` or remove specific quantities from the logger, but do
+        not add additional quantities after the first frame.
 
     Attributes:
         filename (str): File name to write.
@@ -146,7 +172,13 @@ class GSD(Writer):
         mode (str): The file open mode.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers.
-        dynamic (list[str]): Quantity categories to save in every frame.
+        dynamic (list[str]): Field names and/or field categores to save in
+            all frames.
+        write_diameter (bool): When `False`, do not write
+            ``particles/diameter``. Set to `True` to write non-default particle
+            diameters.
+        maximum_write_buffer_size (int): Size (in bytes) to buffer in memory
+           before writing to the file.
     """
 
     def __init__(self,
@@ -156,14 +188,31 @@ class GSD(Writer):
                  mode='ab',
                  truncate=False,
                  dynamic=None,
-                 logger=None,
-                 log=None):
+                 logger=None):
 
         super().__init__(trigger)
 
-        dynamic_validation = OnlyFrom(
-            ['attribute', 'property', 'momentum', 'topology'],
-            preprocess=_array_to_strings)
+        dynamic_validation = OnlyFrom([
+            'attribute',
+            'property',
+            'momentum',
+            'topology',
+            'configuration/box',
+            'particles/N',
+            'particles/position',
+            'particles/orientation',
+            'particles/velocity',
+            'particles/angmom',
+            'particles/image',
+            'particles/types',
+            'particles/typeid',
+            'particles/mass',
+            'particles/charge',
+            'particles/diameter',
+            'particles/body',
+            'particles/moment_inertia',
+        ],
+                                      preprocess=_array_to_strings)
 
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
@@ -172,47 +221,28 @@ class GSD(Writer):
                           mode=str(mode),
                           truncate=bool(truncate),
                           dynamic=[dynamic_validation],
+                          write_diameter=False,
+                          maximum_write_buffer_size=64 * 1024 * 1024,
                           _defaults=dict(filter=filter, dynamic=dynamic)))
-
-        if all((logger is not None, log is not None)):
-            warnings.warn(
-                f"log and logger keyword arguments passed to {self}."
-                f" Keyword argument \"log\" is deprecated since v3.9.0."
-                f" Ignoring log and using logger instead.", FutureWarning)
-        elif logger is None and log is not None:
-            warnings.warn(
-                f"log keyword arguments passed to {self} is deprecated since"
-                f" v3.9.0. Use logger instead.", FutureWarning)
-            logger = log
 
         self._logger = None if logger is None else _GSDLogWriter(logger)
 
     def _attach_hook(self):
-        # validate dynamic property
-        categories = ['attribute', 'property', 'momentum', 'topology']
-        dynamic_quantities = ['property']
-
-        if self.dynamic is not None:
-            for v in self.dynamic:
-                if v not in categories:
-                    raise RuntimeError(
-                        f"GSD: dynamic quantity {v} is not valid")
-
-            dynamic_quantities = ['property'] + self.dynamic
-
         self._cpp_obj = _hoomd.GSDDumpWriter(
             self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             self._simulation.state._get_group(self.filter), self.mode,
             self.truncate)
 
-        self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
-        self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
-        self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
-        self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
         self._cpp_obj.log_writer = self.logger
 
+        # Maintain a list of open gsd writers
+        weak_writer = weakref.ref(self)
+        _open_gsd_writers.append(weak_writer)
+        self._finalizer = weakref.finalize(self, _finalize_gsd, weak_writer,
+                                           self._cpp_obj),
+
     @staticmethod
-    def write(state, filename, filter=All(), mode='wb', logger=None, log=None):
+    def write(state, filename, filter=All(), mode='wb', logger=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
@@ -221,55 +251,29 @@ class GSD(Writer):
             filter (hoomd.filter.filter_like): Select the particles to write.
             mode (str): The file open mode. Defaults to ``'wb'``.
             logger (hoomd.logging.Logger): Provide log quantities to write.
-            log (hoomd.logging.Logger): Provide log quantities to write.
-
-                .. deprecated:: v3.9.0
-                   ``log`` will be renamed to ``logger`` in v4.
 
         The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
         if mode != 'wb' and mode != 'xb':
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
-                                      state._get_group(filter), mode, False)
-
-        if logger is not None and log is not None:
-            warnings.warn(
-                "log and logger keyword arguments passed to write.GSD.write()."
-                " Keyword argument \"log\" is deprecated since v3.9.0."
-                " Ignoring log and using logger instead.", RuntimeWarning)
-        elif log is not None:
-            warnings.warn(
-                "log keyword arguments passed to write.GSD.write() is"
-                " deprecated since v3.9.0. Use logger instead.", FutureWarning)
-            logger = log
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1),
+                                      str(filename), state._get_group(filter),
+                                      mode, False)
 
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)
         writer.analyze(state._simulation.timestep)
+        writer.flush()
 
     @property
     def logger(self):
         """hoomd.logging.Logger: Provide log quantities to write.
 
         May be `None`.
+
         """
         return self._logger
-
-    @property
-    def log(self):
-        """hoomd.logging.Logger: Provide log quantities to write.
-
-        May be `None`.
-
-        .. deprecated:: v3.9.0
-           ``log`` will be renamed to ``logger`` in v4.
-        """
-        warnings.warn(
-            "log property is deprecated since v3.9.0. Use logger instead.",
-            FutureWarning)
-        return self.logger
 
     @logger.setter
     def logger(self, logger):
@@ -280,13 +284,26 @@ class GSD(Writer):
         if self._attached:
             self._cpp_obj.log_writer = logger
         self._logger = logger
+        return self.logger
 
-    @log.setter
-    def log(self, log):
-        warnings.warn(
-            "log property is deprecated since v3.9.0. Use logger instead.",
-            FutureWarning)
-        self.logger = log
+    def flush(self):
+        """Flush the write buffer to the file.
+
+        Example::
+
+            gsd_writer.flush()
+
+        Flush all write buffers::
+
+            for writer in simulation.operations.writers:
+                if hasattr(writer, 'flush'):
+                    writer.flush()
+        """
+        if not self._attached:
+            raise RuntimeError("The GSD file is unavailable until the"
+                               "simulation runs for 0 or more steps.")
+
+        self._cpp_obj.flush()
 
 
 def _iterable_is_incomplete(iterable):
@@ -344,7 +361,7 @@ class _GSDLogWriter:
     def log(self):
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
-        for key, value in dict_flatten(self.logger.log()).items():
+        for key, value in _dict_flatten(self.logger.log()).items():
             if 'state' in key and _iterable_is_incomplete(value[0]):
                 pass
             log_value, type_category = value
@@ -376,9 +393,6 @@ class _GSDLogWriter:
             else:
                 pass
         return log
-
-    def _write_frame(self, _gsd):
-        _gsd.writeLogQuantities(self.log())
 
     def _log_special(self, dict_, key, value):
         """Handles special keys such as type_shapes.

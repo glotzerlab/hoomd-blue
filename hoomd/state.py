@@ -6,7 +6,11 @@
 `State` stores and exposes a parent `hoomd.Simulation` object's data (e.g.
 particle positions, system bonds).
 
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
 """
+import weakref
 from collections import defaultdict
 
 from . import _hoomd
@@ -294,6 +298,12 @@ class State:
 
         Returns:
             Snapshot: The current simulation state
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            snapshot = simulation.state.get_snapshot()
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
@@ -324,6 +334,12 @@ class State:
             `get_snapshot`
 
             `Simulation.create_state_from_snapshot`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.state.set_snapshot(snapshot)
         """
         if self._in_context_manager:
             raise RuntimeError(
@@ -347,32 +363,74 @@ class State:
 
     @property
     def particle_types(self):
-        """list[str]: List of all particle types in the simulation state."""
+        """list[str]: List of all particle types in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            particle_types = simulation.state.particle_types
+        """
         return self._cpp_sys_def.getParticleData().getTypes()
 
     @property
     def bond_types(self):
-        """list[str]: List of all bond types in the simulation state."""
+        """list[str]: List of all bond types in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            bond_types = simulation.state.bond_types
+        """
         return self._cpp_sys_def.getBondData().getTypes()
 
     @property
     def angle_types(self):
-        """list[str]: List of all angle types in the simulation state."""
+        """list[str]: List of all angle types in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            angle_types = simulation.state.angle_types
+        """
         return self._cpp_sys_def.getAngleData().getTypes()
 
     @property
     def dihedral_types(self):
-        """list[str]: List of all dihedral types in the simulation state."""
+        """list[str]: List of all dihedral types in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            angle_types = simulation.state.angle_types
+        """
         return self._cpp_sys_def.getDihedralData().getTypes()
 
     @property
     def improper_types(self):
-        """list[str]: List of all improper types in the simulation state."""
+        """list[str]: List of all improper types in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            improper_types = simulation.state.improper_types
+        """
         return self._cpp_sys_def.getImproperData().getTypes()
 
     @property
     def special_pair_types(self):
-        """list[str]: List of all special pair types in the simulation state."""
+        """list[str]: List of all special pair types in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            special_pair_types = simulation.state.special_pair_types
+        """
         return self._cpp_sys_def.getPairData().getTypes()
 
     @property
@@ -392,22 +450,50 @@ class State:
 
     @property
     def N_particles(self):  # noqa: N802 - allow N in name
-        """int: The number of particles in the simulation state."""
+        """int: The number of particles in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            N_particles = simulation.state.N_particles
+        """
         return self._cpp_sys_def.getParticleData().getNGlobal()
 
     @property
     def N_bonds(self):  # noqa: N802 - allow N in name
-        """int: The number of bonds in the simulation state."""
+        """int: The number of bonds in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            N_bonds = simulation.state.N_bonds
+        """
         return self._cpp_sys_def.getBondData().getNGlobal()
 
     @property
     def N_angles(self):  # noqa: N802 - allow N in name
-        """int: The number of angles in the simulation state."""
+        """int: The number of angles in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            N_angles = simulation.state.N_angles
+        """
         return self._cpp_sys_def.getAngleData().getNGlobal()
 
     @property
     def N_impropers(self):  # noqa: N802 - allow N in name
-        """int: The number of impropers in the simulation state."""
+        """int: The number of impropers in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            N_impropers = simulation.state.N_impropers
+        """
         return self._cpp_sys_def.getImproperData().getNGlobal()
 
     @property
@@ -417,12 +503,26 @@ class State:
 
     @property
     def N_dihedrals(self):  # noqa: N802 - allow N in name
-        """int: The number of dihedrals in the simulation state."""
+        """int: The number of dihedrals in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            N_dihedrals = simulation.state.N_dihedrals
+        """
         return self._cpp_sys_def.getDihedralData().getNGlobal()
 
     @property
     def N_constraints(self):  # noqa: N802 - allow N in name
-        """int: The number of constraints in the simulation state."""
+        """int: The number of constraints in the simulation state.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            N_constraints = simulation.state.N_constraints
+        """
         return self._cpp_sys_def.getConstraintData().getNGlobal()
 
     @property
@@ -432,6 +532,12 @@ class State:
         Note:
             The `box` property cannot be set. Call `set_box` to set a new
             simulation box.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            box = simulation.state.box
         """
         b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
         return Box.from_box(b)
@@ -448,6 +554,12 @@ class State:
 
         See Also:
             `hoomd.update.BoxResize.update`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.state.set_box(box)
         """
         if self._in_context_manager:
             raise RuntimeError(
@@ -485,6 +597,12 @@ class State:
         factor of ``nx``, ``ny``, and ``nz`` in the direction of the first,
         second, and third box lattice vectors respectively and adjusts the
         particle positions to center them in the new box.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.state.replicate(nx=2, ny=2, nz=2)
         """
         snap = self.get_snapshot()
         snap.replicate(nx, ny, nz)
@@ -528,6 +646,12 @@ class State:
 
         Call `update_group_dof` manually to force an update, such as when
         you modify particle moments of inertia with `cpu_local_snapshot`.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            box = simulation.state.update_group_dof()
         """
         self._simulation._cpp_sys.updateGroupDOFOnNextStep()
 
@@ -555,8 +679,8 @@ class State:
 
         .. code-block:: python
 
-            with sim.state.cpu_local_snapshot as data:
-                data.particles.position[:, 2] = 0
+            with simulation.state.cpu_local_snapshot as local_snapshot:
+                local_snapshot.particles.position[:, 2] = 0
 
         Note:
             The state's box and the number of particles, bonds, angles,
@@ -595,13 +719,23 @@ class State:
         change the data across the HOOMD-blue simulation. For a trivial example,
         this example would set all particle z-axis positions to 0.
 
+        .. invisible-code-block: python
+
+            if not (gpu_not_available or cupy_not_available):
+                gpu=hoomd.device.GPU()
+                simulation = hoomd.util.make_example_simulation(device=gpu)
+                simulation.state.replicate(nx=2, ny=2, nz=2)
+
+        .. skip: next if(gpu_not_available or cupy_not_available)
+
         .. code-block:: python
 
-            with sim.state.gpu_local_snapshot as data:
-                data.particles.position[:, 2] = 0
+            with simulation.state.gpu_local_snapshot as local_snapshot:
+                local_snapshot.particles.position[:, 2] = 0
 
         Warning:
-            This property is only available when running on a GPU(s).
+            This property is only available when running on a GPU (or multiple
+            GPUs).
 
         Note:
             The state's box and the number of particles, bonds, angles,
@@ -649,9 +783,17 @@ class State:
         as determine by its moment of inertia.
 
         .. seealso::
-            `md.methods.NVT.thermalize_thermostat_dof`
+            `md.methods.thermostats.MTTK.thermalize_dof`
 
-            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
+            `md.methods.ConstantPressure.thermalize_barostat_dof`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.state.thermalize_particle_momenta(
+                filter=hoomd.filter.All(),
+                kT=1.5)
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)
@@ -686,3 +828,17 @@ class State:
             len(particle_data.getDomainDecomposition().getCumulativeFractions(
                 dir)) - 1 for dir in range(3)
         ])
+
+    @property
+    def _simulation(self):
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, sim):
+        if sim is not None:
+            sim = weakref.ref(sim)
+        self._simulation_ = sim

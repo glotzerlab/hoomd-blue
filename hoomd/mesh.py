@@ -16,7 +16,6 @@ For a given triangulation HOOMD-blue also constructs a list of mesh bonds
 automatically. Each mesh bond is defined by a pair of particle tags. The
 corresponding vertex particles share a common edge in the triangulation.
 
-
 .. rubric:: Mesh potentials
 
 In MD simulations different bond potentials can be attached which connect
@@ -28,17 +27,13 @@ See Also:
   See the documentation in `hoomd.md.mesh` for more information on how
   to apply potentials to the mesh object and in `hoomd.md.nlist` on
   adding mesh bond exceptions to the neighbor list.
-
-
-
 """
 
 import hoomd
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyIf, to_type_converter
-from collections.abc import Sequence
+from hoomd.data.typeconverter import OnlyIf, to_type_converter, NDArrayValidator
 from hoomd.logging import log
 import numpy as np
 
@@ -51,63 +46,68 @@ class Mesh(_HOOMDBaseObject):
     three particle tags. The mesh object consists of only one
     mesh triangle type with the default type name "mesh".
 
-    Examples::
+    .. rubric:: Example:
 
-        mesh = mesh.Mesh()
-        mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
+    .. code-block:: python
 
+        mesh_obj = hoomd.mesh.Mesh()
+        mesh_obj.types = ["mesh"]
+        mesh_obj.triangulation = dict(type_ids = [0,0,0,0],
+              triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]])
     """
 
     def __init__(self):
 
-        param_dict = ParameterDict(size=int,
-                                   types=OnlyIf(
-                                       to_type_converter([str]),
-                                       preprocess=self._preprocess_type))
+        param_dict = ParameterDict(
+            types=[str],
+            triangulation=OnlyIf(to_type_converter({
+                "type_ids": NDArrayValidator(np.uint),
+                "triangles": NDArrayValidator(np.uint, shape=(None, 3))
+            }),
+                                 postprocess=self._ensure_same_size))
 
         param_dict["types"] = ["mesh"]
-        param_dict["size"] = 0
-        self._triangles = np.empty([0, 3], dtype=int)
+        param_dict["triangulation"] = dict(type_ids=np.zeros(0, dtype=int),
+                                           triangles=np.zeros((0, 3),
+                                                              dtype=int))
 
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
-            self._simulation.state._cpp_sys_def)
+            self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
 
-        self.triangles = self._triangles
+        self._cpp_obj.setTypes(list(self._param_dict['types']))
 
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
-                # create the c++ Communicator
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
-                self._cpp_obj.setCommunicator(
-                    self._simulation._system_communicator)
 
-    @log(category='sequence')
+    def _ensure_same_size(self, triangulation):
+        if triangulation is None:
+            return None
+        if len(triangulation["triangles"]) != len(triangulation["type_ids"]):
+            raise ValueError(
+                "Number of type_ids do not match number of triangles.")
+        return triangulation
+
+    @log(category='sequence', requires_run=True)
+    def type_ids(self):
+        """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
+        return self.triangulation["type_ids"]
+
+    @log(category='sequence', requires_run=True)
     def triangles(self):
         """((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangulation.
 
         A list of triplets of particle tags which encodes the
         triangulation of the mesh structure.
         """
-        if self._attached:
-            return self._cpp_obj.getTriangleData().group
-        return self._triangles
-
-    @triangles.setter
-    def triangles(self, triag):
-        if self._attached:
-            self._cpp_obj.setTypes(list(self._param_dict['types']))
-
-            self._cpp_obj.setTriangleData(triag)
-        else:
-            self.size = len(triag)
-        self._triangles = triag
+        return self.triangulation["triangles"]
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
@@ -118,8 +118,11 @@ class Mesh(_HOOMDBaseObject):
         """
         return self._cpp_obj.getBondData().group
 
-    def _preprocess_type(self, typename):
-        if not isinstance(typename, str) and isinstance(typename, Sequence):
-            if len(typename) != 1:
-                raise ValueError("Only one meshtype is allowed.")
-        return typename
+    @property
+    def size(self):
+        """(int): Number of triangles in the mesh."""
+        if self._attached:
+            return self._cpp_obj.getSize()
+        if self.triangulation is None:
+            return 0
+        return len(self.triangulation["triangles"])

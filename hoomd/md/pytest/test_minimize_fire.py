@@ -118,7 +118,7 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
 
     lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell(buffer=0.4))
     lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
-    nve = md.methods.NVE(hoomd.filter.All())
+    nve = md.methods.ConstantVolume(hoomd.filter.All())
 
     fire = md.minimize.FIRE(dt=0.0025,
                             force_tol=1e-1,
@@ -150,7 +150,7 @@ def test_pickling(lattice_snapshot_factory, simulation_factory):
     snap = lattice_snapshot_factory(a=1.5, n=5)
     sim = simulation_factory(snap)
 
-    nve = md.methods.NVE(hoomd.filter.All())
+    nve = md.methods.ConstantVolume(hoomd.filter.All())
 
     fire = md.minimize.FIRE(dt=0.0025,
                             force_tol=1e-1,
@@ -182,7 +182,10 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
 
     surface = md.manifold.Diamond(5)
     nve = md.methods.rattle.NVE(hoomd.filter.All(), surface)
-    nph = md.methods.NPH(hoomd.filter.All(), S=1, tauS=1, couple='none')
+    nph = md.methods.ConstantPressure(hoomd.filter.All(),
+                                      S=1,
+                                      tauS=1,
+                                      couple='none')
     brownian = md.methods.Brownian(hoomd.filter.All(), kT=1)
     rattle_brownian = md.methods.rattle.Brownian(hoomd.filter.All(), 1, surface)
 

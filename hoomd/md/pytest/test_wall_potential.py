@@ -17,7 +17,7 @@ import itertools
 def simulation(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator = md.Integrator(0.005)
-    integrator.methods.append(md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations += integrator
     sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1.0)
     return sim
@@ -63,7 +63,7 @@ class WallGenerator:
 
 _potential_cls = (
     md.external.wall.LJ,
-    md.external.wall.Gauss,
+    md.external.wall.Gaussian,
     md.external.wall.Yukawa,
     md.external.wall.Morse,
     md.external.wall.ForceShiftedLJ,

@@ -16,8 +16,9 @@ def test_table_pressure(simulation_factory, two_particle_snapshot_factory):
     sim.operations.add(thermo)
 
     integrator = hoomd.md.Integrator(dt=0.0)
+    thermostat = hoomd.md.methods.thermostats.Bussi(kT=1.0)
     integrator.methods.append(
-        hoomd.md.methods.NVT(hoomd.filter.All(), tau=1, kT=1))
+        hoomd.md.methods.ConstantVolume(hoomd.filter.All(), thermostat))
     sim.operations.integrator = integrator
 
     logger = hoomd.logging.Logger(categories=['scalar'])

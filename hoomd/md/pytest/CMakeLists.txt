@@ -27,6 +27,7 @@ set(files __init__.py
     test_meshbond.py
     test_meta_wall_list.py
     test_methods.py
+    test_meshpotential.py
     test_minimize_fire.py
     test_nlist.py
     test_nlist_tuner.py
@@ -45,6 +46,7 @@ set(files __init__.py
     test_zero_momentum.py
     true_pair_list.json
   aniso_forces_and_energies.json
+    test_burst_writer.py
     )
 
 install(FILES ${files}

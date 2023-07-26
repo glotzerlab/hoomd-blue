@@ -678,6 +678,8 @@ inline bool load_source(
       // TODO: Handle block comments (currently they cause a compilation error).
       size_t comment_start = line_after_pragma.find("//");
       std::string pragma_args = line_after_pragma.substr(0, comment_start);
+      // handle quote character used in #pragma expression
+      pragma_args = replace_token(pragma_args, "\"", "\\\"");
       std::string comment = comment_start != std::string::npos
                                 ? line_after_pragma.substr(comment_start)
                                 : "";
@@ -688,7 +690,7 @@ inline bool load_source(
     source += line + "\n";
   }
   // HACK TESTING (WAR for cub)
-  // source = "#define cudaDeviceSynchronize() cudaSuccess\n" + source;
+  source = "#define cudaDeviceSynchronize() cudaSuccess\n" + source;
   ////source = "cudaError_t cudaDeviceSynchronize() { return cudaSuccess; }\n" +
   /// source;
 
@@ -2406,6 +2408,18 @@ static const char* jitsafe_header_tuple = R"(
     #if __cplusplus >= 201103L
     namespace std {
     template<class... Types > class tuple;
+
+    template< size_t I, class T >
+    struct tuple_element;
+    // recursive case
+    template< size_t I, class Head, class... Tail >
+    struct tuple_element<I, tuple<Head, Tail...>>
+        : tuple_element<I-1, tuple<Tail...>> { };
+    // base case
+    template< class Head, class... Tail >
+    struct tuple_element<0, tuple<Head, Tail...>> {
+      using type = Head;
+    };
     } // namespace std
     #endif
  )";
@@ -2875,7 +2889,7 @@ inline void load_program(std::string const& cuda_source,
 #endif
       // There was a non include-related compilation error
       // TODO: How to handle error?
-      throw std::runtime_error("Runtime compilation failed");
+      throw std::runtime_error("Runtime compilation failed:\n" + log);
     }
 
     bool is_included_with_quotes = false;
@@ -2920,11 +2934,11 @@ inline void load_program(std::string const& cuda_source,
       }
       std::string& parent_source = (*program_sources)[include_parent];
       parent_source = detail::comment_out_code_line(line_num, parent_source);
-#if JITIFY_PRINT_LOG
+// #if JITIFY_PRINT_LOG
       std::cout << include_parent << "(" << line_num
                 << "): warning: " << include_name << ": [jitify] File not found"
                 << std::endl;
-#endif
+// #endif
     }
   }
   if (ret != NVRTC_SUCCESS) {

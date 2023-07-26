@@ -82,7 +82,7 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     def sim_constructor(active_force=None, rd_updater=None):
         sim = simulation_factory(two_particle_snapshot_factory())
         if isinstance(active_force, hoomd.md.force.Active):
-            method = hoomd.md.methods.NVE(hoomd.filter.All())
+            method = hoomd.md.methods.ConstantVolume(hoomd.filter.All())
         else:
             method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
                                                  hoomd.md.manifold.Plane(0.1))
@@ -105,10 +105,8 @@ def test_attaching(active_force, local_simulation_factory):
     sim.run(0)
     check_setting(active_force, rd_updater)
 
-    with pytest.raises(hoomd.error.SimulationDefinitionError):
-        sim.operations.integrator.forces.remove(active_force)
-
-    sim.operations.remove(rd_updater)
+    sim.operations.integrator.forces.remove(active_force)
+    assert not any(up is rd_updater for up in sim.operations.updaters)
     sim.operations.integrator.forces.clear()
 
     # Reset simulation to test for variouos error conditions
@@ -121,14 +119,10 @@ def test_attaching(active_force, local_simulation_factory):
 
     # Add the active force to another simulation and ensure proper erroring.
     second_sim = local_simulation_factory(active_force)
-
-    with pytest.raises(hoomd.error.SimulationDefinitionError):
-        sim.run(0)
-
     second_sim.run(0)
-
-    with pytest.raises(hoomd.error.SimulationDefinitionError):
-        sim.run(0)
+    sim.operations -= rd_updater
+    second_sim.operations += rd_updater
+    second_sim.run(0)
 
 
 def test_update(active_force, local_simulation_factory):

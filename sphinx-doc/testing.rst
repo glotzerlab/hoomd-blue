@@ -32,11 +32,19 @@ Requirements
 The following Python packages are required to execute tests. Some tests will be skipped when
 optional requirements are missing.
 
-- gsd (optional)
-- mpi4py (optional)
-- pytest
-- rowan (optional)
-- CuPy (optional)
+- `CuPy`_ (optional)
+- `gsd`_ (optional)
+- `mpi4py`_ (optional)
+- `pytest`_
+- `rowan`_ (optional)
+- `sybil`_ (optional)
+
+.. _CuPy: https://cupy.dev/
+.. _gsd: https://gsd.readthedocs.io/
+.. _mpi4py: https://mpi4py.readthedocs.io/
+.. _pytest: https://docs.pytest.org/
+.. _rowan: https://rowan.readthedocs.io/
+.. _sybil: https://sybil.readthedocs.io/
 
 Running tests
 -------------

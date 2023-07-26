@@ -10,7 +10,6 @@
 #include "ShapePolyhedron.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
@@ -44,7 +43,6 @@ void export_polyhedron(pybind11::module& m)
     export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");
     export_ExternalFieldComposite<ShapePolyhedron>(m, "ExternalFieldCompositePolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
-    export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedronGPU");

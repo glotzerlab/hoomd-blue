@@ -50,12 +50,12 @@ class SupportFuncSpheropolygon
     /*! \param n Normal vector input (in the local frame)
         \returns Local coords of the point furthest in the direction of n
     */
-    DEVICE vec2<OverlapReal> operator()(const vec2<OverlapReal>& n) const
+    DEVICE vec2<ShortReal> operator()(const vec2<ShortReal>& n) const
         {
         // get the support function of the underlying convex polyhedron
-        vec2<OverlapReal> max_poly = SupportFuncConvexPolygon(verts)(n);
+        vec2<ShortReal> max_poly = SupportFuncConvexPolygon(verts)(n);
         // add to that the support mapping of the sphere
-        vec2<OverlapReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(n, n))) * n;
+        vec2<ShortReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(n, n))) * n;
 
         return max_poly + max_sphere;
         }
@@ -117,17 +117,17 @@ struct ShapeSpheropolygon
         }
 
     //! Get the circumsphere diameter
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
     //! Get the in-circle radius
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     //! Return the bounding box of the shape in world coordinates
@@ -176,19 +176,19 @@ DEVICE inline bool test_overlap<ShapeSpheropolygon, ShapeSpheropolygon>(const ve
                                                                         const ShapeSpheropolygon& b,
                                                                         unsigned int& err)
     {
-    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
+    vec2<ShortReal> dr(ShortReal(r_ab.x), ShortReal(r_ab.y));
 
     /*return detail::gjke_2d(detail::SupportFuncSpheropolygon(a.verts),
                            detail::SupportFuncSpheropolygon(b.verts),
                            dr,
-                           quat<OverlapReal>(a.orientation),
-                           quat<OverlapReal>(b.orientation));*/
+                           quat<ShortReal>(a.orientation),
+                           quat<ShortReal>(b.orientation));*/
 
     return detail::xenocollide_2d(detail::SupportFuncSpheropolygon(a.verts),
                                   detail::SupportFuncSpheropolygon(b.verts),
                                   dr,
-                                  quat<OverlapReal>(a.orientation),
-                                  quat<OverlapReal>(b.orientation),
+                                  quat<ShortReal>(a.orientation),
+                                  quat<ShortReal>(b.orientation),
                                   err);
     }
 
