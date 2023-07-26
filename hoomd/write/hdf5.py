@@ -13,12 +13,13 @@
     except ImportError:
         h5py_not_available = True
 
-    simulation = hoomd.util.make_example_simulation()
-    hdf5_filename = tmp_path / "simulation_log.h5"
-    logger = hoomd.logging.Logger(
-        hoomd.write.HDF5Log.accepted_categories)
-    hdf5_writer = hoomd.write.HDF5Log(
-        10_000, hdf5_filename, logger)
+    if not h5py_not_available:
+        simulation = hoomd.util.make_example_simulation()
+        hdf5_filename = tmp_path / "simulation_log.h5"
+        logger = hoomd.logging.Logger(
+            hoomd.write.HDF5Log.accepted_categories)
+        hdf5_writer = hoomd.write.HDF5Log(
+            10_000, hdf5_filename, logger)
 
 .. skip: start if(h5py_not_available)
 """
