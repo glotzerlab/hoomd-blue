@@ -167,19 +167,19 @@ class _HDF5LogInternal(custom._InternalAction):
 
         .. rubric:: Examples
 
-            Flush one writer:
+        Flush one writer:
 
-            .. code-block:: python
+        .. code-block:: python
 
-                hdf5_writer.flush()
+            hdf5_writer.flush()
 
-            Flush all write buffers:
+        Flush all write buffers:
 
-            .. code-block:: python
+        .. code-block:: python
 
-                for writer in simulation.operations.writers:
-                    if hasattr(writer, 'flush'):
-                        writer.flush()
+            for writer in simulation.operations.writers:
+                if hasattr(writer, 'flush'):
+                    writer.flush()
         """
         self._fh.flush()
 
