@@ -247,10 +247,6 @@ class Table(Bond):
         width (int): Number of points in the table.
     """
 
-    # Module where the C++ class is defined. Reassign this when developing an
-    # external plugin.
-    _ext_module = _md
-
     def __init__(self, width):
         super().__init__()
         param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
