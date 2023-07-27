@@ -159,7 +159,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
                 }
             else if (m_params[type_id][i] + x < 0)
                 {
-                m_params[type_id][i] = x - m_params[type_id][i];
+                m_params[type_id][i] = -(m_params[type_id][i] + x);
                 }
             else
                 {
