@@ -311,14 +311,18 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        Note:
+            This attribute is only available when
+            HOOMD-blue is built with the MPCD component.
         """
+        if not hoomd.version.mpcd_built:
+            raise RuntimeError("MPCD component not built")
+
         if self.communicator.rank == 0:
-            if hasattr(self._cpp_obj, 'mpcd'):
-                return self._cpp_obj.mpcd
-            else:
-                return None
+            return self._cpp_obj.mpcd
         else:
-            raise RuntimeError('Snapshot data is only present on rank 0')
+            raise RuntimeError("Snapshot data is only present on rank 0")
 
     @classmethod
     def _from_cpp_snapshot(cls, snapshot, communicator):

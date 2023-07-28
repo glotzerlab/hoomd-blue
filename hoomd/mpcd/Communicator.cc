@@ -184,6 +184,11 @@ void mpcd::Communicator::initializeNeighborArrays()
  */
 void mpcd::Communicator::communicate(uint64_t timestep)
     {
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     if (m_is_communicating)
         {
         m_exec_conf->msg->warning()

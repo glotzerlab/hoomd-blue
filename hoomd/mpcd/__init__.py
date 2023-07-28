@@ -170,11 +170,7 @@ class integrator():
         if self.aniso is not None:
             self.set_params(aniso=aniso)
 
-    _aniso_modes = {
-        #None: _md.IntegratorAnisotropicMode.Automatic,
-        #True: _md.IntegratorAnisotropicMode.Anisotropic,
-        #False: _md.IntegratorAnisotropicMode.Isotropic
-    }
+    _aniso_modes = {}
 
     def set_params(self, dt=None, aniso=None):
         """ Changes parameters of an existing integration mode.
