@@ -167,6 +167,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
         shape = typename Shape::param_type(shape_dict);
         }
+
     void retreat(uint64_t timestep, unsigned int type)
         {
         // move has been rejected.
