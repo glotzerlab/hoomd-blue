@@ -37,8 +37,7 @@ and similarly for virials.
 """
 
 import hoomd
-from hoomd import md  # required because hoomd.md is not yet available
-
+from hoomd.md import _md
 
 class Improper(md.force.Force):
     """Base class improper force.
@@ -49,6 +48,10 @@ class Improper(md.force.Force):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
 
     def __init__(self):
         super().__init__()
@@ -62,9 +65,9 @@ class Improper(md.force.Force):
 
         # Instantiate the c++ implementation.
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_class = getattr(hoomd.md._md, self._cpp_class_name)
+            cpp_class = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cpp_class = getattr(hoomd.md._md, self._cpp_class_name + "GPU")
+            cpp_class = getattr(self._ext_module, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
 
