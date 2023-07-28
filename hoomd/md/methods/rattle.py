@@ -271,11 +271,12 @@ class Langevin(MethodRATTLE):
     def __init__(self,
                  filter,
                  kT,
+                 manifold_constraint,
                  default_gamma=1.0,
                  default_gamma_r=(1.0, 1.0, 1.0),
                  tally_reservoir_energy=False,
                  tolerance=0.000001,
-                 manifold_constraint):
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -392,9 +393,9 @@ class Brownian(MethodRATTLE):
             self,
             filter,
             kT,
+            manifold_constraint,
             default_gamma=1.0,
             default_gamma_r=(1.0, 1.0, 1.0),
-            manifold_constraint,
             tolerance=1e-6
     ):
 
@@ -506,9 +507,9 @@ class OverdampedViscous(MethodRATTLE):
     def __init__(
             self,
             filter,
+            manifold_constraint,
             default_gamma=1.0,
             default_gamma_r=(1.0, 1.0, 1.0),
-            manifold_constraint,
             tolerance=1e-6
     ):
         # store metadata

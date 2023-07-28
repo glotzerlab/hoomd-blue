@@ -329,10 +329,10 @@ class TestMethods:
         }),
         (hoomd.md.methods.OverdampedViscous, {}),
         (hoomd.md.methods.rattle.Brownian, {
-            'kT': 1.5, 'manifold_constraint'=sphere
+            'kT': 1.5, 'manifold_constraint': sphere
         }),
         (hoomd.md.methods.rattle.Langevin, {
-            'kT': 1.5, 'manifold_constraint'=sphere
+            'kT': 1.5, 'manifold_constraint': sphere
         }),
         (hoomd.md.methods.rattle.OverdampedViscous, {})
     ])
