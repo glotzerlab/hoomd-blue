@@ -146,10 +146,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
             Scalar stepsize = this->m_step_size[type_id];
-            Scalar a = -stepsize;
-            Scalar b = stepsize;
-
-            hoomd::UniformDistribution<Scalar> uniform(a, b);
+            hoomd::UniformDistribution<Scalar> uniform(-stepsize, stepsize);
             Scalar r = hoomd::detail::generate_canonical<double>(rng);
             Scalar x = (r < this->m_move_probability) ? uniform(rng) : 0.0;
             // Reflect trial moves about boundaries
