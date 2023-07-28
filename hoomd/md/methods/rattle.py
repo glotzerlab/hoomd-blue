@@ -206,6 +206,12 @@ class Langevin(MethodRATTLE):
         kT (hoomd.variant.variant_like): Temperature of the simulation
             :math:`[\mathrm{energy}]`.
 
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
+
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
@@ -235,8 +241,7 @@ class Langevin(MethodRATTLE):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         langevin_rattle = hoomd.md.methods.rattle.Langevin(
-            filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere,
-            seed=1)
+            filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere)
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to apply this
@@ -266,6 +271,8 @@ class Langevin(MethodRATTLE):
     def __init__(self,
                  filter,
                  kT,
+                 default_gamma=1.0,
+                 default_gamma_r=(1.0, 1.0, 1.0),
                  manifold_constraint,
                  tally_reservoir_energy=False,
                  tolerance=0.000001):
@@ -283,11 +290,13 @@ class Langevin(MethodRATTLE):
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
                               param_dict=TypeParameterDict(1., len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
                                 param_dict=TypeParameterDict((1., 1., 1.),
                                                              len_keys=1))
+        gamma_r.default = default_gamma_r
 
         self._extend_typeparam([gamma, gamma_r])
 
@@ -324,6 +333,12 @@ class Brownian(MethodRATTLE):
         kT (hoomd.variant.variant_like): Temperature of the simulation
             :math:`[\mathrm{energy}]`.
 
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
+
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
@@ -344,8 +359,7 @@ class Brownian(MethodRATTLE):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         brownian_rattle = hoomd.md.methods.rattle.Brownian(
-        filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere,
-        seed=1)
+        filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
         forces=[lj])
 
@@ -374,7 +388,15 @@ class Brownian(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, manifold_constraint, tolerance=1e-6):
+    def __init__(
+            self,
+            filter,
+            kT,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+            manifold_constraint,
+            tolerance=1e-6
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -389,11 +411,14 @@ class Brownian(MethodRATTLE):
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
                               param_dict=TypeParameterDict(1., len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
                                 param_dict=TypeParameterDict((1., 1., 1.),
                                                              len_keys=1))
+        gamma_r.default = default_gamma_r
+
         self._extend_typeparam([gamma, gamma_r])
 
         super().__init__(manifold_constraint, tolerance)
@@ -426,6 +451,12 @@ class OverdampedViscous(MethodRATTLE):
         filter (hoomd.filter.filter_like): Subset of particles to apply this
             method to.
 
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
+
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
         tolerance (float): Defines the tolerated error particles are allowed to
@@ -445,7 +476,7 @@ class OverdampedViscous(MethodRATTLE):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         odv_rattle = hoomd.md.methods.rattle.OverdampedViscous(
-            filter=hoomd.filter.All(), manifold_constraint=sphere, seed=1)
+            filter=hoomd.filter.All(), manifold_constraint=sphere)
         integrator = hoomd.md.Integrator(
             dt=0.001, methods=[odv_rattle], forces=[lj])
 
@@ -472,7 +503,14 @@ class OverdampedViscous(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, manifold_constraint, tolerance=1e-6):
+    def __init__(
+            self,
+            filter,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+            manifold_constraint,
+            tolerance=1e-6
+    ):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
         param_dict.update(dict(filter=filter))
@@ -483,11 +521,14 @@ class OverdampedViscous(MethodRATTLE):
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
                               param_dict=TypeParameterDict(1., len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
                                 param_dict=TypeParameterDict((1., 1., 1.),
                                                              len_keys=1))
+        gamma_r.default = default_gamma_r
+
         self._extend_typeparam([gamma, gamma_r])
 
         super().__init__(manifold_constraint, tolerance)
