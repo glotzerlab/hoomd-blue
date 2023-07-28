@@ -37,6 +37,7 @@ and similarly for virials.
 """
 
 import hoomd
+from hoomd import md
 from hoomd.md import _md
 
 class Improper(md.force.Force):
