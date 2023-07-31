@@ -120,7 +120,7 @@ public:
                     }
             }
 
-        pybind11::dict toPython()
+        pybind11::object toPython()
             {
                 pybind11::list envelope_py;
                 for (size_t i = 0; i < envelope.size();  i++)
@@ -326,7 +326,7 @@ public:
         }
     static std::string getShapeParamName()
         {
-        return "Envelope";
+        return "Patches";
         }
     std::string getShapeSpec() const
         {
