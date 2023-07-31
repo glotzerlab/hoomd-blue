@@ -17,7 +17,7 @@ frame.bonds.types = ['A-A']
 frame.bonds.typeid = [0] * 4
 frame.bonds.group = [[0, 1], [1, 2], [2, 3], [3, 4]]
 
-with gsd.hoomd.open(name='molecular.gsd', mode='xb') as f:
+with gsd.hoomd.open(name='molecular.gsd', mode='x') as f:
     f.append(frame)
 
 # Apply the harmonic potential on the bonds.

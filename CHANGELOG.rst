@@ -7,6 +7,32 @@ Change Log
 4.x
 ---
 
+4.0.1 (2023-06-27)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Prevent ``ValueError: signal only works in main thread of the main interpreter`` when importing
+  hoomd in a non-main thread
+  (`#1576 <https://github.com/glotzerlab/hoomd-blue/pull/1576>`__).
+* The recommended conda install commands find the documented version
+  (`#1578 <https://github.com/glotzerlab/hoomd-blue/pull/1578>`__).
+* CMake completes without error when ``HOOMD_GPU_PLATFORM=HIP``
+  (`#1579 <https://github.com/glotzerlab/hoomd-blue/pull/1579>`__).
+* Tests pass with GSD 3.0.0 installed
+  (`#1577 <https://github.com/glotzerlab/hoomd-blue/pull/1577>`__).
+* Provide full CUDA error message when possible
+  (`#1581 <https://github.com/glotzerlab/hoomd-blue/pull/1581>`__).
+* Notice level 4 gives additional GPU initialization details
+  (`#1581 <https://github.com/glotzerlab/hoomd-blue/pull/1581>`__).
+* Show particle out of bounds error messages in exception description
+  (`#1581 <https://github.com/glotzerlab/hoomd-blue/pull/1581>`__).
+
+*Changed*
+
+* Package source in ``hoomd-x.y.z.tar.gz`` (previously ``hoomd-vx.y.z.tar.gz``)
+  (`#1572 <https://github.com/glotzerlab/hoomd-blue/pull/1572>`__).
+
 4.0.0 (2023-06-06)
 ^^^^^^^^^^^^^^^^^^
 

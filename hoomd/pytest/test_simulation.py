@@ -231,6 +231,9 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
         else:
             snapshot_dict[step] = None
 
+    if device.communicator.rank == 0:
+        f.close()
+
     for step, snap in snapshot_dict.items():
         sim = simulation_factory()
         sim.create_state_from_gsd(filename, frame=step)
