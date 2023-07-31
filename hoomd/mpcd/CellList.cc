@@ -38,13 +38,6 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_decomposition = m_pdata->getDomainDecomposition();
     m_num_extra = 0;
     m_cover_box = m_pdata->getBox();
-
-    if (m_sysdef->isDomainDecomposed())
-        {
-        auto comm_weak = m_sysdef->getCommunicator();
-        assert(comm_weak.lock());
-        m_comm = comm_weak.lock();
-        }
 #endif // ENABLE_MPI
 
     m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
@@ -92,8 +85,13 @@ void mpcd::CellList::compute(uint64_t timestep)
         // exchange embedded particles if necessary
         if (m_sysdef->isDomainDecomposed() && needsEmbedMigrate(timestep))
             {
-            m_comm->forceMigrate();
-            m_comm->communicate(timestep);
+            auto comm = m_sysdef->getCommunicator().lock();
+            if (!comm)
+                {
+                throw std::runtime_error("Embedded particle communicator needed but not set");
+                }
+            comm->forceMigrate();
+            comm->communicate(timestep);
             }
 #endif // ENABLE_MPI
 
