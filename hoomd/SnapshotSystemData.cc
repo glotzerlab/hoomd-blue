@@ -61,11 +61,11 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
 
 #ifdef ENABLE_MPCD
     // MPCD particles
-    for (unsigned int i=0; i < mpcd_data.size; ++i)
+    for (unsigned int i = 0; i < mpcd_data.size; ++i)
         {
         auto const frac = global_box->makeFraction(mpcd_data.position[i]);
-        auto modulus_positive
-            = [](Scalar x) { return std::fmod(std::fmod(x, Scalar(1.0)) + Scalar(1.0), Scalar(1.0)); };
+        auto modulus_positive = [](Scalar x)
+        { return std::fmod(std::fmod(x, Scalar(1.0)) + Scalar(1.0), Scalar(1.0)); };
         auto const wrapped = vec3<Scalar>(modulus_positive(static_cast<Scalar>(frac.x)),
                                           modulus_positive(static_cast<Scalar>(frac.y)),
                                           modulus_positive(static_cast<Scalar>(frac.z)));

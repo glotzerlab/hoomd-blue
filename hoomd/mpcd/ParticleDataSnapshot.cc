@@ -163,33 +163,40 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
     pybind11::class_<mpcd::ParticleDataSnapshot, std::shared_ptr<mpcd::ParticleDataSnapshot>>(
         m,
         "MPCDParticleDataSnapshot")
-        .def_property_readonly("position", [](pybind11::object self)
+        .def_property_readonly(
+            "position",
+            [](pybind11::object self)
             {
-            auto self_cpp = self.cast<ParticleDataSnapshot*>();
+                auto self_cpp = self.cast<ParticleDataSnapshot*>();
 
-            std::vector<ssize_t> dims(2);
-            dims[0] = self_cpp->position.size();
-            dims[1] = 3;
-            return pybind11::array(dims, (Scalar*)&self_cpp->position[0], self);
+                std::vector<ssize_t> dims(2);
+                dims[0] = self_cpp->position.size();
+                dims[1] = 3;
+                return pybind11::array(dims, (Scalar*)&self_cpp->position[0], self);
             })
-        .def_property_readonly("velocity", [](pybind11::object self)
+        .def_property_readonly(
+            "velocity",
+            [](pybind11::object self)
             {
-            auto self_cpp = self.cast<ParticleDataSnapshot*>();
+                auto self_cpp = self.cast<ParticleDataSnapshot*>();
 
-            std::vector<ssize_t> dims(2);
-            dims[0] = self_cpp->velocity.size();
-            dims[1] = 3;
-            return pybind11::array(dims, (Scalar*)&self_cpp->velocity[0], self);
+                std::vector<ssize_t> dims(2);
+                dims[0] = self_cpp->velocity.size();
+                dims[1] = 3;
+                return pybind11::array(dims, (Scalar*)&self_cpp->velocity[0], self);
             })
-        .def_property_readonly("typeid", [](pybind11::object self)
+        .def_property_readonly(
+            "typeid",
+            [](pybind11::object self)
             {
-            auto self_cpp = self.cast<ParticleDataSnapshot*>();
-            return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
+                auto self_cpp = self.cast<ParticleDataSnapshot*>();
+                return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
             })
         .def_readwrite("mass", &mpcd::ParticleDataSnapshot::mass)
-        .def_property("types",
+        .def_property(
+            "types",
             [](pybind11::object self)
-                {
+            {
                 auto self_cpp = self.cast<ParticleDataSnapshot*>();
                 pybind11::list py_types;
                 for (unsigned int i = 0; i < self_cpp->type_mapping.size(); ++i)
@@ -197,23 +204,20 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
                     py_types.append(pybind11::str(self_cpp->type_mapping[i]));
                     }
                 return py_types;
-                },
+            },
             [](pybind11::object self, pybind11::list types)
-                {
+            {
                 auto self_cpp = self.cast<ParticleDataSnapshot*>();
                 self_cpp->type_mapping.resize(len(types));
                 for (unsigned int i = 0; i < len(types); ++i)
                     {
                     self_cpp->type_mapping[i] = pybind11::cast<std::string>(types[i]);
                     }
-                })
-        .def_property("N",
-            [](pybind11::object self)
-                {
-                return self.cast<ParticleDataSnapshot*>()->size;
-                },
-            &mpcd::ParticleDataSnapshot::resize
-            );
+            })
+        .def_property(
+            "N",
+            [](pybind11::object self) { return self.cast<ParticleDataSnapshot*>()->size; },
+            &mpcd::ParticleDataSnapshot::resize);
     }
 
     } // end namespace hoomd
