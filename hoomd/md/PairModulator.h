@@ -99,12 +99,10 @@ public:
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
             envelope.load_shared(ptr, available_bytes);
-            m_ns.load_shared(ptr, available_bytes);
 }
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
             envelope.allocate_shared(ptr, available_bytes);
-            m_ns.allocate_shared(ptr, available_bytes);
 }
 
         HOSTDEVICE shape_type() { }
@@ -112,9 +110,9 @@ public:
 #ifndef __HIPCC__
 
         shape_type(pybind11::object shape_params, bool managed)
-            : envelope(pybind11::len(shape_params["envelope"]), managed)
+            : envelope(pybind11::len(shape_params), managed)
             {
-                pybind11::list shape_param = shape_params["envelope"];
+                pybind11::list shape_param = shape_params;
                 for (size_t i = 0; i < pybind11::len(shape_param); i++)
                     {
 
@@ -125,13 +123,11 @@ public:
         pybind11::dict toPython()
             {
                 pybind11::list envelope_py;
-                pybind11::dict v;
                 for (size_t i = 0; i < envelope.size();  i++)
                     {
                         envelope_py.append(envelope[int(i)].toPython());
                     }
-                v["envelope"] = envelope_py;
-                return v;
+                return envelope_py;
             }
 #endif
 
@@ -139,11 +135,9 @@ public:
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const {
             envelope.set_memory_hint()
-                m_ns.set_memory_hint()
 }
 #endif
         ManagedArray<typename DirectionalEnvelope::shape_type> envelope;
-        ManagedArray<Scalar3> m_ns;
     };
 
     //! Constructs the pair potential evaluator

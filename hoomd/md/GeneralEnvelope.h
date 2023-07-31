@@ -65,65 +65,31 @@ public:
 
     struct shape_type
     {
-        //! Load dynamic data members into shared memory and increase pointer
-        /*! \param ptr Pointer to load data to (will be incremented)
-          \param available_bytes Size of remaining shared memory allocation
-        */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
-            m_ns.load_shared(ptr, available_bytes);
-        }
-
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {
-            m_ns.allocate_shared(ptr, available_bytes);
-        }
-
         HOSTDEVICE shape_type() { }
 
 #ifndef __HIPCC__
 
-        shape_type(pybind11::object shape_params, bool managed)
+        shape_type(pybind11::object patch_location)
             {
-            pybind11::list patch_locations = shape_params;
+            pybind11::tuple n_py = patch_locations[i];
+            if (len(n_py) != 3)
+                throw std::runtime_error("Each patch position must have 3 elements");
+            vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
+                                            pybind11::cast<Scalar>(n_py[1]),
+                                            pybind11::cast<Scalar>(n_py[2]));
 
-            m_ns = ManagedArray<Scalar3>(static_cast<unsigned int>(pybind11::len(patch_locations)), managed);
-
-            for (size_t i = 0; i < pybind11::len(patch_locations); ++i){
-                pybind11::tuple n_py = patch_locations[i];
-                if (len(n_py) != 3)
-                    throw std::runtime_error("Each patch position must have 3 elements");
-                vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
-                                              pybind11::cast<Scalar>(n_py[1]),
-                                              pybind11::cast<Scalar>(n_py[2]));
-
-                // normalize
-                n = n * fast::rsqrt(dot(n, n));
-                m_ns[int(i)] = vec_to_scalar3(n);
-            }
-
+            // normalize
+            n = n * fast::rsqrt(dot(n, n));
+            m_n = vec_to_scalar3(n);
             }
 
         pybind11::object toPython()
             {
-                pybind11::list l;
-                // std::vec of vec3 to list of tuples
-
-                for (size_t i = 0; i < m_ns.size(); ++i) {
-                    auto n_py = pybind11::make_tuple(m_ns[int(i)].x,
-                                                     m_ns[int(i)].y,
-                                                     m_ns[int(i)].z);
-                    l[i] = n_py;
-                }
-                return std::move(l);
+            return pybind11::make_tuple(m_n.x, m_n.y, m_n.z);
             }
 #endif
 
-#ifdef ENABLE_HIP
-        //! Attach managed memory to CUDA stream
-        void set_memory_hint() const {
-            m_ns.set_memory_hint();
-        }
-#endif
-        ManagedArray<Scalar3> m_ns;
+        Scalar3 m_n;
     };
 
     DEVICE GeneralEnvelope( // TODO: Change name to PatchModulator. It is not general. It assumes a single off-center patch
@@ -132,9 +98,9 @@ public:
         const Scalar4& _quat_j,
         const Scalar _rcutsq,
         const param_type& _params,
-        const Scalar3& _n_i,
-        const Scalar3& _n_j)
-        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(_n_i), n_j(_n_j)
+        const shape_type& shape_i,
+        const shape_type& shape_j)
+        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
         {
             // compute current janus direction vectors
 
