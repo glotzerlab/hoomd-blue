@@ -71,7 +71,7 @@ public:
 
         shape_type(pybind11::object patch_location)
             {
-            pybind11::tuple n_py = patch_locations[i];
+            pybind11::tuple n_py = patch_location;
             if (len(n_py) != 3)
                 throw std::runtime_error("Each patch position must have 3 elements");
             vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
