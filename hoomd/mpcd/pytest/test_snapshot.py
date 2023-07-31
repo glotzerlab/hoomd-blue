@@ -10,13 +10,15 @@ import pytest
 test_positions = np.array([[1, 2, 3], [-9, -6, -3], [7, 8, 9]])
 test_velocities = np.array([[-1, -2, -3], [4, 5, 6], [-7, -8, -9]])
 test_typeids = np.array([1, 0, 2])
-test_types = ['M', 'P', 'H']
+test_types = ["M", "P", "H"]
 test_mass = 1.5
 
 
 @pytest.fixture
 def snap():
-    return hoomd.Snapshot()
+    snap_ = hoomd.Snapshot()
+    snap_.configuration.box = [20, 20, 20, 0, 0, 0]
+    return snap_
 
 
 def test_make(snap):
@@ -39,6 +41,7 @@ def test_make(snap):
         np.testing.assert_array_equal(snap.mpcd.typeid, np.zeros(3))
 
         # test setting values in the snapshot
+        snap.mpcd.N = test_positions.shape[0]
         snap.mpcd.position[:] = tuple(test_positions)
         snap.mpcd.velocity[:] = list(test_velocities)
         snap.mpcd.typeid[:] = test_typeids
@@ -63,7 +66,7 @@ def test_resize(snap):
         np.testing.assert_array_equal(snap.mpcd.velocity, [test_velocities[0]])
         np.testing.assert_array_equal(snap.mpcd.typeid, [test_typeids[0]])
 
-        # # grow the snapshot by one, and make sure first entry is retained, and it is padded by zeros
+        # grow the snapshot by one, and make sure first entry is retained, and it is padded by zeros
         snap.mpcd.N = 2
         np.testing.assert_array_equal(snap.mpcd.position,
                                       [test_positions[0], [0, 0, 0]])
@@ -71,8 +74,8 @@ def test_resize(snap):
                                       [test_velocities[0], [0, 0, 0]])
         np.testing.assert_array_equal(snap.mpcd.typeid, [test_typeids[0], 0])
 
-        # # grow the snapshot to the "standard" size and fill it back in
-        snap.mpcd.N = 3
+        # grow the snapshot to the "standard" size and fill it back in
+        snap.mpcd.N = test_positions.shape[0]
         snap.mpcd.position[:] = test_positions
         snap.mpcd.velocity[:] = test_velocities
         snap.mpcd.typeid[:] = test_typeids
@@ -80,7 +83,7 @@ def test_resize(snap):
         np.testing.assert_array_equal(snap.mpcd.velocity, test_velocities)
         np.testing.assert_array_equal(snap.mpcd.typeid, test_typeids)
 
-        # # resize down one, and make sure the first two entries are retained
+        # resize down one, and make sure the first two entries are retained
         snap.mpcd.N = 2
         np.testing.assert_array_equal(snap.mpcd.position, test_positions[:2])
         np.testing.assert_array_equal(snap.mpcd.velocity, test_velocities[:2])
@@ -88,13 +91,13 @@ def test_resize(snap):
 
 
 def test_replicate(snap):
-    L = 5.
+    L = 5.0
 
     # initial configuration is a system with two particles
-    pos0 = np.array([[-2, 0.5, -1], [2., -0.5, 1]])
+    pos0 = np.array([[-2, 0.5, -1], [2.0, -0.5, 1]])
     vel0 = [[1, 2, 3], [4, 5, 6]]
     typeid0 = [1, 0]
-    types0 = ['A', 'B']
+    types0 = ["A", "B"]
     nx, ny, nz = 2, 3, 4
     if snap.communicator.rank == 0:
         snap.configuration.box = [L, L, L, 0, 0, 0]
@@ -104,25 +107,24 @@ def test_replicate(snap):
         snap.mpcd.typeid[:] = typeid0
         snap.mpcd.types = types0
 
-        # replicate the system before initialization
-        snap.replicate(nx=nx, ny=ny, nz=nz)
+    snap.replicate(nx=nx, ny=ny, nz=nz)
 
-    # replicate the numpy position array along x, y, and z
-    pos1 = []
-    vel1 = []
-    typeid1 = []
-    new_origin = L * np.array([nx / 2, ny / 2, nz / 2])
-    for i in range(0, nx):
-        for j in range(0, ny):
-            for k in range(0, nz):
-                for r, v, tid in zip(pos0, vel0, typeid0):
-                    dr = np.array([i * L, j * L, k * L])
-                    pos1 += [list(r + dr + 0.5 * L - new_origin)]
-                    vel1 += [v]
-                    typeid1 += [tid]
-
-    scale = nx * ny * nz
     if snap.communicator.rank == 0:
+        # replicate the numpy position array along x, y, and z
+        pos1 = []
+        vel1 = []
+        typeid1 = []
+        new_origin = L * np.array([nx / 2, ny / 2, nz / 2])
+        for i in range(0, nx):
+            for j in range(0, ny):
+                for k in range(0, nz):
+                    for r, v, tid in zip(pos0, vel0, typeid0):
+                        dr = np.array([i * L, j * L, k * L])
+                        pos1 += [list(r + dr + 0.5 * L - new_origin)]
+                        vel1 += [v]
+                        typeid1 += [tid]
+
+        scale = nx * ny * nz
         assert snap.mpcd.N == len(pos0) * scale
         np.testing.assert_allclose(snap.mpcd.position, pos1)
         np.testing.assert_allclose(snap.mpcd.velocity, vel1)
@@ -133,17 +135,16 @@ def test_replicate(snap):
 def test_create_from_snap(snap, simulation_factory):
     # set snap values and initialize
     if snap.communicator.rank == 0:
-        snap.mpcd.N = 3
-        snap.mpcd.position[:] = tuple(test_positions)
-        snap.mpcd.velocity[:] = list(test_velocities)
+        snap.mpcd.N = test_positions.shape[0]
+        snap.mpcd.position[:] = test_positions
+        snap.mpcd.velocity[:] = test_velocities
         snap.mpcd.typeid[:] = test_typeids
         snap.mpcd.types = test_types
         snap.mpcd.mass = test_mass
-        sim = simulation_factory()
-        sim.create_state_from_snapshot(snap)
-        pdata = sim._state._cpp_sys_def.getMPCDParticleData()
+    sim = simulation_factory(snap, (1, 1, 2))
 
     # reap all of the particle data into checkable list sorted by tag
+    pdata = sim._state._cpp_sys_def.getMPCDParticleData()
     dat = []
     for i in range(0, pdata.N):
         pos_i = pdata.getPosition(i)
@@ -158,35 +159,39 @@ def test_create_from_snap(snap, simulation_factory):
     # now we do a per-processor check
     if snap.communicator.num_ranks > 1:
         if snap.communicator.rank == 0:
-            assert (dat[0, 0] == 1)
-            np.testing.assert_array_equal(dat[0, 1:4], snap.mpcd.position[1])
-            np.testing.assert_array_equal(dat[0, 4:7], snap.mpcd.velocity[1])
-            assert (dat[0, 7] == snap.mpcd.typeid[1])
+            assert dat[0, 0] == 1
+            np.testing.assert_array_equal(dat[0, 1:4], test_positions[1])
+            np.testing.assert_array_equal(dat[0, 4:7], test_velocities[1])
+            assert dat[0, 7] == test_typeids[1]
         else:
             np.testing.assert_array_equal(dat[:, 0], [0, 2])
-            np.testing.assert_array_equal(dat[:, 1:4], snap.mpcd.position[0::2])
-            np.testing.assert_array_equal(dat[:, 4:7], snap.mpcd.velocity[0::2])
-            np.testing.assert_array_equal(dat[:, 7], snap.mpcd.typeid[0::2])
+            np.testing.assert_array_equal(dat[:, 1:4], test_positions[0::2])
+            np.testing.assert_array_equal(dat[:, 4:7], test_velocities[0::2])
+            np.testing.assert_array_equal(dat[:, 7], test_typeids[0::2])
     else:
         np.testing.assert_array_equal(dat[:, 0], [0, 1, 2])
-        np.testing.assert_array_equal(dat[:, 1:4], snap.mpcd.position)
-        np.testing.assert_array_equal(dat[:, 4:7], snap.mpcd.velocity)
-        np.testing.assert_array_equal(dat[:, 7], snap.mpcd.typeid)
+        np.testing.assert_array_equal(dat[:, 1:4], test_positions)
+        np.testing.assert_array_equal(dat[:, 4:7], test_velocities)
+        np.testing.assert_array_equal(dat[:, 7], test_typeids)
 
 
 def test_take_restore(snap, simulation_factory):
     # set snapshot values
     if snap.communicator.rank == 0:
-        snap.mpcd.N = 3
+        snap.mpcd.N = test_positions.shape[0]
         snap.mpcd.position[:] = test_positions
         snap.mpcd.velocity[:] = test_velocities
         snap.mpcd.typeid[:] = test_typeids
         snap.mpcd.types = test_types
         snap.mpcd.mass = test_mass
+    sim = simulation_factory(snap, (1, 1, 2))
 
-    # initialize simulation
-    sim = simulation_factory()
-    sim.create_state_from_snapshot(snap)
+    # shuffle snap values and set simulation to those values
+    targets = {}
+    targets["position"] = 0.5 * np.roll(test_positions, 1, axis=0)
+    targets["velocity"] = 2.0 * np.roll(test_velocities, 1, axis=0)
+    targets["typeid"] = np.roll(test_typeids, 1, axis=0)
+    targets["mass"] = 0.9
 
     # take a snapshot and validate that the data matches what we fed in
     snap = sim.state.get_snapshot()
@@ -197,22 +202,14 @@ def test_take_restore(snap, simulation_factory):
         np.testing.assert_array_equal(snap.mpcd.types, test_types)
         assert snap.mpcd.mass == test_mass
 
-    #shuffle snap values and set simulation to those values
-    targets = {}
-    targets['position'] = 0.5 * np.roll(snap.mpcd.position, 1, axis=0)
-    targets['velocity'] = 2.0 * np.roll(snap.mpcd.velocity, 1, axis=0)
-    targets['typeid'] = np.roll(snap.mpcd.typeid, 1, axis=0)
-    targets['mass'] = 0.9
-    if snap.communicator.rank == 0:
-        snap.mpcd.position[:] = targets['position']
-        snap.mpcd.velocity[:] = targets['velocity']
-        snap.mpcd.typeid[:] = targets['typeid']
-        snap.mpcd.mass = targets['mass']
+        snap.mpcd.position[:] = targets["position"]
+        snap.mpcd.velocity[:] = targets["velocity"]
+        snap.mpcd.typeid[:] = targets["typeid"]
+        snap.mpcd.mass = targets["mass"]
     sim.state.set_snapshot(snap)
 
-    pdata = sim._state._cpp_sys_def.getMPCDParticleData()
-
     # reap all of the particle data into checkable list sorted by tag
+    pdata = sim._state._cpp_sys_def.getMPCDParticleData()
     dat = []
     for i in range(0, pdata.N):
         pos_i = pdata.getPosition(i)
@@ -227,28 +224,28 @@ def test_take_restore(snap, simulation_factory):
     # now we do a per-processor check
     if snap.communicator.num_ranks > 1:
         if snap.communicator.rank == 0:
-            assert (dat[0, 0] == 1)
-            np.testing.assert_array_equal(dat[0, 1:4], snap.mpcd.position[1])
-            np.testing.assert_array_equal(dat[0, 4:7], snap.mpcd.velocity[1])
-            assert (dat[0, 7] == snap.mpcd.typeid[1])
+            assert dat[0, 0] == 2
+            np.testing.assert_array_equal(dat[0, 1:4], targets["position"][2])
+            np.testing.assert_array_equal(dat[0, 4:7], targets["velocity"][2])
+            assert dat[0, 7] == targets["typeid"][2]
         else:
-            np.testing.assert_array_equal(dat[:, 0], [0, 2])
-            np.testing.assert_array_equal(dat[:, 1:4], snap.mpcd.position[0::2])
-            np.testing.assert_array_equal(dat[:, 4:7], snap.mpcd.velocity[0::2])
-            np.testing.assert_array_equal(dat[:, 7], snap.mpcd.typeid[0::2])
+            np.testing.assert_array_equal(dat[:, 0], [0, 1])
+            np.testing.assert_array_equal(dat[:, 1:4], targets["position"][0:2])
+            np.testing.assert_array_equal(dat[:, 4:7], targets["velocity"][0:2])
+            np.testing.assert_array_equal(dat[:, 7], targets["typeid"][0:2])
     else:
         np.testing.assert_array_equal(dat[:, 0], [0, 1, 2])
-        np.testing.assert_array_equal(dat[:, 1:4], snap.mpcd.position)
-        np.testing.assert_array_equal(dat[:, 4:7], snap.mpcd.velocity)
-        np.testing.assert_array_equal(dat[:, 7], snap.mpcd.typeid)
+        np.testing.assert_array_equal(dat[:, 1:4], targets["position"])
+        np.testing.assert_array_equal(dat[:, 4:7], targets["velocity"])
+        np.testing.assert_array_equal(dat[:, 7], targets["typeid"])
 
 
 # test for typeid out of range
 def test_bad_typeid(snap, simulation_factory):
     if snap.communicator.rank == 0:
-        snap.mpcd.N = 3
+        snap.mpcd.N = test_positions.shape[0]
         snap.mpcd.typeid[:] = test_typeids
-        snap.mpcd.types = ['A', 'B']
+        snap.mpcd.types = ["A", "B"]
     sim = simulation_factory()
     with pytest.raises(RuntimeError):
         sim.create_state_from_snapshot(snap)
@@ -258,7 +255,7 @@ def test_bad_typeid(snap, simulation_factory):
 def test_bad_positions(snap, simulation_factory):
     if snap.communicator.rank == 0:
         snap.mpcd.N = 2
-        snap.mpcd.position[1] = [11., 0., 0.]
-        sim = simulation_factory()
+        snap.mpcd.position[1] = [11.0, 0.0, 0.0]
+    sim = simulation_factory()
     with pytest.raises(RuntimeError):
         sim.create_state_from_snapshot(snap)
