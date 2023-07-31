@@ -21,8 +21,6 @@ set(files __init__.py
     test_improper.py
     test_integrate.py
     test_kernel_parameters.py
-    test_potential.py
-    test_pppm_coulomb.py
     test_manifolds.py
     test_meta_wall_list.py
     test_methods.py
@@ -44,7 +42,7 @@ set(files __init__.py
     test_wall_potential.py
     test_zero_momentum.py
     true_pair_list.json
-  aniso_forces_and_energies.json
+    aniso_forces_and_energies.json
     test_burst_writer.py
     )
 
