@@ -709,7 +709,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(4.0, 2.0, 1.0);
     snap->particle_data.type_mapping.push_back("A");
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    // initialize a 4x2x1 domain decomposition
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box->getL(), 4, 2, 1));
 

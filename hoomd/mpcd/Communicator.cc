@@ -622,7 +622,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
     if (grid_size.x > 1)
         {
         // exclusive or, it doesn't make sense for both these conditions to be true
-        assert((hi.x > global_hi.x) != (lo.x < global_lo.x));
+        assert(!(hi.x > global_hi.x && lo.x < global_lo.x));
 
         if (hi.x > global_hi.x)
             shift.x = hi.x - global_hi.x;
@@ -631,7 +631,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
         }
     if (grid_size.y > 1)
         {
-        assert((hi.y > global_hi.y) != (lo.y < global_lo.y));
+        assert(!(hi.y > global_hi.y && lo.y < global_lo.y));
 
         if (hi.y > global_hi.y)
             shift.y = hi.y - global_hi.y;
@@ -640,7 +640,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
         }
     if (grid_size.z > 1)
         {
-        assert((hi.z > global_hi.z) != (lo.z < global_lo.z));
+        assert(!(hi.z > global_hi.z && lo.z < global_lo.z));
 
         if (hi.z > global_hi.z)
             shift.z = hi.z - global_hi.z;
