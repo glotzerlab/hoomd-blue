@@ -953,57 +953,43 @@ base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef, unsign
     return std::shared_ptr<mpcd::Communicator>(new mpcd::Communicator(sysdef));
     }
 
+UP_SUITE_BEGIN(cpu_tests)
+
 UP_TEST(mpcd_communicator_migrate_test)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU));
 
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(2.0), 3);
+    test_communicator_migrate(communicator_creator_base, exec_conf_cpu, BoxDim(2.0), 3);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0, 2.0, 3.0), 3);
+    test_communicator_migrate(communicator_creator_base, exec_conf_cpu, BoxDim(1.0, 2.0, 3.0), 3);
     }
 
 UP_TEST(mpcd_communicator_migrate_ortho_test)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU));
 
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_migrate_ortho(communicator_creator_base, exec_conf, 3);
+    test_communicator_migrate_ortho(communicator_creator_base, exec_conf_cpu, 3);
     }
 
 UP_TEST(mpcd_communicator_overdecompose_test)
     {
-        // two ranks in any direction
-        {
-        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>());
-        exec_conf->getMPIConfig()->splitPartitions(2);
-        test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 1, 2, false);
-        }
-        // four ranks in any direction
-        {
-        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>());
-        exec_conf->getMPIConfig()->splitPartitions(4);
-        test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 1, 4, false);
-        }
-        // eight ranks in any direction
-        {
-        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>());
-        exec_conf->getMPIConfig()->splitPartitions(8);
-        test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
-        test_communicator_overdecompose(exec_conf, 1, 8, 1, true);
-        test_communicator_overdecompose(exec_conf, 1, 1, 8, true);
-        }
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU));
+
+    test_communicator_overdecompose(exec_conf_cpu, 8, 1, 1, true);
+    test_communicator_overdecompose(exec_conf_cpu, 1, 8, 1, true);
+    test_communicator_overdecompose(exec_conf_cpu, 1, 1, 8, true);
     }
+UP_SUITE_END()
+
 #ifdef ENABLE_HIP
 std::shared_ptr<mpcd::Communicator>
 gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef, unsigned int nstages)
@@ -1014,58 +1000,68 @@ gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef, unsigned int 
     return comm;
     }
 
+UP_SUITE_BEGIN(gpu_tests)
+
 UP_TEST(mpcd_communicator_migrate_test_GPU_one_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(2.0), 1);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(2.0), 1);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(1.0, 2.0, 3.0), 1);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(1.0, 2.0, 3.0), 1);
     }
 
 UP_TEST(mpcd_communicator_migrate_test_GPU_two_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(2.0), 2);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(2.0), 2);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(1.0, 2.0, 3.0), 2);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(1.0, 2.0, 3.0), 2);
     }
 
 UP_TEST(mpcd_communicator_migrate_test_GPU_three_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(2.0), 3);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(2.0), 3);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(1.0, 2.0, 3.0), 3);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(1.0, 2.0, 3.0), 3);
     }
 
 UP_TEST(mpcd_communicator_migrate_ortho_test_GPU_one_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 1);
+    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf_gpu, 1);
     }
 
 UP_TEST(mpcd_communicator_migrate_ortho_test_GPU_two_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 2);
+    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf_gpu, 2);
     }
+
+UP_SUITE_END()
+
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
