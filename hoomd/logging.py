@@ -112,7 +112,10 @@ class LoggerCategories(Flag):
 
     @classmethod
     def _get_string_list(cls, category):
-        return [mem.name for mem in cls.__members__.values() if mem in category]
+        c = [mem.name for mem in cls.__members__.values() if mem in category]
+        # Remove NONE from list
+        c.pop(0)
+        return c
 
 
 LoggerCategories.ALL = LoggerCategories.any()
@@ -625,25 +628,40 @@ class Logger(_SafeNamespaceDict):
         occur for user specified names that are reused.
 
     Args:
-        categories (`list` [`str`], optional): A list of string categories
-            (list of categories can be found in `LoggerCategories`). These are
-            the only types of loggable quantities that can be logged by this
-            logger. Defaults to allowing every type.
+        categories (`list` [`str` ], `LoggerCategories`, optional): Either a
+            list of string categories (list of categories can be found in
+            `LoggerCategories`) or a `LoggerCategories` instance with the
+            desired flags set. These are the only types of loggable quantities
+            that can be logged by this logger. Defaults to allowing every type
+            ``LoggerCategories.ALL``.
         only_default (`bool`, optional): Whether to log only quantities that are
             logged by default. Defaults to ``True``. Non-default quantities
             are typically measures of operation performance rather than
             information about simulation state.
 
-    .. rubric:: Example:
+    .. rubric:: Examples
+
+    There are various ways to create a logger with different available
+    loggables. Create a `Logger` with no options to allow all categories.
 
     .. code-block:: python
 
         logger = hoomd.logging.Logger()
+
+    Use a list of strings to log a subset of categories:
+
+    .. code-block:: python
+
+        logger = hoomd.logging.Logger(categories=["string", "strings"])
     """
 
     def __init__(self, categories=None, only_default=True):
-        self._categories = LoggerCategories.ALL if categories is None else \
-            LoggerCategories.any(categories)
+        if categories is None:
+            self._categories = LoggerCategories.ALL
+        if isinstance(categories, LoggerCategories):
+            self._categories = categories
+        else:
+            self._categories = LoggerCategories.any(categories)
         self._only_default = only_default
         super().__init__()
 
@@ -786,6 +804,10 @@ class Logger(_SafeNamespaceDict):
                 arguments or have defaults for all arguments.
 
         .. rubric:: Example:
+
+        .. invisible-code-block: python
+
+            logger = hoomd.logging.Logger()
 
         .. code-block:: python
 
