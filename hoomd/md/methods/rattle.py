@@ -503,8 +503,6 @@ class OverdampedViscous(MethodRATTLE):
             manifold_constraint=sphere,
             default_gamma=1.0,
             default_gamma_r=(1.0, 1.0, 1.0))
-        integrator = hoomd.md.Integrator(
-            dt=0.001, methods=[odv_rattle], forces=None)
         simulation.operations.integrator.methods = [odv_rattle]
 
     Attributes:
