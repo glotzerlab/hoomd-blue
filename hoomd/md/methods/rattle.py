@@ -223,7 +223,7 @@ class Langevin(MethodRATTLE):
         tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groiupname`` to the logged quantities.
+            ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False :math:`[\mathrm{energy}]`.
 
         tolerance (float): Defines the tolerated error particles are allowed
