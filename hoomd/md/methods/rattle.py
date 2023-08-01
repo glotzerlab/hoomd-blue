@@ -1,7 +1,18 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""MD integration methods with manifold constraints."""
+"""MD integration methods with manifold constraints.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    logger = hoomd.logging.Logger()
+
+    # Rename pytest's tmp_path fixture for clarity in the documentation.
+    path = tmp_path
+
+"""
 
 from hoomd.md import _md
 import hoomd
@@ -206,25 +217,25 @@ class Langevin(MethodRATTLE):
         kT (hoomd.variant.variant_like): Temperature of the simulation
             :math:`[\mathrm{energy}]`.
 
-        default_gamma (float): Default drag coefficient for all particle types
-            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
-
-        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
-            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
-
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
         tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities.
+            ``langevin_reservoir_energy_groiupname`` to the logged quantities.
             Defaults to False :math:`[\mathrm{energy}]`.
 
         tolerance (float): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
             The units of tolerance match that of the selected manifold's
             implicit function. Defaults to 1e-6
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     .. rubric:: Translational degrees of freedom
 
@@ -237,11 +248,18 @@ class Langevin(MethodRATTLE):
 
     Use `Brownian` if your system is not underdamped.
 
-    Example::
+    .. rubric:: Example
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+    .. code-block:: python
+
+        sphere = hoomd.md.manifold.Sphere(r=5)
         langevin_rattle = hoomd.md.methods.rattle.Langevin(
-            filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere)
+            filter=hoomd.filter.All(),
+            kT=1.5,
+            manifold_constraint=sphere,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0))
+        simulation.operations.integrator.methods = [langevin_rattle]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to apply this
@@ -275,8 +293,7 @@ class Langevin(MethodRATTLE):
                  default_gamma=1.0,
                  default_gamma_r=(1.0, 1.0, 1.0),
                  tally_reservoir_energy=False,
-                 tolerance=0.000001,
-    ):
+                 tolerance=0.000001):
 
         # store metadata
         param_dict = ParameterDict(
@@ -334,12 +351,6 @@ class Brownian(MethodRATTLE):
         kT (hoomd.variant.variant_like): Temperature of the simulation
             :math:`[\mathrm{energy}]`.
 
-        default_gamma (float): Default drag coefficient for all particle types
-            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
-
-        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
-            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
-
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
@@ -347,6 +358,12 @@ class Brownian(MethodRATTLE):
             to deviate from the manifold in terms of the implicit function.
             The units of tolerance match that of the selected manifold's
             implicit function. Defaults to 1e-6
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `Brownian` uses the same integrator as `hoomd.md.methods.Brownian`, which
     follows the overdamped Langevin equations of motion with the additional
@@ -356,13 +373,18 @@ class Brownian(MethodRATTLE):
     algorithm. For more details about Brownian dynamics see
     `hoomd.md.methods.Brownian`.
 
-    Examples of using ``manifold_constraint``::
+    .. rubric:: Example
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+    .. code-block:: python
+
+        sphere = hoomd.md.manifold.Sphere(r=5)
         brownian_rattle = hoomd.md.methods.rattle.Brownian(
-        filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
-        forces=[lj])
+            filter=hoomd.filter.All(),
+            kT=1.5,
+            manifold_constraint=sphere,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0))
+        simulation.operations.integrator.methods = [brownian_rattle]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to apply this
@@ -389,15 +411,13 @@ class Brownian(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(
-            self,
-            filter,
-            kT,
-            manifold_constraint,
-            default_gamma=1.0,
-            default_gamma_r=(1.0, 1.0, 1.0),
-            tolerance=1e-6
-    ):
+    def __init__(self,
+                 filter,
+                 kT,
+                 manifold_constraint,
+                 tolerance=1e-6,
+                 default_gamma=1.0,
+                 default_gamma_r=(1.0, 1.0, 1.0)):
 
         # store metadata
         param_dict = ParameterDict(
@@ -452,18 +472,18 @@ class OverdampedViscous(MethodRATTLE):
         filter (hoomd.filter.filter_like): Subset of particles to apply this
             method to.
 
-        default_gamma (float): Default drag coefficient for all particle types
-            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
-
-        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
-            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
-
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
         tolerance (float): Defines the tolerated error particles are allowed to
             deviate from the manifold in terms of the implicit function. The
             units of tolerance match that of the selected manifold's implicit
             function. Defaults to 1e-6
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `OverdampedViscous` uses the same integrator as
     `hoomd.md.methods.OverdampedViscous`, with the additional force term
@@ -473,14 +493,19 @@ class OverdampedViscous(MethodRATTLE):
     details about overdamped viscous dynamics see
     `hoomd.md.methods.OverdampedViscous`.
 
-    Examples of using ``manifold_constraint``::
+    .. rubric:: Example
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+    .. code-block:: python
+
+        sphere = hoomd.md.manifold.Sphere(r=5)
         odv_rattle = hoomd.md.methods.rattle.OverdampedViscous(
-            filter=hoomd.filter.All(), manifold_constraint=sphere)
+            filter=hoomd.filter.All(),
+            manifold_constraint=sphere,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0))
         integrator = hoomd.md.Integrator(
-            dt=0.001, methods=[odv_rattle], forces=[lj])
-
+            dt=0.001, methods=[odv_rattle], forces=None)
+        simulation.operations.integrator.methods = [odv_rattle]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to apply this
@@ -504,14 +529,12 @@ class OverdampedViscous(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(
-            self,
-            filter,
-            manifold_constraint,
-            default_gamma=1.0,
-            default_gamma_r=(1.0, 1.0, 1.0),
-            tolerance=1e-6
-    ):
+    def __init__(self,
+                 filter,
+                 manifold_constraint,
+                 tolerance=1e-6,
+                 default_gamma=1.0,
+                 default_gamma_r=(1.0, 1.0, 1.0)):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
         param_dict.update(dict(filter=filter))
