@@ -15,6 +15,7 @@ hoomd.write
     DCD
     CustomWriter
     GSD
+    HDF5Log
     Table
 
 .. rubric:: Details
@@ -23,6 +24,9 @@ hoomd.write
     :synopsis: Write data out.
     :members: Burst, DCD, CustomWriter, GSD
     :show-inheritance:
+
+    .. autoclass:: HDF5Log(trigger, filename, logger, mode="a")
+        :members:
 
     .. autoclass:: Table(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
         :members:

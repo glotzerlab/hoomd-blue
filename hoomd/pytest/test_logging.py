@@ -235,7 +235,7 @@ class TestSafeNamespaceDict:
         "only_default": False
     },
     {
-        "categories": ("scalar", "string")
+        "categories": LoggerCategories.scalar | LoggerCategories.string
     },
     {
         "only_default": False,
