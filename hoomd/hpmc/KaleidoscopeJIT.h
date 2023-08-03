@@ -140,7 +140,7 @@ class KaleidoscopeJIT
         }
     };
 
-    }  // End namespace orc.
-    }  // End namespace llvm
+    } // End namespace orc.
+    } // End namespace llvm
 
 #endif // LLVM_EXECUTIONENGINE_ORC_KALEIDOSCOPEJIT_H

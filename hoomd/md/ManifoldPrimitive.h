@@ -123,7 +123,7 @@ class ManifoldPrimitive
     Scalar epsilon;
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_PRIMITIVE_H__

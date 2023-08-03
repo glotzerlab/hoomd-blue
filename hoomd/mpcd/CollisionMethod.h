@@ -88,11 +88,11 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
-    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
-    std::shared_ptr<ParticleGroup> m_embed_group;              //!< Embedded particles
+    std::shared_ptr<mpcd::CellList> m_cl;         //!< MPCD cell list
+    std::shared_ptr<ParticleGroup> m_embed_group; //!< Embedded particles
 
-    uint64_t m_period;           //!< Number of timesteps between collisions
-    uint64_t m_next_timestep;    //!< Timestep next collision should be performed
+    uint64_t m_period;        //!< Number of timesteps between collisions
+    uint64_t m_next_timestep; //!< Timestep next collision should be performed
 
     unsigned int m_instance = 0; //!< Unique ID for RNG seeding
 

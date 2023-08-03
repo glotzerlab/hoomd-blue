@@ -485,8 +485,8 @@ DEVICE inline ShortReal closestPtSegmentSegment(const vec3<ShortReal> p1,
     vec3<ShortReal> d1 = q1 - p1; // Direction vector of segment S1
     vec3<ShortReal> d2 = q2 - p2; // Direction vector of segment S2
     vec3<ShortReal> r = p1 - p2;
-    ShortReal a = dot(d1, d1);    // Squared length of segment S1, always nonnegative
-    ShortReal e = dot(d2, d2);    // Squared length of segment S2, always nonnegative
+    ShortReal a = dot(d1, d1); // Squared length of segment S1, always nonnegative
+    ShortReal e = dot(d2, d2); // Squared length of segment S2, always nonnegative
     ShortReal f = dot(d2, r);
 
     // Check if either or both segments degenerate into points

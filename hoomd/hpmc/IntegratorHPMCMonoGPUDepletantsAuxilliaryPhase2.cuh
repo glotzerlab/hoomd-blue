@@ -574,7 +574,7 @@ __launch_bounds__(max_threads)
                     {
                     // add to free energy of particle k
                     if ((!overlap_old_k && !repulsive) || (overlap_old_k && repulsive))
-                        atomicAdd_system(&d_deltaF_int[overlap_k], 1);  // numerator
+                        atomicAdd_system(&d_deltaF_int[overlap_k], 1); // numerator
                     else
                         atomicAdd_system(&d_deltaF_int[overlap_k], -1); // denominator
                     }

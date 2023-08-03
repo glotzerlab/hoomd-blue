@@ -87,7 +87,7 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
-    Scalar m_mpcd_dt;                                          //!< Integration time step
+    Scalar m_mpcd_dt;         //!< Integration time step
     unsigned int m_period;    //!< Number of MD timesteps between streaming steps
     uint64_t m_next_timestep; //!< Timestep next streaming step should be performed
 

@@ -86,7 +86,7 @@ struct PolyhedronVertices : ShapeParams
         sweep_radius = sweep_radius_;
         bool managed = x.isManaged();
 
-        unsigned int align_size = 8;                       // for AVX
+        unsigned int align_size = 8; // for AVX
         unsigned int N_align = ((N + align_size - 1) / align_size) * align_size;
         x = ManagedArray<ShortReal>(N_align, managed, 32); // 32byte alignment for AVX
         y = ManagedArray<ShortReal>(N_align, managed, 32);
