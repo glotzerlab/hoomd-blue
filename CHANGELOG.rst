@@ -25,6 +25,21 @@ Change Log
 * Bond potentials can now be implemented via external plugins
   (`#1591 <https://github.com/glotzerlab/hoomd-blue/issues/1591>`__).
 
+*Added*
+
+* Tested example code snippets in select modules
+  (`#1574 <https://github.com/glotzerlab/hoomd-blue/pull/1574>`__)
+  (`#1586 <https://github.com/glotzerlab/hoomd-blue/pull/1586>`__).
+* ``hoomd.util.make_example_simulation`` - create an example Simulation object
+  (`#1574 <https://github.com/glotzerlab/hoomd-blue/pull/1574>`__)
+  (`#1586 <https://github.com/glotzerlab/hoomd-blue/pull/1586>`__).
+* ``hoomd.write.Burst`` now has a ``__len__`` method
+  (`#1575 <https://github.com/glotzerlab/hoomd-blue/pull/1575>`__).
+* Support clang 15 and 16 on Linux
+  (`#1593 <https://github.com/glotzerlab/hoomd-blue/pull/1593>`__).
+* ``hoomd.write.HDF5Logger`` - write log quantities to HDF5 files
+  (`#1588 <https://github.com/glotzerlab/hoomd-blue/pull/1588>`__).
+
 4.0.1 (2023-06-27)
 ^^^^^^^^^^^^^^^^^^
 
