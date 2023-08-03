@@ -286,14 +286,16 @@ class Langevin(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self,
-                 filter,
-                 kT,
-                 manifold_constraint,
-                 tally_reservoir_energy=False,
-                 tolerance=0.000001,
-                 default_gamma=1.0,
-                 default_gamma_r=(1.0, 1.0, 1.0),):
+    def __init__(
+            self,
+            filter,
+            kT,
+            manifold_constraint,
+            tally_reservoir_energy=False,
+            tolerance=0.000001,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
