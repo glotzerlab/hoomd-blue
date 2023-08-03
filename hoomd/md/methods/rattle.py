@@ -290,10 +290,10 @@ class Langevin(MethodRATTLE):
                  filter,
                  kT,
                  manifold_constraint,
-                 default_gamma=1.0,
-                 default_gamma_r=(1.0, 1.0, 1.0),
                  tally_reservoir_energy=False,
-                 tolerance=0.000001):
+                 tolerance=0.000001,
+                 default_gamma=1.0,
+                 default_gamma_r=(1.0, 1.0, 1.0),):
 
         # store metadata
         param_dict = ParameterDict(
