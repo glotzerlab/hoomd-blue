@@ -8,10 +8,9 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/HPMCMiscFunctions.h"
-#include "hoomd/hpmc/ShapeSphere.h"
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/OBB.h"
-
+#include "hoomd/hpmc/ShapeSphere.h"
 
 #include <sstream>
 
