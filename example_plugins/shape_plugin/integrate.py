@@ -4,7 +4,7 @@
 """Example Shape Integrator."""
 
 # Import the C++ module
-from hoomd.shape_plugin import _shape_plugin
+from . import _shape_plugin
 
 # Import the hoomd Python package and other necessary components
 from hoomd import hpmc
