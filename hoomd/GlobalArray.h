@@ -732,18 +732,18 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
 #endif
 
     std::unique_ptr<T, hoomd::detail::managed_deleter<T>>
-        m_data;              //!< Smart ptr to managed or host memory, with custom deleter
+        m_data; //!< Smart ptr to managed or host memory, with custom deleter
 
-    size_t m_num_elements;   //!< Number of elements in array
-    size_t m_pitch;          //!< Pitch of 2D array
-    size_t m_height;         //!< Height of 2D array
+    size_t m_num_elements; //!< Number of elements in array
+    size_t m_pitch;        //!< Pitch of 2D array
+    size_t m_height;       //!< Height of 2D array
 
     mutable bool m_acquired; //!< Tracks if the array is already acquired
 
-    std::string m_tag;       //!< Name tag of this buffer (optional)
+    std::string m_tag; //!< Name tag of this buffer (optional)
 
-    size_t m_align_bytes;    //!< Size of alignment in bytes
-    bool m_is_managed;       //!< Whether or not this array is stored using managed memory.
+    size_t m_align_bytes; //!< Size of alignment in bytes
+    bool m_is_managed;    //!< Whether or not this array is stored using managed memory.
 
 #ifdef ENABLE_HIP
     std::unique_ptr<hipEvent_t, hoomd::detail::event_deleter>

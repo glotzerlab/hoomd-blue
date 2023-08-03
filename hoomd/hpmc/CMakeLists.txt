@@ -59,6 +59,7 @@ set(_hpmc_headers
     HPMCMiscFunctions.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPUMoves.cuh
     IntegratorHPMCMonoGPUTypes.cuh
     IntegratorHPMCMonoGPUDepletants.cuh
@@ -66,8 +67,8 @@ set(_hpmc_headers
     IntegratorHPMCMonoGPUDepletantsAuxilliaryPhase1.cuh
     IntegratorHPMCMonoGPUDepletantsAuxilliaryPhase2.cuh
     IntegratorHPMCMonoGPUDepletantsAuxilliaryTypes.cuh
-    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPU.h
+    IntegratorHPMCMonoNEC.h
     IntegratorHPMCMono.h
     MinkowskiMath.h
     modules.h
@@ -86,15 +87,19 @@ set(_hpmc_headers
     ShapeSpheropolyhedron.h
     ShapeSphinx.h
     ShapeUnion.h
+    ShapeUtils.h
     SphinxOverlap.h
+    UpdaterBoxMC.h
     UpdaterClusters.h
     UpdaterClustersGPU.cuh
+    UpdaterClustersGPU.h
     UpdaterClustersGPUDepletants.cuh
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     UpdaterShape.h
     XenoCollide2D.h
     XenoCollide3D.h
+    XenoSweep3D.h
     )
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu

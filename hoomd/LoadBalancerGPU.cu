@@ -175,8 +175,8 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int* d_off_rank,
     return (unsigned int)(last - d_off_rank);
     }
 
-    }  // end namespace kernel
+    } // end namespace kernel
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

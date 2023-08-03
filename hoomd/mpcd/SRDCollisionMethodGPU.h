@@ -47,7 +47,7 @@ namespace detail
     {
 //! Export SRDCollisionMethodGPU to python
 void export_SRDCollisionMethodGPU(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

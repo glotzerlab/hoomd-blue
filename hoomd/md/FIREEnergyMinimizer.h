@@ -169,10 +169,10 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
 
     protected:
     //! Function to create the underlying integrator
-    unsigned int m_nmin;    //!< minimum number of consecutive successful search directions before
-                            //!< modifying alpha
+    unsigned int m_nmin; //!< minimum number of consecutive successful search directions before
+                         //!< modifying alpha
     unsigned int
-        m_n_since_negative; //!< counts the number of consecutive successful search directions
+        m_n_since_negative;       //!< counts the number of consecutive successful search directions
     unsigned int m_n_since_start; //!< counts the number of consecutive search attempts
     Scalar m_finc;                //!< fractional increase in timestep upon successful search
     Scalar m_fdec;                //!< fractional decrease in timestep upon unsuccessful search
@@ -193,7 +193,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     private:
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_H__

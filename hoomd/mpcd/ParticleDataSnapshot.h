@@ -85,7 +85,7 @@ namespace detail
     {
 //! Export mpcd::ParticleDataSnapshot to python
 void export_ParticleDataSnapshot(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

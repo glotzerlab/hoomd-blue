@@ -193,7 +193,7 @@ class EvaluatorPairOPP
     param_type params; /// Stored pair parameters for a given type pair
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_OPP_H__

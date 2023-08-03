@@ -76,8 +76,8 @@ hipError_t gpu_fire_update_angmom(const Scalar4* d_net_torque,
                                   Scalar alpha,
                                   Scalar factor_r);
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__FIRE_ENERGY_MINIMIZER_GPU_CUH__

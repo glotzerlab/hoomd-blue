@@ -160,8 +160,8 @@ void export_UpdaterRemoveDrift(pybind11::module& m)
                       &UpdaterRemoveDrift::setReferencePositions);
     }
 
-    }  // end namespace detail
+    } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // _REMOVE_DRIFT_UPDATER_H_

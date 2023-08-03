@@ -49,9 +49,9 @@ struct rattle_bd_step_one_args
         {
         }
 
-    Scalar* d_gamma;                //!< Device array listing per-type gammas
-    size_t n_types;                 //!< Number of types in \a d_gamma
-    Scalar T;                       //!< Current temperature
+    Scalar* d_gamma; //!< Device array listing per-type gammas
+    size_t n_types;  //!< Number of types in \a d_gamma
+    Scalar T;        //!< Current temperature
     Scalar tolerance;
     uint64_t timestep;              //!< Current timestep
     uint16_t seed;                  //!< User chosen random number seed
@@ -664,8 +664,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
     }
 
 #endif
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_RATTLE_BD_GPU_CUH__

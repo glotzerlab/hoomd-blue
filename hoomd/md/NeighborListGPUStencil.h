@@ -61,8 +61,8 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     virtual void buildNlist(uint64_t timestep);
 
     private:
-    std::shared_ptr<Autotuner<2>> m_tuner;  //!< Autotuner for block size and threads per particle
-    uint64_t m_last_tuned_timestep;         //!< Last tuning timestep
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle
+    uint64_t m_last_tuned_timestep;        //!< Last tuning timestep
 
     std::shared_ptr<CellList> m_cl;         //!< The cell list
     std::shared_ptr<CellListStencil> m_cls; //!< The cell list stencil
@@ -90,7 +90,7 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     bool m_update_cell_size = false;
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTGPUSTENCIL_H__

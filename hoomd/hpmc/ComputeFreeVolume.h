@@ -78,10 +78,10 @@ template<class Shape> class ComputeFreeVolume : public Compute
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
     std::shared_ptr<CellList> m_cl;                  //!< The cell list
 
-    unsigned int m_type;                             //!< Type of depletant particle to generate
-    unsigned int m_n_sample;                         //!< Number of sampling depletants to generate
+    unsigned int m_type;     //!< Type of depletant particle to generate
+    unsigned int m_n_sample; //!< Number of sampling depletants to generate
 
-    GPUArray<unsigned int> m_n_overlap_all;          //!< Number of overlap volume particles in box
+    GPUArray<unsigned int> m_n_overlap_all; //!< Number of overlap volume particles in box
 
     //! Return an estimate of the overlap volume
     virtual void computeFreeVolume(uint64_t timestep);
@@ -257,7 +257,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
                 }
             } // end loop through all particles
 
-        }     // end lexical scope
+        } // end lexical scope
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -325,8 +325,8 @@ template<class Shape> void export_ComputeFreeVolume(pybind11::module& m, const s
         .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume);
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __COMPUTE_FREE_VOLUME__H__

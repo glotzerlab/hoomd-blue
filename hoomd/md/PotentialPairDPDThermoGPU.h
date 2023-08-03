@@ -186,9 +186,9 @@ void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& na
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
 
-    }  // end namespace detail
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
