@@ -215,7 +215,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       SFCPackTunerGPU.cu)
 
 # add the MPCD base parts that should go into _hoomd (i.e., core particle data)
-if (BUILD_MPCD)
+if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
     list(APPEND _hoomd_sources
         mpcd/ParticleData.cc
         mpcd/ParticleDataSnapshot.cc
@@ -224,7 +224,7 @@ if (BUILD_MPCD)
         mpcd/ParticleData.cu
     )
     # headers will be installed by MPCD itself so they go in the right subdirectory
-endif(BUILD_MPCD)
+endif()
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
@@ -413,11 +413,9 @@ if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
 
-if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
-    if (BUILD_MPCD)
-        target_compile_definitions(_hoomd PUBLIC ENABLE_MPCD)
-        add_subdirectory(mpcd)
-    endif()
+if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
+    target_compile_definitions(_hoomd PUBLIC ENABLE_MPCD)
+    add_subdirectory(mpcd)
 endif()
 
 foreach(entry ${PLUGINS})
