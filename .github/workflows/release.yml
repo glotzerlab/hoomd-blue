@@ -36,7 +36,7 @@ jobs:
     name: Build release tarball
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2023.06.19-ubuntu20.04
+      image: glotzerlab/ci:2023.07.24-ubuntu20.04
 
     steps:
       - name: Checkout

@@ -62,14 +62,14 @@ struct tersoff_args_t
           size_nlist(_size_nlist), ntypes(_ntypes), block_size(_block_size), tpp(_tpp),
           devprop(_devprop) {};
 
-    Scalar4* d_force;            //!< Force to write out
-    const unsigned int N;        //!< Number of particles
-    const unsigned int Nghosts;  //!< Number of ghost particles
-    Scalar* d_virial;            //!< Virial to write out
-    const size_t virial_pitch;   //!< Pitch for N*6 virial array
-    bool compute_virial;         //!< True if we are supposed to compute the virial
-    const Scalar4* d_pos;        //!< particle positions
-    const BoxDim box;            //!< Simulation box in GPU format
+    Scalar4* d_force;           //!< Force to write out
+    const unsigned int N;       //!< Number of particles
+    const unsigned int Nghosts; //!< Number of ghost particles
+    Scalar* d_virial;           //!< Virial to write out
+    const size_t virial_pitch;  //!< Pitch for N*6 virial array
+    bool compute_virial;        //!< True if we are supposed to compute the virial
+    const Scalar4* d_pos;       //!< particle positions
+    const BoxDim box;           //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
@@ -1012,8 +1012,8 @@ gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                            const typename evaluator::param_type* d_params);
 #endif
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__

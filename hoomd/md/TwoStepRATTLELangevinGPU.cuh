@@ -55,9 +55,9 @@ struct rattle_langevin_step_two_args
         {
         }
 
-    Scalar* d_gamma;                //!< Device array listing per-type gammas
-    size_t n_types;                 //!< Number of types in \a d_gamma
-    Scalar T;                       //!< Current temperature
+    Scalar* d_gamma; //!< Device array listing per-type gammas
+    size_t n_types;  //!< Number of types in \a d_gamma
+    Scalar T;        //!< Current temperature
     Scalar tolerance;
     uint64_t timestep;              //!< Current timestep
     uint16_t seed;                  //!< User chosen random number seed
@@ -416,8 +416,8 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
 
 #endif
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__

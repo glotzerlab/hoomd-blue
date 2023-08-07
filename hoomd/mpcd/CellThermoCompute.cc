@@ -216,8 +216,8 @@ struct CellPropertySum
     const unsigned int* embed_idx; //!< Embedded particle indexes
     const unsigned int N_mpcd;     //!< Number of MPCD particles
     };
-    }                              // end namespace detail
-    }                              // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 #ifdef ENABLE_MPI
 void mpcd::CellThermoCompute::beginOuterCellProperties()

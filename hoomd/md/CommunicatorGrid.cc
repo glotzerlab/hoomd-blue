@@ -285,7 +285,7 @@ template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 template class PYBIND11_EXPORT CommunicatorGrid<hipfftComplex>;
 #endif
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

@@ -98,7 +98,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     virtual void updateExListIdx();
 
     protected:
-    GlobalArray<unsigned int> m_flags;    //!< Storage for device flags on the GPU
+    GlobalArray<unsigned int> m_flags; //!< Storage for device flags on the GPU
 
     GlobalArray<size_t> m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
 

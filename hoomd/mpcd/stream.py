@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD streaming methods
+r""" MPCD streaming methods
 
 An MPCD streaming method is required to update the particle positions over time.
 It is meant to be used in conjunction with an :py:class:`~hoomd.mpcd.integrator`

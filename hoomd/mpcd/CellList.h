@@ -261,7 +261,7 @@ class PYBIND11_EXPORT CellList : public Compute
     GPUVector<unsigned int> m_embed_cell_ids; //!< Cell ids of the embedded particles
     GPUFlags<uint3> m_conditions; //!< Detect conditions that might fail building cell list
 
-    int3 m_origin_idx;            //!< Origin as a global index
+    int3 m_origin_idx; //!< Origin as a global index
 
 #ifdef ENABLE_MPI
     unsigned int m_num_extra;               //!< Number of extra cells to communicate over
@@ -330,7 +330,7 @@ namespace detail
     {
 //! Export the CellList class to python
 void export_CellList(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

@@ -66,8 +66,8 @@ namespace detail
     {
 //! Export the CellThermoComputeGPU class to python
 void export_CellThermoComputeGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_THERMO_COMPUTE_GPU_H_

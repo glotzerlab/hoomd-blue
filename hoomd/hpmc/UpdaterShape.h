@@ -174,11 +174,11 @@ template<typename Shape> class UpdaterShape : public Updater
     private:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
     std::shared_ptr<ShapeMoveBase<Shape>>
-        m_move_function;                             // shape move function to apply in the updater
-    unsigned int m_type_select;       // number of particle types to update in each move
-    unsigned int m_nsweeps;           // number of sweeps to run the updater each time it is called
-    bool m_pretend;                   // whether or not to pretend or actually perform shape move
-    bool m_multi_phase;               // whether or not the simulation is multi-phase
+        m_move_function;        // shape move function to apply in the updater
+    unsigned int m_type_select; // number of particle types to update in each move
+    unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
+    bool m_pretend;             // whether or not to pretend or actually perform shape move
+    bool m_multi_phase;         // whether or not the simulation is multi-phase
     GPUArray<Scalar>
         m_determinant_inertia_tensor; // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes;  // number of particle types in the simulation
@@ -188,7 +188,7 @@ template<typename Shape> class UpdaterShape : public Updater
     std::vector<unsigned int>
         m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
     std::vector<unsigned int>
-        m_box_total;    // number of attempted moves between boxes in multi-phase simulations
+        m_box_total; // number of attempted moves between boxes in multi-phase simulations
     detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
     unsigned int m_instance = 0;        //!< Unique ID for RNG seeding
     };
@@ -382,7 +382,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             } // end loop over particle types
         }     // end loop over n_sweeps
     m_exec_conf->msg->notice(4) << "UpdaterShape update done" << std::endl;
-    }         // end UpdaterShape<Shape>::update(unsigned int timestep)
+    } // end UpdaterShape<Shape>::update(unsigned int timestep)
 
 template<typename Shape> void UpdaterShape<Shape>::initializeDeterminatsInertiaTensor()
     {

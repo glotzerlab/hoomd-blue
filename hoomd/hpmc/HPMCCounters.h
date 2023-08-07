@@ -473,7 +473,7 @@ DEVICE inline hpmc_nec_counters_t operator+(const hpmc_nec_counters_t& a,
     return result;
     }
 
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // _HPMC_COUNTERS_H_

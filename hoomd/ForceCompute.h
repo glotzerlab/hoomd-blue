@@ -213,8 +213,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     size_t m_virial_pitch;         //!< The pitch of the 2D virial array
     GlobalArray<Scalar4> m_torque; //!< per-particle torque
 
-    Scalar m_external_virial[6];   //!< Stores external contribution to virial
-    Scalar m_external_energy;      //!< Stores external contribution to potential energy
+    Scalar m_external_virial[6]; //!< Stores external contribution to virial
+    Scalar m_external_energy;    //!< Stores external contribution to potential energy
 
     /// Store the particle data flags used during the last computation
     PDataFlags m_computed_flags;
@@ -332,8 +332,8 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
         .def("enter", &LocalForceComputeData<Output>::enter)
         .def("exit", &LocalForceComputeData<Output>::exit);
     };
-    }  // end namespace detail
+    } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __FORCECOMPUTE_H__

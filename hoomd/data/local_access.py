@@ -129,7 +129,7 @@ class ParticleLocalAccessBase(_LocalAccess):
         net_torque ((N_particles, 3) `hoomd.data.array` object of ``float``):
             Net torque on particle
             :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`.
-        net_virial ((N_particles, 3) `hoomd.data.array` object of ``float``):
+        net_virial ((N_particles, 6) `hoomd.data.array` object of ``float``):
             Net virial on particle :math:`[\\mathrm{energy}]`.
         net_energy ((N_particles,) `hoomd.data.array` object of ``float``):
             Net energy of a particle :math:`[\\mathrm{energy}]`.

@@ -183,8 +183,8 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
 
-    bool m_is_communicating;                   //!< Whether we are currently communicating
-    bool m_check_decomposition;                //!< Flag to check the simulation box decomposition
+    bool m_is_communicating;    //!< Whether we are currently communicating
+    bool m_check_decomposition; //!< Flag to check the simulation box decomposition
 
     const static unsigned int neigh_max;       //!< Maximum number of neighbor ranks
     GPUArray<unsigned int> m_neighbors;        //!< Neighbor ranks
@@ -193,7 +193,7 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     unsigned int m_nneigh;                     //!< Number of neighbors
     unsigned int m_n_unique_neigh;             //!< Number of unique neighbors
     std::map<unsigned int, unsigned int>
-        m_unique_neigh_map;                    //!< Reverse mapping of the unique neighbors
+        m_unique_neigh_map; //!< Reverse mapping of the unique neighbors
 
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
@@ -224,7 +224,7 @@ namespace detail
     {
 //! Export mpcd::Communicator to python
 void export_Communicator(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

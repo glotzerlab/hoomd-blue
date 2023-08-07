@@ -474,13 +474,13 @@ class PYBIND11_EXPORT Communicator
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
 
-    bool m_is_communicating;               //!< Whether we are currently communicating
-    bool m_force_migrate;                  //!< True if particle migration is forced
+    bool m_is_communicating; //!< Whether we are currently communicating
+    bool m_force_migrate;    //!< True if particle migration is forced
 
-    unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a
-                                           //!< global boundary
+    unsigned int m_is_at_boundary[6]; //!< Array of flags indicating whether this box lies at a
+                                      //!< global boundary
 
-    GlobalArray<unsigned int> m_neighbors; //!< Neighbor ranks
+    GlobalArray<unsigned int> m_neighbors;        //!< Neighbor ranks
     GlobalArray<unsigned int> m_unique_neighbors; //!< Neighbor ranks w/duplicates removed
     GlobalArray<unsigned int> m_adj_mask;         //!< Adjacency mask for every neighbor
     unsigned int m_nneigh;                        //!< Number of neighbors
@@ -488,22 +488,22 @@ class PYBIND11_EXPORT Communicator
     GlobalArray<unsigned int> m_begin;            //!< Begin index for every neighbor in send buf
     GlobalArray<unsigned int> m_end;              //!< End index for every neighbor in send buf
 
-    GlobalVector<Scalar4> m_pos_copybuf;          //!< Buffer for particle positions to be copied
-    GlobalVector<Scalar> m_charge_copybuf;        //!< Buffer for particle charges to be copied
-    GlobalVector<Scalar> m_diameter_copybuf;      //!< Buffer for particle diameters to be copied
-    GlobalVector<unsigned int> m_body_copybuf;    //!< Buffer for particle body ids to be copied
-    GlobalVector<int3> m_image_copybuf;           //!< Buffer for particle body ids to be copied
-    GlobalVector<Scalar4> m_velocity_copybuf;     //!< Buffer for particle velocities to be copied
-    GlobalVector<Scalar4> m_orientation_copybuf;  //!< Buffer for particle orientation to be copied
-    GlobalVector<unsigned int> m_plan_copybuf;    //!< Buffer for particle plans
-    GlobalVector<unsigned int> m_tag_copybuf;     //!< Buffer for particle tags
-    GlobalVector<Scalar4> m_netforce_copybuf;     //!< Buffer for net force
-    GlobalVector<Scalar4> m_nettorque_copybuf;    //!< Buffer for net torque
-    GlobalVector<Scalar> m_netvirial_copybuf;     //!< Buffer for net virial
-    GlobalVector<Scalar> m_netvirial_recvbuf;     //!< Buffer for net virial (receive)
+    GlobalVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
+    GlobalVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
+    GlobalVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
+    GlobalVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied
+    GlobalVector<int3> m_image_copybuf;          //!< Buffer for particle body ids to be copied
+    GlobalVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
+    GlobalVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
+    GlobalVector<unsigned int> m_plan_copybuf;   //!< Buffer for particle plans
+    GlobalVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
+    GlobalVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
+    GlobalVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
+    GlobalVector<Scalar> m_netvirial_copybuf;    //!< Buffer for net virial
+    GlobalVector<Scalar> m_netvirial_recvbuf;    //!< Buffer for net virial (receive)
 
     GlobalVector<unsigned int>
-        m_copy_ghosts[6];     //!< Per-direction list of indices of particles to send as ghosts
+        m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
     unsigned int
         m_num_copy_ghosts[6]; //!< Number of local particles that are sent to neighboring processors
     unsigned int m_num_recv_ghosts[6]; //!< Number of ghosts received per direction
@@ -521,8 +521,8 @@ class PYBIND11_EXPORT Communicator
                        //!< vector corresponds to the m_copy_ghosts_reverse copybuf (m_copy_ghosts
                        //!< writes directly to m_pdata->getTags())
     GlobalVector<unsigned int>
-        m_copy_ghosts_reverse[6];  //!< Per-direction list of indices of particles to send back as
-                                   //!< ghosts. Copy buffer for m_tag_reverse
+        m_copy_ghosts_reverse[6]; //!< Per-direction list of indices of particles to send back as
+                                  //!< ghosts. Copy buffer for m_tag_reverse
     GlobalVector<unsigned int>
         m_plan_reverse_copybuf[6]; //!< Per-direction buffer for reverse particle plans. Copy buffer
                                    //!< for m_plan_reverse
@@ -553,13 +553,13 @@ class PYBIND11_EXPORT Communicator
     GlobalVector<Scalar4> m_netforce_reverse_recvbuf; //!< Buffer for the reverse net force. Receive
                                                       //!< buffer for m_netforce_reverse_copybuf
 
-    BoxDim m_global_box;                              //!< Global simulation box
-    GlobalArray<Scalar> m_r_ghost;                    //!< Width of ghost layer
-    GlobalArray<Scalar> m_r_ghost_body;               //!< Extra ghost width for rigid bodies
-    Scalar m_r_ghost_max;                             //!< Maximum ghost layer width
+    BoxDim m_global_box;                //!< Global simulation box
+    GlobalArray<Scalar> m_r_ghost;      //!< Width of ghost layer
+    GlobalArray<Scalar> m_r_ghost_body; //!< Extra ghost width for rigid bodies
+    Scalar m_r_ghost_max;               //!< Maximum ghost layer width
 
-    unsigned int m_ghosts_added;                      //!< Number of ghosts added
-    bool m_has_ghost_particles;       //!< True if we have a current copy of ghost particles
+    unsigned int m_ghosts_added; //!< Number of ghosts added
+    bool m_has_ghost_particles;  //!< True if we have a current copy of ghost particles
 
     MPI_Datatype m_mpi_pdata_element; //!< A datatype for the (non-packed) pdata_element struct
 
@@ -583,12 +583,12 @@ class PYBIND11_EXPORT Communicator
         m_compute_callbacks; //!< List of functions that are called after ghost communication
 
     Nano::Signal<void(const GlobalArray<unsigned int>&)>
-        m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
+        m_comm_callbacks; //!< List of functions that are called after the compute callbacks
 
     CommFlags m_flags;      //!< The ghost communication flags
     CommFlags m_last_flags; //!< Flags of last ghost exchange
 
-    bool m_comm_pending;    //!< If true, a communication is in process
+    bool m_comm_pending;             //!< If true, a communication is in process
     std::vector<MPI_Request> m_reqs; //!< Container for all MPI communication requests
     std::vector<MPI_Status> m_stats; //!< Container for all MPI communication statuses
 
@@ -730,7 +730,7 @@ namespace detail
 //! Declaration of python export function
 void export_Communicator(pybind11::module& m);
 
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace hoomd
 #endif // __COMMUNICATOR_H__

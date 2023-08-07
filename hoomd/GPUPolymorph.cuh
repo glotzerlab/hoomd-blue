@@ -99,7 +99,7 @@ template<class T> void device_delete(T* data)
     }
 #endif // __HIPCC__
 
-    }  // end namespace gpu
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace hoomd
 
 #endif // HOOMD_GPU_POLYMORPH_CUH_

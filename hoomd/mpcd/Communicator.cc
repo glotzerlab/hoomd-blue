@@ -251,8 +251,8 @@ class MigratePartitionOp
     private:
     const unsigned int mask; //!< Mask for the current communication stage
     };
-    }                        // namespace detail
-    }                        // namespace mpcd
+    } // namespace detail
+    } // namespace mpcd
 
 void mpcd::Communicator::migrateParticles(uint64_t timestep)
     {
@@ -544,7 +544,7 @@ void mpcd::Communicator::checkDecomposition()
         // if at right edge of simulation box, then wrap the lo back in
         if (m_decomposition->isAtBoundary(2 * dim)) // right edge
             {
-            if (dim == 0)                           // x
+            if (dim == 0) // x
                 {
                 right_lo += global_L.x;
                 }
@@ -560,7 +560,7 @@ void mpcd::Communicator::checkDecomposition()
         // otherwise if at left of simulation, wrap the hi back in
         else if (m_decomposition->isAtBoundary(2 * dim + 1)) // left edge
             {
-            if (dim == 0)                                    // x
+            if (dim == 0) // x
                 {
                 left_hi -= global_L.x;
                 }

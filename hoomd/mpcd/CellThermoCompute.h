@@ -157,15 +157,15 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
     std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
 #ifdef ENABLE_MPI
-    bool m_use_mpi;                                   //!< Flag if communication is required
-    std::shared_ptr<CellCommunicator> m_vel_comm;     //!< Cell velocity communicator
-    std::shared_ptr<CellCommunicator> m_energy_comm;  //!< Cell energy communicator
-#endif                                                // ENABLE_MPI
+    bool m_use_mpi;                                  //!< Flag if communication is required
+    std::shared_ptr<CellCommunicator> m_vel_comm;    //!< Cell velocity communicator
+    std::shared_ptr<CellCommunicator> m_energy_comm; //!< Cell energy communicator
+#endif                                               // ENABLE_MPI
 
-    bool m_needs_net_reduce;                          //!< Flag if a net reduction is necessary
-    GPUArray<double> m_net_properties;                //!< Scalar properties of the system
+    bool m_needs_net_reduce;           //!< Flag if a net reduction is necessary
+    GPUArray<double> m_net_properties; //!< Scalar properties of the system
 
-    GPUVector<double4> m_cell_vel;                    //!< Average velocity of a cell + cell mass
+    GPUVector<double4> m_cell_vel;    //!< Average velocity of a cell + cell mass
     GPUVector<double3> m_cell_energy; //!< Kinetic energy, unscaled temperature, dof in each cell
     unsigned int m_ncells_alloc;      //!< Number of cells allocated for
 
@@ -196,7 +196,7 @@ namespace detail
     {
 //! Export the CellThermoCompute class to python
 void export_CellThermoCompute(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

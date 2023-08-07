@@ -393,7 +393,7 @@ void mpcd::detail::export_CommunicatorGPU(pybind11::module& m)
         .def("setMaxStages", &mpcd::CommunicatorGPU::setMaxStages);
     }
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
