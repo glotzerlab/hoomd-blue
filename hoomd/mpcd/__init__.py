@@ -97,9 +97,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 
 from hoomd.mpcd import collide
-from hoomd.mpcd import data
 from hoomd.mpcd import force
-from hoomd.mpcd import init
 from hoomd.mpcd import integrate
 from hoomd.mpcd import stream
 from hoomd.mpcd import update

@@ -138,9 +138,7 @@ install(TARGETS _mpcd EXPORT HOOMDTargets
 set(files
     __init__.py
     collide.py
-    data.py
     force.py
-    init.py
     integrate.py
     stream.py
     update.py
