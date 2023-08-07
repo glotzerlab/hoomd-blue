@@ -234,7 +234,7 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
 #ifdef ENABLE_MPCD
-    std::shared_ptr<mpcd::ParticleData> m_mpcd_data;   //!< MPCD particle data
+    std::shared_ptr<mpcd::ParticleData> m_mpcd_data; //!< MPCD particle data
 #endif
 
 #ifdef ENABLE_MPI

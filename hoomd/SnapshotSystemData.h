@@ -54,7 +54,7 @@ template<class Real> struct SnapshotSystemData
     ConstraintData::Snapshot constraint_data; //!< The constraint data
     PairData::Snapshot pair_data;             //!< The pair data
 #ifdef ENABLE_MPCD
-    mpcd::ParticleDataSnapshot mpcd_data;     //!< The MPCD particle data
+    mpcd::ParticleDataSnapshot mpcd_data; //!< The MPCD particle data
 #endif
 
     //! Constructor
