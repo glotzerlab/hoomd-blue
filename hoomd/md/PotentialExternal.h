@@ -5,6 +5,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GlobalArray.h"
 #include "hoomd/managed_allocator.h"
+#include "hoomd/md/EvaluatorExternalPeriodic.h"
 #include <memory>
 #include <stdexcept>
 
@@ -90,6 +91,11 @@ template<class evaluator> PotentialExternal<evaluator>::~PotentialExternal() { }
 */
 template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint64_t timestep)
     {
+    if (std::is_same<evaluator, EvaluatorExternalPeriodic>() && m_sysdef->getNDimensions() == 2)
+        {
+        throw std::runtime_error("The external periodic potential is not valid in 2D boxes.");
+        }
+
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
