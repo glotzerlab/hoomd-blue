@@ -37,6 +37,8 @@ def logger():
     logger = hoomd.logging.Logger(categories=['scalar', "string"])
     logger[('dummy', 'loggable', 'int')] = (Identity(42000000), 'scalar')
     logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
+    logger[('dummy', 'loggable', 'small_float')] = (Identity(0.0000001),
+                                                    'scalar')
     logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')
     return logger
 
@@ -46,7 +48,8 @@ def expected_values():
     return {
         'dummy.loggable.int': 42000000,
         'dummy.loggable.float': 3.1415,
-        'dummy.loggable.string': "foobarbaz"
+        'dummy.loggable.string': "foobarbaz",
+        'dummy.loggable.small_float': 0.0000001
     }
 
 
@@ -72,7 +75,8 @@ def test_header_generation(device, logger):
     lines = output_str.split('\n')
     headers = lines[0].split()
     expected_headers = [
-        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
+        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string',
+        'dummy.loggable.small_float'
     ]
     assert all(hdr in headers for hdr in expected_headers)
     for i in range(1, 10):
@@ -112,9 +116,8 @@ def test_values(device, logger, expected_values):
 
     for row in lines[1:]:
         values = row.split()
-        assert all(
-            test_equality(expected_values[hdr], v)
-            for hdr, v in zip(headers, values))
+        for hdr, v in zip(headers, values):
+            assert test_equality(expected_values[hdr], v)
 
 
 @skip_mpi
@@ -154,7 +157,7 @@ def test_delimiter(device, logger):
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
-    assert all(len(row.split(',')) == 3 for row in lines[:-1])
+    assert all(len(row.split(',')) == len(logger) for row in lines[:-1])
 
 
 @pytest.mark.serial
