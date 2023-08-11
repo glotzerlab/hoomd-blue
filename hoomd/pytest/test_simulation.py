@@ -438,7 +438,7 @@ def test_seed_constructor_out_of_range(device, lattice_snapshot_factory):
     assert sim.seed == 0xcdef
 
 
-def test_operations_setting(simulation_factory, lattice_snapshot_factory):
+def test_operations_setting(tmp_path, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
     sim.create_state_from_snapshot(lattice_snapshot_factory())
 
@@ -462,7 +462,7 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
                                          box2=hoomd.Box.cube(20),
                                          variant=hoomd.variant.Ramp(
                                              0, 1, 0, 100))
-    operations += hoomd.write.GSD(filename="foo.gsd", trigger=10)
+    operations += hoomd.write.GSD(filename=tmp_path / "foo.gsd", trigger=10)
     operations += hoomd.write.Table(10, logger=hoomd.logging.Logger(['scalar']))
     operations.tuners.clear()
     # Check setting before scheduling
@@ -476,7 +476,7 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
                                              box2=hoomd.Box.cube(20),
                                              variant=hoomd.variant.Ramp(
                                                  0, 1, 0, 100))
-    new_operations += hoomd.write.GSD(filename="bar.gsd", trigger=20)
+    new_operations += hoomd.write.GSD(filename=tmp_path / "bar.gsd", trigger=20)
     new_operations += hoomd.write.Table(20,
                                         logger=hoomd.logging.Logger(['scalar']))
     check_operation_setting(sim, sim.operations, new_operations)
