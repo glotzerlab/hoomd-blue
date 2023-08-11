@@ -10,7 +10,6 @@
 #include "hoomd/hpmc/ShapeUnion.h"
 
 #include "hoomd/hpmc/ExternalField.h"
-#include "hoomd/hpmc/ExternalFieldComposite.h"
 #include "hoomd/hpmc/ExternalFieldHarmonic.h"
 #include "hoomd/hpmc/ExternalFieldWall.h"
 
@@ -42,7 +41,6 @@ PYBIND11_MODULE(_shape_plugin, m)
 
     export_ExternalFieldInterface<ShapeMySphere>(m, "ExternalFieldMySphere");
     export_HarmonicField<ShapeMySphere>(m, "ExternalFieldHarmonicMySphere");
-    export_ExternalFieldComposite<ShapeMySphere>(m, "ExternalFieldCompositeMySphere");
     export_ExternalFieldWall<ShapeMySphere>(m, "WallMySphere");
 
     pybind11::class_<MySphereParams, std::shared_ptr<MySphereParams>>(m, "MySphereParams")

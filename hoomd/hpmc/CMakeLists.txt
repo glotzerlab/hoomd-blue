@@ -48,7 +48,6 @@ set(_hpmc_headers
     ComputeFreeVolumeGPU.h
     ComputeFreeVolume.h
     ComputeSDF.h
-    ExternalFieldComposite.h
     ExternalField.h
     ExternalFieldHarmonic.h
     ExternalFieldWall.h
