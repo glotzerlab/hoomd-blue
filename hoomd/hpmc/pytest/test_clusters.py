@@ -133,6 +133,9 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
 @pytest.mark.serial
 def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     """Test that Clusters produces finite size clusters."""
+    if (isinstance(device, hoomd.device.GPU) and hoomd.version.gpu_platform == 'ROCm'):
+        pytest.xfail("Clusters fails on ROCm (#1605)")
+
     sim = simulation_factory(
         lattice_snapshot_factory(particle_types=['A', 'B'],
                                  dimensions=3,
