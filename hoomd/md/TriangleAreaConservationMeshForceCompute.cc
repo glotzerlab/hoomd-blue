@@ -214,8 +214,8 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar prefactor = -m_K[triangle_type] / (2 * At) * Ut;
 
         Scalar3 Fab, Fac;
-	Fab = prefactor * (-nab * rac * s_baac + ds_rab * rab * rac)
-	Fac = prefactor * (-nac * rab * s_baac + ds_rac * rab * rac)
+	Fab = prefactor * (-nab * rac * s_baac + ds_drab * rab * rac);
+	Fac = prefactor * (-nac * rab * s_baac + ds_drac * rab * rac);
 
         if (compute_virial)
             {
