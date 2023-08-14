@@ -196,7 +196,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
         Scalar inv_s_baac = 1.0 / s_baac;
 
-        Scalar3 dc_drab, dc_drac, dc_drbc; // dcos_baac / dr_a
+        Scalar3 dc_drab, dc_drac; // dcos_baac / dr_a
         dc_drab = -nac / rab + c_baac / rab * nab;
         dc_drac = -nab / rac + c_baac / rac * nac;
 
