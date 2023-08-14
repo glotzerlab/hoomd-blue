@@ -127,7 +127,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
-        Scalar A0 = params.y;
+        Scalar At = params.y;
 
         Scalar3 dc_drab = -nac / rab + c_baac / rab * nab;
         Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
@@ -135,9 +135,10 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         Scalar3 ds_drab = -c_baac * inv_s_baac * dc_drab;
         Scalar3 ds_drac = -c_baac * inv_s_baac * dc_drac;
 
-        Scalar numerator_base, prefactor;
-        numerator_base = rab * rac * s_baac / 2 - A0;
-        prefactor = -K/(2 * A0) * numerator_base;
+        Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
+        Scalar Ut = 3 * tri_area - At;
+
+	Scalar prefactor = -K / (2 * At) * Ut;
 
 
         Scalar3 Fab = prefactor * (-nab * rac * s_baac +  ds_drab * rab * rac);
@@ -145,7 +146,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
 	Scalar3 Fa = make_scalar3(0,0,0);
 
-        if (cur_triangle_abc == 0 || cur_triangle_abc == 1)
+        if (cur_triangle_abc != 2)
             {
 	    Fa += Fab;
 
@@ -158,7 +159,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
             }
 
-        if (cur_triangle_abc == 0 || cur_triangle_abc == 2)
+        if (cur_triangle_abc != 1)
             {
 	    Fa += Fac;
 
@@ -182,7 +183,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         force.y += Fa.y;
         force.z += Fa.z;
         force.w
-            += K / (6.0 * A0) * numerator_base * numerator_base; // divided by 3 because of three
+            += K / (6.0 * At) * Ut * Ut; // divided by 3 because of three
                                                                  // particles sharing the energy
         }
 
