@@ -104,16 +104,8 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
             }
 	else
 	    {
-            if (cur_triangle_abc == 1)
-                {
-            	dab = pos_a - pos_b;
-            	dac = pos_c - pos_b;
-                }
-	    else
-	        {
-            	dab = pos_c - pos_b;
-            	dac = pos_a - pos_b;
-	        }
+            dab = pos_a - pos_b;
+            dac = pos_c - pos_b;
 	    }
 
         dab = box.minImage(dab);
@@ -147,22 +139,22 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         Scalar At = params.y;
 
         Scalar3 dc_drab = -nac / rab + c_baac / rab * nab;
-        Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
-
         Scalar3 ds_drab = -c_baac * inv_s_baac * dc_drab;
-        Scalar3 ds_drac = -c_baac * inv_s_baac * dc_drac;
 
         Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
         Scalar Ut = 3 * tri_area - At;
 
 	Scalar prefactor = -K / (2 * At) * Ut;
 
-
         Scalar3 Fab = prefactor * (-nab * rac * s_baac +  ds_drab * rab * rac);
-        Scalar3 Fac = prefactor * (-nac * rab * s_baac +  ds_drac * rab * rac);
 
         if (cur_triangle_abc == 0)
             {
+
+            Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
+            Scalar3 ds_drac = -c_baac * inv_s_baac * dc_drac;
+            Scalar3 Fac = prefactor * (-nac * rab * s_baac +  ds_drac * rab * rac);
+
             force.x += (Fab.x + Fac.x);
             force.y += (Fab.y + Fac.y);
             force.z += (Fab.z + Fac.z);
@@ -177,33 +169,16 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
             }
 	else
 	    {
-            if (cur_triangle_abc == 1)
-                {
-                force.x -= Fab.x;
-                force.y -= Fab.y;
-                force.z -= Fab.z;
+	    force.x -= Fab.x;
+	    force.y -= Fab.y;
+	    force.z -= Fab.z;
 
-                virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
-                virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
-                virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
-                virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
-                virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
-                virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
-
-                }
-	    else
-	        {
-                force.x -= Fac.x;
-                force.y -= Fac.y;
-                force.z -= Fac.z;
-
-                virial[0] += Scalar(1. / 2.) * dac.x * Fac.x; // xx
-                virial[1] += Scalar(1. / 2.) * dac.y * Fac.x; // xy
-                virial[2] += Scalar(1. / 2.) * dac.z * Fac.x; // xz
-                virial[3] += Scalar(1. / 2.) * dac.y * Fac.y; // yy
-                virial[4] += Scalar(1. / 2.) * dac.z * Fac.y; // yz
-                virial[5] += Scalar(1. / 2.) * dac.z * Fac.z; // zz
-	        }
+	    virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
+	    virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
+	    virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
+	    virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
+	    virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
+	    virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
 	    }
 
         force.w
