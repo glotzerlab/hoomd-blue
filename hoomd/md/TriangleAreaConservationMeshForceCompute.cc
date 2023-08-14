@@ -176,19 +176,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        Scalar3 da, db, dc;
-        da.x = h_pos.data[idx_a].x;
-        da.y = h_pos.data[idx_a].y;
-        da.z = h_pos.data[idx_a].z;
-        db.x = h_pos.data[idx_b].x;
-        db.y = h_pos.data[idx_b].y;
-        db.z = h_pos.data[idx_b].z;
-        dc.x = h_pos.data[idx_c].x;
-        dc.y = h_pos.data[idx_c].y;
-        dc.z = h_pos.data[idx_c].z;
-
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
@@ -209,15 +196,13 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
         Scalar inv_s_baac = 1.0 / s_baac;
 
-        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a
-        dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-        dc_drb = nac / rab - c_baac / rab * nab;
-        dc_drc = nab / rac - c_baac / rac * nac;
+        Scalar3 dc_drab, dc_drac, dc_drbc; // dcos_baac / dr_a
+        dc_drab = -nac / rab + c_baac / rab * nab;
+        dc_drac = -nab / rac + c_baac / rac * nac;
 
-        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
-        ds_dra = -c_baac * inv_s_baac * dc_dra;
-        ds_drb = -c_baac * inv_s_baac * dc_drb;
-        ds_drc = -c_baac * inv_s_baac * dc_drc;
+        Scalar3 ds_drab, ds_drac; // dsin_baac / dr_a
+        ds_drab = -c_baac * inv_s_baac * dc_drab;
+        ds_drac = -c_baac * inv_s_baac * dc_drac;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
@@ -226,20 +211,20 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
         Scalar Ut = 3 * tri_area - At;
 
-        Scalar3 Fa, Fb, Fc;
-        Fa = -m_K[triangle_type] / (2 * At) * Ut
-             * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
-        Fb = -m_K[triangle_type] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
-        Fc = -m_K[triangle_type] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
+	Scalar prefactor = -m_K[triangle_type] / (2 * At) * Ut;
+
+        Scalar3 Fab, Fac;
+	Fab = prefactor * (-nab * rac * s_baac + ds_rab * rab * rac)
+	Fac = prefactor * (-nac * rab * s_baac + ds_rac * rab * rac)
 
         if (compute_virial)
             {
-            triangle_area_conservation_virial[0] = Scalar(1. / 2.) * da.x * Fa.x; // xx
-            triangle_area_conservation_virial[1] = Scalar(1. / 2.) * da.y * Fa.x; // xy
-            triangle_area_conservation_virial[2] = Scalar(1. / 2.) * da.z * Fa.x; // xz
-            triangle_area_conservation_virial[3] = Scalar(1. / 2.) * da.y * Fa.y; // yy
-            triangle_area_conservation_virial[4] = Scalar(1. / 2.) * da.z * Fa.y; // yz
-            triangle_area_conservation_virial[5] = Scalar(1. / 2.) * da.z * Fa.z; // zz
+            triangle_area_conservation_virial[0] = Scalar(1. / 2.) * (dab.x * Fab.x + dac.x * Fac.x); // xx
+            triangle_area_conservation_virial[1] = Scalar(1. / 2.) * (dab.y * Fab.x + dac.y * Fac.x); // xy
+            triangle_area_conservation_virial[2] = Scalar(1. / 2.) * (dab.z * Fab.x + dac.z * Fac.x); // xz
+            triangle_area_conservation_virial[3] = Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y); // yy
+            triangle_area_conservation_virial[4] = Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y); // yz
+            triangle_area_conservation_virial[5] = Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
             }
 
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
@@ -248,9 +233,9 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             {
             global_area[triangle_type] += tri_area;
 
-            h_force.data[idx_a].x += Fa.x;
-            h_force.data[idx_a].y += Fa.y;
-            h_force.data[idx_a].z += Fa.z;
+            h_force.data[idx_a].x += (Fab.x + Fac.x);
+            h_force.data[idx_a].y += (Fab.y + Fac.y);
+            h_force.data[idx_a].z += (Fab.z + Fac.z);
             h_force.data[idx_a].w
                 += m_K[triangle_type] / (6.0 * At) * Ut * Ut; // divided by 3 because of three
                                                               // particles sharing the energy
@@ -261,21 +246,21 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (compute_virial)
             {
-            triangle_area_conservation_virial[0] = Scalar(1. / 2.) * db.x * Fb.x; // xx
-            triangle_area_conservation_virial[1] = Scalar(1. / 2.) * db.y * Fb.x; // xy
-            triangle_area_conservation_virial[2] = Scalar(1. / 2.) * db.z * Fb.x; // xz
-            triangle_area_conservation_virial[3] = Scalar(1. / 2.) * db.y * Fb.y; // yy
-            triangle_area_conservation_virial[4] = Scalar(1. / 2.) * db.z * Fb.y; // yz
-            triangle_area_conservation_virial[5] = Scalar(1. / 2.) * db.z * Fb.z; // zz
+            triangle_area_conservation_virial[0] = Scalar(1. / 2.) * dab.x * Fab.x; // xx
+            triangle_area_conservation_virial[1] = Scalar(1. / 2.) * dab.y * Fab.x; // xy
+            triangle_area_conservation_virial[2] = Scalar(1. / 2.) * dab.z * Fab.x; // xz
+            triangle_area_conservation_virial[3] = Scalar(1. / 2.) * dab.y * Fab.y; // yy
+            triangle_area_conservation_virial[4] = Scalar(1. / 2.) * dab.z * Fab.y; // yz
+            triangle_area_conservation_virial[5] = Scalar(1. / 2.) * dab.z * Fab.z; // zz
             }
 
         if (idx_b < m_pdata->getN())
             {
             global_area[triangle_type] += tri_area;
 
-            h_force.data[idx_b].x += Fb.x;
-            h_force.data[idx_b].y += Fb.y;
-            h_force.data[idx_b].z += Fb.z;
+            h_force.data[idx_b].x -= Fab.x;
+            h_force.data[idx_b].y -= Fab.y;
+            h_force.data[idx_b].z -= Fab.z;
             h_force.data[idx_b].w += m_K[triangle_type] / (6.0 * At) * Ut * Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += triangle_area_conservation_virial[j];
@@ -283,21 +268,21 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (compute_virial)
             {
-            triangle_area_conservation_virial[0] = Scalar(1. / 2.) * dc.x * Fc.x; // xx
-            triangle_area_conservation_virial[1] = Scalar(1. / 2.) * dc.y * Fc.x; // xchy
-            triangle_area_conservation_virial[2] = Scalar(1. / 2.) * dc.z * Fc.x; // xz
-            triangle_area_conservation_virial[3] = Scalar(1. / 2.) * dc.y * Fc.y; // yy
-            triangle_area_conservation_virial[4] = Scalar(1. / 2.) * dc.z * Fc.y; // yz
-            triangle_area_conservation_virial[5] = Scalar(1. / 2.) * dc.z * Fc.z; // zz
+            triangle_area_conservation_virial[0] = Scalar(1. / 2.) * dac.x * Fac.x; // xx
+            triangle_area_conservation_virial[1] = Scalar(1. / 2.) * dac.y * Fac.x; // xchy
+            triangle_area_conservation_virial[2] = Scalar(1. / 2.) * dac.z * Fac.x; // xz
+            triangle_area_conservation_virial[3] = Scalar(1. / 2.) * dac.y * Fac.y; // yy
+            triangle_area_conservation_virial[4] = Scalar(1. / 2.) * dac.z * Fac.y; // yz
+            triangle_area_conservation_virial[5] = Scalar(1. / 2.) * dac.z * Fac.z; // zz
             }
 
         if (idx_c < m_pdata->getN())
             {
             global_area[triangle_type] += tri_area;
 
-            h_force.data[idx_c].x += Fc.x;
-            h_force.data[idx_c].y += Fc.y;
-            h_force.data[idx_c].z += Fc.z;
+            h_force.data[idx_c].x -= Fac.x;
+            h_force.data[idx_c].y -= Fac.y;
+            h_force.data[idx_c].z -= Fac.z;
             h_force.data[idx_c].w += m_K[triangle_type] / (6.0 * At) * Ut * Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += triangle_area_conservation_virial[j];
