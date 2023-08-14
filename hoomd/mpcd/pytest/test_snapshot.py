@@ -21,7 +21,8 @@ def snap():
     return snap_
 
 
-def test_make(snap):
+def test_get_set_mpcd_data(snap):
+    """Test basic manipulation of MPCD data in snapshhot."""
     if snap.communicator.rank == 0:
         assert snap.mpcd.N == 0
         assert len(snap.mpcd.position) == 0
@@ -53,8 +54,8 @@ def test_make(snap):
         np.testing.assert_array_equal(snap.mpcd.types, test_types)
 
 
-# test that snapshot can be resized without losing data
 def test_resize(snap):
+    """Test that MPCD data resizes with snapshot."""
     if snap.communicator.rank == 0:
         # start the snapshot from one particle
         snap.mpcd.N = 1
@@ -91,6 +92,7 @@ def test_resize(snap):
 
 
 def test_replicate(snap):
+    """Test that MPCD data is replicated with snapshot."""
     L = 5.0
 
     # initial configuration is a system with two particles
@@ -132,7 +134,26 @@ def test_replicate(snap):
         np.testing.assert_equal(snap.mpcd.types, types0)
 
 
-def test_create_from_snap(snap, simulation_factory):
+def test_create_and_restore_from_snap(snap, simulation_factory):
+    """Test that simulation can be created and restored with MPCD data in snapshot."""
+    if snap.communicator.num_ranks > 2:
+        pytest.skip("Test must be run on 1 or 2 ranks")
+
+    def reap_mpcd_pdata(simulation):
+        """Reap MPCD particle data as a NumPy array, sorted by tag."""
+        pdata = simulation._state._cpp_sys_def.getMPCDParticleData()
+        dat = []
+        for i in range(0, pdata.N):
+            pos_i = pdata.getPosition(i)
+            vel_i = pdata.getVelocity(i)
+            type_i = pdata.getType(i)
+            tag_i = pdata.getTag(i)
+            dat += [[
+                tag_i, pos_i.x, pos_i.y, pos_i.z, vel_i.x, vel_i.y, vel_i.z,
+                type_i
+            ]]
+        return np.array(sorted(dat, key=lambda p: p[0]))
+
     # set snap values and initialize
     if snap.communicator.rank == 0:
         snap.mpcd.N = test_positions.shape[0]
@@ -143,20 +164,8 @@ def test_create_from_snap(snap, simulation_factory):
         snap.mpcd.mass = test_mass
     sim = simulation_factory(snap, (1, 1, 2))
 
-    # reap all of the particle data into checkable list sorted by tag
-    pdata = sim._state._cpp_sys_def.getMPCDParticleData()
-    dat = []
-    for i in range(0, pdata.N):
-        pos_i = pdata.getPosition(i)
-        vel_i = pdata.getVelocity(i)
-        type_i = pdata.getType(i)
-        tag_i = pdata.getTag(i)
-        dat += [[
-            tag_i, pos_i.x, pos_i.y, pos_i.z, vel_i.x, vel_i.y, vel_i.z, type_i
-        ]]
-    dat = np.array(sorted(dat, key=lambda p: p[0]))
-
-    # now we do a per-processor check
+    # do a per-processor check that data is on the right rank
+    dat = reap_mpcd_pdata(sim)
     if snap.communicator.num_ranks > 1:
         if snap.communicator.rank == 0:
             assert dat[0, 0] == 1
@@ -174,54 +183,22 @@ def test_create_from_snap(snap, simulation_factory):
         np.testing.assert_array_equal(dat[:, 4:7], test_velocities)
         np.testing.assert_array_equal(dat[:, 7], test_typeids)
 
-
-def test_take_restore(snap, simulation_factory):
-    # set snapshot values
-    if snap.communicator.rank == 0:
-        snap.mpcd.N = test_positions.shape[0]
-        snap.mpcd.position[:] = test_positions
-        snap.mpcd.velocity[:] = test_velocities
-        snap.mpcd.typeid[:] = test_typeids
-        snap.mpcd.types = test_types
-        snap.mpcd.mass = test_mass
-    sim = simulation_factory(snap, (1, 1, 2))
-
-    # shuffle snap values and set simulation to those values
+    # next, shuffle particle data and restore simulation to those values
     targets = {}
     targets["position"] = 0.5 * np.roll(test_positions, 1, axis=0)
     targets["velocity"] = 2.0 * np.roll(test_velocities, 1, axis=0)
     targets["typeid"] = np.roll(test_typeids, 1, axis=0)
     targets["mass"] = 0.9
+    snap2 = sim.state.get_snapshot()
+    if snap2.communicator.rank == 0:
+        snap2.mpcd.position[:] = targets["position"]
+        snap2.mpcd.velocity[:] = targets["velocity"]
+        snap2.mpcd.typeid[:] = targets["typeid"]
+        snap2.mpcd.mass = targets["mass"]
+    sim.state.set_snapshot(snap2)
 
-    # take a snapshot and validate that the data matches what we fed in
-    snap = sim.state.get_snapshot()
-    if snap.communicator.rank == 0:
-        np.testing.assert_array_equal(snap.mpcd.position, test_positions)
-        np.testing.assert_array_equal(snap.mpcd.velocity, test_velocities)
-        np.testing.assert_array_equal(snap.mpcd.typeid, test_typeids)
-        np.testing.assert_array_equal(snap.mpcd.types, test_types)
-        assert snap.mpcd.mass == test_mass
-
-        snap.mpcd.position[:] = targets["position"]
-        snap.mpcd.velocity[:] = targets["velocity"]
-        snap.mpcd.typeid[:] = targets["typeid"]
-        snap.mpcd.mass = targets["mass"]
-    sim.state.set_snapshot(snap)
-
-    # reap all of the particle data into checkable list sorted by tag
-    pdata = sim._state._cpp_sys_def.getMPCDParticleData()
-    dat = []
-    for i in range(0, pdata.N):
-        pos_i = pdata.getPosition(i)
-        vel_i = pdata.getVelocity(i)
-        type_i = pdata.getType(i)
-        tag_i = pdata.getTag(i)
-        dat += [[
-            tag_i, pos_i.x, pos_i.y, pos_i.z, vel_i.x, vel_i.y, vel_i.z, type_i
-        ]]
-    dat = np.array(sorted(dat, key=lambda p: p[0]))
-
-    # now we do a per-processor check
+    # do another per-processor check
+    dat = reap_mpcd_pdata(sim)
     if snap.communicator.num_ranks > 1:
         if snap.communicator.rank == 0:
             assert dat[0, 0] == 2
@@ -240,8 +217,8 @@ def test_take_restore(snap, simulation_factory):
         np.testing.assert_array_equal(dat[:, 7], targets["typeid"])
 
 
-# test for typeid out of range
 def test_bad_typeid(snap, simulation_factory):
+    """Test that out-of-range typeid in MPCD data is an error."""
     if snap.communicator.rank == 0:
         snap.mpcd.N = test_positions.shape[0]
         snap.mpcd.typeid[:] = test_typeids
@@ -251,8 +228,8 @@ def test_bad_typeid(snap, simulation_factory):
         sim.create_state_from_snapshot(snap)
 
 
-# check for position outside the box
 def test_bad_positions(snap, simulation_factory):
+    """Test that out-of-bounds position in MPCD data is an error."""
     if snap.communicator.rank == 0:
         snap.mpcd.N = 2
         snap.mpcd.position[1] = [11.0, 0.0, 0.0]
