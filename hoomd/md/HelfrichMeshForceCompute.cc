@@ -382,12 +382,12 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         if (compute_virial)
             {
-            helfrich_virial[0] = Scalar(1. / 2.) * dab.x * Fa.x; // xx
-            helfrich_virial[1] = Scalar(1. / 2.) * dab.y * Fa.x; // xy
-            helfrich_virial[2] = Scalar(1. / 2.) * dab.z * Fa.x; // xz
-            helfrich_virial[3] = Scalar(1. / 2.) * dab.y * Fa.y; // yy
-            helfrich_virial[4] = Scalar(1. / 2.) * dab.z * Fa.y; // yz
-            helfrich_virial[5] = Scalar(1. / 2.) * dab.z * Fa.z; // zz
+            helfrich_virial[0] = -Scalar(1. / 2.) * dab.x * Fa.x; // xx
+            helfrich_virial[1] = -Scalar(1. / 2.) * dab.y * Fa.x; // xy
+            helfrich_virial[2] = -Scalar(1. / 2.) * dab.z * Fa.x; // xz
+            helfrich_virial[3] = -Scalar(1. / 2.) * dab.y * Fa.y; // yy
+            helfrich_virial[4] = -Scalar(1. / 2.) * dab.z * Fa.y; // yz
+            helfrich_virial[5] = -Scalar(1. / 2.) * dab.z * Fa.z; // zz
             }
 
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
