@@ -280,7 +280,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             {
             global_area[triangle_type] += tri_area;
 
-            h_force.data[idx_c].x -= Fac.x;
+	    h_force.data[idx_c].x -= Fac.x;
             h_force.data[idx_c].y -= Fac.y;
             h_force.data[idx_c].z -= Fac.z;
             h_force.data[idx_c].w += m_K[triangle_type] / (6.0 * At) * Ut * Ut;

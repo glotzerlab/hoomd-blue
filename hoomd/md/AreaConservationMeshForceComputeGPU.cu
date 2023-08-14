@@ -339,8 +339,25 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         Scalar3 pos_c = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
 
         Scalar3 dab, dac;
-        dab = pos_b - pos_a;
-        dac = pos_c - pos_a;
+
+        if (cur_triangle_abc == 0)
+            {
+            dab = pos_b - pos_a;
+            dac = pos_c - pos_a;
+            }
+	else
+	    {
+            if (cur_triangle_abc == 1)
+                {
+            	dab = pos_a - pos_b;
+            	dac = pos_c - pos_b;
+                }
+	    else
+	        {
+            	dab = pos_c - pos_b;
+            	dac = pos_a - pos_b;
+	        }
+	    }
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
