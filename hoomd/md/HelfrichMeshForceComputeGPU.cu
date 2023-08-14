@@ -502,7 +502,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     d_force[idx] = force;
 
     for (unsigned int i = 0; i < 6; i++)
-        d_virial[i * virial_pitch + idx] = virial[i];
+        d_virial[i * virial_pitch + idx] = -virial[i];
     }
 
 /*! \param d_force Device memory to write computed forces
