@@ -43,10 +43,23 @@ class ExternalFieldEvalFactory
         return m_error_msg;
         }
 
+    //! Retrieve alpha array
+    float* getAlphaArray() const
+        {
+        return *m_alpha;
+        }
+
+    //! Set alpha array
+    void setAlphaArray(float* h_alpha)
+        {
+        *m_alpha = h_alpha;
+        }
+
+
     private:
     std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
     ExternalFieldEvalFnPtr m_eval;                     //!< Function pointer to evaluator
-
+    float** m_alpha;                                   // Pointer to alpha array
     std::string m_error_msg; //!< The error message if initialization fails
     };
 

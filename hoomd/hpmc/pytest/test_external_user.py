@@ -10,16 +10,18 @@ import numpy as np
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
 
-valid_constructor_args = [dict(code='return -1;')]
+valid_constructor_args = [dict(code='return -1;', param_array=[1])]
 
 # setable attributes before attach for CPPExternalPotential objects
 valid_attrs = [
     ('code', 'return -1;'),
+    ('param_array', [1])
 ]
 
 # attributes that cannot be set after object is attached
 attr_error = [
     ('code', 'return -1.0;'),
+    ('param_array', [1])
 ]
 
 # list of tuples with (
@@ -58,7 +60,7 @@ def test_valid_construction_cpp_external(device, constructor_args):
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;', param_array=[1])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -78,7 +80,7 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;', param_array=[0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -126,7 +128,7 @@ def test_valid_construction_and_attach_cpp_external(
 def test_valid_setattr_cpp_external(device, attr, value):
     """Test that CPPExternalPotential can get and set attributes before \
             attached."""
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;', param_array=[1])
 
     setattr(ext, attr, value)
     assert getattr(ext, attr) == value
@@ -139,7 +141,7 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
                                        two_particle_snapshot_factory):
     """Test that CPPExternalPotential raises AttributeError if we try to set \
             certain attributes after attaching."""
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;', param_array=[0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -175,7 +177,7 @@ def test_electric_field(device, orientations, charge, result,
 
     sim = simulation_factory(two_particle_snapshot_factory())
 
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code=electric_field)
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code=electric_field, param_array=[0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0, orientable=True)
     mc.external_potential = ext
@@ -217,7 +219,7 @@ def test_z_bias(device, simulation_factory, lattice_snapshot_factory):
     new_box = hoomd.Box(Lx=3 * old_box.Lx, Ly=3 * old_box.Ly, Lz=3 * old_box.Lz)
     sim.state.set_box(new_box)
     ext = hoomd.hpmc.external.user.CPPExternalPotential(
-        code="return 1000*r_i.z*r_i.z;")
+        code="return 1000*r_i.z*r_i.z;", param_array=[0])
     mc.external_potential = ext
     sim.operations.integrator = mc
 

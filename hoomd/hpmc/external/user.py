@@ -18,7 +18,9 @@ from hoomd.hpmc.external.field import ExternalField
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.logging import log
+import numpy as np
 
 
 class CPPExternalPotential(ExternalField):
@@ -27,6 +29,9 @@ class CPPExternalPotential(ExternalField):
 
     Args:
         code (str): C++ function body to compile.
+        param_array (list[float]): Parameter values to make available in
+            ``float *param_array`` in the compiled code. If no adjustable
+            parameters are needed in the C++ code, pass an empty array.
 
     Potentials added using `CPPExternalPotential` are added to the total energy
     calculation in `hoomd.hpmc.integrate.HPMCIntegrator`. `CPPExternalPotential`
@@ -34,6 +39,10 @@ class CPPExternalPotential(ExternalField):
     the MC loop with full performance. It enables researchers to quickly and
     easily implement custom energetic field intractions without the need to
     modify and recompile HOOMD.
+
+    Adjust parameters within the code with the `param_array` attribute without
+    requiring a recompile. These arrays are **read-only** during function
+    evaluation.
 
     .. rubric:: C++ code
 
@@ -89,12 +98,20 @@ class CPPExternalPotential(ExternalField):
     Attributes:
         code (str): The code of the body of the external field energy function.
             After running zero or more steps, this property cannot be modified.
+        param_array ((*N*, ) `numpy.ndarray` of ``float``): Numpy
+            array containing dynamically adjustable elements in the potential
+            energy function as defined by the user. After running zero or more
+            steps, the array cannot be set, although individual values can still
+            be changed.
 
     """
 
-    def __init__(self, code):
-        param_dict = ParameterDict(code=str)
-        self._param_dict = param_dict
+    def __init__(self, code, param_array):
+        param_dict = ParameterDict(code=str,
+                                   param_array=NDArrayValidator(
+                                       dtype=np.float32, shape=(None,)),)
+        param_dict['param_array'] = param_array
+        self._param_dict.update(param_dict)
         self.code = code
 
     def _getattr_param(self, attr):
@@ -113,6 +130,9 @@ class CPPExternalPotential(ExternalField):
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/BoxDim.h"
+
+                        // param_array is allocated by the library
+                        float *param_array;
 
                         using namespace hoomd;
 
@@ -177,7 +197,7 @@ class CPPExternalPotential(ExternalField):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._simulation.device._cpp_exec_conf,
-                                cpu_code, cpu_include_options)
+                                cpu_code, cpu_include_options, self.param_array)
         super()._attach_hook()
 
     @log(requires_run=True)
