@@ -410,9 +410,9 @@ template<class Shape> void UpdaterClustersGPU<Shape>::connectedComponents()
 
     // access edges of adajacency matrix
     ArrayHandle<unsigned int> d_adjacency(m_adjacency, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nneigh_scan(m_nneigh_scan,
-                                            access_location::host,
+                                            access_location::device,
                                             access_mode::overwrite);
 
     // determine total size of adjacency list, and do prefix sum
