@@ -107,9 +107,10 @@ class CPPExternalPotential(ExternalField):
     """
 
     def __init__(self, code, param_array):
-        param_dict = ParameterDict(code=str,
-                                   param_array=NDArrayValidator(
-                                       dtype=np.float32, shape=(None,)),)
+        param_dict = ParameterDict(
+            code=str,
+            param_array=NDArrayValidator(dtype=np.float32, shape=(None,)),
+        )
         param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code

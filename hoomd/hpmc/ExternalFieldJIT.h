@@ -44,12 +44,12 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
                      const std::string& cpu_code,
-                     const std::vector<std::string>& compiler_args, 
-                pybind11::array_t<float> param_array)
+                     const std::vector<std::string>& compiler_args,
+                     pybind11::array_t<float> param_array)
         : hpmc::ExternalFieldMono<Shape>(sysdef), m_exec_conf(exec_conf),
-      m_param_array(param_array.data(),
-                    param_array.data() + param_array.size(),
-                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+          m_param_array(param_array.data(),
+                        param_array.data() + param_array.size(),
+                        hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
         ExternalFieldEvalFactory* factory = new ExternalFieldEvalFactory(cpu_code, compiler_args);
@@ -59,7 +59,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 
         if (!m_eval)
             {
-            throw std::runtime_error("Error compiling JIT code for CPPExternalPotential.\n" + factory->getError());
+            throw std::runtime_error("Error compiling JIT code for CPPExternalPotential.\n"
+                                     + factory->getError());
             }
         factory->setAlphaArray(&m_param_array.front());
         m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);

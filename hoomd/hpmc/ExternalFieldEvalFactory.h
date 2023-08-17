@@ -55,7 +55,6 @@ class ExternalFieldEvalFactory
         *m_alpha = h_alpha;
         }
 
-
     private:
     std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
     ExternalFieldEvalFnPtr m_eval;                     //!< Function pointer to evaluator
