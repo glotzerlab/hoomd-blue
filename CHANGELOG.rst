@@ -7,7 +7,7 @@ Change Log
 4.x
 ---
 
-4.1.0 (2024-08-??)
+4.1.0 (2024-08-07)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
@@ -39,6 +39,9 @@ Change Log
   (`#1593 <https://github.com/glotzerlab/hoomd-blue/pull/1593>`__).
 * ``hoomd.write.HDF5Logger`` - write log quantities to HDF5 files
   (`#1588 <https://github.com/glotzerlab/hoomd-blue/pull/1588>`__).
+* ``default_gamma`` and ``default_gamma_r`` arguments to ``hoomd.md.methods.rattle.Brownian``
+  ``hoomd.md.methods.rattle.Langevin``, and ``hoomd.md.methods.rattle.OverdampedViscous``
+  (`#1589 <https://github.com/glotzerlab/hoomd-blue/issues/1589>`__).
 
 4.0.1 (2023-06-27)
 ^^^^^^^^^^^^^^^^^^

@@ -82,7 +82,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true
@@ -188,7 +188,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true
@@ -249,7 +249,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true
@@ -299,7 +299,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true
@@ -361,7 +361,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true
@@ -475,7 +475,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true
@@ -544,7 +544,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.5.2
+      uses: actions/checkout@v3.5.3
       with:
         path: code
         submodules: true

@@ -83,13 +83,15 @@ class NVE(MethodRATTLE):
     in `hoomd.md.methods.ConstantVolume` without any thermostat. In addition
     the particles are constrained to a manifold by using the RATTLE algorithm.
 
-    Examples::
+    .. rubric:: Example
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+    .. code-block:: python
+
+        sphere = hoomd.md.manifold.Sphere(r=5)
         nve_rattle = hoomd.md.methods.rattle.NVE(
-            filter=hoomd.filter.All(),maifold=sphere)
-        integrator = hoomd.md.Integrator(
-            dt=0.005, methods=[nve_rattle], forces=[lj])
+            filter=hoomd.filter.All(),
+            manifold_constraint=sphere)
+        simulation.operations.integrator.methods = [nve_rattle]
 
 
     Attributes:
@@ -166,15 +168,16 @@ class DisplacementCapped(NVE):
     `hoomd.md.methods.DisplacementCapped`. In addition the particles are
     constrained to a manifold by using the RATTLE algorithm.
 
-    Examples::
+    .. rubric:: Example
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+    .. code-block:: python
+
+        sphere = hoomd.md.manifold.Sphere(r=5)
         relax_rattle = hoomd.md.methods.rattle.DisplacementCapped(
-            filter=hoomd.filter.All(), maximum_displacement=0.01,
-            manifold=sphere)
-        integrator = hoomd.md.Integrator(
-            dt=0.005, methods=[relax_rattle], forces=[lj])
-
+            filter=hoomd.filter.All(),
+            maximum_displacement=0.01,
+            manifold_constraint=sphere)
+        simulation.operations.integrator.methods = [relax_rattle]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply

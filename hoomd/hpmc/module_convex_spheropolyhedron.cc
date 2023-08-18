@@ -11,7 +11,6 @@
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -50,8 +49,6 @@ void export_convex_spheropolyhedron(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeSpheropolyhedron>(m, "ExternalFieldSpheropolyhedron");
     export_HarmonicField<ShapeSpheropolyhedron>(m, "ExternalFieldHarmonicSpheropolyhedron");
-    export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
-                                                         "ExternalFieldCompositeSpheropolyhedron");
     export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallConvexSpheropolyhedron");
 
 #ifdef ENABLE_HIP
