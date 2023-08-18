@@ -172,12 +172,12 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
 
         Fac *= 0.5 * K;
 
-        virial[0] -= Scalar(1. / 2.) * dac.x * Fac.x; // xx
-        virial[1] -= Scalar(1. / 2.) * dac.y * Fac.x; // xy
-        virial[2] -= Scalar(1. / 2.) * dac.z * Fac.x; // xz
-        virial[3] -= Scalar(1. / 2.) * dac.y * Fac.y; // yy
-        virial[4] -= Scalar(1. / 2.) * dac.z * Fac.y; // yz
-        virial[5] -= Scalar(1. / 2.) * dac.z * Fac.z; // zz
+        virial[0] += Scalar(1. / 2.) * dac.x * Fac.x; // xx
+        virial[1] += Scalar(1. / 2.) * dac.y * Fac.x; // xy
+        virial[2] += Scalar(1. / 2.) * dac.z * Fac.x; // xz
+        virial[3] += Scalar(1. / 2.) * dac.y * Fac.y; // yy
+        virial[4] += Scalar(1. / 2.) * dac.z * Fac.y; // yz
+        virial[5] += Scalar(1. / 2.) * dac.z * Fac.z; // zz
 
         if (cur_bond_pos < 2)
             {
@@ -193,12 +193,12 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
             Fab *= 0.5 * K;
             Fad *= 0.5 * K;
 
-            virial[0] -= Scalar(1. / 2.) * (dab.x * Fab.x + dad.x * Fad.x); // xx
-            virial[1] -= Scalar(1. / 2.) * (dab.y * Fab.x + dad.y * Fad.x); // xy
-            virial[2] -= Scalar(1. / 2.) * (dab.z * Fab.x + dad.z * Fad.x); // xz
-            virial[3] -= Scalar(1. / 2.) * (dab.y * Fab.y + dad.y * Fad.y); // yy
-            virial[4] -= Scalar(1. / 2.) * (dab.z * Fab.y + dad.z * Fad.y); // yz
-            virial[5] -= Scalar(1. / 2.) * (dab.z * Fab.z + dad.z * Fad.z); // zz
+            virial[0] += Scalar(1. / 2.) * (dab.x * Fab.x + dad.x * Fad.x); // xx
+            virial[1] += Scalar(1. / 2.) * (dab.y * Fab.x + dad.y * Fad.x); // xy
+            virial[2] += Scalar(1. / 2.) * (dab.z * Fab.x + dad.z * Fad.x); // xz
+            virial[3] += Scalar(1. / 2.) * (dab.y * Fab.y + dad.y * Fad.y); // yy
+            virial[4] += Scalar(1. / 2.) * (dab.z * Fab.y + dad.z * Fad.y); // yz
+            virial[5] += Scalar(1. / 2.) * (dab.z * Fab.z + dad.z * Fad.z); // zz
 
             Fac += (Fab + Fad);
             }

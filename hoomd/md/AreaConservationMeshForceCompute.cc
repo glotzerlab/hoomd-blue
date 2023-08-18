@@ -158,14 +158,14 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
 
         Scalar3 dac;
-        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -210,7 +210,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
                         / (2 * m_A0[triangle_type] * m_pdata->getNGlobal());
 
-        AreaDiff = -m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
+        AreaDiff = m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
 	
 	Fab = AreaDiff * (-nab * rac * s_baac + ds_drab * rab * rac);
 	Fac = AreaDiff * (-nac * rab * s_baac + ds_drac * rab * rac);

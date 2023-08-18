@@ -326,7 +326,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * gN);
 
-        AreaDiff = -K / A_mesh * AreaDiff / 2.0;
+        AreaDiff = K / A_mesh * AreaDiff / 2.0;
 
         int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
@@ -342,13 +342,13 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         if (cur_triangle_abc == 0)
             {
-            dab = pos_b - pos_a;
-            dac = pos_c - pos_a;
+            dab = pos_a - pos_b;
+            dac = pos_a - pos_c;
             }
 	else
 	    {
-            dab = pos_a - pos_b;
-            dac = pos_c - pos_b;
+            dab = pos_b - pos_a;
+            dac = pos_b - pos_c;
 	    }
 
         dab = box.minImage(dab);

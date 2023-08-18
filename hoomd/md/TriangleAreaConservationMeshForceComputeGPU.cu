@@ -99,13 +99,13 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
         if (cur_triangle_abc == 0)
             {
-            dab = pos_b - pos_a;
-            dac = pos_c - pos_a;
+            dab = pos_a - pos_b;
+            dac = pos_a - pos_c;
             }
 	else
 	    {
-            dab = pos_a - pos_b;
-            dac = pos_c - pos_b;
+            dab = pos_b - pos_a;
+            dac = pos_b - pos_c;
 	    }
 
         dab = box.minImage(dab);
@@ -144,7 +144,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
         Scalar Ut = 3 * tri_area - At;
 
-	Scalar prefactor = -K / (2 * At) * Ut;
+	Scalar prefactor = K / (2 * At) * Ut;
 
         Scalar3 Fab = prefactor * (-nab * rac * s_baac +  ds_drab * rab * rac);
 
