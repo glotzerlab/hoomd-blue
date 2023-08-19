@@ -155,6 +155,29 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 
 
 @pytest.mark.cpu
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_change_param_array_values(device, simulation_factory,
+                                   two_particle_snapshot_factory):
+    """Test that changing param_array values behaves correctly."""
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(
+        code='return param_array[0];', param_array=[1])
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1)
+    mc.shape['A'] = dict(diameter=0.1)
+    mc.d['A'] = 0.1
+    mc.external_potential = ext
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    N = sim.state.N_particles
+    sim.operations.integrator = mc
+    sim.run(0)
+    for _n in range(3):
+        ext.param_array[0] = _n
+        sim.run(1)
+        assert ext.energy / N == _n
+
+
+@pytest.mark.cpu
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
