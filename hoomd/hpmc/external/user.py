@@ -85,7 +85,7 @@ class CPPExternalPotential(ExternalField):
 
             gravity_code = "return r_i.z + box.getL().z/2;"
             gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                code=gravity_code)
+                code=gravity_code, param_array=[])
             mc.external_potential = gravity
 
     Note:
