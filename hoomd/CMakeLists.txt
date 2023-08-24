@@ -414,7 +414,7 @@ if (BUILD_METAL AND BUILD_MD)
 endif()
 
 if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
-    target_compile_definitions(_hoomd PUBLIC ENABLE_MPCD)
+    target_compile_definitions(_hoomd PUBLIC BUILD_MPCD)
     add_subdirectory(mpcd)
 endif()
 

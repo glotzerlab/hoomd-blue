@@ -36,7 +36,7 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     improper_data.replicate(n, old_n);
     constraint_data.replicate(n, old_n);
     pair_data.replicate(n, old_n);
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
     mpcd_data.replicate(nx, ny, nz, old_box, *global_box);
 #endif
     }
@@ -59,7 +59,7 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
         particle_data.image[i] = particle_data.image[i] + img;
         }
 
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
     // MPCD particles
     for (unsigned int i = 0; i < mpcd_data.size; ++i)
         {
@@ -104,7 +104,7 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
         improper_data.bcast(root, communicator);
         constraint_data.bcast(root, communicator);
         pair_data.bcast(root, communicator);
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
         mpcd_data.bcast(root, communicator);
 #endif
         }
@@ -129,7 +129,7 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
         improper_data.bcast(root, hoomd_world);
         constraint_data.bcast(root, hoomd_world);
         pair_data.bcast(root, hoomd_world);
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
         mpcd_data.bcast(root, hoomd_world);
 #endif
         }
@@ -157,7 +157,7 @@ void export_SnapshotSystemData(pybind11::module& m)
         .def_readonly("impropers", &SnapshotSystemData<float>::improper_data)
         .def_readonly("constraints", &SnapshotSystemData<float>::constraint_data)
         .def_readonly("pairs", &SnapshotSystemData<float>::pair_data)
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
         .def_readonly("mpcd", &SnapshotSystemData<float>::mpcd_data)
 #endif
         .def("replicate", &SnapshotSystemData<float>::replicate)
@@ -179,7 +179,7 @@ void export_SnapshotSystemData(pybind11::module& m)
         .def_readonly("impropers", &SnapshotSystemData<double>::improper_data)
         .def_readonly("constraints", &SnapshotSystemData<double>::constraint_data)
         .def_readonly("pairs", &SnapshotSystemData<double>::pair_data)
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
         .def_readonly("mpcd", &SnapshotSystemData<double>::mpcd_data)
 #endif
         .def("replicate", &SnapshotSystemData<double>::replicate)

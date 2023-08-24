@@ -11,7 +11,7 @@
 
 #include "BondedGroupData.h"
 #include "ParticleData.h"
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
 #include "hoomd/mpcd/ParticleData.h"
 #endif
 
@@ -202,7 +202,7 @@ class PYBIND11_EXPORT SystemDefinition
         return m_pair_data;
         }
 
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
     //! Get the MPCD particle data
     std::shared_ptr<mpcd::ParticleData> getMPCDParticleData() const
         {
@@ -233,7 +233,7 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ImproperData> m_improper_data;     //!< Improper data for the system
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
-#ifdef ENABLE_MPCD
+#ifdef BUILD_MPCD
     std::shared_ptr<mpcd::ParticleData> m_mpcd_data; //!< MPCD particle data
 #endif
 
