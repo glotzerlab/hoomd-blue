@@ -7,8 +7,8 @@ How to prevent particles from moving
 MD simulations
 --------------
 
-To prevent a subset of particles from moving in MD simulations, omit the stationary particles from the
-filter (or filters) that you provide to your integration method (or methods). For example:
+To prevent a subset of particles from moving in MD simulations omit the stationary particles from
+the filter (or filters) that you provide to your integration method (or methods). For example:
 
 .. literalinclude:: prevent-particles-from-moving-md.py
     :language: python
@@ -18,7 +18,7 @@ HPMC simulations
 
 To prevent a subset of particles from moving in HPMC simulations:
 
-1. Use different types for stationary particles and mobile particles.
+1. Use different types for stationary and mobile particles.
 2. Set the move sizes of the stationary type to 0.
 3. Set the shape of the stationary type accordingly.
 
