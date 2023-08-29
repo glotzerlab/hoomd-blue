@@ -26,7 +26,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
     {
     public:
     //! Constructor
-    SlitPoreGeometryFillerGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    SlitPoreGeometryFillerGPU(std::shared_ptr<SystemDefinition> sysdef,
                               Scalar density,
                               unsigned int type,
                               std::shared_ptr<Variant> T,

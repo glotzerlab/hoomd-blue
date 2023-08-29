@@ -107,29 +107,6 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 
     } // end namespace hoomd
 
-#ifdef ENABLE_MPI
-namespace cereal
-    {
-//! Serialization of vec3<Real>
-template<class Archive, class Real>
-void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
-    {
-    ar& v.x;
-    ar& v.y;
-    ar& v.z;
-    }
-
-//! Serialization of quat<Real>
-template<class Archive, class Real>
-void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
-    {
-    // serialize both members
-    ar& q.s;
-    ar& q.v;
-    }
-    } // namespace cereal
-#endif
-
 namespace hoomd
     {
 namespace detail

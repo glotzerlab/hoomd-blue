@@ -13,8 +13,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "SystemData.h"
+#include "CellList.h"
+
 #include "hoomd/Autotuned.h"
+#include "hoomd/SystemDefinition.h"
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -40,7 +42,7 @@ class PYBIND11_EXPORT Sorter : public Autotuned
     {
     public:
     //! Constructor
-    Sorter(std::shared_ptr<mpcd::SystemData> sysdata,
+    Sorter(std::shared_ptr<SystemDefinition> sysdef,
            unsigned int cur_timestep,
            unsigned int period);
 
@@ -60,8 +62,16 @@ class PYBIND11_EXPORT Sorter : public Autotuned
         m_next_timestep = multiple * m_period;
         }
 
+    //! Set the cell list used for sorting
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        if (cl != m_cl)
+            {
+            m_cl = cl;
+            }
+        }
+
     protected:
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration

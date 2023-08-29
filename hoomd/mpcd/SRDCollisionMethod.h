@@ -26,15 +26,16 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     {
     public:
     //! Constructor
-    SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    SRDCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int cur_timestep,
                        unsigned int period,
                        int phase,
-                       uint16_t seed,
-                       std::shared_ptr<mpcd::CellThermoCompute> thermo);
+                       uint16_t seed);
 
     //! Destructor
     virtual ~SRDCollisionMethod();
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     //! Get the MPCD rotation angle
     double getRotationAngle() const
@@ -101,6 +102,12 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
 
     //! Apply rotation matrix to velocities
     virtual void rotate(uint64_t timestep);
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
     };
 
 namespace detail
