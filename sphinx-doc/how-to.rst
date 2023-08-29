@@ -10,3 +10,4 @@ How-to
     howto/molecular
     howto/cpppotential
     howto/custom-md-potential
+    howto/choose-the-neighbor-list-buffer-distance
