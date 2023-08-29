@@ -11,3 +11,4 @@ How-to
     howto/cpppotential
     howto/custom-md-potential
     howto/minimize-potential-energy
+    howto/prevent-particles-from-moving
