@@ -7,8 +7,8 @@ How to prevent particles from moving
 MD simulations
 --------------
 
-To prevent a subset of particles from moving in MD simulations omit the stationary particles from
-the filter (or filters) that you provide to your integration method (or methods). For example:
+Omit the stationary particles from the filter (or filters) that you provide to your integration
+method (or methods) to prevent them from moving in MD simulations. For example:
 
 .. literalinclude:: prevent-particles-from-moving-md.py
     :language: python
