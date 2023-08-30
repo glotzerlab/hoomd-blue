@@ -85,6 +85,7 @@ void export_PotentialSpecialPairCoulomb(pybind11::module& m);
 void export_PotentialTersoff(pybind11::module& m);
 void export_PotentialSquareDensity(pybind11::module& m);
 void export_PotentialRevCross(pybind11::module& m);
+void export_PotentialStillingerWeber(pybind11::module& m);
 
 void export_PotentialExternalPeriodic(pybind11::module& m);
 void export_PotentialExternalElectricField(pybind11::module& m);
@@ -227,6 +228,7 @@ void export_PotentialSpecialPairCoulombGPU(pybind11::module& m);
 void export_PotentialTersoffGPU(pybind11::module& m);
 void export_PotentialSquareDensityGPU(pybind11::module& m);
 void export_PotentialRevCrossGPU(pybind11::module& m);
+void export_PotentialStillingerWeberGPU(pybind11::module& m);
 
 void export_PotentialExternalPeriodicGPU(pybind11::module& m);
 void export_PotentialExternalElectricFieldGPU(pybind11::module& m);
@@ -336,6 +338,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialTersoff(m);
     export_PotentialSquareDensity(m);
     export_PotentialRevCross(m);
+    export_PotentialStillingerWeber(m);
 
     export_AnisoPotentialPairALJ2D(m);
     export_AnisoPotentialPairALJ3D(m);
@@ -415,6 +418,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialTersoffGPU(m);
     export_PotentialSquareDensityGPU(m);
     export_PotentialRevCrossGPU(m);
+    export_PotentialStillingerWeberGPU(m);
 
     export_PotentialPairDPDThermoDPDGPU(m);
     export_PotentialPairDPDThermoLJGPU(m);
