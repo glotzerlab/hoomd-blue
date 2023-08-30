@@ -449,3 +449,135 @@ class SquareDensity(Triplet):
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)
+
+
+class StillingerWeber(Triplet):
+    r"""Stillinger-Weber force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+
+    The Tersoff potential is a bond-order potential based on the Morse potential
+    that accounts for the weakening of individual bonds with increasing
+    coordination number. It does this by computing a modifier to the attractive
+    term of the potential. The modifier contains the effects of third-bodies on
+    the bond energies. The potential also includes a smoothing function around
+    the cutoff. The implemented smoothing function is exponential in nature as
+    opposed to the sinusoid used by `J. Tersoff 1988`_.
+
+    .. _J. Tersoff 1988:
+      https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902
+
+    `Tersoff` computes the Tersoff three-body force on every particle in the
+    simulation state. Despite the fact that the Tersoff potential accounts for
+    the effects of third bodies, the species of the third body is irrelevant. It
+    can thus use type-pair parameters similar to those of the pair potentials:
+
+    .. math::
+
+        U_{ij}(r) = \frac{1}{2} f_C(r_{ij})
+            \left[f_R(r_{ij}) + b_{ij}f_A(r_{ij})\right]
+
+    where
+
+    .. math::
+
+        f_R(r) = A_1e^{\lambda_1(r_D-r)}
+
+        f_A(r) = A_2e^{\lambda_2(r_D-r)}
+
+    .. math::
+        f_C(r) =
+        \begin{cases}
+            1 & r < r_{\mathrm{cut}} - r_{CT} \\
+            \exp \left[-\alpha\frac{x(r)^3}{x(r)^3 - 1} \right]
+                & r_{\mathrm{cut}} - r_{CT} < r < r_{\mathrm{cut}} \\
+            0 & r > r_{\mathrm{cut}}
+        \end{cases}
+
+    .. math::
+
+        b_{ij} = (1 + \gamma^n\chi_{ij}^n)^{\frac{-1}{2n}}
+
+    In the definition of :math:`f_C(r)`, there is a quantity :math:`x(r)`, which
+    is defined as
+
+    .. math::
+
+        x(r) = \frac{r - (r_{\mathrm{cut}} - r_{CT})}{r_{CT}}
+
+    which ensures continuity between the different regions of the potential. In
+    the definition of :math:`b_{ij}`, there is a quantity :math:`\chi_{ij}`
+    which is defined as
+
+    .. math::
+
+        \chi_{ij} = \sum_{k \neq i,j} f_C(r_{ik})
+                     \cdot e^{\lambda_3^3 |r_{ij} - r_{ik}|^3}
+        \cdot g(\theta_{ijk})
+
+        g(\theta_{ijk}) = 1 + \frac{c^2}{d^2}
+                           - \frac{c^2}{d^2 + |m - \cos(\theta_{ijk})|^2}
+
+    .. py:attribute:: params
+
+        The Tersoff potential parameters. The dictionary has the following
+        keys:
+
+        * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -
+          Magnitudes of the repulsive and attractive
+          terms (*default*: (1.0, 1.0)) :math:`[\mathrm{energy}]`
+        * ``exp_factors`` (tuple[`float`, `float`]) -
+          :math:`(\lambda_1, \lambda_2)` - exponential factors of the
+          repulsive and attractive
+          terms (*default*: 2.0) :math:`[\mathrm{length}^{-1}]`
+        * ``lambda3`` (`float`) - :math:`\lambda_3` - exponential factor in
+          :math:`\chi_{ij}` (*default*: 0.0) :math:`[\mathrm{length}^{-1}]`
+        * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive
+          and repulsive terms (*default*: 1.5) :math:`[\mathrm{length}]`
+        * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which
+          defines the different regions of the
+          potential (*default*: 0.2) :math:`[\mathrm{length}]`
+        * ``alpha`` (`float`) - :math:`\alpha` - decay rate of the cutoff
+          term
+          :math:`f_C(r)` (*default*: 3.0) :math:`[\mathrm{dimensionless}]`
+        * ``n`` (`float`) - :math:`n` - power in
+          :math:`b_{ij}` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
+        * ``gamma`` (`float`) - :math:`\gamma` - coefficient in
+          :math:`b_{ij}` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
+        * ``c`` (`float`) - :math:`c` - coefficient in
+          :math:`g(\theta)` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
+        * ``d`` (`float`) - :math:`d` - coefficient in
+          :math:`g(\theta)` (*default*: 1.0) :math:`[\mathrm{dimensionless}]`
+        * ``m`` (`float`) - :math:`m` - coefficient in
+          :math:`g(\theta)` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    Example::
+
+        nl = md.nlist.Cell()
+        tersoff = md.many_body.Tersoff(default_r_cut=1.3, nlist=nl)
+        tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
+    """
+    _cpp_class_name = "PotentialStillingerWeber"
+
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(cutoff_thickness=0.2,
+                              magnitudes=(1.0, 1.0),
+                              exp_factors=(2.0, 1.0),
+                              lambda3=0.0,
+                              dimer_r=1.5,
+                              n=0.0,
+                              gamma=0.0,
+                              c=0.0,
+                              d=1.0,
+                              m=0.0,
+                              alpha=3.0,
+                              len_keys=2))
+        self._add_typeparam(params)
