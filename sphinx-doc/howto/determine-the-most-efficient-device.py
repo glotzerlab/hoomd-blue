@@ -14,19 +14,24 @@ args = parser.parse_args()
 device = getattr(hoomd.device, args.device)()
 simulation = hoomd.Simulation(device=device, seed=1)
 simulation.create_state_from_gsd(filename='spheres.gsd')
-simulation.state.replicate(nx=args.replicate, ny=args.replicate, nz=args.replicate,)
+simulation.state.replicate(
+    nx=args.replicate,
+    ny=args.replicate,
+    nz=args.replicate,
+)
 simulation.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=kT)
 
 cell = hoomd.md.nlist.Cell(buffer=0.2)
 lj = hoomd.md.pair.LJ(nlist=cell)
 lj.params[('A', 'A')] = dict(sigma=1, epsilon=1)
-lj.r_cut[('A', 'A')] = 2**(1/6)
+lj.r_cut[('A', 'A')] = 2**(1 / 6)
 
 constant_volume = hoomd.md.methods.ConstantVolume(
-            filter=hoomd.filter.All(),
-            thermostat=hoomd.md.methods.thermostats.Bussi(kT=kT))
+    filter=hoomd.filter.All(),
+    thermostat=hoomd.md.methods.thermostats.Bussi(kT=kT))
 
-simulation.operations.integrator = hoomd.md.Integrator(dt=0.001, methods=[constant_volume], forces=[lj])
+simulation.operations.integrator = hoomd.md.Integrator(
+    dt=0.001, methods=[constant_volume], forces=[lj])
 
 # Wait until GPU kernel parameter autotuning is complete.
 if args.device == 'GPU':
