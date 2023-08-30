@@ -115,6 +115,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
+                EvaluatorStillingerWeber.h
                 EvaluatorWalls.h
                 FIREEnergyMinimizerGPU.h
                 FIREEnergyMinimizer.h
@@ -170,6 +171,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
+                PotentialStillingerWeberGPU.h
+                PotentialStillingerWeber.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
                 TableAngleForceComputeGPU.h
@@ -403,8 +406,9 @@ foreach(_pair ${_pairs})
     endif()
 endforeach()
 
-set(_triplets Tersoff SquareDensity RevCross)
+set(_triplets Tersoff SquareDensity RevCross StillingerWeber)
 
+# TODO update for SW
 foreach(_evaluator ${_triplets})
     configure_file(export_PotentialTersoff.cc.inc
                    export_PotentialTersoff${_evaluator}.cc
