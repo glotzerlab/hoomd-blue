@@ -20,5 +20,5 @@ lj.r_cut[('A', 'A')] = 2.5
 simulation.operations.integrator.forces = [lj]
 
 # Step 3: Run simulation steps until the minimization converges.
-while not (fire.converged):
+while not fire.converged:
     simulation.run(100)
