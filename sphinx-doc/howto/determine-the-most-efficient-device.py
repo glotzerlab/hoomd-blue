@@ -39,6 +39,9 @@ if args.device == 'GPU':
     while not simulation.operations.is_tuning_complete:
         simulation.run(100)
 
+# Warm up memory caches and pre-computed quantities.
+simulation.run(args.steps)
+
 # Run the benchmark and print the performance.
 simulation.run(args.steps)
-device.notice(f'TPS: {simulation.tps}')
+device.notice(f'TPS: {simulation.tps:0.5g}')
