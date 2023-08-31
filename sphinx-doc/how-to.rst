@@ -10,5 +10,6 @@ How-to
     howto/molecular
     howto/cpppotential
     howto/custom-md-potential
+    howto/continuously-vary-potential-parameters
     howto/minimize-potential-energy
     howto/prevent-particles-from-moving
