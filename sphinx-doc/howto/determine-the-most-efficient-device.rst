@@ -54,27 +54,22 @@ On AMD EPYC 7742 (PSC Bridges-2) and NVIDIA A100 (NCSA Delta), this script repor
 
 The optimal device selection depends on the metric. When the metric is wall clock time only, choose
 the highest performance benchmark. When the metric is a cost, choose based on the efficiency of each
-device configuration:
+device configuration.
 
-.. math::
-
-    \eta = \frac{S}{S_\mathrm{ref}} \cdot \frac{C_\mathrm{ref}}{C}
-
-where :math:`\eta` is the efficiency, :math:`S` is the performance :math:`C` is the cost and the
-:math:`\mathrm{ref}` subscript denotes the reference.
-
-One cost metric is compute time. Most HPC resources assign a cost by CPU core hours:
-
-.. math::
-
-    \frac{C_\mathrm{1\ CPU}}{C_\mathrm{P\ CPUs}} = \frac{1}{P}
-
+One cost metric is compute time. Most HPC resources assign a cost by CPU core hours.
 Some HPC resources may assign an effective cost to GPUs. When this is not the case, use the ratio of
 available GPU hours to CPU core hours as a substitute. This example will assign a relative cost of
+1 GPU hour to 64 CPU core hours. The efficiency is:
 
 .. math::
 
-    \frac{C_\mathrm{1\ CPU}}{C_\mathrm{1\ GPU}} = \frac{1}{64}.
+    \eta =
+    \begin{cases}
+    \frac{S_\mathrm{P\ CPUs}}{S_\mathrm{1\ CPU}} \cdot \frac{1}{P} & \mathrm{CPU} \\
+    \frac{S_\mathrm{P\ GPUs}}{S_\mathrm{1\ CPU}} \cdot \frac{1}{64 P} & \mathrm{GPU} \\
+    \end{cases}
+
+where :math:`S` is the relevant performance metric.
 
 .. image:: wca-efficiency-2048.svg
     :alt: Performance and efficiency of 2048 particle WCA simulations.
