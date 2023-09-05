@@ -67,7 +67,6 @@ if sybil is not None:
             'custom/custom_action.py',
             'data/typeconverter.py',
             'data/typeparam.py',
-            'hpmc/external/user.py',
             'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,

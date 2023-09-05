@@ -13,9 +13,10 @@ See Also:
 .. invisible-code-block: python
 
     simulation = hoomd.util.make_example_simulation()
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=1.0)
-    simulation.operations.integrator = mc
+    hpmc_integrator = hoomd.hpmc.integrate.Sphere()
+    hpmc_integrator.shape['A'] = dict(diameter=1.0)
+    simulation.operations.integrator = hpmc_integrator
+    logger = hoomd.logging.Logger()
 """
 
 import hoomd
@@ -91,10 +92,13 @@ class CPPExternalPotential(ExternalField):
 
     .. code-block:: python
 
-        gravity_code = "return r_i.z + box.getL().z/2;"
-        gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-            code=gravity_code)
-        simulation.operators.integrator.external_potential = gravity
+        gravity_code = '''
+            float gravity_constant = param_array[0];
+            return gravity_constant * (r_i.z + box.getL().z/2);
+        '''
+        cpp_external_potential = hoomd.hpmc.external.user.CPPExternalPotential(
+            code=gravity_code, param_array=[9.8])
+        hpmc_integrator.external_potential = cpp_external_potential
 
     Note:
         `CPPExternalPotential` does not support execution on GPUs.
@@ -111,12 +115,7 @@ class CPPExternalPotential(ExternalField):
 
             .. code-block:: python
 
-                gravity_code = '''
-                    float gravity_constant = param_array[0];
-                    return gravity_constant * (r_i.z + box.getL().z/2);
-                '''
-                gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                    code=gravity_code, param_array=[9.8])
+                code = cpp_external_potential.code
 
         param_array ((*N*, ) `numpy.ndarray` of ``float``): Numpy
             array containing dynamically adjustable elements in the potential
@@ -128,14 +127,7 @@ class CPPExternalPotential(ExternalField):
 
             .. code-block:: python
 
-                gravity_code = '''
-                    float gravity_constant = param_array[0];
-                    return gravity_constant * (r_i.z + box.getL().z/2);
-                '''
-                gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                    code=gravity_code, param_array=[9.8])
-                simulation.operators.integrator.external_potential = gravity
-                gravity.param_array[0] = 10.0
+                cpp_external_potential.param_array[0] = 10.0
 
     """
 
@@ -245,11 +237,9 @@ class CPPExternalPotential(ExternalField):
 
         .. rubric:: Example:
 
-        Get current value of the energy of the external field:
-
         .. code-block:: python
 
-            energy = simulation.operators.integrator.external_potential.energy
+            logger.add(cpp_external_potential, quantities=['energy'])
 
         Returns `None` when the patch object and integrator are not attached.
         """
