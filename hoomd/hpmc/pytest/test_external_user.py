@@ -10,7 +10,10 @@ import numpy as np
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
 
-valid_constructor_args = [dict(code='return -1;', param_array=[1])]
+valid_constructor_args = [
+    dict(code='return -1;'),
+    dict(code='return -1;', param_array=[1]),
+]
 
 # setable attributes before attach for CPPExternalPotential objects
 valid_attrs = [('code', 'return -1;'), ('param_array', [1])]
@@ -53,9 +56,10 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;',
-                                                        param_array=[1])
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory,
+                   constructor_args):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -67,16 +71,17 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # make sure objecst are attached
+    # make sure objects are attached
     assert mc._attached
     assert ext._attached
 
 
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;',
-                                                        param_array=[0])
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory,
+                   constructor_args):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -88,7 +93,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # make sure objecst are attached
+    # make sure objects are attached
     sim.operations.remove(mc)
     assert not mc._attached
     assert not ext._attached
@@ -183,7 +188,7 @@ def test_change_param_array_values(device, simulation_factory,
 def test_electric_field(device, orientations, charge, result,
                         simulation_factory, two_particle_snapshot_factory):
     """Test that CPPExternalPotential computes the correct energies for static \
-            point-like electric dipoles inmersed in an uniform electric field.
+            point-like electric dipoles immersed in an uniform electric field.
 
     Here, we test the potential energy of a point dipole in an electric field
     oriented along the z-direction. Note that we 1) use charge as a proxy for
@@ -198,8 +203,7 @@ def test_electric_field(device, orientations, charge, result,
 
     sim = simulation_factory(two_particle_snapshot_factory())
 
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code=electric_field,
-                                                        param_array=[0])
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code=electric_field)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0, orientable=True)
     mc.external_potential = ext
@@ -241,7 +245,7 @@ def test_z_bias(device, simulation_factory, lattice_snapshot_factory):
     new_box = hoomd.Box(Lx=3 * old_box.Lx, Ly=3 * old_box.Ly, Lz=3 * old_box.Lz)
     sim.state.set_box(new_box)
     ext = hoomd.hpmc.external.user.CPPExternalPotential(
-        code="return 1000*r_i.z*r_i.z;", param_array=[0])
+        code="return 1000*r_i.z*r_i.z;")
     mc.external_potential = ext
     sim.operations.integrator = mc
 

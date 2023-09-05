@@ -9,6 +9,13 @@ Set :math:`U_{\\mathrm{external},i}` evaluated in
 See Also:
     :doc:`features` explains the compile time options needed for user defined
     external potentials.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1.0)
+    simulation.operations.integrator = mc
 """
 
 import hoomd
@@ -80,13 +87,14 @@ class CPPExternalPotential(ExternalField):
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
             v4.1.0/hoomd/BoxDim.h
 
-    Example:
-        .. code-block:: python
+    .. rubric:: Example:
 
-            gravity_code = "return r_i.z + box.getL().z/2;"
-            gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                code=gravity_code, param_array=[])
-            mc.external_potential = gravity
+    .. code-block:: python
+
+        gravity_code = "return r_i.z + box.getL().z/2;"
+        gravity = hoomd.hpmc.external.user.CPPExternalPotential(
+            code=gravity_code)
+        simulation.operators.integrator.external_potential = gravity
 
     Note:
         `CPPExternalPotential` does not support execution on GPUs.
@@ -98,11 +106,36 @@ class CPPExternalPotential(ExternalField):
     Attributes:
         code (str): The code of the body of the external field energy function.
             After running zero or more steps, this property cannot be modified.
+
+            .. rubric:: Example
+
+            .. code-block:: python
+
+                gravity_code = '''
+                    float gravity_constant = param_array[0];
+                    return gravity_constant * (r_i.z + box.getL().z/2);
+                '''
+                gravity = hoomd.hpmc.external.user.CPPExternalPotential(
+                    code=gravity_code, param_array=[9.8])
+
         param_array ((*N*, ) `numpy.ndarray` of ``float``): Numpy
             array containing dynamically adjustable elements in the potential
             energy function as defined by the user. After running zero or more
             steps, the array cannot be set, although individual values can still
             be changed.
+
+            .. rubric:: Example
+
+            .. code-block:: python
+
+                gravity_code = '''
+                    float gravity_constant = param_array[0];
+                    return gravity_constant * (r_i.z + box.getL().z/2);
+                '''
+                gravity = hoomd.hpmc.external.user.CPPExternalPotential(
+                    code=gravity_code, param_array=[9.8])
+                simulation.operators.integrator.external_potential = gravity
+                gravity.param_array[0] = 10.0
 
     """
 
@@ -209,6 +242,14 @@ class CPPExternalPotential(ExternalField):
 
             U = \\sum_{i=0}^\\mathrm{N_particles-1}
             U_{\\mathrm{external},i}
+
+        .. rubric:: Example:
+
+        Get current value of the energy of the external field:
+
+        .. code-block:: python
+
+            energy = simulation.operators.integrator.external_potential.energy
 
         Returns `None` when the patch object and integrator are not attached.
         """
