@@ -106,7 +106,7 @@ class CPPExternalPotential(ExternalField):
 
     """
 
-    def __init__(self, code, param_array):
+    def __init__(self, code, param_array=[]):
         param_dict = ParameterDict(
             code=str,
             param_array=NDArrayValidator(dtype=np.float32, shape=(None,)),
