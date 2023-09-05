@@ -6,7 +6,7 @@ sample_steps = 1000
 # Prepare a MD simulation.
 device = hoomd.device.auto_select()
 simulation = hoomd.Simulation(device=device)
-simulation.create_state_from_gsd(filename='benchmark.gsd')
+simulation.create_state_from_gsd(filename='spheres.gsd')
 simulation.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=kT)
 
 neighbor_list = hoomd.md.nlist.Cell(buffer=0.4)
