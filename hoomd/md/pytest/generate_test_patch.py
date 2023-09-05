@@ -150,7 +150,7 @@ class PatchPair:
         dr = self.dr
         magdr = self.magdr
 
-        term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
+        term1 = self.iso.force(magdr)/magdr * dr * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
 
         # dfi/du
         dfi_dui = -self.patch.dfi_dni(dr, self.ni_world)
