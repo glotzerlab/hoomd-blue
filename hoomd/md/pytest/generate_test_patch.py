@@ -176,7 +176,7 @@ class PatchPair:
         dhi = self.nj_world
         duj_dr = (lo*dhi - hi*dlo) / (lo*lo)
 
-        term2 = self.iso.energy(magdr) * (
+        term2 = (
             dfj_duj * duj_dr * self.patch.fi(dr, self.ni_world) + dfi_dui * dui_dr * self.patch.fj(dr, self.nj_world)
         )
         
