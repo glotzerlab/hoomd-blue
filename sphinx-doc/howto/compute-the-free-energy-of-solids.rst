@@ -4,8 +4,8 @@
 How to compute the free energy of solids
 ========================================
 
-Follow these steps to perform `Frenkel-Ladd`_ (Einstein crystal) or `Vega-Noya`_ (Einstein molecule)
-approach to compute the free energy of solid phases.
+Follow these steps to perform `Frenkel-Ladd`_ (*Einstein crystal*) or `Vega-Noya`_ (*Einstein
+molecule*) approach to compute the free energy of solid phases.
 
 MD simulations
 --------------
@@ -15,11 +15,19 @@ MD simulations
 3. Set the pair force ``r_cut`` to 0 between the reference particle type and all particle types.
 4. Add bonds (`hoomd.md.bond.Harmonic`) between the stationary reference particles and the mobile
    particles.
-5. Integrate the equations of motion of only mobile particles.
-   (TODO: reference related howto after merging).
+5. Integrate the equations of motion of only mobile particles
+
+   .. seealso::
+
+       `prevent-particles-from-moving`.
+
 6. Adjust the strength of bonds as needed during the simulation.
-   (TODO: reference related howto after merging).
-7. When using the Einstein crystal approach, apply `hoomd.update.RemoveDrift` to adjust the center
+
+   .. seealso::
+
+       `continuously-vary-potential-parameters`.
+
+7. When using the *Einstein crystal* approach, apply `hoomd.update.RemoveDrift` to adjust the center
    of mass of the system.
 
 HPMC simulations
@@ -29,8 +37,12 @@ HPMC simulations
 2. Apply the harmonic external potential (`hoomd.hpmc.external.field.Harmonic`), using variants
    to adjust the spring constants as needed during the simulation.
 3. Apply trial moves to the mobile particles.
-   (TODO: reference related howto after merging).
-4. When using the Einstein crystal approach, apply `hoomd.update.RemoveDrift` to adjust the center
+
+   .. seealso::
+
+       `prevent-particles-from-moving`.
+
+4. When using the *Einstein crystal* approach, apply `hoomd.update.RemoveDrift` to adjust the center
    of mass of the system.
 
 Log and analyze energies
