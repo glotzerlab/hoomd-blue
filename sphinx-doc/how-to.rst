@@ -7,6 +7,7 @@ How-to
 .. toctree::
     :maxdepth: 1
 
+    howto/determine-the-most-efficient-device
     howto/molecular
     howto/cpppotential
     howto/custom-md-potential
