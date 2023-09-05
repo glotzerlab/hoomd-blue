@@ -17,9 +17,8 @@ lj.r_cut[('A', 'A')] = 2.5
 bussi = hoomd.md.methods.thermostats.Bussi(kT=kT)
 constant_volume = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
                                                   thermostat=bussi)
-simulation.operations.integrator = hoomd.md.Integrator(dt=0.001,
-                                                       methods=[constant_volume],
-                                                       forces = [lj])
+simulation.operations.integrator = hoomd.md.Integrator(
+    dt=0.001, methods=[constant_volume], forces=[lj])
 
 # Complete GPU kernel autotuning before making sensitive timing measurements.
 if isinstance(device, hoomd.device.GPU):
