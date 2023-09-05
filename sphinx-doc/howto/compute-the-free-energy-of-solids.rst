@@ -15,7 +15,7 @@ MD simulations
 3. Set the pair force ``r_cut`` to 0 between the reference particle type and all particle types.
 4. Add bonds (`hoomd.md.bond.Harmonic`) between the stationary reference particles and the mobile
    particles.
-5. Integrate the equations of motion of only mobile particles
+5. Integrate the equations of motion of the mobile particles.
 
    .. seealso::
 
