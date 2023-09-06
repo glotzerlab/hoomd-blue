@@ -22,6 +22,7 @@ simulation.operations.integrator = hoomd.md.Integrator(
 
 # Complete GPU kernel autotuning before making sensitive timing measurements.
 if isinstance(device, hoomd.device.GPU):
+    simulation.run(0)
     while not simulation.operations.is_tuning_complete:
         simulation.run(1000)
 
