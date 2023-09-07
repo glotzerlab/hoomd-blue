@@ -90,6 +90,8 @@ class CPPExternalPotential(ExternalField):
 
     .. rubric:: Example:
 
+    .. skip: next if(llvm_not_available)
+
     .. code-block:: python
 
         gravity_code = '''
@@ -113,6 +115,8 @@ class CPPExternalPotential(ExternalField):
 
             .. rubric:: Example
 
+            .. skip: next if(llvm_not_available)
+
             .. code-block:: python
 
                 code = cpp_external_potential.code
@@ -124,6 +128,8 @@ class CPPExternalPotential(ExternalField):
             be changed.
 
             .. rubric:: Example
+
+            .. skip: next if(llvm_not_available)
 
             .. code-block:: python
 
@@ -236,6 +242,8 @@ class CPPExternalPotential(ExternalField):
             U_{\\mathrm{external},i}
 
         .. rubric:: Example:
+
+        .. skip: next if(llvm_not_available)
 
         .. code-block:: python
 
