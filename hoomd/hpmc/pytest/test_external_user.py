@@ -129,8 +129,7 @@ def test_valid_construction_and_attach_cpp_external(
 def test_valid_setattr_cpp_external(device, attr, value):
     """Test that CPPExternalPotential can get and set attributes before \
             attached."""
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;',
-                                                        param_array=[1])
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
 
     setattr(ext, attr, value)
     assert getattr(ext, attr) == value
@@ -143,8 +142,7 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
                                        two_particle_snapshot_factory):
     """Test that CPPExternalPotential raises AttributeError if we try to set \
             certain attributes after attaching."""
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;',
-                                                        param_array=[0])
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
