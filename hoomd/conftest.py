@@ -54,6 +54,8 @@ def setup_sybil_tests(namespace):
 
     namespace['cupy_not_available'] = cupy is None
 
+    namespace['llvm_not_available'] = not hoomd.version.llvm_enabled
+
 
 if sybil is not None:
     pytest_collect_file = sybil.Sybil(
@@ -67,7 +69,6 @@ if sybil is not None:
             'custom/custom_action.py',
             'data/typeconverter.py',
             'data/typeparam.py',
-            'hpmc/external/user.py',
             'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,
