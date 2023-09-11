@@ -277,18 +277,6 @@ class HDF5Log(_InternalCustomWriter):
     .. _h5py:
         https://docs.h5py.org/en/stable/high/file.html#opening-creating-files
 
-    Attributes:
-        cls.accepted_categories (hoomd.logging.LoggerCategories): The enum value
-            for all accepted categories for `HDF5Log` instances which is all
-            categories other than "string", "strings", and "object" (see
-            `hoomd.logging.LoggerCategories`).
-        trigger (hoomd.trigger.trigger_like): The trigger to determine when to
-            run the HDF5 backend.
-        filename (str): The filename of the HDF5 file written to.
-        logger (hoomd.logging.Logger): The logger instance used for querying
-            log data.
-        mode (str): The mode the file was opened in.
-
     .. rubric:: Example
 
     .. code-block:: python
@@ -300,6 +288,18 @@ class HDF5Log(_InternalCustomWriter):
             filename=hdf5_filename,
             logger=logger)
         simulation.operations += hdf5_writer
+
+    Attributes:
+        cls.accepted_categories (hoomd.logging.LoggerCategories): The enum value
+            for all accepted categories for `HDF5Log` instances which is all
+            categories other than "string", "strings", and "object" (see
+            `hoomd.logging.LoggerCategories`).
+        trigger (hoomd.trigger.trigger_like): The trigger to determine when to
+            run the HDF5 backend.
+        filename (str): The filename of the HDF5 file written to.
+        logger (hoomd.logging.Logger): The logger instance used for querying
+            log data.
+        mode (str): The mode the file was opened in.
     """
     _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
