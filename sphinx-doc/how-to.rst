@@ -8,9 +8,10 @@ How-to
     :maxdepth: 1
 
     howto/determine-the-most-efficient-device
+    howto/choose-the-neighbor-list-buffer-distance
     howto/molecular
-    howto/cpppotential
     howto/custom-md-potential
     howto/continuously-vary-potential-parameters
     howto/minimize-potential-energy
     howto/prevent-particles-from-moving
+    howto/cpppotential
