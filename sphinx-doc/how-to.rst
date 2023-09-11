@@ -16,4 +16,3 @@ How-to
     howto/prevent-particles-from-moving
     howto/compute-the-free-energy-of-solids
     howto/cpppotential
-
