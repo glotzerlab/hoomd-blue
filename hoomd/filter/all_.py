@@ -11,6 +11,12 @@ class All(ParticleFilter, ParticleFilterAll):
     """Select all particles in the system.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        all_ = hoomd.filter.All()
     """
 
     def __init__(self):

@@ -21,6 +21,16 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
             is ``("center",)``
 
     Base: `ParticleFilter`
+
+    .. rubric:: Examples:
+
+    .. code-block:: python
+
+        rigid_center_and_free = hoomd.filter.Rigid(flags=('center', 'free'))
+
+    .. code-block:: python
+
+        rigid_center = hoomd.filter.Rigid(flags=('center',))
     """
 
     def __init__(self, flags=("center",)):

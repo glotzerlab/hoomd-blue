@@ -14,6 +14,12 @@ class Type(ParticleFilter, ParticleFilterType):
         types (list[str]): List of particle type names to select.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        type_A_B = hoomd.filter.Type(['A', 'B'])
     """
 
     def __init__(self, types):
