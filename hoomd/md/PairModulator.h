@@ -271,7 +271,6 @@ public:
                             // here, this_torque_i and this_torque_j get populated with the
                             // torque envelopes and are missing the factor of pair energy
                             envel_eval.evaluate(this_force, envelope, this_torque_i, this_torque_j);
-                            // TODO probably should change the name of envelope on the line above
 
                             // modulate forces
                             // TODO check this math. yes.

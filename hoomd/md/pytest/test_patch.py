@@ -52,7 +52,7 @@ TOLERANCES = {"rtol": 1e-2, "atol": 1e-5}
 #          [0., 0.01774543546943833, -0.03549087093887666]])
 # ]
 
-patch_test_parameters = [(hoomd.md.pair.aniso.PatchyLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 45., "omega": 20}}, [[0, 0, 0], [0.8426488874308758, 0.7070663706551933, 0]], [[1., 0., 0., 0.], [0.3420201433256688, 0., 0., 0.9396926207859083]], [-0.00025376481426376174, 0.00025849718238020263, 0.], -0.9833724493736826, [[0, 0, 0], [0, 0, 0]])]
+patch_test_parameters = [(hoomd.md.pair.aniso.PatchyLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 45., "omega": 20}}, [[1, 0, 0]], [[0, 0, 0], [0.8426488874308758, 0.7070663706551933, 0]], [[1., 0., 0., 0.], [0.3420201433256688, 0., 0., 0.9396926207859083]], [-0.00025376481426376174, 0.00025849718238020263, 0.], -0.9833724493736826, [[0, 0, 0], [0, 0, 0]])]
 
 
 
@@ -161,4 +161,9 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
 
         numpy.testing.assert_allclose(sim_torques[1], torques[1], **TOLERANCES)
     
-    
+
+# Move this to validation
+# @pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
+#                          patch_test_parameters)
+# def test_energy_drift(patchy_snapshot_factory, simulation_factory,
+#                       patch_cls, patch_args, params, positions, orientations, force, energy, torques):
