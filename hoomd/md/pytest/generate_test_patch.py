@@ -199,7 +199,25 @@ class PatchPair:
                 [list(self.torque_i()), list(self.torque_j())]
                 )
 
+    def new_print_values(self):
+        patch_dict = vars(self.patch).copy()
+        patches = [tuple(patch_dict["ni"])]
+        del patch_dict["cosalpha"]
+        del patch_dict["ni"]
+        del patch_dict["nj"]
+        params = {"pair_params": vars(self.iso),
+             "envelope_params": patch_dict}
 
+        return (getattr(hoomd.md.pair.aniso, "Patchy" + type(self.iso).__name__),
+                {},
+                params,
+                patches,
+                [list(self.i.position), list(self.j.position)],
+                [list(self.i.q), list(self.j.q)],
+                list(-self.force()),
+                self.energy(),
+                [list(self.torque_i()), list(self.torque_j())]
+                )
 
 
 if __name__ == '__main__':
