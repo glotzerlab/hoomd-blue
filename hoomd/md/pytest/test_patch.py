@@ -84,51 +84,48 @@ def patchy_snapshot_factory(device):
 
     return make_snapshot
 
-# TODO: exclude the one that is not normalized
-@pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
+
+@pytest.mark.parametrize('patch_cls, patch_args, params, patches, positions, orientations, force, energy, torques',
                          patch_test_parameters)
-def test_before_attaching(patch_cls, patch_args, params, positions, orientations, force, energy, torques):
+def test_before_attaching(patch_cls, patch_args, params, patches, positions, orientations, force, energy, torques):
     potential = patch_cls(nlist = hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=4, **patch_args)
     potential.params[('A','A')] = params
+    potential.patches['A'] = patches
     for key in params:
-        # ni and nj are returned normalized, so replace them in the params we check
-        if key == "envelope_params":
-            for nkey in ("ni", "nj"):
-                nn = numpy.array(params[key][nkey])
-                params[key][nkey] = tuple(nn / numpy.linalg.norm(nn))
-            assert potential.params[('A','A')][key] == pytest.approx(params[key])
-        else:
-            assert potential.params[('A','A')][key] == pytest.approx(params[key])
+        assert potential.params[('A','A')][key] == pytest.approx(params[key])
+    for i,patch in enumerate(patches):
+        # patch is returned normalized, so normalize it before checking
+        nn = numpy.array(patch)
+        patch = tuple(nn / numpy.linalg.norm(nn))
+        assert potential.patches['A'][i] == pytest.approx(patch)
 
 
-# TODO: exclude the one that is not normalized
-@pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
+@pytest.mark.parametrize('patch_cls, patch_args, params, patches, positions, orientations, force, energy, torques',
                          patch_test_parameters)
 def test_after_attaching(patchy_snapshot_factory, simulation_factory,
-                         patch_cls, patch_args, params, positions, orientations, force, energy, torques):
+                         patch_cls, patch_args, params, patches, positions, orientations, force, energy, torques):
     sim = simulation_factory(patchy_snapshot_factory())
     potential = patch_cls(nlist = hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=4, **patch_args)
     potential.params[('A','A')] = params
+    potential.patches['A'] = patches
 
     sim.operations.integrator = hoomd.md.Integrator(dt = 0.05,
                                                     forces = [potential],
                                                     integrate_rotational_dof = True)
     sim.run(0)
     for key in params:
-        # ni and nj are returned normalized, so replace them in the params we check
-        if key == "envelope_params":
-            for nkey in ("ni", "nj"):
-                nn = numpy.array(params[key][nkey])
-                params[key][nkey] = tuple(nn / numpy.linalg.norm(nn))
-            assert potential.params[('A','A')][key] == pytest.approx(params[key])
-        else:
-            assert potential.params[('A','A')][key] == pytest.approx(params[key])
+        assert potential.params[('A','A')][key] == pytest.approx(params[key])
+    for i,patch in enumerate(patches):
+        # patch is returned normalized, so normalize it before checking
+        nn = numpy.array(patch)
+        patch = tuple(nn / numpy.linalg.norm(nn))
+        assert potential.patches['A'][i] == pytest.approx(patch)
 
             
-@pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
+@pytest.mark.parametrize('patch_cls, patch_args, params, patches, positions, orientations, force, energy, torques',
                          patch_test_parameters)
 def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
-                                 patch_cls, patch_args, params, positions, orientations, force, energy, torques):
+                                 patch_cls, patch_args, params, patches, positions, orientations, force, energy, torques):
 
     snapshot = patchy_snapshot_factory(position_i = positions[0],
                                        position_j = positions[1],
@@ -138,6 +135,7 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
 
     potential = patch_cls(nlist = hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=4, **patch_args)
     potential.params[('A','A')] = params
+    potential.patches['A'] = patches
 
     sim.operations.integrator = hoomd.md.Integrator(dt = 0.005,
                                                     forces = [potential],
