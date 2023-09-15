@@ -96,6 +96,16 @@ class _Formatter:
         else:
             return self.format_num(value, column_width)
 
+    @staticmethod
+    def _digits_from_decimal(num):
+        """Return digits to represent to the first significant digit."""
+        digits = int(log10(abs(num)))
+        # Positive exponents require an extra space (10^0 == 1)
+        digits = 1 + digits if digits >= 0 else -digits
+        if num < 0:
+            digits += 1  # - (negative symbol)
+        return digits + 1  # decimal point
+
     def format_num(self, value, column_width):
         # Always output full integer values
         if isinstance(value, Integral):
@@ -107,11 +117,9 @@ class _Formatter:
             # information past the decimal point. For values less than 1 the
             # smallest is 0.xxx. The plus one is for the decimal point. We
             # already attempt to print out as many decimal points as possible so
-            # we only need to determine the minimum size to the left of the
-            # decimal point including the decimal point.
-            min_len_repr = int(log10(max(abs(value), 1))) + 1
-            if value < 0:
-                min_len_repr += 1  # add 1 for the negative sign
+            # we only need to determine the minimum size to from the decimal
+            # point including the decimal point.
+            min_len_repr = self._digits_from_decimal(value) + 1
             # Use scientific formatting
             if not min_len_repr < 6 or min_len_repr > column_width:
                 # Determine the number of decimals to use
