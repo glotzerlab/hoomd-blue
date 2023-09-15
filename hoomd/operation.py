@@ -11,6 +11,12 @@ See Also:
     `hoomd.Operations`
 
     `hoomd.Simulation`
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    operation = simulation.operations.tuners[0]
 """
 
 # Operation is a parent class of almost all other HOOMD objects.
@@ -440,6 +446,16 @@ class AutotunedObject(_HOOMDBaseObject):
             Provided that you use the same HOOMD-blue binary on the same
             hardware and execute a script with the same parameters, you may save
             the tuned values from one run and load them in the next.
+
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            kernel_parameters = operation.kernel_parameters
+
+        .. code-block:: python
+
+            operation.kernel_parameters = kernel_parameters
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("kernel_parameters")
@@ -457,6 +473,13 @@ class AutotunedObject(_HOOMDBaseObject):
 
         ``True`` when tuning is complete and `kernel_parameters` has locked
         optimal parameters for all active kernels used by this object.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            while (not operation.is_tuning_complete):
+                simulation.run(1000)
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("is_tuning_complete")
@@ -469,6 +492,12 @@ class AutotunedObject(_HOOMDBaseObject):
         kernel parameters in subsequent time steps, check the run time of each,
         and lock to the fastest performing parameters after the scan is
         complete.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            operation.tune_kernel_parameters()
         """
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
