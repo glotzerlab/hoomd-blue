@@ -42,13 +42,6 @@ class Action(metaclass=_AbstractLoggable):
                 if snapshot.communicator.rank == 0:
                     self.com = snapshot.particles.position.mean(axis=0)
 
-        example_action = ExampleAction()
-        custom_updater = hoomd.update.CustomUpdater(
-            trigger=hoomd.trigger.Periodic(1000),
-            action=example_action)
-        simulation.operations.updaters.append(custom_updater)
-        simulation.run(2000)
-
     To request that HOOMD-blue compute virials, pressure, the rotational kinetic
     energy, or the external field virial, set the flags attribute with the
     appropriate flags from the internal `Action.Flags` enumeration:
