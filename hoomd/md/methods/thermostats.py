@@ -287,13 +287,17 @@ class Bussi(Thermostat):
                                               t_ramp=1_000_000)
     """
 
-    def __init__(self, kT):
+    def __init__(self, kT, tau=0.):
         super().__init__(kT)
+        param_dict = ParameterDict(tau=float)
+        param_dict["tau"] = tau
+        self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = _md.BussiThermostat(self.kT, group, self._thermo,
-                                            self._simulation.state._cpp_sys_def)
+        self._cpp_obj = _md.BussiThermostat(
+            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def,
+            self.tau)
         self._simulation._warn_if_seed_unset()
 
 

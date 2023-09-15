@@ -337,11 +337,20 @@ class MTTKThermostat : public Thermostat
 class BussiThermostat : public Thermostat
     {
     public:
+    /** Construct the thermostat.
+
+        @param T Temperature set point over time.
+        @param group Group of particles this thermostat is applied to.
+        @param thermo Use to compute the thermodynamic properties of the group.
+        @param sysdef Used to access the simulation seed and MPI communicator.
+        @param tau Thermostat time constant.
+    */
     BussiThermostat(std::shared_ptr<Variant> T,
                     std::shared_ptr<ParticleGroup> group,
                     std::shared_ptr<ComputeThermo> thermo,
-                    std::shared_ptr<SystemDefinition> sysdef)
-        : Thermostat(T, group, thermo, sysdef)
+                    std::shared_ptr<SystemDefinition> sysdef,
+                    Scalar tau)
+        : Thermostat(T, group, thermo, sysdef), m_tau(tau)
         {
         }
 
@@ -349,13 +358,19 @@ class BussiThermostat : public Thermostat
         {
         m_thermo->compute(timestep);
 
+        Scalar e_factor;
+        Scalar rt_left;
+        Scalar rr_left;
         const auto ntdof = m_thermo->getTranslationalDOF();
         const auto nrdof = m_thermo->getRotationalDOF();
+        const auto ket_int = m_thermo->getTranslationalKineticEnergy();
+        const auto ker_int = m_thermo->getRotationalKineticEnergy();
         if ((ntdof != 0 && m_thermo->getTranslationalKineticEnergy() == 0)
             || (nrdof != 0 && m_thermo->getRotationalKineticEnergy() == 0))
             {
             throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
             }
+
         unsigned int instance_id = 0;
         if (m_group->getNumMembersGlobal() > 0)
             instance_id = m_group->getMemberTag(0);
@@ -363,12 +378,81 @@ class BussiThermostat : public Thermostat
                             instance_id);
 
         const auto set_T = m_T->operator()(timestep);
-        GammaDistribution<double> gamma_translation(ntdof / 2.0, set_T);
-        GammaDistribution<double> gamma_rotation(nrdof / 2.0, set_T);
 
-        return {std::sqrt(gamma_translation(rng) / m_thermo->getTranslationalKineticEnergy()),
-                std::sqrt(gamma_rotation(rng) / m_thermo->getRotationalKineticEnergy())};
+        if (m_tau > 0.1)
+            {
+            e_factor = exp(-1.0 / m_tau);
+            }
+        else  // the limit case when tau is near 0
+            {
+            e_factor = 0.0;
+            }
+
+        NormalDistribution<double> normal_translation(1.0);
+        NormalDistribution<double> normal_rotation(1.0);
+        Scalar rt = normal_translation(rng);
+        Scalar rr = normal_rotation(rng);
+
+        const int ntdof_left = ntdof - 1;
+        const int nrdof_left = nrdof - 1;
+        const bool ntdof_left_even = ntdof_left % 2 == 0;
+        const bool nrdof_left_even = nrdof_left % 2 == 0;
+        if (ntdof_left == 0)
+            {
+            rt_left = 0.;
+            }
+        else if (ntdof_left == 1)
+            {
+            Scalar rt_temp = normal_translation(rng);
+            rt_left = rt_temp*rt_temp;
+            }
+        else if (ntdof_left_even)
+            {
+            GammaDistribution<double> gamma_translation(ntdof_left / 2.0, 1.0);
+            rt_left = 2.0 * gamma_translation(rng);
+            }
+        else
+            {
+            GammaDistribution<double> gamma_translation((ntdof_left - 1) / 2.0, 1.0);
+            Scalar rt_temp = normal_translation(rng);
+            rt_left = 2.0 * gamma_translation(rng) + rt_temp*rt_temp;
+            }
+
+        if (nrdof_left == 0)
+            {
+            rr_left = 0.;
+            }
+        else if (nrdof_left == 1)
+            {
+            Scalar rr_temp = normal_rotation(rng);
+            rr_left = rr_temp*rr_temp;
+            }
+        else if (nrdof_left_even)
+            {
+            GammaDistribution<double> gamma_rotation(nrdof_left / 2.0, 1.0);
+            rr_left = 2.0 * gamma_rotation(rng);
+            }
+        else
+            {
+            GammaDistribution<double> gamma_rotation((nrdof_left - 1) / 2.0, 1.0);
+            Scalar rr_temp = normal_rotation(rng);
+            rr_left = 2.0 * gamma_rotation(rng) + rr_temp*rr_temp;
+            }
+
+        Scalar t_rescale = sqrt(
+            e_factor
+            + set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * (rt_left + rt * rt)
+            + Scalar(2.0) * rt * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * e_factor));
+        Scalar r_rescale = sqrt(
+            e_factor
+            + set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * (rr_left + rr * rr)
+            + Scalar(2.0) * rr * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * e_factor));
+
+        return {t_rescale, r_rescale};
         }
+
+    protected:
+    Scalar m_tau;
     };
 
 /// Implement the Berendsen velocity recalcing thermostat.

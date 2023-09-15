@@ -42,7 +42,8 @@ void export_BussiThermostat(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<Variant>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
-                            std::shared_ptr<SystemDefinition>>());
+                            std::shared_ptr<SystemDefinition>,
+                            Scalar>());
     }
 
 void export_BerendsenThermostat(pybind11::module& m)
