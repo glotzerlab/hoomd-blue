@@ -361,8 +361,8 @@ class BussiThermostat : public Thermostat
         Scalar e_factor;
         Scalar rt_left;
         Scalar rr_left;
-        const auto ntdof = m_thermo->getTranslationalDOF();
-        const auto nrdof = m_thermo->getRotationalDOF();
+        const int ntdof = static_cast<int>(m_thermo->getTranslationalDOF());
+        const int nrdof = static_cast<int>(m_thermo->getRotationalDOF());
         const auto ket_int = m_thermo->getTranslationalKineticEnergy();
         const auto ker_int = m_thermo->getRotationalKineticEnergy();
         if ((ntdof != 0 && m_thermo->getTranslationalKineticEnergy() == 0)
