@@ -379,9 +379,13 @@ class BussiThermostat : public Thermostat
 
         const auto set_T = m_T->operator()(timestep);
 
-        if (m_tau / deltaT > 0.1)
+        if (deltaT < 1e-12)
             {
-            e_factor = exp(-1.0 / (m_tau / deltaT));
+            e_factor = 1.0;
+            }
+        else if (m_tau / deltaT > 0.1)
+            {
+            e_factor = exp(-deltaT / m_tau);
             }
         else  // the limit case when tau is near 0
             {
