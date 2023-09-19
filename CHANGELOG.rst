@@ -6,6 +6,51 @@ Change Log
 
 4.x
 ---
+4.2.0 (2024-09-20)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Make ``HDF5Log`` example more visible
+  (`#1602 <https://github.com/glotzerlab/hoomd-blue/pull/1602>`__).
+* Access valid GPU memory in ``hoomd.hpmc.update.Clusters``
+  (`#1607 <https://github.com/glotzerlab/hoomd-blue/pull/1607>`__).
+* Test suite passes on the ROCm GPU platform
+  (`#1607 <https://github.com/glotzerlab/hoomd-blue/pull/1607>`__).
+* Provide an error message when using ``md.external.field.Periodic`` in 2D
+  (`#1603 <https://github.com/glotzerlab/hoomd-blue/pull/1603>`__).
+* ``hoomd.write.GSD`` reports "File exists" in the exception description when using the ``'xb'``
+  mode and the file exists (`#1609 <https://github.com/glotzerlab/hoomd-blue/pull/1609>`__).
+* Write small numbers correctly in ``hoomd.write.Table``
+  (`#1617 <https://github.com/glotzerlab/hoomd-blue/pull/1617>`__).
+* Make examples in ``hoomd.md.methods.NVE`` and ``hoomd.md.methods.DisplacementCapped`` more visible
+  (`#1601 <https://github.com/glotzerlab/hoomd-blue/pull/1601>`__).
+
+*Added*
+
+* How-to documentation page: "How to apply arbitrary forces in MD"
+  (`#1610 <https://github.com/glotzerlab/hoomd-blue/pull/1610>`__).
+* MPCD particle data is now available included in ``Snapshot``
+  (`#1580 <https://github.com/glotzerlab/hoomd-blue/pull/1580>`__).
+* Documentation page: "How to prevent particles from moving"
+  (`#1611 <https://github.com/glotzerlab/hoomd-blue/pull/1611>`__).
+* Documentation page: "How to minimize the potential energy of a system"
+  (`#1614 <https://github.com/glotzerlab/hoomd-blue/pull/1614>`__).
+* Documentation page: "How to continuously vary potential parameters"
+  (`#1612 <https://github.com/glotzerlab/hoomd-blue/pull/1612>`__).
+* Documentation page: "How to determine the most efficient device"
+  (`#1616 <https://github.com/glotzerlab/hoomd-blue/pull/1616>`__).
+* Add variable parameters to ``hpmc.external.user.CPPExternalPotential``
+  (`#1608 <https://github.com/glotzerlab/hoomd-blue/pull/1608>`__).
+* Documentation page: "How to choose the neighbor list buffer distance"
+  (`#1615 <https://github.com/glotzerlab/hoomd-blue/pull/1615>`__).
+* How-to documentation page: "How to compute the free energy of solids"
+  (`#1613 <https://github.com/glotzerlab/hoomd-blue/pull/1613>`__).
+
+*Changed*
+
+* Removed the unused ``ExternalFieldComposite.h`` and all the related ``ExternalFieldComposite*``
+  (`#1604 <https://github.com/glotzerlab/hoomd-blue/pull/1604>`__).
 
 4.1.0 (2024-08-07)
 ^^^^^^^^^^^^^^^^^^
