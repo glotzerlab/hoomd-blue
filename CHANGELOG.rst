@@ -28,10 +28,8 @@ Change Log
 
 *Added*
 
-* How-to documentation page: "How to apply arbitrary forces in MD"
+* Documentation page: "How to apply arbitrary forces in MD"
   (`#1610 <https://github.com/glotzerlab/hoomd-blue/pull/1610>`__).
-* MPCD particle data is now available included in ``Snapshot``
-  (`#1580 <https://github.com/glotzerlab/hoomd-blue/pull/1580>`__).
 * Documentation page: "How to prevent particles from moving"
   (`#1611 <https://github.com/glotzerlab/hoomd-blue/pull/1611>`__).
 * Documentation page: "How to minimize the potential energy of a system"
@@ -40,12 +38,14 @@ Change Log
   (`#1612 <https://github.com/glotzerlab/hoomd-blue/pull/1612>`__).
 * Documentation page: "How to determine the most efficient device"
   (`#1616 <https://github.com/glotzerlab/hoomd-blue/pull/1616>`__).
-* Add variable parameters to ``hpmc.external.user.CPPExternalPotential``
-  (`#1608 <https://github.com/glotzerlab/hoomd-blue/pull/1608>`__).
 * Documentation page: "How to choose the neighbor list buffer distance"
   (`#1615 <https://github.com/glotzerlab/hoomd-blue/pull/1615>`__).
-* How-to documentation page: "How to compute the free energy of solids"
+* Documentation page: "How to compute the free energy of solids"
   (`#1613 <https://github.com/glotzerlab/hoomd-blue/pull/1613>`__).
+* MPCD particle data is now available included in ``Snapshot``
+  (`#1580 <https://github.com/glotzerlab/hoomd-blue/pull/1580>`__).
+* Add variable parameters to ``hpmc.external.user.CPPExternalPotential``
+  (`#1608 <https://github.com/glotzerlab/hoomd-blue/pull/1608>`__).
 
 *Changed*
 
