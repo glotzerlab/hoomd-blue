@@ -387,7 +387,7 @@ class BussiThermostat : public Thermostat
             {
             e_factor = exp(-deltaT / m_tau);
             }
-        else  // the limit case when tau is near 0
+        else // the limit case when tau is near 0
             {
             e_factor = 0.0;
             }
@@ -408,7 +408,7 @@ class BussiThermostat : public Thermostat
         else if (ntdof_left == 1)
             {
             Scalar rt_temp = normal_translation(rng);
-            rt_left = rt_temp*rt_temp;
+            rt_left = rt_temp * rt_temp;
             }
         else if (ntdof_left_even)
             {
@@ -419,7 +419,7 @@ class BussiThermostat : public Thermostat
             {
             GammaDistribution<double> gamma_translation((ntdof_left - 1) / 2.0, 1.0);
             Scalar rt_temp = normal_translation(rng);
-            rt_left = 2.0 * gamma_translation(rng) + rt_temp*rt_temp;
+            rt_left = 2.0 * gamma_translation(rng) + rt_temp * rt_temp;
             }
 
         if (nrdof_left == 0)
@@ -429,7 +429,7 @@ class BussiThermostat : public Thermostat
         else if (nrdof_left == 1)
             {
             Scalar rr_temp = normal_rotation(rng);
-            rr_left = rr_temp*rr_temp;
+            rr_left = rr_temp * rr_temp;
             }
         else if (nrdof_left_even)
             {
@@ -440,17 +440,19 @@ class BussiThermostat : public Thermostat
             {
             GammaDistribution<double> gamma_rotation((nrdof_left - 1) / 2.0, 1.0);
             Scalar rr_temp = normal_rotation(rng);
-            rr_left = 2.0 * gamma_rotation(rng) + rr_temp*rr_temp;
+            rr_left = 2.0 * gamma_rotation(rng) + rr_temp * rr_temp;
             }
 
         Scalar t_rescale = sqrt(
             e_factor
             + set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * (rt_left + rt * rt)
-            + Scalar(2.0) * rt * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * e_factor));
+            + Scalar(2.0) * rt
+                  * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * e_factor));
         Scalar r_rescale = sqrt(
             e_factor
             + set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * (rr_left + rr * rr)
-            + Scalar(2.0) * rr * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * e_factor));
+            + Scalar(2.0) * rr
+                  * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * e_factor));
 
         return {t_rescale, r_rescale};
         }

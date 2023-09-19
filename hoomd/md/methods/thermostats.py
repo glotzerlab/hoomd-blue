@@ -295,9 +295,9 @@ class Bussi(Thermostat):
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = _md.BussiThermostat(
-            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def,
-            self.tau)
+        self._cpp_obj = _md.BussiThermostat(self.kT, group, self._thermo,
+                                            self._simulation.state._cpp_sys_def,
+                                            self.tau)
         self._simulation._warn_if_seed_unset()
 
 
