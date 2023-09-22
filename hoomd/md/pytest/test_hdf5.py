@@ -158,7 +158,7 @@ def test_mode(tmp_path, create_md_sim):
 def test_type_handling(tmp_path, create_md_sim):
     logger = hoomd.logging.Logger(categories=['scalar'])
     sim = create_md_sim
-    fn = tmp_path / "eg.py"
+    fn = tmp_path / "types.h5"
     loggables = {
         int: lambda: 42,
         float: lambda: 0.0,
@@ -173,9 +173,11 @@ def test_type_handling(tmp_path, create_md_sim):
     sim.operations.writers.append(hdf5_writer)
     sim.run(1)
 
+    rank = sim.device.communicator.rank
     del sim
 
-    with h5py.File(fn, "r") as fh:
-        for key in loggables:
-            type_ = key if key not in (float, int, bool) else np.dtype(key)
-            assert fh[f"hoomd-data/{str(key)}"].dtype == type_
+    if rank == 0:
+        with h5py.File(fn, "r") as fh:
+            for key in loggables:
+                type_ = key if key not in (float, int, bool) else np.dtype(key)
+                assert fh[f"hoomd-data/{str(key)}"].dtype == type_
