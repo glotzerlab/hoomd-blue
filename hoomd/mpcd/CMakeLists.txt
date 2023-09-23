@@ -156,9 +156,9 @@ install(FILES ${_mpcd_headers}
        )
 
 if (BUILD_TESTING)
-     add_subdirectory(pytest)
+     add_subdirectory(test)
 endif()
-add_subdirectory(test)
+add_subdirectory(pytest)
 if (BUILD_VALIDATION)
     # add_subdirectory(validation)
 endif (BUILD_VALIDATION)

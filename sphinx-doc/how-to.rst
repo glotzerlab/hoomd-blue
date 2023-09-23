@@ -10,8 +10,9 @@ How-to
     howto/determine-the-most-efficient-device
     howto/choose-the-neighbor-list-buffer-distance
     howto/molecular
-    howto/custom-md-potential
     howto/continuously-vary-potential-parameters
+    howto/custom-md-potential
     howto/minimize-potential-energy
     howto/prevent-particles-from-moving
+    howto/compute-the-free-energy-of-solids
     howto/cpppotential
