@@ -358,9 +358,9 @@ class BussiThermostat : public Thermostat
         {
         m_thermo->compute(timestep);
 
-        Scalar e_factor;
-        Scalar rt_left;
-        Scalar rr_left;
+        Scalar time_decay_factor;
+        Scalar t_random_left;
+        Scalar r_random_left;
         const int ntdof = static_cast<int>(m_thermo->getTranslationalDOF());
         const int nrdof = static_cast<int>(m_thermo->getRotationalDOF());
         const auto ket_int = m_thermo->getTranslationalKineticEnergy();
@@ -381,17 +381,17 @@ class BussiThermostat : public Thermostat
 
         if (m_tau != 0.0)
             {
-            e_factor = exp(-deltaT / m_tau);
+            time_decay_factor = exp(-deltaT / m_tau);
             }
         else
             {
-            e_factor = 0.0;
+            time_decay_factor = 0.0;
             }
 
         NormalDistribution<double> normal_translation(1.0);
         NormalDistribution<double> normal_rotation(1.0);
-        Scalar rt = normal_translation(rng);
-        Scalar rr = normal_rotation(rng);
+        Scalar t_random_one = normal_translation(rng);
+        Scalar r_random_one = normal_rotation(rng);
 
         const int ntdof_left = ntdof - 1;
         const int nrdof_left = nrdof - 1;
@@ -399,56 +399,60 @@ class BussiThermostat : public Thermostat
         const bool nrdof_left_even = nrdof_left % 2 == 0;
         if (ntdof_left == 0)
             {
-            rt_left = 0.;
+            t_random_left = 0.;
             }
         else if (ntdof_left == 1)
             {
-            Scalar rt_temp = normal_translation(rng);
-            rt_left = rt_temp * rt_temp;
+            Scalar t_random_temp = normal_translation(rng);
+            t_random_left = t_random_temp * t_random_temp;
             }
         else if (ntdof_left_even)
             {
             GammaDistribution<double> gamma_translation(ntdof_left / 2.0, 1.0);
-            rt_left = 2.0 * gamma_translation(rng);
+            t_random_left = 2.0 * gamma_translation(rng);
             }
         else
             {
             GammaDistribution<double> gamma_translation((ntdof_left - 1) / 2.0, 1.0);
-            Scalar rt_temp = normal_translation(rng);
-            rt_left = 2.0 * gamma_translation(rng) + rt_temp * rt_temp;
+            Scalar t_random_temp = normal_translation(rng);
+            t_random_left = 2.0 * gamma_translation(rng) + t_random_temp * t_random_temp;
             }
 
         if (nrdof_left == 0)
             {
-            rr_left = 0.;
+            r_random_left = 0.;
             }
         else if (nrdof_left == 1)
             {
-            Scalar rr_temp = normal_rotation(rng);
-            rr_left = rr_temp * rr_temp;
+            Scalar r_random_temp = normal_rotation(rng);
+            r_random_left = rr_temp * rr_temp;
             }
         else if (nrdof_left_even)
             {
             GammaDistribution<double> gamma_rotation(nrdof_left / 2.0, 1.0);
-            rr_left = 2.0 * gamma_rotation(rng);
+            r_random_left = 2.0 * gamma_rotation(rng);
             }
         else
             {
             GammaDistribution<double> gamma_rotation((nrdof_left - 1) / 2.0, 1.0);
-            Scalar rr_temp = normal_rotation(rng);
-            rr_left = 2.0 * gamma_rotation(rng) + rr_temp * rr_temp;
+            Scalar r_random_temp = normal_rotation(rng);
+            r_random_left = 2.0 * gamma_rotation(rng) + r_random_temp * r_random_temp;
             }
 
-        Scalar t_rescale = sqrt(
-            e_factor
-            + set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * (rt_left + rt * rt)
-            + Scalar(2.0) * rt
-                  * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - e_factor) * e_factor));
-        Scalar r_rescale = sqrt(
-            e_factor
-            + set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * (rr_left + rr * rr)
-            + Scalar(2.0) * rr
-                  * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - e_factor) * e_factor));
+        Scalar t_rescale
+            = sqrt(time_decay_factor
+                   + set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - time_decay_factor)
+                         * (t_random_left + t_random_one * t_random_one)
+                   + Scalar(2.0) * t_random_one
+                         * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - time_decay_factor)
+                                * time_decay_factor));
+        Scalar r_rescale
+            = sqrt(time_decay_factor
+                   + set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - time_decay_factor)
+                         * (r_random_left + r_random_one * r_random_one)
+                   + Scalar(2.0) * r_random_one
+                         * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - time_decay_factor)
+                                * time_decay_factor));
 
         return {t_rescale, r_rescale};
         }
