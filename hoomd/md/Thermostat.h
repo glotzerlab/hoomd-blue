@@ -361,6 +361,9 @@ class BussiThermostat : public Thermostat
         Scalar time_decay_factor;
         Scalar t_random_left;
         Scalar r_random_left;
+        // Integration methods will always operate on subsets with integer degrees of freedom.
+        // Partial degrees of freedom are removed by getTranslationalDOF() when the subset of
+        // particles is not the same subet selected for integration.
         const int ntdof = static_cast<int>(m_thermo->getTranslationalDOF());
         const int nrdof = static_cast<int>(m_thermo->getRotationalDOF());
         const auto ket_int = m_thermo->getTranslationalKineticEnergy();
