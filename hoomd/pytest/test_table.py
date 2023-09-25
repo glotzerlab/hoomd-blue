@@ -39,6 +39,8 @@ def logger():
     logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
     logger[('dummy', 'loggable', 'small_float')] = (Identity(0.0000001),
                                                     'scalar')
+    logger[('dummy', 'loggable', 'zero_float')] = (Identity(0.0), 'scalar')
+    logger[('dummy', 'loggable', 'zero_int')] = (Identity(0), 'scalar')
     logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')
     return logger
 
@@ -49,7 +51,9 @@ def expected_values():
         'dummy.loggable.int': 42000000,
         'dummy.loggable.float': 3.1415,
         'dummy.loggable.string': "foobarbaz",
-        'dummy.loggable.small_float': 0.0000001
+        'dummy.loggable.small_float': 0.0000001,
+        'dummy.loggable.zero_float': 0.0,
+        'dummy.loggable.zero_int': 0,
     }
 
 
