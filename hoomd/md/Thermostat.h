@@ -425,7 +425,7 @@ class BussiThermostat : public Thermostat
         else if (nrdof_left == 1)
             {
             Scalar r_random_temp = normal_rotation(rng);
-            r_random_left = rr_temp * rr_temp;
+            r_random_left = r_random_temp * r_random_temp;
             }
         else if (nrdof_left_even)
             {
