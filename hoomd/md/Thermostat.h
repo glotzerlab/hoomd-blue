@@ -379,6 +379,11 @@ class BussiThermostat : public Thermostat
 
         const auto set_T = m_T->operator()(timestep);
 
+        if (deltaT == 0.0)
+            {
+            return {1.0, 1.0};
+            }
+
         Scalar time_decay_factor;
         if (m_tau != 0.0)
             {
