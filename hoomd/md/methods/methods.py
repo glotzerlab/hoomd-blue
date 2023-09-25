@@ -104,7 +104,7 @@ class ConstantVolume(Thermostatted):
     See Also:
         `hoomd.md.methods.thermostats`.
 
-    .. rubric:: Examples
+    .. rubric:: Examples:
 
     NVE integration:
 

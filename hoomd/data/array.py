@@ -732,8 +732,9 @@ only within the relevant context manager. For example:
         pos[:, 2] += 1
 
 Note:
-    When CuPy can be imported, then this class wraps much of the ``cupy.ndarray``
-    class's functionality. Otherwise, this class exposes only the buffer.
+    When CuPy can be imported, then this class wraps much of the
+    ``cupy.ndarray`` class's functionality. Otherwise, this class exposes only
+    the buffer.
 
 `HOOMDGPUArray` always supports getting (but not setting) the ``shape``,
 ``strides``, and ``ndim`` properties. `HOOMDGPUArray` never supports standard

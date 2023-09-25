@@ -534,6 +534,15 @@ class TriggeredOperation(Operation):
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
+
+    Attributes:
+        trigger (hoomd.trigger.Trigger): The trigger to activate this operation.
+
+            .. rubric:: Example
+
+            .. code-block:: python
+
+                operation.trigger = hoomd.trigger.Periodic(10)
     """
 
     def __init__(self, trigger):

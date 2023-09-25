@@ -27,12 +27,10 @@ class TypeParameter(MutableMapping):
     and multiple parameters on one line.
 
     Important:
-
         Parameters for all types (or unordered pairs of types) in the simulation
         state must be defined prior to calling `Simulation.run()`.
 
     Note:
-
         `TypeParameter` removes types (or type pairs) not present in the
         simulation state *after* its operation is added to the simulation and
         the simulation has been run for 0 or more steps.
@@ -66,7 +64,7 @@ class TypeParameter(MutableMapping):
     def __setitem__(self, key, value):
         """Set parameters for a given type (or type pair).
 
-        .. rubric:: Examples
+        .. rubric:: Examples:
 
         Index types by name:
 
@@ -105,7 +103,6 @@ class TypeParameter(MutableMapping):
             lj.params[(['B', 'C'], ['B', 'C'])] = dict(epsilon=1, sigma=1)
 
         Note:
-
             Setting the value for *(a,b)* automatically sets the symmetric
             *(b,a)* parameter to the same value.
         """
@@ -192,7 +189,7 @@ class TypeParameter(MutableMapping):
         the simulation state that is not explicitly set by `__setitem__`
         or `setdefault`.
 
-        .. rubric:: Examples
+        .. rubric:: Examples:
 
         Set a default value:
 

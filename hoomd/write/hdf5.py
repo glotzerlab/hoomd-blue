@@ -165,7 +165,7 @@ class _HDF5LogInternal(custom._InternalAction):
         Without calling this, data may be stored in the h5py.File object without
         being written to disk yet.
 
-        .. rubric:: Examples
+        .. rubric:: Examples:
 
         Flush one writer:
 
@@ -277,7 +277,7 @@ class HDF5Log(_InternalCustomWriter):
     .. _h5py:
         https://docs.h5py.org/en/stable/high/file.html#opening-creating-files
 
-    .. rubric:: Example
+    .. rubric:: Example:
 
     .. code-block:: python
 
@@ -314,7 +314,7 @@ class HDF5Log(_InternalCustomWriter):
             pressure tensor, rotational kinetic energy, or external field
             virial.
 
-        .. rubric:: Example
+        .. rubric:: Example:
 
         .. code-block:: python
 
