@@ -358,9 +358,6 @@ class BussiThermostat : public Thermostat
         {
         m_thermo->compute(timestep);
 
-        Scalar time_decay_factor;
-        Scalar t_random_left;
-        Scalar r_random_left;
         // Integration methods will always operate on subsets with integer degrees of freedom.
         // Partial degrees of freedom are removed by getTranslationalDOF() when the subset of
         // particles is not the same subet selected for integration.
@@ -382,6 +379,7 @@ class BussiThermostat : public Thermostat
 
         const auto set_T = m_T->operator()(timestep);
 
+        Scalar time_decay_factor;
         if (m_tau != 0.0)
             {
             time_decay_factor = exp(-deltaT / m_tau);
@@ -396,51 +394,8 @@ class BussiThermostat : public Thermostat
         Scalar t_random_one = normal_translation(rng);
         Scalar r_random_one = normal_rotation(rng);
 
-        const int ntdof_left = ntdof - 1;
-        const int nrdof_left = nrdof - 1;
-        const bool ntdof_left_even = ntdof_left % 2 == 0;
-        const bool nrdof_left_even = nrdof_left % 2 == 0;
-        if (ntdof_left == 0)
-            {
-            t_random_left = 0.;
-            }
-        else if (ntdof_left == 1)
-            {
-            Scalar t_random_temp = normal_translation(rng);
-            t_random_left = t_random_temp * t_random_temp;
-            }
-        else if (ntdof_left_even)
-            {
-            GammaDistribution<double> gamma_translation(ntdof_left / 2.0, 1.0);
-            t_random_left = 2.0 * gamma_translation(rng);
-            }
-        else
-            {
-            GammaDistribution<double> gamma_translation((ntdof_left - 1) / 2.0, 1.0);
-            Scalar t_random_temp = normal_translation(rng);
-            t_random_left = 2.0 * gamma_translation(rng) + t_random_temp * t_random_temp;
-            }
-
-        if (nrdof_left == 0)
-            {
-            r_random_left = 0.;
-            }
-        else if (nrdof_left == 1)
-            {
-            Scalar r_random_temp = normal_rotation(rng);
-            r_random_left = r_random_temp * r_random_temp;
-            }
-        else if (nrdof_left_even)
-            {
-            GammaDistribution<double> gamma_rotation(nrdof_left / 2.0, 1.0);
-            r_random_left = 2.0 * gamma_rotation(rng);
-            }
-        else
-            {
-            GammaDistribution<double> gamma_rotation((nrdof_left - 1) / 2.0, 1.0);
-            Scalar r_random_temp = normal_rotation(rng);
-            r_random_left = 2.0 * gamma_rotation(rng) + r_random_temp * r_random_temp;
-            }
+        Scalar t_random_left = sample_sumnormal(ntdof - 1, rng);
+        Scalar r_random_left = sample_sumnormal(nrdof - 1, rng);
 
         Scalar t_rescale
             = sqrt(time_decay_factor
@@ -462,6 +417,37 @@ class BussiThermostat : public Thermostat
 
     protected:
     Scalar m_tau;
+
+    Scalar sample_sumnormal(int dof_left, RandomGenerator rng)
+        {
+        Scalar sum_normal_square;
+        const bool dof_left_even = ((dof_left & 1) == 0);
+
+        if (dof_left == 0)
+            {
+            sum_normal_square = 0.;
+            }
+        else if (dof_left == 1)
+            {
+            NormalDistribution<double> normal(1.0);
+            Scalar normal_random = normal(rng);
+            sum_normal_square = normal_random * normal_random;
+            }
+        else if (dof_left_even)
+            {
+            GammaDistribution<double> gamma(dof_left / 2.0, 1.0);
+            sum_normal_square = 2.0 * gamma(rng);
+            }
+        else
+            {
+            NormalDistribution<double> normal(1.0);
+            GammaDistribution<double> gamma((dof_left - 1) / 2.0, 1.0);
+            Scalar normal_random = normal(rng);
+            sum_normal_square = 2.0 * gamma(rng) + normal_random * normal_random;
+            }
+
+        return sum_normal_square;
+        }
     };
 
 /// Implement the Berendsen velocity recalcing thermostat.
