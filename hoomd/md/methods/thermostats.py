@@ -248,6 +248,9 @@ class Bussi(Thermostat):
         kT (hoomd.variant.variant_like): Temperature set point for the
             thermostat :math:`[\mathrm{energy}]`.
 
+        tau (float): Thermostat time constant. Defaults to 0
+        :math:`[\mathrm{time}].`
+
     Provides temperature control by rescaling the velocity by a factor taken
     from the canonical velocity distribution. On each timestep, velocities are
     rescaled by a factor :math:`\alpha=\sqrt{K_t / K}`, where :math:`K` is the
@@ -259,6 +262,28 @@ class Bussi(Thermostat):
 
     where :math:`N_f` is the number of degrees of freedom thermalized.
 
+    By default, when `tau` is approaching 0, the stochastic evolution of
+    system is instantly thermalized and this algorithm reduces to the
+    fully stochastic velocity-rescaling scheme
+    , where :math:`\alpha` is given by:
+
+    .. math::
+        \alpha = \sqrt{\frac{K_{\mathrm{set}}}{KN_f}(2G + R^2)}
+
+    In general case, when `tau` is non-zero, :math:`\alpha` is given by:
+
+    .. math::
+        \alpha = \sqrt{f + (1-f)\frac{K_{\mathrm{set}}}{KN_f}(2G + R^2) +
+        2R\sqrt{f(1-f)\frac{K_{\mathrm{set}}}{KN_f}}
+        }
+
+    where :math:`K_{\mathrm{set}}` is the set mean kinetic energy of
+    :math:`N_f/2 kT`, :math:`f` is the time decay factor of
+    :math:`\exp(-\delta t / \tau)`, :math:`G` is the random number
+    sampled from the gamma distribution of :math:`Gamma[(N_f-1)/2, 1]`,
+    and :math:`R` is the random number sampled from the standard
+    normal distribution.
+
     See Also:
         `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`_.
 
@@ -266,7 +291,8 @@ class Bussi(Thermostat):
 
     .. code-block:: python
 
-        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5,
+            tau=simulation.operations.integrator.dt*20)
         simulation.operations.integrator.methods[0].thermostat = bussi
 
     Attributes:
@@ -285,6 +311,9 @@ class Bussi(Thermostat):
                                               B=2.0,
                                               t_start=0,
                                               t_ramp=1_000_000)
+
+        tau (float): Thermostat time constant. Defaults to 0
+        :math:`[\mathrm{time}].`
     """
 
     def __init__(self, kT, tau=0.):
