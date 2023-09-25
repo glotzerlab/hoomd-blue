@@ -99,6 +99,9 @@ class _Formatter:
     @staticmethod
     def _digits_from_decimal(num):
         """Return digits to represent to the first significant digit."""
+        if num == 0.0:
+            return 1
+
         digits = int(log10(abs(num)))
         # Positive exponents require an extra space (10^0 == 1)
         digits = 1 + digits if digits >= 0 else -digits
