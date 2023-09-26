@@ -1,7 +1,14 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement TypeParameter."""
+"""Implement TypeParameter.
+
+.. invisible-code-block: python
+
+    # This should not be necessary, but without it, the first
+    # "skip: next if" fails to skip the code block.
+    pass
+"""
 
 from collections.abc import MutableMapping
 
@@ -39,6 +46,7 @@ class TypeParameter(MutableMapping):
     to demonstrate.
 
     .. skip: next if(not hoomd.version.md_built)
+
     .. code-block:: python
 
         lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4))

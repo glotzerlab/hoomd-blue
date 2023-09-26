@@ -15,7 +15,6 @@ See Also:
 .. invisible-code-block: python
 
     simulation = hoomd.util.make_example_simulation()
-    simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
     operation = simulation.operations.tuners[0]
 """
 
