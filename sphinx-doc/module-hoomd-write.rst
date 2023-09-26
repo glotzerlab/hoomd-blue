@@ -22,11 +22,27 @@ hoomd.write
 
 .. automodule:: hoomd.write
     :synopsis: Write data out.
-    :members: Burst, CustomWriter, DCD, GSD, HDF5Log, Table
-    :show-inheritance:
 
-    .. .. autoclass:: HDF5Log(trigger, filename, logger, mode="a")
-    ..     :members:
+    .. autoclass:: Burst
+        :show-inheritance:
+        :members:
 
-    .. .. autoclass:: Table(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
-    ..     :members:
+    .. autoclass:: CustomWriter
+        :show-inheritance:
+        :members:
+
+    .. autoclass:: DCD
+        :show-inheritance:
+        :members:
+
+    .. autoclass:: GSD
+        :show-inheritance:
+        :members:
+
+    .. autoclass:: HDF5Log(trigger, filename, logger, mode="a")
+        :show-inheritance:
+        :members:
+
+    .. autoclass:: Table(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
+        :show-inheritance:
+        :members:
