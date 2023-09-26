@@ -201,7 +201,7 @@ class GSD(Writer):
 
             .. rubric:: Example:
 
-        .. code-block:: python
+            .. code-block:: python
 
                 mode = gsd.mode
 
