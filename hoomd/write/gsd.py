@@ -201,7 +201,7 @@ class GSD(Writer):
 
             .. rubric:: Example:
 
-            .. code-block:: python
+        .. code-block:: python
 
                 mode = gsd.mode
 
@@ -229,7 +229,9 @@ class GSD(Writer):
 
             .. code-block:: python
 
-            gsd.dynamic = ['property', 'particles/image', 'particles/typeid']
+                gsd.dynamic = ['property',
+                               'particles/image',
+                               'particles/typeid']
 
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
