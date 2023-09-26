@@ -396,8 +396,8 @@ class BussiThermostat : public Thermostat
 
         NormalDistribution<double> normal_translation(1.0);
         NormalDistribution<double> normal_rotation(1.0);
-        Scalar t_random_one = normal_translation(rng);
-        Scalar r_random_one = normal_rotation(rng);
+        Scalar t_random_first = normal_translation(rng);
+        Scalar r_random_first = normal_rotation(rng);
 
         Scalar t_random_left = sample_sumnormal(ntdof - 1, rng);
         Scalar r_random_left = sample_sumnormal(nrdof - 1, rng);
@@ -405,15 +405,15 @@ class BussiThermostat : public Thermostat
         Scalar t_rescale
             = sqrt(time_decay_factor
                    + set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - time_decay_factor)
-                         * (t_random_left + t_random_one * t_random_one)
-                   + Scalar(2.0) * t_random_one
+                         * (t_random_left + t_random_first * t_random_first)
+                   + Scalar(2.0) * t_random_first
                          * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - time_decay_factor)
                                 * time_decay_factor));
         Scalar r_rescale
             = sqrt(time_decay_factor
                    + set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - time_decay_factor)
-                         * (r_random_left + r_random_one * r_random_one)
-                   + Scalar(2.0) * r_random_one
+                         * (r_random_left + r_random_first * r_random_first)
+                   + Scalar(2.0) * r_random_first
                          * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - time_decay_factor)
                                 * time_decay_factor));
 
