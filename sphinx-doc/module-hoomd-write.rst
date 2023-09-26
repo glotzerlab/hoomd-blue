@@ -31,7 +31,7 @@ hoomd.write
         :show-inheritance:
         :members:
 
-    .. autoclass:: DCD
+    .. autoclass:: DCD(trigger, filename, filter=hoomd.filter.All(), overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False)
         :show-inheritance:
         :members:
 
