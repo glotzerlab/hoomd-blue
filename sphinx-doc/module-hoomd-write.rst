@@ -23,7 +23,7 @@ hoomd.write
 .. automodule:: hoomd.write
     :synopsis: Write data out.
 
-    .. autoclass:: Burst
+    .. autoclass:: Burst(trigger, filename, filter=hoomd.filter.All(), mode='ab', dynamic=None, logger=None, max_burst_size=-1, write_at_start=False)
         :show-inheritance:
         :members:
 
