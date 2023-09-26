@@ -66,7 +66,6 @@ if sybil is not None:
         pattern='*.py',
         # exclude files not yet tested with sybil
         excludes=[
-            'data/typeconverter.py',
             'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,
