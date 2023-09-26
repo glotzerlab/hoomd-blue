@@ -150,7 +150,7 @@ class BoxResize(Updater):
 
             .. code-block:: python
 
-                filter = box_resize.filter
+                filter_ = box_resize.filter
     """
 
     def __init__(self, trigger, box1, box2, variant, filter=All()):

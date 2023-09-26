@@ -6,6 +6,7 @@
 .. invisible-code-block: python
 
     simulation = hoomd.util.make_example_simulation()
+    dcd_filename = tmp_path / 'trajectory.dcd'
 """
 
 from hoomd import _hoomd
@@ -56,8 +57,8 @@ class DCD(Writer):
 
     .. code-block:: python
 
-        dcd = hoomd.write.DCD(trigger=hoomd.trigger.Periodic(1000),
-                              filename="trajectory.dcd")
+        dcd = hoomd.write.DCD(trigger=hoomd.trigger.Periodic(1_000_000),
+                              filename=dcd_filename)
         simulation.operations.writers.append(dcd)
 
     Attributes:
@@ -76,7 +77,7 @@ class DCD(Writer):
 
             .. code-block:: python
 
-                filter = dcd.filter
+                filter_ = dcd.filter
 
         overwrite (bool): When False, an existing DCD file will be appended to.
             When True, an existing DCD file *filename* will be overwritten

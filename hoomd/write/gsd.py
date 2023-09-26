@@ -1,7 +1,13 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Write GSD files storing simulation trajectories and logging data."""
+"""Write GSD files storing simulation trajectories and logging data.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    gsd_filename = tmp_path / 'trajectory.gsd'
+"""
 
 from collections.abc import Mapping, Collection
 from hoomd.trigger import Periodic
@@ -165,20 +171,84 @@ class GSD(Writer):
         `logger` to `None` or remove specific quantities from the logger, but do
         not add additional quantities after the first frame.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        gsd = hoomd.write.GSD(trigger=hoomd.trigger.Periodic(1_000_000),
+                              filename=gsd_filename)
+        simulation.operations.writers.append(gsd)
+
     Attributes:
-        filename (str): File name to write.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
-        filter (hoomd.filter.filter_like): Select the particles to write.
-        mode (str): The file open mode.
+        filename (str): File name to write (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                filename = gsd.filename
+
+        filter (hoomd.filter.filter_like): Select the particles to write
+            (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                filter_ = gsd.filter
+
+        mode (str): The file open mode (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                mode = gsd.mode
+
         truncate (bool): When `True`, truncate the file and write a new frame 0
-            each time this operation triggers.
+            each time this operation triggers (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                truncate = gsd.truncate
+
         dynamic (list[str]): Field names and/or field categores to save in
             all frames.
+
+            .. rubric:: Examples:
+
+            .. code-block:: python
+
+                gsd.dynamic = ['property']
+
+            .. code-block:: python
+
+                gsd.dynamic = ['property', 'momentum']
+
+            .. code-block:: python
+
+            gsd.dynamic = ['property', 'particles/image', 'particles/typeid']
+
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
             diameters.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                gsd.write_diameter = True
+
         maximum_write_buffer_size (int): Size (in bytes) to buffer in memory
            before writing to the file.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                gsd.maximum_write_buffer_size = 128 * 1024**2
     """
 
     def __init__(self,

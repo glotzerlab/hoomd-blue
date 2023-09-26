@@ -35,7 +35,7 @@ hoomd.write
         :show-inheritance:
         :members:
 
-    .. autoclass:: GSD
+    .. autoclass:: GSD(trigger, filename, filter=hoomd.filter.All(), mode='ab', truncate=False, dynamic=None, logger=None)
         :show-inheritance:
         :members:
 
