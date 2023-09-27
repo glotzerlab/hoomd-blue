@@ -3,13 +3,13 @@
 
 """Mesh Area Conservation potential."""
 
-from hoomd.md.mesh.potential import MeshPotential
+from hoomd.md.mesh.potential import MeshPotential, MeshConvervationPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.logging import log
 
 
-class Area(MeshPotential):
+class Area(MeshConvervationPotential):
     r"""Area conservation potential.
 
     :py:class:`Area` specifies a area conservation energy of each
@@ -21,6 +21,9 @@ class Area(MeshPotential):
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
+              to calculate conservation energy in terms of all triangles in 
+              the mesh. Defaults to `False`.
 
     Attributes:
         parameter (TypeParameter[dict]):
@@ -40,12 +43,12 @@ class Area(MeshPotential):
     """
     _cpp_class_name = "AreaConservationMeshForceCompute"
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, ignore_type=False):
         params = TypeParameter("params", "types",
                                TypeParameterDict(k=float, A0=float, len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(mesh)
+        super().__init__(mesh,ignore_type)
 
     @log(requires_run=True)
     def area(self):

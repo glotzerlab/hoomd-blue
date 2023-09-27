@@ -180,6 +180,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                                              d_gpu_meshtrianglelist.data,
                                              d_gpu_meshtriangle_pos_list.data,
                                              gpu_table_indexer,
+					     false,
                                              d_gpu_n_meshtriangle.data,
                                              m_block_size,
                                              m_num_blocks);

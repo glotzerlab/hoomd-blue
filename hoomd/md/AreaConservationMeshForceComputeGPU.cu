@@ -44,6 +44,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
                                                         const group_storage<3>* tlist,
                                                         const unsigned int* tpos_list,
                                                         const Index2D tlist_idx,
+                                             		const bool ignore_type,
                                                         const unsigned int* n_triangles_list)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -66,6 +67,8 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             {
             group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
             int cur_triangle_type = cur_triangle.idx[2];
+
+            if(ignore_type) cur_triangle_type = 0;
 
 	    if( cur_triangle_type != cN) continue;
 
@@ -214,6 +217,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                                             const group_storage<3>* tlist,
                                             const unsigned int* tpos_list,
                                             const Index2D tlist_idx,
+                                            const bool ignore_type,
                                             const unsigned int* n_triangles_list,
                                             unsigned int block_size,
                                             unsigned int num_blocks)
@@ -239,6 +243,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                            tlist,
                            tpos_list,
                            tlist_idx,
+                           ignore_type,
                            n_triangles_list);
 	}
 
@@ -285,7 +290,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          const Index2D tlist_idx,
                                                          const unsigned int* n_triangles_list,
                                                          Scalar2* d_params,
-                                                         const unsigned int n_triangle_type,
+                                                         const bool ignore_type,
                                                          unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
@@ -316,6 +321,8 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         int cur_triangle_b = cur_triangle.idx[0];
         int cur_triangle_c = cur_triangle.idx[1];
         int cur_triangle_type = cur_triangle.idx[2];
+
+	if(ignore_type) cur_triangle_type = 0;
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
@@ -453,7 +460,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              const Index2D tlist_idx,
                                              const unsigned int* n_triangles_list,
                                              Scalar2* d_params,
-                                             const unsigned int n_triangle_type,
+                                             const bool ignore_type,
                                              int block_size,
                                              unsigned int* d_flags)
     {
@@ -487,7 +494,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                        tlist_idx,
                        n_triangles_list,
                        d_params,
-                       n_triangle_type,
+                       ignore_type,
                        d_flags);
 
     return hipSuccess;

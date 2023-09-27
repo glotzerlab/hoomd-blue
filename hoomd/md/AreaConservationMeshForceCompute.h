@@ -63,7 +63,8 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     public:
     //! Constructs the compute
     AreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                     std::shared_ptr<MeshDefinition> meshdef);
+                                     std::shared_ptr<MeshDefinition> meshdef,
+				     bool ignore_type);
 
     //! Destructor
     virtual ~AreaConservationMeshForceCompute();
@@ -102,6 +103,8 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
     Scalar* m_area; //! sum of the triangle areas within the mesh
+
+    bool m_ignore_type; //! do we ignore type to calculate global area
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
