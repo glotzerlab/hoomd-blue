@@ -33,7 +33,8 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
     public:
     //! Constructs the compute
     AreaConservationMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                        std::shared_ptr<MeshDefinition> meshdef);
+                                        std::shared_ptr<MeshDefinition> meshdef,
+					bool ignore_type);
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);

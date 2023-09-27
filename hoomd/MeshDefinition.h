@@ -9,6 +9,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "hoomd/GlobalArray.h"
+
 #include "BondedGroupData.h"
 #include "MeshGroupData.h"
 #include "SystemDefinition.h"
@@ -85,9 +87,9 @@ class PYBIND11_EXPORT MeshDefinition
         return triangles.getSize();
         }
 
-    unsigned int getPerTypeSize(unsigned int type)
+    const GlobalArray<unsigned int>& getPerTypeSize() const
         {
-        return m_globalN[type];
+        return m_globalN;
         }
 
     void setTypes(pybind11::list types);
@@ -101,7 +103,7 @@ class PYBIND11_EXPORT MeshDefinition
     void setTriangulationData(pybind11::dict triangulation);
 
     private:
-    unsigned int* m_globalN;
+    GlobalArray<unsigned int> m_globalN;
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
