@@ -326,7 +326,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * gN);
 
-        AreaDiff = -K / A_mesh * AreaDiff / 2.0;
+        AreaDiff = K / A_mesh * AreaDiff / 2.0;
 
         int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
@@ -339,24 +339,17 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         Scalar3 pos_c = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
 
         Scalar3 dab, dac;
+
         if (cur_triangle_abc == 0)
             {
+            dab = pos_a - pos_b;
+            dac = pos_a - pos_c;
+            }
+	else
+	    {
             dab = pos_b - pos_a;
-            dac = pos_c - pos_a;
-            }
-        else
-            {
-            if (cur_triangle_abc == 1)
-                {
-                dab = pos_a - pos_b;
-                dac = pos_c - pos_b;
-                }
-            else
-                {
-                dab = pos_c - pos_b;
-                dac = pos_a - pos_b;
-                }
-            }
+            dac = pos_b - pos_c;
+	    }
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -380,58 +373,44 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
         Scalar inv_s_baac = 1.0 / s_baac;
 
-        Scalar3 dc_dra;
-        if (cur_triangle_abc == 0)
-            {
-            dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-            }
-        else
-            {
-            if (cur_triangle_abc == 1)
-                {
-                dc_dra = nac / rab - c_baac / rab * nab;
-                }
-            else
-                {
-                dc_dra = nab / rac - c_baac / rac * nac;
-                }
-            }
+        Scalar3 dc_drab = -nac / rab + c_baac / rab * nab;
 
-        Scalar3 ds_dra = -c_baac * inv_s_baac * dc_dra;
+        Scalar3 ds_drab = -c_baac * inv_s_baac * dc_drab;
 
-        Scalar3 Fa;
+        Scalar3 Fab = AreaDiff * (-nab * rac * s_baac +  ds_drab * rab * rac);
 
         if (cur_triangle_abc == 0)
             {
-            Fa = -nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac;
-            }
-        else
-            {
-            if (cur_triangle_abc == 1)
-                {
-                Fa = nab * rac * s_baac + ds_dra * rab * rac;
-                }
-            else
-                {
-                Fa = nac * rab * s_baac + ds_dra * rab * rac;
-                }
-            }
+	    Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
+            Scalar3 ds_drac = -c_baac * inv_s_baac * dc_drac;
+	    Scalar3 Fac = AreaDiff * (-nac * rab * s_baac +  ds_drac * rab * rac);
 
-        Fa.x = AreaDiff * Fa.x;
-        Fa.y = AreaDiff * Fa.y;
-        Fa.z = AreaDiff * Fa.z;
+            force.x += (Fab.x + Fac.x);
+            force.y += (Fab.y + Fac.y);
+            force.z += (Fab.z + Fac.z);
 
-        force.x += Fa.x;
-        force.y += Fa.y;
-        force.z += Fa.z;
+            virial[0] += Scalar(1. / 2.) * (dab.x * Fab.x + dac.x * Fac.x); // xx
+            virial[1] += Scalar(1. / 2.) * (dab.y * Fab.x + dac.y * Fac.x); // xy
+            virial[2] += Scalar(1. / 2.) * (dab.z * Fab.x + dac.z * Fac.x); // xz
+            virial[3] += Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y); // yy
+            virial[4] += Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y); // yz
+            virial[5] += Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
+
+            }
+	else
+	    {
+	    force.x -= Fab.x;
+	    force.y -= Fab.y;
+	    force.z -= Fab.z;
+
+	    virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
+	    virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
+	    virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
+	    virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
+	    virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
+	    virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
+	    }
         force.w = energy;
-
-        virial[0] += Scalar(1. / 2.) * pos_a.x * Fa.x; // xx
-        virial[1] += Scalar(1. / 2.) * pos_a.y * Fa.x; // xy
-        virial[2] += Scalar(1. / 2.) * pos_a.z * Fa.x; // xz
-        virial[3] += Scalar(1. / 2.) * pos_a.y * Fa.y; // yy
-        virial[4] += Scalar(1. / 2.) * pos_a.z * Fa.y; // yz
-        virial[5] += Scalar(1. / 2.) * pos_a.z * Fa.z; // zz
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)

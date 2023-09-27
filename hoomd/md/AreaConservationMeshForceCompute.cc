@@ -158,14 +158,14 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
 
         Scalar3 dac;
-        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -193,17 +193,15 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
         Scalar inv_s_baac = 1.0 / s_baac;
 
-        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a
-        dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-        dc_drb = nac / rab - c_baac / rab * nab;
-        dc_drc = nab / rac - c_baac / rac * nac;
+        Scalar3 dc_drab, dc_drac; // dcos_baac / dr_a
+        dc_drab = -nac / rab + c_baac / rab * nab;
+        dc_drac = -nab / rac + c_baac / rac * nac;
 
-        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
-        ds_dra = -c_baac * inv_s_baac * dc_dra;
-        ds_drb = -c_baac * inv_s_baac * dc_drb;
-        ds_drc = -c_baac * inv_s_baac * dc_drc;
+        Scalar3 ds_drab, ds_drac; // dsin_baac / dr_a
+        ds_drab = -c_baac * inv_s_baac * dc_drab;
+        ds_drac = -c_baac * inv_s_baac * dc_drac;
 
-        Scalar3 Fa, Fb, Fc;
+        Scalar3 Fab, Fac;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
@@ -212,71 +210,68 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
                         / (2 * m_A0[triangle_type] * m_pdata->getNGlobal());
 
-        AreaDiff = -m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
-
-        Fa = AreaDiff * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+        AreaDiff = m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
+	
+	Fab = AreaDiff * (-nab * rac * s_baac + ds_drab * rab * rac);
+	Fac = AreaDiff * (-nac * rab * s_baac + ds_drac * rab * rac);
 
         if (compute_virial)
             {
-            area_virial[0] = Scalar(1. / 2.) * h_pos.data[idx_a].x * Fa.x; // xx
-            area_virial[1] = Scalar(1. / 2.) * h_pos.data[idx_a].y * Fa.x; // xy
-            area_virial[2] = Scalar(1. / 2.) * h_pos.data[idx_a].z * Fa.x; // xz
-            area_virial[3] = Scalar(1. / 2.) * h_pos.data[idx_a].y * Fa.y; // yy
-            area_virial[4] = Scalar(1. / 2.) * h_pos.data[idx_a].z * Fa.y; // yz
-            area_virial[5] = Scalar(1. / 2.) * h_pos.data[idx_a].z * Fa.z; // zz
+            area_virial[0] = Scalar(1. / 2.) * (dab.x * Fab.x + dac.x * Fac.x); // xx
+            area_virial[1] = Scalar(1. / 2.) * (dab.y * Fab.x + dac.y * Fac.x); // xy
+            area_virial[2] = Scalar(1. / 2.) * (dab.z * Fab.x + dac.z * Fac.x); // xz
+            area_virial[3] = Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y); // yy
+            area_virial[4] = Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y); // yz
+            area_virial[5] = Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
             }
 
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
-            h_force.data[idx_a].x += Fa.x;
-            h_force.data[idx_a].y += Fa.y;
-            h_force.data[idx_a].z += Fa.z;
+            h_force.data[idx_a].x += (Fab.x + Fac.x);
+            h_force.data[idx_a].y += (Fab.y + Fac.y);
+            h_force.data[idx_a].z += (Fab.z + Fac.z);
             h_force.data[idx_a].w = energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += area_virial[j];
             }
 
-        Fb = AreaDiff * (nab * rac * s_baac + ds_drb * rab * rac);
-
         if (compute_virial)
             {
-            area_virial[0] = Scalar(1. / 2.) * h_pos.data[idx_b].x * Fb.x; // xx
-            area_virial[1] = Scalar(1. / 2.) * h_pos.data[idx_b].y * Fb.x; // xy
-            area_virial[2] = Scalar(1. / 2.) * h_pos.data[idx_b].z * Fb.x; // xz
-            area_virial[3] = Scalar(1. / 2.) * h_pos.data[idx_b].y * Fb.y; // yy
-            area_virial[4] = Scalar(1. / 2.) * h_pos.data[idx_b].z * Fb.y; // yz
-            area_virial[5] = Scalar(1. / 2.) * h_pos.data[idx_b].z * Fb.z; // zz
+            area_virial[0] = Scalar(1. / 2.) * dab.x * Fab.x; // xx
+            area_virial[1] = Scalar(1. / 2.) * dab.y * Fab.x; // xy
+            area_virial[2] = Scalar(1. / 2.) * dab.z * Fab.x; // xz
+            area_virial[3] = Scalar(1. / 2.) * dab.y * Fab.y; // yy
+            area_virial[4] = Scalar(1. / 2.) * dab.z * Fab.y; // yz
+            area_virial[5] = Scalar(1. / 2.) * dab.z * Fab.z; // zz
             }
 
         if (idx_b < m_pdata->getN())
             {
-            h_force.data[idx_b].x += Fb.x;
-            h_force.data[idx_b].y += Fb.y;
-            h_force.data[idx_b].z += Fb.z;
+            h_force.data[idx_b].x -= Fab.x;
+            h_force.data[idx_b].y -= Fab.y;
+            h_force.data[idx_b].z -= Fab.z;
             h_force.data[idx_b].w = energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += area_virial[j];
             }
 
-        Fc = AreaDiff * (nac * rab * s_baac + ds_drc * rab * rac);
-
         if (compute_virial)
             {
-            area_virial[0] = Scalar(1. / 2.) * h_pos.data[idx_c].x * Fc.x; // xx
-            area_virial[1] = Scalar(1. / 2.) * h_pos.data[idx_c].y * Fc.x; // xy
-            area_virial[2] = Scalar(1. / 2.) * h_pos.data[idx_c].z * Fc.x; // xz
-            area_virial[3] = Scalar(1. / 2.) * h_pos.data[idx_c].y * Fc.y; // yy
-            area_virial[4] = Scalar(1. / 2.) * h_pos.data[idx_c].z * Fc.y; // yz
-            area_virial[5] = Scalar(1. / 2.) * h_pos.data[idx_c].z * Fc.z; // zz
+            area_virial[0] = Scalar(1. / 2.) * dac.x * Fac.x; // xx
+            area_virial[1] = Scalar(1. / 2.) * dac.y * Fac.x; // xy
+            area_virial[2] = Scalar(1. / 2.) * dac.z * Fac.x; // xz
+            area_virial[3] = Scalar(1. / 2.) * dac.y * Fac.y; // yy
+            area_virial[4] = Scalar(1. / 2.) * dac.z * Fac.y; // yz
+            area_virial[5] = Scalar(1. / 2.) * dac.z * Fac.z; // zz
             }
 
         if (idx_c < m_pdata->getN())
             {
-            h_force.data[idx_c].x += Fc.x;
-            h_force.data[idx_c].y += Fc.y;
-            h_force.data[idx_c].z += Fc.z;
+            h_force.data[idx_c].x -= Fac.x;
+            h_force.data[idx_c].y -= Fac.y;
+            h_force.data[idx_c].z -= Fac.z;
             h_force.data[idx_c].w = energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += area_virial[j];
