@@ -38,7 +38,7 @@ const float mpcd::ParticleData::resize_factor = 9. / 8.;
  * equipartitioned at kT.
  */
 mpcd::ParticleData::ParticleData(unsigned int N,
-                                 const std::shared_ptr<const BoxDim> local_box,
+                                 std::shared_ptr<const BoxDim> local_box,
                                  Scalar kT,
                                  unsigned int seed,
                                  unsigned int ndimensions,
@@ -59,7 +59,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
         my_seed
             += m_exec_conf->getRank(); // each rank must get a different seed value for C++11 PRNG
         }
-#endif                                 // ENABLE_MPI
+#endif // ENABLE_MPI
 
     initializeRandom(N, local_box, kT, my_seed, ndimensions);
     }
@@ -70,8 +70,8 @@ mpcd::ParticleData::ParticleData(unsigned int N,
  * \param exec_conf Execution configuration
  * \param decomposition Domain decomposition
  */
-mpcd::ParticleData::ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                                 const std::shared_ptr<const BoxDim> global_box,
+mpcd::ParticleData::ParticleData(const mpcd::ParticleDataSnapshot& snapshot,
+                                 std::shared_ptr<const BoxDim> global_box,
                                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
     : m_N(0), m_N_virtual(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0),
@@ -83,13 +83,6 @@ mpcd::ParticleData::ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> sna
 #ifdef ENABLE_MPI
     setupMPI(decomposition);
 #endif
-
-    if (m_exec_conf->getRank() == 0 && snapshot->type_mapping.size() == 0)
-        {
-        m_exec_conf->msg->warning()
-            << "Number of MPCD types in snapshot is 0, incrementing to 1" << std::endl;
-        snapshot->type_mapping.push_back("A");
-        }
 
     initializeFromSnapshot(snapshot, global_box);
     }
@@ -108,9 +101,8 @@ mpcd::ParticleData::~ParticleData()
  * This is a collective call, requiring participation from all ranks even if
  * the snapshot is only valid on the root rank.
  */
-void mpcd::ParticleData::initializeFromSnapshot(
-    const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const std::shared_ptr<const BoxDim> global_box)
+void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot& snapshot,
+                                                std::shared_ptr<const BoxDim> global_box)
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: initializing from snapshot" << std::endl;
 
@@ -123,7 +115,7 @@ void mpcd::ParticleData::initializeFromSnapshot(
     if (!checkInBox(snapshot, global_box))
         {
         m_exec_conf->msg->error() << "Not all MPCD particles were found inside the box" << endl;
-        throw runtime_error("Error initializing MPCD particle data");
+        throw std::runtime_error("Error initializing MPCD particle data");
         }
 
     // global number of particles
@@ -160,9 +152,9 @@ void mpcd::ParticleData::initializeFromSnapshot(
                                                    access_mode::read);
 
             // loop over particles in snapshot, place them into domains
-            for (auto it = snapshot->position.begin(); it != snapshot->position.end(); ++it)
+            for (auto it = snapshot.position.begin(); it != snapshot.position.end(); ++it)
                 {
-                unsigned int snap_idx = (unsigned int)(it - snapshot->position.begin());
+                unsigned int snap_idx = (unsigned int)(it - snapshot.position.begin());
 
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
@@ -221,18 +213,18 @@ void mpcd::ParticleData::initializeFromSnapshot(
 
                 // fill up per-processor data structures
                 pos_proc[rank].push_back(pos);
-                vel_proc[rank].push_back(vec_to_scalar3(snapshot->velocity[snap_idx]));
-                type_proc[rank].push_back(snapshot->type[snap_idx]);
+                vel_proc[rank].push_back(vec_to_scalar3(snapshot.velocity[snap_idx]));
+                type_proc[rank].push_back(snapshot.type[snap_idx]);
                 tag_proc[rank].push_back(nglobal++);
                 ++N_proc[rank];
                 }
 
             // mass is set equal for all particles
-            m_mass = snapshot->mass;
+            m_mass = snapshot.mass;
             }
 
         // get type mapping
-        m_type_mapping = snapshot->type_mapping;
+        m_type_mapping = snapshot.type_mapping;
 
         if (rank != root)
             {
@@ -290,34 +282,34 @@ void mpcd::ParticleData::initializeFromSnapshot(
     else
 #endif // ENABLE_MPI
         {
-        allocate(snapshot->size);
+        allocate(snapshot.size);
 
         ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::overwrite);
 
-        for (unsigned int snap_idx = 0; snap_idx < snapshot->size; ++snap_idx)
+        for (unsigned int snap_idx = 0; snap_idx < snapshot.size; ++snap_idx)
             {
-            h_pos.data[nglobal] = make_scalar4(snapshot->position[snap_idx].x,
-                                               snapshot->position[snap_idx].y,
-                                               snapshot->position[snap_idx].z,
-                                               __int_as_scalar(snapshot->type[snap_idx]));
-            h_vel.data[nglobal] = make_scalar4(snapshot->velocity[snap_idx].x,
-                                               snapshot->velocity[snap_idx].y,
-                                               snapshot->velocity[snap_idx].z,
+            h_pos.data[nglobal] = make_scalar4(snapshot.position[snap_idx].x,
+                                               snapshot.position[snap_idx].y,
+                                               snapshot.position[snap_idx].z,
+                                               __int_as_scalar(snapshot.type[snap_idx]));
+            h_vel.data[nglobal] = make_scalar4(snapshot.velocity[snap_idx].x,
+                                               snapshot.velocity[snap_idx].y,
+                                               snapshot.velocity[snap_idx].z,
                                                __int_as_scalar(mpcd::detail::NO_CELL));
             h_tag.data[nglobal] = nglobal;
             nglobal++;
             }
 
         // mass is equal for all particles
-        m_mass = snapshot->mass;
+        m_mass = snapshot.mass;
 
         // number of local particles is the global number
         m_N = nglobal;
 
         // initialize type mapping
-        m_type_mapping = snapshot->type_mapping;
+        m_type_mapping = snapshot.type_mapping;
         }
 
     setNGlobal(nglobal);
@@ -333,7 +325,7 @@ void mpcd::ParticleData::initializeFromSnapshot(
  * \param ndimensions Dimensionality
  */
 void mpcd::ParticleData::initializeRandom(unsigned int N,
-                                          const std::shared_ptr<const BoxDim> local_box,
+                                          std::shared_ptr<const BoxDim> local_box,
                                           Scalar kT,
                                           unsigned int seed,
                                           unsigned int ndimensions)
@@ -445,7 +437,7 @@ void mpcd::ParticleData::initializeRandom(unsigned int N,
  * \param global_box Current global box
  * \post \a snapshot holds the current MPCD particle data on the root (0) rank
  */
-void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
+void mpcd::ParticleData::takeSnapshot(mpcd::ParticleDataSnapshot& snapshot,
                                       const shared_ptr<const BoxDim> global_box) const
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: taking snapshot" << std::endl;
@@ -495,7 +487,7 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
         if (rank == root)
             {
             // allocate memory in snapshot
-            snapshot->resize(getNGlobal());
+            snapshot.resize(getNGlobal());
 
             // write back into the snapshot in tag order, don't really care about cache coherency
             for (unsigned int rank_idx = 0; rank_idx < n_ranks; ++rank_idx)
@@ -511,9 +503,9 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
                     global_box->wrap(pos_i, img);
 
                     // push particle into the snapshot
-                    snapshot->position[snap_idx] = vec3<Scalar>(pos_i);
-                    snapshot->velocity[snap_idx] = vec3<Scalar>(vel_proc[rank_idx][idx]);
-                    snapshot->type[snap_idx] = type_proc[rank_idx][idx];
+                    snapshot.position[snap_idx] = vec3<Scalar>(pos_i);
+                    snapshot.velocity[snap_idx] = vec3<Scalar>(vel_proc[rank_idx][idx]);
+                    snapshot.type[snap_idx] = type_proc[rank_idx][idx];
                     }
                 }
             }
@@ -522,7 +514,7 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
 #endif
         {
         // allocate memory in snapshot
-        snapshot->resize(getNGlobal());
+        snapshot.resize(getNGlobal());
 
         // iterate through particles
         for (unsigned int idx = 0; idx < m_N; ++idx)
@@ -537,15 +529,15 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
             global_box->wrap(pos_i, img);
 
             // push particle into the snapshot
-            snapshot->position[snap_idx] = vec3<Scalar>(pos_i);
-            snapshot->velocity[snap_idx] = vec3<Scalar>(h_vel.data[idx]);
-            snapshot->type[snap_idx] = type_i;
+            snapshot.position[snap_idx] = vec3<Scalar>(pos_i);
+            snapshot.velocity[snap_idx] = vec3<Scalar>(h_vel.data[idx]);
+            snapshot.type[snap_idx] = type_i;
             }
         }
 
     // set the type mapping and mass, which is synced across processors
-    snapshot->type_mapping = m_type_mapping;
-    snapshot->mass = m_mass;
+    snapshot.type_mapping = m_type_mapping;
+    snapshot.mass = m_mass;
     }
 
 /*!
@@ -557,13 +549,12 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
  *
  * \sa mpcd::ParticleDataSnapshot::validate
  */
-bool mpcd::ParticleData::checkSnapshot(
-    const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot)
+bool mpcd::ParticleData::checkSnapshot(const mpcd::ParticleDataSnapshot& snapshot)
     {
     bool valid_snapshot = true;
     if (m_exec_conf->getRank() == 0)
         {
-        valid_snapshot = snapshot->validate();
+        valid_snapshot = snapshot.validate();
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -583,9 +574,8 @@ bool mpcd::ParticleData::checkSnapshot(
  * on the root rank, and broadcasts the results to the other ranks. Note that
  * this is a collective call that must be made from all ranks.
  */
-bool mpcd::ParticleData::checkInBox(
-    const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const std::shared_ptr<const BoxDim> box)
+bool mpcd::ParticleData::checkInBox(const mpcd::ParticleDataSnapshot& snapshot,
+                                    std::shared_ptr<const BoxDim> box)
     {
     bool in_box = true;
     if (m_exec_conf->getRank() == 0)
@@ -595,15 +585,15 @@ bool mpcd::ParticleData::checkInBox(
 
         const Scalar tol = Scalar(1e-5);
 
-        for (unsigned int i = 0; i < snapshot->size; ++i)
+        for (unsigned int i = 0; i < snapshot.size; ++i)
             {
-            Scalar3 f = box->makeFraction(vec_to_scalar3(snapshot->position[i]));
+            Scalar3 f = box->makeFraction(vec_to_scalar3(snapshot.position[i]));
             if (f.x < -tol || f.x > Scalar(1.0) + tol || f.y < -tol || f.y > Scalar(1.0) + tol
                 || f.z < -tol || f.z > Scalar(1.0) + tol)
                 {
                 m_exec_conf->msg->warning()
-                    << "pos " << i << ":" << setprecision(12) << snapshot->position[i].x << " "
-                    << snapshot->position[i].y << " " << snapshot->position[i].z << endl;
+                    << "pos " << i << ":" << setprecision(12) << snapshot.position[i].x << " "
+                    << snapshot.position[i].y << " " << snapshot.position[i].z << endl;
                 m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " "
                                             << f.y << " " << f.z << endl;
                 m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
@@ -1282,13 +1272,13 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParticleData, std::shared_ptr<mpcd::ParticleData>>(m, "MPCDParticleData")
         .def(pybind11::init<unsigned int,
-                            const std::shared_ptr<const BoxDim>,
+                            std::shared_ptr<const BoxDim>,
                             Scalar,
                             unsigned int,
                             unsigned int,
                             std::shared_ptr<ExecutionConfiguration>>())
         .def(pybind11::init<unsigned int,
-                            const std::shared_ptr<const BoxDim>,
+                            std::shared_ptr<const BoxDim>,
                             Scalar,
                             unsigned int,
                             unsigned int,

@@ -30,7 +30,7 @@ namespace mpcd
 class PYBIND11_EXPORT SlitPoreGeometryFiller : public mpcd::VirtualParticleFiller
     {
     public:
-    SlitPoreGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
+    SlitPoreGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
                            Scalar density,
                            unsigned int type,
                            std::shared_ptr<Variant> T,

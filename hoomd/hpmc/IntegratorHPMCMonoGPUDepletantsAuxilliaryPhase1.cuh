@@ -539,7 +539,7 @@ __launch_bounds__(max_threads)
         if (active && master && s_overlap_group[group])
             {
             if ((new_config && !repulsive) || (!new_config && repulsive))
-                atomicAdd(&s_deltaF_int, 1);  // numerator
+                atomicAdd(&s_deltaF_int, 1); // numerator
             else
                 atomicAdd(&s_deltaF_int, -1); // denominator
             }

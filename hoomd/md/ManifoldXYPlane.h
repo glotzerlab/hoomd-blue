@@ -98,7 +98,7 @@ class ManifoldXYPlane
     Scalar shift;
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_XY_PLANE_H__

@@ -1,7 +1,15 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement Snapshot."""
+"""Implement Snapshot.
+
+.. invisible-code-block: python
+
+    # prepare snapshot and gsd file for later examples
+    simulation = hoomd.util.make_example_simulation()
+
+    snapshot = simulation.state.get_snapshot()
+"""
 
 import hoomd
 from hoomd import _hoomd
@@ -54,7 +62,7 @@ class Snapshot:
     Warning:
         Data is only present on the root rank:
 
-        .. code::
+        .. code-block:: python
 
             if snapshot.communicator.rank == 0:
                 pos = snapshot.particles.position[0]
@@ -67,6 +75,12 @@ class Snapshot:
         `State.get_snapshot`
 
         `State.set_snapshot`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        snapshot = hoomd.Snapshot()
 
     Attributes:
         communicator (Communicator): MPI communicator.
@@ -94,6 +108,12 @@ class Snapshot:
 
         See Also:
             `Box`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            snapshot.configuration.box = [10, 20, 30, 0.1, 0.2, 0.3]
         """
         return _ConfigurationData(self._cpp_obj)
 
@@ -146,6 +166,19 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.particles.N = 4
+                snapshot.particles.position[:] = [[0, 0, 0],
+                                                [1, 0, 0],
+                                                [0, 1, 0],
+                                                [0, 0, 1]]
+                snapshot.particles.types = ['A', 'B']
+                snapshot.particles.typeid[:] = [0, 1, 1, 0]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.particles
@@ -169,6 +202,16 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.bonds.N = 2
+                snapshot.bonds.group[:] = [[0, 1], [2, 3]]
+                snapshot.bonds.types = ['A-B']
+                snapshot.bonds.typeid[:] = [0, 0]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.bonds
@@ -192,6 +235,16 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.angles.N = 1
+                snapshot.angles.group[:] = [[0, 1, 2]]
+                snapshot.angles.types = ['A-B-B']
+                snapshot.angles.typeid[:] = [0]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.angles
@@ -215,6 +268,16 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.dihedrals.N = 1
+                snapshot.dihedrals.group[:] = [[0, 1, 2, 3]]
+                snapshot.dihedrals.types = ['A-B-B-A']
+                snapshot.dihedrals.typeid[:] = [0]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.dihedrals
@@ -238,6 +301,14 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.impropers.N = 1
+                snapshot.impropers.group[:] = [[0, 1, 2, 3]]
+                snapshot.impropers.types = ['A-B-B-A']
+                snapshot.impropers.typeid[:] = [0]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.impropers
@@ -261,6 +332,16 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.pairs.N = 2
+                snapshot.pairs.group[:] = [[0, 1], [2, 3]]
+                snapshot.pairs.types = ['A-B']
+                snapshot.pairs.typeid[:] = [0, 0]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.pairs
@@ -282,11 +363,56 @@ class Snapshot:
 
         Note:
             Set ``N`` to change the size of the arrays.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            if snapshot.communicator.rank == 0:
+                snapshot.constraints.N = 2
+                snapshot.constraints.group[:] = [[0, 1], [2, 3]]
+                snapshot.constraints.value[:] = [1, 1]
         """
         if self.communicator.rank == 0:
             return self._cpp_obj.constraints
         else:
             raise RuntimeError('Snapshot data is only present on rank 0')
+
+    @property
+    def mpcd(self):
+        """MPCD data.
+
+        Attributes:
+            mpcd.N (int): Number of MPCD particles.
+
+            mpcd.position ((*N*, 3) `numpy.ndarray` of `float`):
+                Particle position :math:`[\\mathrm{length}]`.
+
+            mpcd.velocity ((*N*, 3) `numpy.ndarray` of `float`):
+                Particle velocity :math:`[\\mathrm{velocity}]`.
+
+            mpcd.types (list[str]):
+                Names of the particle types.
+
+            mpcd.typeid ((*N*, ) `numpy.ndarray` of ``uint32``):
+                Particle type id.
+
+            mpcd.mass (float): Particle mass.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+
+        Note:
+            This attribute is only available when
+            HOOMD-blue is built with the MPCD component.
+        """
+        if not hoomd.version.mpcd_built:
+            raise RuntimeError("MPCD component not built")
+
+        if self.communicator.rank == 0:
+            return self._cpp_obj.mpcd
+        else:
+            raise RuntimeError("Snapshot data is only present on rank 0")
 
     @classmethod
     def _from_cpp_snapshot(cls, snapshot, communicator):
@@ -307,6 +433,12 @@ class Snapshot:
 
         Returns:
             ``self``
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            snapshot.replicate(nx=2, ny=2, nz=2)
         """
         self._cpp_obj.replicate(nx, ny, nz)
         return self
@@ -316,6 +448,12 @@ class Snapshot:
 
         Returns:
             ``self``
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            snapshot.wrap()
         """
         self._cpp_obj.wrap()
         return self

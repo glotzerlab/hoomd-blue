@@ -146,12 +146,22 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
             Scalar stepsize = this->m_step_size[type_id];
-            Scalar a = fmax(-stepsize, -(m_params[type_id][i]));
-            Scalar b = fmin(stepsize, (1.0 - m_params[type_id][i]));
-            hoomd::UniformDistribution<Scalar> uniform(a, b);
+            hoomd::UniformDistribution<Scalar> uniform(-stepsize, stepsize);
             Scalar r = hoomd::detail::generate_canonical<double>(rng);
             Scalar x = (r < this->m_move_probability) ? uniform(rng) : 0.0;
-            m_params[type_id][i] += x;
+            // Reflect trial moves about boundaries
+            if (m_params[type_id][i] + x > 1)
+                {
+                m_params[type_id][i] = 2 - (m_params[type_id][i] + x);
+                }
+            else if (m_params[type_id][i] + x < 0)
+                {
+                m_params[type_id][i] = -(m_params[type_id][i] + x);
+                }
+            else
+                {
+                m_params[type_id][i] += x;
+                }
             }
         pybind11::object d = m_python_callback(type_id, m_params[type_id]);
         pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);

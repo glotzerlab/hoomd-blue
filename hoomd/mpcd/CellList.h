@@ -34,8 +34,7 @@ class PYBIND11_EXPORT CellList : public Compute
     {
     public:
     //! Constructor
-    CellList(std::shared_ptr<SystemDefinition> sysdef,
-             std::shared_ptr<mpcd::ParticleData> mpcd_pdata);
+    CellList(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~CellList();
@@ -211,13 +210,17 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Sets a group of particles that is coupled to the MPCD solvent through the collision step
     void setEmbeddedGroup(std::shared_ptr<ParticleGroup> embed_group)
         {
-        m_embed_group = embed_group;
+        if (embed_group != m_embed_group)
+            {
+            m_embed_group = embed_group;
+            m_force_compute = true;
+            }
         }
 
     //! Removes all embedded particles from collision coupling
     void removeEmbeddedGroup()
         {
-        m_embed_group = std::shared_ptr<ParticleGroup>();
+        setEmbeddedGroup(std::shared_ptr<ParticleGroup>());
         }
 
     //! Gets the cell id array for the embedded particles
@@ -258,15 +261,12 @@ class PYBIND11_EXPORT CellList : public Compute
     GPUVector<unsigned int> m_embed_cell_ids; //!< Cell ids of the embedded particles
     GPUFlags<uint3> m_conditions; //!< Detect conditions that might fail building cell list
 
-    int3 m_origin_idx;            //!< Origin as a global index
+    int3 m_origin_idx; //!< Origin as a global index
 
 #ifdef ENABLE_MPI
     unsigned int m_num_extra;               //!< Number of extra cells to communicate over
     std::array<unsigned int, 6> m_num_comm; //!< Number of cells to communicate on each face
     BoxDim m_cover_box;                     //!< Box covered by the cell list
-
-    /// The systems's communicator.
-    std::shared_ptr<Communicator> m_comm;
 
     //! Determine if embedded particles require migration
     virtual bool needsEmbedMigrate(uint64_t timestep);
@@ -330,7 +330,7 @@ namespace detail
     {
 //! Export the CellList class to python
 void export_CellList(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

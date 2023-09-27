@@ -64,8 +64,8 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     virtual void updateMinMaxVelocity(void);
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __HIPCC__
 #endif //__MUELLER_PLATHE_FLOW_GPU_H__

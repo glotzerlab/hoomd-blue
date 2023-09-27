@@ -17,12 +17,12 @@
 #include "CollisionMethod.h"
 #include "Sorter.h"
 #include "StreamingMethod.h"
-#include "SystemData.h"
 #include "VirtualParticleFiller.h"
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif // ENABLE_MPI
 
+#include "hoomd/SystemDefinition.h"
 #include "hoomd/md/IntegratorTwoStep.h"
 #include <pybind11/pybind11.h>
 
@@ -34,7 +34,7 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     {
     public:
     //! Constructor
-    Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar deltaT);
+    Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
     //! Destructor
     virtual ~Integrator();
@@ -147,7 +147,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         }
 
     protected:
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;     //!< MPCD system
     std::shared_ptr<mpcd::CollisionMethod> m_collide; //!< MPCD collision rule
     std::shared_ptr<mpcd::StreamingMethod> m_stream;  //!< MPCD streaming rule
     std::shared_ptr<mpcd::Sorter> m_sorter;           //!< MPCD sorter

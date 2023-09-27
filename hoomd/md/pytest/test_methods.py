@@ -328,6 +328,17 @@ class TestMethods:
             'kT': 1.5
         }),
         (hoomd.md.methods.OverdampedViscous, {}),
+        (hoomd.md.methods.rattle.Brownian, {
+            'kT': 1.5,
+            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
+        }),
+        (hoomd.md.methods.rattle.Langevin, {
+            'kT': 1.5,
+            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
+        }),
+        (hoomd.md.methods.rattle.OverdampedViscous, {
+            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
+        }),
     ])
     def test_default_gamma(self, cls, init_args):
         c = cls(filter=hoomd.filter.All(), **init_args)

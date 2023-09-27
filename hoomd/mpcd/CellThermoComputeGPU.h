@@ -30,7 +30,8 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     {
     public:
     //! Constructor
-    CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata);
+    CellThermoComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<mpcd::CellList> cl);
 
     //! Destructor
     virtual ~CellThermoComputeGPU();
@@ -65,8 +66,8 @@ namespace detail
     {
 //! Export the CellThermoComputeGPU class to python
 void export_CellThermoComputeGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_THERMO_COMPUTE_GPU_H_

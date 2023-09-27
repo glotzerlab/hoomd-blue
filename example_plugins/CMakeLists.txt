@@ -21,3 +21,4 @@ endif()
 # Add subdirectories
 add_subdirectory(updater_plugin)
 add_subdirectory(pair_plugin)
+add_subdirectory(shape_plugin)

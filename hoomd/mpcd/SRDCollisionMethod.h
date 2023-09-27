@@ -26,15 +26,16 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     {
     public:
     //! Constructor
-    SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    SRDCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int cur_timestep,
                        unsigned int period,
                        int phase,
-                       uint16_t seed,
-                       std::shared_ptr<mpcd::CellThermoCompute> thermo);
+                       uint16_t seed);
 
     //! Destructor
     virtual ~SRDCollisionMethod();
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     //! Get the MPCD rotation angle
     double getRotationAngle() const
@@ -90,8 +91,8 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     GPUVector<double3> m_rotvec;                       //!< MPCD rotation vectors
     double m_angle;                                    //!< MPCD rotation angle (radians)
 
-    std::shared_ptr<Variant> m_T;                      //!< Temperature for thermostat
-    GPUVector<double> m_factors;                       //!< Cell-level rescale factors
+    std::shared_ptr<Variant> m_T; //!< Temperature for thermostat
+    GPUVector<double> m_factors;  //!< Cell-level rescale factors
 
     //! Implementation of the collision rule
     virtual void rule(uint64_t timestep);
@@ -101,13 +102,19 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
 
     //! Apply rotation matrix to velocities
     virtual void rotate(uint64_t timestep);
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
     };
 
 namespace detail
     {
 //! Export SRDCollisionMethod to python
 void export_SRDCollisionMethod(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

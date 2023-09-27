@@ -7,17 +7,17 @@
  */
 
 #include "SRDCollisionMethodGPU.h"
+#include "CellThermoComputeGPU.h"
 #include "SRDCollisionMethodGPU.cuh"
 
 namespace hoomd
     {
-mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
                                                    int phase,
-                                                   uint16_t seed,
-                                                   std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::SRDCollisionMethod(sysdata, cur_timestep, period, phase, seed, thermo)
+                                                   uint16_t seed)
+    : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, seed)
     {
     m_tuner_rotvec.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                           m_exec_conf,
@@ -152,6 +152,25 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
         }
     }
 
+void mpcd::SRDCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoComputeGPU>();
+            }
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -160,12 +179,11 @@ void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     pybind11::class_<mpcd::SRDCollisionMethodGPU,
                      mpcd::SRDCollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,
-                            unsigned int,
-                            std::shared_ptr<mpcd::CellThermoCompute>>());
+                            unsigned int>());
     }
 
     } // end namespace hoomd
