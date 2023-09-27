@@ -62,7 +62,7 @@ namespace detail
     {
 //! Export ATCollisionMethod to python
 void export_ATCollisionMethod(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

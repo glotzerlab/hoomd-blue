@@ -707,7 +707,7 @@ class GatherTagOrder
         return static_cast<T*>(m_gather_buffer);
         }
     };
-    }  // namespace hoomd
+    } // namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MPI_H__

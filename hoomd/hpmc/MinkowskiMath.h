@@ -79,10 +79,10 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
         }
 
     private:
-    const SupportFuncA& sa;   //!< Support function for shape A
-    const SupportFuncB& sb;   //!< Support function for shape B
+    const SupportFuncA& sa; //!< Support function for shape A
+    const SupportFuncB& sb; //!< Support function for shape B
     const vec3<ShortReal>&
-        ab_t;                 //!< Vector pointing from a's center to b's center, in the space frame
+        ab_t; //!< Vector pointing from a's center to b's center, in the space frame
 #ifdef __HIPCC__
     const quat<ShortReal>& q; //!< Orientation of shape B in frame A
 
@@ -92,9 +92,9 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
 #endif
     };
 
-    }  // end namespace detail
+    } // end namespace detail
 
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __MINKOWSKI_MATH_H__

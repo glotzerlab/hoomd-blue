@@ -77,21 +77,21 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     /// Autotuner for flipping clusters.
     std::shared_ptr<Autotuner<1>> m_tuner_flip;
 
-    GlobalArray<unsigned int> m_excell_idx;   //!< Particle indices in expanded cells
-    GlobalArray<unsigned int> m_excell_size;  //!< Number of particles in each expanded cell
-    Index2D m_excell_list_indexer;            //!< Indexer to access elements of the excell_idx list
+    GlobalArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
+    GlobalArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
+    Index2D m_excell_list_indexer;           //!< Indexer to access elements of the excell_idx list
 
     GlobalVector<unsigned int> m_nneigh;      //!< Number of neighbors
     GlobalVector<unsigned int> m_nneigh_scan; //!< Exclusive prefix sum over number of neighbors
     unsigned int m_maxn;                      //!< Max number of neighbors
     GlobalArray<unsigned int> m_overflow;     //!< Overflow condition for neighbor list
 
-    GPUPartition m_old_gpu_partition;         //!< The partition in the old configuration
-    GlobalVector<unsigned int> m_n_depletants;   //!< List of number of depletants, per particle
+    GPUPartition m_old_gpu_partition;          //!< The partition in the old configuration
+    GlobalVector<unsigned int> m_n_depletants; //!< List of number of depletants, per particle
 
     std::vector<hipStream_t> m_overlaps_streams; //!< Stream for overlaps kernel, per device
     std::vector<std::vector<hipStream_t>>
-        m_depletant_streams;                     //!< Stream for every particle type, and device
+        m_depletant_streams; //!< Stream for every particle type, and device
 
     //!< Variables for implicit depletants
     GlobalArray<Scalar> m_lambda; //!< Poisson means, per type pair
@@ -1072,9 +1072,9 @@ template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const 
                             std::shared_ptr<CellList>>());
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // ENABLE_CUDA
 #endif // _UPDATER_HPMC_CLUSTERS_GPU_

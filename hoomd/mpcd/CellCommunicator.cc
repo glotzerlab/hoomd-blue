@@ -97,8 +97,8 @@ struct LocalCellWrapOp
     const Index3D ci;                   //!< Cell indexer
     const Index3D gci;                  //!< Global cell indexer
     };
-    }                                   // end namespace detail
-    }                                   // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 void mpcd::CellCommunicator::initialize()
     {
@@ -369,6 +369,6 @@ void mpcd::CellCommunicator::initialize()
         h_recv_end.data[cell_idx] = idx;
         }
     }
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

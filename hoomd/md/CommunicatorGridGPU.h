@@ -40,8 +40,8 @@ template<typename T> class CommunicatorGridGPU : public CommunicatorGrid<T>
     GlobalArray<unsigned int> m_cell_recv_end;   //!< End of recv indices per cell
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_GPU_H__

@@ -120,37 +120,37 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     std::shared_ptr<NeighborList> m_nlist;  //!< The neighborlist to use for the computation
     std::shared_ptr<ParticleGroup> m_group; //!< Group to compute properties for
 
-    uint3 m_mesh_points;                    //!< Number of sub-divisions along one coordinate
-    uint3 m_global_dim;                     //!< Global grid dimensions
-    uint3 m_n_ghost_cells;                  //!< Number of ghost cells along every axis
-    uint3 m_grid_dim;                       //!< Grid dimensions (including ghost cells)
-    Scalar3 m_ghost_width;                  //!< Dimensions of the ghost layer
-    unsigned int m_ghost_offset;            //!< Offset in mesh due to ghost cells
-    unsigned int m_n_cells;                 //!< Total number of inner cells
-    unsigned int m_radius;                  //!< Stencil radius (in units of mesh size)
-    unsigned int m_n_inner_cells;           //!< Number of inner mesh points (without ghost cells)
-    GlobalArray<Scalar> m_inf_f; //!< Fourier representation of the influence function (real part)
-    GlobalArray<Scalar3> m_k;    //!< Mesh of k values
-    Scalar m_qstarsq;            //!< Short wave length cut-off squared for density harmonics
-    bool m_need_initialize;      //!< True if we have not yet computed the influence function
-    bool m_params_set;           //!< True if parameters are set
-    bool m_box_changed;          //!< True if box has changed since last compute
+    uint3 m_mesh_points;          //!< Number of sub-divisions along one coordinate
+    uint3 m_global_dim;           //!< Global grid dimensions
+    uint3 m_n_ghost_cells;        //!< Number of ghost cells along every axis
+    uint3 m_grid_dim;             //!< Grid dimensions (including ghost cells)
+    Scalar3 m_ghost_width;        //!< Dimensions of the ghost layer
+    unsigned int m_ghost_offset;  //!< Offset in mesh due to ghost cells
+    unsigned int m_n_cells;       //!< Total number of inner cells
+    unsigned int m_radius;        //!< Stencil radius (in units of mesh size)
+    unsigned int m_n_inner_cells; //!< Number of inner mesh points (without ghost cells)
+    GlobalArray<Scalar> m_inf_f;  //!< Fourier representation of the influence function (real part)
+    GlobalArray<Scalar3> m_k;     //!< Mesh of k values
+    Scalar m_qstarsq;             //!< Short wave length cut-off squared for density harmonics
+    bool m_need_initialize;       //!< True if we have not yet computed the influence function
+    bool m_params_set;            //!< True if parameters are set
+    bool m_box_changed;           //!< True if box has changed since last compute
 
     GlobalArray<Scalar> m_virial_mesh; //!< k-space mesh of virial tensor values
 
-    Scalar m_kappa;                    //!< Splitting parameter
-    Scalar m_rcut;                     //!< Cutoff for short-ranged interaction
-    int m_order;                       //!< Order of interpolation scheme
-    Scalar m_alpha;                    //!< Debye screening parameter
+    Scalar m_kappa; //!< Splitting parameter
+    Scalar m_rcut;  //!< Cutoff for short-ranged interaction
+    int m_order;    //!< Order of interpolation scheme
+    Scalar m_alpha; //!< Debye screening parameter
 
-    Scalar m_q;                        //!< Total system charge
-    Scalar m_q2;                       //!< Sum of charge squared
+    Scalar m_q;  //!< Total system charge
+    Scalar m_q2; //!< Sum of charge squared
 
-    GlobalArray<Scalar> m_rho_coeff;   //!< Coefficients for computing the grid based charge density
-    GlobalArray<Scalar> m_gf_b;        //!< Green function coefficients
+    GlobalArray<Scalar> m_rho_coeff; //!< Coefficients for computing the grid based charge density
+    GlobalArray<Scalar> m_gf_b;      //!< Green function coefficients
 
-    Scalar m_body_energy;              //!< Energy correction due to rigid body exclusions
-    bool m_ptls_added_removed;         //!< True if global particle number changed
+    Scalar m_body_energy;      //!< Energy correction due to rigid body exclusions
+    bool m_ptls_added_removed; //!< True if global particle number changed
 
     //! Helper function to be called when particle number changes
     void slotGlobalParticleNumberChange()
@@ -205,12 +205,12 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     dfft_plan m_dfft_plan_forward; //!< Distributed FFT for forward transform
     dfft_plan m_dfft_plan_inverse; //!< Distributed FFT for inverse transform
     std::unique_ptr<CommunicatorGrid<kiss_fft_cpx>>
-        m_grid_comm_forward;       //!< Communicator for charge mesh
+        m_grid_comm_forward; //!< Communicator for charge mesh
     std::unique_ptr<CommunicatorGrid<kiss_fft_cpx>>
-        m_grid_comm_reverse;       //!< Communicator for inv fourier mesh
+        m_grid_comm_reverse; //!< Communicator for inv fourier mesh
 #endif
 
-    bool m_kiss_fft_initialized;              //!< True if a local KISS FFT has been set up
+    bool m_kiss_fft_initialized; //!< True if a local KISS FFT has been set up
 
     GlobalArray<kiss_fft_cpx> m_mesh;         //!< The particle density mesh
     GlobalArray<kiss_fft_cpx> m_fourier_mesh; //!< The fourier transformed mesh
@@ -227,7 +227,7 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_z; //!< Fourier transformed mesh times the
                                                     //!< influence function, z-component
 
-    bool m_dfft_initialized;                        //! True if host dfft has been initialized
+    bool m_dfft_initialized; //! True if host dfft has been initialized
 
     //! Compute virial on mesh
     void computeVirialMesh();
