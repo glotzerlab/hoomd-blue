@@ -13,7 +13,7 @@ hoomd.hpmc
 .. rubric:: Modules
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
 
     module-hpmc-compute
     module-hpmc-integrate

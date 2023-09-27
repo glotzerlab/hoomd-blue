@@ -55,7 +55,7 @@ class GSD(Writer):
 
     Args:
         trigger (hoomd.trigger.trigger_like): Select the timesteps to write.
-        filename (str): File name to write.
+        filename (any type that converts to `str`): File name to write.
         filter (hoomd.filter.filter_like): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
@@ -257,8 +257,9 @@ class GSD(Writer):
         if mode != 'wb' and mode != 'xb':
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
-                                      state._get_group(filter), mode, False)
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1),
+                                      str(filename), state._get_group(filter),
+                                      mode, False)
 
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)

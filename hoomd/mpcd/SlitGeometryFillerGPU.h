@@ -26,7 +26,7 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
     {
     public:
     //! Constructor
-    SlitGeometryFillerGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    SlitGeometryFillerGPU(std::shared_ptr<SystemDefinition> sysdef,
                           Scalar density,
                           unsigned int type,
                           std::shared_ptr<Variant> T,

@@ -11,10 +11,10 @@ hoomd.logging
 .. autosummary::
     :nosignatures:
 
+    LoggerCategories
+    Logger
     log
     modify_namespace
-    Logger
-    LoggerCategories
 
 .. rubric:: Details
 

@@ -346,6 +346,7 @@ class HPMCIntegrator(Integrator):
 
     .. rubric:: Attributes
     """
+    _ext_module = _hpmc
     _remove_for_pickling = Integrator._remove_for_pickling + ('_cpp_cell',)
     _skip_for_equality = Integrator._skip_for_equality | {'_cpp_cell'}
     _cpp_cls = None
@@ -402,14 +403,14 @@ class HPMCIntegrator(Integrator):
         if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            self._cpp_obj = getattr(_hpmc,
+            self._cpp_obj = getattr(self._ext_module,
                                     self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell)
         else:
             if isinstance(self._simulation.device, hoomd.device.GPU):
                 self._simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
-            self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def)
+            self._cpp_obj = getattr(self._ext_module, self._cpp_cls)(sys_def)
             self._cpp_cell = None
 
         if self._external_potential is not None:

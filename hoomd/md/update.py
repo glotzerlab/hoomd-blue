@@ -220,7 +220,7 @@ class ReversePerturbationFlow(Updater):
 
     @log(category="scalar", requires_run=True)
     def summed_exchanged_momentum(self):
-        R"""Returned the summed up exchanged velocity of the full simulation."""
+        """Returns the summed up exchanged velocity of the full simulation."""
         return self._cpp_obj.summed_exchanged_momentum
 
 

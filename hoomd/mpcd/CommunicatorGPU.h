@@ -48,7 +48,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     {
     public:
     //! Constructor
-    CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_data);
+    CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~CommunicatorGPU();

@@ -13,8 +13,11 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "SystemData.h"
+#include "CellList.h"
+
 #include "hoomd/Autotuned.h"
+#include "hoomd/ParticleGroup.h"
+#include "hoomd/SystemDefinition.h"
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -31,7 +34,7 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     {
     public:
     //! Constructor
-    CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    CollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                     uint64_t cur_timestep,
                     uint64_t period,
                     int phase);
@@ -63,7 +66,10 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     void setEmbeddedGroup(std::shared_ptr<ParticleGroup> embed_group)
         {
         m_embed_group = embed_group;
-        m_cl->setEmbeddedGroup(m_embed_group);
+        if (m_cl)
+            {
+            m_cl->setEmbeddedGroup(embed_group);
+            }
         }
 
     //! Set the period of the collision method
@@ -81,8 +87,23 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
         return m_instance;
         }
 
+    //! Get the cell list used for collisions
+    std::shared_ptr<mpcd::CellList> getCellList() const
+        {
+        return m_cl;
+        }
+
+    //! Set the cell list used for collisions
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        if (m_cl)
+            {
+            m_cl->setEmbeddedGroup(m_embed_group);
+            }
+        }
+
     protected:
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
