@@ -1623,7 +1623,10 @@ int gsd_create(const char* fname,
                            O_RDWR | O_CREAT | O_TRUNC | extra_flags,
                            S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     int retval = gsd_initialize_file(fd, application, schema, schema_version);
-    close(fd);
+    if (fd != -1)
+        {
+        close(fd);
+        }
     return retval;
     }
 
@@ -1670,14 +1673,20 @@ int gsd_create_and_open(struct gsd_handle* handle,
     int retval = gsd_initialize_file(handle->fd, application, schema, schema_version);
     if (retval != 0)
         {
-        close(handle->fd);
+        if (handle->fd != -1)
+            {
+            close(handle->fd);
+            }
         return retval;
         }
 
     retval = gsd_initialize_handle(handle);
     if (retval != 0)
         {
-        close(handle->fd);
+        if (handle->fd != -1)
+            {
+            close(handle->fd);
+            }
         }
     return retval;
     }
@@ -1712,7 +1721,10 @@ int gsd_open(struct gsd_handle* handle, const char* fname, const enum gsd_open_f
     int retval = gsd_initialize_handle(handle);
     if (retval != 0)
         {
-        close(handle->fd);
+        if (handle->fd != -1)
+            {
+            close(handle->fd);
+            }
         }
     return retval;
     }

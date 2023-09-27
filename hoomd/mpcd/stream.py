@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD streaming methods
+r""" MPCD streaming methods
 
 An MPCD streaming method is required to update the particle positions over time.
 It is meant to be used in conjunction with an :py:class:`~hoomd.mpcd.integrator`
@@ -52,8 +52,8 @@ from hoomd import _hoomd
 from . import _mpcd
 
 
-class _streaming_method():
-    """ Base streaming method
+class _streaming_method:
+    """Base streaming method
 
     Args:
         period (int): Number of integration steps between streaming step
@@ -68,21 +68,21 @@ class _streaming_method():
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
             raise RuntimeError(
-                'mpcd.stream: system must be initialized before streaming method\n'
+                "mpcd.stream: system must be initialized before streaming method\n"
             )
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
             hoomd.context.current.device.cpp_msg.error(
-                'mpcd.stream: an MPCD system must be initialized before the streaming method\n'
+                "mpcd.stream: an MPCD system must be initialized before the streaming method\n"
             )
-            raise RuntimeError('MPCD system not initialized')
+            raise RuntimeError("MPCD system not initialized")
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._stream is not None:
             hoomd.context.current.device.cpp_msg.error(
-                'mpcd.stream: only one streaming method can be created.\n')
-            raise RuntimeError('Multiple initialization of streaming method')
+                "mpcd.stream: only one streaming method can be created.\n")
+            raise RuntimeError("Multiple initialization of streaming method")
 
         self.period = period
         self.enabled = True
@@ -94,7 +94,7 @@ class _streaming_method():
         self.enable()
 
     def enable(self):
-        """ Enable the streaming method
+        """Enable the streaming method
 
         Examples::
 
@@ -112,7 +112,7 @@ class _streaming_method():
         hoomd.context.current.mpcd._stream = self
 
     def disable(self):
-        """ Disable the streaming method
+        """Disable the streaming method
 
         Examples::
 
@@ -128,7 +128,7 @@ class _streaming_method():
         hoomd.context.current.mpcd._stream = None
 
     def set_period(self, period):
-        """ Set the streaming period.
+        """Set the streaming period.
 
         Args:
             period (int): New streaming period.
@@ -153,17 +153,17 @@ class _streaming_method():
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
             hoomd.context.current.device.cpp_msg.error(
-                'mpcd.stream: streaming period can only be changed on multiple of current and new period.\n'
+                "mpcd.stream: streaming period can only be changed on multiple of current and new period.\n"
             )
             raise RuntimeError(
-                'Streaming period can only be changed on multiple of current and new period'
+                "Streaming period can only be changed on multiple of current and new period"
             )
 
         self._cpp.setPeriod(cur_tstep, period)
         self.period = period
 
     def set_force(self, force):
-        """ Set the external force field for streaming.
+        """Set the external force field for streaming.
 
         Args:
             force (:py:mod:`.mpcd.force`): External force field to apply to MPCD particles.
@@ -188,7 +188,7 @@ class _streaming_method():
         self._cpp.setField(self.force._cpp)
 
     def remove_force(self):
-        """ Remove the external force field for streaming.
+        """Remove the external force field for streaming.
 
         Warning:
             This only removes the force on the MPCD particles. If you have embedded
@@ -203,7 +203,7 @@ class _streaming_method():
         self._cpp.removeField()
 
     def _process_boundary(self, bc):
-        """ Process boundary condition string into enum
+        """Process boundary condition string into enum
 
         Args:
             bc (str): Boundary condition, either "no_slip" or "slip"
@@ -227,14 +227,14 @@ class _streaming_method():
 
 
 class bulk(_streaming_method):
-    """ Bulk fluid streaming geometry.
+    """Bulk fluid streaming geometry.
 
     Args:
         period (int): Number of integration steps between collisions.
 
     :py:class:`bulk` performs the streaming step for MPCD particles in a fully
     periodic geometry (2D or 3D). This geometry is appropriate for modeling
-    bulk fluids. The streaming time :math:`\Delta t` is equal to *period* steps
+    bulk fluids. The streaming time :math:`\\Delta t` is equal to *period* steps
     of the :py:class:`~hoomd.mpcd.integrator`. For a pure MPCD fluid,
     typically *period* should be 1. When particles are embedded in the MPCD fluid
     through the collision step, *period* should be equal to the MPCD collision
@@ -258,7 +258,6 @@ class bulk(_streaming_method):
     """
 
     def __init__(self, period=1):
-
         _streaming_method.__init__(self, period)
 
         # create the base streaming class
@@ -268,12 +267,15 @@ class bulk(_streaming_method):
             stream_class = _mpcd.ConfinedStreamingMethodGPUBulk
         self._cpp = stream_class(
             hoomd.context.current.mpcd.data,
-            hoomd.context.current.system.getCurrentTimeStep(), self.period, 0,
-            _mpcd.BulkGeometry())
+            hoomd.context.current.system.getCurrentTimeStep(),
+            self.period,
+            0,
+            _mpcd.BulkGeometry(),
+        )
 
 
 class slit(_streaming_method):
-    r""" Parallel plate (slit) streaming geometry.
+    r"""Parallel plate (slit) streaming geometry.
 
     Args:
         H (float): channel half-width
@@ -301,7 +303,6 @@ class slit(_streaming_method):
     """
 
     def __init__(self, H, V=0.0, boundary="no_slip", period=1):
-
         _streaming_method.__init__(self, period)
 
         self.H = H
@@ -317,11 +318,14 @@ class slit(_streaming_method):
             stream_class = _mpcd.ConfinedStreamingMethodGPUSlit
         self._cpp = stream_class(
             hoomd.context.current.mpcd.data,
-            hoomd.context.current.system.getCurrentTimeStep(), self.period, 0,
-            _mpcd.SlitGeometry(H, V, bc))
+            hoomd.context.current.system.getCurrentTimeStep(),
+            self.period,
+            0,
+            _mpcd.SlitGeometry(H, V, bc),
+        )
 
-    def set_filler(self, density, kT, seed, type='A'):
-        r""" Add virtual particles to slit channel.
+    def set_filler(self, density, kT, seed, type="A"):
+        r"""Add virtual particles to slit channel.
 
         Args:
             density (float): Density of virtual particles.
@@ -356,9 +360,14 @@ class slit(_streaming_method):
                 fill_class = _mpcd.SlitGeometryFiller
             else:
                 fill_class = _mpcd.SlitGeometryFillerGPU
-            self._filler = fill_class(hoomd.context.current.mpcd.data, density,
-                                      type_id, T.cpp_variant, seed,
-                                      self._cpp.geometry)
+            self._filler = fill_class(
+                hoomd.context.current.mpcd.data,
+                density,
+                type_id,
+                T.cpp_variant,
+                seed,
+                self._cpp.geometry,
+            )
         else:
             self._filler.setDensity(density)
             self._filler.setType(type_id)
@@ -366,7 +375,7 @@ class slit(_streaming_method):
             self._filler.setSeed(seed)
 
     def remove_filler(self):
-        """ Remove the virtual particle filler.
+        """Remove the virtual particle filler.
 
         Example::
 
@@ -379,7 +388,7 @@ class slit(_streaming_method):
         self._filler = None
 
     def set_params(self, H=None, V=None, boundary=None):
-        """ Set parameters for the slit geometry.
+        """Set parameters for the slit geometry.
 
         Args:
             H (float): channel half-width
@@ -414,7 +423,7 @@ class slit(_streaming_method):
 
 
 class slit_pore(_streaming_method):
-    r""" Parallel plate (slit) pore streaming geometry.
+    r"""Parallel plate (slit) pore streaming geometry.
 
     Args:
         H (float): channel half-width
@@ -457,17 +466,20 @@ class slit_pore(_streaming_method):
         bc = self._process_boundary(boundary)
 
         # create the base streaming class
-        if not hoomd.context.current.device.mode == 'gpu':
+        if not hoomd.context.current.device.mode == "gpu":
             stream_class = _mpcd.ConfinedStreamingMethodSlitPore
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUSlitPore
         self._cpp = stream_class(
             hoomd.context.current.mpcd.data,
-            hoomd.context.current.system.getCurrentTimeStep(), self.period, 0,
-            _mpcd.SlitPoreGeometry(H, L, bc))
+            hoomd.context.current.system.getCurrentTimeStep(),
+            self.period,
+            0,
+            _mpcd.SlitPoreGeometry(H, L, bc),
+        )
 
-    def set_filler(self, density, kT, seed, type='A'):
-        r""" Add virtual particles to slit pore.
+    def set_filler(self, density, kT, seed, type="A"):
+        r"""Add virtual particles to slit pore.
 
         Args:
             density (float): Density of virtual particles.
@@ -494,13 +506,18 @@ class slit_pore(_streaming_method):
         T = hoomd.variant._setup_variant_input(kT)
 
         if self._filler is None:
-            if not hoomd.context.current.device.mode == 'gpu':
+            if not hoomd.context.current.device.mode == "gpu":
                 fill_class = _mpcd.SlitPoreGeometryFiller
             else:
                 fill_class = _mpcd.SlitPoreGeometryFillerGPU
-            self._filler = fill_class(hoomd.context.current.mpcd.data, density,
-                                      type_id, T.cpp_variant, seed,
-                                      self._cpp.geometry)
+            self._filler = fill_class(
+                hoomd.context.current.mpcd.data,
+                density,
+                type_id,
+                T.cpp_variant,
+                seed,
+                self._cpp.geometry,
+            )
         else:
             self._filler.setDensity(density)
             self._filler.setType(type_id)
@@ -508,7 +525,7 @@ class slit_pore(_streaming_method):
             self._filler.setSeed(seed)
 
     def remove_filler(self):
-        """ Remove the virtual particle filler.
+        """Remove the virtual particle filler.
 
         Example::
 
@@ -519,7 +536,7 @@ class slit_pore(_streaming_method):
         self._filler = None
 
     def set_params(self, H=None, L=None, boundary=None):
-        """ Set parameters for the slit geometry.
+        """Set parameters for the slit geometry.
 
         Args:
             H (float): channel half-width

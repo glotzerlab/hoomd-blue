@@ -24,6 +24,8 @@ validate_configurations:
 # Configurations to build and test only rarely, such as just before a release.
 # There should be no overlap between this list and `unit_test_configurations`
 release_test_configurations:
+- config: "[clang16_py311, mpi, llvm]"
+- config: "[clang15_py311, mpi, llvm]"
 - config: "[clang13_py310, llvm]"
 - config: "[clang12_py310, llvm]"
 - config: "[clang11_py310, llvm]"

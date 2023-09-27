@@ -15,9 +15,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "CellList.h"
 #include "CommunicatorUtilities.h"
 #include "ParticleData.h"
-#include "SystemData.h"
 
 #include "hoomd/Autotuned.h"
 #include "hoomd/Autotuner.h"
@@ -25,6 +25,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/SystemDefinition.h"
 
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <memory>
@@ -59,7 +60,7 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     {
     public:
     //! Constructor
-    Communicator(std::shared_ptr<mpcd::SystemData> system_data);
+    Communicator(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~Communicator();
@@ -125,6 +126,26 @@ class PYBIND11_EXPORT Communicator : public Autotuned
         }
     //@}
 
+    //! Get the cell list used for determining when communication is needed
+    std::shared_ptr<mpcd::CellList> getCellList() const
+        {
+        return m_cl;
+        }
+
+    //! Set the cell list used for determining when communication is needed
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        if (cl != m_cl)
+            {
+            detachCallbacks();
+            m_cl = cl;
+            if (m_cl)
+                {
+                attachCallbacks();
+                }
+            }
+        }
+
     protected:
     //! Set the communication flags for the particle data
     virtual void setCommFlags(const BoxDim& box);
@@ -154,16 +175,16 @@ class PYBIND11_EXPORT Communicator : public Autotuned
         return res;
         }
 
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
 
-    bool m_is_communicating;                   //!< Whether we are currently communicating
-    bool m_check_decomposition;                //!< Flag to check the simulation box decomposition
+    bool m_is_communicating;    //!< Whether we are currently communicating
+    bool m_check_decomposition; //!< Flag to check the simulation box decomposition
 
     const static unsigned int neigh_max;       //!< Maximum number of neighbor ranks
     GPUArray<unsigned int> m_neighbors;        //!< Neighbor ranks
@@ -172,7 +193,7 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     unsigned int m_nneigh;                     //!< Number of neighbors
     unsigned int m_n_unique_neigh;             //!< Number of unique neighbors
     std::map<unsigned int, unsigned int>
-        m_unique_neigh_map;                    //!< Reverse mapping of the unique neighbors
+        m_unique_neigh_map; //!< Reverse mapping of the unique neighbors
 
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
@@ -181,6 +202,12 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     GPUVector<mpcd::detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
     GPUVector<mpcd::detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
     std::vector<MPI_Request> m_reqs;                  //!< MPI requests
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
 
     private:
     //! Notify communicator that box has changed and so decomposition needs to be checked
@@ -197,7 +224,7 @@ namespace detail
     {
 //! Export mpcd::Communicator to python
 void export_Communicator(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

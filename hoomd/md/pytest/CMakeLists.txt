@@ -43,6 +43,7 @@ set(files __init__.py
     test_wall_data.py
     test_wall_potential.py
     test_burst_writer.py
+    test_hdf5.py
     )
 
 install(FILES ${files}

@@ -12,12 +12,12 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  */
-mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::SorterGPU::SorterGPU(std::shared_ptr<SystemDefinition> sysdef,
                            unsigned int cur_timestep,
                            unsigned int period)
-    : mpcd::Sorter(sysdata, cur_timestep, period)
+    : mpcd::Sorter(sysdef, cur_timestep, period)
     {
     m_sentinel_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                             m_exec_conf,
@@ -180,7 +180,7 @@ void mpcd::detail::export_SorterGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU>>(m,
                                                                                       "SorterGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int>());
     }
 
     } // end namespace hoomd

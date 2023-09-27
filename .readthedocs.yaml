@@ -8,9 +8,6 @@ sphinx:
   configuration: sphinx-doc/conf.py
   fail_on_warning: true
 
-formats:
-  - htmlzip
-
 build:
   os: ubuntu-22.04
   tools:

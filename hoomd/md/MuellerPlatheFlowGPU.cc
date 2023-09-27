@@ -148,8 +148,8 @@ void export_MuellerPlatheFlowGPU(pybind11::module& m)
                             Scalar>());
     }
 
-    }  // end namespace detail
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

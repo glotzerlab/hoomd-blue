@@ -63,8 +63,8 @@ void gpu_apply_sorted_order(unsigned int N,
                             Scalar4* d_net_torque_alt,
                             unsigned int* d_rtag);
 
-    }  // namespace kernel
+    } // namespace kernel
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __SFC_PACK_UPDATER_GPU_CUH__

@@ -177,10 +177,10 @@ void CosineSqAngleForceCompute::computeForces(uint64_t timestep)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;  // squared magnitude of r_ab
-        Scalar rab = sqrt(rsqab);                                      // magnitude of r_ab
-        Scalar rsqcb = dcb.x * dcb.x + dcb.y * dcb.y + dcb.z * dcb.z;  // squared magnitude of r_cb
-        Scalar rcb = sqrt(rsqcb);                                      // magnitude of r_cb
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z; // squared magnitude of r_ab
+        Scalar rab = sqrt(rsqab);                                     // magnitude of r_ab
+        Scalar rsqcb = dcb.x * dcb.x + dcb.y * dcb.y + dcb.z * dcb.z; // squared magnitude of r_cb
+        Scalar rcb = sqrt(rsqcb);                                     // magnitude of r_cb
 
         Scalar c_abbc = dab.x * dcb.x + dab.y * dcb.y + dab.z * dcb.z; // = ab dot bc
         c_abbc /= rab * rcb;                                           // cos(t)
@@ -195,10 +195,10 @@ void CosineSqAngleForceCompute::computeForces(uint64_t timestep)
         Scalar dcosth = c_abbc - cos(m_t_0[angle_type]); // = cos(t) - cos(t0)
         Scalar tk = m_K[angle_type] * dcosth;            // = k(cos(t) - cos(t0))
 
-        Scalar a = 1.0 * tk;                             // = k(cos(t) - cos(t0))
-        Scalar a11 = a * c_abbc / rsqab;                 // = k(cos(t) - cos(t0)) * cos(t) / r_ij^2
-        Scalar a12 = -a / (rab * rcb);                   // = -k(cos(t) - cos(t0)) / (rij * rkj)
-        Scalar a22 = a * c_abbc / rsqcb;                 // = k(cos(t) - cos(t0)) * cos(t) / r_kj^2
+        Scalar a = 1.0 * tk;             // = k(cos(t) - cos(t0))
+        Scalar a11 = a * c_abbc / rsqab; // = k(cos(t) - cos(t0)) * cos(t) / r_ij^2
+        Scalar a12 = -a / (rab * rcb);   // = -k(cos(t) - cos(t0)) / (rij * rkj)
+        Scalar a22 = a * c_abbc / rsqcb; // = k(cos(t) - cos(t0)) * cos(t) / r_kj^2
 
         Scalar fab[3], fcb[3];
 

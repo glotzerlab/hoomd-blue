@@ -241,10 +241,10 @@ template<class Base> class GPUPolymorph
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< HOOMD execution configuration
     host_ptr m_host_data;                                      //!< Host-memory copy
 #ifdef ENABLE_HIP
-    device_ptr m_device_data;                                  //!< Device-memory copy
-#endif                                                         // ENABLE_HIP
+    device_ptr m_device_data; //!< Device-memory copy
+#endif                        // ENABLE_HIP
     };
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // HOOMD_GPU_POLYMORPH_H_

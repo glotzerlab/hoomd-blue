@@ -78,22 +78,22 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
     GPUVector<double> m_cvec;     //!< The vector on the RHS of the constraint equation
     GPUVector<double> m_lagrange; //!< The solution for the lagrange multipliers
 
-    Scalar m_rel_tol;             //!< Rel. tolerance for constraint violation warning
+    Scalar m_rel_tol; //!< Rel. tolerance for constraint violation warning
     GPUFlags<unsigned int> m_constraint_violated; //!< The id of the violated constraint + 1
 
-    GPUFlags<unsigned int> m_condition;           //!< ==1 if sparsity pattern has changed
+    GPUFlags<unsigned int> m_condition; //!< ==1 if sparsity pattern has changed
     Eigen::SparseMatrix<double, Eigen::ColMajor>
-        m_sparse;                                 //!< The sparse constraint matrix representation
+        m_sparse; //!< The sparse constraint matrix representation
     Eigen::SparseLU<Eigen::SparseMatrix<double, Eigen::ColMajor>, Eigen::COLAMDOrdering<int>>
         m_sparse_solver;
     //!< The persistent state of the sparse matrix solver
     GPUVector<int>
-        m_sparse_idxlookup;           //!< Reverse lookup from column-major to sparse matrix element
+        m_sparse_idxlookup; //!< Reverse lookup from column-major to sparse matrix element
 
     bool m_constraint_reorder;        //!< True if groups have changed
     bool m_constraints_added_removed; //!< True if global constraint topology has changed
 
-    Scalar m_d_max;                   //!< Maximum constraint extension
+    Scalar m_d_max; //!< Maximum constraint extension
 
     //! Compute the forces
     virtual void computeForces(uint64_t timestep);
