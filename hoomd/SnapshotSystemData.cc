@@ -36,10 +36,14 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     improper_data.replicate(n, old_n);
     constraint_data.replicate(n, old_n);
     pair_data.replicate(n, old_n);
+#ifdef BUILD_MPCD
+    mpcd_data.replicate(nx, ny, nz, old_box, *global_box);
+#endif
     }
 
 template<class Real> void SnapshotSystemData<Real>::wrap()
     {
+    // HOOMD particles
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
         auto const frac = global_box->makeFraction(particle_data.pos[i]);
@@ -54,6 +58,20 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
                                    static_cast<int>(std::floor(frac.z)));
         particle_data.image[i] = particle_data.image[i] + img;
         }
+
+#ifdef BUILD_MPCD
+    // MPCD particles
+    for (unsigned int i = 0; i < mpcd_data.size; ++i)
+        {
+        auto const frac = global_box->makeFraction(mpcd_data.position[i]);
+        auto modulus_positive = [](Scalar x)
+        { return std::fmod(std::fmod(x, Scalar(1.0)) + Scalar(1.0), Scalar(1.0)); };
+        auto const wrapped = vec3<Scalar>(modulus_positive(static_cast<Scalar>(frac.x)),
+                                          modulus_positive(static_cast<Scalar>(frac.y)),
+                                          modulus_positive(static_cast<Scalar>(frac.z)));
+        mpcd_data.position[i] = global_box->makeCoordinates(wrapped);
+        }
+#endif
     }
 
 template<class Real>
@@ -86,6 +104,9 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
         improper_data.bcast(root, communicator);
         constraint_data.bcast(root, communicator);
         pair_data.bcast(root, communicator);
+#ifdef BUILD_MPCD
+        mpcd_data.bcast(root, communicator);
+#endif
         }
 #endif
     }
@@ -108,6 +129,9 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
         improper_data.bcast(root, hoomd_world);
         constraint_data.bcast(root, hoomd_world);
         pair_data.bcast(root, hoomd_world);
+#ifdef BUILD_MPCD
+        mpcd_data.bcast(root, hoomd_world);
+#endif
         }
 #endif
     }
@@ -133,6 +157,9 @@ void export_SnapshotSystemData(pybind11::module& m)
         .def_readonly("impropers", &SnapshotSystemData<float>::improper_data)
         .def_readonly("constraints", &SnapshotSystemData<float>::constraint_data)
         .def_readonly("pairs", &SnapshotSystemData<float>::pair_data)
+#ifdef BUILD_MPCD
+        .def_readonly("mpcd", &SnapshotSystemData<float>::mpcd_data)
+#endif
         .def("replicate", &SnapshotSystemData<float>::replicate)
         .def("wrap", &SnapshotSystemData<float>::wrap)
         .def("_broadcast_box", &SnapshotSystemData<float>::broadcast_box)
@@ -152,6 +179,9 @@ void export_SnapshotSystemData(pybind11::module& m)
         .def_readonly("impropers", &SnapshotSystemData<double>::improper_data)
         .def_readonly("constraints", &SnapshotSystemData<double>::constraint_data)
         .def_readonly("pairs", &SnapshotSystemData<double>::pair_data)
+#ifdef BUILD_MPCD
+        .def_readonly("mpcd", &SnapshotSystemData<double>::mpcd_data)
+#endif
         .def("replicate", &SnapshotSystemData<double>::replicate)
         .def("wrap", &SnapshotSystemData<double>::wrap)
         .def("_broadcast_box", &SnapshotSystemData<double>::broadcast_box)

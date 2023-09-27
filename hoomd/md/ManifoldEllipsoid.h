@@ -146,7 +146,7 @@ class ManifoldEllipsoid
     Scalar inv_c2;
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_ELLIPSOID_H__

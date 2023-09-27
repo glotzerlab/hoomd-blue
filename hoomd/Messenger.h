@@ -259,11 +259,11 @@ class PYBIND11_EXPORT Messenger
     void openStd();
 
     private:
-    std::shared_ptr<MPIConfiguration> m_mpi_config;   //!< The MPI configuration
+    std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI configuration
 
-    std::ostream* m_err_stream;                       //!< error stream
-    std::ostream* m_warning_stream;                   //!< warning stream
-    std::ostream* m_notice_stream;                    //!< notice stream
+    std::ostream* m_err_stream;     //!< error stream
+    std::ostream* m_warning_stream; //!< warning stream
+    std::ostream* m_notice_stream;  //!< notice stream
 
     std::shared_ptr<std::streambuf> m_streambuf_out;  //!< streambuf (stdout)
     std::shared_ptr<std::streambuf> m_streambuf_err;  //!< streambuf (if err different from out)
@@ -271,11 +271,11 @@ class PYBIND11_EXPORT Messenger
     std::shared_ptr<std::ostream> m_file_out;         //!< File stream (stdout)
     std::shared_ptr<std::ostream> m_file_err;         //!< File stream (stderr)
 
-    std::string m_err_prefix;                         //!< Prefix for error messages
-    std::string m_warning_prefix;                     //!< Prefix for warning messages
-    std::string m_notice_prefix;                      //!< Prefix for notice messages
+    std::string m_err_prefix;     //!< Prefix for error messages
+    std::string m_warning_prefix; //!< Prefix for warning messages
+    std::string m_notice_prefix;  //!< Prefix for notice messages
 
-    unsigned int m_notice_level;                      //!< Notice level
+    unsigned int m_notice_level; //!< Notice level
 
     bool m_python_open = false;  //!< True when the python output stream is open
     pybind11::module m_sys;      //!< sys module
@@ -288,8 +288,8 @@ namespace detail
 //! Exports Messenger to python
 void export_Messenger(pybind11::module& m);
 
-    }  // end namespace detail
+    } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // #ifndef __MESSENGER_H__

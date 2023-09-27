@@ -37,16 +37,16 @@ template<typename T> class CommunicatorGrid
     std::shared_ptr<ParticleData> m_pdata;                     //!< Particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
-    uint3 m_dim;                                               //!< Dimensions of grid
-    uint3 m_embed;                                             //!< Embedding dimensions
-    uint3 m_offset;                                            //!< Offset of inner grid in array
-    bool m_add_outer;                     //!< True if outer ghost layer is added to inner cells
+    uint3 m_dim;      //!< Dimensions of grid
+    uint3 m_embed;    //!< Embedding dimensions
+    uint3 m_offset;   //!< Offset of inner grid in array
+    bool m_add_outer; //!< True if outer ghost layer is added to inner cells
 
-    std::set<unsigned int> m_neighbors;   //!< List of unique neighbor ranks
-    GlobalArray<T> m_send_buf;            //!< Send buffer
+    std::set<unsigned int> m_neighbors; //!< List of unique neighbor ranks
+    GlobalArray<T> m_send_buf;          //!< Send buffer
     GlobalArray<T> m_recv_buf;
-    GlobalArray<unsigned int> m_send_idx; //!< Indices of grid cells in send buf
-    GlobalArray<unsigned int> m_recv_idx; //!< Indices of grid cells in recv buf
+    GlobalArray<unsigned int> m_send_idx;         //!< Indices of grid cells in send buf
+    GlobalArray<unsigned int> m_recv_idx;         //!< Indices of grid cells in recv buf
     std::map<unsigned int, unsigned int> m_begin; //!< Begin offset of every rank in send/recv buf
     std::map<unsigned int, unsigned int> m_end;   //!< End offset of every rank in send/recv buf
 
@@ -54,8 +54,8 @@ template<typename T> class CommunicatorGrid
     virtual void initGridComm();
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_H__

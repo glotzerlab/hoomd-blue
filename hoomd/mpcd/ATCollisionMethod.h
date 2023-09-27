@@ -26,16 +26,16 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     {
     public:
     //! Constructor
-    ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    ATCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                       uint64_t cur_timestep,
                       uint64_t period,
                       int phase,
-                      std::shared_ptr<mpcd::CellThermoCompute> thermo,
-                      std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                       std::shared_ptr<Variant> T);
 
     //! Destructor
     virtual ~ATCollisionMethod();
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     //! Set the temperature and enable the thermostat
     void setTemperature(std::shared_ptr<Variant> T)
@@ -56,13 +56,19 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
 
     //! Apply the random velocities to particles in each cell
     virtual void applyVelocities();
+
+    //! Attach callback signals
+    void attachCallbacks();
+
+    //! Detach callback signals
+    void detachCallbacks();
     };
 
 namespace detail
     {
 //! Export ATCollisionMethod to python
 void export_ATCollisionMethod(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

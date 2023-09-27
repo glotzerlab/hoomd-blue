@@ -36,11 +36,11 @@ jobs:
     name: Build release tarball
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2023.06.19-ubuntu20.04
+      image: glotzerlab/ci:2023.07.24-ubuntu20.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
         with:
           fetch-depth: 0
           submodules: true
@@ -70,7 +70,7 @@ jobs:
         run: tar -cvzf ${name}-${tag:1}.tar.gz ${name}-${tag:1}
 
       - name: Upload release files
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: release
           path: |

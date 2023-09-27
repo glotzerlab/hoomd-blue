@@ -11,7 +11,6 @@
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -51,7 +50,6 @@ void export_ellipsoid(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
     export_HarmonicField<ShapeEllipsoid>(m, "ExternalFieldHarmonicEllipsoid");
-    export_ExternalFieldComposite<ShapeEllipsoid>(m, "ExternalFieldCompositeEllipsoid");
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
 
 #ifdef ENABLE_HIP

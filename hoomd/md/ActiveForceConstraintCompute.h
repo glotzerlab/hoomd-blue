@@ -201,7 +201,7 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
 
     setConstraint(); // apply manifold constraints to active particles active force vectors
 
-    setForces();     // set forces for particles
+    setForces(); // set forces for particles
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

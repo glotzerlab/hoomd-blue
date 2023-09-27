@@ -73,7 +73,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     public:
     //! Number constructor
     ParticleData(unsigned int N,
-                 const std::shared_ptr<const BoxDim> local_box,
+                 std::shared_ptr<const BoxDim> local_box,
                  Scalar kT,
                  unsigned int seed,
                  unsigned int ndimensions,
@@ -82,8 +82,8 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
                  = std::shared_ptr<DomainDecomposition>());
 
     //! Snapshot constructor
-    ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                 const std::shared_ptr<const BoxDim> global_box,
+    ParticleData(const mpcd::ParticleDataSnapshot& snapshot,
+                 std::shared_ptr<const BoxDim> global_box,
                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
@@ -92,19 +92,19 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     ~ParticleData();
 
     //! Initialize the MPCD particle data from a snapshot
-    void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
-                                const std::shared_ptr<const BoxDim> global_box);
+    void initializeFromSnapshot(const mpcd::ParticleDataSnapshot& snapshot,
+                                std::shared_ptr<const BoxDim> global_box);
 
     //! Default initialize the MPCD particle data per rank
     void initializeRandom(unsigned int N,
-                          const std::shared_ptr<const BoxDim> local_box,
+                          std::shared_ptr<const BoxDim> local_box,
                           Scalar kT,
                           unsigned int seed,
                           unsigned int ndimensions);
 
     //! Take a snapshot of the MPCD particle data
-    void takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                      const std::shared_ptr<const BoxDim> global_box) const;
+    void takeSnapshot(mpcd::ParticleDataSnapshot& snapshot,
+                      std::shared_ptr<const BoxDim> global_box) const;
 
     //! \name accessor methods
     //@{
@@ -412,24 +412,24 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< GPU execution configuration
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
 
-    GPUArray<Scalar4> m_pos;                      //!< MPCD particle positions plus type
-    GPUArray<Scalar4> m_vel;                      //!< MPCD particle velocities plus cell list id
-    Scalar m_mass;                                //!< MPCD particle mass
-    GPUArray<unsigned int> m_tag;                 //!< MPCD particle tags
-    std::vector<std::string> m_type_mapping;      //!< Type name mapping
+    GPUArray<Scalar4> m_pos;                 //!< MPCD particle positions plus type
+    GPUArray<Scalar4> m_vel;                 //!< MPCD particle velocities plus cell list id
+    Scalar m_mass;                           //!< MPCD particle mass
+    GPUArray<unsigned int> m_tag;            //!< MPCD particle tags
+    std::vector<std::string> m_type_mapping; //!< Type name mapping
 #ifdef ENABLE_MPI
-    GPUArray<unsigned int> m_comm_flags;          //!< MPCD particle communication flags
-#endif                                            // ENABLE_MPI
+    GPUArray<unsigned int> m_comm_flags; //!< MPCD particle communication flags
+#endif                                   // ENABLE_MPI
 
-    GPUArray<Scalar4> m_pos_alt;                  //!< Alternate position array
-    GPUArray<Scalar4> m_vel_alt;                  //!< Alternate velocity array
-    GPUArray<unsigned int> m_tag_alt;             //!< Alternate tag array
+    GPUArray<Scalar4> m_pos_alt;      //!< Alternate position array
+    GPUArray<Scalar4> m_vel_alt;      //!< Alternate velocity array
+    GPUArray<unsigned int> m_tag_alt; //!< Alternate tag array
 #ifdef ENABLE_MPI
-    GPUArray<unsigned int> m_comm_flags_alt;      //!< Alternate communication flags
-    GPUArray<unsigned int> m_remove_ids;          //!< Partitioned indexes of particles to keep
+    GPUArray<unsigned int> m_comm_flags_alt; //!< Alternate communication flags
+    GPUArray<unsigned int> m_remove_ids;     //!< Partitioned indexes of particles to keep
 #ifdef ENABLE_HIP
-    GPUArray<unsigned char> m_remove_flags;       //!< Temporary flag to mark keeping particle
-    GPUFlags<unsigned int> m_num_remove;          //!< Number of particles to remove
+    GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
+    GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
 
     std::shared_ptr<Autotuner<1>> m_mark_tuner;   //!< Tuner for marking particles
     std::shared_ptr<Autotuner<1>> m_remove_tuner; //!< Tuner for removing particles
@@ -437,16 +437,15 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
 #endif                                            // ENABLE_HIP
 #endif                                            // ENABLE_MPI
 
-    bool m_valid_cell_cache;                      //!< Flag for validity of cell cache
-    SortSignal m_sort_signal;                     //!< Signal triggered when particles are sorted
+    bool m_valid_cell_cache;               //!< Flag for validity of cell cache
+    SortSignal m_sort_signal;              //!< Signal triggered when particles are sorted
     Nano::Signal<void()> m_virtual_signal; //!< Signal for number of virtual particles changing
 
     //! Check for a valid snapshot
-    bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);
+    bool checkSnapshot(const mpcd::ParticleDataSnapshot& snapshot);
 
     //! Check if all particles lie within the box
-    bool checkInBox(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-                    const std::shared_ptr<const BoxDim> box);
+    bool checkInBox(const mpcd::ParticleDataSnapshot& snapshot, std::shared_ptr<const BoxDim> box);
 
     //! Set the global number of particles (for parallel simulations)
     void setNGlobal(unsigned int nglobal);
@@ -471,7 +470,7 @@ namespace detail
     {
 //! Export MPCD ParticleData to python
 void export_ParticleData(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

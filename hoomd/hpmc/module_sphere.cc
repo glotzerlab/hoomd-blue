@@ -12,7 +12,6 @@
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -43,7 +42,6 @@ void export_sphere(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
-    export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
 
 #ifdef ENABLE_HIP

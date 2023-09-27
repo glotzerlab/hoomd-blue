@@ -95,8 +95,8 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     virtual bool shouldCompute(uint64_t timestep);
 
     private:
-    std::shared_ptr<CellList> m_cl;     //!< Pointer to cell list operating on
-    std::vector<Scalar> m_rstencil;     //!< Per-type radius to stencil
+    std::shared_ptr<CellList> m_cl; //!< Pointer to cell list operating on
+    std::vector<Scalar> m_rstencil; //!< Per-type radius to stencil
 
     Index2D m_stencil_idx;              //!< Type indexer into stencils
     GPUArray<Scalar4> m_stencil;        //!< Stencil of shifts and closest distance to bin
@@ -110,7 +110,7 @@ namespace detail
 #ifndef __HIPCC__
 void export_CellListStencil(pybind11::module& m);
 #endif
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace hoomd
 #endif // __CELLLISTSTENCIL_H__

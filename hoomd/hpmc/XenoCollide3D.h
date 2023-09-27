@@ -163,7 +163,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         if (dot(cross(v1, v3), v0) < ShortReal(0.0))
             {
             // replace v2 and find new support direction
-            v2 = v3;  // preserve handedness
+            v2 = v3; // preserve handedness
             n = cross(v1 - v0, v2 - v0);
             continue; // continue iterating to find valid portal
             }

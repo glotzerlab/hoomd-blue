@@ -25,10 +25,9 @@ const unsigned int mpcd::Communicator::neigh_max = 27;
  * \param sysdef System definition the communicator is associated with
  * \param decomposition Domain decomposition of the global box
  */
-mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
-    : m_mpcd_sys(system_data), m_sysdef(system_data->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_pdata(m_mpcd_sys->getParticleData()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
+mpcd::Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
       m_decomposition(m_pdata->getDomainDecomposition()), m_is_communicating(false),
       m_check_decomposition(true), m_nneigh(0), m_n_unique_neigh(0), m_sendbuf(m_exec_conf),
       m_recvbuf(m_exec_conf), m_force_migrate(false)
@@ -49,11 +48,6 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     // neighbor masks
     GPUArray<unsigned int> adj_mask(neigh_max, m_exec_conf);
     m_adj_mask.swap(adj_mask);
-
-    // attach decomposition check to the box change signal
-    m_mpcd_sys->getCellList()
-        ->getSizeChangeSignal()
-        .connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
 
     // create new data type for the pdata_element
     const int nitems = 4;
@@ -78,9 +72,7 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
 mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
-    m_mpcd_sys->getCellList()
-        ->getSizeChangeSignal()
-        .disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+    detachCallbacks();
     MPI_Type_free(&m_pdata_element);
     }
 
@@ -192,6 +184,11 @@ void mpcd::Communicator::initializeNeighborArrays()
  */
 void mpcd::Communicator::communicate(uint64_t timestep)
     {
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     if (m_is_communicating)
         {
         m_exec_conf->msg->warning()
@@ -204,7 +201,7 @@ void mpcd::Communicator::communicate(uint64_t timestep)
 
     // force the cell list to adopt the correct dimensions before proceeding,
     // which will trigger any size change signals
-    m_mpcd_sys->getCellList()->computeDimensions();
+    m_cl->computeDimensions();
 
     if (m_check_decomposition)
         {
@@ -254,8 +251,8 @@ class MigratePartitionOp
     private:
     const unsigned int mask; //!< Mask for the current communication stage
     };
-    }                        // namespace detail
-    }                        // namespace mpcd
+    } // namespace detail
+    } // namespace mpcd
 
 void mpcd::Communicator::migrateParticles(uint64_t timestep)
     {
@@ -268,7 +265,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
         }
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_cl->getCoverageBox();
     setCommFlags(box);
 
     // fill send buffer once
@@ -498,7 +495,7 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
 void mpcd::Communicator::checkDecomposition()
     {
     // determine the bounds of this box
-    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_cl->getCoverageBox();
     const Scalar3 lo = box.getLo();
     const Scalar3 hi = box.getHi();
 
@@ -547,7 +544,7 @@ void mpcd::Communicator::checkDecomposition()
         // if at right edge of simulation box, then wrap the lo back in
         if (m_decomposition->isAtBoundary(2 * dim)) // right edge
             {
-            if (dim == 0)                           // x
+            if (dim == 0) // x
                 {
                 right_lo += global_L.x;
                 }
@@ -563,7 +560,7 @@ void mpcd::Communicator::checkDecomposition()
         // otherwise if at left of simulation, wrap the hi back in
         else if (m_decomposition->isAtBoundary(2 * dim + 1)) // left edge
             {
-            if (dim == 0)                                    // x
+            if (dim == 0) // x
                 {
                 left_hi -= global_L.x;
                 }
@@ -625,7 +622,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
     if (grid_size.x > 1)
         {
         // exclusive or, it doesn't make sense for both these conditions to be true
-        assert((hi.x > global_hi.x) != (lo.x < global_lo.x));
+        assert(!(hi.x > global_hi.x && lo.x < global_lo.x));
 
         if (hi.x > global_hi.x)
             shift.x = hi.x - global_hi.x;
@@ -634,7 +631,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
         }
     if (grid_size.y > 1)
         {
-        assert((hi.y > global_hi.y) != (lo.y < global_lo.y));
+        assert(!(hi.y > global_hi.y && lo.y < global_lo.y));
 
         if (hi.y > global_hi.y)
             shift.y = hi.y - global_hi.y;
@@ -643,7 +640,7 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
         }
     if (grid_size.z > 1)
         {
-        assert((hi.z > global_hi.z) != (lo.z < global_lo.z));
+        assert(!(hi.z > global_hi.z && lo.z < global_lo.z));
 
         if (hi.z > global_hi.z)
             shift.z = hi.z - global_hi.z;
@@ -660,13 +657,29 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
     return BoxDim(global_lo + shift, global_hi + shift, periodic);
     }
 
+void mpcd::Communicator::attachCallbacks()
+    {
+    assert(m_cl);
+    m_cl->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(
+        this);
+    }
+
+void mpcd::Communicator::detachCallbacks()
+    {
+    if (m_cl)
+        {
+        m_cl->getSizeChangeSignal()
+            .disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
 void mpcd::detail::export_Communicator(pybind11::module& m)
     {
     pybind11::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     }  // end namespace hoomd

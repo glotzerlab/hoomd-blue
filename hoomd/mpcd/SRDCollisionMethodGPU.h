@@ -24,12 +24,13 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     {
     public:
     //! Constructor
-    SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    SRDCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int cur_timestep,
                           unsigned int period,
                           int phase,
-                          uint16_t seed,
-                          std::shared_ptr<mpcd::CellThermoCompute> thermo);
+                          uint16_t seed);
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     protected:
     //! Randomly draw cell rotation vectors
@@ -47,7 +48,7 @@ namespace detail
     {
 //! Export SRDCollisionMethodGPU to python
 void export_SRDCollisionMethodGPU(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

@@ -13,8 +13,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "SystemData.h"
+#include "CellList.h"
+
 #include "hoomd/Autotuned.h"
+#include "hoomd/SystemDefinition.h"
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -40,7 +42,7 @@ class PYBIND11_EXPORT Sorter : public Autotuned
     {
     public:
     //! Constructor
-    Sorter(std::shared_ptr<mpcd::SystemData> sysdata,
+    Sorter(std::shared_ptr<SystemDefinition> sysdef,
            unsigned int cur_timestep,
            unsigned int period);
 
@@ -60,20 +62,28 @@ class PYBIND11_EXPORT Sorter : public Autotuned
         m_next_timestep = multiple * m_period;
         }
 
+    //! Set the cell list used for sorting
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        if (cl != m_cl)
+            {
+            m_cl = cl;
+            }
+        }
+
     protected:
-    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
-    std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
-    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
+    std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
 
     GPUVector<unsigned int> m_order;  //!< Maps new sorted index onto old particle indexes
     GPUVector<unsigned int> m_rorder; //!< Maps old particle indexes onto new sorted indexes
 
-    unsigned int m_period;            //!< Sorting period
-    uint64_t m_next_timestep;         //!< Next step to apply sorting
+    unsigned int m_period;    //!< Sorting period
+    uint64_t m_next_timestep; //!< Next step to apply sorting
 
     //! Compute the sorting order at the current timestep
     virtual void computeOrder(uint64_t timestep);

@@ -17,6 +17,7 @@ The following people have contributed to the to HOOMD-blue:
 * Andrew Schultz, University at Buffalo
 * Andrew Mark, Max Planck Institute
 * Andrey Kazennov, Joint Institute for High Temperatures of RAS
+* Antonia Statt, University of Illinois
 * Antonio Osorio, University of Michigan
 * Avisek Das, University of Michigan
 * Axel Kohlmeyer, Temple University
@@ -78,9 +79,10 @@ The following people have contributed to the to HOOMD-blue:
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
 * Martin Girard, Max-Planck-Institut für Polymerforschung
+* Matthew Do, Auburn University
 * Matthew Spellings, University of Michgan
 * Melody Zhang, University of Michigan
-* Michael Howard, University of Texas
+* Michael Howard, Auburn University
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
