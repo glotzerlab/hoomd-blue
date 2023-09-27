@@ -128,6 +128,8 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
+    ArrayHandle<unsigned int> h_pts(m_mesh_data->getPerTypeSize(), access_location::host, access_mode::read);
+
     Scalar area_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         area_virial[i] = Scalar(0.0);
@@ -205,10 +207,12 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
+	unsigned int triN3 = h_pts.data[triangle_type]*3;
+
         Scalar AreaDiff = m_area[triangle_type] - m_A0[triangle_type];
 
         Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
-                        / (2 * m_A0[triangle_type] * m_pdata->getNGlobal());
+                        / (2 * m_A0[triangle_type] * triN3);
 
         AreaDiff = m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
 	
@@ -232,7 +236,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += (Fab.x + Fac.x);
             h_force.data[idx_a].y += (Fab.y + Fac.y);
             h_force.data[idx_a].z += (Fab.z + Fac.z);
-            h_force.data[idx_a].w = energy;
+            h_force.data[idx_a].w += energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += area_virial[j];
             }
@@ -252,7 +256,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fab.x;
             h_force.data[idx_b].y -= Fab.y;
             h_force.data[idx_b].z -= Fab.z;
-            h_force.data[idx_b].w = energy;
+            h_force.data[idx_b].w += energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += area_virial[j];
             }
@@ -272,7 +276,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x -= Fac.x;
             h_force.data[idx_c].y -= Fac.y;
             h_force.data[idx_c].z -= Fac.z;
-            h_force.data[idx_c].w = energy;
+            h_force.data[idx_c].w += energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += area_virial[j];
             }

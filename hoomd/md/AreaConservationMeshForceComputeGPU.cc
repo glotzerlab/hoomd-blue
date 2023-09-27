@@ -100,6 +100,11 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
         access_location::device,
         access_mode::read);
 
+    ArrayHandle<unsigned int> d_pts(
+        this->m_mesh_data->getPerTypeSize(),
+        access_location::device,
+        access_mode::read);
+
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
@@ -114,7 +119,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               d_virial.data,
                                               m_virial.getPitch(),
                                               m_pdata->getN(),
-                                              m_pdata->getNGlobal(),
+                                              d_pts.data,
                                               d_pos.data,
                                               box,
                                               d_area.data,

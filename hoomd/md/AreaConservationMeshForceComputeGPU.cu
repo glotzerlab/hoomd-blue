@@ -276,7 +276,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          Scalar* d_virial,
                                                          const size_t virial_pitch,
                                                          const unsigned int N,
-                                                         const unsigned int gN,
+                                                         const unsigned int* gN,
                                                          const Scalar4* d_pos,
                                                          BoxDim box,
                                                          const Scalar* area,
@@ -324,7 +324,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar AreaDiff = area[cur_triangle_type] - A_mesh;
 
-        Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * gN);
+        Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * 3 * gN[cur_triangle_type]);
 
         AreaDiff = K / A_mesh * AreaDiff / 2.0;
 
@@ -410,7 +410,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 	    virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
 	    virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
 	    }
-        force.w = energy;
+        force.w += energy;
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
@@ -444,7 +444,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              Scalar* d_virial,
                                              const size_t virial_pitch,
                                              const unsigned int N,
-                                             const unsigned int gN,
+                                             const unsigned int* gN,
                                              const Scalar4* d_pos,
                                              const BoxDim& box,
                                              const Scalar* area,
