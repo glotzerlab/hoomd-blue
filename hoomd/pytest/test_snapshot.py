@@ -27,7 +27,9 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     if not hoomd_snap.communicator.rank == 0:
         return True
     for attr in dir(hoomd_snap):
-        if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
+        if attr[0] == '_' or attr in [
+                'exists', 'replicate', 'communicator', 'mpcd'
+        ]:
             continue
         for prop in dir(getattr(hoomd_snap, attr)):
             if prop[0] == '_':

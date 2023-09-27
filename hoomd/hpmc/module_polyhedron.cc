@@ -11,7 +11,6 @@
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -41,7 +40,6 @@ void export_polyhedron(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
     export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");
-    export_ExternalFieldComposite<ShapePolyhedron>(m, "ExternalFieldCompositePolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
 
 #ifdef ENABLE_HIP

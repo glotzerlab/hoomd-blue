@@ -220,8 +220,8 @@ cudaError_t unpack_cell_buffer(T* d_props,
     }
 #endif // __HIPCC__
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_CUH_

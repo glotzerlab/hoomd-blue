@@ -388,8 +388,8 @@ class PYBIND11_EXPORT CellList : public Compute
     GlobalArray<unsigned int> m_idx;       //!< Cell list with index
     GlobalArray<uint3> m_conditions; //!< Condition flags set during the computeCellList() call
 
-    bool m_sort_cell_list;           //!< If true, sort cell list
-    bool m_compute_adj_list;         //!< If true, compute the cell adjacency lists
+    bool m_sort_cell_list;   //!< If true, sort cell list
+    bool m_compute_adj_list; //!< If true, compute the cell adjacency lists
 
 #ifdef ENABLE_MPI
     /// The system's communicator.

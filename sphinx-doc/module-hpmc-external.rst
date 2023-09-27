@@ -10,7 +10,7 @@ hoomd.hpmc.external
 .. rubric:: Modules
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    module-hpmc-external-user
    module-hpmc-external-field

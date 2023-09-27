@@ -32,26 +32,26 @@ struct gpu_force_list
         {
         }
 
-    Scalar4* f0;    //!< Pointer to force array 0
-    Scalar4* f1;    //!< Pointer to force array 1
-    Scalar4* f2;    //!< Pointer to force array 2
-    Scalar4* f3;    //!< Pointer to force array 3
-    Scalar4* f4;    //!< Pointer to force array 4
-    Scalar4* f5;    //!< Pointer to force array 5
+    Scalar4* f0; //!< Pointer to force array 0
+    Scalar4* f1; //!< Pointer to force array 1
+    Scalar4* f2; //!< Pointer to force array 2
+    Scalar4* f3; //!< Pointer to force array 3
+    Scalar4* f4; //!< Pointer to force array 4
+    Scalar4* f5; //!< Pointer to force array 5
 
-    Scalar4* t0;    //!< Pointer to torque array 0
-    Scalar4* t1;    //!< Pointer to torque array 1
-    Scalar4* t2;    //!< Pointer to torque array 2
-    Scalar4* t3;    //!< Pointer to torque array 3
-    Scalar4* t4;    //!< Pointer to torque array 4
-    Scalar4* t5;    //!< Pointer to torque array 5
+    Scalar4* t0; //!< Pointer to torque array 0
+    Scalar4* t1; //!< Pointer to torque array 1
+    Scalar4* t2; //!< Pointer to torque array 2
+    Scalar4* t3; //!< Pointer to torque array 3
+    Scalar4* t4; //!< Pointer to torque array 4
+    Scalar4* t5; //!< Pointer to torque array 5
 
-    Scalar* v0;     //!< Pointer to virial array 0
-    Scalar* v1;     //!< Pointer to virial array 1
-    Scalar* v2;     //!< Pointer to virial array 2
-    Scalar* v3;     //!< Pointer to virial array 3
-    Scalar* v4;     //!< Pointer to virial array 4
-    Scalar* v5;     //!< Pointer to virial array 5
+    Scalar* v0; //!< Pointer to virial array 0
+    Scalar* v1; //!< Pointer to virial array 1
+    Scalar* v2; //!< Pointer to virial array 2
+    Scalar* v3; //!< Pointer to virial array 3
+    Scalar* v4; //!< Pointer to virial array 4
+    Scalar* v5; //!< Pointer to virial array 5
 
     size_t vpitch0; //!< Pitch of virial array 0
     size_t vpitch1; //!< Pitch of virial array 1

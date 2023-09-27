@@ -44,8 +44,12 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
                      const std::string& cpu_code,
-                     const std::vector<std::string>& compiler_args)
-        : hpmc::ExternalFieldMono<Shape>(sysdef)
+                     const std::vector<std::string>& compiler_args,
+                     pybind11::array_t<float> param_array)
+        : hpmc::ExternalFieldMono<Shape>(sysdef), m_exec_conf(exec_conf),
+          m_param_array(param_array.data(),
+                        param_array.data() + param_array.size(),
+                        hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
         ExternalFieldEvalFactory* factory = new ExternalFieldEvalFactory(cpu_code, compiler_args);
@@ -55,8 +59,10 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 
         if (!m_eval)
             {
-            throw std::runtime_error("Error compiling JIT code.\n" + factory->getError());
+            throw std::runtime_error("Error compiling JIT code for CPPExternalPotential.\n"
+                                     + factory->getError());
             }
+        factory->setAlphaArray(&m_param_array.front());
         m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
 
@@ -241,7 +247,16 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         return dE;
         }
 
+    static pybind11::object getParamArray(pybind11::object self)
+        {
+        auto self_cpp = self.cast<ExternalFieldJIT*>();
+        return pybind11::array(self_cpp->m_param_array.size(),
+                               self_cpp->m_factory->getAlphaArray(),
+                               self);
+        }
+
     protected:
+    std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     //! function pointer signature
     typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box,
                                             unsigned int type,
@@ -252,6 +267,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     std::shared_ptr<ExternalFieldEvalFactory> m_factory; //!< The factory for the evaluator function
     ExternalFieldEvalFactory::ExternalFieldEvalFnPtr
         m_eval; //!< Pointer to evaluator function inside the JIT module
+    std::vector<float, hoomd::detail::managed_allocator<float>>
+        m_param_array; //!< array containing adjustable parameters
     };
 
 //! Exports the ExternalFieldJIT class to python
@@ -263,8 +280,10 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExecutionConfiguration>,
                             const std::string&,
-                            const std::vector<std::string>&>())
-        .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
+                            const std::vector<std::string>&,
+                            pybind11::array_t<float>>())
+        .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy)
+        .def_property_readonly("param_array", &ExternalFieldJIT<Shape>::getParamArray);
     }
 
     }  // end namespace hpmc

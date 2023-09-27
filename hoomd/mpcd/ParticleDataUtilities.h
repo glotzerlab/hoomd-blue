@@ -41,9 +41,9 @@ struct pdata_element
     unsigned int tag;       //!< Global tag
     unsigned int comm_flag; //!< Communication flag
     };
-#endif                      // ENABLE_MPI
+#endif // ENABLE_MPI
 
-    }                       // end namespace detail
-    }                       // end namespace mpcd
-    }                       // end namespace hoomd
-#endif                      // MPCD_PARTICLE_DATA_UTILITIES_H_
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
+#endif // MPCD_PARTICLE_DATA_UTILITIES_H_
