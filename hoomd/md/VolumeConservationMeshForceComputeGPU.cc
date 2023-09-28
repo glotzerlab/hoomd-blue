@@ -18,8 +18,9 @@ namespace md
 */
 VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<MeshDefinition> meshdef)
-    : VolumeConservationMeshForceCompute(sysdef, meshdef)
+    std::shared_ptr<MeshDefinition> meshdef,
+    bool ignore_type)
+    : VolumeConservationMeshForceCompute(sysdef, meshdef, ignore_type)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -29,12 +30,16 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
         throw std::runtime_error("Error initializing VolumeConservationMeshForceComputeGPU");
         }
 
+    unsigned int NTypes = this->m_mesh_data->getMeshTriangleData()->getNTypes();
+
+    if(this->m_ignore_type) NTypes=1;
+
     // allocate and zero device memory
-    GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
+    GPUArray<Scalar2> params(NTypes, m_exec_conf);
     m_params.swap(params);
 
     // allocate and zero device memory
-    GPUArray<Scalar> volume_GPU(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
+    GPUArray<Scalar> volume_GPU(NTypes, m_exec_conf);
     m_volume_GPU.swap(volume_GPU);
 
     // allocate flags storage on the GPU
@@ -45,14 +50,14 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    GPUArray<Scalar> sum(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
+    GPUArray<Scalar> sum(NTypes, m_exec_conf);
     m_sum.swap(sum);
 
     m_block_size = 256;
     unsigned int group_size = m_pdata->getN();
     m_num_blocks = group_size / m_block_size;
     m_num_blocks += 1;
-    m_num_blocks *= this->m_mesh_data->getMeshTriangleData()->getNTypes();
+    m_num_blocks *= NTypes;
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
@@ -64,11 +69,14 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
 
 void VolumeConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar V0)
     {
-    VolumeConservationMeshForceCompute::setParams(type, K, V0);
+    if(!this->m_ignore_type || type == 0 ) 
+    	{
+        VolumeConservationMeshForceCompute::setParams(type, K, V0);
 
-    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
-    // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, V0);
+        ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
+        // update the local copy of the memory
+        h_params.data[type] = make_scalar2(K, V0);
+	}
     }
 
 /*! Actually perform the force computation
@@ -101,6 +109,11 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
         access_location::device,
         access_mode::read);
 
+    ArrayHandle<unsigned int> d_pts(
+        this->m_mesh_data->getPerTypeSize(),
+        access_location::device,
+        access_mode::read);
+
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
@@ -115,7 +128,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                 d_virial.data,
                                                 m_virial.getPitch(),
                                                 m_pdata->getN(),
-                                                m_pdata->getNGlobal(),
+                                                d_pts.data,
                                                 d_pos.data,
                                                 d_image.data,
                                                 box,
@@ -125,7 +138,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                 gpu_table_indexer,
                                                 d_gpu_n_meshtriangle.data,
                                                 d_params.data,
-                                                m_mesh_data->getMeshTriangleData()->getNTypes(),
+                                                this->m_ignore_type,
                                                 m_tuner->getParam()[0],
                                                 d_flags.data);
 
@@ -184,6 +197,8 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
 
     unsigned int NTypes = m_mesh_data->getMeshTriangleData()->getNTypes();
 
+    if(this->m_ignore_type) NTypes = 1;
+
     kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
                                                  d_partial_sumVol.data,
                                                  m_pdata->getN(),
@@ -194,6 +209,7 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
                                                  d_gpu_meshtrianglelist.data,
                                                  d_gpu_meshtriangle_pos_list.data,
                                                  gpu_table_indexer,
+						 this->m_ignore_type,
                                                  d_gpu_n_meshtriangle.data,
                                                  m_block_size,
                                                  m_num_blocks);
@@ -229,7 +245,7 @@ void export_VolumeConservationMeshForceComputeGPU(pybind11::module& m)
                      std::shared_ptr<VolumeConservationMeshForceComputeGPU>>(
         m,
         "VolumeConservationMeshForceComputeGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>());
     }
 
     } // end namespace detail

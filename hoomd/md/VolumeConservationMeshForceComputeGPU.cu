@@ -45,6 +45,7 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
                                                             const group_storage<3>* tlist,
                                                             const unsigned int* tpos_list,
                                                             const Index2D tlist_idx,
+                                             		    const bool ignore_type,
                                                             const unsigned int* n_triangles_list)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -70,6 +71,8 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             {
             group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
             int cur_triangle_type = cur_triangle.idx[2];
+
+            if(ignore_type) cur_triangle_type = 0;
 
 	    if(cur_triangle_type != cN) continue;
 
@@ -206,6 +209,7 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                                                 const group_storage<3>* tlist,
                                                 const unsigned int* tpos_list,
                                                 const Index2D tlist_idx,
+                                                const bool ignore_type,
                                                 const unsigned int* n_triangles_list,
                                                 unsigned int block_size,
                                                 unsigned int num_blocks)
@@ -232,6 +236,7 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                            tlist,
                            tpos_list,
                            tlist_idx,
+                           ignore_type,
                            n_triangles_list);
         }
 
@@ -269,7 +274,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
                                                            Scalar* d_virial,
                                                            const size_t virial_pitch,
                                                            const unsigned int N,
-                                                           const unsigned int gN,
+                                                           const unsigned int* gN,
                                                            const Scalar4* d_pos,
                                                            const int3* d_image,
                                                            BoxDim box,
@@ -279,7 +284,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
                                                            const Index2D tlist_idx,
                                                            const unsigned int* n_triangles_list,
                                                            Scalar2* d_params,
-                                                           const unsigned int n_triangle_type,
+                                                           const bool ignore_type,
                                                            unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
@@ -313,6 +318,8 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
         int cur_triangle_c = cur_triangle.idx[1];
         int cur_triangle_type = cur_triangle.idx[2];
 
+	if(ignore_type) cur_triangle_type = 0;
+
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
@@ -320,7 +327,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
         Scalar VolDiff = volume[cur_triangle_type] - V0;
 
-        Scalar energy = K * VolDiff * VolDiff / (2 * V0 * gN);
+        Scalar energy = K * VolDiff * VolDiff / (2 * V0 * 3 * gN[cur_triangle_type]);
 
         VolDiff = -K / V0 * VolDiff / 6.0;
 
@@ -361,7 +368,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = energy;
+        force.w += energy;
 
         virial[0] += Scalar(1. / 2.) * pos_a.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * pos_a.y * Fa.x; // xy
@@ -402,7 +409,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                                                Scalar* d_virial,
                                                const size_t virial_pitch,
                                                const unsigned int N,
-                                               const unsigned int gN,
+                                               const unsigned int* gN,
                                                const Scalar4* d_pos,
                                                const int3* d_image,
                                                const BoxDim& box,
@@ -412,7 +419,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                                                const Index2D tlist_idx,
                                                const unsigned int* n_triangles_list,
                                                Scalar2* d_params,
-                                               const unsigned int n_triangle_type,
+                                               const bool ignore_type,
                                                int block_size,
                                                unsigned int* d_flags)
     {
@@ -447,7 +454,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                        tlist_idx,
                        n_triangles_list,
                        d_params,
-                       n_triangle_type,
+                       ignore_type,
                        d_flags);
 
     return hipSuccess;

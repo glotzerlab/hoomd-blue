@@ -259,12 +259,13 @@ def test_volume(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    type_ids = [0, 0, 0, 0]
+    mesh.types = ["mesh", "patch"]
+    type_ids = [0, 0, 1, 0]
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = hoomd.md.mesh.conservation.Volume(mesh)
-    mesh_potential.params["mesh"] = dict(k=1, V0=1)
+    mesh_potential.params.default = dict(k=1, V0=1)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -278,10 +279,40 @@ def test_volume(simulation_factory, tetrahedron_snapshot_factory):
 
     sim.run(0)
 
-    assert math.isclose(mesh_potential.volume,
-                        0.107227,
-                        rel_tol=1e-2,
-                        abs_tol=1e-5)
+    np.testing.assert_allclose(mesh_potential.volume,
+                        [0.08042,0.026807],
+                        rtol=1e-2,
+                        atol=1e-5)
+
+def test_volume_ignore_type(simulation_factory, tetrahedron_snapshot_factory):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh", "patch"]
+    type_ids = [0, 0, 1, 0]
+    triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
+
+    mesh_potential = hoomd.md.mesh.conservation.Volume(mesh,ignore_type=True)
+    mesh_potential.params.default = dict(k=1, V0=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         default_gamma=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    np.testing.assert_allclose(mesh_potential.volume,
+                        [0.107227, 0.0],
+                        rtol=1e-2,
+                        atol=1e-5)
 
 
 def test_auto_detach_simulation(simulation_factory,

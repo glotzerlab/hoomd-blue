@@ -34,7 +34,8 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     public:
     //! Constructs the compute
     VolumeConservationMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                          std::shared_ptr<MeshDefinition> meshdef);
+                                          std::shared_ptr<MeshDefinition> meshdef,
+					  bool ignore_type);
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar V0);

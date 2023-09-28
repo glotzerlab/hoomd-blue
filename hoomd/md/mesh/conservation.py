@@ -3,13 +3,13 @@
 
 """Mesh Bond potentials."""
 
-from hoomd.md.mesh.potential import MeshPotential
+from hoomd.md.mesh.potential import MeshConvervationPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.logging import log
 
 
-class Volume(MeshPotential):
+class Volume(MeshConvervationPotential):
     r"""Volume conservation potential.
 
     :py:class:`Volume` specifies a volume constraint on the whole mesh
@@ -41,12 +41,12 @@ class Volume(MeshPotential):
     """
     _cpp_class_name = "VolumeConservationMeshForceCompute"
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, ignore_type=False):
         params = TypeParameter("params", "types",
                                TypeParameterDict(k=float, V0=float, len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(mesh)
+        super().__init__(mesh,ignore_type)
 
     @log(requires_run=True)
     def volume(self):
