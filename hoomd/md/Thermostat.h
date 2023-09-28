@@ -399,8 +399,8 @@ class BussiThermostat : public Thermostat
         Scalar t_random_first = normal_translation(rng);
         Scalar r_random_first = normal_rotation(rng);
 
-        Scalar t_random_left = sample_sumnormal(ntdof - 1, rng);
-        Scalar r_random_left = sample_sumnormal(nrdof - 1, rng);
+        Scalar t_random_left = sample_sumnormalsq(ntdof - 1, rng);
+        Scalar r_random_left = sample_sumnormalsq(nrdof - 1, rng);
 
         Scalar t_rescale
             = sqrt(time_decay_factor
@@ -423,10 +423,9 @@ class BussiThermostat : public Thermostat
     protected:
     Scalar m_tau;
 
-    Scalar sample_sumnormal(int dof_left, RandomGenerator rng)
+    Scalar sample_sumnormalsq(int dof_left, RandomGenerator rng)
         {
         Scalar sum_normal_square;
-        const bool dof_left_even = ((dof_left & 1) == 0);
 
         if (dof_left == 0)
             {
@@ -438,17 +437,10 @@ class BussiThermostat : public Thermostat
             Scalar normal_random = normal(rng);
             sum_normal_square = normal_random * normal_random;
             }
-        else if (dof_left_even)
+        else
             {
             GammaDistribution<double> gamma(dof_left / 2.0, 1.0);
             sum_normal_square = 2.0 * gamma(rng);
-            }
-        else
-            {
-            NormalDistribution<double> normal(1.0);
-            GammaDistribution<double> gamma((dof_left - 1) / 2.0, 1.0);
-            Scalar normal_random = normal(rng);
-            sum_normal_square = 2.0 * gamma(rng) + normal_random * normal_random;
             }
 
         return sum_normal_square;
