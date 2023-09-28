@@ -23,12 +23,16 @@ namespace md
 */
 VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_K(NULL), m_V0(NULL), m_mesh_data(meshdef), m_volume(0)
+    std::shared_ptr<MeshDefinition> meshdef,
+    bool ignore_type)
+    : ForceCompute(sysdef), m_K(NULL), m_V0(NULL), m_mesh_data(meshdef), m_volume(0), 
+	m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing VolumeConservationMeshForceCompute" << endl;
 
     unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+
+    if(m_ignore_type) n_types = 1;
 
     // allocate the parameters
     m_K = new Scalar[n_types];
@@ -58,14 +62,17 @@ VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
 */
 void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar V0)
     {
-    m_K[type] = K;
-    m_V0[type] = V0;
+    if(!m_ignore_type || type == 0 ) 
+    	{
+        m_K[type] = K;
+        m_V0[type] = V0;
 
-    // check for some silly errors a user could make
-    if (K <= 0)
-        m_exec_conf->msg->warning() << "volume: specified K <= 0" << endl;
-    if (V0 <= 0)
-        m_exec_conf->msg->warning() << "volume: specified V0 <= 0" << endl;
+        // check for some silly errors a user could make
+        if (K <= 0)
+            m_exec_conf->msg->warning() << "volume: specified K <= 0" << endl;
+        if (V0 <= 0)
+            m_exec_conf->msg->warning() << "volume: specified V0 <= 0" << endl;
+	}
     }
 
 void VolumeConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
@@ -83,6 +90,7 @@ pybind11::dict VolumeConservationMeshForceCompute::getParams(std::string type)
         m_exec_conf->msg->error() << "mesh.helfrich: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in VolumeConservationMeshForceCompute");
         }
+    if(m_ignore_type) typ = 0;
     pybind11::dict params;
     params["k"] = m_K[typ];
     params["V0"] = m_V0[typ];
@@ -129,6 +137,8 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
+    ArrayHandle<unsigned int> h_pts(m_mesh_data->getPerTypeSize(), access_location::host, access_mode::read);
+
     Scalar helfrich_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
@@ -174,11 +184,15 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 Fa, Fb, Fc;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
+  
+	if(m_ignore_type) triangle_type = 0;
 
+	unsigned int trin3 = h_pts.data[triangle_type]*3;
+  
         Scalar VolDiff = m_volume[triangle_type] - m_V0[triangle_type];
 
         Scalar energy = m_K[triangle_type] * VolDiff * VolDiff
-                        / (2 * m_V0[triangle_type] * m_pdata->getNGlobal());
+                        / (2 * m_V0[triangle_type] * trin3);
 
         VolDiff = -m_K[triangle_type] / m_V0[triangle_type] * VolDiff / 6.0;
 
@@ -203,7 +217,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = energy;
+            h_force.data[idx_a].w += energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -227,7 +241,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x += Fb.x;
             h_force.data[idx_b].y += Fb.y;
             h_force.data[idx_b].z += Fb.z;
-            h_force.data[idx_b].w = energy;
+            h_force.data[idx_b].w += energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -251,7 +265,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x += Fc.x;
             h_force.data[idx_c].y += Fc.y;
             h_force.data[idx_c].z += Fc.z;
-            h_force.data[idx_c].w = energy;
+            h_force.data[idx_c].w += energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += helfrich_virial[j];
             }
@@ -272,7 +286,10 @@ void VolumeConservationMeshForceCompute::computeVolume()
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
-    const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+    unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+
+    if(m_ignore_type) n_types = 1;
+
     std::vector<Scalar> global_volume(n_types);
     for (unsigned int i = 0; i < n_types; i++)
         global_volume[i] = 0;
@@ -312,6 +329,8 @@ void VolumeConservationMeshForceCompute::computeVolume()
         Scalar volume_tri = dot(cross(pos_c, pos_b), pos_a) / 6.0;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
+
+	if(m_ignore_type) triangle_type = 0;
 
 #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -357,7 +376,7 @@ void export_VolumeConservationMeshForceCompute(pybind11::module& m)
                      std::shared_ptr<VolumeConservationMeshForceCompute>>(
         m,
         "VolumeConservationMeshForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>())
         .def("setParams", &VolumeConservationMeshForceCompute::setParamsPython)
         .def("getParams", &VolumeConservationMeshForceCompute::getParams)
         .def("getVolume", &VolumeConservationMeshForceCompute::getVolume);
