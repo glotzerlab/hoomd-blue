@@ -135,10 +135,10 @@ class State:
       HOOMD-blue reads and writes particle diameters, but does not use them in
       any computations.
 
-    - :math:`\\vec{v}``: velocity :math:`[\\mathrm{velocity}]` - X,Y,Z
+    - :math:`\\vec{v}`: velocity :math:`[\\mathrm{velocity}]` - X,Y,Z
       components of the particle's velocity in the box's reference frame.
 
-    - :math:`\\mathbf{P_S}``: angular momentum :math:`[\\mathrm{mass} \\cdot
+    - :math:`\\mathbf{P_S}`: angular momentum :math:`[\\mathrm{mass} \\cdot
       \\mathrm{velocity} \\cdot \\mathrm{length}]` - Quaternion defining the
       particle's angular momentum (see note).
 
