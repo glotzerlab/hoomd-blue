@@ -128,6 +128,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               m_virial.getPitch(),
                                               m_pdata->getN(),
                                               d_pts.data,
+					      this->m_mesh_data->getSize(),
                                               d_pos.data,
                                               box,
                                               d_area.data,
