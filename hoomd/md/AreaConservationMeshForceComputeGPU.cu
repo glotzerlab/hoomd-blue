@@ -282,6 +282,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          const size_t virial_pitch,
                                                          const unsigned int N,
                                                          const unsigned int* gN,
+                                                         const unsigned int aN,
                                                          const Scalar4* d_pos,
                                                          BoxDim box,
                                                          const Scalar* area,
@@ -313,6 +314,8 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
+    unsigned int triN = 1*aN;
+
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
@@ -323,6 +326,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         int cur_triangle_type = cur_triangle.idx[2];
 
 	if(ignore_type) cur_triangle_type = 0;
+	else triN = gN[cur_triangle_type];
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
@@ -331,7 +335,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar AreaDiff = area[cur_triangle_type] - A_mesh;
 
-        Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * 3 * gN[cur_triangle_type]);
+        Scalar energy = K * AreaDiff * AreaDiff / (6 * A_mesh * triN);
 
         AreaDiff = K / A_mesh * AreaDiff / 2.0;
 
@@ -452,6 +456,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              const size_t virial_pitch,
                                              const unsigned int N,
                                              const unsigned int* gN,
+                                             const unsigned int aN,
                                              const Scalar4* d_pos,
                                              const BoxDim& box,
                                              const Scalar* area,
@@ -486,6 +491,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                        virial_pitch,
                        N,
                        gN,
+		       aN,
                        d_pos,
                        box,
                        area,

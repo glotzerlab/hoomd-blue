@@ -141,7 +141,9 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     Scalar area_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         area_virial[i] = Scalar(0.0);
-
+    
+    unsigned int triN = m_mesh_data->getSize();
+    
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -216,13 +218,12 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
   
 	if(m_ignore_type) triangle_type = 0;
-
-	unsigned int triN3 = h_pts.data[triangle_type]*3;
+	else triN = h_pts.data[triangle_type];
 
         Scalar AreaDiff = m_area[triangle_type] - m_A0[triangle_type];
 
         Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
-                        / (2 * m_A0[triangle_type] * triN3);
+                        / (6 * m_A0[triangle_type] * triN);
 
         AreaDiff = m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
 	
