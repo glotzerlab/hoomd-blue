@@ -143,6 +143,9 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
 
+
+    unsigned int triN = m_mesh_data->getSize();
+
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -186,13 +189,12 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
   
 	if(m_ignore_type) triangle_type = 0;
-
-	unsigned int trin3 = h_pts.data[triangle_type]*3;
+	else triN = h_pts.data[triangle_type];
   
         Scalar VolDiff = m_volume[triangle_type] - m_V0[triangle_type];
 
         Scalar energy = m_K[triangle_type] * VolDiff * VolDiff
-                        / (2 * m_V0[triangle_type] * trin3);
+                        / (6 * m_V0[triangle_type] * triN);
 
         VolDiff = -m_K[triangle_type] / m_V0[triangle_type] * VolDiff / 6.0;
 
