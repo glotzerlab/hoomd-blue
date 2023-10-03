@@ -209,7 +209,12 @@ class _HDF5LogInternal(custom._InternalAction):
             chunk_size = None
             if category == "scalar":
                 data_shape = (1,)
-                dtype = "f8" if isinstance(value, float) else "i8"
+                if isinstance(value, (np.number, np.bool_)):
+                    dtype = value.dtype
+                elif isinstance(value, int):
+                    dtype = np.dtype(bool) if isinstance(value, bool) else "i8"
+                else:
+                    dtype = "f8"
                 chunk_size = (self._SCALAR_CHUNK,)
             else:
                 if not isinstance(value, np.ndarray):

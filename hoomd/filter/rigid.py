@@ -37,7 +37,7 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
 
     def __eq__(self, other):
         """Test for equality between two particle filters."""
-        return type(self) == type(other) and self._flags == other._flags
+        return type(self) is type(other) and self._flags == other._flags
 
     def __reduce__(self):
         """Enable (deep)copying and pickling of `Rigid` particle filters."""

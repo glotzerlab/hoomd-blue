@@ -72,11 +72,11 @@ def external_params(request):
 
 def _assert_correct_params(external_obj, param_attr, params):
     """Assert the params of the external object match whats in the dict."""
-    if type(params) == dict:
+    if type(params) is dict:
         for param in params.keys():
             npt.assert_allclose(
                 getattr(external_obj, param_attr)['A'][param], params[param])
-    if type(params) == tuple:
+    if type(params) is tuple:
         npt.assert_allclose(getattr(external_obj, param_attr)['A'], params)
 
 

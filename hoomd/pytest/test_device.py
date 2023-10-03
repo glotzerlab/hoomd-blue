@@ -26,7 +26,7 @@ def _assert_common_properties(dev,
             assert dev.num_cpu_threads == num_cpu_threads
         else:
             assert dev.num_cpu_threads == 1
-    assert type(dev.communicator) == hoomd.communicator.Communicator
+    assert type(dev.communicator) is hoomd.communicator.Communicator
 
 
 def test_common_properties(device, tmp_path):
@@ -82,9 +82,9 @@ def test_other_gpu_specifics(device):
 
 def _assert_list_str(values):
     """Asserts the input is a list of strings."""
-    assert type(values) == list
+    assert type(values) is list
     if len(values) > 0:
-        assert type(values[0]) == str
+        assert type(values[0]) is str
 
 
 @pytest.mark.gpu

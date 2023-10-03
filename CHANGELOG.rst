@@ -6,6 +6,20 @@ Change Log
 
 4.x
 ---
+4.2.1 (2024-10-02)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``hoomd.write.Table`` correctly displays floating point values that are exactly 0.0
+  (`#1625 <https://github.com/glotzerlab/hoomd-blue/issues/1625>`__).
+* ``hoomd.write.HDF5Log`` defaults to ``"f8"`` formatting except when the value is an `int`,
+  or a `numpy.number` (`#1620 <https://github.com/glotzerlab/hoomd-blue/issues/1620>`__).
+* Attempt to workaround ``PMI_Init returned 1`` error on OLCF Frontier
+  (`#1629 <https://github.com/glotzerlab/hoomd-blue/pull/1629>`__).
+* Apple clang 15 compiles HOOMD-blue without errors
+  (`#1626 <https://github.com/glotzerlab/hoomd-blue/pull/1626>`__).
+
 4.2.0 (2024-09-20)
 ^^^^^^^^^^^^^^^^^^
 
