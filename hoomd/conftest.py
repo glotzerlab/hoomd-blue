@@ -509,7 +509,7 @@ def equality_check(a, b):
 
     if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
         return a == b
-    assert type(a) == type(b)
+    assert type(a) is type(b)
 
     _check_obj_attr_compatibility(a, b)
 

@@ -40,7 +40,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     # make sure quantities are computable without failure
     for qty, typ in _thermo_qtys:
         calc_qty = getattr(thermo, qty)
-        assert type(calc_qty) == typ
+        assert type(calc_qty) is typ
 
     # detach from simulation and test properties again
     sim.operations.remove(thermo)
