@@ -1611,8 +1611,8 @@ class SphereUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1740,8 +1740,8 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1867,8 +1867,8 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.

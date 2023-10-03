@@ -196,7 +196,7 @@ class State:
       lists the improper types, and `special_pair_types` lists the special pair
       types.
     - ``bond_group``: A list of integers in the interval
-      :math:`[0, \\max(\\mathrm{particle\\_tag})]`` that defines the tags of the
+      :math:`[0, \\max(\\mathrm{particle\\_tag})]` that defines the tags of the
       particles in the bond (2), angle in ``angle_group`` (3), dihedral
       in ``dihedral_group`` (4), improper in ``improper_group`` (4), or
       special pair in ``pair_group`` (2).
