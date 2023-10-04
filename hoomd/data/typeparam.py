@@ -29,7 +29,7 @@ class TypeParameter(MutableMapping):
     Lennard-Jones pair potential parameters (`hoomd.md.pair.LJ.params`) are set
     by **pairs** of particle types.
 
-    `TypeParameter` holds the values of these type (or type pair) depdendent
+    `TypeParameter` holds the values of these type (or type pair) dependent
     parameters. It also provides convenience methods for setting defaults
     and multiple parameters on one line.
 
