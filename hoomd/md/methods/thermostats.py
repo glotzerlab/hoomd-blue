@@ -316,7 +316,7 @@ class Bussi(Thermostat):
         :math:`[\mathrm{time}].`
     """
 
-    def __init__(self, kT, tau=0.):
+    def __init__(self, kT, tau=0.0):
         super().__init__(kT)
         param_dict = ParameterDict(tau=float)
         param_dict["tau"] = tau
