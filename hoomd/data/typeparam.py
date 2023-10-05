@@ -117,7 +117,7 @@ class TypeParameter(MutableMapping):
         self.param_dict[key] = value
 
     def __getitem__(self, key):
-        """Access parameters by key.
+        """Access parameters by key or keys.
 
         .. rubric:: Examples:
 
@@ -130,6 +130,21 @@ class TypeParameter(MutableMapping):
         .. code-block:: python
 
             lj_epsilon_AB = lj.params[('A', 'B')]['epsilon']
+
+        .. rubric:: Multiple keys
+
+        When ``key`` denotes multiple pairs (see `__setitem__`), `__getitem__`
+        returns multiple items in a dictionary:
+
+        .. code-block:: python
+
+            gammas = langevin.gamma[['A', 'B']]
+
+        is equivalent to:
+
+        .. code-block:: python
+
+            gammas = {key: langevin.gamma[key] for key in ['A', 'B']}
         """
         return self.param_dict[key]
 
