@@ -136,12 +136,14 @@ class TypeParameter(MutableMapping):
         When ``key`` denotes multiple pairs (see `__setitem__`), `__getitem__`
         returns multiple items in a dictionary:
 
+        .. skip: next if(not hoomd.version.md_built)
         .. code-block:: python
 
             gammas = langevin.gamma[['A', 'B']]
 
         is equivalent to:
 
+        .. skip: next if(not hoomd.version.md_built)
         .. code-block:: python
 
             gammas = {key: langevin.gamma[key] for key in ['A', 'B']}
