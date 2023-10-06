@@ -389,8 +389,8 @@ class TestLocalSnapshots:
     @staticmethod
     def check_box(local_snapshot, global_box, ranks):
         """General check that ``box`` and ``local_box`` properties work."""
-        assert type(local_snapshot.global_box) == hoomd.Box
-        assert type(local_snapshot.local_box) == hoomd.Box
+        assert type(local_snapshot.global_box) is hoomd.Box
+        assert type(local_snapshot.local_box) is hoomd.Box
 
         assert local_snapshot.global_box == global_box
         # The local box and global box are equal if and only if
