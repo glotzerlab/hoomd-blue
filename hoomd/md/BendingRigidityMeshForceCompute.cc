@@ -240,7 +240,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += (Fab.y + Fac.y + Fad.y);
             h_force.data[idx_a].z += (Fab.z + Fac.z + Fad.z);
             h_force.data[idx_a].w
-                = prefactor_4 * (1 - cosinus); // the missing minus sign comes from the fact that
+                += prefactor_4 * (1 - cosinus); // the missing minus sign comes from the fact that
                                                // we have to compare the normal directions
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += rigidity_virial[j];
@@ -261,7 +261,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fab.x;
             h_force.data[idx_b].y -= Fab.y;
             h_force.data[idx_b].z -= Fab.z;
-            h_force.data[idx_b].w = prefactor_4 * (1 - cosinus);
+            h_force.data[idx_b].w += prefactor_4 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += rigidity_virial[j];
             }
@@ -281,7 +281,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x -= Fac.x;
             h_force.data[idx_c].y -= Fac.y;
             h_force.data[idx_c].z -= Fac.z;
-            h_force.data[idx_c].w = prefactor_4 * (1 - cosinus);
+            h_force.data[idx_c].w += prefactor_4 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += rigidity_virial[j];
             }
@@ -301,7 +301,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_d].x -= Fad.x;
             h_force.data[idx_d].y -= Fad.y;
             h_force.data[idx_d].z -= Fad.z;
-            h_force.data[idx_d].w = prefactor_4 * (1 - cosinus);
+            h_force.data[idx_d].w += prefactor_4 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_d] += rigidity_virial[j];
             }

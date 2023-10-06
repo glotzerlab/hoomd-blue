@@ -211,7 +211,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         force.x += Fac.x;
         force.y += Fac.y;
         force.z += Fac.z;
-        force.w = K / 8.0 * (1 - cosinus);
+        force.w += K / 8.0 * (1 - cosinus);
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)

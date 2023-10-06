@@ -73,7 +73,7 @@ def get_mesh_potential_args_forces_and_energies():
                                [0., 0., 0.]],
                               [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
                                [0., 0., 0.]]]
-    BendingRigidity_energies = [1.3333333333, 6.66666666, 200]
+    BendingRigidity_energies = [8, 40, 1200]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
