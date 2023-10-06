@@ -78,7 +78,7 @@ def get_mesh_potential_args_forces_and_energies():
                         [1271.084184, 0., 898.792246],
                         [0., -1271.084184, -898.792246],
                         [0., 1271.084184, -898.792246]]]
-    Helfrich_energies = [9.237604, 184.752086, 923.760431]
+    Helfrich_energies = [27.712812, 554.256258, 2771.281293]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
