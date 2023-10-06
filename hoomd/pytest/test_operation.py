@@ -74,7 +74,7 @@ def full_op(base_op, params, type_param):
 
 
 def test_getattr(full_op, params, type_param):
-    assert type(full_op.type_param) == TypeParameter
+    assert type(full_op.type_param) is TypeParameter
     assert full_op.type_param['A'] == type_param["A"]
     for key, param in params.items():
         assert getattr(full_op, key) == param

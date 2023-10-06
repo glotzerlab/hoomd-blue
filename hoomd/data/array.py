@@ -415,7 +415,7 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
         """
         new_inputs = [coerce_mock_to_array(val) for val in args]
         for key, value in kwargs.items():
-            if type(value) == tuple:
+            if type(value) is tuple:
                 kwargs[key] = tuple(
                     [coerce_mock_to_array(val) for val in value])
             else:
