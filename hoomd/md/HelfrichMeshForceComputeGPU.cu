@@ -488,7 +488,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
+        force.w += K / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
