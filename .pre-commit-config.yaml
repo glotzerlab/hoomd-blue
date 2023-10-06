@@ -75,11 +75,11 @@ repos:
   hooks:
     - id: nbstripout
 - repo: https://github.com/google/yapf
-  rev: 'v0.40.0'
+  rev: 'v0.40.2'
   hooks:
   - id: yapf
 - repo: https://github.com/PyCQA/flake8
-  rev: '6.0.0'
+  rev: '6.1.0'
   hooks:
   - id: flake8
     additional_dependencies:

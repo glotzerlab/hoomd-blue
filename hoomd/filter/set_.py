@@ -47,11 +47,11 @@ class _ParticleFilterSetOperations(ParticleFilter):
 
     def __eq__(self, other):
         if self._symmetric:
-            return type(self) == type(other) and \
+            return type(self) is type(other) and \
                 (self._f == other._f or self._f == other._g) and \
                 (self._g == other._g or self._g == other._f)
         else:
-            return type(self) == type(other) and \
+            return type(self) is type(other) and \
                 self._f == other._f and self._g == other._g
 
     def __reduce__(self):

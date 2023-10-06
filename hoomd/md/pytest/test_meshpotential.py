@@ -103,7 +103,8 @@ def get_mesh_potential_args_forces_and_energies():
                                [0., 0., 0.]],
                               [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
                                [0., 0., 0.]]]
-    BendingRigidity_energies = [1.3333333333, 6.66666666, 200]
+
+    BendingRigidity_energies = [8, 40, 1200]
     AreaConservation_forces = [[[0.94380349, 0., -0.66736985],
                                 [-0.94380349, 0., -0.66736985],
                                 [0., 0.94380349, 0.66736985],
