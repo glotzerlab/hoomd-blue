@@ -2890,7 +2890,7 @@ template<class Real> void SnapshotParticleData<Real>::validate() const
 
 #ifdef ENABLE_MPI
 //! Select non-zero communication lags
-struct comm_flag_select : std::unary_function<const unsigned int, bool>
+struct comm_flag_select
     {
     bool operator()(const unsigned int comm_flag) const
         {
@@ -3070,7 +3070,7 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
         std::remove_copy_if(h_comm_flags.data,
                             h_comm_flags.data + old_nparticles,
                             comm_flags.begin(),
-                            std::not1(comm_flag_select()));
+                            std::not_fn(comm_flag_select()));
 
         // reset communication flags to zero
         std::fill(h_comm_flags.data, h_comm_flags.data + new_nparticles, 0);
