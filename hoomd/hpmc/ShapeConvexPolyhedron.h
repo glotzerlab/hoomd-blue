@@ -76,7 +76,9 @@ struct PolyhedronVertices : ShapeParams
         @param verts Vertices to set
         @param sweep_radius_ Sweep radius
     */
-    void setVerts(const std::vector<vec3<ShortReal>>& verts, ShortReal sweep_radius_, bool managed=false)
+    void setVerts(const std::vector<vec3<ShortReal>>& verts,
+                  ShortReal sweep_radius_,
+                  bool managed = false)
         {
         N = (unsigned int)verts.size();
         diameter = 0;
