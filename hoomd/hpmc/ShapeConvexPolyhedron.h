@@ -55,9 +55,6 @@ struct PolyhedronVertices : ShapeParams
     PolyhedronVertices(unsigned int _N, bool managed = false) : ignore(0)
         {
         std::vector<vec3<ShortReal>> v(_N, vec3<ShortReal>(0, 0, 0));
-        x = ManagedArray<ShortReal>(1, managed);
-        y = ManagedArray<ShortReal>(1, managed);
-        z = ManagedArray<ShortReal>(1, managed);
         setVerts(v, 0);
         }
 
