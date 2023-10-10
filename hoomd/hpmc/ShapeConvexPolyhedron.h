@@ -55,7 +55,7 @@ struct PolyhedronVertices : ShapeParams
     PolyhedronVertices(unsigned int _N, bool managed = false) : ignore(0)
         {
         std::vector<vec3<ShortReal>> v(_N, vec3<ShortReal>(0, 0, 0));
-        setVerts(v, 0);
+        setVerts(v, 0, managed);
         }
 
     PolyhedronVertices(const std::vector<vec3<ShortReal>>& verts,
@@ -66,7 +66,7 @@ struct PolyhedronVertices : ShapeParams
           z((unsigned int)verts.size(), managed), n_hull_verts(0), N((unsigned int)verts.size()),
           diameter(0.0), sweep_radius(sweep_radius_), ignore(ignore_)
         {
-        setVerts(verts, sweep_radius_);
+        setVerts(verts, sweep_radius_, managed);
         }
 
     /** Set the shape vertices
@@ -76,12 +76,11 @@ struct PolyhedronVertices : ShapeParams
         @param verts Vertices to set
         @param sweep_radius_ Sweep radius
     */
-    void setVerts(const std::vector<vec3<ShortReal>>& verts, ShortReal sweep_radius_)
+    void setVerts(const std::vector<vec3<ShortReal>>& verts, ShortReal sweep_radius_, bool managed=false)
         {
         N = (unsigned int)verts.size();
         diameter = 0;
         sweep_radius = sweep_radius_;
-        bool managed = x.isManaged();
 
         unsigned int align_size = 8; // for AVX
         unsigned int N_align = ((N + align_size - 1) / align_size) * align_size;
@@ -163,7 +162,7 @@ struct PolyhedronVertices : ShapeParams
             vert_vector.push_back(vert);
             }
 
-        setVerts(vert_vector, v["sweep_radius"].cast<float>());
+        setVerts(vert_vector, v["sweep_radius"].cast<float>(), managed);
         }
 
     /// Convert parameters to a python dictionary

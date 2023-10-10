@@ -143,6 +143,7 @@ template<class T> class managed_allocator
                 if (!result)
                     throw std::bad_alloc();
                 }
+
             memset(result, 0, n * sizeof(T));
             allocation_bytes = n * sizeof(T);
             allocation_ptr = result;
