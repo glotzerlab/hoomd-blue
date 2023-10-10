@@ -3,6 +3,9 @@
 
 #include "AlchemostatTwoStep.h"
 
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::AlchemicalMDParticle>>);
+
 namespace hoomd
     {
 namespace md
