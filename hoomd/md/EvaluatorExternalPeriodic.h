@@ -10,6 +10,7 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 #include <math.h>
 
 /*! \file EvaluatorExternalPeriodic.h
@@ -89,6 +90,7 @@ class EvaluatorExternalPeriodic
         \param params per-type parameters of external potential
     */
     DEVICE EvaluatorExternalPeriodic(Scalar3 X,
+		    		     quat<Scalar> q,
                                      const BoxDim& box,
                                      const param_type& params,
                                      const field_type& field)
@@ -120,7 +122,7 @@ class EvaluatorExternalPeriodic
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
+    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         Scalar3 a2 = make_scalar3(0, 0, 0);
         Scalar3 a3 = make_scalar3(0, 0, 0);
@@ -128,6 +130,11 @@ class EvaluatorExternalPeriodic
         F.x = Scalar(0.0);
         F.y = Scalar(0.0);
         F.z = Scalar(0.0);
+
+	T.x = Scalar(0.0);
+	T.y = Scalar(0.0);
+	T.z = Scalar(0.0);
+
         energy = Scalar(0.0);
 
         // For this potential, since it uses scaled positions, the virial is always zero.

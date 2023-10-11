@@ -28,23 +28,28 @@ struct external_potential_args_t
     {
     //! Construct a external_potential_args_t
     external_potential_args_t(Scalar4* _d_force,
+                              Scalar4* _d_torque,
                               Scalar* _d_virial,
                               const size_t _virial_pitch,
                               const unsigned int _N,
                               const Scalar4* _d_pos,
+                              const Scalar4* _d_orientation,
                               const Scalar* _d_charge,
                               const BoxDim& _box,
                               const unsigned int _block_size,
                               const hipDeviceProp_t& _devprop)
-        : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), box(_box), N(_N),
-          d_pos(_d_pos), d_charge(_d_charge), block_size(_block_size), devprop(_devprop) {};
+        : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch), 
+	  box(_box), N(_N), d_pos(_d_pos), d_orientation(_d_orientation), d_charge(_d_charge), 
+	  block_size(_block_size), devprop(_devprop) {};
 
     Scalar4* d_force;               //!< Force to write out
+    Scalar4* d_torque;              //!< Torque to write out
     Scalar* d_virial;               //!< Virial to write out
     const size_t virial_pitch;      //!< The pitch of the 2D array of virial matrix elements
     const BoxDim box;               //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
     const Scalar4* d_pos;           //!< Device array of particle positions
+    const Scalar4* d_orientation;   //!< Device array of particle orientations
     const Scalar* d_charge;         //!< particle charges
     const unsigned int block_size;  //!< Block size to execute
     const hipDeviceProp_t& devprop; //!< Device properties
@@ -69,20 +74,24 @@ hipError_t __attribute__((visibility("default"))) gpu_compute_potential_external
    the potentials and forces for each particle is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
+    \param d_torque Device memory to write computed torques
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
     \param N number of particles
     \param d_pos device array of particle positions
+    \param d_orientation device array of particle orientations
     \param box Box dimensions used to implement periodic boundary conditions
     \param params per-type array of parameters for the potential
 
 */
 template<class evaluator>
 __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
+                                                   Scalar4* d_torque,
                                                    Scalar* d_virial,
                                                    const size_t virial_pitch,
                                                    const unsigned int N,
                                                    const Scalar4* d_pos,
+                                                   const Scalar4* d_orientation,
                                                    const Scalar* d_charge,
                                                    const BoxDim box,
                                                    const typename evaluator::param_type* params,
@@ -126,6 +135,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
 
     // initialize the force to 0
     Scalar3 force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar3 torque = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
     Scalar virial[6];
     for (unsigned int k = 0; k < 6; k++)
         virial[k] = Scalar(0.0);
@@ -133,12 +143,13 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
 
     unsigned int typei = __scalar_as_int(posi.w);
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, box, params[typei], field);
+    quat<Scalar> q(d_orientation[idx]);
+    evaluator eval(Xi, q, box, params[typei], field);
 
     if (evaluator::needsCharge())
         eval.setCharge(qi);
 
-    eval.evalForceEnergyAndVirial(force, energy, virial);
+    eval.evalForceEnergyAndVirial(force, torque, energy, virial);
 
     // now that the force calculation is complete, write out the result)
     d_force[idx].x = force.x;
@@ -148,6 +159,10 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
 
     for (unsigned int k = 0; k < 6; k++)
         d_virial[k * virial_pitch + idx] = virial[k];
+
+    d_torque[idx].x = torque.x;
+    d_torque[idx].y = torque.y;
+    d_torque[idx].z = torque.z;
     }
 
 /*!
@@ -187,10 +202,12 @@ hipError_t gpu_compute_potential_external_forces(
                        bytes,
                        0,
                        external_potential_args.d_force,
+                       external_potential_args.d_torque,
                        external_potential_args.d_virial,
                        external_potential_args.virial_pitch,
                        external_potential_args.N,
                        external_potential_args.d_pos,
+                       external_potential_args.d_orientation,
                        external_potential_args.d_charge,
                        external_potential_args.box,
                        d_params,

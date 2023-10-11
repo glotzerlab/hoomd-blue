@@ -8,7 +8,9 @@
 #include <string>
 #endif
 
+#include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 #include <math.h>
 
 /*! \file EvaluatorExternalMagneticField.h
@@ -77,10 +79,11 @@ class EvaluatorExternalMagneticField
         \param params per-type parameters of external potential
     */
     DEVICE EvaluatorExternalMagneticField(Scalar3 X,
+		    			  quat<Scalar> q,
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
-        : m_quat(X), m_B(params.B), m_mu(params.mu)
+        : m_q(q), m_B(params.B), m_mu(params.mu)
         {
         }
 
@@ -111,12 +114,15 @@ class EvaluatorExternalMagneticField
     DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         
-	Scalar3 dir = m_mu * u_i;
+	Scalar3 dir = rotate(m_mu , m_q);
 
 	T = cross(dir, m_B);
 
-	energy = - dot(dir,m_B);
+	energy = -dot(dir,m_B);
 
+	F.x = Scalar(0.0);
+	F.y = Scalar(0.0);
+	F.z = Scalar(0.0);
         }
 
 #ifndef __HIPCC__
@@ -130,7 +136,7 @@ class EvaluatorExternalMagneticField
 #endif
 
     protected:
-    Scalar4 m_quat; //!< particle position
+    quat<Scalar> m_q; //!< particle position
     Scalar3 m_mu;   //!< particle charge
     Scalar3 m_B;   //!< the field vector
     };
