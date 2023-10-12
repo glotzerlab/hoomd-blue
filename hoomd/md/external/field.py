@@ -120,3 +120,44 @@ class Electric(Field):
             'E', 'particle_types',
             TypeParameterDict((float, float, float), len_keys=1))
         self._add_typeparam(params)
+
+class Magnetic(Field):
+    """Magnetic field torque.
+
+    `Magnetic` computes forces, and virials, and energies on all particles in
+    the in the simulation state with consistent with:
+
+    .. math::
+
+       U_i = -\\vec{mu}_i \\cdot \\vec{B}
+
+
+    where :math:`\\vec{mu}_i` is the particle magnetic momentum and :math:`\\vec{B}` is the field
+    vector. The field vector :math:`\\vec{B}` must be set per unique particle
+    type.
+
+    .. py:attribute:: params
+
+        The `Magnetic` external potential parameters. The dictionary has the
+        following keys:
+
+        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic field vector 
+        :math:`B [\\mathrm{energy}]`.
+        * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic moment of 
+        the particles type :math:`mu [\\mathrm{energy}]`.
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    Example::
+
+        # Apply an magnetic field in the x-direction
+        m_field = external.field.Magnetic()
+        m_field.params['A'] = dict(B=(1.0,0.0,0.0), mu=(1.0,0.0,0.0))
+    """
+    _cpp_class_name = "PotentialExternalMagneticField"
+
+    def __init__(self):
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(B=(float, float, float), mu=(float, float, float), len_keys=1))
+        self._add_typeparam(params)
