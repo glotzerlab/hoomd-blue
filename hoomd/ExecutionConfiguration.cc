@@ -104,10 +104,20 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         {
-        bool found_local_rank = false;
-        int local_rank = guessLocalRank(found_local_rank);
-        if (!gpu_id.size() && found_local_rank)
+        bool using_mpi = false;
+        #ifdef ENABLE_MPI
+        // single rank simulations emulate the ENABLE_MPI=off behavior
+        int size;
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        if (size > 1)
             {
+            using_mpi = true;
+            }
+        #endif
+
+        if (!gpu_id.size() && using_mpi)
+            {
+            int local_rank = guessLocalRank();
             // if we found a local rank, use that to select the GPU
             gpu_id.push_back((local_rank % dev_count));
 
@@ -615,68 +625,24 @@ void ExecutionConfiguration::endMultiGPU() const
 #endif
     }
 
-int ExecutionConfiguration::guessLocalRank(bool& found)
+int ExecutionConfiguration::guessLocalRank()
     {
-    found = false;
-
 #ifdef ENABLE_MPI
-    // single rank simulations emulate the ENABLE_MPI=off behavior
-
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    if (size == 1)
-        {
-        found = false;
-        return 0;
-        }
-
     std::vector<std::string> env_vars;
-    char* env;
+    char* env_value;
 
     // setup common environment variables containing local rank information
+    env_vars.push_back("SLURM_LOCALID");
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
 
-    std::vector<std::string>::iterator it;
-
-    for (it = env_vars.begin(); it != env_vars.end(); it++)
+    for (const auto& env_var : env_vars)
         {
-        if ((env = getenv(it->c_str())) != NULL)
+        if ((env_value = getenv(env_var.c_str())) != NULL)
             {
-            msg->notice(3) << "Found local rank in: " << *it << std::endl;
-            found = true;
-            return atoi(env);
-            }
-        }
-
-    // try SLURM_LOCALID
-    if (((env = getenv("SLURM_LOCALID"))) != NULL)
-        {
-        int num_total_ranks = 0;
-        int errors = 0;
-        int slurm_localid = atoi(env);
-
-        if (slurm_localid == 0)
-            errors = 1;
-
-        // some SLURMs set LOCALID to 0 on all ranks, check for this
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &errors,
-                      1,
-                      MPI_INT,
-                      MPI_SUM,
-                      m_mpi_config->getHOOMDWorldCommunicator());
-        MPI_Comm_size(m_mpi_config->getHOOMDWorldCommunicator(), &num_total_ranks);
-        if (errors == num_total_ranks)
-            {
-            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks, it cannot be used" << std::endl;
-            }
-        else
-            {
-            msg->notice(3) << "Found local rank in: SLURM_LOCALID" << std::endl;
-            found = true;
-            return slurm_localid;
+            msg->notice(3) << "Found local rank in: " << env_var << std::endl;
+            return atoi(env_value);
             }
         }
 
@@ -684,7 +650,6 @@ int ExecutionConfiguration::guessLocalRank(bool& found)
     msg->notice(3) << "Using global rank to select GPUs" << std::endl;
     int global_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
-    found = true;
     return global_rank;
 #else
     return 0;
