@@ -105,7 +105,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     if (exec_mode == GPU)
         {
         bool using_mpi = false;
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         // single rank simulations emulate the ENABLE_MPI=off behavior
         int size;
         MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -113,7 +113,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             {
             using_mpi = true;
             }
-        #endif
+#endif
 
         if (!gpu_id.size() && using_mpi)
             {
