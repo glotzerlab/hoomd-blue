@@ -84,6 +84,11 @@ class EvaluatorExternalElectricField
         {
         }
 
+    DEVICE static bool isAnisotropic()
+        {
+        return false;
+        }
+
     //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()
         {

@@ -54,8 +54,14 @@ class EvaluatorExternalMagneticField
 
         param_type(pybind11::dict params)
             {
-            B = params["B"].cast<Scalar3>();
-            mu = params["mu"].cast<Scalar3>();
+            pybind11::tuple py_B = params["B"];
+            B.x = pybind11::cast<Scalar>(py_B[0]);
+            B.y = pybind11::cast<Scalar>(py_B[1]);
+            B.z = pybind11::cast<Scalar>(py_B[2]);
+            pybind11::tuple py_mu = params["mu"];
+            mu.x = pybind11::cast<Scalar>(py_mu[0]);
+            mu.y = pybind11::cast<Scalar>(py_mu[1]);
+            mu.z = pybind11::cast<Scalar>(py_mu[2]);
             }
 
         param_type(Scalar3 B_, Scalar3 mu_) : B(B_), mu(mu_) { }
@@ -64,8 +70,8 @@ class EvaluatorExternalMagneticField
         pybind11::dict toPython()
             {
             pybind11::dict d;
-            d["B"] = B;
-            d["mu"] = mu;
+            d["B"] = pybind11::make_tuple(B.x, B.y, B.z);;
+            d["mu"] = pybind11::make_tuple(mu.x, mu.y, mu.z);;
             return d;
             }
 #endif // ifndef __HIPCC__
@@ -85,6 +91,11 @@ class EvaluatorExternalMagneticField
                                           const field_type& field)
         : m_q(q), m_B(params.B), m_mu(params.mu)
         {
+        }
+
+    DEVICE static bool isAnisotropic()
+        {
+        return true;
         }
 
     //! ExternalMagneticField needs charges
@@ -114,15 +125,22 @@ class EvaluatorExternalMagneticField
     DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         
-	Scalar3 dir = rotate(m_mu , m_q);
+	vec3<Scalar> dir = rotate(m_q, m_mu);
 
-	T = cross(dir, m_B);
+	vec3<Scalar> T_vec = cross(dir, m_B);
+
+	T.x = T_vec.x;
+	T.y = T_vec.y;
+	T.z = T_vec.z;
 
 	energy = -dot(dir,m_B);
 
 	F.x = Scalar(0.0);
 	F.y = Scalar(0.0);
 	F.z = Scalar(0.0);
+
+        for (unsigned int i = 0; i < 6; i++)
+            virial[i] = Scalar(0.0);
         }
 
 #ifndef __HIPCC__
@@ -137,8 +155,8 @@ class EvaluatorExternalMagneticField
 
     protected:
     quat<Scalar> m_q; //!< particle position
-    Scalar3 m_mu;   //!< particle charge
-    Scalar3 m_B;   //!< the field vector
+    vec3<Scalar> m_B;   //!< the field vector
+    vec3<Scalar> m_mu;   //!< particle charge
     };
 
     } // end namespace md

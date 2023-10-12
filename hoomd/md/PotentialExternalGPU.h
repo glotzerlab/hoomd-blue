@@ -71,7 +71,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     const BoxDim box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_torque(this->m_pdata->getNetTorqueArray(),
+    ArrayHandle<Scalar4> d_torque(this->m_torque,
                                   access_location::device,
                                   access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);

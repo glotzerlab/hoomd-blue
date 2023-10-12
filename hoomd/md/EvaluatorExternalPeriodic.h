@@ -99,6 +99,11 @@ class EvaluatorExternalPeriodic
         {
         }
 
+    DEVICE static bool isAnisotropic()
+        {
+        return false;
+        }
+
     //! External Periodic doesn't need charges
     DEVICE static bool needsCharge()
         {

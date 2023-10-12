@@ -44,6 +44,8 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     typedef typename evaluator::param_type param_type;
     typedef typename evaluator::field_type field_type;
 
+    bool isAnisotropic();
+
     //! Sets parameters of the evaluator
     pybind11::object getParams(std::string type);
 
@@ -105,7 +107,7 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 				       access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(),
+    ArrayHandle<Scalar4> h_torque(m_torque,
                                   access_location::host,
                                   access_mode::overwrite);
 
@@ -120,7 +122,7 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 
     // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_torque.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
@@ -170,6 +172,13 @@ void PotentialExternal<evaluator>::validateType(unsigned int type, std::string a
         throw std::runtime_error("Invalid type encountered when " + action);
         }
     }
+
+//! Returns true if this ForceCompute requires anisotropic integration
+template<class evaluator> bool PotentialExternal<evaluator>::isAnisotropic()
+        {
+        // by default, only translational degrees of freedom are integrated
+        return evaluator::isAnisotropic();
+        }
 
 //! Set the parameters for this potential
 /*! \param type type for which to set parameters
