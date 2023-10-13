@@ -40,6 +40,8 @@ class EvaluatorPairLubricationCoupling
         {
         Scalar kappa; //! force coefficient.
         Scalar tau;   //! torque coefficient.
+	bool take_momentum;
+
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -58,7 +60,7 @@ class EvaluatorPairLubricationCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0), tau(0) { }
+        HOSTDEVICE param_type() : kappa(0), tau(0), take_momentum(true) { }
 
 #ifndef __HIPCC__
 
@@ -66,6 +68,7 @@ class EvaluatorPairLubricationCoupling
             {
             kappa = v["kappa"].cast<Scalar>();
             tau = v["tau"].cast<Scalar>();
+            take_momentum = v["take_momentum"].cast<bool>();
             }
 
         pybind11::object toPython()
@@ -73,6 +76,7 @@ class EvaluatorPairLubricationCoupling
             pybind11::dict v;
             v["kappa"] = kappa;
             v["tau"] = tau;
+            v["take_momentum"] = take_momentum;
             return std::move(v);
             }
 
@@ -128,7 +132,7 @@ class EvaluatorPairLubricationCoupling
                                                 Scalar _rcutsq,
                                                 const param_type& _params)
         : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
-          diameter(0), kappa(_params.kappa), tau(_params.tau)
+          diameter(0), kappa(_params.kappa), tau(_params.tau), take_momentum(_params.take_momentum)
         {
         }
 
@@ -201,13 +205,18 @@ class EvaluatorPairLubricationCoupling
     */
     HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai)
         {
-        ang_mom = ai;
+	am = true;
+	if(take_momentum)
+		{
+		ang_mom = ai;
 
-        if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
-            am = false;
-        else
-            am = true;
-        }
+		if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
+		    am = false;
+		}
+	else 
+		ang_mom = vec3<Scalar>(0,0,1);
+	}
+
 
     //! Evaluate the force and energy
     /*! \param force Output parameter to write the computed force.
@@ -293,6 +302,7 @@ class EvaluatorPairLubricationCoupling
     Scalar diameter; /// average diameter of the particle pair
     Scalar kappa;
     Scalar tau;
+    bool take_momentum;
     // const param_type &params;   //!< The pair potential parameters
     };
 
