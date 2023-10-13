@@ -39,6 +39,7 @@ class EvaluatorPairRotationalCoupling
     struct param_type
         {
         Scalar kappa; //! force coefficient.
+	bool take_momentum;
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -57,19 +58,21 @@ class EvaluatorPairRotationalCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0) { }
+        HOSTDEVICE param_type() : kappa(0), take_momentum(true) { }
 
 #ifndef __HIPCC__
 
         param_type(pybind11::dict v, bool managed)
             {
             kappa = v["kappa"].cast<Scalar>();
+            take_momentum = v["take_momentum"].cast<bool>();
             }
 
         pybind11::object toPython()
             {
             pybind11::dict v;
             v["kappa"] = kappa;
+            v["take_momentum"] = take_momentum;
             return std::move(v);
             }
 
@@ -125,7 +128,7 @@ class EvaluatorPairRotationalCoupling
                                                Scalar _rcutsq,
                                                const param_type& _params)
         : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
-          kappa(_params.kappa)
+          kappa(_params.kappa), take_momentum(_params.take_momentum)
         {
         }
 
@@ -195,12 +198,16 @@ class EvaluatorPairRotationalCoupling
     */
     HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai)
         {
-        ang_mom = ai;
+	am = true;
+	if(take_momentum)
+		{
+		ang_mom = ai;
 
-        if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
-            am = false;
-        else
-            am = true;
+		if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
+		    am = false;
+		}
+	else 
+		ang_mom = vec3<Scalar>(0,0,1);
         }
 
     //! Evaluate the force and energy
@@ -279,6 +286,7 @@ class EvaluatorPairRotationalCoupling
     vec3<Scalar> ang_mom;   /// Sum of angular momentum for ith and jth particle
     bool am;
     Scalar kappa;
+    bool take_momentum;
     // const param_type &params;   //!< The pair potential parameters
     };
 
