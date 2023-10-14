@@ -24,7 +24,26 @@ improper_test_parameters = [
         ],
         0.007549784469704433,
     ),
+    (
+        hoomd.md.improper.Periodic,
+        dict(k=3.0, d=-1, n=2, phi0=numpy.pi / 2),
+        0,
+        3,
+    ),
+    (
+        hoomd.md.improper.Periodic,
+        dict(k=10.0, d=1, n=1, phi0=numpy.pi / 4),
+        5.0,
+        5.0,
+    ),
+    (
+        hoomd.md.improper.Periodic,
+        dict(k=5.0, d=1, n=3, phi0=numpy.pi / 6),
+        1.9411,
+        0.0852,
+    )
 ]
+
 
 
 @pytest.mark.parametrize("improper_cls, params, force, energy",
