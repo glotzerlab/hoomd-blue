@@ -78,7 +78,13 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
         m_field.reset();
         }
 
-    //! Set the period of the streaming method
+    //! Get the streaming period
+    unsigned int getPeriod() const
+        {
+        return m_period;
+        }
+
+    //! Set the streaming period
     void setPeriod(unsigned int cur_timestep, unsigned int period);
 
     //! Set the cell list used for collisions
