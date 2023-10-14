@@ -33,7 +33,7 @@ template<class F> void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration
     sysdef->setCommunicator(pdata_comm);
 
     auto pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 

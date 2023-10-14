@@ -66,6 +66,11 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
     if (!this->shouldStream(timestep))
         return;
 
+    if (!this->m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     // the validation step currently proceeds on the cpu because it is done infrequently.
     // if it becomes a performance concern, it can be ported to the gpu
     if (this->m_validate_geom)

@@ -48,9 +48,22 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     //! Prepare for the run
     virtual void prepRun(uint64_t timestep);
 
+    //! Get the MPCD cell list shared by all methods
+    std::shared_ptr<mpcd::CellList> getCellList() const
+        {
+        return m_cl;
+        }
+
+    //! Set the MPCD cell list shared by all methods
+    void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        syncCellList();
+        }
+
 #ifdef ENABLE_MPI
     //! Set the MPCD communicator to use
-    virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
+    void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
         {
         // if the current communicator is set, first disable the migrate signal request
         if (m_mpcd_comm)
@@ -147,6 +160,7 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         }
 
     protected:
+    std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
     std::shared_ptr<mpcd::CollisionMethod> m_collide; //!< MPCD collision rule
     std::shared_ptr<mpcd::StreamingMethod> m_stream;  //!< MPCD streaming rule
     std::shared_ptr<mpcd::Sorter> m_sorter;           //!< MPCD sorter
@@ -163,6 +177,9 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         {
         return (m_collide && m_collide->peekCollide(timestep));
         }
+
+    //! Synchronize cell list to integrator dependencies
+    void syncCellList();
     };
 
 namespace detail

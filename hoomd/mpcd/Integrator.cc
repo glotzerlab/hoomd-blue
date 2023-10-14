@@ -55,7 +55,6 @@ void mpcd::Integrator::update(uint64_t timestep)
     if (checkCollide(timestep))
         {
         m_sysdef->getMPCDParticleData()->removeVirtualParticles();
-        m_collide->drawGridShift(timestep);
         }
 
 #ifdef ENABLE_MPI
@@ -146,10 +145,11 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
     {
     IntegratorTwoStep::prepRun(timestep);
 
-    // synchronize timestep in mpcd methods
-    if (m_collide)
+    // synchronize cell list in mpcd methods
+    syncCellList();
+    if (m_cl)
         {
-        m_collide->drawGridShift(timestep);
+        m_cl->drawGridShift(timestep);
         }
 
 #ifdef ENABLE_MPI
@@ -179,6 +179,33 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
         }
 
     m_fillers.push_back(filler);
+    }
+
+void mpcd::Integrator::syncCellList()
+    {
+    if (m_collide)
+        {
+        m_collide->setCellList(m_cl);
+        }
+    if (m_stream)
+        {
+        m_stream->setCellList(m_cl);
+        }
+    if (m_sorter)
+        {
+        m_sorter->setCellList(m_cl);
+        }
+#ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        {
+        m_mpcd_comm->setCellList(m_cl);
+        }
+#endif
+
+    for (auto& filler : m_fillers)
+        {
+        filler->setCellList(m_cl);
+        }
     }
 
 /*!

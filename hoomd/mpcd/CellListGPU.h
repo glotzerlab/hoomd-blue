@@ -25,7 +25,7 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     {
     public:
     //! Constructor
-    CellListGPU(std::shared_ptr<SystemDefinition> sysdef);
+    CellListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift);
 
     virtual ~CellListGPU();
 

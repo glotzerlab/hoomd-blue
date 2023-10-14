@@ -42,11 +42,10 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
 
     // initialize system and collision method
     std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 2, 1, T);
     collide->setCellList(cl);
-    collide->enableGridShifting(false);
 
     // thermo to test properties
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
@@ -127,11 +126,10 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
 
     // initialize system and collision method
     std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, T);
     collide->setCellList(cl);
-    collide->enableGridShifting(false);
 
     // thermo to check properties
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);

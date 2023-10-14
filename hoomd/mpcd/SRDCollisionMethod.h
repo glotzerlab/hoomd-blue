@@ -30,14 +30,14 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
                        unsigned int cur_timestep,
                        unsigned int period,
                        int phase,
-                       uint16_t seed);
+                       double angle);
 
     //! Destructor
     virtual ~SRDCollisionMethod();
 
     void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
-    //! Get the MPCD rotation angle
+    //! Get the MPCD rotation angles
     double getRotationAngle() const
         {
         return m_angle;
@@ -45,7 +45,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
 
     //! Set the MPCD rotation angle
     /*!
-     * \param angle MPCD rotation angle in radians
+     * \param angle MPCD rotation angle in degrees
      */
     void setRotationAngle(double angle)
         {
@@ -64,16 +64,16 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
         return m_factors;
         }
 
-    //! Set the temperature and enable the thermostat
+    //! Get the temperature
+    std::shared_ptr<Variant> getTemperature() const
+        {
+        return m_T;
+        }
+
+    //! Set the temperature
     void setTemperature(std::shared_ptr<Variant> T)
         {
         m_T = T;
-        }
-
-    //! Unset the temperature
-    void unsetTemperature()
-        {
-        m_T = std::shared_ptr<Variant>();
         }
 
     //! Get the requested thermo flags
