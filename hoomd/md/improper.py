@@ -110,3 +110,43 @@ class Harmonic(Improper):
                 chi0=hoomd.data.typeconverter.nonnegative_real,
                 len_keys=1))
         self._add_typeparam(params)
+
+class Periodic(Improper):
+    """Periodic improper force.
+
+    `Periodic` computes forces, virials, and energies on all impropers in the
+    simulation state with:
+
+    .. math::
+
+        U(phi) = \\k \\left( 1 + cos(n * \\phi - \\phi_{0})  \\right )
+
+    Attributes:
+        params(`TypeParameter` [``improper type``, `dict`]):
+            The parameter of the harmonic impropers for each improper type. The
+            dictionary has the following keys:
+
+            * ``k`` (`float`, **required**), potential constant :math:`k`
+              :math:`[\\mathrm{energy}]`.
+            * ``phi_{0}`` (`float`, **required**), equilibrium angle
+              :math:`\\phi_0` :math:`[\\mathrm{radian}]`.
+            * ``n`` (`float`, **required**), periodic number
+              :math:`\\n` :math:`[\\mathrm{dimensionless}]`.
+
+    Example::
+
+        harmonic = hoomd.md.improper.Periodic()
+        harmonic.params['A-B-C-D'] = dict(k=1.0, n = 1, phi0=0)
+    """
+    _cpp_class_name = "PeriodicImproperForceCompute"
+
+    def __init__(self):
+        super().__init__()
+        params = hoomd.data.typeparam.TypeParameter(
+            'params', 'improper_types',
+            hoomd.data.parameterdicts.TypeParameterDict(
+                k=float,
+                n=float,
+                phi0=hoomd.data.typeconverter.nonnegative_real,
+                len_keys=1))
+        self._add_typeparam(params)
