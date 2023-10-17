@@ -66,16 +66,15 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
         return m_mpcd_dt;
         }
 
+    std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> getField() const
+        {
+        return m_field;
+        }
+
     //! Set the external field
     void setField(std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> field)
         {
         m_field = field;
-        }
-
-    //! Remove the external field
-    void removeField()
-        {
-        m_field.reset();
         }
 
     //! Get the streaming period

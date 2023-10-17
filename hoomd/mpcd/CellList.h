@@ -239,12 +239,6 @@ class PYBIND11_EXPORT CellList : public Compute
             }
         }
 
-    //! Removes all embedded particles from collision coupling
-    void removeEmbeddedGroup()
-        {
-        setEmbeddedGroup(std::shared_ptr<ParticleGroup>());
-        }
-
     //! Gets the cell id array for the embedded particles
     const GPUArray<unsigned int>& getEmbeddedGroupCellIds() const
         {

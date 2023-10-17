@@ -121,8 +121,7 @@ void mpcd::detail::export_StreamingMethod(pybind11::module& m)
         "StreamingMethod")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int>())
         .def_property_readonly("every", &mpcd::StreamingMethod::getPeriod)
-        .def("setField", &mpcd::StreamingMethod::setField)
-        .def("removeField", &mpcd::StreamingMethod::removeField);
+        .def_property("field", &mpcd::StreamingMethod::getField, &mpcd::StreamingMethod::setField);
     }
 
     } // end namespace hoomd
