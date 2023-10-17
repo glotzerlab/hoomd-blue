@@ -1,241 +1,142 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD integration methods
-
-Defines bounce-back methods for integrating solutes (MD particles) embedded in an MPCD
-solvent. The integration scheme is velocity Verlet (NVE) with bounce-back performed at
-the solid boundaries defined by a geometry, as in :py:mod:`.mpcd.stream`. This gives a
-simple approximation of the interactions required to keep a solute bounded in a geometry,
-and more complex interactions can be specified, for example, by writing custom external fields.
-
-Similar caveats apply to these methods as for the :py:mod:`.mpcd.stream` methods. In particular:
-
-    1. The simulation box is periodic, but the geometry imposes inherently non-periodic boundary
-       conditions. You must ensure that the box is sufficiently large to enclose the geometry
-       and that all particles lie inside it, or an error will be raised at runtime.
-    2. You must also ensure that particles do not self-interact through the periodic boundaries.
-       This is usually achieved for simple pair potentials by padding the box size by the largest
-       cutoff radius. Failure to do so may result in unphysical interactions.
-    3. Bounce-back rules do not always enforce no-slip conditions at surfaces properly. It
-       may still be necessary to add additional 'ghost' MD particles in the surface
-       to achieve the right boundary conditions and reduce density fluctuations.
-
-The integration methods defined here are not restricted to only MPCD simulations: they can be
-used with both ``md.integrate.mode_standard`` and :py:class:`.mpcd.integrator`. For
-example, the same integration methods might be used to run DPD simulations with surfaces.
-
-These bounce-back methods do not support anisotropic integration because torques are currently
-not computed for collisions with the boundary. Similarly, rigid bodies will also not be treated
-correctly because the integrators are not aware of the extent of the particles; the surface
-reflections are treated as point particles. An error will be raised if an anisotropic integration
-mode is specified.
-
-"""
-
 import hoomd
-from hoomd import _hoomd
-
-from . import _mpcd
-
-
-class _bounce_back():
-    """ NVE integration with bounce-back rules.
-
-    Args:
-        group (``hoomd.group``): Group of particles on which to apply this method.
-
-    :py:class:`_bounce_back` is a base class integration method. It must be used with
-    ``md.integrate.mode_standard`` or :py:class:`.mpcd.integrator`.
-    Deriving classes implement the specific geometry and valid parameters for those geometries.
-    Currently, there is no mechanism to share geometries between multiple instances of the same
-    integration method.
-
-    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
-
-    """
-
-    def __init__(self, group):
-        # initialize base class
-        # hoomd.integrate._integration_method.__init__(self)
-
-        # create the compute thermo
-        hoomd.compute._get_unique_thermo(group=group)
-
-        # store metadata
-        self.group = group
-        self.boundary = None
-        self.metadata_fields = ['group', 'boundary']
-
-    def _process_boundary(self, bc):
-        """ Process boundary condition string into enum
-
-        Args:
-            bc (str): Boundary condition, either "no_slip" or "slip"
-
-        Returns:
-            A valid boundary condition enum.
-
-        The enum interface is still fairly clunky for the user since the boundary
-        condition is buried too deep in the package structure. This is a convenience
-        method for interpreting.
-
-        """
-        if bc == "no_slip":
-            return _mpcd.boundary.no_slip
-        elif bc == "slip":
-            return _mpcd.boundary.slip
-        else:
-            hoomd.context.current.device.cpp_msg.error(
-                "mpcd.integrate: boundary condition " + bc
-                + " not recognized.\n")
-            raise ValueError("Unrecognized streaming boundary condition")
-            return None
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
+from hoomd.md.integrate import Integrator as _MDIntegrator
+from hoomd.mpcd import _mpcd
+from hoomd.mpcd.collide import CellList, CollisionMethod
+from hoomd.mpcd.stream import StreamingMethod
 
 
-class slit(_bounce_back):
-    """ NVE integration with bounce-back rules in a slit channel.
+@hoomd.logging.modify_namespace(("mpcd", "Integrator"))
+class Integrator(_MDIntegrator):
+    """MPCD integrator.
 
-    Args:
-        group (``hoomd.group``): Group of particles on which to apply this method.
-        H (float): channel half-width
-        V (float): wall speed (default: 0)
-        boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
+    The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
+    MD methods.
 
-    This integration method applies to particles in *group* in the parallel-plate channel geometry.
-    This method is the MD analog of :py:class:`.stream.slit`, which documents additional details
-    about the geometry.
+    In MPCD simulations, `dt` defines the amount of time that the system is
+    advanced forward every time step. MPCD streaming and collision steps can be
+    defined to occur in multiples of `dt`. In these cases, any MD particle data
+    will be updated every `dt`, while the MPCD particle data is updated
+    asynchronously for performance. For example, if MPCD streaming happens every
+    5 steps, then the particle data will be updated as follows::
 
-    Examples::
+                0     1     2     3     4     5
+        MD:     |---->|---->|---->|---->|---->|
+        MPCD:   |---------------------------->|
 
-        all = group.all()
-        slit = mpcd.integrate.slit(group=all, H=5.0)
-        slit = mpcd.integrate.slit(group=all, H=10.0, V=1.0)
-
-    .. versionadded:: 2.7
+    If the MPCD particle data is accessed via the snapshot interface at time
+    step 3, it will actually contain the MPCD particle data for time step 5.
+    The MD particles can be read at any time step because their positions
+    are updated every step.
 
     """
 
-    def __init__(self, group, H, V=0.0, boundary="no_slip"):
-        # initialize base class
-        _bounce_back.__init__(self, group)
-        self.metadata_fields += ['H', 'V']
+    def __init__(
+        self,
+        dt,
+        integrate_rotational_dof=False,
+        forces=None,
+        constraints=None,
+        methods=None,
+        rigid=None,
+        half_step_hook=None,
+        streaming_method=None,
+        collision_method=None,
+    ):
+        super().__init__(
+            dt,
+            integrate_rotational_dof,
+            forces,
+            constraints,
+            methods,
+            rigid,
+            half_step_hook,
+        )
 
-        # initialize the c++ class
-        if not hoomd.context.current.device.mode == 'gpu':
-            cpp_class = _mpcd.BounceBackNVESlit
-        else:
-            cpp_class = _mpcd.BounceBackNVESlitGPU
+        param_dict = ParameterDict(
+            streaming_method=OnlyTypes(StreamingMethod, allow_none=True),
+            collision_method=OnlyTypes(CollisionMethod, allow_none=True),
+        )
+        param_dict.update(
+            dict(streaming_method=streaming_method,
+                 collision_method=collision_method))
+        self._param_dict.update(param_dict)
 
-        self.H = H
-        self.V = V
-        self.boundary = boundary
+        self._cell_list = CellList(cell_size=1.0, shift=True)
 
-        bc = self._process_boundary(boundary)
-        geom = _mpcd.SlitGeometry(H, V, bc)
+    @property
+    def cell_list(self):
+        """hoomd.mpcd.CellList: Collision cell list.
 
-        self.cpp_method = cpp_class(hoomd.context.current.system_definition,
-                                    group.cpp_group, geom)
-        self.cpp_method.validateGroup()
-
-    def set_params(self, H=None, V=None, boundary=None):
-        """ Set parameters for the slit geometry.
-
-        Args:
-            H (float): channel half-width
-            V (float): wall speed (default: 0)
-            boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
-
-        Examples::
-
-            slit.set_params(H=8.)
-            slit.set_params(V=2.0)
-            slit.set_params(boundary='slip')
-            slit.set_params(H=5, V=0., boundary='no_slip')
-
-        """
-
-        if H is not None:
-            self.H = H
-
-        if V is not None:
-            self.V = V
-
-        if boundary is not None:
-            self.boundary = boundary
-
-        bc = self._process_boundary(self.boundary)
-        self.cpp_method.geometry = _mpcd.SlitGeometry(self.H, self.V, bc)
-
-
-class slit_pore(_bounce_back):
-    """ NVE integration with bounce-back rules in a slit pore channel.
-
-    Args:
-        group (``hoomd.group``): Group of particles on which to apply this method.
-        H (float): channel half-width.
-        L (float): pore half-length.
-        boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
-
-    This integration method applies to particles in *group* in the parallel-plate (slit) pore geometry.
-    This method is the MD analog of :py:class:`.stream.slit_pore`, which documents additional details
-    about the geometry.
-
-    Examples::
-
-        all = group.all()
-        slit_pore = mpcd.integrate.slit_pore(group=all, H=10.0, L=10.)
-
-    .. versionadded:: 2.7
-
-    """
-
-    def __init__(self, group, H, L, boundary="no_slip"):
-        # initialize base class
-        _bounce_back.__init__(self, group)
-        self.metadata_fields += ['H', 'L']
-
-        # initialize the c++ class
-        if not hoomd.context.current.device.mode == 'gpu':
-            cpp_class = _mpcd.BounceBackNVESlitPore
-        else:
-            cpp_class = _mpcd.BounceBackNVESlitPoreGPU
-
-        self.H = H
-        self.L = L
-        self.boundary = boundary
-
-        bc = self._process_boundary(boundary)
-        geom = _mpcd.SlitPoreGeometry(H, L, bc)
-
-        self.cpp_method = cpp_class(hoomd.context.current.system_definition,
-                                    group.cpp_group, geom)
-        self.cpp_method.validateGroup()
-
-    def set_params(self, H=None, L=None, boundary=None):
-        """ Set parameters for the slit pore geometry.
-
-        Args:
-            H (float): channel half-width.
-            L (float): pore half-length.
-            boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
-
-        Examples::
-
-            slit_pore.set_params(H=8.)
-            slit_pore.set_params(L=2.0)
-            slit_pore.set_params(boundary='slip')
-            slit_pore.set_params(H=5, L=4., boundary='no_slip')
+        A `~hoomd.mpcd.CellList` is automatically created with each `Integrator`
+        using typical defaults of cell size 1 and random grid shifting enabled.
+        You can change this configuration if desired.
 
         """
-        if H is not None:
-            self.H = H
+        return self._cell_list
 
-        if L is not None:
-            self.L = L
+    def _attach_hook(self):
+        self._cell_list._attach()
+        if self.streaming_method is not None:
+            self.streaming_method._attach()
+        if self.collision_method is not None:
+            self.collision_method._attach()
 
-        if boundary is not None:
-            self.boundary = boundary
+        self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def,
+                                         self.dt)
+        self._cpp_obj.setCellList(self._cell_list._cpp_obj)
 
-        bc = self._process_boundary(self.boundary)
-        self.cpp_method.geometry = _mpcd.SlitPoreGeometry(self.H, self.L, bc)
+        super()._attach_hook()
+
+    def _detach_hook(self):
+        self._cell_list._detach()
+        if self.streaming_method is not None:
+            self.streaming_method._detach()
+        if self.collision_method is not None:
+            self.collision_method._detach()
+
+        super()._detach_hook()
+
+    def _setattr_param(self, attr, value):
+        if attr == "streaming_method":
+            self._set_streaming_method(value)
+        elif attr == "collision_method":
+            self._set_collision_method(value)
+        else:
+            super()._setattr_param(attr, value)
+
+    def _set_streaming_method(self, streaming_method):
+        if streaming_method is self.streaming_method:
+            return
+
+        if streaming_method is not None and streaming_method._attached:
+            raise ValueError(
+                "Cannot attach streaming method to multiple integrators.")
+
+        # if already attached, change out which is attached, then set parameter
+        if self._attached:
+            if self.streaming_method is not None:
+                self.streaming_method._detach()
+            if streaming_method is not None:
+                streaming_method._attach(self._simulation)
+        self._param_dict["streaming_method"] = streaming_method
+
+    def _set_collision_method(self, collision_method):
+        if collision_method is self.collision_method:
+            return
+
+        if collision_method is not None and collision_method._attached:
+            raise ValueError(
+                "Cannot attach collision method to multiple integrators.")
+
+        # if already attached, change out which is attached, then set parameter
+        if self._attached:
+            if self.collision_method is not None:
+                self.collision_method._detach()
+            if collision_method is not None:
+                collision_method._attach(self._simulation)
+        self._param_dict["collision_method"] = collision_method

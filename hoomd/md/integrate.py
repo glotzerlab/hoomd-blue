@@ -28,15 +28,16 @@ class _DynamicIntegrator(BaseIntegrator):
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
         self._forces = syncedlist.SyncedList(
-            Force, syncedlist._PartialGetAttr('_cpp_obj'), iterable=forces)
+            Force, syncedlist._PartialGetAttr("_cpp_obj"), iterable=forces)
 
         self._constraints = syncedlist.SyncedList(
             OnlyTypes(Constraint, disallow_types=(Rigid,)),
-            syncedlist._PartialGetAttr('_cpp_obj'),
-            iterable=constraints)
+            syncedlist._PartialGetAttr("_cpp_obj"),
+            iterable=constraints,
+        )
 
         self._methods = syncedlist.SyncedList(
-            Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
+            Method, syncedlist._PartialGetAttr("_cpp_obj"), iterable=methods)
 
         param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
         if rigid is not None and rigid._attached:
@@ -278,15 +279,16 @@ class Integrator(_DynamicIntegrator):
             perform computations during the half-step of the integration.
     """
 
-    def __init__(self,
-                 dt,
-                 integrate_rotational_dof=False,
-                 forces=None,
-                 constraints=None,
-                 methods=None,
-                 rigid=None,
-                 half_step_hook=None):
-
+    def __init__(
+        self,
+        dt,
+        integrate_rotational_dof=False,
+        forces=None,
+        constraints=None,
+        methods=None,
+        rigid=None,
+        half_step_hook=None,
+    ):
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
@@ -294,14 +296,17 @@ class Integrator(_DynamicIntegrator):
                 dt=float(dt),
                 integrate_rotational_dof=bool(integrate_rotational_dof),
                 half_step_hook=OnlyTypes(hoomd.md.HalfStepHook,
-                                         allow_none=True)))
+                                         allow_none=True),
+            ))
 
         self.half_step_hook = half_step_hook
 
     def _attach_hook(self):
         # initialize the reflected c++ class
-        self._cpp_obj = _md.IntegratorTwoStep(
-            self._simulation.state._cpp_sys_def, self.dt)
+        # checking for None allows deriving classes to construct this first
+        if self._cpp_obj is None:
+            self._cpp_obj = _md.IntegratorTwoStep(
+                self._simulation.state._cpp_sys_def, self.dt)
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach_hook()
@@ -309,7 +314,7 @@ class Integrator(_DynamicIntegrator):
     def __setattr__(self, attr, value):
         """Hande group DOF update when setting integrate_rotational_dof."""
         super().__setattr__(attr, value)
-        if (attr == 'integrate_rotational_dof' and self._simulation is not None
+        if (attr == "integrate_rotational_dof" and self._simulation is not None
                 and self._simulation.state is not None):
             self._simulation.state.update_group_dof()
 

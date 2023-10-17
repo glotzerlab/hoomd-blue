@@ -92,15 +92,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         m_collide = collide;
         }
 
-    //! Remove the collision method
-    /*!
-     * \post The collision method is set to a null shared pointer.
-     */
-    void removeCollisionMethod()
-        {
-        m_collide.reset();
-        }
-
     //! Get current streaming method
     std::shared_ptr<mpcd::StreamingMethod> getStreamingMethod() const
         {
@@ -117,13 +108,10 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         m_stream->setDeltaT(m_deltaT);
         }
 
-    //! Remove the streaming method
-    /*!
-     * \post The streaming method is set to a null shared pointer.
-     */
-    void removeStreamingMethod()
+    //! Get the current sorting method
+    std::shared_ptr<mpcd::Sorter> getSorter() const
         {
-        m_stream.reset();
+        return m_sorter;
         }
 
     //! Set the sorting method
@@ -135,28 +123,15 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         m_sorter = sorter;
         }
 
-    //! Get the current sorting method
-    std::shared_ptr<mpcd::Sorter> getSorter() const
+    std::shared_ptr<mpcd::VirtualParticleFiller> getFiller() const
         {
-        return m_sorter;
+        return m_filler;
         }
 
-    //! Remove the current sorting method
-    /*!
-     * \post The sorting method is set to a null shared pointer.
-     */
-    void removeSorter()
+    //! Set the virtual particle filling method
+    void setFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler)
         {
-        m_sorter.reset();
-        }
-
-    //! Add a virtual particle filling method
-    void addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler);
-
-    //! Remove all virtual particle fillers
-    void removeAllFillers()
-        {
-        m_fillers.clear();
+        m_filler = filler;
         }
 
     protected:
@@ -164,13 +139,11 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     std::shared_ptr<mpcd::CollisionMethod> m_collide; //!< MPCD collision rule
     std::shared_ptr<mpcd::StreamingMethod> m_stream;  //!< MPCD streaming rule
     std::shared_ptr<mpcd::Sorter> m_sorter;           //!< MPCD sorter
-
 #ifdef ENABLE_MPI
     std::shared_ptr<mpcd::Communicator> m_mpcd_comm; //!< MPCD communicator
-#endif                                               // ENABLE_MPI
+#endif
+    std::shared_ptr<mpcd::VirtualParticleFiller> m_filler; //!< MPCD virtual particle fillers
 
-    std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>
-        m_fillers; //!< MPCD virtual particle fillers
     private:
     //! Check if a collision will occur at the current timestep
     bool checkCollide(uint64_t timestep)
