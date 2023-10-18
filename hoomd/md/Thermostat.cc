@@ -43,7 +43,8 @@ void export_BussiThermostat(pybind11::module& m)
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<SystemDefinition>,
-                            Scalar>());
+                            Scalar>())
+        .def_property("tau", &BussiThermostat::getTau, &BussiThermostat::setTau);
     }
 
 void export_BerendsenThermostat(pybind11::module& m)

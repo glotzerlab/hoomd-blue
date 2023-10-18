@@ -420,10 +420,22 @@ class BussiThermostat : public Thermostat
         return {t_rescale, r_rescale};
         }
 
+    /// Get the thermostat time constant.
+    Scalar getTau()
+        {
+        return m_tau;
+        }
+
+    /// Set the thermostat time constant.
+    void setTau(Scalar tau)
+        {
+        m_tau = tau;
+        }
+
     protected:
     Scalar m_tau;
 
-    Scalar sample_sumnormalsq(int dof_left, RandomGenerator rng)
+    Scalar sample_sumnormalsq(int dof_left, RandomGenerator& rng)
         {
         Scalar sum_normal_square;
 
