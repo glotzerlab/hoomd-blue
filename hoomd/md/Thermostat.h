@@ -365,8 +365,7 @@ class BussiThermostat : public Thermostat
         const int nrdof = static_cast<int>(m_thermo->getRotationalDOF());
         const auto ket_int = m_thermo->getTranslationalKineticEnergy();
         const auto ker_int = m_thermo->getRotationalKineticEnergy();
-        if ((ntdof != 0 && m_thermo->getTranslationalKineticEnergy() == 0)
-            || (nrdof != 0 && m_thermo->getRotationalKineticEnergy() == 0))
+        if ((ntdof != 0 && ket_int == 0) || (nrdof != 0 && ker_int == 0))
             {
             throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
             }
