@@ -208,7 +208,9 @@ class CPPExternalPotential(ExternalField):
             integrate.Polyhedron:
                 _jit.ExternalFieldJITPolyhedron,
             integrate.Sphinx:
-                _jit.ExternalFieldJITSphinx
+                _jit.ExternalFieldJITSphinx,
+            integrate.SphereUnion:
+                _jit.ExternalFieldJITSphereUnion,
         }
 
         integrator = self._simulation.operations.integrator

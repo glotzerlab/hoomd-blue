@@ -16,6 +16,7 @@
 #include "hoomd/hpmc/ShapeSpheropolygon.h"
 #include "hoomd/hpmc/ShapeSpheropolyhedron.h"
 #include "hoomd/hpmc/ShapeSphinx.h"
+#include "hoomd/hpmc/ShapeUnion.h"
 
 #include <string>
 
@@ -49,6 +50,7 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeEllipsoid>(m, "ExternalFieldJITEllipsoid");
     export_ExternalFieldJIT<ShapeFacetedEllipsoid>(m, "ExternalFieldJITFacetedEllipsoid");
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
+    export_ExternalFieldJIT<ShapeUnion<ShapeSphere>>(m, "ExternalFieldJITSphereUnion");
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     export_PatchEnergyJITGPU(m);
