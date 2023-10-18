@@ -165,9 +165,7 @@ class TestThermostats:
         check_instance_attrs(thermostat, constructor_args)
 
         change_attrs = thermostat_definition.generate_all_attr_change()
-        if isinstance(thermostat,
-                      hoomd.md.methods.thermostats.Berendsen) or isinstance(
-                          thermostat, hoomd.md.methods.thermostats.Bussi):
+        if isinstance(thermostat, hoomd.md.methods.thermostats.Berendsen):
             with pytest.raises(hoomd.error.MutabilityError):
                 thermostat.tau = change_attrs.pop("tau")
         check_instance_attrs(thermostat, change_attrs, True)
