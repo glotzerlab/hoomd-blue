@@ -275,7 +275,7 @@ class Bussi(Thermostat):
     .. math::
         \alpha = \sqrt{e^{\delta t / \tau}
                  + (1 - e^{\delta t / \tau}) \frac{(2 g_{N-1} + n^2) kT}{2 K}
-                 + 2 n \sqrt{e^{\delta t / \tau} (1-e{\delta t / \tau})
+                 + 2 n \sqrt{e^{\delta t / \tau} (1-e^{\delta t / \tau})
                     \frac{kT}{2 K}}}
 
     where :math:`\delta t` is the step size and :math:`n` is a random value
