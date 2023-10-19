@@ -367,7 +367,8 @@ class BussiThermostat : public Thermostat
         const auto rotational_dof = m_thermo->getRotationalDOF();
         const auto translational_kinetic_energy = m_thermo->getTranslationalKineticEnergy();
         const auto rotational_kinetic_energy = m_thermo->getRotationalKineticEnergy();
-        if ((translational_dof != 0 && translational_kinetic_energy == 0) || (rotational_dof != 0 && rotational_kinetic_energy == 0))
+        if ((translational_dof != 0 && translational_kinetic_energy == 0)
+            || (rotational_dof != 0 && rotational_kinetic_energy == 0))
             {
             throw std::runtime_error("Bussi thermostat requires non-zero initial momenta.");
             }
@@ -380,8 +381,13 @@ class BussiThermostat : public Thermostat
 
         const auto set_T = m_T->operator()(timestep);
 
-        return {compute_rescale_factor(translational_kinetic_energy, translational_dof, deltaT, set_T, rng)
-        , compute_rescale_factor(rotational_kinetic_energy, rotational_dof, deltaT, set_T, rng)};
+        return {
+            compute_rescale_factor(translational_kinetic_energy,
+                                   translational_dof,
+                                   deltaT,
+                                   set_T,
+                                   rng),
+            compute_rescale_factor(rotational_kinetic_energy, rotational_dof, deltaT, set_T, rng)};
         }
 
     /// Get the thermostat time constant.
@@ -407,7 +413,11 @@ class BussiThermostat : public Thermostat
         @param set_T Temperature set point.
         @param rng Random number generator.
     **/
-    Scalar compute_rescale_factor(Scalar K, double degrees_of_freedom, Scalar deltaT, Scalar set_T, RandomGenerator& rng)
+    Scalar compute_rescale_factor(Scalar K,
+                                  double degrees_of_freedom,
+                                  Scalar deltaT,
+                                  Scalar set_T,
+                                  RandomGenerator& rng)
         {
         if (degrees_of_freedom == 0)
             return Scalar(1.0);
@@ -428,13 +438,12 @@ class BussiThermostat : public Thermostat
             r_gamma_n_minus_one = 2.0 * gamma(rng);
             }
 
-        double alpha = sqrt(time_decay_factor
-                   + set_T / 2.0 / K * (1.0 - time_decay_factor)
-                         * (r_gamma_n_minus_one + r_normal_one * r_normal_one)
-                   + 2.0 * r_normal_one
-                         * sqrt(set_T / 2.0 / K * (1.0 - time_decay_factor)
-                                * time_decay_factor));
-        return Scalar(alpha);
+        double term1 = set_T / 2.0 / K * (1.0 - time_decay_factor)
+                       * (r_gamma_n_minus_one + r_normal_one * r_normal_one);
+        double term2 = 2.0 * r_normal_one
+                       * sqrt(set_T / 2.0 / K * (1.0 - time_decay_factor) * time_decay_factor);
+
+        return Scalar(sqrt(time_decay_factor + term1 + term2));
         }
     };
 

@@ -480,16 +480,16 @@ template<typename Real> class GammaDistribution
         {
         if (m_alpha <= 0)
             {
-            #ifndef __HIPCC__
+#ifndef __HIPCC__
             throw std::domain_error("alpha must be positive.");
-            #else
+#else
             return 0;
-            #endif
+#endif
             }
         else if (m_alpha < Real(1.0))
             {
             Real x = GammaDistribution(m_alpha + Real(1.0), m_b)(rng);
-            return x * fast::pow(detail::generate_canonical<Real>(rng), Real(1.0)/m_alpha);
+            return x * fast::pow(detail::generate_canonical<Real>(rng), Real(1.0) / m_alpha);
             }
 
         Real v;
@@ -522,8 +522,8 @@ template<typename Real> class GammaDistribution
 
     private:
     Real m_alpha; //!< Gamma distribution alpha parameter
-    Real m_b; //!< Gamma-distribution b-parameter
-    Real m_c; //!< c-parameter for Marsaglia and Tsang method
+    Real m_b;     //!< Gamma-distribution b-parameter
+    Real m_c;     //!< c-parameter for Marsaglia and Tsang method
 
     NormalDistribution<Real> m_normal; //!< Normal variate generator
     };
