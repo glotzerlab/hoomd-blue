@@ -248,41 +248,38 @@ class Bussi(Thermostat):
         kT (hoomd.variant.variant_like): Temperature set point for the
             thermostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Thermostat time constant. Defaults to 0
-        :math:`[\mathrm{time}].`
+        tau (float): Thermostat time constant :math:`[\mathrm{time}]`.
+            Defaults to 0.
 
-    Provides temperature control by rescaling the velocity by a factor taken
-    from the canonical velocity distribution. On each timestep, velocities are
-    rescaled by a factor :math:`\alpha=\sqrt{K_t / K}`, where :math:`K` is the
-    current kinetic energy, and :math:`K_t` is chosen randomly from the
-    distribution
+    `Bussi` controls the system temperature by separately rescaling the velocity
+    and angular momenta by the factor :math:`\alpha` sampled from the canonical
+    distribution.
 
-    .. math::
-        P(K_t) \propto K_t^{N_f/2 - 1} \exp(-K_t / kT)
-
-    where :math:`N_f` is the number of degrees of freedom thermalized.
-
-    By default, when `tau` is approaching 0, the stochastic evolution of
-    system is instantly thermalized and this algorithm reduces to the
-    fully stochastic velocity-rescaling scheme
-    , where :math:`\alpha` is given by:
+    When `tau` is 0, the stochastic evolution of system is instantly thermalized
+    and :math:`\alpha` is given by:
 
     .. math::
-        \alpha = \sqrt{\frac{K_{\mathrm{set}}}{KN_f}(2G + R^2)}
+        \alpha = \sqrt{\frac{g_N kT}{K}}
 
-    In general case, when `tau` is non-zero, :math:`\alpha` is given by:
+    where :math:`K` is the instantaneous kinetic energy of the corresponding
+    translational or rotational degrees of freedom, :math:`N` is the number of
+    degrees of freedom, and :math:`g_N` is a random value sampled from the
+    gamma distribution :math:`\mathrm{Gamma}(N, 1)`:
 
     .. math::
-        \alpha = \sqrt{f + (1-f)\frac{K_{\mathrm{set}}}{KN_f}(2G + R^2) +
-        2R\sqrt{f(1-f)\frac{K_{\mathrm{set}}}{KN_f}}
-        }
+        f_N(g) = \frac{1}{\Gamma(N)} g^{N-1} e^{-g}.
 
-    where :math:`K_{\mathrm{set}}` is the set mean kinetic energy of
-    :math:`N_f/2 kT`, :math:`f` is the time decay factor of
-    :math:`\exp(-\delta t / \tau)`, :math:`G` is the random number
-    sampled from the gamma distribution of :math:`Gamma[(N_f-1)/2, 1]`,
-    and :math:`R` is the random number sampled from the standard
-    normal distribution.
+    When `tau` is non-zero, the kinetic energies decay to equilibrium with the
+    given characteristic time constant and :math:`\alpha` is given by:
+
+    .. math::
+        \alpha = \sqrt{e^{\delta t / \tau}
+                 + (1 - e^{\delta t / \tau}) \frac{(2 g_{N-1} + n^2) kT}{2 K}
+                 + 2 n \sqrt{e^{\delta t / \tau} (1-e{\delta t / \tau})
+                    \frac{kT}{2 K}}}
+
+    where :math:`\delta t` is the step size and :math:`n` is a random value
+    sampled from the normal distribution :math:`\mathcal{N}(0, 1)`.
 
     See Also:
         `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`_.
@@ -312,8 +309,13 @@ class Bussi(Thermostat):
                                               t_start=0,
                                               t_ramp=1_000_000)
 
-        tau (float): Thermostat time constant. Defaults to 0
-        :math:`[\mathrm{time}].`
+        tau (float): Thermostat time constant :math:`[\mathrm{time}].`
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                bussi.tau = 0.0
     """
 
     def __init__(self, kT, tau=0.0):
