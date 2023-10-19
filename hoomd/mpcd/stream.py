@@ -199,8 +199,8 @@ class PlanarPore(StreamingMethod):
 
     """
 
-    def __init__(self, trigger, H, L, no_slip=True):
-        super().__init__(trigger)
+    def __init__(self, every, H, L, no_slip=True):
+        super().__init__(every)
 
         param_dict = ParameterDict(
             H=float(H),
