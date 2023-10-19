@@ -356,18 +356,20 @@ class BussiThermostat : public Thermostat
 
     std::array<Scalar, 2> getRescalingFactorsOne(uint64_t timestep, Scalar deltaT) override
         {
+        if (deltaT == 0.0)
+            {
+            return {1.0, 1.0};
+            }
+
         m_thermo->compute(timestep);
 
-        // Integration methods will always operate on subsets with integer degrees of freedom.
-        // Partial degrees of freedom are removed by getTranslationalDOF() when the subset of
-        // particles is not the same subet selected for integration.
-        const int ntdof = static_cast<int>(m_thermo->getTranslationalDOF());
-        const int nrdof = static_cast<int>(m_thermo->getRotationalDOF());
-        const auto ket_int = m_thermo->getTranslationalKineticEnergy();
-        const auto ker_int = m_thermo->getRotationalKineticEnergy();
-        if ((ntdof != 0 && ket_int == 0) || (nrdof != 0 && ker_int == 0))
+        const auto translational_dof = m_thermo->getTranslationalDOF();
+        const auto rotational_dof = m_thermo->getRotationalDOF();
+        const auto translational_kinetic_energy = m_thermo->getTranslationalKineticEnergy();
+        const auto rotational_kinetic_energy = m_thermo->getRotationalKineticEnergy();
+        if ((translational_dof != 0 && translational_kinetic_energy == 0) || (rotational_dof != 0 && rotational_kinetic_energy == 0))
             {
-            throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
+            throw std::runtime_error("Bussi thermostat requires non-zero initial momenta.");
             }
 
         unsigned int instance_id = 0;
@@ -378,45 +380,8 @@ class BussiThermostat : public Thermostat
 
         const auto set_T = m_T->operator()(timestep);
 
-        if (deltaT == 0.0)
-            {
-            return {1.0, 1.0};
-            }
-
-        Scalar time_decay_factor;
-        if (m_tau != 0.0)
-            {
-            time_decay_factor = exp(-deltaT / m_tau);
-            }
-        else
-            {
-            time_decay_factor = 0.0;
-            }
-
-        NormalDistribution<double> normal_translation(1.0);
-        NormalDistribution<double> normal_rotation(1.0);
-        Scalar t_random_first = normal_translation(rng);
-        Scalar r_random_first = normal_rotation(rng);
-
-        Scalar t_random_left = sample_sumnormal_squared(ntdof - 1, rng);
-        Scalar r_random_left = sample_sumnormal_squared(nrdof - 1, rng);
-
-        Scalar t_rescale
-            = sqrt(time_decay_factor
-                   + set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - time_decay_factor)
-                         * (t_random_left + t_random_first * t_random_first)
-                   + Scalar(2.0) * t_random_first
-                         * sqrt(set_T / Scalar(2.0) / ket_int * (Scalar(1.0) - time_decay_factor)
-                                * time_decay_factor));
-        Scalar r_rescale
-            = sqrt(time_decay_factor
-                   + set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - time_decay_factor)
-                         * (r_random_left + r_random_first * r_random_first)
-                   + Scalar(2.0) * r_random_first
-                         * sqrt(set_T / Scalar(2.0) / ker_int * (Scalar(1.0) - time_decay_factor)
-                                * time_decay_factor));
-
-        return {t_rescale, r_rescale};
+        return {compute_rescale_factor(translational_kinetic_energy, translational_dof, deltaT, set_T, rng)
+        , compute_rescale_factor(rotational_kinetic_energy, rotational_dof, deltaT, set_T, rng)};
         }
 
     /// Get the thermostat time constant.
@@ -434,17 +399,42 @@ class BussiThermostat : public Thermostat
     protected:
     Scalar m_tau;
 
-    static Scalar sample_sumnormal_squared(int dof_left, RandomGenerator& rng)
+    /** Compute the rescaling factor
+
+        @param K kinetic energy
+        @param degrees_of_freedom Number of degrees of freedom with this energy.
+        @param deltaT Time step size.
+        @param set_T Temperature set point.
+        @param rng Random number generator.
+    **/
+    Scalar compute_rescale_factor(Scalar K, double degrees_of_freedom, Scalar deltaT, Scalar set_T, RandomGenerator& rng)
         {
-        if (dof_left == 0)
+        if (degrees_of_freedom == 0)
+            return Scalar(1.0);
+
+        double time_decay_factor = 0.0;
+        if (m_tau != 0.0)
             {
-            return 0;
+            time_decay_factor = exp(-deltaT / m_tau);
             }
-        else
+
+        NormalDistribution<double> normal(1.0);
+        Scalar r_normal_one = normal(rng);
+
+        GammaDistribution<double> gamma((degrees_of_freedom - 1.0) / Scalar(2.0), Scalar(1.0));
+        double r_gamma_n_minus_one = 0.0;
+        if (degrees_of_freedom > 1.0)
             {
-            GammaDistribution<Scalar> gamma(dof_left / Scalar(2.0), Scalar(1.0));
-            return Scalar(2.0) * gamma(rng);
+            r_gamma_n_minus_one = 2.0 * gamma(rng);
             }
+
+        double alpha = sqrt(time_decay_factor
+                   + set_T / 2.0 / K * (1.0 - time_decay_factor)
+                         * (r_gamma_n_minus_one + r_normal_one * r_normal_one)
+                   + 2.0 * r_normal_one
+                         * sqrt(set_T / 2.0 / K * (1.0 - time_decay_factor)
+                                * time_decay_factor));
+        return Scalar(alpha);
         }
     };
 
