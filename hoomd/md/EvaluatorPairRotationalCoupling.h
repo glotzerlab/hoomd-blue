@@ -239,7 +239,7 @@ class EvaluatorPairRotationalCoupling
 
             Scalar d = rinv - rcutinv;
 
-            vec3<Scalar> f = kappa * d * d * rinv * cross(ang_mom, rvec);
+            vec3<Scalar> f = kappa * d * rinv * cross(ang_mom, rvec);
 
             force = vec_to_scalar3(f);
             }
