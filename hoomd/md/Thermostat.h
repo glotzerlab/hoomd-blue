@@ -432,16 +432,15 @@ class BussiThermostat : public Thermostat
         Scalar r_normal_one = normal(rng);
 
         GammaDistribution<double> gamma((degrees_of_freedom - 1.0) / Scalar(2.0), Scalar(1.0));
-        double r_gamma_n_minus_one = 0.0;
+        double r_gamma = 0.0;
         if (degrees_of_freedom > 1.0)
             {
-            r_gamma_n_minus_one = 2.0 * gamma(rng);
+            r_gamma = 2.0 * gamma(rng);
             }
 
-        double term1 = set_T / 2.0 / K * (1.0 - time_decay_factor)
-                       * (r_gamma_n_minus_one + r_normal_one * r_normal_one);
-        double term2 = 2.0 * r_normal_one
-                       * sqrt(set_T / 2.0 / K * (1.0 - time_decay_factor) * time_decay_factor);
+        double v = set_T / 2.0 / K;
+        double term1 = v * (1.0 - time_decay_factor) * (r_gamma + r_normal_one * r_normal_one);
+        double term2 = 2.0 * r_normal_one * sqrt(v * (1.0 - time_decay_factor) * time_decay_factor);
 
         return Scalar(sqrt(time_decay_factor + term1 + term2));
         }
