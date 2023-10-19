@@ -15,7 +15,7 @@ properties determine the transport coefficients.
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyTypes
+from hoomd.data.typeconverter import OnlyTypes, variant_preprocessing
 from hoomd.mpcd import _mpcd
 from hoomd.operation import AutotunedObject
 
@@ -110,7 +110,7 @@ class AndersenThermostat(CollisionMethod):
 
     Args:
         every (int): Number of integration steps between collisions. kT
-        (hoomd.variant.variant_like): Temperature of the solvent
+        kT (hoomd.variant.variant_like): Temperature of the solvent
             :math:`[\mathrm{energy}]`.
         embed (hoomd.filter.ParticleFilter): HOOMD particles to include in
             collision.
@@ -202,7 +202,9 @@ class StochasticRotationDynamics(CollisionMethod):
 
         param_dict = ParameterDict(
             angle=float(angle),
-            kT=OnlyTypes(hoomd.variant.Variant, allow_none=True),
+            kT=OnlyTypes(hoomd.variant.Variant,
+                         allow_none=True,
+                         preprocess=variant_preprocessing),
         )
         param_dict["kT"] = kT
         self._param_dict.update(param_dict)
@@ -219,8 +221,5 @@ class StochasticRotationDynamics(CollisionMethod):
 
         if self.embed is not None:
             self._cpp_obj.setEmbeddedGroup(sim.state._get_group(self.embed))
-
-        if self.kT is not None:
-            self._cpp_obj.setTemperature(self.kT)
 
         super()._attach_hook()

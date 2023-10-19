@@ -80,15 +80,15 @@ class Integrator(_MDIntegrator):
         return self._cell_list
 
     def _attach_hook(self):
-        self._cell_list._attach()
+        self._cell_list._attach(self._simulation)
         if self.streaming_method is not None:
-            self.streaming_method._attach()
+            self.streaming_method._attach(self._simulation)
         if self.collision_method is not None:
-            self.collision_method._attach()
+            self.collision_method._attach(self._simulation)
 
         self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def,
                                          self.dt)
-        self._cpp_obj.setCellList(self._cell_list._cpp_obj)
+        self._cpp_obj.cell_list = self._cell_list._cpp_obj
 
         super()._attach_hook()
 

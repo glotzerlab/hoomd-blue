@@ -105,7 +105,10 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     void setStreamingMethod(std::shared_ptr<mpcd::StreamingMethod> stream)
         {
         m_stream = stream;
-        m_stream->setDeltaT(m_deltaT);
+        if (m_stream)
+            {
+            m_stream->setDeltaT(m_deltaT);
+            }
         }
 
     //! Get the current sorting method

@@ -139,9 +139,11 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
         .def_property_readonly("embed",
                                [](const std::shared_ptr<mpcd::CollisionMethod> method)
                                {
-                                   return (method) ? method->getEmbeddedGroup()->getFilter()
-                                                   : std::shared_ptr<hoomd::ParticleFilter>();
+                                   auto group = method->getEmbeddedGroup();
+                                   return (group) ? group->getFilter()
+                                                  : std::shared_ptr<hoomd::ParticleFilter>();
                                })
+        .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
         .def_property_readonly("every", &mpcd::CollisionMethod::getPeriod);
     }
 

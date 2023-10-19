@@ -2,7 +2,6 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd import Simulation
 import numpy as np
 import pytest
 
