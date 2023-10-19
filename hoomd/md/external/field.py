@@ -87,7 +87,7 @@ class Electric(Field):
     """Electric field force.
 
     `Electric` computes forces, and virials, and energies on all particles in
-    the in the simulation state with consistent with:
+    the simulation state which are consistent with: 
 
     .. math::
 
@@ -122,19 +122,19 @@ class Electric(Field):
         self._add_typeparam(params)
 
 class Magnetic(Field):
-    """Magnetic field torque.
+    """Magnetic field torque on a magnetic dipole.
 
-    `Magnetic` computes forces, and virials, and energies on all particles in
-    the in the simulation state with consistent with:
+    `Magnetic` computes torces and energies on all particles in
+    the simulation state which are consistent with: 
 
     .. math::
 
        U_i = -\\vec{mu}_i \\cdot \\vec{B}
 
 
-    where :math:`\\vec{mu}_i` is the particle magnetic momentum and :math:`\\vec{B}` is the field
-    vector. The field vector :math:`\\vec{B}` must be set per unique particle
-    type.
+    where :math:`\\vec{mu}_i` is the particle magnetic momentum and 
+    :math:`\\vec{B}` is the field vector. The field vector :math:`\\vec{B}` 
+    must be set per unique particle type.
 
     .. py:attribute:: params
 
@@ -142,9 +142,11 @@ class Magnetic(Field):
         following keys:
 
         * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic field vector 
-        :math:`B [\\mathrm{energy}]`.
+        :math:`[\mathrm{energy} \cdot \mathrm{time} \cdot \mathrm{charge}^{-1} \cdot 
+        \mathrm{length}^{-2} ]`.
         * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic moment of 
-        the particles type :math:`mu [\\mathrm{energy}]`.
+        the particles type :math:`[\mathrm{charge} \cdot \mathrm{length}^2 \cdot 
+        \mathrm{time}^{-1}]`.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
