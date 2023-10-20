@@ -142,11 +142,11 @@ class Magnetic(Field):
         following keys:
 
         * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic field vector 
-        :math:`[\mathrm{energy} \cdot \mathrm{time} \cdot \mathrm{charge}^{-1} \cdot 
-        \mathrm{length}^{-2} ]`.
+        :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot 
+        \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
         * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic moment of 
-        the particles type :math:`[\mathrm{charge} \cdot \mathrm{length}^2 \cdot 
-        \mathrm{time}^{-1}]`.
+        the particles type :math:`[\\mathrm{charge} \\cdot 
+        \\mathrm{length}^2 \\cdot \\mathrm{time}^{-1}]`.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
