@@ -264,7 +264,7 @@ class Bussi(Thermostat):
     where :math:`K` is the instantaneous kinetic energy of the corresponding
     translational or rotational degrees of freedom, :math:`N` is the number of
     degrees of freedom, and :math:`g_N` is a random value sampled from the
-    gamma distribution :math:`\mathrm{Gamma}(N, 1)`:
+    distribution :math:`\mathrm{Gamma}(N, 1)`:
 
     .. math::
         f_N(g) = \frac{1}{\Gamma(N)} g^{N-1} e^{-g}.
