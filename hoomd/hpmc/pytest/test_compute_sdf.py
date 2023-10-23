@@ -277,25 +277,57 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
         assert (numpy.count_nonzero(sdf_result) == 1)
 
     # add pair potential
-    square_well = rf'''float rsq = dot(r_ij, r_ij);
-                    float rcut = {r_patch};
+    square_well = r'''float rsq = dot(r_ij, r_ij);
+                    float rcut = param_array[1];
                     if (rsq > 2*rcut)
                         return 0.0f;
                     else
-                        return -{epsilon};'''
+                        return -param_array[0];'''
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2.5 * r_patch,
                                               code=square_well,
-                                              param_array=[])
+                                              param_array=[epsilon, r_patch])
     mc.pair_potential = patch
 
-    # assert we have an overlap in the first bin with the expected weight and
-    # that the SDF is zero everywhere else
+    # for a soft overlap with a negative change in energy, the weight of the
+    # overlap is zero, so we still expect all zeros in the sdf array
+    sim.run(1)
+    neg_mayerF = 1 - numpy.exp(epsilon)
+    sdf_result = sdf.sdf_compression
+    if sim.device.communicator.rank == 0:
+        assert (numpy.count_nonzero(sdf_result) == 0)
+
+    # change sign of epsilon, so that now there is a positive energy soft
+    # overlap in bin 0
+    epsilon *= -1
+    patch.param_array[0] = epsilon
     sim.run(1)
     neg_mayerF = 1 - numpy.exp(epsilon)
     sdf_result = sdf.sdf_compression
     if sim.device.communicator.rank == 0:
         assert (numpy.count_nonzero(sdf_result) == 1)
         assert (sdf_result[0] == neg_mayerF * norm_factor)
+
+    # extend patches so that there is a soft overlap with positive energy
+    # in the configuration and there will be a change in energy on expansions
+    # the change in energy is < 0 so the weight should be 0 and
+    # sdf_expansion should be all zeros
+    patch.param_array[1] += 2 * dx
+    sim.run(1)
+    sdf_result = sdf.sdf_expansion
+    if sim.device.communicator.rank == 0:
+        assert (numpy.count_nonzero(sdf_result) == 0)
+
+    # change sign of epsilon so now the change in energy on expansion is
+    # positive and the weight is nonzero and one of the sdf_expansion counts
+    # is nonzero
+    epsilon *= -1
+    patch.param_array[0] = epsilon
+    sim.run(1)
+    neg_mayerF = 1 - numpy.exp(-epsilon)
+    sdf_result = sdf.sdf_expansion
+    if sim.device.communicator.rank == 0:
+        assert (numpy.count_nonzero(sdf_result) == 1)
+        assert (sdf_result[-1] == neg_mayerF * norm_factor)
 
 
 @pytest.mark.cpu
