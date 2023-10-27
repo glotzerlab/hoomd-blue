@@ -1,7 +1,13 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Write GSD last :math:`N` frames at user direction."""
+"""Write GSD last :math:`N` frames at user direction.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    burst_filename = tmp_path / 'trajectory.gsd'
+"""
 
 from hoomd import _hoomd
 from hoomd.filter import All
@@ -12,10 +18,10 @@ from hoomd.write.gsd import GSD
 class Burst(GSD):
     r"""Write the last :math:`N` stored frames in the GSD format.
 
-    When triggered, `Burst` stores up to the last :math:`N` frames in a buffer.
-    `Burst` writes the contents of the buffer to the file when `dump` is called.
-    When the the next frame would result in :math:`N + 1` frames being stored,
-    the oldest frame is removed and the new frame is added.
+    When triggered, `Burst` adds a frame (up the last :math:`N` frames) in a
+    buffer. Call `dump` to write the frames to the file. When the the next frame
+    would result in :math:`N + 1` frames being stored, the oldest frame is
+    removed and the new frame is added.
 
     Args:
         trigger (hoomd.trigger.trigger_like): Select the timesteps to store
@@ -28,7 +34,7 @@ class Burst(GSD):
             all frames. Defaults to ``['property']``.
         logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
             to `None`.
-        max_burst_frames (int): The maximum number of frames to store before
+        max_burst_size (int): The maximum number of frames to store before
             between writes. -1 represents no limit. Defaults to -1.
         write_at_start (bool): When ``True`` **and** the file does not exist or
             has 0 frames: write one frame with the current state of the system
@@ -36,32 +42,44 @@ class Burst(GSD):
 
     Warning:
         `Burst` errors when attempting to create a file or writing to one with
-        zero frames, unless ``write_at_start`` is ``True``.
+        zero frames when ``write_at_start`` is ``False``.
 
     Note:
         When analyzing files created by `Burst`, generally the first frame is
         not associated with the call to `Burst.dump`.
 
-    Note:
-        For more tips and qualifications see the `hoomd.write.GSD`
-        documentation.
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        burst = hoomd.write.Burst(trigger=hoomd.trigger.Periodic(1_000),
+                                filename=burst_filename,
+                                max_burst_size=100,
+                                write_at_start=True)
+        simulation.operations.writers.append(burst)
+
+    See Also:
+        The base class `hoomd.write.GSD`
 
     Attributes:
-        filename (str): File name to write.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to store
-            in the buffer.
-        filter (hoomd.filter.filter_like): Select the particles to write.
-        mode (str): The file open mode.
-        dynamic (list[str]): Field names and/or field categores to save in
-            all frames.
-        max_burst_frames (int): The maximum number of frames to store before
+        max_burst_size (int): The maximum number of frames to store before
             between writes. -1 represents no limit.
-        write_diameter (bool): When `False`, do not write
-            ``particles/diameter``. Set to `True` to write non-default particle
-            diameters.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                burst.max_burst_size = 200
+
         write_at_start (bool): When ``True`` **and** the file does not exist or
             has 0 frames: write one frame with the current state of the system
-            when `hoomd.Simulation.run` is called.
+            when `hoomd.Simulation.run` is called (*read only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                write_at_start = burst.write_at_start
     """
 
     def __init__(self,
@@ -101,12 +119,25 @@ class Burst(GSD):
 
         This method alllows for custom writing of frames at user specified
         conditions.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            burst.dump()
         """
         if self._attached:
             self._cpp_obj.dump()
 
     def __len__(self):
-        """Get the current length of the internal frame buffer."""
+        """Get the current length of the internal frame buffer.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            buffered_frames = len(burst)
+        """
         if self._attached:
             return len(self._cpp_obj)
         return 0

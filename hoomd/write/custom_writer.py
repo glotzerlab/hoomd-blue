@@ -1,7 +1,17 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement CustomWriter."""
+"""Implement CustomWriter.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    class ExampleAction(hoomd.custom.Action):
+        def act(self, timestep):
+            pass
+
+    custom_action = ExampleAction()
+"""
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Writer
@@ -36,6 +46,15 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
 
     Writers may read the system state and generate output files or print to
     output streams. Writers should not modify the system state.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            custom_writer = hoomd.write.CustomWriter(
+                action=custom_action,
+                trigger=hoomd.trigger.Periodic(1000))
+            simulation.operations.writers.append(custom_writer)
 
     See Also:
         The base class `hoomd.custom.CustomOperation`.
