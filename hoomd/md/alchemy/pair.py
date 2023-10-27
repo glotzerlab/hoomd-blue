@@ -9,6 +9,7 @@ from hoomd.logging import log
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
+from hoomd.md.pair import OPP as BaseOPP
 
 
 def _modify_pair_cls_to_alchemical(cls):
@@ -157,7 +158,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
                  typepair: tuple = None,
                  alpha: float = 1.0,
                  mass: float = 1.0,
-                 mu: float = 0.0):
+                 mu: float = 0.17):
         """Cache existing instances of AlchemicalDOF.
 
         Args:
@@ -356,6 +357,21 @@ class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
     """
     _alchemical_dofs = ['epsilon', 'sigma', 'r0']
     normalized = True
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        _AlchemicalPairForce.__init__(self)
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+
+
+
+@_modify_pair_cls_to_alchemical
+class OPP(BaseOPP, _AlchemicalPairForce):
+    
+    _alchemical_dofs = ['C1', 'C2', 'eta1', 'eta2', 'k', 'phi']
 
     def __init__(self,
                  nlist,

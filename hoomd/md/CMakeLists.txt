@@ -546,7 +546,7 @@ foreach(_evaluator ${_pair_evaluators})
     endif()
 endforeach()
 
-set(_alchemical_pair_evaluators LJGauss)
+set(_alchemical_pair_evaluators LJGauss OPP)
 
 foreach(_evaluator ${_alchemical_pair_evaluators})
     configure_file(export_PotentialPairAlchemical.cc.inc

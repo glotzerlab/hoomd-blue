@@ -153,6 +153,7 @@ void export_ManifoldZCylinder(pybind11::module& m);
 
 void export_AlchemicalMDParticles(pybind11::module& m);
 void export_PotentialPairAlchemicalLJGauss(pybind11::module& m);
+void export_PotentialPairAlchemicalOPP(pybind11::module& m);
 
 #ifdef ENABLE_HIP
 
@@ -332,6 +333,7 @@ PYBIND11_MODULE(_md, m)
 
     export_AlchemicalMDParticles(m);
     export_PotentialPairAlchemicalLJGauss(m);
+    export_PotentialPairAlchemicalOPP(m);
 
     export_PotentialTersoff(m);
     export_PotentialSquareDensity(m);
