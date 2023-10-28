@@ -385,7 +385,8 @@ class OPP(BaseOPP, _AlchemicalPairForce):
 
     .. math::
         U(r) = \alpha_{1}C_1 r^{-\alpha_{3}\eta_1}
-              + \alpha_{2}C_2 r^{-\alpha_{4}\eta_2} \cos{\left(\alpha_{5}k r - \alpha_{6}\phi\right)},
+              + \alpha_{2}C_2 r^{-\alpha_{4}\eta_2} \cos{\left(\alpha_{5}k r 
+                                                      - \alpha_{6}\phi\right)},
 
     where :math:`\alpha_i` are the alchemical degrees of freedom.
 
@@ -422,7 +423,7 @@ class OPP(BaseOPP, _AlchemicalPairForce):
         * ``phi`` (`float`, **required**) -
           potential phase shift :math:`\phi` :math:`[\mathrm{dimensionless}]`
 
-                Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
     .. py:attribute:: C1
@@ -443,14 +444,14 @@ class OPP(BaseOPP, _AlchemicalPairForce):
 
     .. py:attribute:: eta1
 
-        Alchemical degrees of freedom for the potential parameter :math:`\eta_1`.
+        Alchemical degrees of freedom for the potential parameter :math:`\eta_1`
 
         Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
         ``particle_type``], `AlchemicalDOF`])
 
     .. py:attribute:: eta2
 
-        Alchemical degrees of freedom for the potential parameter :math:`\eta_2`.
+        Alchemical degrees of freedom for the potential parameter :math:`\eta_2`
 
         Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
         ``particle_type``], `AlchemicalDOF`])
