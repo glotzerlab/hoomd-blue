@@ -370,7 +370,105 @@ class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
 
 @_modify_pair_cls_to_alchemical
 class OPP(BaseOPP, _AlchemicalPairForce):
-    
+    r"""Alchemical Oscillating Pair Potential pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius
+            :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius
+            :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `OPP` computes the Oscillating Pair Potential force on all particles in the
+    simulation state, with additional alchemical degrees of freedom:
+
+    .. math::
+        U(r) = \alpha_{1}C_1 r^{-\alpha_{3}\eta_1}
+              + \alpha_{2}C_2 r^{-\alpha_{4}\eta_2} \cos{\left(\alpha_{5}k r - \alpha_{6}\phi\right)},
+
+    where :math:`\alpha_i` are the alchemical degrees of freedom.
+
+    Note:
+        :math:`\alpha_i` not accessed are set to 1.
+
+    Attention:
+        `hoomd.md.alchemy.pair.OPP` does not support execution on GPUs.
+
+    Attention:
+        `hoomd.md.alchemy.pair.OPP` does not support MPI parallel
+        simulations.
+
+    .. versionadded:: 4.3.0
+
+    .. py:attribute:: params
+
+        The OPP potential parameters. The dictionary has the following keys:
+
+        * ``C1`` (`float`, **required**) -
+          Energy scale of the first term :math:`C_1`
+          :math:`[\mathrm{energy}]`
+        * ``C2`` (`float`, **required**) -
+          Energy scale of the second term :math:`C_2`
+          :math:`[\mathrm{energy}]`
+        * ``eta1`` (`float`, **required**) -
+          The inverse power to take :math:`r` to in the first term,
+          :math:`\eta_1` :math:`[\mathrm{dimensionless}]`.
+        * ``eta2`` (`float`, **required**) -
+          The inverse power to take :math:`r` to in the second term
+          :math:`\eta_2` :math:`[\mathrm{dimensionless}]`.
+        * ``k`` (`float`, **required**) -
+          oscillation frequency :math:`k` :math:`[\mathrm{length}^{-1}]`
+        * ``phi`` (`float`, **required**) -
+          potential phase shift :math:`\phi` :math:`[\mathrm{dimensionless}]`
+
+                Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: C1
+
+        Alchemical degrees of freedom for the potential parameter
+        :math:`C_1`.
+
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
+
+    .. py:attribute:: C2
+
+        Alchemical degrees of freedom for the potential parameter
+        :math:`C_2`.
+
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
+
+    .. py:attribute:: eta1
+
+        Alchemical degrees of freedom for the potential parameter :math:`\eta_1`.
+
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
+
+    .. py:attribute:: eta2
+
+        Alchemical degrees of freedom for the potential parameter :math:`\eta_2`.
+
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
+
+    .. py:attribute:: k
+
+        Alchemical degrees of freedom for the potential parameter :math:`k`.
+
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
+
+    .. py:attribute:: phi
+
+        Alchemical degrees of freedom for the potential parameter :math:`\phi`.
+
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
+    """
     _alchemical_dofs = ['C1', 'C2', 'eta1', 'eta2', 'k', 'phi']
 
     def __init__(self,
