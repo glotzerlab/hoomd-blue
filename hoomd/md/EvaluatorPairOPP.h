@@ -238,7 +238,7 @@ class EvaluatorPairOPP
             Scalar r = fast::sqrt(rsq);
             Scalar r_to_eta1 = fast::pow(r, -alphas[2] * params.eta1);
             Scalar r_to_eta2 = fast::pow(r, -alphas[3] * params.eta2);
-            Scalar log_r = slow::log(r); // Is this natural log?
+            Scalar log_r = slow::log(r);
 
             Scalar eval_sin, eval_cos;
             fast::sincos(alphas[4] * params.k * r - alphas[5] * params.phi, eval_sin, eval_cos);
