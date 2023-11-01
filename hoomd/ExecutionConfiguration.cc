@@ -122,7 +122,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             gpu_id.push_back((local_rank % dev_count));
 
             ostringstream s;
-            s << "Selected GPU " << gpu_id[0] << " by MPI rank (" << dev_count << " available)." << endl;
+            s << "Selected GPU " << gpu_id[0] << " by MPI rank (" << dev_count << " available)."
+              << endl;
             msg->collectiveNoticeStr(4, s.str());
             }
 
@@ -635,7 +636,7 @@ int ExecutionConfiguration::guessLocalRank()
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
-    
+
     // Always check SLURM_LOCALID last to allow other mpi launchers to override.
     env_vars.push_back("SLURM_LOCALID");
 
