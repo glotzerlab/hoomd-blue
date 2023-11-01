@@ -122,7 +122,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             gpu_id.push_back((local_rank % dev_count));
 
             ostringstream s;
-            s << "Selected GPU " << gpu_id[0] << " by MPI rank." << endl;
+            s << "Selected GPU " << gpu_id[0] << " by MPI rank (" << dev_count << " available)." << endl;
             msg->collectiveNoticeStr(4, s.str());
             }
 
@@ -632,17 +632,20 @@ int ExecutionConfiguration::guessLocalRank()
     char* env_value;
 
     // setup common environment variables containing local rank information
-    env_vars.push_back("SLURM_LOCALID");
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
+    
+    // Always check SLURM_LOCALID last to allow other mpi launchers to override.
+    env_vars.push_back("SLURM_LOCALID");
 
     for (const auto& env_var : env_vars)
         {
         if ((env_value = getenv(env_var.c_str())) != NULL)
             {
-            msg->notice(3) << "Found local rank in: " << env_var << std::endl;
-            return atoi(env_value);
+            int rank = atoi(env_value);
+            msg->notice(3) << "Found local rank " << rank << " in: " << env_var << std::endl;
+            return rank;
             }
         }
 
