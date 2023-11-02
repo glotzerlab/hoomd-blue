@@ -181,6 +181,7 @@ class EvaluatorPairOPP
      */
     static int getAlchemicalParameterIndex(std::string param_name)
         {
+<<<<<<< HEAD
         if (param_name == "C1")
             return 0;
         else if (param_name == "C2")
@@ -192,6 +193,19 @@ class EvaluatorPairOPP
         else if (param_name == "k")
             return 4;
         else if (param_name == "phi")
+=======
+        if (param_name == "C1") 
+            return 0;
+        else if (param_name == "C2") 
+            return 1;
+        else if (param_name == "eta1") 
+            return 2;
+        else if (param_name == "eta2") 
+            return 3;
+        else if (param_name == "k") 
+            return 4;
+        else if (param_name == "phi") 
+>>>>>>> d3a9d8193 (pre-commit)
             return 5;
         throw std::runtime_error("Unknown alchemical parameter name.");
         }
@@ -250,9 +264,15 @@ class EvaluatorPairOPP
             alchemical_derivatives[0] = r_to_eta1 * params.C1;
             alchemical_derivatives[1] = r_to_eta2 * eval_cos * params.C2;
             alchemical_derivatives[2] = -alphas[0] * params.C1 * r_to_eta1 * log_r * params.eta1;
+<<<<<<< HEAD
             alchemical_derivatives[3]
                 = -alphas[1] * params.C2 * r_to_eta2 * log_r * eval_cos * params.eta2;
             alchemical_derivatives[4]
+=======
+            alchemical_derivatives[3] 
+                = -alphas[1] * params.C2 * r_to_eta2 * log_r * eval_cos * params.eta2;
+            alchemical_derivatives[4] 
+>>>>>>> d3a9d8193 (pre-commit)
                 = -alphas[1] * params.C2 * r_to_eta2 * eval_sin * params.k * r;
             alchemical_derivatives[5] = alphas[1] * params.C2 * r_to_eta2 * eval_sin * params.phi;
             }
