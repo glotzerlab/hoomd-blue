@@ -181,17 +181,17 @@ class EvaluatorPairOPP
      */
     static int getAlchemicalParameterIndex(std::string param_name)
         {
-        if (param_name == "C1") 
+        if (param_name == "C1")
             return 0;
-        else if (param_name == "C2") 
+        else if (param_name == "C2")
             return 1;
-        else if (param_name == "eta1") 
+        else if (param_name == "eta1")
             return 2;
-        else if (param_name == "eta2") 
+        else if (param_name == "eta2")
             return 3;
-        else if (param_name == "k") 
+        else if (param_name == "k")
             return 4;
-        else if (param_name == "phi") 
+        else if (param_name == "phi")
             return 5;
         throw std::runtime_error("Unknown alchemical parameter name.");
         }
