@@ -97,18 +97,14 @@ set(_hoomd_sources Action.cc
                    Variant.cc
                    extern/BVLSSolver.cc
                    extern/gsd.c
-                   extern/imd.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
-                   extern/vmdsock.cc
                    filter/export_filters.cc
                    )
 
 # ignore conversion warnings in external files
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_source_files_properties(extern/kiss_fft.cc PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-float-conversion")
-    set_source_files_properties(extern/vmdsock.cc PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/imd.cc PROPERTIES COMPILE_FLAGS "-Wno-conversion")
 endif()
 
 set(_hoomd_headers
