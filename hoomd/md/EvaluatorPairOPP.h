@@ -216,18 +216,18 @@ class EvaluatorPairOPP
         Interoperate with PotentialPairAlchemical to modify the given potential parameters:
         p -> p * alpha, where p is a parameter.
     */
-   DEVICE static param_type
+    DEVICE static param_type
     updateAlchemyParams(const param_type& initial_params,
                         std::array<Scalar, num_alchemical_parameters>& alphas)
         {
-            param_type params(initial_params);
-            params.C1 *= alphas[0];
-            params.C2 *= alphas[1];
-            params.eta1 *= alphas[2];
-            params.eta2 *= alphas[3];
-            params.k *= alphas[4];
-            params.phi *= alphas[5];
-            return params;
+        param_type params(initial_params);
+        params.C1 *= alphas[0];
+        params.C2 *= alphas[1];
+        params.eta1 *= alphas[2];
+        params.eta2 *= alphas[3];
+        params.k *= alphas[4];
+        params.phi *= alphas[5];
+        return params;
         }
 
     /** Calculate derivative of the alchemical potential with repsect to alpha.
@@ -250,9 +250,9 @@ class EvaluatorPairOPP
             alchemical_derivatives[0] = r_to_eta1 * params.C1;
             alchemical_derivatives[1] = r_to_eta2 * eval_cos * params.C2;
             alchemical_derivatives[2] = -alphas[0] * params.C1 * r_to_eta1 * log_r * params.eta1;
-            alchemical_derivatives[3] 
+            alchemical_derivatives[3]
                 = -alphas[1] * params.C2 * r_to_eta2 * log_r * eval_cos * params.eta2;
-            alchemical_derivatives[4] 
+            alchemical_derivatives[4]
                 = -alphas[1] * params.C2 * r_to_eta2 * eval_sin * params.k * r;
             alchemical_derivatives[5] = alphas[1] * params.C2 * r_to_eta2 * eval_sin * params.phi;
             }
