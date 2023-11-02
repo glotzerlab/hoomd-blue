@@ -367,7 +367,6 @@ class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-
 @_modify_pair_cls_to_alchemical
 class OPP(BaseOPP, _AlchemicalPairForce):
     r"""Alchemical Oscillating Pair Potential pair force.
@@ -385,7 +384,7 @@ class OPP(BaseOPP, _AlchemicalPairForce):
 
     .. math::
         U(r) = \alpha_{1}C_1 r^{-\alpha_{3}\eta_1}
-              + \alpha_{2}C_2 r^{-\alpha_{4}\eta_2} \cos{\left(\alpha_{5}k r 
+              + \alpha_{2}C_2 r^{-\alpha_{4}\eta_2} \cos{\left(\alpha_{5}k r
                                                       - \alpha_{6}\phi\right)},
 
     where :math:`\alpha_i` are the alchemical degrees of freedom.
