@@ -19,6 +19,12 @@ class Tags(ParticleFilter, ParticleFilterTags):
     0 through `N_particles` to the particles in the order provided.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        tags = hoomd.filter.Tags([0, 1, 2])
     """
 
     def __init__(self, tags):
