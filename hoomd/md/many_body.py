@@ -320,7 +320,7 @@ class RevCross(Triplet):
 
 
     This three-body term also tunes the energy required for a bond swap through
-    the unitless coefficient :math: `\lambda_3` .
+    the unitless coefficient :math:`\lambda_3` .
     In `S. Ciarella and W.G. Ellenbroek 2019
     <https://arxiv.org/abs/1912.08569>`__
     is explained that setting :math:`\lambda_3=1` corresponds to no energy
