@@ -4,10 +4,10 @@
 # - The build options are `mpi`, `tbb`, `llvm`, `nomd`, and `nohpmc`.
 unit_test_configurations:
 - config: "[clang14_py311, mpi, tbb, llvm]"
-- config: "[gcc12_py311]"
-- config: "[gcc12_py311, nomd]"
-- config: "[gcc12_py311, nohpmc]"
-- config: "[gcc12_py311, nomd, nohpmc]"
+- config: "[gcc13_py312]"
+- config: "[gcc13_py312, nomd]"
+- config: "[gcc13_py312, nohpmc]"
+- config: "[gcc13_py312, nomd, nohpmc]"
 - config: "[cuda120_gcc11_py310, mpi, llvm, debug]"
 - config: "[cuda120_gcc11_py310, mpi, llvm]"
 - config: "[cuda120_gcc11_py310]"
@@ -17,13 +17,16 @@ unit_test_configurations:
 # `unit_test_configurations`
 validate_configurations:
 - config: "[clang14_py311, mpi, tbb, llvm]"
-- config: "[gcc12_py311]"
+- config: "[gcc13_py312]"
 - config: "[cuda120_gcc11_py310, mpi, llvm]"
 - config: "[cuda120_gcc11_py310]"
 
 # Configurations to build and test only rarely, such as just before a release.
 # There should be no overlap between this list and `unit_test_configurations`
 release_test_configurations:
+- config: "[gcc12_py311]"
+- config: "[clang16_py311, mpi, llvm]"
+- config: "[clang15_py311, mpi, llvm]"
 - config: "[clang13_py310, llvm]"
 - config: "[clang12_py310, llvm]"
 - config: "[clang11_py310, llvm]"

@@ -76,7 +76,7 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
                           &BondedGroupData<group_size, Group, name, true>::setDirty>(this);
 
     // initialize from snapshot
-    initializeFromSnapshot(snapshot);
+    initializeFromTriangleSnapshot(snapshot);
 
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
@@ -106,7 +106,7 @@ MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
 
 //! Initialize from a snapshot
 template<unsigned int group_size, typename Group, const char* name, typename snap>
-void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
+void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapshot(
     const TriangleData::Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
@@ -449,7 +449,7 @@ MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
         // gather local data
         std::vector<typeval_t> typevals; // Group types or constraint values
         std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t>
-            members;                     // Group members
+            members; // Group members
 
         for (unsigned int group_idx = 0; group_idx < this->getN(); ++group_idx)
             {
@@ -459,7 +459,7 @@ MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
 
         std::vector<std::vector<typeval_t>> typevals_proc; // Group types of every processor
         std::vector<std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t>>
-            members_proc;                                  // Group members of every processor
+            members_proc; // Group members of every processor
 
         std::vector<std::map<unsigned int, unsigned int>>
             rtag_map_proc; // List of reverse-lookup maps
@@ -590,7 +590,7 @@ void export_MeshGroupData(pybind11::module& m,
         .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
         .def(
             pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
-        .def("initializeFromSnapshot", &T::initializeFromSnapshot)
+        .def("initializeFromTriangleSnapshot", &T::initializeFromTriangleSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("getN", &T::getN)
         .def("getNGlobal", &T::getNGlobal)

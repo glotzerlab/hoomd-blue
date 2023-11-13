@@ -13,16 +13,12 @@ set(_mpcd_sources
     Communicator.cc
     ExternalField.cc
     Integrator.cc
-    ParticleData.cc
-    ParticleDataSnapshot.cc
     SlitGeometryFiller.cc
     SlitPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
     StreamingGeometry.cc
     StreamingMethod.cc
-    SystemData.cc
-    SystemDataSnapshot.cc
     VirtualParticleFiller.cc
     )
 
@@ -51,8 +47,6 @@ set(_mpcd_headers
     SRDCollisionMethod.h
     StreamingGeometry.h
     StreamingMethod.h
-    SystemData.h
-    SystemDataSnapshot.h
     VirtualParticleFiller.h
     )
 
@@ -144,9 +138,7 @@ install(TARGETS _mpcd EXPORT HOOMDTargets
 set(files
     __init__.py
     collide.py
-    data.py
     force.py
-    init.py
     integrate.py
     stream.py
     update.py
@@ -164,9 +156,9 @@ install(FILES ${_mpcd_headers}
        )
 
 if (BUILD_TESTING)
-    # add_subdirectory(test-py)
+     add_subdirectory(test)
 endif()
-add_subdirectory(test)
+add_subdirectory(pytest)
 if (BUILD_VALIDATION)
     # add_subdirectory(validation)
 endif (BUILD_VALIDATION)

@@ -224,7 +224,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_params;                 //!< Pair parameters per type pair
+        m_params; //!< Pair parameters per type pair
     std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
         m_shape_params;           //!< Shape parameters per type
 
@@ -715,8 +715,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);
     }
 
-    }  // end namespace detail
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

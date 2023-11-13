@@ -162,11 +162,11 @@ template<class Shape> class ComputeSDF : public Compute
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
 
-    bool m_shape_requires_expansion_moves;           //!< If expansion moves are required
-    std::vector<double> m_hist_compression;          //!< Raw histogram data
-    std::vector<double> m_sdf_compression;           //!< Computed SDF
-    std::vector<double> m_hist_expansion;            //!< Raw histogram data
-    std::vector<double> m_sdf_expansion;             //!< Computed SDF
+    bool m_shape_requires_expansion_moves;  //!< If expansion moves are required
+    std::vector<double> m_hist_compression; //!< Raw histogram data
+    std::vector<double> m_sdf_compression;  //!< Computed SDF
+    std::vector<double> m_hist_expansion;   //!< Raw histogram data
+    std::vector<double> m_sdf_expansion;    //!< Computed SDF
 
     //! Find the maximum particle separation beyond which all interactions are zero
     Scalar getMaxInteractionDiameter();
@@ -590,7 +590,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     {
                                     hist_weight_ptl_i_compression = 1.0; // = 1-e^(-\infty)
                                     min_bin_compression = bin_to_sample;
-                                    }                                    // end if (hard_overlap)
+                                    } // end if (hard_overlap)
 
                                 // if no hard overlap, check for a soft overlap if we have
                                 // patches
@@ -616,8 +616,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     if (u_ij_new != u_ij_0)
                                         {
                                         min_bin_compression = bin_to_sample;
-                                        hist_weight_ptl_i_compression
-                                            = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                        if (u_ij_new < u_ij_0)
+                                            {
+                                            hist_weight_ptl_i_compression = 0;
+                                            }
+                                        else
+                                            {
+                                            hist_weight_ptl_i_compression
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                            }
                                         }
                                     } // end if (!hard_overlap && m_mc->getPatchEnergy())
                                 }     // end loop over bins for compression
@@ -643,7 +650,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     {
                                     hist_weight_ptl_i_expansion = 1.0; // = 1-e^(-\infty)
                                     min_bin_expansion = bin_to_sample;
-                                    }                                  // end if (hard_overlap)
+                                    } // end if (hard_overlap)
 
                                 // if no hard overlap, check for a soft overlap if necessary
                                 if (!hard_overlap && m_mc->getPatchEnergy())
@@ -668,8 +675,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     if (u_ij_new != u_ij_0)
                                         {
                                         min_bin_expansion = bin_to_sample;
-                                        hist_weight_ptl_i_expansion
-                                            = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                        if (u_ij_new < u_ij_0)
+                                            {
+                                            hist_weight_ptl_i_expansion = 0;
+                                            }
+                                        else
+                                            {
+                                            hist_weight_ptl_i_expansion
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                            }
                                         }
                                     } // end if (!hard_overlap && m_mc->getPatchEnergy())
                                 }     // end loop over histogram bins for expansions
@@ -777,9 +791,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property_readonly("num_bins", &ComputeSDF<Shape>::getNumBins);
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
+    } // end namespace detail
+    } // end namespace hpmc
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __COMPUTE_SDF__H__

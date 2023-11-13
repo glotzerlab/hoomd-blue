@@ -339,9 +339,8 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
                  or falls back to the global rank if no information is available
-        \param found [output] True if a local rank was found, false otherwise
      */
-    int guessLocalRank(bool& found);
+    int guessLocalRank();
 
 #if defined(ENABLE_HIP)
     //! Initialize the GPU with the given id (where gpu_id is an index into s_capable_gpu_ids)
@@ -392,7 +391,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Descriptions of the active devices
     std::vector<std::string> m_active_device_descriptions;
 
-    bool m_concurrent;                //!< True if all GPUs have concurrentManagedAccess flag
+    bool m_concurrent; //!< True if all GPUs have concurrentManagedAccess flag
 
     mutable bool m_in_multigpu_block; //!< Tracks whether we are in a multi-GPU block
 

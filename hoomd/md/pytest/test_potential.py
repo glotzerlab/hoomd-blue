@@ -891,13 +891,17 @@ def _calculate_force(sim):
         return 0, 0  # return dummy values if not on rank 1
 
 
-def test_force_energy_relationship(simulation_factory,
+def test_force_energy_relationship(device, simulation_factory,
                                    two_particle_snapshot_factory, valid_params):
     # don't really test DPD and DPDLJ for this test
     pot_name = valid_params.pair_potential.__name__
     if any(pot_name == name for name in ["DPD", "DPDLJ"]):
         pytest.skip("Cannot test force energy relationship for " + pot_name
                     + " pair force")
+
+    if (pot_name == 'Tersoff' and isinstance(device, hoomd.device.GPU)
+            and hoomd.version.gpu_platform == 'ROCm'):
+        pytest.skip("Tersoff causes seg faults on ROCm (#1606).")
 
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))

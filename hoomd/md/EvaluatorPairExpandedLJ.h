@@ -205,7 +205,7 @@ class EvaluatorPairExpandedLJ
     Scalar delta;  //!< outward radial shift to apply to LJ potential
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDLJ_H__

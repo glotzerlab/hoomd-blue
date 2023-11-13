@@ -84,9 +84,9 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
     std::vector<hoomd::detail::AABBTree> m_aabb_trees; //!< Flat array of AABB trees of all types
     GPUVector<hoomd::detail::AABB> m_aabbs;            //!< Flat array of AABBs of all types
     std::vector<unsigned int> m_num_per_type;          //!< Total number of particles per type
-    std::vector<unsigned int> m_type_head;  //!< Index of first particle of each type, after sorting
+    std::vector<unsigned int> m_type_head; //!< Index of first particle of each type, after sorting
     std::vector<unsigned int>
-        m_map_pid_tree;                     //!< Maps the particle id to its tag in tree for sorting
+        m_map_pid_tree; //!< Maps the particle id to its tag in tree for sorting
 
     std::vector<vec3<Scalar>> m_image_list; //!< List of translation vectors
     unsigned int m_n_images;                //!< The number of image vectors to check
@@ -107,7 +107,7 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
     void traverseTree();
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTTREE_H__

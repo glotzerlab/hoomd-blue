@@ -7,6 +7,130 @@ Change Log
 4.x
 ---
 
+4.3.0 (2024-10-24)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``md.alchemy.methods.NVT`` now evolves the elements provided in ``alchemical_dof``
+  (`#1633 <https://github.com/glotzerlab/hoomd-blue/pull/1633>`__).
+* More consistent notice messages regarding MPI ranks used in GPU selection
+  (`#1635 <https://github.com/glotzerlab/hoomd-blue/pull/1635>`__).
+* ``hoomd.hpmc.compute.SDF`` computes correct pressures with patchy potentials.
+  (`#1636 <https://github.com/glotzerlab/hoomd-blue/pull/1636>`__).
+
+*Added*
+
+* Support GCC 13
+  (`#1634 <https://github.com/glotzerlab/hoomd-blue/pull/1634>`__).
+* Support Python 3.12
+  (`#1634 <https://github.com/glotzerlab/hoomd-blue/pull/1634>`__).
+* ``tau`` parameter to ``hoomd.md.methods.thermostats.Bussi``
+  (`#1619 <https://github.com/glotzerlab/hoomd-blue/pull/1619>`__).
+
+*Changed*
+
+* Revise class documentation.
+  (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
+* Add more code snippets to the class documentation
+  (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
+
+4.2.1 (2024-10-02)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``hoomd.write.Table`` correctly displays floating point values that are exactly 0.0
+  (`#1625 <https://github.com/glotzerlab/hoomd-blue/issues/1625>`__).
+* ``hoomd.write.HDF5Log`` defaults to ``"f8"`` formatting except when the value is an `int`,
+  or a `numpy.number` (`#1620 <https://github.com/glotzerlab/hoomd-blue/issues/1620>`__).
+* Attempt to workaround ``PMI_Init returned 1`` error on OLCF Frontier
+  (`#1629 <https://github.com/glotzerlab/hoomd-blue/pull/1629>`__).
+* Apple clang 15 compiles HOOMD-blue without errors
+  (`#1626 <https://github.com/glotzerlab/hoomd-blue/pull/1626>`__).
+
+4.2.0 (2024-09-20)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Make ``HDF5Log`` example more visible
+  (`#1602 <https://github.com/glotzerlab/hoomd-blue/pull/1602>`__).
+* Access valid GPU memory in ``hoomd.hpmc.update.Clusters``
+  (`#1607 <https://github.com/glotzerlab/hoomd-blue/pull/1607>`__).
+* Test suite passes on the ROCm GPU platform
+  (`#1607 <https://github.com/glotzerlab/hoomd-blue/pull/1607>`__).
+* Provide an error message when using ``md.external.field.Periodic`` in 2D
+  (`#1603 <https://github.com/glotzerlab/hoomd-blue/pull/1603>`__).
+* ``hoomd.write.GSD`` reports "File exists" in the exception description when using the ``'xb'``
+  mode and the file exists (`#1609 <https://github.com/glotzerlab/hoomd-blue/pull/1609>`__).
+* Write small numbers correctly in ``hoomd.write.Table``
+  (`#1617 <https://github.com/glotzerlab/hoomd-blue/pull/1617>`__).
+* Make examples in ``hoomd.md.methods.NVE`` and ``hoomd.md.methods.DisplacementCapped`` more visible
+  (`#1601 <https://github.com/glotzerlab/hoomd-blue/pull/1601>`__).
+
+*Added*
+
+* Documentation page: "How to apply arbitrary forces in MD"
+  (`#1610 <https://github.com/glotzerlab/hoomd-blue/pull/1610>`__).
+* Documentation page: "How to prevent particles from moving"
+  (`#1611 <https://github.com/glotzerlab/hoomd-blue/pull/1611>`__).
+* Documentation page: "How to minimize the potential energy of a system"
+  (`#1614 <https://github.com/glotzerlab/hoomd-blue/pull/1614>`__).
+* Documentation page: "How to continuously vary potential parameters"
+  (`#1612 <https://github.com/glotzerlab/hoomd-blue/pull/1612>`__).
+* Documentation page: "How to determine the most efficient device"
+  (`#1616 <https://github.com/glotzerlab/hoomd-blue/pull/1616>`__).
+* Documentation page: "How to choose the neighbor list buffer distance"
+  (`#1615 <https://github.com/glotzerlab/hoomd-blue/pull/1615>`__).
+* Documentation page: "How to compute the free energy of solids"
+  (`#1613 <https://github.com/glotzerlab/hoomd-blue/pull/1613>`__).
+* MPCD particle data is now available included in ``Snapshot``
+  (`#1580 <https://github.com/glotzerlab/hoomd-blue/pull/1580>`__).
+* Add variable parameters to ``hpmc.external.user.CPPExternalPotential``
+  (`#1608 <https://github.com/glotzerlab/hoomd-blue/pull/1608>`__).
+
+*Changed*
+
+* Removed the unused ``ExternalFieldComposite.h`` and all the related ``ExternalFieldComposite*``
+  (`#1604 <https://github.com/glotzerlab/hoomd-blue/pull/1604>`__).
+
+4.1.0 (2024-08-07)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Improved documentation
+  (`#1585 <https://github.com/glotzerlab/hoomd-blue/pull/1585>`__).
+* Update mesh documentation
+  (`#1587 <https://github.com/glotzerlab/hoomd-blue/pull/1587>`__).
+* Follow detailed balance in ``hoomd.hpmc.update.Shape``
+  (`#1595 <https://github.com/glotzerlab/hoomd-blue/pull/1595>`__).
+* ``pre-commit`` environment installs correctly on macos-arm64
+  (`#1597 <https://github.com/glotzerlab/hoomd-blue/pull/1597>`__).
+* Install all HPMC headers for use by plugins
+  (`#1573 <https://github.com/glotzerlab/hoomd-blue/pull/1573>`__).
+* Bond potentials can now be implemented via external plugins
+  (`#1591 <https://github.com/glotzerlab/hoomd-blue/issues/1591>`__).
+
+*Added*
+
+* Tested example code snippets in select modules
+  (`#1574 <https://github.com/glotzerlab/hoomd-blue/pull/1574>`__)
+  (`#1586 <https://github.com/glotzerlab/hoomd-blue/pull/1586>`__).
+* ``hoomd.util.make_example_simulation`` - create an example Simulation object
+  (`#1574 <https://github.com/glotzerlab/hoomd-blue/pull/1574>`__)
+  (`#1586 <https://github.com/glotzerlab/hoomd-blue/pull/1586>`__).
+* ``hoomd.write.Burst`` now has a ``__len__`` method
+  (`#1575 <https://github.com/glotzerlab/hoomd-blue/pull/1575>`__).
+* Support clang 15 and 16 on Linux
+  (`#1593 <https://github.com/glotzerlab/hoomd-blue/pull/1593>`__).
+* ``hoomd.write.HDF5Logger`` - write log quantities to HDF5 files
+  (`#1588 <https://github.com/glotzerlab/hoomd-blue/pull/1588>`__).
+* ``default_gamma`` and ``default_gamma_r`` arguments to ``hoomd.md.methods.rattle.Brownian``
+  ``hoomd.md.methods.rattle.Langevin``, and ``hoomd.md.methods.rattle.OverdampedViscous``
+  (`#1589 <https://github.com/glotzerlab/hoomd-blue/issues/1589>`__).
+
 4.0.1 (2023-06-27)
 ^^^^^^^^^^^^^^^^^^
 

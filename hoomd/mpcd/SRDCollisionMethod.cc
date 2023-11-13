@@ -12,29 +12,21 @@
 
 namespace hoomd
     {
-mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             uint16_t seed,
-                                             std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::CollisionMethod(sysdata, cur_timestep, period, phase), m_thermo(thermo),
-      m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
+                                             uint16_t seed)
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_rotvec(m_exec_conf),
+      m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
-
-    m_thermo->getFlagsSignal()
-        .connect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(
-            this);
     }
 
 mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD SRD collision method" << std::endl;
-
-    m_thermo->getFlagsSignal()
-        .disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(
-            this);
+    detachCallbacks();
     }
 
 void mpcd::SRDCollisionMethod::rule(uint64_t timestep)
@@ -248,6 +240,42 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
         }
     }
 
+void mpcd::SRDCollisionMethod::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoCompute>();
+            }
+        }
+    }
+
+void mpcd::SRDCollisionMethod::attachCallbacks()
+    {
+    assert(m_thermo);
+    m_thermo->getFlagsSignal()
+        .connect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(
+            this);
+    }
+
+void mpcd::SRDCollisionMethod::detachCallbacks()
+    {
+    if (m_thermo)
+        {
+        m_thermo->getFlagsSignal()
+            .disconnect<mpcd::SRDCollisionMethod,
+                        &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -256,12 +284,11 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
     pybind11::class_<mpcd::SRDCollisionMethod,
                      mpcd::CollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,
-                            unsigned int,
-                            std::shared_ptr<mpcd::CellThermoCompute>>())
+                            unsigned int>())
         .def("setRotationAngle", &mpcd::SRDCollisionMethod::setRotationAngle)
         .def("setTemperature", &mpcd::SRDCollisionMethod::setTemperature)
         .def("unsetTemperature", &mpcd::SRDCollisionMethod::unsetTemperature);

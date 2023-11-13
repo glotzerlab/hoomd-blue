@@ -9,6 +9,14 @@ Set :math:`U_{\\mathrm{external},i}` evaluated in
 See Also:
     :doc:`features` explains the compile time options needed for user defined
     external potentials.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    hpmc_integrator = hoomd.hpmc.integrate.Sphere()
+    hpmc_integrator.shape['A'] = dict(diameter=1.0)
+    simulation.operations.integrator = hpmc_integrator
+    logger = hoomd.logging.Logger()
 """
 
 import hoomd
@@ -18,7 +26,9 @@ from hoomd.hpmc.external.field import ExternalField
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.logging import log
+import numpy as np
 
 
 class CPPExternalPotential(ExternalField):
@@ -27,6 +37,9 @@ class CPPExternalPotential(ExternalField):
 
     Args:
         code (str): C++ function body to compile.
+        param_array (list[float]): Parameter values to make available in
+            ``float *param_array`` in the compiled code. If no adjustable
+            parameters are needed in the C++ code, pass an empty array.
 
     Potentials added using `CPPExternalPotential` are added to the total energy
     calculation in `hoomd.hpmc.integrate.HPMCIntegrator`. `CPPExternalPotential`
@@ -34,6 +47,10 @@ class CPPExternalPotential(ExternalField):
     the MC loop with full performance. It enables researchers to quickly and
     easily implement custom energetic field intractions without the need to
     modify and recompile HOOMD.
+
+    Adjust parameters within the code with the `param_array` attribute without
+    requiring a recompile. These arrays are **read-only** during function
+    evaluation.
 
     .. rubric:: C++ code
 
@@ -67,17 +84,23 @@ class CPPExternalPotential(ExternalField):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.0.1/hoomd/VectorMath.h
+            v4.3.0/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.0.1/hoomd/BoxDim.h
+            v4.3.0/hoomd/BoxDim.h
 
-    Example:
-        .. code-block:: python
+    .. rubric:: Example:
 
-            gravity_code = "return r_i.z + box.getL().z/2;"
-            gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                code=gravity_code)
-            mc.external_potential = gravity
+    .. skip: next if(llvm_not_available)
+
+    .. code-block:: python
+
+        gravity_code = '''
+            float gravity_constant = param_array[0];
+            return gravity_constant * (r_i.z + box.getL().z/2);
+        '''
+        cpp_external_potential = hoomd.hpmc.external.user.CPPExternalPotential(
+            code=gravity_code, param_array=[9.8])
+        hpmc_integrator.external_potential = cpp_external_potential
 
     Note:
         `CPPExternalPotential` does not support execution on GPUs.
@@ -90,11 +113,37 @@ class CPPExternalPotential(ExternalField):
         code (str): The code of the body of the external field energy function.
             After running zero or more steps, this property cannot be modified.
 
+            .. rubric:: Example
+
+            .. skip: next if(llvm_not_available)
+
+            .. code-block:: python
+
+                code = cpp_external_potential.code
+
+        param_array ((*N*, ) `numpy.ndarray` of ``float``): Numpy
+            array containing dynamically adjustable elements in the potential
+            energy function as defined by the user. After running zero or more
+            steps, the array cannot be set, although individual values can still
+            be changed.
+
+            .. rubric:: Example
+
+            .. skip: next if(llvm_not_available)
+
+            .. code-block:: python
+
+                cpp_external_potential.param_array[0] = 10.0
+
     """
 
-    def __init__(self, code):
-        param_dict = ParameterDict(code=str)
-        self._param_dict = param_dict
+    def __init__(self, code, param_array=[]):
+        param_dict = ParameterDict(
+            code=str,
+            param_array=NDArrayValidator(dtype=np.float32, shape=(None,)),
+        )
+        param_dict['param_array'] = param_array
+        self._param_dict.update(param_dict)
         self.code = code
 
     def _getattr_param(self, attr):
@@ -113,6 +162,9 @@ class CPPExternalPotential(ExternalField):
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/BoxDim.h"
+
+                        // param_array is allocated by the library
+                        float *param_array;
 
                         using namespace hoomd;
 
@@ -177,7 +229,7 @@ class CPPExternalPotential(ExternalField):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._simulation.device._cpp_exec_conf,
-                                cpu_code, cpu_include_options)
+                                cpu_code, cpu_include_options, self.param_array)
         super()._attach_hook()
 
     @log(requires_run=True)
@@ -188,6 +240,14 @@ class CPPExternalPotential(ExternalField):
 
             U = \\sum_{i=0}^\\mathrm{N_particles-1}
             U_{\\mathrm{external},i}
+
+        .. rubric:: Example:
+
+        .. skip: next if(llvm_not_available)
+
+        .. code-block:: python
+
+            logger.add(cpp_external_potential, quantities=['energy'])
 
         Returns `None` when the patch object and integrator are not attached.
         """

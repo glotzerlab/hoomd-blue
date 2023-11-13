@@ -156,7 +156,7 @@ class EvaluatorPairForceShiftedLJ
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__

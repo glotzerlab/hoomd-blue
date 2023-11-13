@@ -10,17 +10,16 @@ import numpy as np
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
 
-valid_constructor_args = [dict(code='return -1;')]
+valid_constructor_args = [
+    dict(code='return -1;'),
+    dict(code='return -1;', param_array=[1]),
+]
 
 # setable attributes before attach for CPPExternalPotential objects
-valid_attrs = [
-    ('code', 'return -1;'),
-]
+valid_attrs = [('code', 'return -1;'), ('param_array', [1])]
 
 # attributes that cannot be set after object is attached
-attr_error = [
-    ('code', 'return -1.0;'),
-]
+attr_error = [('code', 'return -1.0;'), ('param_array', [1])]
 
 # list of tuples with (
 # orientation of p1,
@@ -57,8 +56,10 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory,
+                   constructor_args):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -70,15 +71,17 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # make sure objecst are attached
+    # make sure objects are attached
     assert mc._attached
     assert ext._attached
 
 
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory,
+                   constructor_args):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -90,7 +93,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # make sure objecst are attached
+    # make sure objects are attached
     sim.operations.remove(mc)
     assert not mc._attached
     assert not ext._attached
@@ -155,12 +158,35 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 
 
 @pytest.mark.cpu
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_change_param_array_values(device, simulation_factory,
+                                   two_particle_snapshot_factory):
+    """Test that changing param_array values behaves correctly."""
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(
+        code='return param_array[0];', param_array=[1])
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1)
+    mc.shape['A'] = dict(diameter=0.1)
+    mc.d['A'] = 0.1
+    mc.external_potential = ext
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    N = sim.state.N_particles
+    sim.operations.integrator = mc
+    sim.run(0)
+    for _n in range(3):
+        ext.param_array[0] = _n
+        sim.run(1)
+        assert ext.energy / N == _n
+
+
+@pytest.mark.cpu
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
                         simulation_factory, two_particle_snapshot_factory):
     """Test that CPPExternalPotential computes the correct energies for static \
-            point-like electric dipoles inmersed in an uniform electric field.
+            point-like electric dipoles immersed in an uniform electric field.
 
     Here, we test the potential energy of a point dipole in an electric field
     oriented along the z-direction. Note that we 1) use charge as a proxy for

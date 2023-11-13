@@ -54,6 +54,8 @@ def setup_sybil_tests(namespace):
 
     namespace['cupy_not_available'] = cupy is None
 
+    namespace['llvm_not_available'] = not hoomd.version.llvm_enabled
+
 
 if sybil is not None:
     pytest_collect_file = sybil.Sybil(
@@ -64,10 +66,6 @@ if sybil is not None:
         pattern='*.py',
         # exclude files not yet tested with sybil
         excludes=[
-            'custom/custom_action.py',
-            'data/typeconverter.py',
-            'data/typeparam.py',
-            'hpmc/external/user.py',
             'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,
@@ -508,7 +506,7 @@ def equality_check(a, b):
 
     if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
         return a == b
-    assert type(a) == type(b)
+    assert type(a) is type(b)
 
     _check_obj_attr_compatibility(a, b)
 

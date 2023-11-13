@@ -1024,8 +1024,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         std::vector<std::vector<Scalar>> mass_proc;   // Particle masses array of every processor
         std::vector<std::vector<Scalar>> charge_proc; // Particle charges array of every processor
         std::vector<std::vector<Scalar>>
-            diameter_proc;                            // Particle diameters array of every processor
-        std::vector<std::vector<int3>> image_proc;    // Particle images array of every processor
+            diameter_proc;                         // Particle diameters array of every processor
+        std::vector<std::vector<int3>> image_proc; // Particle images array of every processor
         std::vector<std::vector<unsigned int>> body_proc;   // Body ids of every processor
         std::vector<std::vector<Scalar4>> orientation_proc; // Orientations of every processor
         std::vector<std::vector<Scalar4>> angmom_proc;      // Angular momenta of every processor
@@ -1450,8 +1450,8 @@ template<class Real> void ParticleData::takeSnapshot(SnapshotParticleData<Real>&
         std::vector<std::vector<Scalar>> mass_proc;   // Particle masses array of every processor
         std::vector<std::vector<Scalar>> charge_proc; // Particle charges array of every processor
         std::vector<std::vector<Scalar>>
-            diameter_proc;                            // Particle diameters array of every processor
-        std::vector<std::vector<int3>> image_proc;    // Particle images array of every processor
+            diameter_proc;                         // Particle diameters array of every processor
+        std::vector<std::vector<int3>> image_proc; // Particle images array of every processor
         std::vector<std::vector<unsigned int>> body_proc;   // Body ids of every processor
         std::vector<std::vector<Scalar4>> orientation_proc; // Orientations of every processor
         std::vector<std::vector<Scalar4>> angmom_proc;      // Angular momenta of every processor
@@ -2890,7 +2890,7 @@ template<class Real> void SnapshotParticleData<Real>::validate() const
 
 #ifdef ENABLE_MPI
 //! Select non-zero communication lags
-struct comm_flag_select : std::unary_function<const unsigned int, bool>
+struct comm_flag_select
     {
     bool operator()(const unsigned int comm_flag) const
         {
@@ -3070,7 +3070,7 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
         std::remove_copy_if(h_comm_flags.data,
                             h_comm_flags.data + old_nparticles,
                             comm_flags.begin(),
-                            std::not1(comm_flag_select()));
+                            std::not_fn(comm_flag_select()));
 
         // reset communication flags to zero
         std::fill(h_comm_flags.data, h_comm_flags.data + new_nparticles, 0);

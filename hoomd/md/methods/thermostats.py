@@ -248,16 +248,38 @@ class Bussi(Thermostat):
         kT (hoomd.variant.variant_like): Temperature set point for the
             thermostat :math:`[\mathrm{energy}]`.
 
-    Provides temperature control by rescaling the velocity by a factor taken
-    from the canonical velocity distribution. On each timestep, velocities are
-    rescaled by a factor :math:`\alpha=\sqrt{K_t / K}`, where :math:`K` is the
-    current kinetic energy, and :math:`K_t` is chosen randomly from the
-    distribution
+        tau (float): Thermostat time constant :math:`[\mathrm{time}]`.
+            Defaults to 0.
+
+    `Bussi` controls the system temperature by separately rescaling the velocity
+    and angular momenta by the factor :math:`\alpha` sampled from the canonical
+    distribution.
+
+    When `tau` is 0, the stochastic evolution of system is instantly thermalized
+    and :math:`\alpha` is given by:
 
     .. math::
-        P(K_t) \propto K_t^{N_f/2 - 1} \exp(-K_t / kT)
+        \alpha = \sqrt{\frac{g_N kT}{K}}
 
-    where :math:`N_f` is the number of degrees of freedom thermalized.
+    where :math:`K` is the instantaneous kinetic energy of the corresponding
+    translational or rotational degrees of freedom, :math:`N` is the number of
+    degrees of freedom, and :math:`g_N` is a random value sampled from the
+    distribution :math:`\mathrm{Gamma}(N, 1)`:
+
+    .. math::
+        f_N(g) = \frac{1}{\Gamma(N)} g^{N-1} e^{-g}.
+
+    When `tau` is non-zero, the kinetic energies decay to equilibrium with the
+    given characteristic time constant and :math:`\alpha` is given by:
+
+    .. math::
+        \alpha = \sqrt{e^{\delta t / \tau}
+                 + (1 - e^{\delta t / \tau}) \frac{(2 g_{N-1} + n^2) kT}{2 K}
+                 + 2 n \sqrt{e^{\delta t / \tau} (1-e^{\delta t / \tau})
+                    \frac{kT}{2 K}}}
+
+    where :math:`\delta t` is the step size and :math:`n` is a random value
+    sampled from the normal distribution :math:`\mathcal{N}(0, 1)`.
 
     See Also:
         `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`_.
@@ -266,7 +288,8 @@ class Bussi(Thermostat):
 
     .. code-block:: python
 
-        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5,
+            tau=simulation.operations.integrator.dt*20)
         simulation.operations.integrator.methods[0].thermostat = bussi
 
     Attributes:
@@ -285,15 +308,27 @@ class Bussi(Thermostat):
                                               B=2.0,
                                               t_start=0,
                                               t_ramp=1_000_000)
+
+        tau (float): Thermostat time constant :math:`[\mathrm{time}].`
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                bussi.tau = 0.0
     """
 
-    def __init__(self, kT):
+    def __init__(self, kT, tau=0.0):
         super().__init__(kT)
+        param_dict = ParameterDict(tau=float)
+        param_dict["tau"] = tau
+        self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = _md.BussiThermostat(self.kT, group, self._thermo,
-                                            self._simulation.state._cpp_sys_def)
+                                            self._simulation.state._cpp_sys_def,
+                                            self.tau)
         self._simulation._warn_if_seed_unset()
 
 

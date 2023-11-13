@@ -1690,7 +1690,7 @@ template<> inline std::string EvaluatorPairALJ<3>::getShapeSpec() const
 
 #endif
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_PAIR_ALJ_H__

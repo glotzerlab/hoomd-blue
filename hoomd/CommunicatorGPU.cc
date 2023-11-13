@@ -288,7 +288,7 @@ void CommunicatorGPU::initializeCommunicationStages()
     }
 
 //! Select a particle for migration
-struct get_migrate_key : public std::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key
     {
     const uint3 my_pos;               //!< My domain decomposition position
     const Index3D di;                 //!< Domain indexer
@@ -3683,9 +3683,9 @@ void export_CommunicatorGPU(pybind11::module& m)
                             std::shared_ptr<DomainDecomposition>>())
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
-    }  // end namespace detail
+    } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

@@ -89,8 +89,8 @@ class PYBIND11_EXPORT CosineSqAngleForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K;                             //!< K parameter for multiple angle types
-    Scalar* m_t_0;                           //!< r_0 parameter for multiple angle types
+    Scalar* m_K;   //!< K parameter for multiple angle types
+    Scalar* m_t_0; //!< r_0 parameter for multiple angle types
 
     std::shared_ptr<AngleData> m_angle_data; //!< Angle data to use in computing angles
 

@@ -449,8 +449,6 @@ template<typename Real> class SpherePointGenerator
  *      Mathematical Software (TOMS), vol. 26, issue 3, Sept. 2000, 363--372.
  *      https://doi.org/10.1145/358407.358414
  *
- * WARNING: This implementation assumes alpha > 1.
- *
  * \tparam Real Precision of the random number
  */
 template<typename Real> class GammaDistribution
@@ -461,10 +459,9 @@ template<typename Real> class GammaDistribution
      * \param alpha
      * \param b
      */
-    DEVICE explicit GammaDistribution(const Real alpha, const Real b) : m_b(b)
+    DEVICE explicit GammaDistribution(const Real alpha, const Real b) : m_alpha(alpha), m_b(b)
         {
-        m_d = alpha - Real(1. / 3.);
-        m_c = fast::rsqrt(m_d) / Real(3.);
+        m_c = fast::rsqrt(m_alpha - Real(1. / 3.)) / Real(3.);
         }
 
     //! Draw a random number from the gamma distribution
@@ -481,7 +478,22 @@ template<typename Real> class GammaDistribution
      */
     template<typename RNG> DEVICE inline Real operator()(RNG& rng)
         {
+        if (m_alpha <= 0)
+            {
+#ifndef __HIPCC__
+            throw std::domain_error("alpha must be positive.");
+#else
+            return 0;
+#endif
+            }
+        else if (m_alpha < Real(1.0))
+            {
+            Real x = GammaDistribution(m_alpha + Real(1.0), m_b)(rng);
+            return x * fast::pow(detail::generate_canonical<Real>(rng), Real(1.0) / m_alpha);
+            }
+
         Real v;
+        Real d = m_alpha - Real(1. / 3.);
         while (1)
             {
             // first draw a valid Marsaglia v value using the normal distribution
@@ -500,18 +512,18 @@ template<typename Real> class GammaDistribution
                 break;
 
             // otherwise, do expensive log comparison
-            if (fast::log(u) < Real(0.5) * x2 + m_d * (Real(1.0) - v + fast::log(v)))
+            if (fast::log(u) < Real(0.5) * x2 + d * (Real(1.0) - v + fast::log(v)))
                 break;
             }
 
         // convert the Gamma(alpha,1) to Gamma(alpha,beta)
-        return m_d * v * m_b;
+        return d * v * m_b;
         }
 
     private:
-    Real m_b;                          //!< Gamma-distribution b-parameter
-    Real m_c;                          //!< c-parameter for Marsaglia and Tsang method
-    Real m_d;                          //!< d-parameter for Marasglia and Tsang method
+    Real m_alpha; //!< Gamma distribution alpha parameter
+    Real m_b;     //!< Gamma-distribution b-parameter
+    Real m_c;     //!< c-parameter for Marsaglia and Tsang method
 
     NormalDistribution<Real> m_normal; //!< Normal variate generator
     };
@@ -659,6 +671,6 @@ template<class Real> class PoissonDistribution
         }
     };
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

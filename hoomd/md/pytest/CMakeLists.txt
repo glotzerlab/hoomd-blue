@@ -44,6 +44,7 @@ set(files __init__.py
     true_pair_list.json
     aniso_forces_and_energies.json
     test_burst_writer.py
+    test_hdf5.py
     )
 
 install(FILES ${files}

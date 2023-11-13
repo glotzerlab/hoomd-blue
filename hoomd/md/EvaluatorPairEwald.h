@@ -180,7 +180,7 @@ class EvaluatorPairEwald
     Scalar qiqj;   //!< product of qi and qj
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EWALD_H__

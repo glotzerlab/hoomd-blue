@@ -1,7 +1,12 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement Table."""
+"""Implement Table.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+"""
 
 from abc import ABCMeta, abstractmethod
 import copy
@@ -96,6 +101,19 @@ class _Formatter:
         else:
             return self.format_num(value, column_width)
 
+    @staticmethod
+    def _digits_from_decimal(num):
+        """Return digits to represent to the first significant digit."""
+        if num == 0.0:
+            return 1
+
+        digits = int(log10(abs(num)))
+        # Positive exponents require an extra space (10^0 == 1)
+        digits = 1 + digits if digits >= 0 else -digits
+        if num < 0:
+            digits += 1  # - (negative symbol)
+        return digits + 1  # decimal point
+
     def format_num(self, value, column_width):
         # Always output full integer values
         if isinstance(value, Integral):
@@ -107,11 +125,9 @@ class _Formatter:
             # information past the decimal point. For values less than 1 the
             # smallest is 0.xxx. The plus one is for the decimal point. We
             # already attempt to print out as many decimal points as possible so
-            # we only need to determine the minimum size to the left of the
-            # decimal point including the decimal point.
-            min_len_repr = int(log10(max(abs(value), 1))) + 1
-            if value < 0:
-                min_len_repr += 1  # add 1 for the negative sign
+            # we only need to determine the minimum size to from the decimal
+            # point including the decimal point.
+            min_len_repr = self._digits_from_decimal(value) + 1
             # Use scientific formatting
             if not min_len_repr < 6 or min_len_repr > column_width:
                 # Determine the number of decimals to use
@@ -338,23 +354,11 @@ class _TableInternal(_InternalAction):
 class Table(_InternalCustomWriter):
     """Write delimiter separated values to a stream.
 
-    Use `Table` to write scalar and string `hoomd.logging.Logger` quantities to
-    standard out or to a file.
-
-    Warning:
-        When logger quantities include strings with spaces, the default space
-        delimiter will result in files that are not machine readable.
-
-    Important:
-        All attributes for this class are static. They cannot be set to new
-        values once created.
-
     Args:
         trigger (hoomd.trigger.trigger_like): The trigger to determine when to
             run the Table backend.
-        logger (hoomd.logging.Logger): The logger to query for output. The
-            'scalar' categories must be set on the logger, and the 'string'
-            categories is optional.
+        logger (hoomd.logging.Logger): The logger to query for output. `Table`
+            supports only ``'scalar'`` and ``'string'`` logger categories.
         output (``file-like`` object , optional): A file-like object to output
             the data from, defaults to standard out. The object must have
             ``write`` and ``flush`` methods and a ``mode`` attribute. Examples
@@ -363,59 +367,113 @@ class Table(_InternalCustomWriter):
         header_sep (`str`, optional): String to use to separate names in
             the logger's namespace, defaults to ``'.'``. For example, if logging
             the total energy of an `hoomd.md.pair.LJ` pair force object, the
-            default header would be ``md.pair.LJ.energy`` (assuming that
-            ``max_header_len`` is not set).
+            default header would be ``md.pair.LJ.energy``.
         delimiter (`str`, optional): String used to separate elements in
             the space delimited file, defaults to ``' '``.
         pretty (`bool`, optional): Flags whether to attempt to make output
-            prettier and easier to read, defaults to True. To make the output
-            easier to read, the output will compromise on numerical precision
-            for improved readability. In many cases, the precision will
-            still be high with pretty set to ``True``.
+            prettier and easier to read (defaults to `True`).
         max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
             values, defaults to 10.
-        max_header_len (`int`, optional): If not None (the default), limit
+        max_header_len (`int`, optional): If not `None` (the default), limit
             the outputted header names to length ``max_header_len``. When not
-            None, names are grabbed from the most specific to the least. For
+            `None`, names are grabbed from the most specific to the least. For
             example, if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would
-            be set to 'energy'. Note that at least the most specific part of the
-            namespace will be used regardless of this setting (e.g. if set to 5
-            in the previous example, 'energy' would still be the header).
+            be set to 'energy'.
+
+            Note:
+                At a minimum, the complete most specific part of the namespace
+                will be used regardless of this setting.
+
+    Use `Table` to write scalar and string `hoomd.logging.Logger` quantities to
+    standard out or to a file.
+
+    Warning:
+        When logger quantities include strings with spaces, the default space
+        delimiter will result in files that are not machine readable.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        logger = hoomd.logging.Logger(categories=['scalar', 'string'])
+        table = hoomd.write.Table(trigger=hoomd.trigger.Periodic(10_000),
+                                  logger=logger)
 
     Attributes:
-        trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the Table backend.
-        logger (hoomd.logging.Logger): The logger to query for output. The
-            'scalar' categories must be set on the logger, and the 'string'
-            categories is optional.
+        logger (hoomd.logging.Logger): The logger to query for output. `Table`
+            supports only ``'scalar'`` and ``'string'`` logger categories
+            (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                logger = table.logger
+
         output (``file-like`` object): A file-like object to output
             the data from. The object must have ``write`` and ``flush`` methods
-            and a ``mode`` attribute.
+            and a ``mode`` attribute (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                output = table.output
+
         header_sep (str): String to use to separate names in
-            the logger's namespace.'. For example, if logging the total energy
-            of an `hoomd.md.pair.LJ` pair force object, the default header would
-            be ``md.pair.LJ.energy`` (assuming that ``max_header_len`` is not
-            set).
+            the logger's namespace (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                header_sep = table.header_sep
+
         delimiter (str): String used to separate elements in the space
-            delimited file.
+            delimited file (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                delimiter = table.delimiter
+
         pretty (bool): Flags whether to attempt to make output
-            prettier and easier to read. To make the output easier to read, the
-            output will compromise on outputted precision for improved
-            readability. In many cases, though the precision will still be high
-            with pretty set to ``True``.
+            prettier and easier to read (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                pretty = table.pretty
+
         max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
-            values, defaults to 10.
-        max_header_len (int): Limits the outputted header names to length
-            ``max_header_len`` when not ``None``. Names are grabbed from the
-            most specific to the least. For example, if set to 7 the namespace
-            'hoomd.md.pair.LJ.energy' would be set to 'energy'. Note that at
-            least the most specific part of the namespace will be used
-            regardless of this setting (e.g. if set to 5 in the previous
-            example, 'energy' would still be the header).
-        min_column_width (int): The minimum allowed column width.
+            values (*read-only*).
 
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                max_precision = table.max_precision
+
+        max_header_len (int): Limits the outputted header names to length
+            ``max_header_len`` when not ``None`` (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                max_header_len = table.max_header_len
+
+        min_column_width (int): The minimum allowed column width (*read-only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                min_column_width = table.min_column_width
     """
     _internal_class = _TableInternal
 
@@ -423,5 +481,11 @@ class Table(_InternalCustomWriter):
         """Write out data to ``self.output``.
 
         Writes a row from given ``hoomd.logging.Logger`` object data.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            table.write()
         """
         self._action.act()

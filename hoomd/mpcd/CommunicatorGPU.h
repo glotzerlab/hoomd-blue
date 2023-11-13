@@ -48,7 +48,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     {
     public:
     //! Constructor
-    CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_data);
+    CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
     virtual ~CommunicatorGPU();
@@ -99,7 +99,7 @@ namespace detail
     {
 //! Export mpcd::CommunicatorGPU to python
 void export_CommunicatorGPU(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

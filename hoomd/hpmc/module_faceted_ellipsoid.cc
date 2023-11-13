@@ -10,7 +10,6 @@
 #include "ShapeFacetedEllipsoid.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -40,8 +39,6 @@ void export_faceted_ellipsoid(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeFacetedEllipsoid>(m, "ExternalFieldFacetedEllipsoid");
     export_HarmonicField<ShapeFacetedEllipsoid>(m, "ExternalFieldHarmonicFacetedEllipsoid");
-    export_ExternalFieldComposite<ShapeFacetedEllipsoid>(m,
-                                                         "ExternalFieldCompositeFacetedEllipsoid");
     export_ExternalFieldWall<ShapeFacetedEllipsoid>(m, "WallFacetedEllipsoid");
 
 #ifdef ENABLE_HIP

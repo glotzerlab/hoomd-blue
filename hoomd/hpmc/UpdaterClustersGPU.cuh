@@ -117,13 +117,13 @@ struct cluster_args_t
     const hipStream_t* streams;           //!< kernel streams
     };
 
-void connected_components(uint2* d_adj,
-                          unsigned int N,
-                          const unsigned int n_elements,
-                          int* d_components,
-                          unsigned int& num_components,
-                          const hipDeviceProp_t& dev_prop,
-                          CachedAllocator& alloc);
+void __attribute__((visibility("default"))) connected_components(uint2* d_adj,
+                                                                 unsigned int N,
+                                                                 const unsigned int n_elements,
+                                                                 int* d_components,
+                                                                 unsigned int& num_components,
+                                                                 const hipDeviceProp_t& dev_prop,
+                                                                 CachedAllocator& alloc);
 
 void get_num_neighbors(const unsigned int* d_nneigh,
                        unsigned int* d_nneigh_scan,

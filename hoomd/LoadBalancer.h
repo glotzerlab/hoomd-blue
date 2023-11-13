@@ -195,24 +195,24 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         m_recompute_max_imbalance = true;
         m_needs_recount = false;
         }
-#endif                              // ENABLE_MPI
+#endif // ENABLE_MPI
 
     Scalar m_max_imbalance;         //!< Maximum imbalance
     bool m_recompute_max_imbalance; //!< Flag if maximum imbalance needs to be computed
 
-    bool m_needs_migrate;           //!< Flag to signal that migration is necessary
-    bool m_needs_recount;           //!< Flag if a particle change needs to be computed
+    bool m_needs_migrate; //!< Flag to signal that migration is necessary
+    bool m_needs_recount; //!< Flag if a particle change needs to be computed
 
-    Scalar m_tolerance;             //!< Load imbalance to tolerate
-    unsigned int m_maxiter;         //!< Maximum number of iterations to attempt
-    bool m_enable_x;                //!< Flag to enable balancing in x
-    bool m_enable_y;                //!< Flag to enable balancing in y
-    bool m_enable_z;                //!< Flag to enable balancing z
+    Scalar m_tolerance;     //!< Load imbalance to tolerate
+    unsigned int m_maxiter; //!< Maximum number of iterations to attempt
+    bool m_enable_x;        //!< Flag to enable balancing in x
+    bool m_enable_y;        //!< Flag to enable balancing in y
+    bool m_enable_z;        //!< Flag to enable balancing z
 
-    const Scalar m_max_scale;       //!< Maximum fraction to rescale either direction (5%)
+    const Scalar m_max_scale; //!< Maximum fraction to rescale either direction (5%)
 
     private:
-    unsigned int m_N_own;         //!< Number of particles owned by this rank
+    unsigned int m_N_own; //!< Number of particles owned by this rank
 
     Scalar m_max_max_imbalance;   //!< The maximum imbalance of any check
     double m_total_max_imbalance; //!< The average imbalance over checks

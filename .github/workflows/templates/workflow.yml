@@ -1,5 +1,5 @@
 <% block name %><% endblock %>
-<% set container_prefix="glotzerlab/ci:2023.06.19" %>
+<% set container_prefix="glotzerlab/ci:2023.10.09" %>
 
 <% block concurrency %>
 concurrency:
