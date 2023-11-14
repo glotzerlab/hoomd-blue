@@ -133,22 +133,23 @@ class Magnetic(Field):
        U_i = -\\vec{mu}_i \\cdot \\vec{B}
 
 
-    where :math:`\\vec{mu}_i` is the magnetic dipole moment of particle :math:`i`
-    and :math:`\\vec{B}` is the field vector. The field vector :math:`\\vec{B}`
-    must be set per unique particle type.
+    where :math:`\\vec{mu}_i` is the magnetic dipole moment of particle 
+    :math:`i`and :math:`\\vec{B}` is the field vector. The field vector 
+    :math:`\\vec{B}` must be set per unique particle type.
 
     .. py:attribute:: params
 
         The `Magnetic` external potential parameters. The dictionary has the
         following keys:
 
-        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic
-        field vector n the global reference frame :math:`[\\mathrm{energy} \\cdot \
-        \\mathrm{time} \\cdot \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
-        * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic
-        dipole moment of the particles type in the particle reference frame
-        :math:`[\\mathrm{charge} \\cdot \\mathrm{length}^2 \\cdot \
-        \\mathrm{time}^{-1}]`.
+        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The 
+        magnetic field vector n the global reference frame 
+        :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot \ 
+        \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
+        * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The 
+        magnetic dipole moment of the particles type in the particle 
+        reference frame :math:`[\\mathrm{charge} \\cdot \\mathrm{length}^2 \
+        \\cdot \\mathrm{time}^{-1}]`.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
