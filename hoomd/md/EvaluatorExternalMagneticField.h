@@ -121,7 +121,7 @@ class EvaluatorExternalMagneticField
 
     //! Evaluate the force, energy and virial
     /*! \param F force vector
-    	\param T torque vector
+        \param T torque vector
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
