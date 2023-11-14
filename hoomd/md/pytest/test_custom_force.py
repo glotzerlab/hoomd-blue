@@ -115,6 +115,42 @@ def test_simulation(local_force_names, force_simulation_factory,
                 npt.assert_allclose(virials[:, i], i)
 
 
+class ForceEqualsTag(md.force.Custom):
+
+    def __init__(self):
+        super().__init__(aniso=True)
+
+    def set_forces(self, timestep):
+        with self.cpu_local_force_arrays as force_arrays:
+            with self._state.cpu_local_snapshot as local_snapshot:
+                force_arrays.force[:] = -5
+                energy = local_snapshot.particles.tag * -10
+                force_arrays.potential_energy[:] = energy
+                force_arrays.torque[:] = 23
+                if force_arrays.virial.shape[0] != 0:
+                    force_arrays.virial[:] = np.arange(6)[None, :]
+
+
+@pytest.mark.cpu
+def test_force_equals_tag(force_simulation_factory, lattice_snapshot_factory):
+    """Make sure custom force can plug into simulation without crashing."""
+    snap = lattice_snapshot_factory()
+    custom_force = ForceEqualsTag()
+    sim = force_simulation_factory(custom_force, snap)
+    sim.run(1)
+
+    forces = custom_force.forces
+    energies = custom_force.energies
+    torques = custom_force.torques
+    virials = custom_force.virials
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(forces, -5)
+        npt.assert_array_equal(energies, np.arange(sim.state.N_particles) * -10)
+        npt.assert_allclose(torques, 23)
+        for i in range(6):
+            npt.assert_allclose(virials[:, i], i)
+
+
 class MyPeriodicField(md.force.Custom):
 
     def __init__(self, local_force_name, A, i, p, w):

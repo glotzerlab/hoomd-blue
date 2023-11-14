@@ -98,6 +98,13 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
 
     // start with no flags computed
     m_computed_flags.reset();
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        m_gather_tag_order = GatherTagOrder(m_exec_conf->getMPICommunicator());
+        }
+#endif
     }
 
 /*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
@@ -336,26 +343,39 @@ pybind11::object ForceCompute::getEnergiesPython()
         {
         dims[0] = 0;
         }
-    std::vector<double> energy(dims[0]);
+    std::vector<double> global_energy(dims[0]);
 
-    // This is slow: TODO implement a proper gather operation
-    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
+    // sort energies by particle tag
+    std::vector<double> local_energy;
+    local_energy.reserve(m_pdata->getN());
+    std::vector<uint32_t> local_tag(m_pdata->getN());
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
+    std::sort(local_tag.begin(), local_tag.end());
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        double e = getEnergy(i);
-        if (root)
-            {
-            energy[i] = e;
-            }
+        local_energy.push_back(h_force.data[h_rtag.data[local_tag[i]]].w);
+        }
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+#ifdef ENABLE_MPI
+        m_gather_tag_order.setLocalTagsSorted(local_tag);
+        m_gather_tag_order.gatherArray(global_energy, local_energy);
+#endif
+        }
+    else
+        {
+        global_energy = local_energy;
         }
 
     if (root)
         {
-        return pybind11::array(dims, energy.data());
+        return pybind11::array(dims, global_energy.data());
         }
-    else
-        {
-        return pybind11::none();
-        }
+    return pybind11::none();
     }
 
 pybind11::object ForceCompute::getForcesPython()

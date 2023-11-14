@@ -222,6 +222,11 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     // whether the local force buffers exposed by this class should be read-only
     bool m_buffers_writeable;
 
+#ifdef ENABLE_MPI
+    /// Helper class to gather particle forces, energies, and virials
+    GatherTagOrder m_gather_tag_order;
+#endif
+
     //! Actually perform the computation of the forces
     /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
         the base class compute() when the forces need to be computed.
