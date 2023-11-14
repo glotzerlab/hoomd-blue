@@ -144,7 +144,7 @@ class Magnetic(Field):
 
         * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The 
         magnetic field vector n the global reference frame 
-        :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot \ 
+        :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot \
         \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
         * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The 
         magnetic dipole moment of the particles type in the particle 
