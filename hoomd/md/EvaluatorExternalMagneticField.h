@@ -81,7 +81,7 @@ class EvaluatorExternalMagneticField
 
     typedef void* field_type;
 
-    //! Constructs the constraint evaluator
+    //! Constructs the external field evaluator
     /*! \param X position of particle
         \param box box dimensions
         \param params per-type parameters of external potential
@@ -121,6 +121,7 @@ class EvaluatorExternalMagneticField
 
     //! Evaluate the force, energy and virial
     /*! \param F force vector
+    	\param T torque vector
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
