@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.dihedral
@@ -12,7 +12,6 @@ md.dihedral
     :nosignatures:
 
     Dihedral
-    Harmonic
     Periodic
     OPLS
     Table
@@ -23,7 +22,6 @@ md.dihedral
     :synopsis: Dihedral potentials.
     :show-inheritance:
     :members: Dihedral,
-              Harmonic,
               Periodic,
               OPLS,
               Table

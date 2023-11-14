@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -29,7 +29,7 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     {
     public:
     //! Constructor
-    SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    SorterGPU(std::shared_ptr<SystemDefinition> sysdef,
               unsigned int cur_timestep,
               unsigned int period);
 

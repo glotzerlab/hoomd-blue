@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -8,18 +8,16 @@
 
 #include "ATCollisionMethodGPU.h"
 #include "ATCollisionMethodGPU.cuh"
+#include "CellThermoComputeGPU.h"
 
 namespace hoomd
     {
-mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
-    std::shared_ptr<mpcd::SystemData> sysdata,
-    uint64_t cur_timestep,
-    uint64_t period,
-    int phase,
-    std::shared_ptr<mpcd::CellThermoCompute> thermo,
-    std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-    std::shared_ptr<Variant> T)
-    : mpcd::ATCollisionMethod(sysdata, cur_timestep, period, phase, thermo, rand_thermo, T)
+mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                 uint64_t cur_timestep,
+                                                 uint64_t period,
+                                                 int phase,
+                                                 std::shared_ptr<Variant> T)
+    : mpcd::ATCollisionMethod(sysdef, cur_timestep, period, phase, T)
     {
     m_tuner_draw.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
@@ -175,6 +173,27 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
         }
     }
 
+void mpcd::ATCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+            m_rand_thermo = std::make_shared<mpcd::CellThermoComputeGPU>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoComputeGPU>();
+            m_rand_thermo = std::shared_ptr<mpcd::CellThermoComputeGPU>();
+            }
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -183,12 +202,10 @@ void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
     pybind11::class_<mpcd::ATCollisionMethodGPU,
                      mpcd::ATCollisionMethod,
                      std::shared_ptr<mpcd::ATCollisionMethodGPU>>(m, "ATCollisionMethodGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             uint64_t,
                             uint64_t,
                             int,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
                             std::shared_ptr<Variant>>());
     }
 

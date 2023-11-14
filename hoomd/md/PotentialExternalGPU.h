@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PotentialExternal.h"
@@ -61,9 +61,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -83,7 +80,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                           this->m_virial.getPitch(),
                                           this->m_pdata->getN(),
                                           d_pos.data,
-                                          d_diameter.data,
                                           d_charge.data,
                                           box,
                                           m_tuner->getParam()[0],

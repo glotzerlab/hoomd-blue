@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshGroupData.h
@@ -47,7 +47,7 @@ namespace hoomd
  *  \tpp group_size Size of groups
  *  \tpp name Name of element, i.e. meshbond, meshtriangle.
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+template<unsigned int group_size, typename Group, const char* name, typename snap>
 class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     {
     public:
@@ -61,11 +61,13 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
 
     virtual ~MeshGroupData();
 
-// mask the base class initializeFromSnapshot(const Snapshot& snapshot)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-    void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
-#pragma clang diagnostic pop
+    virtual void initializeFromSnapshot(
+        const typename BondedGroupData<group_size, Group, name, true>::Snapshot& snapshot)
+        {
+        throw std::runtime_error("Not implemented");
+        }
+
+    void initializeFromTriangleSnapshot(const TriangleData::Snapshot& snapshot);
 
     //! Take a snapshot
     std::map<unsigned int, unsigned int> takeSnapshot(snap& snapshot) const;
@@ -74,23 +76,6 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     /*! \param g Definition of group to add
      */
     unsigned int addBondedGroup(Group g);
-
-#ifdef ENABLE_MPI
-    //! Helper function to transfer bonded groups connected to a single particle
-    /*! \param tag Tag of particle that moves between domains
-        \param old_rank Old MPI rank for particle
-        \param new_rank New MPI rank
-     */
-    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
-#endif
-
-    private:
-    virtual void rebuildGPUTable();
-
-#ifdef ENABLE_HIP
-    //! Helper function to rebuild lookup by index table on the GPU
-    virtual void rebuildGPUTableGPU();
-#endif
     };
 
 namespace detail
@@ -108,11 +93,7 @@ void export_MeshGroupData(pybind11::module& m,
  */
 
 //! Definition of MeshBondData
-typedef MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true> MeshBondData;
-
-//! Definition of MeshTriangleData
-typedef MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>
-    MeshTriangleData;
+typedef MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot> MeshBondData;
 
     } // end namespace hoomd
 #endif

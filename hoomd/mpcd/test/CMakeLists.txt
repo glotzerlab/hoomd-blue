@@ -1,9 +1,3 @@
-
-
-###################################
-## Setup all of the test executables in a for loop
-if (BUILD_TESTING)
-
 # external_field test will not link properly due to separable compilation, disabling.
 set(TEST_LIST
     at_collision_method
@@ -17,7 +11,6 @@ set(TEST_LIST
     streaming_method
     virtual_particle
     )
-endif()
 
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
@@ -25,19 +18,12 @@ if(ENABLE_MPI)
     SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
     ENDMACRO(ADD_TO_MPI_TESTS)
 
-    # define every test together with the number of processors
-    # these are long running tests
-    if (BUILD_VALIDATION)
-    ADD_TO_MPI_TESTS(communicator 8)
-    endif()
-    # these are tests that are shorter running
-    if (BUILD_TESTING)
     ADD_TO_MPI_TESTS(cell_communicator 8)
     ADD_TO_MPI_TESTS(cell_list 8)
     ADD_TO_MPI_TESTS(cell_thermo_compute 8)
+    ADD_TO_MPI_TESTS(communicator 8)
     ADD_TO_MPI_TESTS(slit_geometry_filler 8)
     ADD_TO_MPI_TESTS(slit_pore_geometry_filler 8)
-    endif()
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
@@ -53,9 +39,11 @@ macro(compile_test TEST_EXE TEST_SRC)
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC} ${_cuda_sources})
     target_include_directories(${TEST_EXE} PRIVATE ${PYTHON_INCLUDE_DIR})
     add_dependencies(test_all ${TEST_EXE})
-    target_link_libraries(${TEST_EXE} _mpcd ${PYTHON_LIBRARIES})
-    fix_cudart_rpath(${TEST_EXE})
-
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT APPLE)
+        # these options are needed to avoid linker errors with GCC
+        set(additional_link_options "-Wl,--allow-shlib-undefined -Wl,--no-as-needed")
+    endif()
+    target_link_libraries(${TEST_EXE} _mpcd ${additional_link_options} ${PYTHON_LIBRARIES})
 endmacro(compile_test)
 
 # add non-MPI tests to test list first

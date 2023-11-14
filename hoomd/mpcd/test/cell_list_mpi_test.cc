@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
@@ -37,6 +37,8 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
 
     // configure domain decompsition
     std::vector<Scalar> fx, fy, fz;
@@ -71,9 +73,8 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         }
 
     // initialize mpcd system
-    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
-    auto pdata_1 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_1));
+    auto pdata_1 = sysdef->getMPCDParticleData();
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
 
     // compute the cell list
     cl->computeDimensions();
@@ -730,6 +731,30 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
+    // place each particle in the same cell, but on different ranks
+    /*
+     * The +/- halves of the box owned by each domain are:
+     *    x y z
+     * 0: - - -
+     * 1: + - -
+     * 2: - + -
+     * 3: + + -
+     * 4: - - +
+     * 5: + - +
+     * 6: - + +
+     * 7: + + +
+     */
+    snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.1, -0.1, -0.1);
+    snap->mpcd_data.position[1] = vec3<Scalar>(0.1, -0.1, -0.1);
+    snap->mpcd_data.position[2] = vec3<Scalar>(-0.1, 0.1, -0.1);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.1, 0.1, -0.1);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-0.1, -0.1, 0.1);
+    snap->mpcd_data.position[5] = vec3<Scalar>(0.1, -0.1, 0.1);
+    snap->mpcd_data.position[6] = vec3<Scalar>(-0.1, 0.1, 0.1);
+    snap->mpcd_data.position[7] = vec3<Scalar>(0.1, 0.1, 0.1);
+
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
@@ -737,39 +762,8 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
     sysdef->setCommunicator(pdata_comm);
 
     // initialize mpcd system
-    std::shared_ptr<mpcd::ParticleData> pdata;
-        // place each particle in the same cell, but on different ranks
-        /*
-         * The +/- halves of the box owned by each domain are:
-         *    x y z
-         * 0: - - -
-         * 1: + - -
-         * 2: - + -
-         * 3: + + -
-         * 4: - - +
-         * 5: + - +
-         * 6: - + +
-         * 7: + + +
-         */
-        {
-        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
-
-        mpcd_snap->position[0] = vec3<Scalar>(-0.1, -0.1, -0.1);
-        mpcd_snap->position[1] = vec3<Scalar>(0.1, -0.1, -0.1);
-        mpcd_snap->position[2] = vec3<Scalar>(-0.1, 0.1, -0.1);
-        mpcd_snap->position[3] = vec3<Scalar>(0.1, 0.1, -0.1);
-        mpcd_snap->position[4] = vec3<Scalar>(-0.1, -0.1, 0.1);
-        mpcd_snap->position[5] = vec3<Scalar>(0.1, -0.1, 0.1);
-        mpcd_snap->position[6] = vec3<Scalar>(-0.1, 0.1, 0.1);
-        mpcd_snap->position[7] = vec3<Scalar>(0.1, 0.1, 0.1);
-
-        pdata = std::make_shared<mpcd::ParticleData>(mpcd_snap,
-                                                     snap->global_box,
-                                                     exec_conf,
-                                                     decomposition);
-        }
-
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
+    std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
     cl->compute(0);
     const unsigned int my_rank = exec_conf->getRank();
         {
@@ -958,6 +952,30 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
+    // dummy initialize one particle to every domain, we will move them outside the domains for
+    // the tests
+    /*
+     * The +/- halves of the box owned by each domain are:
+     *    x y z
+     * 0: - - -
+     * 1: + - -
+     * 2: - + -
+     * 3: + + -
+     * 4: - - +
+     * 5: + - +
+     * 6: - + +
+     * 7: + + +
+     */
+    snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
+    snap->mpcd_data.position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
+    snap->mpcd_data.position[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
+    snap->mpcd_data.position[3] = vec3<Scalar>(1.0, 1.0, -1.0);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
+    snap->mpcd_data.position[5] = vec3<Scalar>(1.0, -1.0, 1.0);
+    snap->mpcd_data.position[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
+    snap->mpcd_data.position[7] = vec3<Scalar>(1.0, 1.0, 1.0);
     std::vector<Scalar> fx {0.5};
     std::vector<Scalar> fy {0.45};
     std::vector<Scalar> fz {0.55};
@@ -967,41 +985,8 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    // place each particle around the edges of each domain
-    std::shared_ptr<mpcd::ParticleData> pdata;
-        {
-        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
-
-        // dummy initialize one particle to every domain, we will move them outside the domains for
-        // the tests
-        /*
-         * The +/- halves of the box owned by each domain are:
-         *    x y z
-         * 0: - - -
-         * 1: + - -
-         * 2: - + -
-         * 3: + + -
-         * 4: - - +
-         * 5: + - +
-         * 6: - + +
-         * 7: + + +
-         */
-        mpcd_snap->position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
-        mpcd_snap->position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
-        mpcd_snap->position[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
-        mpcd_snap->position[3] = vec3<Scalar>(1.0, 1.0, -1.0);
-        mpcd_snap->position[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
-        mpcd_snap->position[5] = vec3<Scalar>(1.0, -1.0, 1.0);
-        mpcd_snap->position[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
-        mpcd_snap->position[7] = vec3<Scalar>(1.0, 1.0, 1.0);
-
-        pdata = std::make_shared<mpcd::ParticleData>(mpcd_snap,
-                                                     snap->global_box,
-                                                     exec_conf,
-                                                     decomposition);
-        }
-
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
+    std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
 
     // move particles to edges of domains for testing
     const unsigned int my_rank = exec_conf->getRank();

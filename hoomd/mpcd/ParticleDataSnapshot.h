@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_PARTICLE_DATA_SNAPSHOT_H_
@@ -66,12 +66,24 @@ class PYBIND11_EXPORT ParticleDataSnapshot
     //! Validate snapshot data
     bool validate() const;
 
+#ifdef ENABLE_MPI
+    //! Broadcast the snapshot using MPI
+    void bcast(unsigned int root, MPI_Comm mpi_comm);
+#endif
+
     //! Replicate the snapshot data
     void replicate(unsigned int nx,
                    unsigned int ny,
                    unsigned int nz,
                    const BoxDim& old_box,
                    const BoxDim& new_box);
+
+    //! Replicate the snapshot data
+    void replicate(unsigned int nx,
+                   unsigned int ny,
+                   unsigned int nz,
+                   std::shared_ptr<const BoxDim> old_box,
+                   std::shared_ptr<const BoxDim> new_box);
 
     unsigned int size;                     //!< Number of particles
     std::vector<vec3<Scalar>> position;    //!< MPCD particle positions
@@ -87,6 +99,7 @@ namespace detail
 void export_ParticleDataSnapshot(pybind11::module& m);
     } // end namespace detail
 
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
+
 #endif // MPCD_PARTICLE_DATA_SNAPSHOT_H_

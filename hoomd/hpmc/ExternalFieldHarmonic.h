@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_HARMONIC_H_
@@ -259,7 +259,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim& box_old) override
+                           const BoxDim& box_old,
+                           const Scalar3& origin_old) override
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,

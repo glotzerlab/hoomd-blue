@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -30,7 +30,7 @@ namespace mpcd
 class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
     {
     public:
-    SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
+    SlitGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
                        Scalar density,
                        unsigned int type,
                        std::shared_ptr<Variant> T,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <pybind11/pybind11.h>
@@ -50,6 +50,7 @@ void export_PotentialPairLJ1208(pybind11::module& m);
 void export_PotentialPairLJ0804(pybind11::module& m);
 void export_PotentialPairGauss(pybind11::module& m);
 void export_PotentialPairExpandedLJ(pybind11::module& m);
+void export_PotentialPairExpandedGaussian(pybind11::module& m);
 void export_PotentialPairExpandedMie(pybind11::module& m);
 void export_PotentialPairYukawa(pybind11::module& m);
 void export_PotentialPairEwald(pybind11::module& m);
@@ -104,13 +105,17 @@ void export_PotentialPairDPDThermoLJ(pybind11::module& m);
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 void export_ZeroMomentumUpdater(pybind11::module& m);
-void export_TwoStepNVE(pybind11::module& m);
-void export_TwoStepNVTMTK(pybind11::module& m);
+
+void export_Thermostat(pybind11::module& m);
+void export_MTTKThermostat(pybind11::module& m);
+void export_BussiThermostat(pybind11::module& m);
+void export_BerendsenThermostat(pybind11::module& m);
+
+void export_TwoStepConstantVolume(pybind11::module& m);
 void export_TwoStepLangevinBase(pybind11::module& m);
 void export_TwoStepLangevin(pybind11::module& m);
 void export_TwoStepBD(pybind11::module& m);
-void export_TwoStepNPTMTK(pybind11::module& m);
-void export_Berendsen(pybind11::module& m);
+void export_TwoStepConstantPressure(pybind11::module& m);
 void export_TwoStepNVTAlchemy(pybind11::module& m);
 void export_FIREEnergyMinimizer(pybind11::module& m);
 void export_MuellerPlatheFlow(pybind11::module& m);
@@ -189,6 +194,7 @@ void export_PotentialPairLJ1208GPU(pybind11::module& m);
 void export_PotentialPairLJ0804GPU(pybind11::module& m);
 void export_PotentialPairGaussGPU(pybind11::module& m);
 void export_PotentialPairExpandedLJGPU(pybind11::module& m);
+void export_PotentialPairExpandedGaussianGPU(pybind11::module& m);
 void export_PotentialPairExpandedMieGPU(pybind11::module& m);
 void export_PotentialPairYukawaGPU(pybind11::module& m);
 void export_PotentialPairEwaldGPU(pybind11::module& m);
@@ -241,12 +247,10 @@ void export_PotentialExternalWallMorseGPU(pybind11::module& m);
 void export_PotentialPairDPDThermoDPDGPU(pybind11::module& m);
 void export_PotentialPairDPDThermoLJGPU(pybind11::module& m);
 
-void export_TwoStepNVEGPU(pybind11::module& m);
-void export_TwoStepNVTMTKGPU(pybind11::module& m);
+void export_TwoStepConstantVolumeGPU(pybind11::module& m);
 void export_TwoStepLangevinGPU(pybind11::module& m);
 void export_TwoStepBDGPU(pybind11::module& m);
-void export_TwoStepNPTMTKGPU(pybind11::module& m);
-void export_BerendsenGPU(pybind11::module& m);
+void export_TwoStepConstantPressureGPU(pybind11::module& m);
 void export_FIREEnergyMinimizerGPU(pybind11::module& m);
 void export_MuellerPlatheFlowGPU(pybind11::module& m);
 
@@ -316,6 +320,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJ0804(m);
     export_PotentialPairGauss(m);
     export_PotentialPairExpandedLJ(m);
+    export_PotentialPairExpandedGaussian(m);
     export_PotentialPairExpandedMie(m);
     export_PotentialPairYukawa(m);
     export_PotentialPairEwald(m);
@@ -399,6 +404,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJ0804GPU(m);
     export_PotentialPairGaussGPU(m);
     export_PotentialPairExpandedLJGPU(m);
+    export_PotentialPairExpandedGaussianGPU(m);
     export_PotentialPairExpandedMieGPU(m);
     export_PotentialPairYukawaGPU(m);
     export_PotentialPairEwaldGPU(m);
@@ -473,16 +479,19 @@ PYBIND11_MODULE(_md, m)
 #endif
 
     // updaters
+    export_Thermostat(m);
+    export_MTTKThermostat(m);
+    export_BussiThermostat(m);
+    export_BerendsenThermostat(m);
+
     export_IntegratorTwoStep(m);
     export_IntegrationMethodTwoStep(m);
     export_ZeroMomentumUpdater(m);
-    export_TwoStepNVE(m);
-    export_TwoStepNVTMTK(m);
+    export_TwoStepConstantVolume(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
     export_TwoStepBD(m);
-    export_TwoStepNPTMTK(m);
-    export_Berendsen(m);
+    export_TwoStepConstantPressure(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
     export_AlchemostatTwoStep(m);
@@ -515,12 +524,10 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVESphere(m);
 
 #ifdef ENABLE_HIP
-    export_TwoStepNVEGPU(m);
-    export_TwoStepNVTMTKGPU(m);
+    export_TwoStepConstantVolumeGPU(m);
     export_TwoStepLangevinGPU(m);
     export_TwoStepBDGPU(m);
-    export_TwoStepNPTMTKGPU(m);
-    export_BerendsenGPU(m);
+    export_TwoStepConstantPressureGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_MuellerPlatheFlowGPU(m);
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Hard particle Monte Carlo integrators.
@@ -346,6 +346,7 @@ class HPMCIntegrator(Integrator):
 
     .. rubric:: Attributes
     """
+    _ext_module = _hpmc
     _remove_for_pickling = Integrator._remove_for_pickling + ('_cpp_cell',)
     _skip_for_equality = Integrator._skip_for_equality | {'_cpp_cell'}
     _cpp_cls = None
@@ -402,14 +403,14 @@ class HPMCIntegrator(Integrator):
         if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            self._cpp_obj = getattr(_hpmc,
+            self._cpp_obj = getattr(self._ext_module,
                                     self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell)
         else:
             if isinstance(self._simulation.device, hoomd.device.GPU):
                 self._simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
-            self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def)
+            self._cpp_obj = getattr(self._ext_module, self._cpp_cls)(sys_def)
             self._cpp_cell = None
 
         if self._external_potential is not None:
@@ -1610,8 +1611,8 @@ class SphereUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1739,8 +1740,8 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1866,8 +1867,8 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -48,7 +48,6 @@ struct a_pair_args_t
                   const unsigned int _N,
                   const unsigned int _n_max,
                   const Scalar4* _d_pos,
-                  const Scalar* _d_diameter,
                   const Scalar* _d_charge,
                   const Scalar4* _d_orientation,
                   const unsigned int* _d_tag,
@@ -68,11 +67,10 @@ struct a_pair_args_t
                   const hipDeviceProp_t& _devprop,
                   bool _update_shape_param)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
-          N(_N), n_max(_n_max), d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge),
-          d_orientation(_d_orientation), d_tag(_d_tag), d_angmom(_d_angmom), box(_box),
-          d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
-          ntypes(_ntypes), reciprocal(_reciprocal), block_size(_block_size),
-          shift_mode(_shift_mode), compute_virial(_compute_virial),
+          N(_N), n_max(_n_max), d_pos(_d_pos), d_charge(_d_charge), d_orientation(_d_orientation),
+          d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
+          d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes), reciprocal(_reciprocal),
+	  block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
           devprop(_devprop), update_shape_param(_update_shape_param) {};
 
@@ -83,7 +81,6 @@ struct a_pair_args_t
     const unsigned int N;         //!< number of particles
     const unsigned int n_max;     //!< maximum size of particle data arrays
     const Scalar4* d_pos;         //!< particle positions
-    const Scalar* d_diameter;     //!< particle diameters
     const Scalar* d_charge;       //!< particle charges
     const Scalar4* d_orientation; //!< particle orientation to compute forces over
     const unsigned int* d_tag;    //!< particle tags to compute forces over
@@ -118,7 +115,6 @@ struct a_pair_args_t
     \param virial_pitch pitch of 2D virial array
     \param N number of particles in system
     \param d_pos particle positions
-    \param d_diameter particle diameters
     \param d_charge particle charges
     \param d_orientation Quaternion data on the GPU to calculate forces on
     \param d_tag Tag data on the GPU to calculate forces on
@@ -157,7 +153,6 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const size_t virial_pitch,
                                      const unsigned int N,
                                      const Scalar4* d_pos,
-                                     const Scalar* d_diameter,
                                      const Scalar* d_charge,
                                      const Scalar4* d_orientation,
                                      const unsigned int* d_tag,
@@ -258,10 +253,6 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
         Scalar4 quati = __ldg(d_orientation + idx);
 
-        Scalar di = Scalar(0);
-        if (evaluator::needsDiameter())
-            di = __ldg(d_diameter + idx);
-
         Scalar qi = Scalar(0);
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
@@ -296,10 +287,6 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 Scalar4 postypej = __ldg(d_pos + cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
                 Scalar4 quatj = __ldg(d_orientation + cur_j);
-
-                Scalar dj = Scalar(0);
-                if (evaluator::needsDiameter())
-                    dj = __ldg(d_diameter + cur_j);
 
                 Scalar qj = Scalar(0);
                 if (evaluator::needsCharge())
@@ -342,8 +329,6 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
 
                 // constructor call
                 evaluator eval(dx, quati, quatj, rcutsq, param);
-                if (evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
                 if (evaluator::needsShape())
@@ -523,7 +508,6 @@ struct AnisoPairForceComputeKernel
                 pair_args.virial_pitch,
                 N,
                 pair_args.d_pos,
-                pair_args.d_diameter,
                 pair_args.d_charge,
                 pair_args.d_orientation,
                 pair_args.d_tag,

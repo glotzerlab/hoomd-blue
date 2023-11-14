@@ -20,6 +20,7 @@ foreach (CUR_TEST ${TEST_LIST})
     # add and link the unit test executable
     if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         set(_cuda_sources ${CUR_TEST}.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     else()
         set(_cuda_sources "")
     endif()
@@ -30,7 +31,6 @@ foreach (CUR_TEST ${TEST_LIST})
     add_dependencies(test_all ${CUR_TEST})
 
     target_link_libraries(${CUR_TEST} _hpmc ${PYTHON_LIBRARIES})
-    fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)
 

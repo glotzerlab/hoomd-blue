@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
@@ -81,17 +81,6 @@ class EvaluatorExternalElectricField
         : m_pos(X), m_box(box), m_E(params.E)
         {
         }
-
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
 
     //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -12,28 +12,20 @@
 
 namespace hoomd
     {
-mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                            uint64_t cur_timestep,
                                            uint64_t period,
                                            int phase,
-                                           std::shared_ptr<mpcd::CellThermoCompute> thermo,
-                                           std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                                            std::shared_ptr<Variant> T)
-    : mpcd::CollisionMethod(sysdata, cur_timestep, period, phase), m_thermo(thermo),
-      m_rand_thermo(rand_thermo), m_T(T)
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
-
-    m_thermo->getCallbackSignal()
-        .connect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
     }
 
 mpcd::ATCollisionMethod::~ATCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD AT collision method" << std::endl;
-
-    m_thermo->getCallbackSignal()
-        .disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
+    detachCallbacks();
     }
 
 /*!
@@ -214,6 +206,43 @@ void mpcd::ATCollisionMethod::applyVelocities()
         }
     }
 
+void mpcd::ATCollisionMethod::setCellList(std::shared_ptr<mpcd::CellList> cl)
+    {
+    if (cl != m_cl)
+        {
+        CollisionMethod::setCellList(cl);
+
+        detachCallbacks();
+        if (m_cl)
+            {
+            m_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+            m_rand_thermo = std::make_shared<mpcd::CellThermoCompute>(m_sysdef, m_cl);
+            attachCallbacks();
+            }
+        else
+            {
+            m_thermo = std::shared_ptr<mpcd::CellThermoCompute>();
+            m_rand_thermo = std::shared_ptr<mpcd::CellThermoCompute>();
+            }
+        }
+    }
+
+void mpcd::ATCollisionMethod::attachCallbacks()
+    {
+    assert(m_thermo);
+    m_thermo->getCallbackSignal()
+        .connect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
+    }
+
+void mpcd::ATCollisionMethod::detachCallbacks()
+    {
+    if (m_thermo)
+        {
+        m_thermo->getCallbackSignal()
+            .disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
+        }
+    }
+
 /*!
  * \param m Python module to export to
  */
@@ -222,12 +251,10 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     pybind11::class_<mpcd::ATCollisionMethod,
                      mpcd::CollisionMethod,
                      std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             uint64_t,
                             uint64_t,
                             int,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
-                            std::shared_ptr<mpcd::CellThermoCompute>,
                             std::shared_ptr<Variant>>())
         .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
     }

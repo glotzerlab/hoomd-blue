@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -7,7 +7,6 @@
 
 #include "hoomd/AABB.h"
 #include "hoomd/BoxDim.h"
-#include "hoomd/hpmc/HPMCPrecisionSetup.h"
 #include "hoomd/hpmc/OBB.h"
 
 /*! \file Moves.h
@@ -271,7 +270,7 @@ generatePositionInAABB(RNG& rng, const hoomd::detail::AABB& aabb, unsigned int n
  * \param dim Dimensionality of system
  */
 template<class RNG>
-DEVICE inline vec3<OverlapReal>
+DEVICE inline vec3<ShortReal>
 generatePositionInOBB(RNG& rng, const detail::OBB& obb, unsigned int dim)
     {
     if (obb.is_sphere)
@@ -284,26 +283,25 @@ generatePositionInOBB(RNG& rng, const detail::OBB& obb, unsigned int dim)
         else
             {
             // disk
-            OverlapReal alpha
-                = hoomd::UniformDistribution<OverlapReal>((float)-M_PI, (float)M_PI)(rng);
+            ShortReal alpha = hoomd::UniformDistribution<ShortReal>((float)-M_PI, (float)M_PI)(rng);
             return obb.center
-                   + vec3<OverlapReal>(obb.lengths.x * fast::cos(alpha),
-                                       obb.lengths.x * fast::sin(alpha),
-                                       0);
+                   + vec3<ShortReal>(obb.lengths.x * fast::cos(alpha),
+                                     obb.lengths.x * fast::sin(alpha),
+                                     0);
             }
         }
     else
         {
-        vec3<OverlapReal> p;
-        vec3<OverlapReal> lower = -obb.lengths;
-        vec3<OverlapReal> upper = obb.lengths;
+        vec3<ShortReal> p;
+        vec3<ShortReal> lower = -obb.lengths;
+        vec3<ShortReal> upper = obb.lengths;
 
-        p.x = hoomd::UniformDistribution<OverlapReal>(lower.x, upper.x)(rng);
-        p.y = hoomd::UniformDistribution<OverlapReal>(lower.y, upper.y)(rng);
+        p.x = hoomd::UniformDistribution<ShortReal>(lower.x, upper.x)(rng);
+        p.y = hoomd::UniformDistribution<ShortReal>(lower.y, upper.y)(rng);
         if (dim == 3)
-            p.z = hoomd::UniformDistribution<OverlapReal>(lower.z, upper.z)(rng);
+            p.z = hoomd::UniformDistribution<ShortReal>(lower.z, upper.z)(rng);
         else
-            p.z = OverlapReal(0.0);
+            p.z = ShortReal(0.0);
 
         return rotate(obb.rotation, p) + obb.center;
         }

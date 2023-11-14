@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import copy as cp
@@ -72,11 +72,11 @@ def external_params(request):
 
 def _assert_correct_params(external_obj, param_attr, params):
     """Assert the params of the external object match whats in the dict."""
-    if type(params) == dict:
+    if type(params) is dict:
         for param in params.keys():
             npt.assert_allclose(
                 getattr(external_obj, param_attr)['A'][param], params[param])
-    if type(params) == tuple:
+    if type(params) is tuple:
         npt.assert_allclose(getattr(external_obj, param_attr)['A'], params)
 
 
@@ -146,10 +146,10 @@ _potential_cls = (md.external.field.Field, md.external.field.Periodic,
                   md.external.field.Electric)
 
 
-@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip(_potential_cls,
-                             itertools.repeat(('md', 'external', 'field')),
-                             itertools.repeat(expected_loggable_params)))
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip(_potential_cls, itertools.repeat(('md', 'external', 'field')),
+        itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

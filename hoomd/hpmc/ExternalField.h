@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -33,7 +33,8 @@ class ExternalField : public Compute
     virtual double calculateDeltaE(uint64_t timestep,
                                    const Scalar4* const position_old,
                                    const Scalar4* const orientation_old,
-                                   const BoxDim& box_old)
+                                   const BoxDim& box_old,
+                                   const Scalar3& origin_old)
         {
         return 0;
         }

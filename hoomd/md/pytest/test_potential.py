@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence, Mapping
@@ -183,7 +183,18 @@ def _invalid_params():
     gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
     gauss_invalid_dicts = _make_invalid_param_dict(gauss_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(gauss_invalid_dicts, md.pair.Gauss, {}))
+        _make_invalid_params(gauss_invalid_dicts, md.pair.Gaussian, {}))
+
+    expanded_gaussian_valid_dict = {
+        'sigma': 0.05,
+        'epsilon': 0.05,
+        'delta': 0.1
+    }
+    expanded_gaussian_invalid_dicts = _make_invalid_param_dict(
+        expanded_gaussian_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_gaussian_invalid_dicts,
+                             md.pair.ExpandedGaussian, {}))
 
     yukawa_valid_dict = {"epsilon": 0.0005, "kappa": 1}
     yukawa_invalid_dicts = _make_invalid_param_dict(yukawa_valid_dict)
@@ -396,8 +407,19 @@ def _valid_params(particle_types=['A', 'B']):
     gauss_arg_dict = {'epsilon': [0.025, 0.05, 0.075], 'sigma': [0.5, 1.0, 1.5]}
     gauss_valid_param_dicts = _make_valid_param_dicts(gauss_arg_dict)
     valid_params_list.append(
-        paramtuple(md.pair.Gauss, dict(zip(combos, gauss_valid_param_dicts)),
+        paramtuple(md.pair.Gaussian, dict(zip(combos, gauss_valid_param_dicts)),
                    {}))
+
+    expanded_gaussian_arg_dict = {
+        'epsilon': [0.025, 0.05, 0.075],
+        'sigma': [0.5, 1.0, 1.5],
+        'delta': [0.1, 0.2, 0.3]
+    }
+    expanded_gaussian_valid_param_dicts = _make_valid_param_dicts(
+        expanded_gaussian_arg_dict)
+    valid_params_list.append(
+        paramtuple(md.pair.ExpandedGaussian,
+                   dict(zip(combos, expanded_gaussian_valid_param_dicts)), {}))
 
     yukawa_arg_dict = {
         'epsilon': [0.00025, 0.0005, 0.00075],
@@ -666,9 +688,6 @@ def _update_snap(pair_potential, snap):
     if (any(name in str(pair_potential) for name in ['Ewald'])
             and snap.communicator.rank == 0):
         snap.particles.charge[:] = 1.
-    if 'DLVO' in str(pair_potential) and snap.communicator.rank == 0:
-        snap.particles.diameter[0] = 0.2
-        snap.particles.diameter[1] = 0.5
 
 
 def _skip_if_triplet_gpu_mpi(sim, pair_potential):
@@ -743,6 +762,14 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     autotuned_kernel_parameter_check(instance=pot, activate=lambda: sim.run(1))
 
 
+def set_distance(simulation, distance):
+    snap = simulation.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        snap.particles.position[0] = [0, 0, .1]
+        snap.particles.position[1] = [0, 0, distance + .1]
+    simulation.state.set_snapshot(snap)
+
+
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # A subtle bug existed where we used "shifted" instead of "shift" in Python
     # and in C++ we used else if clauses with no error raised if the set Python
@@ -756,13 +783,6 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
         numerator = ((r_cut**2 - r**2)**2) * (r_cut**2 + 2 * r**2 - 3 * r_on**2)
         denominator = (r_cut**2 - r_on**2)**3
         return numerator / denominator
-
-    def set_distance(simulation, distance):
-        snap = sim.state.get_snapshot()
-        if snap.communicator.rank == 0:
-            snap.particles.position[0] = [0, 0, .1]
-            snap.particles.position[1] = [0, 0, distance + .1]
-        sim.state.set_snapshot(snap)
 
     def get_energy(simulation):
         energies = sim.operations.integrator.forces[0].energies
@@ -871,13 +891,17 @@ def _calculate_force(sim):
         return 0, 0  # return dummy values if not on rank 1
 
 
-def test_force_energy_relationship(simulation_factory,
+def test_force_energy_relationship(device, simulation_factory,
                                    two_particle_snapshot_factory, valid_params):
     # don't really test DPD and DPDLJ for this test
     pot_name = valid_params.pair_potential.__name__
     if any(pot_name == name for name in ["DPD", "DPDLJ"]):
         pytest.skip("Cannot test force energy relationship for " + pot_name
                     + " pair force")
+
+    if (pot_name == 'Tersoff' and isinstance(device, hoomd.device.GPU)
+            and hoomd.version.gpu_platform == 'ROCm'):
+        pytest.skip("Tersoff causes seg faults on ROCm (#1606).")
 
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
@@ -1023,7 +1047,7 @@ def test_force_energy_accuracy(simulation_factory,
 def populate_sim(sim):
     """Add an integrator for the following tests."""
     sim.operations.integrator = md.Integrator(
-        dt=0.005, methods=[md.methods.NVE(hoomd.filter.All())])
+        dt=0.005, methods=[md.methods.ConstantVolume(hoomd.filter.All())])
     return sim
 
 
@@ -1167,11 +1191,12 @@ def test_lrc_non_lj(simulation_factory, two_particle_snapshot_factory):
     # test we can't pass in tail_correction to non-LJ pair potential
     cell = md.nlist.Cell(buffer=0.4)
     with pytest.raises(TypeError):
-        # flake8 complains about unused variable with gauss = md.pair.Gauss(...)
-        md.pair.Gauss(nlist=cell,
-                      default_r_cut=2.5,
-                      mode='none',
-                      tail_correction=True)
+        # flake8 complains about unused variable with
+        # gauss = md.pair.Gaussian(...)
+        md.pair.Gaussian(nlist=cell,
+                         default_r_cut=2.5,
+                         mode='none',
+                         tail_correction=True)
 
 
 def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
@@ -1312,3 +1337,43 @@ def test_forces_multiple_lists(simulation_factory,
     sim.operations.computes.clear()
     assert not lj._attached
     assert lj._use_count == 0
+
+
+@pytest.mark.parametrize("forces_and_energies",
+                         _forces_and_energies(),
+                         ids=lambda x: x.pair_potential.__name__)
+def test_shift(simulation_factory, two_particle_snapshot_factory,
+               forces_and_energies):
+    if 'shift' not in forces_and_energies.pair_potential._accepted_modes:
+        pytest.skip("Potential does not support the shift mode.")
+
+    r_cut = 2.0
+
+    potential = forces_and_energies.pair_potential(
+        **forces_and_energies.extra_args,
+        nlist=md.nlist.Cell(buffer=0.4),
+        default_r_cut=r_cut)
+    potential.params[('A', 'A')] = forces_and_energies.pair_potential_params
+
+    potential_shifted = forces_and_energies.pair_potential(
+        **forces_and_energies.extra_args,
+        nlist=md.nlist.Cell(buffer=0.4),
+        default_r_cut=r_cut)
+    potential_shifted.params[('A',
+                              'A')] = forces_and_energies.pair_potential_params
+    potential_shifted.mode = 'shift'
+
+    snap = two_particle_snapshot_factory(particle_types=['A'], d=r_cut - 1e-7)
+    _update_snap(forces_and_energies.pair_potential, snap)
+    sim = simulation_factory(snap)
+    sim.operations.computes.extend([potential, potential_shifted])
+    sim.run(0)
+
+    V = potential.energy
+    V_shifted = potential_shifted.energy
+
+    # Ideally, test that V_shifted = 0. In practice, forces_and_energies.json
+    # has a wide range of potential parameters, so check only that V_shifted
+    # is much closer to 0 than V.
+    tolerance = max(math.fabs(V / 1e4), 1e-8)
+    assert V_shifted == pytest.approx(expected=0, abs=tolerance)

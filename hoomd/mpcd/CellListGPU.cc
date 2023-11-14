@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -11,9 +11,7 @@
 
 namespace hoomd
     {
-mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
-                               std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
-    : mpcd::CellList(sysdef, mpcd_pdata)
+mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef) : mpcd::CellList(sysdef)
     {
     m_tuner_cell.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
@@ -212,8 +210,7 @@ void mpcd::detail::export_CellListGPU(pybind11::module& m)
     pybind11::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU>>(
         m,
         "CellListGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<mpcd::ParticleData>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace hoomd

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections import namedtuple
@@ -438,7 +438,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
 
     """
     pot = aniso_forces_and_energies.pair_potential(
-        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5, mode='none')
+        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
     for param, value in aniso_forces_and_energies.pair_potential_params.items():
         getattr(pot, param)[('A', 'A')] = value
     sim = make_two_particle_simulation(types=['A'], d=0.75, force=pot)

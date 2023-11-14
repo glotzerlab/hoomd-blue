@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of molecular dynamics simulations.
@@ -80,11 +80,11 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
-            W_\\mathrm{isotropic} = & \\frac{1}{D} \\left(
+            W_\\mathrm{isotropic} = & \\left(
             W_{\\mathrm{net},\\mathrm{additional}}^{xx}
             + W_{\\mathrm{net},\\mathrm{additional}}^{yy}
             + W_{\\mathrm{net},\\mathrm{additional}}^{zz} \\right) \\\\
-            + & \\frac{1}{D} \\sum_{i \\in \\mathrm{filter}}
+            + & \\sum_{i \\in \\mathrm{filter}}
             \\left( W_\\mathrm{{net},i}^{xx}
             + W_\\mathrm{{net},i}^{yy}
             + W_\\mathrm{{net},i}^{zz}
@@ -106,14 +106,14 @@ class ThermodynamicQuantities(Compute):
         (:math:`P^{xx}`, :math:`P^{xy}`, :math:`P^{xz}`, :math:`P^{yy}`,
         :math:`P^{yz}`, :math:`P^{zz}`):
 
-          .. math::
+        .. math::
 
-              P^{kl} = \\frac{1}{V} \\left(
-              W_{\\mathrm{net},\\mathrm{additional}}^{kl}
-              + \\sum_{i \\in \\mathrm{filter}} m_i
-              \\cdot v_i^k \\cdot v_i^l +
-              W_{\\mathrm{net},i}^{kl}
-              \\right),
+            P^{kl} = \\frac{1}{V} \\left(
+            W_{\\mathrm{net},\\mathrm{additional}}^{kl}
+            + \\sum_{i \\in \\mathrm{filter}} m_i
+            \\cdot v_i^k \\cdot v_i^l +
+            W_{\\mathrm{net},i}^{kl}
+            \\right),
 
         where the net virial terms are computed by `hoomd.md.Integrator` over
         all of the forces in `hoomd.md.Integrator.forces`, :math:`v_i^k` is the
@@ -224,6 +224,17 @@ class ThermodynamicQuantities(Compute):
         subset. The fraction :math:`\\frac{N}{N_\\mathrm{particles}}`
         distributes the momentum conservation constraint evenly when
         `ThermodynamicQuantities` is applied to multiple subsets.
+
+        Note:
+            When using rigid bodies (`hoomd.md.constrain.Rigid`), :math:`N`
+            is the number of rigid body centers plus free particles selected
+            by the filter and :math:`N_\\mathrm{particles}` is total number
+            of rigid body centers plus free particles in the whole system.
+
+            When `hoomd.md.Integrator.rigid` is not set, :math:`N` is the
+            total number of particles selected by the filter and
+            :math:`N_\\mathrm{particles}` is the total number of particles in
+            the system, regardless of their ``body`` value.
 
         When using multiple integration methods, a single integration method
         on fewer than all particles, or a single integration method that is

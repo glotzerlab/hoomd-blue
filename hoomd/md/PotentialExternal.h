@@ -1,10 +1,11 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GlobalArray.h"
 #include "hoomd/managed_allocator.h"
+#include "hoomd/md/EvaluatorExternalPeriodic.h"
 #include <memory>
 #include <stdexcept>
 
@@ -90,15 +91,17 @@ template<class evaluator> PotentialExternal<evaluator>::~PotentialExternal() { }
 */
 template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint64_t timestep)
     {
+    if (std::is_same<evaluator, EvaluatorExternalPeriodic>() && m_sysdef->getNDimensions() == 2)
+        {
+        throw std::runtime_error("The external periodic potential is not valid in 2D boxes.");
+        }
+
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
@@ -127,11 +130,6 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 
         evaluator eval(X, box, h_params.data[type], *m_field);
 
-        if (evaluator::needsDiameter())
-            {
-            Scalar di = h_diameter.data[idx];
-            eval.setDiameter(di);
-            }
         if (evaluator::needsCharge())
             {
             Scalar qi = h_charge.data[idx];

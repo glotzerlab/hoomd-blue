@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -15,13 +15,12 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  * \param deltaT Fundamental integration timestep
  */
-mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar deltaT)
-    : IntegratorTwoStep(sysdata->getSystemDefinition(), deltaT), m_mpcd_sys(sysdata)
+mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+    : IntegratorTwoStep(sysdef, deltaT)
     {
-    assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
     }
 
@@ -55,7 +54,7 @@ void mpcd::Integrator::update(uint64_t timestep)
     // remove any leftover virtual particles
     if (checkCollide(timestep))
         {
-        m_mpcd_sys->getParticleData()->removeVirtualParticles();
+        m_sysdef->getMPCDParticleData()->removeVirtualParticles();
         m_collide->drawGridShift(timestep);
         }
 
@@ -90,11 +89,20 @@ void mpcd::Integrator::update(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif // ENABLE_MPI
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 
@@ -181,7 +189,7 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
     pybind11::class_<mpcd::Integrator,
                      hoomd::md::IntegratorTwoStep,
                      std::shared_ptr<mpcd::Integrator>>(m, "Integrator")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)

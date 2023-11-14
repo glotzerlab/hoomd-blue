@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //! This file is only included once in JIT compilation
@@ -259,10 +259,10 @@ __launch_bounds__(max_threads) __global__
                 vec3<Scalar> r_ij = pos_j - pos_i;
                 r_ij = box.minImage(r_ij);
 
-                OverlapReal rcut
+                ShortReal rcut
                     = r_cut_patch
                       + Scalar(0.5) * (s_additive_cutoff[type_i] + s_additive_cutoff[type_j]);
-                OverlapReal rsq = dot(r_ij, r_ij);
+                ShortReal rsq = dot(r_ij, r_ij);
 
                 if (idx != j && (old_j || j < N_local) && (rsq <= rcut * rcut))
                     {

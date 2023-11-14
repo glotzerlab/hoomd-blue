@@ -48,11 +48,6 @@ env:
     <% endfor %>
 <% endmacro %>
 <% set build_steps %>
-    - name: Checkout
-      uses: actions/checkout@v3.1.0
-      with:
-        path: code
-        submodules: true
     - name: Configure
       run: |
         mkdir -p build
@@ -70,6 +65,7 @@ env:
                       -DBUILD_METAL=${BUILD_MD:-"ON"} \
                       -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
+                      -DENABLE_DEBUG_JIT=ON \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
                       -DPLUGINS=""
       env:
@@ -109,13 +105,13 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v3.1.1
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v3.1.1
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -123,7 +119,7 @@ env:
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v3.0.1
+      uses: actions/download-artifact@v3.0.2
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -131,7 +127,7 @@ env:
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v3.0.1
+      uses: actions/download-artifact@v3.0.2
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -168,18 +164,27 @@ env:
         --test-output-size-passed 1048576
       working-directory: build
 <% endset %>
-<% set pytest_validate_steps %>
+<% set validate_steps %>
     - name: Run pytest (serial)
       if: ${{ !contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_serial >> << pytest_options >> << pytest_validate_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
+    - name: Run howto guides (serial)
+      if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
+      run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
+      working-directory: code/sphinx-doc/howto
 <% endset %>
 <% set prepare_steps %>
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v4.1.1
+      with:
+        path: code
+        submodules: true
 <% endset %>
 <% set post_cleanup_steps %>
     - name: Clean workspace
@@ -204,7 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.1.0
+      uses: glotzerlab/jetstream2-admin/start@v1.2.3
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
@@ -243,7 +248,7 @@ jobs:
     steps:
 << prepare_steps >>
 << download_install_steps >>
-<< pytest_validate_steps >>
+<< validate_steps >>
 << post_cleanup_steps >>
 
   build_release:

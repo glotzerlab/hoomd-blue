@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -288,7 +288,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     : IntegratorHPMCMono<Shape>(sysdef), m_cl(cl), m_update_order(this->m_exec_conf)
     {
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 
@@ -1635,18 +1635,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 #ifdef ENABLE_MPI
                     if (m_ntrial_comm)
                         {
-// reduce free energy across rows (depletants)
-#ifdef ENABLE_MPI_CUDA
-                        ArrayHandle<int> d_deltaF_int(m_deltaF_int,
-                                                      access_location::device,
-                                                      access_mode::readwrite);
-                        MPI_Allreduce(MPI_IN_PLACE,
-                                      d_deltaF_int.data,
-                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
-                                      MPI_INT,
-                                      MPI_SUM,
-                                      (*m_ntrial_comm)());
-#else
+                        // reduce free energy across rows (depletants)
                         ArrayHandle<int> h_deltaF_int(m_deltaF_int,
                                                       access_location::host,
                                                       access_mode::readwrite);
@@ -1656,25 +1645,13 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_ntrial_comm)());
-#endif
                         }
 #endif
 
 #ifdef ENABLE_MPI
                     if (m_particle_comm)
                         {
-// reduce free energy across columns (particles)
-#ifdef ENABLE_MPI_CUDA
-                        ArrayHandle<int> d_deltaF_int(m_deltaF_int,
-                                                      access_location::device,
-                                                      access_mode::readwrite);
-                        MPI_Allreduce(MPI_IN_PLACE,
-                                      d_deltaF_int.data,
-                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
-                                      MPI_INT,
-                                      MPI_SUM,
-                                      (*m_particle_comm)());
-#else
+                        // reduce free energy across columns (particles)
                         ArrayHandle<int> h_deltaF_int(m_deltaF_int,
                                                       access_location::host,
                                                       access_mode::readwrite);
@@ -1684,7 +1661,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_particle_comm)());
-#endif
                         }
 #endif
 
@@ -2071,15 +2047,15 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
-        OverlapReal d_i(shape_i.getCircumsphereDiameter());
+        ShortReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), this->m_params[j_type]);
-            OverlapReal d_j(shape_j.getCircumsphereDiameter());
+            ShortReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            OverlapReal range = std::max(d_i, d_j);
+            ShortReal range = std::max(d_i, d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {

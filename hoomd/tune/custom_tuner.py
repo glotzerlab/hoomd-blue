@@ -1,7 +1,17 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement CustomTuner."""
+"""Implement CustomTuner.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    class ExampleAction(hoomd.custom.Action):
+        def act(self, timestep):
+            pass
+
+    custom_action = ExampleAction()
+"""
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Tuner
@@ -36,6 +46,15 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
 
     Tuners modify the parameters of other operations to improve performance.
     Tuners may read the system state, but not modify it.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            custom_tuner = hoomd.tune.CustomTuner(
+                action=custom_action,
+                trigger=hoomd.trigger.Periodic(1000))
+            simulation.operations.tuners.append(custom_tuner)
 
     See Also:
         The base class `hoomd.custom.CustomOperation`.

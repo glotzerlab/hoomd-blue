@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HPMCPrecisionSetup.h"
 #include "MinkowskiMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -16,9 +15,7 @@
     \brief Implements XenoCollide in 3D
 */
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -53,37 +50,37 @@ namespace detail
     \ingroup minkowski
 */
 template<class SupportFuncA, class SupportFuncB>
-DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
-                                       const SupportFuncB& sb,
-                                       const vec3<OverlapReal>& ab_t,
-                                       const quat<OverlapReal>& q,
-                                       const vec3<OverlapReal>& direction,
-                                       const OverlapReal R,
-                                       unsigned int& err_count,
-                                       vec3<OverlapReal>& collisionPlaneVector)
+DEVICE inline ShortReal xenosweep_3d(const SupportFuncA& sa,
+                                     const SupportFuncB& sb,
+                                     const vec3<ShortReal>& ab_t,
+                                     const quat<ShortReal>& q,
+                                     const vec3<ShortReal>& direction,
+                                     const ShortReal R,
+                                     unsigned int& err_count,
+                                     vec3<ShortReal>& collisionPlaneVector)
     {
-    vec3<OverlapReal> v0, v1, v2, v3, v4, n, x;
+    vec3<ShortReal> v0, v1, v2, v3, v4, n, x;
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);
-    OverlapReal d;
+    ShortReal d;
 
-#if defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION)
+#if HOOMD_SHORTREAL_SIZE == 32
     // precision tolerance for single-precision floats near 1.0
-    const OverlapReal precision_tol = OverlapReal(5e-7);
+    const ShortReal precision_tol = ShortReal(5e-7);
 
     // square root of precision tolerance
-    const OverlapReal root_tol = OverlapReal(3e-4);
+    const ShortReal root_tol = ShortReal(3e-4);
 #else
     // precision tolerance for double-precision floats near 1.0
-    const OverlapReal precision_tol = OverlapReal(1e-14); // 4e-14 for overlap check
+    const ShortReal precision_tol = ShortReal(1e-14); // 4e-14 for overlap check
 
     // square root of precision tolerance
-    const OverlapReal root_tol = OverlapReal(2e-7); // 1e-7 for overlap check
+    const ShortReal root_tol = ShortReal(2e-7); // 1e-7 for overlap check
 #endif
 
-    const OverlapReal resultNoCollision = -1.0;
-    const OverlapReal resultNoForwardCollisionOrOverlapping = -2.0;
+    const ShortReal resultNoCollision = -1.0;
+    const ShortReal resultNoForwardCollisionOrOverlapping = -2.0;
     // If there is a known overlap we will return a value <= -3 (which is related to how early the
-    // overlap was detected). const OverlapReal resultOverlapping = -3.0;
+    // overlap was detected). const ShortReal resultOverlapping = -3.0;
 
     if (fabs(ab_t.x) < root_tol && fabs(ab_t.y) < root_tol && fabs(ab_t.z) < root_tol)
         {
@@ -110,7 +107,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     v2 = S(-n);
 
     n = cross(v0, v2 - v1);
-    if (dot(n, v1) < OverlapReal(0.0))
+    if (dot(n, v1) < ShortReal(0.0))
         {
         v1.swap(v2);
         n = -n;
@@ -124,7 +121,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // Get the next support point
         v3 = S(-n);
 
-        if (dot(n, v3) >= OverlapReal(0.0))
+        if (dot(n, v3) >= ShortReal(0.0))
             {
             // The origin is not within the projected minkowski sum on the plane
             // perpendicular to the sweeping direction. No forward collision possible.
@@ -136,11 +133,11 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // origin on the far side of v0. If neither portal does, the origin is inside;
         // then we have a portal for phase 2.
         x = cross(v3, v0);
-        if (dot(x, v1) < OverlapReal(0.0))
+        if (dot(x, v1) < ShortReal(0.0))
             {
             v2 = v3;
             }
-        else if (dot(x, v2) > OverlapReal(0.0))
+        else if (dot(x, v2) > ShortReal(0.0))
             {
             v1 = v3;
             }
@@ -173,10 +170,10 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // Only return in the first iteration (we may assume, that we search
         // in the wrong direction) or a few steps later, such that the portal
         // describes the intersection well.
-        if (dot(v1, n) <= OverlapReal(0.0) and (count == 1 or count > 3))
+        if (dot(v1, n) <= ShortReal(0.0) and (count == 1 or count > 3))
             {
             collisionPlaneVector = n;
-            return resultNoForwardCollisionOrOverlapping - OverlapReal(count);
+            return resultNoForwardCollisionOrOverlapping - ShortReal(count);
             }
 
         // ----
@@ -186,9 +183,9 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // Perform tolerance checks
         // are we within an epsilon of the surface of the shape? If yes, done, one way
         // or another
-        const OverlapReal tol_multiplier = 10000;
+        const ShortReal tol_multiplier = 10000;
         d = dot((v1 - v4) * tol_multiplier, n);
-        OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n, n));
+        ShortReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n, n));
 
         // First, check if v4 is on plane (v2,v1,v3)
         if (-tol < d and d < tol)
@@ -199,16 +196,16 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
 
         // As v4 is not in plane yet, update the portal for the next iteration.
         x = cross(v4, v0);
-        if (dot(v1, x) > OverlapReal(0.0))
+        if (dot(v1, x) > ShortReal(0.0))
             {
-            if (dot(v2, x) > OverlapReal(0.0))
+            if (dot(v2, x) > ShortReal(0.0))
                 v1 = v4; // Inside v1 & inside v2 ==> eliminate v1
             else
                 v3 = v4; // Inside v1 & outside v2 ==> eliminate v3
             }
         else
             {
-            if (dot(v3, x) > OverlapReal(0.0))
+            if (dot(v3, x) > ShortReal(0.0))
                 v2 = v4; // Outside v1 & inside v3 ==> eliminate v2
             else
                 v1 = v4; // Outside v1 & outside v3 ==> eliminate v1

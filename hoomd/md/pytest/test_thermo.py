@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -40,7 +40,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     # make sure quantities are computable without failure
     for qty, typ in _thermo_qtys:
         calc_qty = getattr(thermo, qty)
-        assert type(calc_qty) == typ
+        assert type(calc_qty) is typ
 
     # detach from simulation and test properties again
     sim.operations.remove(thermo)
@@ -85,7 +85,8 @@ def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
     sim.operations.add(thermo)
 
     integrator = hoomd.md.Integrator(dt=0.0001)
-    integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=1))
+    thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(filt, thermostat))
     sim.operations.integrator = integrator
 
     sim.run(1)
@@ -115,9 +116,11 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     sim.operations.add(thermoB)
 
     integrator = hoomd.md.Integrator(dt=0.0001)
-    integrator.methods.append(hoomd.md.methods.NVT(filterA, tau=1, kT=1))
+    thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
     integrator.methods.append(
-        hoomd.md.methods.Langevin(filterB, kT=1, alpha=0.00001))
+        hoomd.md.methods.ConstantVolume(filterA, thermostat))
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(filterB, kT=1, default_gamma=0.00001))
     sim.operations.integrator = integrator
 
     sim.run(1)
@@ -155,11 +158,11 @@ def test_system_rotational_dof(simulation_factory, device):
     sim.operations.add(thermo)
 
     integrator = hoomd.md.Integrator(dt=0.0001, integrate_rotational_dof=True)
-    integrator.aniso = True
-    integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=1))
+    thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(filt, thermostat))
     sim.operations.integrator = integrator
 
-    sim.run(1)
+    sim.run(0)
 
     _assert_thermo_properties(thermo,
                               3,

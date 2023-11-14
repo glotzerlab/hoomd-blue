@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceCompositeGPU.h"
@@ -218,10 +218,10 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
 
     if (flag.x)
         {
-        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
-                                          << flag.x - 1 << " incomplete" << std::endl
-                                          << std::endl;
-        throw std::runtime_error("Error computing composite particle forces.\n");
+        std::ostringstream s;
+        s << "Composite particle with body tag " << flag.x - 1 << " incomplete" << std::endl
+          << std::endl;
+        throw std::runtime_error(s.str());
         }
 
     m_tuner_force->end();
@@ -324,11 +324,14 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
                               access_location::device,
                               access_mode::readwrite);
 
-    // access body positions and orientations
+    // access body positions, orientations, and types
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation,
                                             access_location::device,
                                             access_mode::read);
+    ArrayHandle<unsigned int> d_body_types(m_body_types,
+                                           access_location::device,
+                                           access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
     // lookup table
@@ -352,6 +355,7 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
                                      d_lookup_center.data,
                                      d_body_pos.data,
                                      d_body_orientation.data,
+                                     d_body_types.data,
                                      d_body_len.data,
                                      d_molecule_order.data,
                                      d_molecule_len.data,
@@ -390,11 +394,11 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         unsigned int body_id = h_body.data[idx];
         unsigned int tag = h_tag.data[idx];
 
-        m_exec_conf->msg->errorAllRanks()
-            << "constrain.rigid(): Particle " << tag << " part of composite body " << body_id
-            << " is missing central particle" << std::endl
-            << std::endl;
-        throw std::runtime_error("Error while updating constituent particles");
+        std::ostringstream s;
+        s << "Particle " << tag << " part of composite body " << body_id
+          << " is missing central particle" << std::endl
+          << std::endl;
+        throw std::runtime_error(s.str());
         }
 
     if (flag.y)
@@ -406,10 +410,10 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         unsigned int idx = flag.y - 1;
         unsigned int body_id = h_body.data[idx];
 
-        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body id "
-                                          << body_id << " incomplete" << std::endl
-                                          << std::endl;
-        throw std::runtime_error("Error while updating constituent particles");
+        std::ostringstream s;
+        s << "Composite particle with body id " << body_id << " incomplete" << std::endl
+          << std::endl;
+        throw std::runtime_error(s.str());
         }
     }
 
@@ -425,10 +429,11 @@ void ForceCompositeGPU::findRigidCenters()
 
     m_rigid_center.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
-    size_t old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
 #ifdef __HIP_PLATFORM_NVCC__
+    size_t old_size = m_lookup_center.getNumElements();
+
     if (m_exec_conf->allConcurrentManagedAccess() && m_lookup_center.getNumElements() != old_size)
         {
         // set memory hints
