@@ -76,7 +76,7 @@ class EvaluatorExternalElectricField
         \param params per-type parameters of external potential
     */
     DEVICE EvaluatorExternalElectricField(Scalar3 X,
-		    			  quat<Scalar> q,
+                                          quat<Scalar> q,
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
@@ -128,9 +128,9 @@ class EvaluatorExternalElectricField
         virial[4] = F.y * m_pos.z;
         virial[5] = F.z * m_pos.z;
 
-	T.x = Scalar(0.0);
-	T.y = Scalar(0.0);
-	T.z = Scalar(0.0);
+        T.x = Scalar(0.0);
+        T.y = Scalar(0.0);
+        T.z = Scalar(0.0);
         }
 
 #ifndef __HIPCC__

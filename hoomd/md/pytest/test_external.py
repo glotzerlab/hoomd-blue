@@ -35,7 +35,9 @@ def _evaluate_periodic(snapshot, params):
     forces *= 1 - (np.tanh(
         np.cos(p * np.dot(positions, b)) / (2 * np.pi * p * w)))**2
     forces = np.outer(forces, b)
-    torques = [[0,0,0],]*len(positions)
+    torques = [
+        [0, 0, 0],
+    ] * len(positions)
     return forces, torques, energies
 
 
@@ -46,8 +48,11 @@ def _evaluate_electric(snapshot, params):
     E_field = params
     energies = -charges * np.dot(positions, E_field)
     forces = np.outer(charges, E_field)
-    torques = [[0,0,0],]*len(positions)
+    torques = [
+        [0, 0, 0],
+    ] * len(positions)
     return forces, torques, energies
+
 
 def _evaluate_magnetic(snapshot, params):
     """Evaluate force and energy in python for MagneticField."""
@@ -55,9 +60,11 @@ def _evaluate_magnetic(snapshot, params):
     N = len(positions)
     B_field = params['B']
     b_moment = params['mu']
-    energies = np.repeat(-np.dot(b_moment, B_field),N)
-    torques = np.tile(np.cross(b_moment, B_field),(N,1))
-    forces = [[0,0,0],]*N
+    energies = np.repeat(-np.dot(b_moment, B_field), N)
+    torques = np.tile(np.cross(b_moment, B_field), (N, 1))
+    forces = [
+        [0, 0, 0],
+    ] * N
     return forces, torques, energies
 
 
@@ -73,11 +80,11 @@ def _external_params():
             (1, 0, 0),
             (0, 2, 0),
         ]), _evaluate_electric))
-    list_ext_params.append(
-        (hoomd.md.external.field.Magnetic, "params", list([
-            dict( B=(0, 2, -11.5), mu=(1,2,3) ),
-            dict( B=(1, 0, 1),     mu=(1,1,1) )
-        ]), _evaluate_magnetic))
+    list_ext_params.append((hoomd.md.external.field.Magnetic, "params",
+                            list([
+                                dict(B=(0, 2, -11.5), mu=(1, 2, 3)),
+                                dict(B=(1, 0, 1), mu=(1, 1, 1))
+                            ]), _evaluate_magnetic))
     return list_ext_params
 
 
@@ -152,7 +159,8 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
         torques = sim.operations.integrator.forces[0].torques
         energies = sim.operations.integrator.forces[0].energies
         if new_snap.communicator.rank == 0:
-            expected_forces, expected_torques, expected_energies = evaluator(new_snap, param)
+            expected_forces, expected_torques, expected_energies = evaluator(
+                new_snap, param)
             # Set atol as the energies and forces very close to 0.
             # It would be better to run a test that applies appreciable forces
             # and energies.

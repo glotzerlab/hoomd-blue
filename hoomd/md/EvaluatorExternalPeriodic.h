@@ -90,7 +90,7 @@ class EvaluatorExternalPeriodic
         \param params per-type parameters of external potential
     */
     DEVICE EvaluatorExternalPeriodic(Scalar3 X,
-		    		     quat<Scalar> q,
+                                     quat<Scalar> q,
                                      const BoxDim& box,
                                      const param_type& params,
                                      const field_type& field)
@@ -136,9 +136,9 @@ class EvaluatorExternalPeriodic
         F.y = Scalar(0.0);
         F.z = Scalar(0.0);
 
-	T.x = Scalar(0.0);
-	T.y = Scalar(0.0);
-	T.z = Scalar(0.0);
+        T.x = Scalar(0.0);
+        T.y = Scalar(0.0);
+        T.z = Scalar(0.0);
 
         energy = Scalar(0.0);
 

@@ -102,14 +102,12 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), 
-				       access_location::host,
-				       access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar4> h_torque(m_torque,
-                                  access_location::host,
-                                  access_mode::overwrite);
+    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
 
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -175,10 +173,10 @@ void PotentialExternal<evaluator>::validateType(unsigned int type, std::string a
 
 //! Returns true if this ForceCompute requires anisotropic integration
 template<class evaluator> bool PotentialExternal<evaluator>::isAnisotropic()
-        {
-        // by default, only translational degrees of freedom are integrated
-        return evaluator::isAnisotropic();
-        }
+    {
+    // by default, only translational degrees of freedom are integrated
+    return evaluator::isAnisotropic();
+    }
 
 //! Set the parameters for this potential
 /*! \param type type for which to set parameters

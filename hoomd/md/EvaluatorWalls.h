@@ -134,7 +134,11 @@ template<class evaluator> class EvaluatorWalls
     typedef wall_type field_type;
 
     //! Constructs the external wall potential evaluator
-    DEVICE EvaluatorWalls(Scalar3 pos, quat<Scalar> q, const BoxDim& box, const param_type& p, const field_type& f)
+    DEVICE EvaluatorWalls(Scalar3 pos,
+                          quat<Scalar> q,
+                          const BoxDim& box,
+                          const param_type& p,
+                          const field_type& f)
         : m_pos(pos), m_field(f), m_params(p)
         {
         }

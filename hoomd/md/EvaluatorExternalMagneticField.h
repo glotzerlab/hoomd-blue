@@ -38,7 +38,8 @@ namespace md
     V(\theta}) = - \vec{B} \cdot \vec{n}_i(\theta)
     \f]
 
-    where \f$B\f$ is the strength of the magnetic field and \f$\vec{n}_i\f$ is the magnetic moment of particle i.
+    where \f$B\f$ is the strength of the magnetic field and \f$\vec{n}_i\f$ is the magnetic moment
+   of particle i.
 */
 class EvaluatorExternalMagneticField
     {
@@ -66,12 +67,13 @@ class EvaluatorExternalMagneticField
 
         param_type(Scalar3 B_, Scalar3 mu_) : B(B_), mu(mu_) { }
 
-
         pybind11::dict toPython()
             {
             pybind11::dict d;
-            d["B"] = pybind11::make_tuple(B.x, B.y, B.z);;
-            d["mu"] = pybind11::make_tuple(mu.x, mu.y, mu.z);;
+            d["B"] = pybind11::make_tuple(B.x, B.y, B.z);
+            ;
+            d["mu"] = pybind11::make_tuple(mu.x, mu.y, mu.z);
+            ;
             return d;
             }
 #endif // ifndef __HIPCC__
@@ -85,7 +87,7 @@ class EvaluatorExternalMagneticField
         \param params per-type parameters of external potential
     */
     DEVICE EvaluatorExternalMagneticField(Scalar3 X,
-		    			  quat<Scalar> q,
+                                          quat<Scalar> q,
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
@@ -124,20 +126,19 @@ class EvaluatorExternalMagneticField
     */
     DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
-        
-	vec3<Scalar> dir = rotate(m_q, m_mu);
+        vec3<Scalar> dir = rotate(m_q, m_mu);
 
-	vec3<Scalar> T_vec = cross(dir, m_B);
+        vec3<Scalar> T_vec = cross(dir, m_B);
 
-	T.x = T_vec.x;
-	T.y = T_vec.y;
-	T.z = T_vec.z;
+        T.x = T_vec.x;
+        T.y = T_vec.y;
+        T.z = T_vec.z;
 
-	energy = -dot(dir,m_B);
+        energy = -dot(dir, m_B);
 
-	F.x = Scalar(0.0);
-	F.y = Scalar(0.0);
-	F.z = Scalar(0.0);
+        F.x = Scalar(0.0);
+        F.y = Scalar(0.0);
+        F.z = Scalar(0.0);
 
         for (unsigned int i = 0; i < 6; i++)
             virial[i] = Scalar(0.0);
@@ -154,9 +155,9 @@ class EvaluatorExternalMagneticField
 #endif
 
     protected:
-    quat<Scalar> m_q; //!< particle position
-    vec3<Scalar> m_B;   //!< the field vector
-    vec3<Scalar> m_mu;   //!< particle charge
+    quat<Scalar> m_q;  //!< particle position
+    vec3<Scalar> m_B;  //!< the field vector
+    vec3<Scalar> m_mu; //!< particle charge
     };
 
     } // end namespace md

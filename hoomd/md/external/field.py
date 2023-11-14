@@ -87,7 +87,7 @@ class Electric(Field):
     """Electric field force.
 
     `Electric` computes forces, and virials, and energies on all particles in
-    the simulation state which are consistent with: 
+    the simulation state which are consistent with:
 
     .. math::
 
@@ -121,19 +121,20 @@ class Electric(Field):
             TypeParameterDict((float, float, float), len_keys=1))
         self._add_typeparam(params)
 
+
 class Magnetic(Field):
     """Magnetic field torque on a magnetic dipole.
 
     `Magnetic` computes torces and energies on all particles in
-    the simulation state which are consistent with: 
+    the simulation state which are consistent with:
 
     .. math::
 
        U_i = -\\vec{mu}_i \\cdot \\vec{B}
 
 
-    where :math:`\\vec{mu}_i` is the particle magnetic momentum and 
-    :math:`\\vec{B}` is the field vector. The field vector :math:`\\vec{B}` 
+    where :math:`\\vec{mu}_i` is the particle magnetic momentum and
+    :math:`\\vec{B}` is the field vector. The field vector :math:`\\vec{B}`
     must be set per unique particle type.
 
     .. py:attribute:: params
@@ -141,7 +142,7 @@ class Magnetic(Field):
         The `Magnetic` external potential parameters. The dictionary has the
         following keys:
 
-        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic 
+        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic
         field vector :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot \
         \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
         * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The magnetic
@@ -161,5 +162,7 @@ class Magnetic(Field):
     def __init__(self):
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(B=(float, float, float), mu=(float, float, float), len_keys=1))
+            TypeParameterDict(B=(float, float, float),
+                              mu=(float, float, float),
+                              len_keys=1))
         self._add_typeparam(params)
