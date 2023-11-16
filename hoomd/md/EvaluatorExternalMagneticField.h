@@ -71,9 +71,7 @@ class EvaluatorExternalMagneticField
             {
             pybind11::dict d;
             d["B"] = pybind11::make_tuple(B.x, B.y, B.z);
-            ;
             d["mu"] = pybind11::make_tuple(mu.x, mu.y, mu.z);
-            ;
             return d;
             }
 #endif // ifndef __HIPCC__
