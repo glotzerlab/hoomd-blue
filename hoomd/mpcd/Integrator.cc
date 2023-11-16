@@ -31,11 +31,13 @@ mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar de
     if (m_pdata->getDomainDecomposition())
         {
         std::shared_ptr<mpcd::Communicator> mpcd_comm;
+#ifdef ENABLE_HIP
         if (m_exec_conf->isCUDAEnabled())
             {
             mpcd_comm = std::make_shared<mpcd::CommunicatorGPU>(sysdef);
             }
         else
+#endif // ENABLE_HIP
             {
             mpcd_comm = std::make_shared<mpcd::Communicator>(sysdef);
             }
