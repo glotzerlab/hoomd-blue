@@ -128,7 +128,8 @@ class EvaluatorExternalPeriodic
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
-    DEVICE void evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
+    DEVICE void
+    evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         Scalar3 a2 = make_scalar3(0, 0, 0);
         Scalar3 a3 = make_scalar3(0, 0, 0);
