@@ -3,6 +3,7 @@
 
 #include "Compute.h"
 #include "GlobalArray.h"
+#include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
 #include "PythonLocalDataAccess.h"
@@ -63,33 +64,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         {
         m_deltaT = dt;
         }
-
-    namespace detail
-        {
-    template<class Real> struct vec6
-        {
-        //! Construct a vec6
-        vec6(const Real& _xx,
-             const Real& _xy,
-             const Real& _xz,
-             const Real& _yy,
-             const Real& _yz,
-             const Real& _zz)
-            : xx(_xx), xy(_xy), xz(_xz), yy(_yy), yz(_yz), zz(_zz)
-            {
-            }
-
-        //! Default construct a 0 vector
-        vec6() : xx(0), xy(0), xz(0), yy(0), yz(0), zz(0) { }
-
-        Real xx;
-        Real xy;
-        Real xz;
-        Real yy;
-        Real yz;
-        Real zz;
-        };
-        } // namespace detail
 
 #ifdef ENABLE_MPI
     //! Pre-compute the forces
@@ -346,6 +320,31 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
 
 namespace detail
     {
+
+template<class Real> struct vec6
+    {
+    //! Construct a vec6
+    vec6(const Real& _xx,
+         const Real& _xy,
+         const Real& _xz,
+         const Real& _yy,
+         const Real& _yz,
+         const Real& _zz)
+        : xx(_xx), xy(_xy), xz(_xz), yy(_yy), yz(_yz), zz(_zz)
+        {
+        }
+
+    //! Default construct a 0 vector
+    vec6() : xx(0), xy(0), xz(0), yy(0), yz(0), zz(0) { }
+
+    Real xx;
+    Real xy;
+    Real xz;
+    Real yy;
+    Real yz;
+    Real zz;
+    };
+
 //! Exports the ForceCompute class to python
 #ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
