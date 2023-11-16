@@ -13,6 +13,7 @@ md.external.field
 
     Field
     Electric
+    Magnetic
     Periodic
 
 .. rubric:: Details
@@ -21,4 +22,5 @@ md.external.field
     :synopsis: External field potentials.
     :members: Field,
         Electric,
+        Magnetic,
         Periodic
