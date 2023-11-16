@@ -146,7 +146,7 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
             Scalar qi = h_charge.data[idx];
             eval.setCharge(qi);
             }
-        eval.evalForceEnergyAndVirial(F, T, energy, virial);
+        eval.evalForceTorqueEnergyAndVirial(F, T, energy, virial);
 
         // apply the constraint force
         h_force.data[idx].x = F.x;

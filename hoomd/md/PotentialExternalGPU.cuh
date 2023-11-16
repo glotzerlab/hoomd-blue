@@ -149,7 +149,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
     if (evaluator::needsCharge())
         eval.setCharge(qi);
 
-    eval.evalForceEnergyAndVirial(force, torque, energy, virial);
+    eval.evalForceTorqueEnergyAndVirial(force, torque, energy, virial);
 
     // now that the force calculation is complete, write out the result)
     d_force[idx].x = force.x;

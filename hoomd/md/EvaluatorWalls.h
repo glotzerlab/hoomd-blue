@@ -238,7 +238,7 @@ template<class evaluator> class EvaluatorWalls
         }
 
     //! Generates force and energy from standard evaluators using wall geometry functions
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
+    DEVICE void evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         F.x = Scalar(0.0);
         F.y = Scalar(0.0);

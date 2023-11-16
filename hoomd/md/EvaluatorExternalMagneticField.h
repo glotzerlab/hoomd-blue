@@ -125,7 +125,7 @@ class EvaluatorExternalMagneticField
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
+    DEVICE void evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         vec3<Scalar> dir = rotate(m_q, m_mu);
 

@@ -113,10 +113,11 @@ class EvaluatorExternalElectricField
 
     //! Evaluate the force, energy and virial
     /*! \param F force vector
+        \param T torque vector
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
+    DEVICE void evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         F = m_qi * m_E;
         energy = -m_qi * dot(m_E, m_pos);
