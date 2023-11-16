@@ -142,12 +142,12 @@ class Magnetic(Field):
         The `Magnetic` external potential parameters. The dictionary has the
         following keys:
 
-        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The 
-           magnetic field vector in the global reference frame 
+        * ``B`` (`tuple` [`float`, `float`, `float`] ,**required**) - The
+           magnetic field vector in the global reference frame
            :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot \
            \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
-        * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The 
-           magnetic dipole moment of the particles type in the particle 
+        * ``mu`` (`tuple` [`float`, `float`, `float`] ,**required**) - The
+           magnetic dipole moment of the particles type in the particle
            reference frame :math:`[\\mathrm{charge} \\cdot \\mathrm{length}^2 \
            \\cdot \\mathrm{time}^{-1}]`.
 
