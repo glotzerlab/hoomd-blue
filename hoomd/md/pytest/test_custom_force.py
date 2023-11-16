@@ -115,7 +115,7 @@ def test_simulation(local_force_names, force_simulation_factory,
                 npt.assert_allclose(virials[:, i], i)
 
 
-class ForceEqualsTag(md.force.Custom):
+class ForceAsFunctionOfTag(md.force.Custom):
 
     def __init__(self):
         super().__init__(aniso=True)
@@ -123,23 +123,26 @@ class ForceEqualsTag(md.force.Custom):
     def set_forces(self, timestep):
         with self.cpu_local_force_arrays as force_arrays:
             with self._state.cpu_local_snapshot as local_snapshot:
-                force_arrays.force[:] = -5
+                tags = local_snapshot.particles.tag
+                force_arrays.force[:] = np.stack((tags * 1, tags * 2, tags * 3),
+                                                 axis=-1)
                 energy = local_snapshot.particles.tag * -10
                 force_arrays.potential_energy[:] = energy
-                force_arrays.torque[:] = np.ones(
-                    (len(local_snapshot.particles.tag),
-                     3)) * (local_snapshot.particles.tag).reshape((-1, 1))
+                force_arrays.torque[:] = np.stack(
+                    (tags * -3, tags * -2, tags * -1), axis=-1)
                 if force_arrays.virial.shape[0] != 0:
-                    force_arrays.virial[:] = np.ones(
-                        (len(local_snapshot.particles.tag),
-                         6)) * (local_snapshot.particles.tag).reshape((-1, 1))
+                    force_arrays.virial[:] = np.stack(
+                        (tags * 1, tags * -2, tags * -3, tags * 4, tags * -5,
+                         tags * 6),
+                        axis=-1)
 
 
 @pytest.mark.cpu
-def test_force_equals_tag(force_simulation_factory, lattice_snapshot_factory):
-    """Make sure custom force can plug into simulation without crashing."""
+def test_force_array_ordering(force_simulation_factory,
+                              lattice_snapshot_factory):
+    """Make sure values in force arrays are returned in correct order."""
     snap = lattice_snapshot_factory()
-    custom_force = ForceEqualsTag()
+    custom_force = ForceAsFunctionOfTag()
     sim = force_simulation_factory(custom_force, snap)
     sim.run(1)
 
@@ -147,17 +150,19 @@ def test_force_equals_tag(force_simulation_factory, lattice_snapshot_factory):
     energies = custom_force.energies
     torques = custom_force.torques
     virials = custom_force.virials
+    indices = np.arange(sim.state.N_particles)
     if sim.device.communicator.rank == 0:
-        npt.assert_allclose(forces, -5)
         npt.assert_array_equal(energies, np.arange(sim.state.N_particles) * -10)
         npt.assert_array_equal(
+            forces, np.stack((indices * 1, indices * 2, indices * 3), axis=-1))
+        npt.assert_array_equal(
             torques,
-            np.ones_like(torques) * np.arange(sim.state.N_particles).reshape(
-                (-1, 1)))
+            np.stack((indices * -3, indices * -2, indices * -1), axis=-1))
         npt.assert_array_equal(
             virials,
-            np.ones_like(virials) * np.arange(sim.state.N_particles).reshape(
-                (-1, 1)))
+            np.stack((indices * 1, indices * -2, indices * -3, indices * 4,
+                      indices * -5, indices * 6),
+                     axis=-1))
 
 
 class MyPeriodicField(md.force.Custom):
