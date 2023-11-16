@@ -65,8 +65,6 @@ class EvaluatorExternalMagneticField
             mu.z = pybind11::cast<Scalar>(py_mu[2]);
             }
 
-        param_type(Scalar3 B_, Scalar3 mu_) : B(B_), mu(mu_) { }
-
         pybind11::dict toPython()
             {
             pybind11::dict d;
