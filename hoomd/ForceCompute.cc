@@ -397,38 +397,23 @@ pybind11::object ForceCompute::getForcesPython()
         dims[0] = 0;
         dims[1] = 0;
         }
-    std::vector<vec3<double>> global_force(dims[0]);
+    std::vector<vec3<double>> force(dims[0]);
 
-    // sort forces by particle tag
-    std::vector<vec3<double>> local_force(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
-        local_force[i].x = h_force.data[h_rtag.data[local_tag[i]]].x;
-        local_force[i].y = h_force.data[h_rtag.data[local_tag[i]]].y;
-        local_force[i].z = h_force.data[h_rtag.data[local_tag[i]]].z;
-        }
-
-    if (m_sysdef->isDomainDecomposed())
-        {
-#ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
-        m_gather_tag_order.gatherArray(global_force, local_force);
-#endif
-        }
-    else
-        {
-        global_force = local_force;
+        Scalar3 f = getForce(i);
+        if (root)
+            {
+            force[i].x = f.x;
+            force[i].y = f.y;
+            force[i].z = f.z;
+            }
         }
 
     if (root)
         {
-        return pybind11::array(dims, (double*)global_force.data());
+        return pybind11::array(dims, (double*)force.data());
         }
     else
         {
@@ -455,38 +440,23 @@ pybind11::object ForceCompute::getTorquesPython()
         dims[0] = 0;
         dims[1] = 0;
         }
-    std::vector<vec3<double>> global_torque(dims[0]);
+    std::vector<vec3<double>> torque(dims[0]);
 
-    // sort torques by particle tag
-    std::vector<vec3<double>> local_torque(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
-        local_torque[i].x = h_torque.data[h_rtag.data[local_tag[i]]].x;
-        local_torque[i].y = h_torque.data[h_rtag.data[local_tag[i]]].y;
-        local_torque[i].z = h_torque.data[h_rtag.data[local_tag[i]]].z;
-        }
-
-    if (m_sysdef->isDomainDecomposed())
-        {
-#ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
-        m_gather_tag_order.gatherArray(global_torque, local_torque);
-#endif
-        }
-    else
-        {
-        global_torque = local_torque;
+        Scalar4 f = getTorque(i);
+        if (root)
+            {
+            torque[i].x = f.x;
+            torque[i].y = f.y;
+            torque[i].z = f.z;
+            }
         }
 
     if (root)
         {
-        return pybind11::array(dims, (double*)global_torque.data());
+        return pybind11::array(dims, (double*)torque.data());
         }
     else
         {
@@ -518,41 +488,32 @@ pybind11::object ForceCompute::getVirialsPython()
         dims[0] = 0;
         dims[1] = 0;
         }
-    std::vector<vec6<double>> global_virial(dims[0]);
+    std::vector<double> virial(dims[0] * dims[1]);
 
-    // sort forces by particle tag
-    std::vector<vec6<double>> local_virial(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
-        local_virial[i].xx = h_virial.data[m_virial_pitch * 0 + h_rtag.data[local_tag[i]]];
-        local_virial[i].xy = h_virial.data[m_virial_pitch * 1 + h_rtag.data[local_tag[i]]];
-        local_virial[i].xz = h_virial.data[m_virial_pitch * 2 + h_rtag.data[local_tag[i]]];
-        local_virial[i].yy = h_virial.data[m_virial_pitch * 3 + h_rtag.data[local_tag[i]]];
-        local_virial[i].yz = h_virial.data[m_virial_pitch * 4 + h_rtag.data[local_tag[i]]];
-        local_virial[i].zz = h_virial.data[m_virial_pitch * 5 + h_rtag.data[local_tag[i]]];
-        }
+        double v0 = getVirial(i, 0);
+        double v1 = getVirial(i, 1);
+        double v2 = getVirial(i, 2);
+        double v3 = getVirial(i, 3);
+        double v4 = getVirial(i, 4);
+        double v5 = getVirial(i, 5);
 
-    if (m_sysdef->isDomainDecomposed())
-        {
-#ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
-        m_gather_tag_order.gatherArray(global_virial, local_virial);
-#endif
-        }
-    else
-        {
-        global_virial = local_virial;
+        if (root)
+            {
+            virial[i * 6 + 0] = v0;
+            virial[i * 6 + 1] = v1;
+            virial[i * 6 + 2] = v2;
+            virial[i * 6 + 3] = v3;
+            virial[i * 6 + 4] = v4;
+            virial[i * 6 + 5] = v5;
+            }
         }
 
     if (root)
         {
-        return pybind11::array(dims, (double*)global_virial.data());
+        return pybind11::array(dims, (double*)virial.data());
         }
     else
         {

@@ -126,13 +126,9 @@ class ForceEqualsTag(md.force.Custom):
                 force_arrays.force[:] = -5
                 energy = local_snapshot.particles.tag * -10
                 force_arrays.potential_energy[:] = energy
-                force_arrays.torque[:] = np.ones(
-                    (len(local_snapshot.particles.tag),
-                     3)) * (local_snapshot.particles.tag).reshape((-1, 1))
+                force_arrays.torque[:] = 23
                 if force_arrays.virial.shape[0] != 0:
-                    force_arrays.virial[:] = np.ones(
-                        (len(local_snapshot.particles.tag),
-                         6)) * (local_snapshot.particles.tag).reshape((-1, 1))
+                    force_arrays.virial[:] = np.arange(6)[None, :]
 
 
 @pytest.mark.cpu
@@ -150,14 +146,9 @@ def test_force_equals_tag(force_simulation_factory, lattice_snapshot_factory):
     if sim.device.communicator.rank == 0:
         npt.assert_allclose(forces, -5)
         npt.assert_array_equal(energies, np.arange(sim.state.N_particles) * -10)
-        npt.assert_array_equal(
-            torques,
-            np.ones_like(torques) * np.arange(sim.state.N_particles).reshape(
-                (-1, 1)))
-        npt.assert_array_equal(
-            virials,
-            np.ones_like(virials) * np.arange(sim.state.N_particles).reshape(
-                (-1, 1)))
+        npt.assert_allclose(torques, 23)
+        for i in range(6):
+            npt.assert_allclose(virials[:, i], i)
 
 
 class MyPeriodicField(md.force.Custom):

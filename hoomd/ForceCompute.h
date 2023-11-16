@@ -3,7 +3,6 @@
 
 #include "Compute.h"
 #include "GlobalArray.h"
-#include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
 #include "PythonLocalDataAccess.h"
@@ -65,6 +64,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         m_deltaT = dt;
         }
 
+    namespace detail
+        {
     template<class Real> struct vec6
         {
         //! Construct a vec6
@@ -78,70 +79,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             {
             }
 
-        Real& operator[](unsigned int i)
-            {
-            switch (i)
-                {
-            case 0:
-                return xx;
-            case 1:
-                return xy;
-            case 2:
-                return xz;
-            case 3:
-                return yy;
-            case 4:
-                return yz;
-            case 5:
-                return zz;
-            default:
-// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
-#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
-                // This branch should not be reached, but must include something to avoid
-                // compiler warnings on the GPU and it must be something that can be returned by
-                // reference, so x is as good a choice as any.
-                return xx;
-#else
-                // On the CPU we throw an error to help with debugging any errors in use of the
-                // code.
-                throw std::invalid_argument(
-                    "Attempting to access non-existent vec6 entry (i.e. i > 2)");
-#endif
-                }
-            }
-
-        const Real operator[](unsigned int i) const
-            {
-            switch (i)
-                {
-            case 0:
-                return xx;
-            case 1:
-                return xy;
-            case 2:
-                return xz;
-            case 3:
-                return yy;
-            case 4:
-                return yz;
-            case 5:
-                return zz;
-            default:
-// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
-#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
-                // This branch should not be reached, but must include something to avoid
-                // compiler warnings on the GPU and returning x matches the non-const version of the
-                // operator.
-                return xx;
-#else
-                // On the CPU we throw an error to help with debugging any errors in use of the
-                // code.
-                throw std::invalid_argument(
-                    "Attempting to access non-existent vec6 entry (i.e. i > 2)");
-#endif
-                }
-            }
-
         //! Default construct a 0 vector
         vec6() : xx(0), xy(0), xz(0), yy(0), yz(0), zz(0) { }
 
@@ -152,6 +89,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         Real yz;
         Real zz;
         };
+        } // namespace detail
 
 #ifdef ENABLE_MPI
     //! Pre-compute the forces
