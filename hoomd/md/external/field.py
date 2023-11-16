@@ -132,8 +132,9 @@ class Magnetic(Field):
 
        U_i = -\\vec{mu}_i \\cdot \\vec{B}
 
-    where :math:`\\vec{mu}_i` is the magnetic dipole moment of particle 
-    :math:`i`and :math:`\\vec{B}` is the field vector. The field vector 
+
+    where :math:`\\vec{mu}_i` is the magnetic dipole moment of particle
+    :math:`i`and :math:`\\vec{B}` is the field vector. The field vector
     :math:`\\vec{B}` must be set per unique particle type.
 
     .. py:attribute:: params
