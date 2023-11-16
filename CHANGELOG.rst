@@ -6,6 +6,35 @@ Change Log
 
 4.x
 ---
+
+4.3.0 (2024-10-24)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``md.alchemy.methods.NVT`` now evolves the elements provided in ``alchemical_dof``
+  (`#1633 <https://github.com/glotzerlab/hoomd-blue/pull/1633>`__).
+* More consistent notice messages regarding MPI ranks used in GPU selection
+  (`#1635 <https://github.com/glotzerlab/hoomd-blue/pull/1635>`__).
+* ``hoomd.hpmc.compute.SDF`` computes correct pressures with patchy potentials.
+  (`#1636 <https://github.com/glotzerlab/hoomd-blue/pull/1636>`__).
+
+*Added*
+
+* Support GCC 13
+  (`#1634 <https://github.com/glotzerlab/hoomd-blue/pull/1634>`__).
+* Support Python 3.12
+  (`#1634 <https://github.com/glotzerlab/hoomd-blue/pull/1634>`__).
+* ``tau`` parameter to ``hoomd.md.methods.thermostats.Bussi``
+  (`#1619 <https://github.com/glotzerlab/hoomd-blue/pull/1619>`__).
+
+*Changed*
+
+* Revise class documentation.
+  (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
+* Add more code snippets to the class documentation
+  (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
+
 4.2.1 (2024-10-02)
 ^^^^^^^^^^^^^^^^^^
 
