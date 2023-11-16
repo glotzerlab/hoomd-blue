@@ -520,7 +520,7 @@ pybind11::object ForceCompute::getVirialsPython()
         }
     std::vector<hoomd::detail::vec6<double>> global_virial(dims[0]);
 
-    // sort forces by particle tag
+    // sort virials by particle tag
     std::vector<hoomd::detail::vec6<double>> local_virial(m_pdata->getN());
     std::vector<uint32_t> local_tag(m_pdata->getN());
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
