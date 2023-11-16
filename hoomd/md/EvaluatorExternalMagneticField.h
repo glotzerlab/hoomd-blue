@@ -156,9 +156,9 @@ class EvaluatorExternalMagneticField
 #endif
 
     protected:
-    quat<Scalar> m_q;  //!< particle position
-    vec3<Scalar> m_B;  //!< the field vector
-    vec3<Scalar> m_mu; //!< particle charge
+    quat<Scalar> m_q;  //!< Particle orientation
+    vec3<Scalar> m_B;  //!< Magnetic field vector (box frame).
+    vec3<Scalar> m_mu; //!< Magnetic dipole moment (particle frame).
     };
 
     } // end namespace md
