@@ -16,7 +16,7 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<SystemDefinition> s
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             double angle)
+                                             Scalar angle)
     : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_rotvec(m_exec_conf),
       m_angle(angle), m_factors(m_exec_conf)
     {
@@ -286,7 +286,7 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
                      mpcd::CollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
         .def(pybind11::
-                 init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, double>())
+                 init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, Scalar>())
         .def_property("angle",
                       &mpcd::SRDCollisionMethod::getRotationAngle,
                       &mpcd::SRDCollisionMethod::setRotationAngle)

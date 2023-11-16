@@ -966,7 +966,7 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
 void mpcd::detail::export_CellList(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, double, bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, bool>())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def_property("shift",
                       &mpcd::CellList::isGridShifting,

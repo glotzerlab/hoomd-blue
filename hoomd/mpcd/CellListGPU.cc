@@ -213,7 +213,7 @@ void mpcd::detail::export_CellListGPU(pybind11::module& m)
     pybind11::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU>>(
         m,
         "CellListGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, double, bool>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, bool>());
     }
 
     } // end namespace hoomd

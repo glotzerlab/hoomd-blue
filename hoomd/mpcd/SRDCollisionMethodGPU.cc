@@ -16,7 +16,7 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<SystemDefinit
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
                                                    int phase,
-                                                   double angle)
+                                                   Scalar angle)
     : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, angle)
     {
     m_tuner_rotvec.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
@@ -182,7 +182,7 @@ void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
                      std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
         .def(
             pybind11::
-                init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, double>());
+                init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, Scalar>());
     }
 
     } // end namespace hoomd
