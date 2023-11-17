@@ -399,6 +399,15 @@ class HPMCIntegrator(Integrator):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
+        if (isinstance(self._simulation.device, hoomd.device.CPU)
+                and self._simulation.device.num_cpu_threads > 1
+                and any([f != 0 for f in self.depletant_fugacity.values()])):
+            warnings.warn(
+                "num_cpu_threads > 1 is deprecated since 4.4.0. "
+                "Use num_cpu_threads=1.",
+                FutureWarning,
+                stacklevel=2)
+
         self._simulation._warn_if_seed_unset()
         sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)
@@ -413,15 +422,6 @@ class HPMCIntegrator(Integrator):
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(self._ext_module, self._cpp_cls)(sys_def)
             self._cpp_cell = None
-
-        if (isinstance(self._simulation.device, hoomd.device.CPU)
-                and self._simulation.device.num_cpu_threads > 1
-                and any([f != 0 for f in self.depletant_fugacity.values()])):
-            warnings.warn(
-                "num_cpu_threads > 1 is deprecated since 4.4.0. "
-                "Use num_cpu_threads=1.",
-                FutureWarning,
-                stacklevel=2)
 
         if self._external_potential is not None:
             self._external_potential._attach(self._simulation)
