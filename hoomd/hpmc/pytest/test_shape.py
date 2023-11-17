@@ -736,4 +736,5 @@ def test_fugacity(simulation_factory, two_particle_snapshot_factory,
     mc.shape['A'] = args
     mc.depletant_fugacity["A"] = 0.1
     sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
     sim.run(2)

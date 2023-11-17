@@ -529,10 +529,13 @@ class CPPPotentialUnion(CPPPotentialBase):
         return super()._getattr_param(attr)
 
     def _attach_hook(self):
-        if self._simulation.device.num_cpu_threads > 1:
+        if (isinstance(self._simulation.device, hoomd.device.CPU)
+                and self._simulation.device.num_cpu_threads > 1):
             warnings.warn(
-                "num_cpu_threads > 1 is deprecated since 4.4.0."
-                "Use num_cpu_threads=1 with CPPPotentialUnion.", FutureWarning)
+                "num_cpu_threads > 1 is deprecated since 4.4.0. "
+                "Use num_cpu_threads=1.",
+                FutureWarning,
+                stacklevel=2)
 
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):

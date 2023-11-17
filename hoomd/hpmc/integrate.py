@@ -264,6 +264,7 @@ from hoomd.operation import Integrator
 from hoomd.logging import log
 import hoomd
 import json
+import warnings
 
 
 class HPMCIntegrator(Integrator):
@@ -412,6 +413,15 @@ class HPMCIntegrator(Integrator):
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(self._ext_module, self._cpp_cls)(sys_def)
             self._cpp_cell = None
+
+        if (isinstance(self._simulation.device, hoomd.device.CPU)
+                and self._simulation.device.num_cpu_threads > 1
+                and any([f != 0 for f in self.depletant_fugacity.values()])):
+            warnings.warn(
+                "num_cpu_threads > 1 is deprecated since 4.4.0. "
+                "Use num_cpu_threads=1.",
+                FutureWarning,
+                stacklevel=2)
 
         if self._external_potential is not None:
             self._external_potential._attach(self._simulation)
