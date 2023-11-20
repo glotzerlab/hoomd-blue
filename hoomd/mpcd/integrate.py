@@ -90,7 +90,7 @@ class Integrator(_MDIntegrator):
                                          self.dt)
         self._cpp_obj.cell_list = self._cell_list._cpp_obj
 
-        super()._attach_hook()
+        super(_MDIntegrator, self)._attach_hook()
 
     def _detach_hook(self):
         self._cell_list._detach()
