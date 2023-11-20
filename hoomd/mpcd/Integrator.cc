@@ -64,18 +64,6 @@ mpcd::Integrator::~Integrator()
  */
 void mpcd::Integrator::update(uint64_t timestep)
     {
-    // only issue a warning if no integration AND streaming method is set
-    if (!m_gave_warning && m_methods.size() == 0)
-        {
-        if (!m_stream)
-            {
-            m_exec_conf->msg->warning()
-                << "mpcd.integrate: No integration methods are set." << std::endl;
-            }
-        // setting this to true will shut up subsequent warnings if there is only a streaming method
-        m_gave_warning = true;
-        }
-
     // remove leftover virtual particles, communicate MPCD particles, and refill
     if (checkCollide(timestep))
         {
