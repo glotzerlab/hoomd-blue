@@ -27,19 +27,21 @@ class CellList(AutotunedObject):
         cell_size (float): Size of a collision cell.
         shift (bool): When True, randomly shift underlying collision cells.
 
+    The MPCD `CellList` bins particles into cubic cells of edge length
+    `cell_size`. Currently, the simulation box must be orthorhombic, and its
+    edges must be a multiple of `cell_size`.
+
+    When the total mean-free path of the MPCD particles is small, the cells
+    should be randomly shifted in order to ensure Galilean invariance of the
+    algorithm. This random shift is drawn from a uniform distribution, and it
+    can shift the grid by up to half a cell in each direction. The performance
+    penalty from grid shifting is small, so it is recommended to enable it in
+    all simulations.
+
     Attributes:
         cell_size (float): Edge length of a collision cell.
 
-            Each collision cell is a cube. The box must be orthorhombic with
-            each edge length a multiple of `cell_size`.
-
         shift (bool): When True, randomly shift underlying collision cells.
-
-            When the total mean-free path of the MPCD particles is small, the
-            underlying MPCD cell list should be randomly shifted in order to
-            ensure Galilean invariance. The performance penalty from grid
-            shifting is small, so it is recommended to enable it in all
-            simulations.
 
     """
 
@@ -80,17 +82,17 @@ class CollisionMethod(AutotunedObject):
 
             You will need to create an appropriate method to integrate the
             positions of these particles. The recommended integrator is
-            `~hoomd.md.methods.ConstantVolume` with no thermostat (NVE). It is
-            generally **not** a good idea to use a thermostat because the MPCD
-            particles themselves already act as a heat bath for the embedded
-            particles.
+            :class:`~hoomd.md.methods.ConstantVolume` with no thermostat (NVE).
+            It is generally **not** a good idea to use a thermostat because the
+            MPCD particles themselves already act as a heat bath for the
+            embedded particles.
 
         period (int): Number of integration steps between collisions.
 
-            A collision is executed each time the `~hoomd.Simulation.timestep`
+            A collision is executed each time the :attr:`~hoomd.Simulation.timestep`
             is a multiple of `period`. It must be a multiple of `period` for the
-            `~hoomd.mpcd.stream.StreamingMethod` if one is attached to the
-            `~hoomd.mpcd.Integrator`.
+            :class:`~hoomd.mpcd.stream.StreamingMethod` if one is attached to
+            the :class:`~hoomd.mpcd.Integrator`.
 
     """
 
@@ -113,13 +115,13 @@ class AndersenThermostat(CollisionMethod):
         period (int): Number of integration steps between collisions.
         kT (hoomd.variant.variant_like): Temperature of the solvent
             :math:`[\mathrm{energy}]`.
-        embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to include in
-            collision.
+        embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to
+            include in collision.
 
 
     This class implements the Andersen thermostat collision rule for MPCD, as
     described by `Allahyarov and Gompper
-    <https://doi.org/10.1103/PhysRevE.66.036702>`_. Every `period` steps, the
+    <https://doi.org/10.1103/PhysRevE.66.036702>`_. Every ``period`` steps, the
     particles are binned into cells. New particle velocities are then randomly
     drawn from a Gaussian distribution relative to the center-of-mass velocity
     for the cell. The random velocities are given zero-mean so that the cell
@@ -166,24 +168,25 @@ class StochasticRotationDynamics(CollisionMethod):
         period (int): Number of integration steps between collisions.
         angle (float): Rotation angle (in degrees).
         kT (hoomd.variant.variant_like): Temperature for the collision
-            thermostat :`[\mathrm{energy}]`. If None, no thermostat is used.
-        embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to include in
-            collision.
+            thermostat :math:`[\mathrm{energy}]`. If None, no thermostat is
+            used.
+        embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to
+            include in collision.
 
     This class implements the classic stochastic rotation dynamics collision
-    rule for MPCD as first proposed by `Malevanets and Kapral
-    <http://doi.org/10.1063/1.478857>`_. Every `period` steps, the particles are
-    binned into cells. The particle velocities are then rotated by `angle`
+    rule for MPCD proposed by `Malevanets and Kapral
+    <http://doi.org/10.1063/1.478857>`_. Every ``period`` steps, the particles
+    are binned into cells. The particle velocities are then rotated by `angle`
     around an axis randomly drawn from the unit sphere. The rotation is done
     relative to the average velocity, so this rotation rule conserves linear
     momentum and kinetic energy within each cell.
 
     The SRD method naturally imparts the NVE ensemble to the system comprising
-    the MPCD particles and *group*. Accordingly, the system must be properly
-    initialized to the correct temperature. (SRD has an H theorem, and so
-    particles exchange momentum to reach an equilibrium temperature.) A
-    thermostat can be applied in conjunction with the SRD method through the
-    `kT` parameter. SRD employs a `Maxwell-Boltzmann thermostat
+    the MPCD particles and the `embedded_particles`. Accordingly, the system
+    must be properly initialized to the correct temperature. (SRD has an H
+    theorem, and so particles exchange momentum to reach an equilibrium
+    temperature.) A thermostat can be applied in conjunction with the SRD method
+    through the `kT` parameter. SRD employs a `Maxwell-Boltzmann thermostat
     <https://doi.org/10.1016/j.jcp.2009.09.024>`_ on the cell level, which
     generates the (correct) isothermal ensemble. The temperature is defined
     relative to the cell-average velocity, and so can be used to dissipate heat

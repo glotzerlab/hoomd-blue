@@ -4,10 +4,10 @@
 r""" MPCD streaming methods.
 
 An MPCD streaming method is required to update the particle positions over time.
-It is meant to be used in conjunction with an `.mpcd.Integrator`
-and `.mpcd.collide.CollisionMethod`. Particle positions are
-propagated ballistically according to Newton's equations using a velocity-Verlet
-scheme for a time :math:`\Delta t`:
+It is meant to be used in conjunction with an :class:`.mpcd.Integrator` and
+:class:`~hoomd.mpcd.collide.CollisionMethod`. Particle positions are propagated
+ballistically according to Newton's equations using a velocity-Verlet scheme for
+a time :math:`\Delta t`:
 
 .. math::
 
@@ -15,34 +15,35 @@ scheme for a time :math:`\Delta t`:
 
     \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t
 
-    \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) + (\mathbf{f}/m)(\Delta t / 2)
+    \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) +
+    (\mathbf{f}/m)(\Delta t / 2)
 
-where **r** and **v** are the particle position and velocity, respectively, and **f**
-is the external force acting on the particles of mass *m*. For a list of forces
-that can be applied, see :py:mod:`.mpcd.force`.
+where **r** and **v** are the particle position and velocity, respectively, and
+**f** is the external force acting on the particles of mass *m*. For a list of
+forces that can be applied, see :mod:`.mpcd.force`.
 
-Since one of the main strengths of the MPCD algorithm is that it can be coupled to
-complex boundaries, the streaming geometry can be configured. MPCD solvent particles
-will be reflected from boundary surfaces using specular reflections (bounce-back)
-rules consistent with either "slip" or "no-slip" hydrodynamic boundary conditions.
-(The external force is only applied to the particles at the beginning and the end
-of this process.) To help fully enforce the boundary conditions, "virtual" MPCD
-particles can be inserted near the boundary walls.
+Since one of the main strengths of the MPCD algorithm is that it can be coupled
+to complex boundaries, the streaming geometry can be configured. MPCD solvent
+particles will be reflected from boundary surfaces using specular reflections
+(bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
+boundary conditions. (The external force is only applied to the particles at the
+beginning and the end of this process.) To help fully enforce the boundary
+conditions, "virtual" MPCD particles can be inserted near the boundary walls.
 
-Although a streaming geometry is enforced on the MPCD solvent particles, there are
-a few important caveats:
+Although a streaming geometry is enforced on the MPCD solvent particles, there
+are a few important caveats:
 
-    1. Embedded particles are not coupled to the boundary walls. They must be confined
-       by an appropriate method, e.g., an external potential, an explicit particle wall,
-       or a bounce-back method.
-    2. The confined geometry exists inside a fully periodic simulation box. Hence, the
-       box must be padded large enough that the MPCD cells do not interact through the
-       periodic boundary. Usually, this means adding at least one extra layer of cells
-       in the confined dimensions. Your periodic simulation box will be validated by
-       the confined geometry.
-    3. It is an error for MPCD particles to lie "outside" the confined geometry. You
-       must initialize your system carefully to ensure all particles are "inside" the
-       geometry. An error will be raised otherwise.
+    1. Embedded particles are not coupled to the boundary walls. They must be
+       confined by an appropriate method, e.g., an external potential, an
+       explicit particle wall, or a bounce-back method.
+    2. The confined geometry exists inside a fully periodic simulation box.
+       Hence, the box must be padded large enough that the MPCD cells do not
+       interact through the periodic boundary. Usually, this means adding at
+       least one extra layer of cells in the confined dimensions. Your periodic
+       simulation box will be validated by the confined geometry.
+    3. It is an error for MPCD particles to lie "outside" the confined geometry.
+       You must initialize your system carefully to ensure all particles are
+       "inside" the geometry. An error will be raised otherwise.
 
 """
 
@@ -62,10 +63,11 @@ class StreamingMethod(AutotunedObject):
     Attributes:
         period (int): Number of integration steps covered by streaming step.
 
-            The MPCD particles will be streamed every time the `~hoomd.Simulation`
-            timestep is a multiple of `period`. The streaming time is hence equal
-            to `period` steps of the `~hoomd.mpcd.Integrator`. Typically `period`
-            should be equal to `~hoomd.mpcd.CollisionMethod.period` for the
+            The MPCD particles will be streamed every time the
+            :attr:`~hoomd.Simulation.timestep` is a multiple of `period`. The
+            streaming time is hence equal to `period` steps of the
+            :class:`~hoomd.mpcd.Integrator`. Typically `period` should be equal
+            to the :attr:`~hoomd.mpcd.collide.CollisionMethod.period` for the
             corresponding collision method. A smaller fraction of this may be
             used if an external force is applied, and more faithful numerical
             integration is needed.
@@ -86,7 +88,8 @@ class Bulk(StreamingMethod):
         period (int): Number of integration steps covered by streaming step.
 
     `Bulk` streams the MPCD particles in a fully periodic geometry (2D or 3D).
-    This geometry is appropriate for modeling bulk fluids.
+    This geometry is appropriate for modeling bulk fluids, i.e., those that
+    are not confined by any surfaces.
 
     """
 
@@ -118,13 +121,12 @@ class ParallelPlates(StreamingMethod):
         no_slip (bool): If True, plates have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
 
-    `Slit` streams the MPCD particles between two infinite parallel
-    plates. The slit is centered around the origin, and the walls are placed
-    at :math:`z=-H` and :math:`z=+H`, so the total channel width is :math:`2H`.
-    The walls may be put into motion, moving with speeds :math:`-V` and
-    :math:`+V` in the *x* direction, respectively. If combined with a
-    no-slip boundary condition, this motion can be used to generate simple
-    shear flow.
+    `ParallelPlates` streams the MPCD particles between two infinite parallel
+    plates centered around the origin. The plates are placed at :math:`z=-H`
+    and :math:`z=+H`, so the total channel width is :math:`2H`. The plates may
+    be put into motion, moving with speeds :math:`-V` and :math:`+V` in the *x*
+    direction, respectively. If combined with a no-slip boundary condition,
+    this motion can be used to generate simple shear flow.
 
     Attributes:
         H (float): Channel half-width.

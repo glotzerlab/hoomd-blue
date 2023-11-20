@@ -14,13 +14,44 @@ from hoomd.mpcd.stream import StreamingMethod
 class Integrator(_MDIntegrator):
     """MPCD integrator.
 
+    Args:
+        dt (float): Integrator time step size :math:`[\mathrm{time}]`.
+
+        methods (Sequence[hoomd.md.methods.Method]): Sequence of integration
+          methods. The default value of ``None`` initializes an empty list.
+
+        forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to
+          the particles in the system. The default value of ``None`` initializes
+          an empty list.
+
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+          of freedom.
+
+        constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
+          constraint forces applied to the particles in the system.
+          The default value of ``None`` initializes an empty list. Rigid body
+          objects (i.e. `hoomd.md.constrain.Rigid`) are not allowed in the
+          list.
+
+        rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
+          the simulation.
+
+        half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
+            arbitrary computations during the half-step of the integration.
+
+        streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
+            for the MPCD solvent.
+
+        collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
+            for the MPCD solvent and any embedded particles.
+
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.
 
-    In MPCD simulations, `dt` defines the amount of time that the system is
+    In MPCD simulations, ``dt`` defines the amount of time that the system is
     advanced forward every time step. MPCD streaming and collision steps can be
-    defined to occur in multiples of `dt`. In these cases, any MD particle data
-    will be updated every `dt`, while the MPCD particle data is updated
+    defined to occur in multiples of ``dt``. In these cases, any MD particle data
+    will be updated every ``dt``, while the MPCD particle data is updated
     asynchronously for performance. For example, if MPCD streaming happens every
     5 steps, then the particle data will be updated as follows::
 
@@ -32,6 +63,14 @@ class Integrator(_MDIntegrator):
     step 3, it will actually contain the MPCD particle data for time step 5.
     The MD particles can be read at any time step because their positions
     are updated every step.
+
+
+    Attributes:
+        streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
+            for the MPCD solvent.
+
+        collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
+            for the MPCD solvent and any embedded particles.
 
     """
 
@@ -70,9 +109,9 @@ class Integrator(_MDIntegrator):
 
     @property
     def cell_list(self):
-        """hoomd.mpcd.CellList: Collision cell list.
+        """hoomd.mpcd.collide.CellList: Collision cell list.
 
-        A `~hoomd.mpcd.CellList` is automatically created with each `Integrator`
+        A `CellList` is automatically created with each `Integrator`
         using typical defaults of cell size 1 and random grid shifting enabled.
         You can change this configuration if desired.
 
