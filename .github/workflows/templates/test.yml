@@ -133,10 +133,10 @@ env:
     - name: Untar install
       run: << tar_command >> -xvf install.tar
 <% endset %>
-<% set pytest_options="--pyargs hoomd -v -ra --durations=0 --durations-min=0.1" %>
+<% set pytest_options="--pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1" %>
 <% set pytest_validate_options="-p hoomd.pytest_plugin_validate -m validate --validate" %>
 <% set invoke_pytest_serial="python3 -m pytest" %>
-<% set invoke_pytest_mpi="mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x" %>
+<% set invoke_pytest_mpi="mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh" %>
 <% set pytest_steps %>
     - name: Run pytest (serial)
       run: << invoke_pytest_serial >> << pytest_options >>
