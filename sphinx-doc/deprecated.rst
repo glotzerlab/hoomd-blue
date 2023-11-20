@@ -17,3 +17,8 @@ documentation for more information on warning filters.
 * ``hoomd.snapshot.from_gsd_snapshot`` (since 4.0.0).
 
   * Use `hoomd.Snapshot.from_gsd_frame`.
+
+* ``num_cpu_threads > 1`` (since 4.4.0).
+
+  * Use ``num_cpu_threads = 1``.
+  * All TBB code will be removed in the 5.0 release.
