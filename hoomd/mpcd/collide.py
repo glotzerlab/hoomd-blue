@@ -188,8 +188,7 @@ class StochasticRotationDynamics(CollisionMethod):
     generates the (correct) isothermal ensemble. The temperature is defined
     relative to the cell-average velocity, and so can be used to dissipate heat
     in nonequilibrium simulations. Under this thermostat, the SRD algorithm
-    still conserves linear momentum, but kinetic energy is of course no longer
-    conserved.
+    still conserves linear momentum, but kinetic energy is no longer conserved.
 
     Attributes:
         angle (float): Rotation angle (in degrees)
