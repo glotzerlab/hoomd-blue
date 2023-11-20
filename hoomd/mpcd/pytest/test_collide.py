@@ -23,14 +23,14 @@ def small_snap():
         (
             hoomd.mpcd.collide.AndersenThermostat,
             {
-                "every": 5,
+                "period": 5,
                 "kT": 1.0,
             },
         ),
         (
             hoomd.mpcd.collide.StochasticRotationDynamics,
             {
-                "every": 5,
+                "period": 5,
                 "angle": 90,
             },
         ),
@@ -47,7 +47,7 @@ class TestCollisionMethod:
 
         sim.run(0)
         assert ig.collision_method is cm
-        assert cm.every == 5
+        assert cm.period == 5
 
         ig.collision_method = None
         sim.run(0)
@@ -59,12 +59,12 @@ class TestCollisionMethod:
 
     def test_embed(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
-        cm = cls(**init_args, embed=hoomd.filter.All())
+        cm = cls(**init_args, embedded_particles=hoomd.filter.All())
         sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
                                                           collision_method=cm)
 
         sim.run(0)
-        assert isinstance(cm.embed, hoomd.filter.All)
+        assert isinstance(cm.embedded_particles, hoomd.filter.All)
 
     def test_temperature(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
@@ -97,5 +97,5 @@ class TestCollisionMethod:
         if "kT" not in init_args:
             init_args["kT"] = 1.0
         sim.operations.integrator.collision_method = cls(
-            **init_args, embed=hoomd.filter.All())
+            **init_args, embedded_particles=hoomd.filter.All())
         sim.run(1)

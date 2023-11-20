@@ -57,25 +57,25 @@ class StreamingMethod(AutotunedObject):
     """Base streaming method.
 
     Args:
-        every (int): Number of integration steps covered by streaming step.
+        period (int): Number of integration steps covered by streaming step.
 
     Attributes:
-        every (int): Number of integration steps covered by streaming step.
+        period (int): Number of integration steps covered by streaming step.
 
-            The MPCD particles with be streamed every time the `~hoomd.Simulation`
-            timestep is a multiple of `every`. The streaming time is hence equal
-            to `every` steps of the `~hoomd.mpcd.Integrator`. Typically `every`
-            should be equal to `~hoomd.mpcd.CollisionMethod.every` for the
+            The MPCD particles will be streamed every time the `~hoomd.Simulation`
+            timestep is a multiple of `period`. The streaming time is hence equal
+            to `period` steps of the `~hoomd.mpcd.Integrator`. Typically `period`
+            should be equal to `~hoomd.mpcd.CollisionMethod.period` for the
             corresponding collision method. A smaller fraction of this may be
             used if an external force is applied, and more faithful numerical
             integration is needed.
 
     """
 
-    def __init__(self, every):
+    def __init__(self, period):
         super().__init__()
 
-        param_dict = ParameterDict(every=int(every),)
+        param_dict = ParameterDict(period=int(period),)
         self._param_dict.update(param_dict)
 
 
@@ -83,7 +83,7 @@ class Bulk(StreamingMethod):
     """Bulk fluid.
 
     Args:
-        every (int): Number of integration steps covered by streaming step.
+        period (int): Number of integration steps covered by streaming step.
 
     `Bulk` streams the MPCD particles in a fully periodic geometry (2D or 3D).
     This geometry is appropriate for modeling bulk fluids.
@@ -100,7 +100,7 @@ class Bulk(StreamingMethod):
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
-            self.every,
+            self.period,
             0,
             _mpcd.BulkGeometry(),
         )
@@ -112,7 +112,7 @@ class ParallelPlates(StreamingMethod):
     r"""Parallel-plate channel.
 
     Args:
-        every (int): Number of integration steps covered by streaming step.
+        period (int): Number of integration steps covered by streaming step.
         H (float): Channel half-width.
         V (float): Wall speed.
         no_slip (bool): If True, plates have no-slip boundary condition.
@@ -139,8 +139,8 @@ class ParallelPlates(StreamingMethod):
 
     """
 
-    def __init__(self, every, H, V=0.0, no_slip=True):
-        super().__init__(every)
+    def __init__(self, period, H, V=0.0, no_slip=True):
+        super().__init__(period)
 
         param_dict = ParameterDict(
             H=float(H),
@@ -161,7 +161,7 @@ class ParallelPlates(StreamingMethod):
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
-            self.every,
+            self.period,
             0,
             slit,
         )
@@ -173,7 +173,7 @@ class PlanarPore(StreamingMethod):
     r"""Parallel plate pore.
 
     Args:
-        every (int): Number of integration steps covered by streaming step.
+        period (int): Number of integration steps covered by streaming step.
         H (float): Channel half-width.
         L (float): Pore half-length.
         no_slip (bool): If True, plates have no-slip boundary condition.
@@ -199,8 +199,8 @@ class PlanarPore(StreamingMethod):
 
     """
 
-    def __init__(self, every, H, L, no_slip=True):
-        super().__init__(every)
+    def __init__(self, period, H, L, no_slip=True):
+        super().__init__(period)
 
         param_dict = ParameterDict(
             H=float(H),
@@ -221,7 +221,7 @@ class PlanarPore(StreamingMethod):
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
-            self.every,
+            self.period,
             0,
             slit,
         )

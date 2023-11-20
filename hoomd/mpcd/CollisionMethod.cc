@@ -136,7 +136,7 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
         m,
         "CollisionMethod")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, uint64_t, uint64_t, int>())
-        .def_property_readonly("embed",
+        .def_property_readonly("embedded_particles",
                                [](const std::shared_ptr<mpcd::CollisionMethod> method)
                                {
                                    auto group = method->getEmbeddedGroup();
@@ -144,7 +144,7 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
                                                   : std::shared_ptr<hoomd::ParticleFilter>();
                                })
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
-        .def_property_readonly("every", &mpcd::CollisionMethod::getPeriod);
+        .def_property_readonly("period", &mpcd::CollisionMethod::getPeriod);
     }
 
     } // end namespace hoomd

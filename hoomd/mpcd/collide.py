@@ -69,11 +69,11 @@ class CollisionMethod(AutotunedObject):
     """Base collision method.
 
     Args:
-        every (int): Number of integration steps between collisions.
-        embed (hoomd.filter.filter_like): HOOMD particles to include in collision.
+        period (int): Number of integration steps between collisions.
+        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
 
     Attributes:
-        embed (hoomd.filter.filter_like): HOOMD particles to include in collision.
+        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
 
             These particles are included in per-cell quantities and have their
             velocities updated along with the MPCD particles.
@@ -85,23 +85,24 @@ class CollisionMethod(AutotunedObject):
             particles themselves already act as a heat bath for the embedded
             particles.
 
-        every (int): Number of integration steps between collisions.
+        period (int): Number of integration steps between collisions.
 
             A collision is executed each time the `~hoomd.Simulation.timestep`
-            is a multiple of `every`. It must be a multiple of `every` for the
+            is a multiple of `period`. It must be a multiple of `period` for the
             `~hoomd.mpcd.stream.StreamingMethod` if one is attached to the
             `~hoomd.mpcd.Integrator`.
 
     """
 
-    def __init__(self, every, embed=None):
+    def __init__(self, period, embedded_particles=None):
         super().__init__()
 
         param_dict = ParameterDict(
-            every=int(every),
-            embed=OnlyTypes(hoomd.filter.ParticleFilter, allow_none=True),
+            period=int(period),
+            embedded_particles=OnlyTypes(hoomd.filter.ParticleFilter,
+                                         allow_none=True),
         )
-        param_dict["embed"] = embed
+        param_dict["embedded_particles"] = embedded_particles
         self._param_dict.update(param_dict)
 
 
@@ -109,16 +110,16 @@ class AndersenThermostat(CollisionMethod):
     r"""Andersen thermostat method.
 
     Args:
-        every (int): Number of integration steps between collisions. kT
+        period (int): Number of integration steps between collisions.
         kT (hoomd.variant.variant_like): Temperature of the solvent
             :math:`[\mathrm{energy}]`.
-        embed (hoomd.filter.ParticleFilter): HOOMD particles to include in
+        embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to include in
             collision.
 
 
     This class implements the Andersen thermostat collision rule for MPCD, as
     described by `Allahyarov and Gompper
-    <https://doi.org/10.1103/PhysRevE.66.036702>`_. Every `every` steps, the
+    <https://doi.org/10.1103/PhysRevE.66.036702>`_. Every `period` steps, the
     particles are binned into cells. New particle velocities are then randomly
     drawn from a Gaussian distribution relative to the center-of-mass velocity
     for the cell. The random velocities are given zero-mean so that the cell
@@ -134,8 +135,8 @@ class AndersenThermostat(CollisionMethod):
 
     """
 
-    def __init__(self, every, kT, embed=None):
-        super().__init__(every, embed)
+    def __init__(self, period, kT, embedded_particles=None):
+        super().__init__(period, embedded_particles)
 
         param_dict = ParameterDict(kT=hoomd.variant.Variant)
         param_dict["kT"] = kT
@@ -149,10 +150,11 @@ class AndersenThermostat(CollisionMethod):
             cpp_class = _mpcd.ATCollisionMethod
 
         self._cpp_obj = cpp_class(sim.state._cpp_sys_def, sim.timestep,
-                                  self.every, 0, self.kT)
+                                  self.period, 0, self.kT)
 
-        if self.embed is not None:
-            self._cpp_obj.setEmbeddedGroup(sim.state._get_group(self.embed))
+        if self.embedded_particles is not None:
+            self._cpp_obj.setEmbeddedGroup(
+                sim.state._get_group(self.embedded_particles))
 
         super()._attach_hook()
 
@@ -161,16 +163,16 @@ class StochasticRotationDynamics(CollisionMethod):
     r"""Stochastic rotation dynamics method.
 
     Args:
-        every (int): Number of integration steps between collisions.
+        period (int): Number of integration steps between collisions.
         angle (float): Rotation angle (in degrees).
         kT (hoomd.variant.variant_like): Temperature for the collision
             thermostat :`[\mathrm{energy}]`. If None, no thermostat is used.
-        embed (hoomd.filter.ParticleFilter): HOOMD particles to include in
+        embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to include in
             collision.
 
     This class implements the classic stochastic rotation dynamics collision
     rule for MPCD as first proposed by `Malevanets and Kapral
-    <http://doi.org/10.1063/1.478857>`_. Every `every` steps, the particles are
+    <http://doi.org/10.1063/1.478857>`_. Every `period` steps, the particles are
     binned into cells. The particle velocities are then rotated by `angle`
     around an axis randomly drawn from the unit sphere. The rotation is done
     relative to the average velocity, so this rotation rule conserves linear
@@ -197,8 +199,8 @@ class StochasticRotationDynamics(CollisionMethod):
 
     """
 
-    def __init__(self, every, angle, kT=None, embed=None):
-        super().__init__(every, embed)
+    def __init__(self, period, angle, kT=None, embedded_particles=None):
+        super().__init__(period, embedded_particles)
 
         param_dict = ParameterDict(
             angle=float(angle),
@@ -217,9 +219,10 @@ class StochasticRotationDynamics(CollisionMethod):
             cpp_class = _mpcd.SRDCollisionMethod
 
         self._cpp_obj = cpp_class(sim.state._cpp_sys_def, sim.timestep,
-                                  self.every, 0, self.angle)
+                                  self.period, 0, self.angle)
 
-        if self.embed is not None:
-            self._cpp_obj.setEmbeddedGroup(sim.state._get_group(self.embed))
+        if self.embedded_particles is not None:
+            self._cpp_obj.setEmbeddedGroup(
+                sim.state._get_group(self.embedded_particles))
 
         super()._attach_hook()
