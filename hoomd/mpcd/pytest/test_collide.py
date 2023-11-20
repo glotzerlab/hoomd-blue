@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd.conftest import pickling_check
 import pytest
 
 
@@ -23,14 +24,12 @@ def small_snap():
         (
             hoomd.mpcd.collide.AndersenThermostat,
             {
-                "period": 5,
                 "kT": 1.0,
             },
         ),
         (
             hoomd.mpcd.collide.StochasticRotationDynamics,
             {
-                "period": 5,
                 "angle": 90,
             },
         ),
@@ -41,28 +40,42 @@ class TestCollisionMethod:
 
     def test_create(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
-        cm = cls(**init_args)
+        cm = cls(period=5, **init_args)
         ig = hoomd.mpcd.Integrator(dt=0.02, collision_method=cm)
         sim.operations.integrator = ig
 
-        sim.run(0)
         assert ig.collision_method is cm
+        assert cm.embedded_particles is None
         assert cm.period == 5
+        if "kT" in init_args:
+            assert isinstance(cm.kT, hoomd.variant.Constant)
+            assert cm.kT(0) == init_args["kT"]
 
-        ig.collision_method = None
-        sim.run(0)
-        assert ig.collision_method is None
-
-        ig.collision_method = cm
         sim.run(0)
         assert ig.collision_method is cm
+        assert cm.embedded_particles is None
+        assert cm.period == 5
+        if "kT" in init_args:
+            assert isinstance(cm.kT, hoomd.variant.Constant)
+            assert cm.kT(0) == init_args["kT"]
+
+    def test_pickling(self, small_snap, simulation_factory, cls, init_args):
+        cm = cls(period=1, **init_args)
+        pickling_check(cm)
+
+        sim = simulation_factory(small_snap)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
+                                                          collision_method=cm)
+        sim.run(0)
+        pickling_check(cm)
 
     def test_embed(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
-        cm = cls(**init_args, embedded_particles=hoomd.filter.All())
+        cm = cls(period=1, embedded_particles=hoomd.filter.All(), **init_args)
         sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
                                                           collision_method=cm)
 
+        assert isinstance(cm.embedded_particles, hoomd.filter.All)
         sim.run(0)
         assert isinstance(cm.embedded_particles, hoomd.filter.All)
 
@@ -73,29 +86,39 @@ class TestCollisionMethod:
             kT_required = False
         else:
             kT_required = True
-        cm = cls(**init_args)
+        cm = cls(period=1, **init_args)
         sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
                                                           collision_method=cm)
 
+        assert isinstance(cm.kT, hoomd.variant.Constant)
+        assert cm.kT(0) == 1.0
         sim.run(0)
+        assert isinstance(cm.kT, hoomd.variant.Constant)
 
-        cm.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 10)
+        ramp = hoomd.variant.Ramp(1.0, 2.0, 0, 10)
+        cm.kT = ramp
+        assert cm.kT is ramp
         sim.run(0)
+        assert cm.kT is ramp
 
         if not kT_required:
             cm.kT = None
+            assert cm.kT is None
             sim.run(0)
+            assert cm.kT is None
 
     def test_run(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
-        cm = cls(**init_args)
+        cm = cls(period=1, **init_args)
         sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
                                                           collision_method=cm)
 
+        # test that one step can run without error with only solvent
         sim.run(1)
 
+        # test that one step can run without error with embedded particles
         if "kT" not in init_args:
             init_args["kT"] = 1.0
         sim.operations.integrator.collision_method = cls(
-            **init_args, embedded_particles=hoomd.filter.All())
+            period=1, embedded_particles=hoomd.filter.All(), **init_args)
         sim.run(1)

@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd.conftest import pickling_check
 import numpy as np
 import pytest
 
@@ -41,23 +42,29 @@ def snap():
     ],
     ids=["Bulk", "ParallelPlates", "PlanarPore"],
 )
-def test_create(simulation_factory, snap, cls, init_args):
-    sim = simulation_factory(snap)
-    sm = cls(period=5, **init_args)
-    ig = hoomd.mpcd.Integrator(dt=0.02, streaming_method=sm)
-    sim.operations.integrator = ig
+class TestStreamingMethod:
 
-    sim.run(0)
-    assert ig.streaming_method is sm
-    assert sm.period == 5
+    def test_create(self, simulation_factory, snap, cls, init_args):
+        sim = simulation_factory(snap)
+        sm = cls(period=5, **init_args)
+        ig = hoomd.mpcd.Integrator(dt=0.02, streaming_method=sm)
+        sim.operations.integrator = ig
 
-    ig.streaming_method = None
-    sim.run(0)
-    assert ig.streaming_method is None
+        assert ig.streaming_method is sm
+        assert sm.period == 5
+        sim.run(0)
+        assert ig.streaming_method is sm
+        assert sm.period == 5
 
-    ig.streaming_method = sm
-    sim.run(0)
-    assert ig.streaming_method is sm
+    def test_pickling(self, simulation_factory, snap, cls, init_args):
+        sm = cls(period=5, **init_args)
+        pickling_check(sm)
+
+        sim = simulation_factory(snap)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
+                                                          streaming_method=sm)
+        sim.run(0)
+        pickling_check(sm)
 
 
 class TestBulk:
@@ -150,7 +157,7 @@ class TestParallelPlates:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[-1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
 
-        # take another step, wrapping the second particle through the boundary
+        # take another step, reflecting the second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -188,7 +195,7 @@ class TestParallelPlates:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]])
 
-        # take another step, wrapping the second particle through the boundary
+        # take another step, reflecting the perpendicular motion of second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -201,7 +208,7 @@ class TestParallelPlates:
         """Test step with moving wall.
 
         The first particle is matched exactly to the wall speed, and so it will
-        translate at same velocity along +x for 3 steps. It will bounce back in
+        translate at same velocity along +x for 0.3 tau. It will bounce back in
         y and z to where it started. (vx stays the same, and vy and vz flip.)
 
         The second particle has y and z velocities flip again, and since it
@@ -212,8 +219,8 @@ class TestParallelPlates:
             snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
             snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-2.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.ParallelPlates(period=3, H=4, V=1, no_slip=True)
-        ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
+        sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=4, V=1, no_slip=True)
+        ig = hoomd.mpcd.Integrator(dt=0.3, streaming_method=sm)
         sim.operations.integrator = ig
 
         # run one step and check bounce back of particles
@@ -238,7 +245,7 @@ class TestParallelPlates:
     def test_test_of_bounds(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
         if snap.communicator.rank == 0:
-            snap.mpcd.position[:] = [[4.95, -4.95, 3.85]]
+            snap.mpcd.position[0] = [4.95, -4.95, 3.85]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=3.8)
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
