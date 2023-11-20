@@ -18,7 +18,9 @@ documentation for more information on warning filters.
 
   * Use `hoomd.Snapshot.from_gsd_frame`.
 
-* ``num_cpu_threads > 1`` (since 4.4.0).
+* ``Device.num_cpu_threads > 1`` (since 4.4.0).
 
-  * Use ``num_cpu_threads = 1``.
+  * Set ``num_cpu_threads = 1``.
   * All TBB code will be removed in the 5.0 release.
+
+* ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
