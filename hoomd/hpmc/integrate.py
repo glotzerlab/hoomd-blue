@@ -408,10 +408,9 @@ class HPMCIntegrator(Integrator):
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
         if any([f != 0 for f in self.depletant_fugacity.values()]):
-            warnings.warn(
-                    "depletant_fugacity > 0 is deprecated since 4.4.0.",
-                    FutureWarning,
-                    stacklevel=1)
+            warnings.warn("depletant_fugacity > 0 is deprecated since 4.4.0.",
+                          FutureWarning,
+                          stacklevel=1)
 
             if (isinstance(self._simulation.device, hoomd.device.CPU)
                     and self._simulation.device.num_cpu_threads > 1):
