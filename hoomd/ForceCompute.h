@@ -200,7 +200,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     void updateGPUAdvice();
 
     //! Sort local tags
-    void getSortedLocalTags()
+    void sortLocalTags()
         {
         m_local_tag.resize(m_pdata->getN());
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),

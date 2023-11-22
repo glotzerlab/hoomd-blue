@@ -351,7 +351,7 @@ pybind11::object ForceCompute::getEnergiesPython()
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-    getSortedLocalTags();
+    sortLocalTags();
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         local_energy.push_back(h_force.data[h_rtag.data[m_local_tag[i]]].w);
@@ -399,23 +399,21 @@ pybind11::object ForceCompute::getForcesPython()
 
     // sort forces by particle tag
     std::vector<vec3<double>> local_force(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
+    sortLocalTags();
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        local_force[i].x = h_force.data[h_rtag.data[local_tag[i]]].x;
-        local_force[i].y = h_force.data[h_rtag.data[local_tag[i]]].y;
-        local_force[i].z = h_force.data[h_rtag.data[local_tag[i]]].z;
+        local_force[i].x = h_force.data[h_rtag.data[m_local_tag[i]]].x;
+        local_force[i].y = h_force.data[h_rtag.data[m_local_tag[i]]].y;
+        local_force[i].z = h_force.data[h_rtag.data[m_local_tag[i]]].z;
         }
 
     if (m_sysdef->isDomainDecomposed())
         {
 #ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
+        m_gather_tag_order.setLocalTagsSorted(m_local_tag);
         m_gather_tag_order.gatherArray(global_force, local_force);
 #endif
         }
@@ -457,23 +455,21 @@ pybind11::object ForceCompute::getTorquesPython()
 
     // sort torques by particle tag
     std::vector<vec3<double>> local_torque(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
+    sortLocalTags();
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        local_torque[i].x = h_torque.data[h_rtag.data[local_tag[i]]].x;
-        local_torque[i].y = h_torque.data[h_rtag.data[local_tag[i]]].y;
-        local_torque[i].z = h_torque.data[h_rtag.data[local_tag[i]]].z;
+        local_torque[i].x = h_torque.data[h_rtag.data[m_local_tag[i]]].x;
+        local_torque[i].y = h_torque.data[h_rtag.data[m_local_tag[i]]].y;
+        local_torque[i].z = h_torque.data[h_rtag.data[m_local_tag[i]]].z;
         }
 
     if (m_sysdef->isDomainDecomposed())
         {
 #ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
+        m_gather_tag_order.setLocalTagsSorted(m_local_tag);
         m_gather_tag_order.gatherArray(global_torque, local_torque);
 #endif
         }
@@ -520,26 +516,24 @@ pybind11::object ForceCompute::getVirialsPython()
 
     // sort virials by particle tag
     std::vector<hoomd::detail::vec6<double>> local_virial(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
+    sortLocalTags();
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        local_virial[i].xx = h_virial.data[m_virial_pitch * 0 + h_rtag.data[local_tag[i]]];
-        local_virial[i].xy = h_virial.data[m_virial_pitch * 1 + h_rtag.data[local_tag[i]]];
-        local_virial[i].xz = h_virial.data[m_virial_pitch * 2 + h_rtag.data[local_tag[i]]];
-        local_virial[i].yy = h_virial.data[m_virial_pitch * 3 + h_rtag.data[local_tag[i]]];
-        local_virial[i].yz = h_virial.data[m_virial_pitch * 4 + h_rtag.data[local_tag[i]]];
-        local_virial[i].zz = h_virial.data[m_virial_pitch * 5 + h_rtag.data[local_tag[i]]];
+        local_virial[i].xx = h_virial.data[m_virial_pitch * 0 + h_rtag.data[m_local_tag[i]]];
+        local_virial[i].xy = h_virial.data[m_virial_pitch * 1 + h_rtag.data[m_local_tag[i]]];
+        local_virial[i].xz = h_virial.data[m_virial_pitch * 2 + h_rtag.data[m_local_tag[i]]];
+        local_virial[i].yy = h_virial.data[m_virial_pitch * 3 + h_rtag.data[m_local_tag[i]]];
+        local_virial[i].yz = h_virial.data[m_virial_pitch * 4 + h_rtag.data[m_local_tag[i]]];
+        local_virial[i].zz = h_virial.data[m_virial_pitch * 5 + h_rtag.data[m_local_tag[i]]];
         }
 
     if (m_sysdef->isDomainDecomposed())
         {
 #ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
+        m_gather_tag_order.setLocalTagsSorted(m_local_tag);
         m_gather_tag_order.gatherArray(global_virial, local_virial);
 #endif
         }
