@@ -348,21 +348,19 @@ pybind11::object ForceCompute::getEnergiesPython()
     // sort energies by particle tag
     std::vector<double> local_energy;
     local_energy.reserve(m_pdata->getN());
-    std::vector<uint32_t> local_tag(m_pdata->getN());
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-    std::copy(h_tag.data, h_tag.data + m_pdata->getN(), local_tag.begin());
-    std::sort(local_tag.begin(), local_tag.end());
+    getSortedLocalTags();
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        local_energy.push_back(h_force.data[h_rtag.data[local_tag[i]]].w);
+        local_energy.push_back(h_force.data[h_rtag.data[m_local_tag[i]]].w);
         }
 
     if (m_sysdef->isDomainDecomposed())
         {
 #ifdef ENABLE_MPI
-        m_gather_tag_order.setLocalTagsSorted(local_tag);
+        m_gather_tag_order.setLocalTagsSorted(m_local_tag);
         m_gather_tag_order.gatherArray(global_energy, local_energy);
 #endif
         }

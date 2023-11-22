@@ -199,6 +199,20 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Update GPU memory hints
     void updateGPUAdvice();
 
+    //! Sort local tags
+    void getSortedLocalTags()
+        {
+        m_local_tag.resize(m_pdata->getN());
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
+                                        access_location::host,
+                                        access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                         access_location::host,
+                                         access_mode::read);
+        std::copy(h_tag.data, h_tag.data + m_pdata->getN(), m_local_tag.begin());
+        std::sort(m_local_tag.begin(), m_local_tag.end());
+        }
+
     Scalar m_deltaT; //!< timestep size (required for some types of non-conservative forces)
 
     GlobalArray<Scalar4> m_force; //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the
@@ -227,6 +241,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     /// Helper class to gather particle forces, energies, and virials
     GatherTagOrder m_gather_tag_order;
 #endif
+
+    // Store local tags for gathering particle forces, energies, torques, and virials
+    std::vector<uint32_t> m_local_tag;
 
     //! Actually perform the computation of the forces
     /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
