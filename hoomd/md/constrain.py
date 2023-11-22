@@ -22,8 +22,10 @@ Warning:
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyIf, to_type_converter, OnlyTypes
 from hoomd.md.force import Force
+from hoomd.filter import ParticleFilter
+from hoomd.md.manifold import Manifold
 import hoomd
 
 
@@ -323,3 +325,50 @@ class Rigid(Constraint):
         # positions and orientations are accurate before integration.
         self._cpp_obj.validateRigidBodies()
         self._cpp_obj.updateCompositeParticles(0)
+
+class WallWithFriction(Constraint):
+    r"""Constrain particles on one side of a wall.
+
+    .. rubric:: Overview
+
+    """
+
+    def __init__(self,filter,manifold_constraint):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter,
+            manifold_constraint=OnlyTypes(Manifold, allow_none=False))
+        param_dict["filter"] = filter
+        param_dict["manifold_constraint"] = manifold_constraint
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(k=float, 
+                              mu_s=float,
+                              mu_k=float,
+                              len_keys=1))
+        self._add_typeparam(params)
+
+    def _setattr_param(self, attr, value):
+        if attr == "manifold_constraint":
+            raise AttributeError(
+                "Cannot set manifold_constraint after construction.")
+        super()._setattr_param(attr, value)
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if not self.manifold_constraint._attached:
+            self.manifold_constraint._attach(sim)
+
+        base_class_str = 'WallForceConstraintCompute'
+        base_class_str += self.manifold_constraint.__class__.__name__
+        #if isinstance(sim.device, hoomd.device.GPU):
+        #    base_class_str += "GPU"
+        self._cpp_obj = getattr(
+            _md, base_class_str)(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter),
+                                 self.manifold_constraint._cpp_obj)
