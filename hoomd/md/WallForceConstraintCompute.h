@@ -32,10 +32,10 @@ struct wall_constraint_params
     Scalar muk;
 
 #ifndef __HIPCC__
-    wall_constraints_params() : k(0), mus(0), muk(0) { }
+    wall_constraint_params() : k(0), mus(0), muk(0) { }
 
     wall_constraint_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), mus(params["mu_s"].cast<Scalar>(), muk(params["mu_k"].cast<Scalar>()))
+        : k(params["k"].cast<Scalar>()), mus(params["mu_s"].cast<Scalar>()), muk(params["mu_k"].cast<Scalar>())
         {
         }
 
@@ -64,7 +64,6 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     public:
     //! Constructs the compute
     WallForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<ParticleGroup> group,
                                  Manifold manifold);
     //
     //! Destructor
@@ -88,10 +87,10 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     //! Compute friction forces
     virtual void computeFrictionForces();
 
+    Manifold m_manifold; //!< Constraining Manifold
     Scalar* m_k;   //!< k harmonic spring constant
     Scalar* m_mus; //!< mus stick friction coefficient
     Scalar* m_muk; //!< mus kinetic friction coefficient
-    Manifold m_manifold; //!< Constraining Manifold
     };
 
 /*! \param sysdef The system definition
@@ -103,7 +102,7 @@ WallForceConstraintCompute<Manifold>::WallForceConstraintCompute(
     Manifold manifold)
     : ForceConstraint(sysdef), m_manifold(manifold), m_k(NULL), m_mus(NULL), m_muk(NULL)
     {
-    m_exec_conf->msg->notice(5) << "Constructing WallForceConstraintCompute" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing WallForceConstraintCompute" << std::endl;
     m_k = new Scalar[m_pdata->getNTypes()];
     m_mus = new Scalar[m_pdata->getNTypes()];
     m_muk = new Scalar[m_pdata->getNTypes()];
@@ -128,12 +127,13 @@ template<class Manifold> WallForceConstraintCompute<Manifold>::~WallForceConstra
 
     Sets parameters for the potential of a particular particle type
 */
-void WallForceConstraintCompute::setParams(unsigned int type, Scalar k, Scalar mus, Scalar muk)
+template<class Manifold>
+void WallForceConstraintCompute<Manifold>::setParams(unsigned int type, Scalar k, Scalar mus, Scalar muk)
     {
     // make sure the type is valid
     if (type >= m_pdata->getNTypes())
         {
-        throw runtime_error("Invalid particle type.");
+        throw std::runtime_error("Invalid particle type.");
         }
 
     m_k[type] = k;
@@ -142,26 +142,28 @@ void WallForceConstraintCompute::setParams(unsigned int type, Scalar k, Scalar m
 
     // check for some silly errors a user could make
     if (k <= 0)
-        m_exec_conf->msg->warning() << "constrain.wall: specified k <= 0" << endl;
+        m_exec_conf->msg->warning() << "constrain.wall: specified k <= 0" << std::endl;
     if (mus <= 0)
-        m_exec_conf->msg->warning() << "constrain.wall: specified mu_s <= 0" << endl;
+        m_exec_conf->msg->warning() << "constrain.wall: specified mu_s <= 0" << std::endl;
     if (muk <= 0)
-        m_exec_conf->msg->warning() << "constrain.wall: specified mu_k <= 0" << endl;
+        m_exec_conf->msg->warning() << "constrain.wall: specified mu_k <= 0" << std::endl;
     }
 
-void WallForceConstraintCompute::setParamsPython(std::string type, pybind11::dict params)
+template<class Manifold>
+void WallForceConstraintCompute<Manifold>::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_pdata->getTypeByName(type);
-    auto _params = wall_constraints_params(params);
+    auto _params = wall_constraint_params(params);
     setParams(typ, _params.k, _params.mus, _params.muk);
     }
 
-pybind11::dict WallForceConstraintCompute::getParams(std::string type)
+template<class Manifold>
+pybind11::dict WallForceConstraintCompute<Manifold>::getParams(std::string type)
     {
     auto typ = m_pdata->getTypeByName(type);
     if (typ >= m_pdata->getNTypes())
         {
-        throw runtime_error("Invalid particle type.");
+        throw std::runtime_error("Invalid particle type.");
         }
     pybind11::dict params;
     params["k"] = m_k[typ];
@@ -194,7 +196,7 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
-    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce()(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     // sanity check

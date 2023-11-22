@@ -41,6 +41,13 @@ void export_ForceComposite(pybind11::module& m);
 void export_PPPMForceCompute(pybind11::module& m);
 void export_wall_data(pybind11::module& m);
 void export_wall_field(pybind11::module& m);
+void export_WallForceConstraintComputeCylinder(pybind11::module& m);
+void export_WallForceConstraintComputeDiamond(pybind11::module& m);
+void export_WallForceConstraintComputeEllipsoid(pybind11::module& m);
+void export_WallForceConstraintComputeGyroid(pybind11::module& m);
+void export_WallForceConstraintComputePlane(pybind11::module& m);
+void export_WallForceConstraintComputePrimitive(pybind11::module& m);
+void export_WallForceConstraintComputeSphere(pybind11::module& m);
 void export_LocalNeighborListDataHost(pybind11::module& m);
 
 void export_PotentialPairBuckingham(pybind11::module& m);
@@ -308,6 +315,13 @@ PYBIND11_MODULE(_md, m)
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
+    export_WallForceConstraintComputeCylinder(m);
+    export_WallForceConstraintComputeDiamond(m);
+    export_WallForceConstraintComputeEllipsoid(m);
+    export_WallForceConstraintComputeGyroid(m);
+    export_WallForceConstraintComputePlane(m);
+    export_WallForceConstraintComputePrimitive(m);
+    export_WallForceConstraintComputeSphere(m);
 
     export_PotentialPairBuckingham(m);
     export_PotentialPairLJ(m);

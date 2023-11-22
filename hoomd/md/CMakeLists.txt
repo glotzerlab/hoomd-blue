@@ -197,6 +197,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
                 WallData.h
+		WallForceConstraintCompute.h
                 ZeroMomentumUpdater.h
                 )
 
@@ -317,6 +318,11 @@ foreach(_manifold ${_manifolds})
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
+
+    configure_file(export_WallForceConstraintCompute.cc.inc
+                   export_WallForceConstraintCompute${_manifold}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_WallForceConstraintCompute${_manifold}.cc)
 
     foreach (_method ${_rattle_methods})
         configure_file(export_TwoStepRATTLE.cc.inc
