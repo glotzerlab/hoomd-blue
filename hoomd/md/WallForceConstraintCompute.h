@@ -3,6 +3,7 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceConstraint.h"
+#include "hoomd/ParticleGroup.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/Autotuner.h"
@@ -64,6 +65,7 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     public:
     //! Constructs the compute
     WallForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<ParticleGroup> group,
                                  Manifold manifold);
     //
     //! Destructor
@@ -77,6 +79,11 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
+    std::shared_ptr<ParticleGroup>& getGroup()
+        {
+        return m_group;
+        }
+
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -87,6 +94,7 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     //! Compute friction forces
     virtual void computeFrictionForces();
 
+    std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
     Manifold m_manifold; //!< Constraining Manifold
     Scalar* m_k;   //!< k harmonic spring constant
     Scalar* m_mus; //!< mus stick friction coefficient
@@ -99,8 +107,9 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
 template<class Manifold>
 WallForceConstraintCompute<Manifold>::WallForceConstraintCompute(
     std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group,
     Manifold manifold)
-    : ForceConstraint(sysdef), m_manifold(manifold), m_k(NULL), m_mus(NULL), m_muk(NULL)
+    : ForceConstraint(sysdef), m_group(group), m_manifold(manifold), m_k(NULL), m_mus(NULL), m_muk(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing WallForceConstraintCompute" << std::endl;
     m_k = new Scalar[m_pdata->getNTypes()];
@@ -211,20 +220,20 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
     assert(h_virial.data);
 
     // for each particle
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
-        // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+        unsigned int idx = m_group->getMemberIndex(i);
+        unsigned int typei = __scalar_as_int(h_pos.data[idx].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-
+        // access the particle's position and type (MEM TRANSFER: 4 scalars)
+        Scalar3 pi = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
         if(m_manifold.implicitFunction(pi) > 0 )
 		continue;
 
 	vec3<Scalar> norm = -normalize(vec3<Scalar>(m_manifold.derivative(pi))); 
-	vec3<Scalar> net_force(h_net_force.data[i].x,h_net_force.data[i].y,h_net_force.data[i].z);
+	vec3<Scalar> net_force(h_net_force.data[idx].x,h_net_force.data[idx].y,h_net_force.data[idx].z);
 	Scalar normal_magnitude = dot(norm,net_force);
 
 	if(normal_magnitude < 0)
@@ -236,16 +245,16 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	if( perp_magnitude > m_mus[typei]*normal_magnitude)
 		perp_force *= (normal_magnitude*m_muk[typei]/perp_magnitude);
 
-        h_force.data[i].x = perp_force.x;
-        h_force.data[i].y = perp_force.y;
-        h_force.data[i].z = perp_force.z;
+        h_force.data[idx].x = perp_force.x;
+        h_force.data[idx].y = perp_force.y;
+        h_force.data[idx].z = perp_force.z;
 
-        h_virial.data[0 * m_virial_pitch + i] = perp_force.x * pi.x;
-        h_virial.data[1 * m_virial_pitch + i] = perp_force.x * pi.y;
-        h_virial.data[2 * m_virial_pitch + i] = perp_force.x * pi.z;
-        h_virial.data[3 * m_virial_pitch + i] = perp_force.y * pi.y;
-        h_virial.data[4 * m_virial_pitch + i] = perp_force.y * pi.z;
-        h_virial.data[5 * m_virial_pitch + i] = perp_force.z * pi.z;
+        h_virial.data[0 * m_virial_pitch + idx] = perp_force.x * pi.x;
+        h_virial.data[1 * m_virial_pitch + idx] = perp_force.x * pi.y;
+        h_virial.data[2 * m_virial_pitch + idx] = perp_force.x * pi.z;
+        h_virial.data[3 * m_virial_pitch + idx] = perp_force.y * pi.y;
+        h_virial.data[4 * m_virial_pitch + idx] = perp_force.y * pi.z;
+        h_virial.data[5 * m_virial_pitch + idx] = perp_force.z * pi.z;
 
 	}
 
@@ -263,14 +272,15 @@ void WallForceConstraintCompute<Manifold>::computeConstraintForces()
     assert(h_pos.data != NULL);
 
     // for each particle
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
-        // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+        unsigned int idx = m_group->getMemberIndex(i);
+        unsigned int typei = __scalar_as_int(h_pos.data[idx].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
+        // access the particle's position and type (MEM TRANSFER: 4 scalars)
+        Scalar3 pi = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 	Scalar distance = -m_manifold.implicitFunction(pi) ;
 
         if(distance >= 0)
@@ -280,16 +290,16 @@ void WallForceConstraintCompute<Manifold>::computeConstraintForces()
 
 	norm *= (m_k[typei]*distance);
 
-        h_force.data[i].x += norm.x;
-        h_force.data[i].y += norm.y;
-        h_force.data[i].z += norm.z;
+        h_force.data[idx].x += norm.x;
+        h_force.data[idx].y += norm.y;
+        h_force.data[idx].z += norm.z;
 
-        h_virial.data[0 * m_virial_pitch + i] += norm.x * pi.x;
-        h_virial.data[1 * m_virial_pitch + i] += norm.x * pi.y;
-        h_virial.data[2 * m_virial_pitch + i] += norm.x * pi.z;
-        h_virial.data[3 * m_virial_pitch + i] += norm.y * pi.y;
-        h_virial.data[4 * m_virial_pitch + i] += norm.y * pi.z;
-        h_virial.data[5 * m_virial_pitch + i] += norm.z * pi.z;
+        h_virial.data[0 * m_virial_pitch + idx] += norm.x * pi.x;
+        h_virial.data[1 * m_virial_pitch + idx] += norm.x * pi.y;
+        h_virial.data[2 * m_virial_pitch + idx] += norm.x * pi.z;
+        h_virial.data[3 * m_virial_pitch + idx] += norm.y * pi.y;
+        h_virial.data[4 * m_virial_pitch + idx] += norm.y * pi.z;
+        h_virial.data[5 * m_virial_pitch + idx] += norm.z * pi.z;
 	}
     }
 
@@ -302,6 +312,7 @@ void export_WallForceConstraintCompute(pybind11::module& m, const std::string& n
                      ForceConstraint,
                      std::shared_ptr<WallForceConstraintCompute<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
                             Manifold>());
     }
 
