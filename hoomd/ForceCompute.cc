@@ -368,7 +368,7 @@ pybind11::object ForceCompute::getEnergiesPython()
         }
     else
         {
-        global_energy = local_energy;
+        global_energy = std::move(local_energy);
         }
 
     if (root)
@@ -423,7 +423,7 @@ pybind11::object ForceCompute::getForcesPython()
         }
     else
         {
-        global_force = local_force;
+        global_force = std::move(local_force);
         }
 
     if (root)
@@ -481,7 +481,7 @@ pybind11::object ForceCompute::getTorquesPython()
         }
     else
         {
-        global_torque = local_torque;
+        global_torque = std::move(local_torque);
         }
 
     if (root)
@@ -547,7 +547,7 @@ pybind11::object ForceCompute::getVirialsPython()
         }
     else
         {
-        global_virial = local_virial;
+        global_virial = std::move(local_virial);
         }
 
     if (root)
