@@ -339,8 +339,7 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     .. deprecated:: 4.4.0
 
-        Use of ``num_cpu_threads >= 1`` is deprecated. Use
-        ``num_cpu_threads = 1``.
+        ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
 
     See Also:
         :doc:`howto/cpppotential`.
@@ -535,7 +534,7 @@ class CPPPotentialUnion(CPPPotentialBase):
                 "num_cpu_threads > 1 is deprecated since 4.4.0. "
                 "Use num_cpu_threads=1.",
                 FutureWarning,
-                stacklevel=2)
+                stacklevel=1)
 
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
