@@ -366,8 +366,8 @@ class WallWithFriction(Constraint):
 
         base_class_str = 'WallForceConstraintCompute'
         base_class_str += self.manifold_constraint.__class__.__name__
-        #if isinstance(sim.device, hoomd.device.GPU):
-        #    base_class_str += "GPU"
+        if isinstance(sim.device, hoomd.device.GPU):
+            base_class_str += "GPU"
         self._cpp_obj = getattr(
             _md, base_class_str)(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),

@@ -198,6 +198,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVTAlchemy.h
                 WallData.h
 		WallForceConstraintCompute.h
+                WallForceConstraintComputeGPU.h
+                WallForceConstraintComputeGPU.cuh
                 ZeroMomentumUpdater.h
                 )
 
@@ -323,6 +325,18 @@ foreach(_manifold ${_manifolds})
                    export_WallForceConstraintCompute${_manifold}.cc
                    @ONLY)
     set(_md_sources ${_md_sources} export_WallForceConstraintCompute${_manifold}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_WallForceConstraintComputeGPU.cc.inc
+                       export_WallForceConstraintCompute${_manifold}GPU.cc
+                       @ONLY)
+        configure_file(WallForceConstraintComputeGPU.cu.inc
+                       WallForceConstraintCompute${_manifold}GPU.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_WallForceConstraintCompute${_manifold}GPU.cc)
+        set(_cuda_sources ${_cuda_sources} WallForceConstraintCompute${_manifold}GPU.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
 
     foreach (_method ${_rattle_methods})
         configure_file(export_TwoStepRATTLE.cc.inc

@@ -41,9 +41,6 @@ class PYBIND11_EXPORT WallForceConstraintComputeGPU
     std::shared_ptr<Autotuner<1>> m_tuner_friction;  //!< Autotuner for block size (diff kernel)
     std::shared_ptr<Autotuner<1>> m_tuner_constraint; //!< Autotuner for block size (constr kernel)
 
-    //! Set forces for particles
-    virtual void setForces();
-
     //! Compute constraint forces
     virtual void computeConstraintForces();
 
@@ -115,11 +112,10 @@ template<class Manifold> void WallForceConstraintComputeGPU<Manifold>::computeFr
     assert(d_net_force.data != NULL);
     assert(d_index_array.data != NULL);
     unsigned int group_size = this->m_group->getNumMembers();
-    unsigned int N = this->m_pdata->getN();
 
     // compute the forces on the GPU
     this->m_tuner_friction->begin();
-    kernel::gpu_compute_wall_friction(group_size,
+    kernel::gpu_compute_wall_friction<Manifold>(group_size,
 				      d_index_array.data,
 				      d_force.data,
 				      d_virial.data,
@@ -158,11 +154,10 @@ template<class Manifold> void WallForceConstraintComputeGPU<Manifold>::computeCo
     assert(d_pos.data != NULL);
     assert(d_index_array.data != NULL);
     unsigned int group_size = this->m_group->getNumMembers();
-    unsigned int N = this->m_pdata->getN();
 
     // compute the forces on the GPU
     this->m_tuner_constraint->begin();
-    kernel::gpu_compute_wall_constraint(group_size,
+    kernel::gpu_compute_wall_constraint<Manifold>(group_size,
 				      d_index_array.data,
 				      d_force.data,
 				      d_virial.data,
