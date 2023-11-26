@@ -10,9 +10,6 @@
 
 using namespace std;
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file PeriodicImproperForceCompute.cc
     \brief Contains code for the PeriodicImproperForceCompute class
 */
@@ -25,17 +22,24 @@ namespace md
     \post Memory is allocated, and forces are zeroed.
 */
 PeriodicImproperForceCompute::PeriodicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef), m_K(NULL), m_chi(NULL)
+    : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL), m_chi_0(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing PeriodicImproperForceCompute" << endl;
 
-    // access the improper data for later use
-    m_improper_data = m_sysdef->getImproperData();
+    // access the dihedral data for later use
+    m_dihedral_data = m_sysdef->getDihedralData();
+
+    // check for some silly errors a user could make
+    if (m_dihedral_data->getNTypes() == 0)
+        {
+        throw runtime_error("No dihedral types in the system.");
+        }
 
     // allocate the parameters
-    m_K = new Scalar[m_improper_data->getNTypes()];
-    m_phi = new Scalar[m_improper_data->getNTypes()];
-
+    m_K = new Scalar[m_dihedral_data->getNTypes()];
+    m_sign = new Scalar[m_dihedral_data->getNTypes()];
+    m_multi = new int[m_dihedral_data->getNTypes()];
+    m_chi_0 = new Scalar[m_dihedral_data->getNTypes()];
     }
 
 PeriodicImproperForceCompute::~PeriodicImproperForceCompute()
@@ -43,44 +47,66 @@ PeriodicImproperForceCompute::~PeriodicImproperForceCompute()
     m_exec_conf->msg->notice(5) << "Destroying PeriodicImproperForceCompute" << endl;
 
     delete[] m_K;
-    delete[] m_chi;
+    delete[] m_sign;
+    delete[] m_multi;
+    delete[] m_chi_0;
     m_K = NULL;
-    m_chi = NULL;
+    m_sign = NULL;
+    m_multi = NULL;
+    m_chi_0 = NULL;
     }
 
-/*! \param type Type of the improper to set parameters for
-    \param K Stiffness parameter for the force computation.
-    \param chi Equilibrium value of the dihedral angle.
+/*! \param type Type of the dihedral to set parameters for
+    \param K Stiffness parameter for the force computation
+    \param sign the sign of the cosign term
+    \param multiplicity of the dihedral itself
 
-    Sets parameters for the potential of a particular improper type
+    Sets parameters for the potential of a particular dihedral type
 */
-void PeriodicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar chi)
+void PeriodicImproperForceCompute::setParams(unsigned int type,
+                                             Scalar K,
+                                             Scalar sign,
+                                             int multiplicity,
+                                             Scalar chi_0)
     {
     // make sure the type is valid
-    if (type >= m_improper_data->getNTypes())
+    if (type >= m_dihedral_data->getNTypes())
         {
-        throw runtime_error("Invalid improper type.");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     m_K[type] = K;
-    m_chi[type] = chi;
+    m_sign[type] = sign;
+    m_multi[type] = multiplicity;
+    m_chi_0[type] = chi_0;
+
+    // check for some silly errors a user could make
+    if (K <= 0)
+        m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
+    if (sign != 1 && sign != -1)
+        m_exec_conf->msg->warning()
+            << "dihedral.harmonic: a non unitary sign was specified" << endl;
+    if (chi_0 < 0 || chi_0 >= 2 * M_PI)
+        m_exec_conf->msg->warning()
+            << "dihedral.harmonic: specified chi_0 outside [0, 2pi)" << endl;
     }
 
 void PeriodicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     // make sure the type is valid
-    auto typ = m_improper_data->getTypeByName(type);
-    Scalar k = params["k"].cast<Scalar>();
-    Scalar chi_0 = params["chi0"].cast<Scalar>();
-    setParams(typ, k, chi_0);
+    auto typ = m_dihedral_data->getTypeByName(type);
+    dihedral_harmonic_params _params(params);
+    setParams(typ, _params.k, _params.d, _params.n, _params.chi_0);
     }
 
 pybind11::dict PeriodicImproperForceCompute::getParams(std::string type)
     {
-    auto typ = m_improper_data->getTypeByName(type);
+    auto typ = m_dihedral_data->getTypeByName(type);
     pybind11::dict params;
     params["k"] = m_K[typ];
-    params["chi0"] = m_chi[typ];
+    params["d"] = m_sign[typ];
+    params["n"] = m_multi[typ];
+    params["chi0"] = m_chi_0[typ];
     return params;
     }
 
@@ -96,7 +122,10 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    size_t virial_pitch = m_virial.getPitch();
+
+    // Zero data for force calculation.
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -104,39 +133,37 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    // Zero data for force calculation.
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    size_t virial_pitch = m_virial.getPitch();
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
-    // for each of the impropers
-    const unsigned int size = (unsigned int)m_improper_data->getN();
+    // for each of the dihedrals
+    const unsigned int size = (unsigned int)m_dihedral_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the improper
-        const ImproperData::members_t& improper = m_improper_data->getMembersByIndex(i);
-        assert(improper.tag[0] <= m_pdata->getMaximumTag());
-        assert(improper.tag[1] <= m_pdata->getMaximumTag());
-        assert(improper.tag[2] <= m_pdata->getMaximumTag());
-        assert(improper.tag[3] <= m_pdata->getMaximumTag());
+        // lookup the tag of each of the particles participating in the dihedral
+        const ImproperData::members_t& dihedral = m_dihedral_data->getMembersByIndex(i);
+        assert(dihedral.tag[0] <= m_pdata->getMaximumTag());
+        assert(dihedral.tag[1] <= m_pdata->getMaximumTag());
+        assert(dihedral.tag[2] <= m_pdata->getMaximumTag());
+        assert(dihedral.tag[3] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[improper.tag[0]];
-        unsigned int idx_b = h_rtag.data[improper.tag[1]];
-        unsigned int idx_c = h_rtag.data[improper.tag[2]];
-        unsigned int idx_d = h_rtag.data[improper.tag[3]];
+        unsigned int idx_a = h_rtag.data[dihedral.tag[0]];
+        unsigned int idx_b = h_rtag.data[dihedral.tag[1]];
+        unsigned int idx_c = h_rtag.data[dihedral.tag[2]];
+        unsigned int idx_d = h_rtag.data[dihedral.tag[3]];
 
         // throw an error if this angle is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
             {
             this->m_exec_conf->msg->error()
-                << "improper.harmonic: improper " << improper.tag[0] << " " << improper.tag[1]
-                << " " << improper.tag[2] << " " << improper.tag[3] << " incomplete." << endl
+                << "dihedral.harmonic: dihedral " << dihedral.tag[0] << " " << dihedral.tag[1]
+                << " " << dihedral.tag[2] << " " << dihedral.tag[3] << " incomplete." << endl
                 << endl;
-            throw std::runtime_error("Error in improper calculation");
+            throw std::runtime_error("Error in dihedral calculation");
             }
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
@@ -165,132 +192,166 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         dcb = box.minImage(dcb);
         ddc = box.minImage(ddc);
 
-        Scalar ss1 = 1.0 / (dab.x * dab.x + dab.y * dab.y + dab.z * dab.z);
-        Scalar ss2 = 1.0 / (dcb.x * dcb.x + dcb.y * dcb.y + dcb.z * dcb.z);
-        Scalar ss3 = 1.0 / (ddc.x * ddc.x + ddc.y * ddc.y + ddc.z * ddc.z);
+        Scalar3 dcbm;
+        dcbm.x = -dcb.x;
+        dcbm.y = -dcb.y;
+        dcbm.z = -dcb.z;
 
-        Scalar r1 = sqrt(ss1);
-        Scalar r2 = sqrt(ss2);
-        Scalar r3 = sqrt(ss3);
+        dcbm = box.minImage(dcbm);
 
-        // Cosine and Sin of the angle between the planes
-        Scalar c0 = (dab.x * ddc.x + dab.y * ddc.y + dab.z * ddc.z) * r1 * r3;
-        Scalar c1 = (dab.x * dcb.x + dab.y * dcb.y + dab.z * dcb.z) * r1 * r2;
-        Scalar c2 = -(ddc.x * dcb.x + ddc.y * dcb.y + ddc.z * dcb.z) * r3 * r2;
+        Scalar aax = dab.y * dcbm.z - dab.z * dcbm.y;
+        Scalar aay = dab.z * dcbm.x - dab.x * dcbm.z;
+        Scalar aaz = dab.x * dcbm.y - dab.y * dcbm.x;
 
-        Scalar s1 = 1.0 - c1 * c1;
-        if (s1 < SMALL)
-            s1 = SMALL;
-        s1 = 1.0 / s1;
+        Scalar bbx = ddc.y * dcbm.z - ddc.z * dcbm.y;
+        Scalar bby = ddc.z * dcbm.x - ddc.x * dcbm.z;
+        Scalar bbz = ddc.x * dcbm.y - ddc.y * dcbm.x;
 
-        Scalar s2 = 1.0 - c2 * c2;
-        if (s2 < SMALL)
-            s2 = SMALL;
-        s2 = 1.0 / s2;
+        Scalar raasq = aax * aax + aay * aay + aaz * aaz;
+        Scalar rbbsq = bbx * bbx + bby * bby + bbz * bbz;
+        Scalar rgsq = dcbm.x * dcbm.x + dcbm.y * dcbm.y + dcbm.z * dcbm.z;
+        Scalar rg = sqrt(rgsq);
 
-        Scalar s12 = sqrt(s1 * s2);
-        Scalar c = (c1 * c2 + c0) * s12;
+        Scalar rginv, raa2inv, rbb2inv;
+        rginv = raa2inv = rbb2inv = Scalar(0.0);
+        if (rg > Scalar(0.0))
+            rginv = Scalar(1.0) / rg;
+        if (raasq > Scalar(0.0))
+            raa2inv = Scalar(1.0) / raasq;
+        if (rbbsq > Scalar(0.0))
+            rbb2inv = Scalar(1.0) / rbbsq;
+        Scalar rabinv = sqrt(raa2inv * rbb2inv);
 
-        if (c > 1.0)
-            c = 1.0;
-        if (c < -1.0)
-            c = -1.0;
+        Scalar c_abcd = (aax * bbx + aay * bby + aaz * bbz) * rabinv;
+        Scalar s_abcd = rg * rabinv * (aax * ddc.x + aay * ddc.y + aaz * ddc.z);
 
-        Scalar s = sqrt(1.0 - c * c);
-        if (s < SMALL)
-            s = SMALL;
+        if (c_abcd > 1.0)
+            c_abcd = 1.0;
+        if (c_abcd < -1.0)
+            c_abcd = -1.0;
 
-        unsigned int improper_type = m_improper_data->getTypeByIndex(i);
-        Scalar domega = acos(c) - m_chi[improper_type];
-        Scalar a = m_K[improper_type] * domega;
+        unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
+        int multi = m_multi[dihedral_type];
+        Scalar p = Scalar(1.0);
+        Scalar dfab = Scalar(0.0);
+        Scalar ddfab = Scalar(0.0);
 
-        // calculate the energy, 1/4th for each atom
-        // Scalar improper_eng = Scalar(0.25)*a*domega;
-        Scalar improper_eng = Scalar(0.125) * a * domega; // the .125 term is 1/2 * 1/4
-        // a = -a * 2.0/s;
-        a = -a / s; // the missing 2.0 factor is to ensure K/2 is factored in for the forces
-        c = c * a;
-
-        s12 = s12 * a;
-        Scalar a11 = c * ss1 * s1;
-        Scalar a22 = -ss2 * (2.0 * c0 * s12 - c * (s1 + s2));
-        Scalar a33 = c * ss3 * s2;
-
-        Scalar a12 = -r1 * r2 * (c1 * c * s1 + c2 * s12);
-        Scalar a13 = -r1 * r3 * s12;
-        Scalar a23 = r2 * r3 * (c2 * c * s2 + c1 * s12);
-
-        Scalar sx2 = a22 * dcb.x + a23 * ddc.x + a12 * dab.x;
-        Scalar sy2 = a22 * dcb.y + a23 * ddc.y + a12 * dab.y;
-        Scalar sz2 = a22 * dcb.z + a23 * ddc.z + a12 * dab.z;
-
-        // calculate the forces for each particle
-        Scalar ffax = a12 * dcb.x + a13 * ddc.x + a11 * dab.x;
-        Scalar ffay = a12 * dcb.y + a13 * ddc.y + a11 * dab.y;
-        Scalar ffaz = a12 * dcb.z + a13 * ddc.z + a11 * dab.z;
-
-        Scalar ffbx = -sx2 - ffax;
-        Scalar ffby = -sy2 - ffay;
-        Scalar ffbz = -sz2 - ffaz;
-
-        Scalar ffdx = a23 * dcb.x + a33 * ddc.x + a13 * dab.x;
-        Scalar ffdy = a23 * dcb.y + a33 * ddc.y + a13 * dab.y;
-        Scalar ffdz = a23 * dcb.z + a33 * ddc.z + a13 * dab.z;
-
-        Scalar ffcx = sx2 - ffdx;
-        Scalar ffcy = sy2 - ffdy;
-        Scalar ffcz = sz2 - ffdz;
-
-        // and calculate the virial (upper triangular version)
-        // compute 1/4 of the virial, 1/4 for each atom in the improper
-        Scalar improper_virial[6];
-        improper_virial[0] = (1. / 4.) * (dab.x * ffax + dcb.x * ffcx + (ddc.x + dcb.x) * ffdx);
-        improper_virial[1] = (1. / 4.) * (dab.y * ffax + dcb.y * ffcx + (ddc.y + dcb.y) * ffdx);
-        improper_virial[2] = (1. / 4.) * (dab.z * ffax + dcb.z * ffcx + (ddc.z + dcb.z) * ffdx);
-        improper_virial[3] = (1. / 4.) * (dab.y * ffay + dcb.y * ffcy + (ddc.y + dcb.y) * ffdy);
-        improper_virial[4] = (1. / 4.) * (dab.z * ffay + dcb.z * ffcy + (ddc.z + dcb.z) * ffdy);
-        improper_virial[5] = (1. / 4.) * (dab.z * ffaz + dcb.z * ffcz + (ddc.z + dcb.z) * ffdz);
-
-        if (idx_a < m_pdata->getN())
+        for (int j = 0; j < multi; j++)
             {
-            // accumulate the forces
-            h_force.data[idx_a].x += ffax;
-            h_force.data[idx_a].y += ffay;
-            h_force.data[idx_a].z += ffaz;
-            h_force.data[idx_a].w += improper_eng;
-            for (int k = 0; k < 6; k++)
-                h_virial.data[k * virial_pitch + idx_a] += improper_virial[k];
+            ddfab = p * c_abcd - dfab * s_abcd;
+            dfab = p * s_abcd + dfab * c_abcd;
+            p = ddfab;
             }
 
-        if (idx_b < m_pdata->getN())
+        /////////////////////////
+        // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
+        // Adding charmm dihedral functionality, sin_shift not always 0,
+        // cos_shift not always 1
+        /////////////////////////
+
+        Scalar sign = m_sign[dihedral_type];
+        Scalar chi_0 = m_chi_0[dihedral_type];
+        Scalar sin_chi_0 = fast::sin(chi_0);
+        Scalar cos_chi_0 = fast::cos(chi_0);
+        p = p * cos_chi_0 + dfab * sin_chi_0;
+        p = p * sign;
+        dfab = dfab * cos_chi_0 - ddfab * sin_chi_0;
+        dfab = dfab * sign;
+        dfab *= (Scalar)-multi;
+        p += Scalar(1.0);
+
+        if (multi == 0)
             {
-            h_force.data[idx_b].x += ffbx;
-            h_force.data[idx_b].y += ffby;
-            h_force.data[idx_b].z += ffbz;
-            h_force.data[idx_b].w += improper_eng;
-            for (int k = 0; k < 6; k++)
-                h_virial.data[k * virial_pitch + idx_b] += improper_virial[k];
+            p = Scalar(1.0) + sign;
+            dfab = Scalar(0.0);
             }
 
-        if (idx_c < m_pdata->getN())
-            {
-            h_force.data[idx_c].x += ffcx;
-            h_force.data[idx_c].y += ffcy;
-            h_force.data[idx_c].z += ffcz;
-            h_force.data[idx_c].w += improper_eng;
-            for (int k = 0; k < 6; k++)
-                h_virial.data[k * virial_pitch + idx_c] += improper_virial[k];
-            }
+        Scalar fg = dab.x * dcbm.x + dab.y * dcbm.y + dab.z * dcbm.z;
+        Scalar hg = ddc.x * dcbm.x + ddc.y * dcbm.y + ddc.z * dcbm.z;
 
-        if (idx_d < m_pdata->getN())
-            {
-            h_force.data[idx_d].x += ffdx;
-            h_force.data[idx_d].y += ffdy;
-            h_force.data[idx_d].z += ffdz;
-            h_force.data[idx_d].w += improper_eng;
-            for (int k = 0; k < 6; k++)
-                h_virial.data[k * virial_pitch + idx_d] += improper_virial[k];
-            }
+        Scalar fga = fg * raa2inv * rginv;
+        Scalar hgb = hg * rbb2inv * rginv;
+        Scalar gaa = -raa2inv * rg;
+        Scalar gbb = rbb2inv * rg;
+
+        Scalar dtfx = gaa * aax;
+        Scalar dtfy = gaa * aay;
+        Scalar dtfz = gaa * aaz;
+        Scalar dtgx = fga * aax - hgb * bbx;
+        Scalar dtgy = fga * aay - hgb * bby;
+        Scalar dtgz = fga * aaz - hgb * bbz;
+        Scalar dthx = gbb * bbx;
+        Scalar dthy = gbb * bby;
+        Scalar dthz = gbb * bbz;
+
+        //      Scalar df = -m_K[dihedral.type] * dfab;
+        Scalar df
+            = -m_K[dihedral_type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
+
+        Scalar sx2 = df * dtgx;
+        Scalar sy2 = df * dtgy;
+        Scalar sz2 = df * dtgz;
+
+        Scalar ffax = df * dtfx;
+        Scalar ffay = df * dtfy;
+        Scalar ffaz = df * dtfz;
+
+        Scalar ffbx = sx2 - ffax;
+        Scalar ffby = sy2 - ffay;
+        Scalar ffbz = sz2 - ffaz;
+
+        Scalar ffdx = df * dthx;
+        Scalar ffdy = df * dthy;
+        Scalar ffdz = df * dthz;
+
+        Scalar ffcx = -sx2 - ffdx;
+        Scalar ffcy = -sy2 - ffdy;
+        Scalar ffcz = -sz2 - ffdz;
+
+        // Now, apply the force to each individual atom a,b,c,d
+        // and accumulate the energy/virial
+        // compute 1/4 of the energy, 1/4 for each atom in the dihedral
+        // Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
+        Scalar dihedral_eng
+            = p * m_K[dihedral_type] * Scalar(0.125); // the .125 term is (1/2)K * 1/4
+
+        // compute 1/4 of the virial, 1/4 for each atom in the dihedral
+        // upper triangular version of virial tensor
+        Scalar dihedral_virial[6];
+        dihedral_virial[0] = (1. / 4.) * (dab.x * ffax + dcb.x * ffcx + (ddc.x + dcb.x) * ffdx);
+        dihedral_virial[1] = (1. / 4.) * (dab.y * ffax + dcb.y * ffcx + (ddc.y + dcb.y) * ffdx);
+        dihedral_virial[2] = (1. / 4.) * (dab.z * ffax + dcb.z * ffcx + (ddc.z + dcb.z) * ffdx);
+        dihedral_virial[3] = (1. / 4.) * (dab.y * ffay + dcb.y * ffcy + (ddc.y + dcb.y) * ffdy);
+        dihedral_virial[4] = (1. / 4.) * (dab.z * ffay + dcb.z * ffcy + (ddc.z + dcb.z) * ffdy);
+        dihedral_virial[5] = (1. / 4.) * (dab.z * ffaz + dcb.z * ffcz + (ddc.z + dcb.z) * ffdz);
+
+        h_force.data[idx_a].x += ffax;
+        h_force.data[idx_a].y += ffay;
+        h_force.data[idx_a].z += ffaz;
+        h_force.data[idx_a].w += dihedral_eng;
+        for (int k = 0; k < 6; k++)
+            h_virial.data[virial_pitch * k + idx_a] += dihedral_virial[k];
+
+        h_force.data[idx_b].x += ffbx;
+        h_force.data[idx_b].y += ffby;
+        h_force.data[idx_b].z += ffbz;
+        h_force.data[idx_b].w += dihedral_eng;
+        for (int k = 0; k < 6; k++)
+            h_virial.data[virial_pitch * k + idx_b] += dihedral_virial[k];
+
+        h_force.data[idx_c].x += ffcx;
+        h_force.data[idx_c].y += ffcy;
+        h_force.data[idx_c].z += ffcz;
+        h_force.data[idx_c].w += dihedral_eng;
+        for (int k = 0; k < 6; k++)
+            h_virial.data[virial_pitch * k + idx_c] += dihedral_virial[k];
+
+        h_force.data[idx_d].x += ffdx;
+        h_force.data[idx_d].y += ffdy;
+        h_force.data[idx_d].z += ffdz;
+        h_force.data[idx_d].w += dihedral_eng;
+        for (int k = 0; k < 6; k++)
+            h_virial.data[virial_pitch * k + idx_d] += dihedral_virial[k];
         }
     }
 
