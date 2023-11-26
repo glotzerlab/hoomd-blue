@@ -8,8 +8,8 @@
 
 #include <vector>
 
-/*! \file HarmonicImproperForceCompute.h
-    \brief Declares a class for computing harmonic impropers
+/*! \file PeriodicImproperForceCompute.h
+    \brief Declares a class for computing Periodic impropers
 */
 
 #ifdef __HIPCC__
@@ -18,27 +18,27 @@
 
 #include <pybind11/pybind11.h>
 
-#ifndef __HARMONICIMPROPERFORCECOMPUTE_H__
-#define __HARMONICIMPROPERFORCECOMPUTE_H__
+#ifndef __PERIODICIMPROPERFORCECOMPUTE_H__
+#define __PERIODICIMPROPERFORCECOMPUTE_H__
 
 namespace hoomd
     {
 namespace md
     {
-//! Computes harmonic improper forces on each particle
-/*! Harmonic improper forces are computed on every particle in the simulation.
+//! Computes Periodic improper forces on each particle
+/*! Periodic improper forces are computed on every particle in the simulation.
 
     The impropers which forces are computed on are accessed from ParticleData::getImproperData
     \ingroup computes
 */
-class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
+class PYBIND11_EXPORT PeriodicImproperForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    HarmonicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef);
+    PeriodicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Destructor
-    virtual ~HarmonicImproperForceCompute();
+    virtual ~PeriodicImproperForceCompute();
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar chi);

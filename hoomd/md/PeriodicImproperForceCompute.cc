@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HarmonicImproperForceCompute.h"
+#include "PeriodicImproperForceCompute.h"
 
 #include <iostream>
 #include <math.h>
@@ -13,8 +13,8 @@ using namespace std;
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
 
-/*! \file HarmonicImproperForceCompute.cc
-    \brief Contains code for the HarmonicImproperForceCompute class
+/*! \file PeriodicImproperForceCompute.cc
+    \brief Contains code for the PeriodicImproperForceCompute class
 */
 
 namespace hoomd
@@ -24,22 +24,23 @@ namespace md
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicImproperForceCompute::HarmonicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef)
+PeriodicImproperForceCompute::PeriodicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_chi(NULL)
     {
-    m_exec_conf->msg->notice(5) << "Constructing HarmonicImproperForceCompute" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing PeriodicImproperForceCompute" << endl;
 
     // access the improper data for later use
     m_improper_data = m_sysdef->getImproperData();
 
     // allocate the parameters
     m_K = new Scalar[m_improper_data->getNTypes()];
-    m_chi = new Scalar[m_improper_data->getNTypes()];
+    m_phi = new Scalar[m_improper_data->getNTypes()];
+
     }
 
-HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
+PeriodicImproperForceCompute::~PeriodicImproperForceCompute()
     {
-    m_exec_conf->msg->notice(5) << "Destroying HarmonicImproperForceCompute" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying PeriodicImproperForceCompute" << endl;
 
     delete[] m_K;
     delete[] m_chi;
@@ -53,7 +54,7 @@ HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
 
     Sets parameters for the potential of a particular improper type
 */
-void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar chi)
+void PeriodicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar chi)
     {
     // make sure the type is valid
     if (type >= m_improper_data->getNTypes())
@@ -65,7 +66,7 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
     m_chi[type] = chi;
     }
 
-void HarmonicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
+void PeriodicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     // make sure the type is valid
     auto typ = m_improper_data->getTypeByName(type);
@@ -74,7 +75,7 @@ void HarmonicImproperForceCompute::setParamsPython(std::string type, pybind11::d
     setParams(typ, k, chi_0);
     }
 
-pybind11::dict HarmonicImproperForceCompute::getParams(std::string type)
+pybind11::dict PeriodicImproperForceCompute::getParams(std::string type)
     {
     auto typ = m_improper_data->getTypeByName(type);
     pybind11::dict params;
@@ -86,7 +87,7 @@ pybind11::dict HarmonicImproperForceCompute::getParams(std::string type)
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
+void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
     {
     assert(m_pdata);
     // access the particle data arrays
@@ -295,15 +296,15 @@ void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_HarmonicImproperForceCompute(pybind11::module& m)
+void export_PeriodicImproperForceCompute(pybind11::module& m)
     {
-    pybind11::class_<HarmonicImproperForceCompute,
+    pybind11::class_<PeriodicImproperForceCompute,
                      ForceCompute,
-                     std::shared_ptr<HarmonicImproperForceCompute>>(m,
-                                                                    "HarmonicImproperForceCompute")
+                     std::shared_ptr<PeriodicImproperForceCompute>>(m,
+                                                                    "PeriodicImproperForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &HarmonicImproperForceCompute::setParamsPython)
-        .def("getParams", &HarmonicImproperForceCompute::getParams);
+        .def("setParams", &PeriodicImproperForceCompute::setParamsPython)
+        .def("getParams", &PeriodicImproperForceCompute::getParams);
     }
 
     } // end namespace detail
