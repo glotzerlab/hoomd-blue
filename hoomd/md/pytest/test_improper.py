@@ -78,9 +78,9 @@ n1 = numpy.cross(pos[0,:]-pos[1,:], pos[1,:]-pos[2,:]) #plane 1 normal vector
 n2 = numpy.cross(pos[1,:]-pos[2,:], pos[2,:]-pos[3,:]) #plane 2 normal vector
 
 chi = chi_from_pos(         #calculates angle between planes
-    posa = pos[0,:], 
-    posb = pos[1,:], 
-    posc = pos[2,:], 
+    posa = pos[0,:],
+    posb = pos[1,:],
+    posc = pos[2,:],
     posd = pos[3,:]
 )
 
@@ -102,15 +102,15 @@ improper_test_parameters = [
         hoomd.md.improper.Periodic,
         dict(k=3.0, d=-1, n=2, chi0=numpy.pi / 2),
         get_force_vectors(
-            n1 = n1, 
-            n2 = n2, 
-            r1 = pos[0,:], 
-            r2 = pos[1,:], 
-            r3 = pos[2,:], 
-            r4 = pos[3,:], 
-            chi0 = numpy.pi / 2, 
-            k = 3.0, 
-            d = -1, 
+            n1 = n1,
+            n2 = n2,
+            r1 = pos[0,:],
+            r2 = pos[1,:],
+            r3 = pos[2,:],
+            r4 = pos[3,:],
+            chi0 = numpy.pi / 2,
+            k = 3.0,
+            d = -1,
             n = 2
         ) / 2,
         periodic_improper_energy( 
@@ -119,7 +119,7 @@ improper_test_parameters = [
             d=-1,
             n=2,
             chi0=numpy.pi / 2
-        ) / 2  # divide by 2 because k/2 is the convention
+        ) / 2
         ),
     (
         hoomd.md.improper.Periodic,
@@ -135,14 +135,14 @@ improper_test_parameters = [
             k = 10.0, 
             d = 1, 
             n = 1
-        ) / 2, # divide by 2 because k/2 is the convention
+        ) / 2,
         periodic_improper_energy( 
             chi,
             k = 10.0,
             d = 1,
             n = 1,
             chi0 = numpy.pi / 4
-        ) / 2  # divide by 2 because k/2 is the convention
+        ) / 2
     ),
     (
         hoomd.md.improper.Periodic,
@@ -150,22 +150,22 @@ improper_test_parameters = [
         get_force_vectors(
             n1 = n1, 
             n2 = n2, 
-            r1 = pos[0,:], 
-            r2 = pos[1,:], 
-            r3 = pos[2,:], 
-            r4 = pos[3,:], 
-            chi0 = numpy.pi / 6, 
-            k = 5.0, 
-            d = 1, 
+            r1 = pos[0,:],
+            r2 = pos[1,:],
+            r3 = pos[2,:],
+            r4 = pos[3,:],
+            chi0 = numpy.pi / 6,
+            k = 5.0,
+            d = 1,
             n = 3
-        ) / 2, # divide by 2 because k/2 is the convention
+        ) / 2,
         periodic_improper_energy( 
             chi,
             k = 5.0,
             d = 1,
             n = 3,
             chi0 = numpy.pi / 6
-        ) / 2  # divide by 2 because k/2 is the convention
+        ) / 2
     )
 ]
 
