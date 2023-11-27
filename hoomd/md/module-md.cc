@@ -26,6 +26,7 @@ void export_HarmonicAngleForceCompute(pybind11::module& m);
 void export_CosineSqAngleForceCompute(pybind11::module& m);
 void export_TableAngleForceCompute(pybind11::module& m);
 void export_HarmonicDihedralForceCompute(pybind11::module& m);
+void export_PeriodicImproperForceCompute(pybind11::module& m);
 void export_OPLSDihedralForceCompute(pybind11::module& m);
 void export_TableDihedralForceCompute(pybind11::module& m);
 void export_HarmonicImproperForceCompute(pybind11::module& m);
@@ -302,6 +303,7 @@ PYBIND11_MODULE(_md, m)
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
     export_HarmonicDihedralForceCompute(m);
+    export_PeriodicImproperForceCompute(m);
     export_OPLSDihedralForceCompute(m);
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);

@@ -119,7 +119,7 @@ class Periodic(Improper):
 
     .. math::
 
-        U(phi) = \\k \\left( 1 + d * cos(n * \\phi - \\phi_{0})  \\right )
+        U(phi) = \\k / 2 \\left( 1 + d * cos(n * \\phi - \\phi_{0})  \\right )
 
     Attributes:
         params(`TypeParameter` [``improper type``, `dict`]):
@@ -128,7 +128,7 @@ class Periodic(Improper):
 
             * ``k`` (`float`, **required**), potential constant :math:`k`
               :math:`[\\mathrm{energy}]`.
-            * ``phi_{0}`` (`float`, **required**), equilibrium angle
+            * ``chi{0}`` (`float`, **required**), equilibrium angle
               :math:`\\phi_0` :math:`[\\mathrm{radian}]`.
             * ``n`` (`float`, **required**), periodic number
               :math:`\\n` :math:`[\\mathrm{dimensionless}]`.
@@ -148,8 +148,8 @@ class Periodic(Improper):
             'params', 'improper_types',
             hoomd.data.parameterdicts.TypeParameterDict(
                 k=float,
-                n=float,
-                d=float,
-                phi0=hoomd.data.typeconverter.nonnegative_real,
+                n=int,
+                d=int,
+                chi0=hoomd.data.typeconverter.nonnegative_real,
                 len_keys=1))
         self._add_typeparam(params)

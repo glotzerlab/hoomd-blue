@@ -46,14 +46,14 @@ def chi_from_pos(posa, posb, posc, posd):
     mag = numpy.dot(n1, n2) / numpy.linalg.norm(n1) / numpy.linalg.norm(n2)
     return math.acos(numpy.linalg.norm(mag))
 
-def dU_dchi_periodic(chi, chi0, k, n, d):
-    return -k*n*d*numpy.sin(n*chi-chi0)
+def du_dchi_periodic(chi, chi0, k, n, d):
+    return -.5*k*n*d*numpy.sin(n*chi-chi0)
 
-def dU_dchi_harmonic(chi, k, chi0):
+def du_dchi_harmonic(chi, k, chi0):
     return k*(chi-chi0)
 
 def periodic_improper_energy(chi, k, n, d, chi0):
-    return k * (1 + d*numpy.cos(n*chi - chi0)) 
+    return (k * (1 + d*numpy.cos(n*chi - chi0)) )/2
 
 
 
@@ -75,35 +75,35 @@ improper_test_parameters = [
     (
         hoomd.md.improper.Periodic,
         dict(k=3.0, d=-1, n=2, chi0=numpy.pi / 2),
-        [
+        numpy.array([
             [-0., -0., -5.88118812],
             [-0.00000000e+00, -1.27527939e-14, 5.88118812e+00],
             [-5.82295853e-01, 1.27527939e-14, -5.82295853e+00],
             [0.58229585, 0., 5.82295853],
-        ],
-        2.4059405940594134,
+        ])/2,
+        2.4059405940594134/2,
     ),
     (
         hoomd.md.improper.Periodic,
         dict(k=10.0, d=1, n=1, chi0=numpy.pi / 4),
-        [
+        numpy.array([
             [0., 0., 6.3323779],
             [ 0.00000000e+00, 1.37311558e-14, -6.33237790e+00],
             [ 6.26968109e-01, -1.37311558e-14, 6.26968109e+00],
             [-0.62696811, -0., -6.26968109]
-        ],
-        17.739572992033203,
+        ])/2,
+        17.739572992033203/2,
     ),
     (
         hoomd.md.improper.Periodic,
         dict(k=5.0, d=1, n=3, chi0=numpy.pi / 6),
-        [
-            [0., 0., 3.34064138]
-            [ 0.00000000e+00 , 7.24386128e-15, -3.34064138e+00]
-            [ 3.30756572e-01, -7.24386128e-15, 3.30756572e+00]
-            [-0.33075657, -0., -3.30756572]
-        ],
-        9.87442435562162,
+        numpy.array([
+            [0., 0., 3.34064138],
+            [ 0.00000000e+00 , 7.24386128e-15, -3.34064138e+00],
+            [ 3.30756572e-01, -7.24386128e-15, 3.30756572e+00],
+            [-0.33075657, -0., -3.30756572],
+        ])/2,
+        9.87442435562162/2,
     )
 ]
 

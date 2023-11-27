@@ -26,20 +26,20 @@ PeriodicImproperForceCompute::PeriodicImproperForceCompute(std::shared_ptr<Syste
     {
     m_exec_conf->msg->notice(5) << "Constructing PeriodicImproperForceCompute" << endl;
 
-    // access the dihedral data for later use
-    m_dihedral_data = m_sysdef->getDihedralData();
+    // access the improper data for later use
+    m_improper_data = m_sysdef->getImproperData();
 
     // check for some silly errors a user could make
-    if (m_dihedral_data->getNTypes() == 0)
+    if (m_improper_data->getNTypes() == 0)
         {
-        throw runtime_error("No dihedral types in the system.");
+        throw runtime_error("No improper types in the system.");
         }
 
     // allocate the parameters
-    m_K = new Scalar[m_dihedral_data->getNTypes()];
-    m_sign = new Scalar[m_dihedral_data->getNTypes()];
-    m_multi = new int[m_dihedral_data->getNTypes()];
-    m_chi_0 = new Scalar[m_dihedral_data->getNTypes()];
+    m_K = new Scalar[m_improper_data->getNTypes()];
+    m_sign = new Scalar[m_improper_data->getNTypes()];
+    m_multi = new int[m_improper_data->getNTypes()];
+    m_chi_0 = new Scalar[m_improper_data->getNTypes()];
     }
 
 PeriodicImproperForceCompute::~PeriodicImproperForceCompute()
@@ -56,12 +56,12 @@ PeriodicImproperForceCompute::~PeriodicImproperForceCompute()
     m_chi_0 = NULL;
     }
 
-/*! \param type Type of the dihedral to set parameters for
+/*! \param type Type of the improper to set parameters for
     \param K Stiffness parameter for the force computation
     \param sign the sign of the cosign term
-    \param multiplicity of the dihedral itself
+    \param multiplicity of the improper itself
 
-    Sets parameters for the potential of a particular dihedral type
+    Sets parameters for the potential of a particular improper type
 */
 void PeriodicImproperForceCompute::setParams(unsigned int type,
                                              Scalar K,
@@ -70,9 +70,9 @@ void PeriodicImproperForceCompute::setParams(unsigned int type,
                                              Scalar chi_0)
     {
     // make sure the type is valid
-    if (type >= m_dihedral_data->getNTypes())
+    if (type >= m_improper_data->getNTypes())
         {
-        throw runtime_error("Invalid dihedral type.");
+        throw runtime_error("Invalid improper type.");
         }
 
     m_K[type] = K;
@@ -82,26 +82,26 @@ void PeriodicImproperForceCompute::setParams(unsigned int type,
 
     // check for some silly errors a user could make
     if (K <= 0)
-        m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
+        m_exec_conf->msg->warning() << "improper.harmonic: specified K <= 0" << endl;
     if (sign != 1 && sign != -1)
         m_exec_conf->msg->warning()
-            << "dihedral.harmonic: a non unitary sign was specified" << endl;
+            << "improper.harmonic: a non unitary sign was specified" << endl;
     if (chi_0 < 0 || chi_0 >= 2 * M_PI)
         m_exec_conf->msg->warning()
-            << "dihedral.harmonic: specified chi_0 outside [0, 2pi)" << endl;
+            << "improper.harmonic: specified chi_0 outside [0, 2pi)" << endl;
     }
 
 void PeriodicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     // make sure the type is valid
-    auto typ = m_dihedral_data->getTypeByName(type);
-    dihedral_harmonic_params _params(params);
+    auto typ = m_improper_data->getTypeByName(type);
+    periodic_improper_params _params(params);
     setParams(typ, _params.k, _params.d, _params.n, _params.chi_0);
     }
 
 pybind11::dict PeriodicImproperForceCompute::getParams(std::string type)
     {
-    auto typ = m_dihedral_data->getTypeByName(type);
+    auto typ = m_improper_data->getTypeByName(type);
     pybind11::dict params;
     params["k"] = m_K[typ];
     params["d"] = m_sign[typ];
@@ -138,32 +138,32 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
-    // for each of the dihedrals
-    const unsigned int size = (unsigned int)m_dihedral_data->getN();
+    // for each of the impropers
+    const unsigned int size = (unsigned int)m_improper_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the dihedral
-        const ImproperData::members_t& dihedral = m_dihedral_data->getMembersByIndex(i);
-        assert(dihedral.tag[0] <= m_pdata->getMaximumTag());
-        assert(dihedral.tag[1] <= m_pdata->getMaximumTag());
-        assert(dihedral.tag[2] <= m_pdata->getMaximumTag());
-        assert(dihedral.tag[3] <= m_pdata->getMaximumTag());
+        // lookup the tag of each of the particles participating in the improper
+        const ImproperData::members_t& improper = m_improper_data->getMembersByIndex(i);
+        assert(improper.tag[0] <= m_pdata->getMaximumTag());
+        assert(improper.tag[1] <= m_pdata->getMaximumTag());
+        assert(improper.tag[2] <= m_pdata->getMaximumTag());
+        assert(improper.tag[3] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[dihedral.tag[0]];
-        unsigned int idx_b = h_rtag.data[dihedral.tag[1]];
-        unsigned int idx_c = h_rtag.data[dihedral.tag[2]];
-        unsigned int idx_d = h_rtag.data[dihedral.tag[3]];
+        unsigned int idx_a = h_rtag.data[improper.tag[0]];
+        unsigned int idx_b = h_rtag.data[improper.tag[1]];
+        unsigned int idx_c = h_rtag.data[improper.tag[2]];
+        unsigned int idx_d = h_rtag.data[improper.tag[3]];
 
         // throw an error if this angle is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
             {
             this->m_exec_conf->msg->error()
-                << "dihedral.harmonic: dihedral " << dihedral.tag[0] << " " << dihedral.tag[1]
-                << " " << dihedral.tag[2] << " " << dihedral.tag[3] << " incomplete." << endl
+                << "improper.harmonic: improper " << improper.tag[0] << " " << improper.tag[1]
+                << " " << improper.tag[2] << " " << improper.tag[3] << " incomplete." << endl
                 << endl;
-            throw std::runtime_error("Error in dihedral calculation");
+            throw std::runtime_error("Error in improper calculation");
             }
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
@@ -230,8 +230,8 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         if (c_abcd < -1.0)
             c_abcd = -1.0;
 
-        unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
-        int multi = m_multi[dihedral_type];
+        unsigned int improper_type = m_improper_data->getTypeByIndex(i);
+        int multi = m_multi[improper_type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab = Scalar(0.0);
@@ -245,12 +245,12 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
 
         /////////////////////////
         // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
-        // Adding charmm dihedral functionality, sin_shift not always 0,
+        // Adding charmm improper functionality, sin_shift not always 0,
         // cos_shift not always 1
         /////////////////////////
 
-        Scalar sign = m_sign[dihedral_type];
-        Scalar chi_0 = m_chi_0[dihedral_type];
+        Scalar sign = m_sign[improper_type];
+        Scalar chi_0 = m_chi_0[improper_type];
         Scalar sin_chi_0 = fast::sin(chi_0);
         Scalar cos_chi_0 = fast::cos(chi_0);
         p = p * cos_chi_0 + dfab * sin_chi_0;
@@ -284,9 +284,9 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         Scalar dthy = gbb * bby;
         Scalar dthz = gbb * bbz;
 
-        //      Scalar df = -m_K[dihedral.type] * dfab;
+        //      Scalar df = -m_K[improper.type] * dfab;
         Scalar df
-            = -m_K[dihedral_type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
+            = -m_K[improper_type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
 
         Scalar sx2 = df * dtgx;
         Scalar sy2 = df * dtgy;
@@ -310,48 +310,48 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
 
         // Now, apply the force to each individual atom a,b,c,d
         // and accumulate the energy/virial
-        // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-        // Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
-        Scalar dihedral_eng
-            = p * m_K[dihedral_type] * Scalar(0.125); // the .125 term is (1/2)K * 1/4
+        // compute 1/4 of the energy, 1/4 for each atom in the improper
+        // Scalar improper_eng = p*m_K[improper.type]*Scalar(1.0/4.0);
+        Scalar improper_eng
+            = p * m_K[improper_type] * Scalar(0.125); // the .125 term is (1/2)K * 1/4
 
-        // compute 1/4 of the virial, 1/4 for each atom in the dihedral
+        // compute 1/4 of the virial, 1/4 for each atom in the improper
         // upper triangular version of virial tensor
-        Scalar dihedral_virial[6];
-        dihedral_virial[0] = (1. / 4.) * (dab.x * ffax + dcb.x * ffcx + (ddc.x + dcb.x) * ffdx);
-        dihedral_virial[1] = (1. / 4.) * (dab.y * ffax + dcb.y * ffcx + (ddc.y + dcb.y) * ffdx);
-        dihedral_virial[2] = (1. / 4.) * (dab.z * ffax + dcb.z * ffcx + (ddc.z + dcb.z) * ffdx);
-        dihedral_virial[3] = (1. / 4.) * (dab.y * ffay + dcb.y * ffcy + (ddc.y + dcb.y) * ffdy);
-        dihedral_virial[4] = (1. / 4.) * (dab.z * ffay + dcb.z * ffcy + (ddc.z + dcb.z) * ffdy);
-        dihedral_virial[5] = (1. / 4.) * (dab.z * ffaz + dcb.z * ffcz + (ddc.z + dcb.z) * ffdz);
+        Scalar improper_virial[6];
+        improper_virial[0] = (1. / 4.) * (dab.x * ffax + dcb.x * ffcx + (ddc.x + dcb.x) * ffdx);
+        improper_virial[1] = (1. / 4.) * (dab.y * ffax + dcb.y * ffcx + (ddc.y + dcb.y) * ffdx);
+        improper_virial[2] = (1. / 4.) * (dab.z * ffax + dcb.z * ffcx + (ddc.z + dcb.z) * ffdx);
+        improper_virial[3] = (1. / 4.) * (dab.y * ffay + dcb.y * ffcy + (ddc.y + dcb.y) * ffdy);
+        improper_virial[4] = (1. / 4.) * (dab.z * ffay + dcb.z * ffcy + (ddc.z + dcb.z) * ffdy);
+        improper_virial[5] = (1. / 4.) * (dab.z * ffaz + dcb.z * ffcz + (ddc.z + dcb.z) * ffdz);
 
         h_force.data[idx_a].x += ffax;
         h_force.data[idx_a].y += ffay;
         h_force.data[idx_a].z += ffaz;
-        h_force.data[idx_a].w += dihedral_eng;
+        h_force.data[idx_a].w += improper_eng;
         for (int k = 0; k < 6; k++)
-            h_virial.data[virial_pitch * k + idx_a] += dihedral_virial[k];
+            h_virial.data[virial_pitch * k + idx_a] += improper_virial[k];
 
         h_force.data[idx_b].x += ffbx;
         h_force.data[idx_b].y += ffby;
         h_force.data[idx_b].z += ffbz;
-        h_force.data[idx_b].w += dihedral_eng;
+        h_force.data[idx_b].w += improper_eng;
         for (int k = 0; k < 6; k++)
-            h_virial.data[virial_pitch * k + idx_b] += dihedral_virial[k];
+            h_virial.data[virial_pitch * k + idx_b] += improper_virial[k];
 
         h_force.data[idx_c].x += ffcx;
         h_force.data[idx_c].y += ffcy;
         h_force.data[idx_c].z += ffcz;
-        h_force.data[idx_c].w += dihedral_eng;
+        h_force.data[idx_c].w += improper_eng;
         for (int k = 0; k < 6; k++)
-            h_virial.data[virial_pitch * k + idx_c] += dihedral_virial[k];
+            h_virial.data[virial_pitch * k + idx_c] += improper_virial[k];
 
         h_force.data[idx_d].x += ffdx;
         h_force.data[idx_d].y += ffdy;
         h_force.data[idx_d].z += ffdz;
-        h_force.data[idx_d].w += dihedral_eng;
+        h_force.data[idx_d].w += improper_eng;
         for (int k = 0; k < 6; k++)
-            h_virial.data[virial_pitch * k + idx_d] += dihedral_virial[k];
+            h_virial.data[virial_pitch * k + idx_d] += improper_virial[k];
         }
     }
 
