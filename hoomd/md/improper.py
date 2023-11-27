@@ -6,6 +6,14 @@ r"""Improper forces.
 Improper force classes apply a force and virial on every particle in the
 simulation state commensurate with the potential energy:
 
+.. skip: next if(not hoomd.version.md_built)
+
+.. invisible-code-block: python
+
+    if hoomd.version.md_built:
+        simulation = hoomd.util.make_example_simulation()
+        simulation.operations.integrator = hoomd.md.Integrator(dt=0.0
+        
 .. math::
 
     U_\mathrm{improper} = \sum_{(i,j,k,l) \in \mathrm{impropers}}
@@ -137,8 +145,12 @@ class Periodic(Improper):
 
     Example::
 
-        harmonic = hoomd.md.improper.Periodic()
-        harmonic.params['A-B-C-D'] = dict(k=1.0, n = 1, phi0=0)
+    .. rubric:: Example:
+    .. code-block:: python
+        periodic = hoomd.md.improper.Periodic()
+        periodic.params['A-B-C-D'] = dict(k=1.0, n = 1, chi0=0, d=1.0)
+        
+        simulation.integrator.forces = [periodic]
     """
     _cpp_class_name = "PeriodicImproperForceCompute"
 

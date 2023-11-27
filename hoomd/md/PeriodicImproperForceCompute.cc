@@ -82,13 +82,13 @@ void PeriodicImproperForceCompute::setParams(unsigned int type,
 
     // check for some silly errors a user could make
     if (K <= 0)
-        m_exec_conf->msg->warning() << "improper.harmonic: specified K <= 0" << endl;
+        m_exec_conf->msg->warning() << "improper.periodic: specified K <= 0" << endl;
     if (sign != 1 && sign != -1)
         m_exec_conf->msg->warning()
-            << "improper.harmonic: a non unitary sign was specified" << endl;
+            << "improper.periodic: a non unitary sign was specified" << endl;
     if (chi_0 < 0 || chi_0 >= 2 * M_PI)
         m_exec_conf->msg->warning()
-            << "improper.harmonic: specified chi_0 outside [0, 2pi)" << endl;
+            << "improper.periodic: specified chi_0 outside [0, 2pi)" << endl;
     }
 
 void PeriodicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
@@ -160,7 +160,7 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
             {
             this->m_exec_conf->msg->error()
-                << "improper.harmonic: improper " << improper.tag[0] << " " << improper.tag[1]
+                << "improper.periodic: improper " << improper.tag[0] << " " << improper.tag[1]
                 << " " << improper.tag[2] << " " << improper.tag[3] << " incomplete." << endl
                 << endl;
             throw std::runtime_error("Error in improper calculation");

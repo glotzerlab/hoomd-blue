@@ -13,6 +13,7 @@ md.improper
 
     Improper
     Harmonic
+    Periodic
 
 .. rubric:: Details
 
@@ -21,3 +22,4 @@ md.improper
     :show-inheritance:
     :members: Improper,
               Harmonic,
+              Periodic,
