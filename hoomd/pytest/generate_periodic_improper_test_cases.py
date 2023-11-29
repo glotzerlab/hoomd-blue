@@ -1,50 +1,94 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import numpy
 import math
 
-# these series of functions are used to calculate the values for the test cases used below
+
+# these series of functions are used to generate the test cases
 def dchi_dr1(n1, n2, r1, r2, r3, r4):
     n1hat = n1 / numpy.sqrt(numpy.dot(n1, n1))
     n2hat = n2 / numpy.sqrt(numpy.dot(n2, n2))
-    numerator = numpy.dot(n1hat, n2hat) * numpy.cross(
-        numpy.dot(n1hat, n2hat) * n1hat - n2hat,
-        r2 - r3) / numpy.linalg.norm(n1)
-    denominator = numpy.sqrt(1 - numpy.dot(numpy.cross(
-        n1hat, n2hat), numpy.cross(n1hat, n2hat))) * numpy.linalg.norm(
-            numpy.cross(n1hat, n2hat))
+    numerator = numpy.dot(n1hat, n2hat) * \
+        numpy.cross(numpy.dot(n1hat, n2hat) * n1hat - n2hat, r2 - r3) / \
+        numpy.linalg.norm(n1)
+
+    denominator = \
+        numpy.sqrt(
+            1 - numpy.dot(numpy.cross(n1hat, n2hat), numpy.cross(n1hat, n2hat))
+        ) \
+        * numpy.linalg.norm(numpy.cross(n1hat, n2hat))
+
     return numerator / denominator
 
 
 def dchi_dr2(n1, n2, r1, r2, r3, r4):
     n1hat = n1 / numpy.sqrt(numpy.dot(n1, n1))
     n2hat = n2 / numpy.sqrt(numpy.dot(n2, n2))
-    numerator = numpy.dot(n1hat, n2hat)*(numpy.cross(numpy.dot(n1hat,n2hat)*n2hat-n1hat, r3-r4)\
-                                         /numpy.linalg.norm(n2)-numpy.cross(numpy.dot(n1hat,n2hat)*n1hat-n2hat, r1-r3)/numpy.linalg.norm(n1))
-    denominator = numpy.sqrt(1 - numpy.dot(numpy.cross(
-        n1hat, n2hat), numpy.cross(n1hat, n2hat))) * numpy.linalg.norm(
-            numpy.cross(n1hat, n2hat))
+
+    numerator = numpy.dot(n1hat, n2hat) \
+        * (
+            numpy.cross(
+                numpy.dot(n1hat, n2hat) * n2hat - n1hat,
+                r3 - r4
+            )
+            / numpy.linalg.norm(n2) - numpy.cross(
+                numpy.dot(n1hat, n2hat) * n1hat - n2hat,
+                r1 - r3
+            ) / numpy.linalg.norm(n1)
+        )
+
+    denominator = numpy.sqrt(
+        1 - numpy.dot(numpy.cross(n1hat, n2hat), numpy.cross(n1hat, n2hat))) \
+        * numpy.linalg.norm(numpy.cross(n1hat, n2hat))
+
     return numerator / denominator
 
 
 def dchi_dr3(n1, n2, r1, r2, r3, r4):
     n1hat = n1 / numpy.sqrt(numpy.dot(n1, n1))
     n2hat = n2 / numpy.sqrt(numpy.dot(n2, n2))
-    numerator = numpy.dot(n1hat, n2hat) * (numpy.cross(numpy.dot(n1hat,n2hat) * n1hat - n2hat, r1 - r2)\
-                                            / numpy.linalg.norm(n1) - numpy.cross(numpy.dot(n1hat,n2hat)*n2hat - n1hat, r2 - r4)/numpy.linalg.norm(n2))
-    denominator = numpy.sqrt(1 - numpy.dot(numpy.cross(
-        n1hat, n2hat), numpy.cross(n1hat, n2hat))) * numpy.linalg.norm(
-            numpy.cross(n1hat, n2hat))
+
+    numerator = numpy.dot(n1hat, n2hat) \
+        * (
+            numpy.cross(
+                numpy.dot(n1hat, n2hat) * n1hat - n2hat,
+                r1 - r2
+            )
+            / numpy.linalg.norm(n1) - numpy.cross(
+                numpy.dot(n1hat, n2hat) * n2hat - n1hat,
+                r2 - r4
+            ) / numpy.linalg.norm(n2)
+        )
+
+    denominator = numpy.sqrt(
+        1 - numpy.dot(numpy.cross(n1hat, n2hat), numpy.cross(n1hat, n2hat))) \
+        * numpy.linalg.norm(numpy.cross(n1hat, n2hat))
+
     return numerator / denominator
 
 
 def dchi_dr4(n1, n2, r1, r2, r3, r4):
     n1hat = n1 / numpy.sqrt(numpy.dot(n1, n1))
     n2hat = n2 / numpy.sqrt(numpy.dot(n2, n2))
-    numerator = numpy.dot(n1hat, n2hat) * numpy.cross(
-        numpy.dot(n1hat, n2hat) * n2hat - n1hat,
-        r2 - r3) / numpy.linalg.norm(n2)
-    denominator = numpy.sqrt(1 - numpy.dot(numpy.cross(
-        n1hat, n2hat), numpy.cross(n1hat, n2hat))) * numpy.linalg.norm(
-            numpy.cross(n1hat, n2hat))
+
+    numerator = numpy.dot(n1hat, n2hat) * \
+        numpy.cross(
+            numpy.dot(n1hat, n2hat) * n2hat - n1hat,
+            r2 - r3
+        ) / numpy.linalg.norm(n2)
+
+    denominator = \
+        numpy.sqrt(
+            1 - numpy.dot(
+                numpy.cross(n1hat, n2hat),
+                numpy.cross(n1hat, n2hat)
+            )
+        ) \
+        * numpy.linalg.norm(
+            numpy.cross(n1hat, n2hat)
+        )
+
     return numerator / denominator
 
 

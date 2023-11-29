@@ -10,7 +10,7 @@ r"""Improper forces.
     if hoomd.version.md_built:
         simulation = hoomd.util.make_example_simulation()
         simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
-        
+
 Improper force classes apply a force and virial on every particle in the
 simulation state commensurate with the potential energy:
 
@@ -26,7 +26,7 @@ groups, users must explicitly define impropers in the initial condition.
 .. image:: md-improper.svg
     :alt: Definition of the improper bond between particles i, j, k, and l.
 
-In an improper group (i,j,k,l), :math:`\chi` is the signed improper angle 
+In an improper group (i,j,k,l), :math:`\chi` is the signed improper angle
 between the planes passing through (:math:`\vec{r}_i, \vec{r}_j, \vec{r}_k`) and
 (:math:`\vec{r}_j, \vec{r}_k, \vec{r}_l`). This is the same definition used in
 dihedrals. Typically, researchers use impropers to force molecules to be planar.
@@ -128,7 +128,7 @@ class Periodic(Improper):
 
     .. math::
 
-        U(\chi) = k \\left( 1 + d \\cos(n \\chi - \\chi_{0})  \\right )
+        U(\\chi) = k \\left( 1 + d \\cos(n \\chi - \\chi_{0})  \\right )
 
     Attributes:
         params(`TypeParameter` [``improper type``, `dict`]):
@@ -145,7 +145,7 @@ class Periodic(Improper):
               :math:`d` :math:`[\\mathrm{dimensionless}]`.
 
     .. rubric:: Example:
-    
+
     .. code-block:: python
 
         periodic = hoomd.md.improper.Periodic()
