@@ -14,7 +14,7 @@ md.alchemy.pair
     AlchemicalDOF
     AlchemicalDOFStore
     LJGauss
-    hoomd.md.pair.OPP
+    OPP
 
 .. rubric:: Details
 
