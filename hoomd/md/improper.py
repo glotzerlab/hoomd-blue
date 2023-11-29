@@ -13,7 +13,7 @@ simulation state commensurate with the potential energy:
     if hoomd.version.md_built:
         simulation = hoomd.util.make_example_simulation()
         simulation.operations.integrator = hoomd.md.Integrator(dt=0.0
-        
+
 .. math::
 
     U_\mathrm{improper} = \sum_{(i,j,k,l) \in \mathrm{impropers}}
@@ -119,6 +119,7 @@ class Harmonic(Improper):
                 len_keys=1))
         self._add_typeparam(params)
 
+
 class Periodic(Improper):
     """Periodic improper force.
 
@@ -149,7 +150,7 @@ class Periodic(Improper):
     .. code-block:: python
         periodic = hoomd.md.improper.Periodic()
         periodic.params['A-B-C-D'] = dict(k=1.0, n = 1, chi0=0, d=1.0)
-        
+
         simulation.integrator.forces = [periodic]
     """
     _cpp_class_name = "PeriodicImproperForceCompute"
