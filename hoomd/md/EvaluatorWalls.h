@@ -134,9 +134,18 @@ template<class evaluator> class EvaluatorWalls
     typedef wall_type field_type;
 
     //! Constructs the external wall potential evaluator
-    DEVICE EvaluatorWalls(Scalar3 pos, const BoxDim& box, const param_type& p, const field_type& f)
+    DEVICE EvaluatorWalls(Scalar3 pos,
+                          quat<Scalar> q,
+                          const BoxDim& box,
+                          const param_type& p,
+                          const field_type& f)
         : m_pos(pos), m_field(f), m_params(p)
         {
+        }
+
+    DEVICE static bool isAnisotropic()
+        {
+        return false;
         }
 
     //! Charges not supported by walls evals
@@ -229,11 +238,17 @@ template<class evaluator> class EvaluatorWalls
         }
 
     //! Generates force and energy from standard evaluators using wall geometry functions
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
+    DEVICE void
+    evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         F.x = Scalar(0.0);
         F.y = Scalar(0.0);
         F.z = Scalar(0.0);
+
+        T.x = Scalar(0.0);
+        T.y = Scalar(0.0);
+        T.z = Scalar(0.0);
+
         energy = Scalar(0.0);
         // initialize virial
         for (unsigned int i = 0; i < 6; i++)

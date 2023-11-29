@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
-#define __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
+#ifndef __EVALUATOR_EXTERNAL_MAGNETIC_FIELD_H__
+#define __EVALUATOR_EXTERNAL_MAGNETIC_FIELD_H__
 
 #ifndef __HIPCC__
 #include <string>
@@ -13,8 +13,8 @@
 #include "hoomd/VectorMath.h"
 #include <math.h>
 
-/*! \file EvaluatorExternalElectricField.h
-    \brief Defines the external potential evaluator to induce a periodic ordered phase
+/*! \file EvaluatorExternalMagneticField.h
+    \brief Defines the external potential evaluator to induce a magnetic field
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -30,85 +30,89 @@ namespace hoomd
     {
 namespace md
     {
-//! Class for evaluating an electric field
+//! Class for evaluating an magnetic field
 /*! <b>General Overview</b>
-    The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
+    The external potential \f$V(\theta) \f$ is implemented using the following formula:
 
     \f[
-    V(\vec{r}) = - q_i \vec{E} \cdot \vec{r}
+    V(\theta}) = - \vec{B} \cdot \vec{n}_i(\theta)
     \f]
 
-    where \f$E\f$ is the strength of the electric field and \f$q_i\f$ is the charge of particle i.
+    where \f$B\f$ is the strength of the magnetic field and \f$\vec{n}_i\f$ is the magnetic moment
+   of particle i.
 */
-class EvaluatorExternalElectricField
+class EvaluatorExternalMagneticField
     {
     public:
     //! type of parameters this external potential accepts
     struct param_type
         {
-        Scalar3 E;
+        Scalar3 B;
+        Scalar3 mu;
 
 #ifndef __HIPCC__
-        param_type() : E(make_scalar3(0, 0, 0)) { }
+        param_type() : B(make_scalar3(0, 0, 0)), mu(make_scalar3(0, 0, 0)) { }
 
-        param_type(pybind11::object params)
+        param_type(pybind11::dict params)
             {
-            pybind11::tuple py_E(params);
-            E.x = pybind11::cast<Scalar>(py_E[0]);
-            E.y = pybind11::cast<Scalar>(py_E[1]);
-            E.z = pybind11::cast<Scalar>(py_E[2]);
+            pybind11::tuple py_B = params["B"];
+            B.x = pybind11::cast<Scalar>(py_B[0]);
+            B.y = pybind11::cast<Scalar>(py_B[1]);
+            B.z = pybind11::cast<Scalar>(py_B[2]);
+            pybind11::tuple py_mu = params["mu"];
+            mu.x = pybind11::cast<Scalar>(py_mu[0]);
+            mu.y = pybind11::cast<Scalar>(py_mu[1]);
+            mu.z = pybind11::cast<Scalar>(py_mu[2]);
             }
 
-        pybind11::object toPython()
+        pybind11::dict toPython()
             {
-            pybind11::tuple params;
-            params = pybind11::make_tuple(E.x, E.y, E.z);
-            return std::move(params);
+            pybind11::dict d;
+            d["B"] = pybind11::make_tuple(B.x, B.y, B.z);
+            d["mu"] = pybind11::make_tuple(mu.x, mu.y, mu.z);
+            return d;
             }
 #endif // ifndef __HIPCC__
         } __attribute__((aligned(16)));
 
     typedef void* field_type;
 
-    //! Constructs the constraint evaluator
+    //! Constructs the external field evaluator
     /*! \param X position of particle
         \param box box dimensions
         \param params per-type parameters of external potential
     */
-    DEVICE EvaluatorExternalElectricField(Scalar3 X,
+    DEVICE EvaluatorExternalMagneticField(Scalar3 X,
                                           quat<Scalar> q,
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
-        : m_pos(X), m_box(box), m_E(params.E)
+        : m_q(q), m_B(params.B), m_mu(params.mu)
         {
         }
 
     DEVICE static bool isAnisotropic()
         {
-        return false;
+        return true;
         }
 
-    //! ExternalElectricField needs charges
+    //! ExternalMagneticField needs charges
     DEVICE static bool needsCharge()
         {
-        return true;
+        return false;
         }
 
     //! Accept the optional charge value
     /*! \param qi Charge of particle i
      */
-    DEVICE void setCharge(Scalar qi)
-        {
-        m_qi = qi;
-        }
+    DEVICE void setCharge(Scalar qi) { }
 
     //! Declares additional virial contributions are needed for the external field
     /*! No contribution
      */
     DEVICE static bool requestFieldVirialTerm()
         {
-        return true;
+        return false;
         }
 
     //! Evaluate the force, energy and virial
@@ -120,19 +124,22 @@ class EvaluatorExternalElectricField
     DEVICE void
     evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
-        F = m_qi * m_E;
-        energy = -m_qi * dot(m_E, m_pos);
+        vec3<Scalar> dir = rotate(m_q, m_mu);
 
-        virial[0] = F.x * m_pos.x;
-        virial[1] = F.x * m_pos.y;
-        virial[2] = F.x * m_pos.z;
-        virial[3] = F.y * m_pos.y;
-        virial[4] = F.y * m_pos.z;
-        virial[5] = F.z * m_pos.z;
+        vec3<Scalar> T_vec = cross(dir, m_B);
 
-        T.x = Scalar(0.0);
-        T.y = Scalar(0.0);
-        T.z = Scalar(0.0);
+        T.x = T_vec.x;
+        T.y = T_vec.y;
+        T.z = T_vec.z;
+
+        energy = -dot(dir, m_B);
+
+        F.x = Scalar(0.0);
+        F.y = Scalar(0.0);
+        F.z = Scalar(0.0);
+
+        for (unsigned int i = 0; i < 6; i++)
+            virial[i] = Scalar(0.0);
         }
 
 #ifndef __HIPCC__
@@ -141,15 +148,14 @@ class EvaluatorExternalElectricField
      */
     static std::string getName()
         {
-        return std::string("e_field");
+        return std::string("b_field");
         }
 #endif
 
     protected:
-    Scalar3 m_pos; //!< particle position
-    BoxDim m_box;  //!< box dimensions
-    Scalar m_qi;   //!< particle charge
-    Scalar3 m_E;   //!< the field vector
+    quat<Scalar> m_q;  //!< Particle orientation
+    vec3<Scalar> m_B;  //!< Magnetic field vector (box frame).
+    vec3<Scalar> m_mu; //!< Magnetic dipole moment (particle frame).
     };
 
     } // end namespace md

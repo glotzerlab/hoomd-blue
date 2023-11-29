@@ -43,13 +43,6 @@ mpcd::Integrator::~Integrator()
 void mpcd::Integrator::update(uint64_t timestep)
     {
     IntegratorTwoStep::update(timestep);
-    // issue a warning if no integration methods are set
-    if (!m_gave_warning && m_methods.size() == 0 && !m_stream)
-        {
-        m_exec_conf->msg->warning()
-            << "mpcd.integrate: No integration methods are set." << std::endl;
-        m_gave_warning = true;
-        }
 
     // remove any leftover virtual particles
     if (checkCollide(timestep))

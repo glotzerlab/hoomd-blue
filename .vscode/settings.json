@@ -25,10 +25,6 @@
             100
         ]
     },
-    "python.linting.flake8Enabled": true,
-    "python.linting.pycodestyleEnabled": false,
-    "python.linting.pylintEnabled": false,
-    "python.formatting.provider": "yapf",
     "cSpell.allowCompoundWords": true,
     "files.exclude": {
         ".cache": true,
