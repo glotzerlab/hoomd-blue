@@ -12,7 +12,6 @@ from hoomd.md.pair import LJGauss as BaseLJGauss
 from hoomd.md.pair import OPP as BASEOPP
 
 
-
 def _modify_pair_cls_to_alchemical(cls):
     """Modifies a created class inheriting from `_AlchemicalPairForce`.
 
