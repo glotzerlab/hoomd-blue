@@ -9,10 +9,7 @@ from hoomd.logging import log
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
-<<<<<<< HEAD
-=======
 from hoomd.md.pair import OPP as BaseOPP  # noqa; N811
->>>>>>> 067c7e33c (ignore pre-commit N811)
 
 
 def _modify_pair_cls_to_alchemical(cls):
