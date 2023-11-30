@@ -9,7 +9,6 @@ from hoomd.logging import log
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
-import hoomd
 
 
 def _modify_pair_cls_to_alchemical(cls):
