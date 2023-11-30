@@ -14,14 +14,13 @@ md.alchemy.pair
     AlchemicalDOF
     AlchemicalDOFStore
     LJGauss
-    OPP
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.alchemy.pair
     :synopsis: Pair potentials for MD alchemy.
     :show-inheritance:
-    :members: AlchemicalDOFStore, LJGauss, OPP,
+    :members: AlchemicalDOFStore, LJGauss,
 
     .. autoclass:: AlchemicalDOF()
         :members: alchemical_forces, net_alchemical_force, value
