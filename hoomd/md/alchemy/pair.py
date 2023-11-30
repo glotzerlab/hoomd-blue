@@ -9,6 +9,10 @@ from hoomd.logging import log
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
+<<<<<<< HEAD
+=======
+from hoomd.md.pair import OPP as BaseOPP  # noqa; N811
+>>>>>>> 067c7e33c (ignore pre-commit N811)
 
 
 def _modify_pair_cls_to_alchemical(cls):
@@ -367,7 +371,7 @@ class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
 
 
 @_modify_pair_cls_to_alchemical
-class OPP(hoomd.md.pair.OPP, _AlchemicalPairForce):
+class OPP(BaseOPP, _AlchemicalPairForce):
     r"""Alchemical Oscillating Pair Potential pair force.
 
     Args:
