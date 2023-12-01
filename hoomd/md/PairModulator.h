@@ -134,7 +134,7 @@ public:
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const {
-            envelope.set_memory_hint()
+            envelope.set_memory_hint();
 }
 #endif
         ManagedArray<typename DirectionalEnvelope::shape_type> envelope;
