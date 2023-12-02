@@ -150,7 +150,6 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         assert(improper.tag[3] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indices into the particle data arrays
-        // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[improper.tag[0]];
         unsigned int idx_b = h_rtag.data[improper.tag[1]];
         unsigned int idx_c = h_rtag.data[improper.tag[2]];

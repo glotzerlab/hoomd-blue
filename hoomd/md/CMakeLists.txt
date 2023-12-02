@@ -172,6 +172,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
                 PeriodicImproperForceCompute.h
+                PeriodicImproperForceComputeGPU.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
                 TableAngleForceComputeGPU.h
@@ -224,6 +225,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            NeighborListGPUStencil.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
+                           PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
@@ -258,6 +260,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUStencil.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
+                      PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu

@@ -182,6 +182,7 @@ void export_NeighborListGPUStencil(pybind11::module& m);
 void export_NeighborListGPUTree(pybind11::module& m);
 void export_ForceDistanceConstraintGPU(pybind11::module& m);
 void export_ForceCompositeGPU(pybind11::module& m);
+void export_PeriodicImproperForceComputeGPU(pybind11::module& m);
 void export_PPPMForceComputeGPU(pybind11::module& m);
 void export_LocalNeighborListDataGPU(pybind11::module& m);
 
@@ -447,6 +448,7 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraintGPU(m);
     export_ComputeThermoGPU(m);
     export_ComputeThermoHMAGPU(m);
+    export_PeriodicImproperForceComputeGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
     export_ActiveForceConstraintComputeCylinderGPU(m);

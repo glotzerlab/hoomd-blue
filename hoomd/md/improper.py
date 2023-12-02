@@ -151,7 +151,7 @@ class Periodic(Improper):
         periodic = hoomd.md.improper.Periodic()
         periodic.params['A-B-C-D'] = dict(k=1.0, n = 1, chi0=0, d=1.0)
 
-        simulation.integrator.forces = [periodic]
+        simulation.operations.integrator.forces = [periodic]
     """
     _cpp_class_name = "PeriodicImproperForceCompute"
 
