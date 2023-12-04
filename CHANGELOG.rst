@@ -14,6 +14,8 @@ Change Log
 
 * ``hoomd.md.external.field.Magnetic`` computes forces and torques on particles from an external
   magnetic field (`#1637 <https://github.com/glotzerlab/hoomd-blue/pull/1637>`__).
+* Tutorial on placing barriers
+  (`hoomd-examples/#111 https://github.com/glotzerlab/hoomd-examples/pull/111`).
 
 *Fixed*
 
