@@ -30,8 +30,8 @@ rules conserve linear momentum within the cell and can optionally be made to
 enforce angular-momentum conservation. Currently, we have implemented
 the following collision rules with linear-momentum conservation only:
 
-    * :class:`~hoomd.mpcd.collide.StochasticRotationDynamics`
-    * :class:`~hoomd.mpcd.collide.AndersenThermostat`
+* :class:`~hoomd.mpcd.collide.StochasticRotationDynamics`
+* :class:`~hoomd.mpcd.collide.AndersenThermostat`
 
 Solute particles can be coupled to the solvent during the collision step. This
 is particularly useful for soft materials like polymers. Standard molecular
@@ -51,15 +51,14 @@ Note, though, that continued improvements to the code may cause some deviations.
 MPCD is intended to be used as an add-on to the standard MD methods in
 `hoomd.md`. Getting started can look like:
 
-    1. Initialize the solvent through `Snapshot.mpcd`. You can include any solute
-       particles in the snapshot as well.
-    2. Create the MPCD `Integrator`.
-    3. Choose the streaming method from :mod:`.mpcd.stream`.
-    4. Choose the collision rule from :mod:`.mpcd.collide`.
-    5. Setup solute particle integration methods and interactions as you normally
-       would to use `hoomd.md`. Note that there are some restrictions on which
-       features are compatible with MPCD.
-    6. Run your simulation!
+1. Initialize the solvent through `Snapshot.mpcd`. You can include any solute
+   particles in the snapshot as well.
+2. Create the MPCD `Integrator`. Setup solute particle integration methods
+   and interactions as you normally would to use `hoomd.md`.
+3. Choose the streaming method from :mod:`.mpcd.stream`.
+4. Choose the collision rule from :mod:`.mpcd.collide`. Couple the solute to
+   collision step.
+5. Run your simulation!
 
 
 """

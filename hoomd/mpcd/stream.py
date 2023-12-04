@@ -33,17 +33,17 @@ conditions, "virtual" MPCD particles can be inserted near the boundary walls.
 Although a streaming geometry is enforced on the MPCD solvent particles, there
 are a few important caveats:
 
-    1. Embedded particles are not coupled to the boundary walls. They must be
-       confined by an appropriate method, e.g., an external potential, an
-       explicit particle wall, or a bounce-back method.
-    2. The confined geometry exists inside a fully periodic simulation box.
-       Hence, the box must be padded large enough that the MPCD cells do not
-       interact through the periodic boundary. Usually, this means adding at
-       least one extra layer of cells in the confined dimensions. Your periodic
-       simulation box will be validated by the confined geometry.
-    3. It is an error for MPCD particles to lie "outside" the confined geometry.
-       You must initialize your system carefully to ensure all particles are
-       "inside" the geometry. An error will be raised otherwise.
+1. Embedded particles are not coupled to the boundary walls. They must be
+   confined by an appropriate method, e.g., an external potential, an
+   explicit particle wall, or a bounce-back method.
+2. The confined geometry exists inside a fully periodic simulation box.
+   Hence, the box must be padded large enough that the MPCD cells do not
+   interact through the periodic boundary. Usually, this means adding at
+   least one extra layer of cells in the confined dimensions. Your periodic
+   simulation box will be validated by the confined geometry.
+3. It is an error for MPCD particles to lie "outside" the confined geometry.
+   You must initialize your system carefully to ensure all particles are
+   "inside" the geometry. An error will be raised otherwise.
 
 """
 

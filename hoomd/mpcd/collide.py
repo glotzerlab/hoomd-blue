@@ -87,6 +87,11 @@ class CollisionMethod(AutotunedObject):
             MPCD particles themselves already act as a heat bath for the
             embedded particles.
 
+            Warning:
+                Do not embed particles that are part of a rigid body. Momentum
+                will not be correctly transferred to the body. Support for this
+                is planned in future.
+
         period (int): Number of integration steps between collisions.
 
             A collision is executed each time the :attr:`~hoomd.Simulation.timestep`
