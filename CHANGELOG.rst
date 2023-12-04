@@ -7,6 +7,39 @@ Change Log
 4.x
 ---
 
+4.4.0 (2024-12-04)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.md.external.field.Magnetic`` computes forces and torques on particles from an external
+  magnetic field (`#1637 <https://github.com/glotzerlab/hoomd-blue/pull/1637>`__).
+
+*Fixed*
+
+* Use ``mpirun`` specific local ranks to select GPUs before checking ``SLURM_LOCALID``
+  (`#1647 <https://github.com/glotzerlab/hoomd-blue/pull/1647>`__).
+* Fix typographical errors in ``RevCross`` documentation
+  (`#1642 <https://github.com/glotzerlab/hoomd-blue/pull/1642>`__).
+* Use standards compliant ``thrust::get``
+  (`#1660 <https://github.com/glotzerlab/hoomd-blue/pull/1660>`__).
+
+*Changed*
+
+* Removed unused code
+  (`#1646 <https://github.com/glotzerlab/hoomd-blue/pull/1646>`__).
+* No longer issue a warning when ``hoomd.md.Integrator`` is used without an integration method
+  (`#1659 <https://github.com/glotzerlab/hoomd-blue/pull/1659>`__).
+* Increase performance of ``Force.forces``, ``Force.torques``, ``Force.energies``, and
+  ``Force.virials`` (`#1654 <https://github.com/glotzerlab/hoomd-blue/pull/1654>`__).
+
+*Deprecated*
+
+* ``num_cpu_threads > 1``. Use ``num_cpu_threads = 1``
+  (`#1656 <https://github.com/glotzerlab/hoomd-blue/pull/1656>`__).
+* ``HPMCIntegrator.depletant_fugacity > 0``
+  (`#1657 <https://github.com/glotzerlab/hoomd-blue/pull/1657>`__).
+
 4.3.0 (2024-10-24)
 ^^^^^^^^^^^^^^^^^^
 
