@@ -822,7 +822,7 @@ struct is_center
     {
     __host__ __device__ bool operator()(const thrust::tuple<unsigned int, unsigned int>& t)
         {
-        return t.get<0>() == t.get<1>();
+        return thrust::get<0>(t) == thrust::get<1>(t);
         }
     };
 
