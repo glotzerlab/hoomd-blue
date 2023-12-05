@@ -10,4 +10,5 @@ Getting started
     features
     installation
     building
+    components
     citing

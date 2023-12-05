@@ -10,4 +10,3 @@ For developers
     contributing
     style
     testing
-    components
