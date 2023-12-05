@@ -77,6 +77,7 @@ class TypeParameter(MutableMapping):
         Index types by name:
 
         .. skip: next if(not hoomd.version.md_built)
+
         .. code-block:: python
 
             langevin.gamma['A'] = 2.0
@@ -84,6 +85,7 @@ class TypeParameter(MutableMapping):
         Set parameters for multiple types:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             langevin.gamma[['B', 'C']] = 3.0
@@ -91,6 +93,7 @@ class TypeParameter(MutableMapping):
         Set type pair parameters with a tuple of names:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             lj.params[('A', 'A')] = dict(epsilon=1.5, sigma=2.0)
@@ -98,6 +101,7 @@ class TypeParameter(MutableMapping):
         Set parameters for multiple pairs (e.g. ('A', 'B') and ('A', 'C')):
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             lj.params[('A', ['B', 'C'])] = dict(epsilon=0, sigma=0)
@@ -106,6 +110,7 @@ class TypeParameter(MutableMapping):
         'B'), and ('C', 'C')):
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             lj.params[(['B', 'C'], ['B', 'C'])] = dict(epsilon=1, sigma=1)
@@ -122,11 +127,13 @@ class TypeParameter(MutableMapping):
         .. rubric:: Examples:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             gamma_A = langevin.gamma['A']
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             lj_epsilon_AB = lj.params[('A', 'B')]['epsilon']
@@ -137,6 +144,7 @@ class TypeParameter(MutableMapping):
         returns multiple items in a dictionary:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             gammas = langevin.gamma[['A', 'B']]
@@ -144,6 +152,7 @@ class TypeParameter(MutableMapping):
         is equivalent to:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             gammas = {key: langevin.gamma[key] for key in ['A', 'B']}
@@ -170,6 +179,7 @@ class TypeParameter(MutableMapping):
         .. rubric:: Example:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             gamma_D = langevin.gamma.get('D', default=5.0)
@@ -188,6 +198,7 @@ class TypeParameter(MutableMapping):
         .. rubric:: Example
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             langevin.gamma.setdefault('D', default=5.0)
@@ -198,6 +209,7 @@ class TypeParameter(MutableMapping):
         """Test for equality.
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             langevin.gamma == lj.params
@@ -219,6 +231,7 @@ class TypeParameter(MutableMapping):
         Set a default value:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             langevin.gamma.default = 2.0
@@ -227,6 +240,7 @@ class TypeParameter(MutableMapping):
         keys in that dictionary:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             lj.params.default = dict(epsilon=0)
@@ -253,6 +267,7 @@ class TypeParameter(MutableMapping):
         .. rubric:: Example:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             plain_dict = lj.params.to_base()
@@ -265,6 +280,7 @@ class TypeParameter(MutableMapping):
         .. rubric:: Example:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             for type_pair in lj.params:
@@ -278,6 +294,7 @@ class TypeParameter(MutableMapping):
         .. rubric:: Example:
 
         .. skip: next if(not hoomd.version.md_built)
+        
         .. code-block:: python
 
             n_type_pairs = len(lj.params)
