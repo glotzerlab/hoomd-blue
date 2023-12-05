@@ -15,3 +15,4 @@ Tutorials
     tutorial/05-Organizing-and-Executing-Simulations/00-index
     tutorial/06-Modelling-Rigid-Bodies/00-index
     tutorial/07-Modelling-Patchy-Particles/00-index
+    tutorial/08-Placing-Barriers-in-the-Simulation-Box/00-index
