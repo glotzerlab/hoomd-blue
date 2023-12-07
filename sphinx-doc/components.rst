@@ -31,7 +31,7 @@ Building an external component
 
 To build an external component:
 
-1. Build and install HOOMD-blue from source.
+1. Build and install **HOOMD-blue** from source.
 2. Obtain the component's source::
 
     $ git clone https://github.com/<organization>/<component>
