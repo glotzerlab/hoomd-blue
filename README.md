@@ -25,7 +25,7 @@ types of particle simulations.
 - [Compilation guide](BUILDING.rst):
   Instructions for compiling **HOOMD-blue**.
 - [HOOMD-blue discussion board](https://github.com/glotzerlab/hoomd-blue/discussions/):
-  Ask the **HOOMD-blue** community for help.
+  Ask the **HOOMD-blue** user community for help.
 - [HOOMD-blue website](https://glotzerlab.engin.umich.edu/hoomd-blue/):
   Additional information and publications.
 - [HOOMD-blue benchmark scripts](https://github.com/glotzerlab/hoomd-benchmarks):

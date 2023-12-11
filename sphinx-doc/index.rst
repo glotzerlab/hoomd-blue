@@ -46,7 +46,7 @@ Resources
 - :doc:`Compilation guide </building>`:
   Instructions for compiling **HOOMD-blue**.
 - `HOOMD-blue discussion board <https://github.com/glotzerlab/hoomd-blue/discussions/>`_:
-  Ask the **HOOMD-blue** community for help..
+  Ask the **HOOMD-blue** user community for help..
 - `HOOMD-blue website <https://glotzerlab.engin.umich.edu/hoomd-blue/>`_:
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
