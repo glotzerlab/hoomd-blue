@@ -544,7 +544,8 @@ class HPMCIntegrator(Integrator):
 
     @pair_potential.setter
     def pair_potential(self, new_potential):
-        if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
+        if (not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase)
+                and not isinstance(new_potential, hoomd.hpmc.pair.Pair)):
             raise TypeError(
                 "Pair potentials should be an instance of CPPPotentialBase")
         if self._attached:

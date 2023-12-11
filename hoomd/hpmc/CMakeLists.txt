@@ -37,6 +37,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     ExternalFieldWall.cc
+                    PatchEnergyLJ.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
@@ -74,6 +75,7 @@ set(_hpmc_headers
     Moves.h
     OBB.h
     OBBTree.h
+    PatchEnergyLJ.h
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h

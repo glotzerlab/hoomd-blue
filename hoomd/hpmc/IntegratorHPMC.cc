@@ -237,6 +237,11 @@ namespace detail
     {
 void export_IntegratorHPMC(pybind11::module& m)
     {
+    pybind11::class_<hpmc::PatchEnergy, Autotuned, std::shared_ptr<hpmc::PatchEnergy>>(
+        m,
+        "PatchEnergy")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+
     pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m,
                                                                                   "IntegratorHPMC")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())

@@ -33,9 +33,17 @@
 
 #include "modules.h"
 
-/*! \file module.cc
-    \brief Export classes to python
-*/
+namespace hoomd
+    {
+namespace hpmc
+    {
+namespace detail
+    {
+void export_PatchEnergyLJ(pybind11::module& m);
+    }
+    } // namespace hpmc
+    } // namespace hoomd
+
 using namespace hoomd::hpmc;
 using namespace hoomd::hpmc::detail;
 using namespace std;
@@ -126,6 +134,8 @@ PYBIND11_MODULE(_hpmc, m)
     export_hpmc_clusters_counters(m);
 
     export_hpmc_nec_counters(m);
+
+    export_PatchEnergyLJ(m);
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators
