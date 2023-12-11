@@ -11,13 +11,9 @@ Creating a component
 --------------------
 
 The `hoomd-component-template`_ repository provides a starting point for your
-component. It includes:
-
-* CMake scripts to build the component.
-* Template C++ and Python modules.
-* An example unit test.
-* Pre-commit configuration.
-* GitHub Actions configuration.
+component. It includes template C++ and Python modules, an example unit test, CMake
+scripts to build the component, along with pre-commit and GitHub Actions 
+configurations.
 
 .. _hoomd-component-template: https://github.com/glotzerlab/hoomd-component-template
 
@@ -48,7 +44,7 @@ To build an external component:
 
     $ cmake --install build/<component>
 
-Once installed, the template is available for import via::
+Once installed, the component is available for import via::
 
     import hoomd.<component>
 
