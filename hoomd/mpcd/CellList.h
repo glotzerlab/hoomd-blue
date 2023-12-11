@@ -34,7 +34,7 @@ class PYBIND11_EXPORT CellList : public Compute
     {
     public:
     //! Constructor
-    CellList(std::shared_ptr<SystemDefinition> sysdef);
+    CellList(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift);
 
     //! Destructor
     virtual ~CellList();
@@ -170,10 +170,35 @@ class PYBIND11_EXPORT CellList : public Compute
     bool isCommunicating(mpcd::detail::face dir);
 #endif // ENABLE_MPI
 
+    //! Get whether grid shifting is enabled
+    bool isGridShifting() const
+        {
+        return m_enable_grid_shift;
+        }
+
+    //! Toggle the grid shifting on or off
+    /*!
+     * \param enable_grid_shift Flag to enable grid shifting if true
+     */
+    void enableGridShifting(bool enable_grid_shift)
+        {
+        m_enable_grid_shift = enable_grid_shift;
+        if (!m_enable_grid_shift)
+            {
+            setGridShift(make_scalar3(0, 0, 0));
+            }
+        }
+
     //! Get the maximum permitted grid shift
     const Scalar getMaxGridShift() const
         {
         return m_max_grid_shift;
+        }
+
+    // Get the grid shift vector
+    const Scalar3& getGridShift() const
+        {
+        return m_grid_shift;
         }
 
     //! Set the grid shift vector
@@ -192,11 +217,8 @@ class PYBIND11_EXPORT CellList : public Compute
         m_grid_shift = shift;
         }
 
-    // Get the grid shift vector
-    const Scalar3& getGridShift() const
-        {
-        return m_grid_shift;
-        }
+    //! Generates the random grid shift vector
+    void drawGridShift(uint64_t timestep);
 
     //! Calculate current cell occupancy statistics
     virtual void getCellStatistics() const;
@@ -215,12 +237,6 @@ class PYBIND11_EXPORT CellList : public Compute
             m_embed_group = embed_group;
             m_force_compute = true;
             }
-        }
-
-    //! Removes all embedded particles from collision coupling
-    void removeEmbeddedGroup()
-        {
-        setEmbeddedGroup(std::shared_ptr<ParticleGroup>());
         }
 
     //! Gets the cell id array for the embedded particles
@@ -243,8 +259,9 @@ class PYBIND11_EXPORT CellList : public Compute
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
     std::shared_ptr<ParticleGroup> m_embed_group;     //!< Embedded particles
 
-    Scalar3 m_grid_shift;    //!< Amount to shift particle positions when computing cell list
-    Scalar m_max_grid_shift; //!< Maximum amount grid can be shifted in any direction
+    bool m_enable_grid_shift; //!< Flag to enable grid shifting
+    Scalar3 m_grid_shift;     //!< Amount to shift particle positions when computing cell list
+    Scalar m_max_grid_shift;  //!< Maximum amount grid can be shifted in any direction
 
     //! Allocates internal data arrays
     virtual void reallocate();

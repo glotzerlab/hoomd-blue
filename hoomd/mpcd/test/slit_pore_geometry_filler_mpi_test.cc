@@ -33,8 +33,7 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
     sysdef->setCommunicator(pdata_comm);
 
     auto pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
-    cl->setCellSize(2.0);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 2.0, false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 

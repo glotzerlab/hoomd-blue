@@ -88,8 +88,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
     snap->mpcd_data.type[7] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     // set a small cell size so that nothing will lie in the diffusion layer
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
-    cl->setCellSize(0.05);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 0.05, false);
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
@@ -726,8 +725,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     snap->mpcd_data.position[7] = vec3<Scalar>(1.5, 0.5, 0.0);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     // set a small cell size so that nothing will lie in the diffusion layer
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
-    cl->setCellSize(0.05);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 0.05, false);
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
@@ -919,7 +917,7 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
     auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
 
     // initialize the communicator
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     auto comm = std::make_shared<mpcd::Communicator>(sysdef);
     comm->setCellList(cl);
     if (should_fail)

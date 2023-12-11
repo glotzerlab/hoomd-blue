@@ -25,8 +25,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     auto pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
-    cl->setCellSize(2.0);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 2.0, false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit channel with half width 5

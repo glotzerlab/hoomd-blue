@@ -28,7 +28,7 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                           unsigned int cur_timestep,
                           unsigned int period,
                           int phase,
-                          uint16_t seed);
+                          Scalar angle);
 
     void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
