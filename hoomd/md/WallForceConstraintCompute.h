@@ -239,17 +239,12 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	if(normal_magnitude < 0)
 		continue;
 
-
 	vec3<Scalar> perp_force =  -net_force + normal_magnitude*norm;
 	Scalar perp_magnitude = fast::sqrt(dot(perp_force,perp_force));
 
-	std::cout << perp_force.x << " " << perp_force.y << " " << perp_force.z;
-	std::cout << " | " << norm.x << " " << norm.y << " " << norm.z;
-	std::cout << " Friction| " << net_force.x << " " << net_force.y << " " << net_force.z << std::endl;
-
-
 	if( perp_magnitude > m_mus[typei]*normal_magnitude)
 		perp_force *= (normal_magnitude*m_muk[typei]/perp_magnitude);
+
 
         h_force.data[idx].x = perp_force.x;
         h_force.data[idx].y = perp_force.y;

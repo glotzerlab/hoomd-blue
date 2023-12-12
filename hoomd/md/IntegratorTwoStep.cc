@@ -340,10 +340,12 @@ void IntegratorTwoStep::computeNetForce(uint64_t timestep)
         {
         m_rigid_bodies->validateRigidBodies();
         m_constraint_forces.push_back(m_rigid_bodies);
+	std::reverse(m_constraint_forces.begin(),m_constraint_forces.end());
         }
     Integrator::computeNetForce(timestep);
     if (m_rigid_bodies)
         {
+	std::reverse(m_constraint_forces.begin(),m_constraint_forces.end());
         m_constraint_forces.pop_back();
         }
     }
@@ -356,10 +358,12 @@ void IntegratorTwoStep::computeNetForceGPU(uint64_t timestep)
         {
         m_rigid_bodies->validateRigidBodies();
         m_constraint_forces.push_back(m_rigid_bodies);
+	std::reverse(m_constraint_forces.begin(),m_constraint_forces.end());
         }
     Integrator::computeNetForceGPU(timestep);
     if (m_rigid_bodies)
         {
+	std::reverse(m_constraint_forces.begin(),m_constraint_forces.end());
         m_constraint_forces.pop_back();
         }
     }
