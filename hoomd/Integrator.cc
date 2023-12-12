@@ -269,63 +269,60 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
 
-        {
-        // access the net force and virial arrays
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-        const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
-        const GlobalArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_net_torque(net_torque,
-                                          access_location::host,
-                                          access_mode::readwrite);
-        size_t net_virial_pitch = net_virial.getPitch();
+           {
+           // access the net force and virial arrays
+           const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+           const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+           const GlobalArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
+           ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
+           ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+           ArrayHandle<Scalar4> h_net_torque(net_torque,
+                                             access_location::host,
+                                             access_mode::readwrite);
+           size_t net_virial_pitch = net_virial.getPitch();
 
-        // now, add up the net forces
-        unsigned int nparticles = m_pdata->getN();
-        assert(nparticles <= net_force.getNumElements());
-        assert(6 * nparticles <= net_virial.getNumElements());
-        for (const auto& constraint_force : m_constraint_forces)
-            {
-            const GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
-            const GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
-            const GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
-            ArrayHandle<Scalar4> h_force(h_force_array, access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_virial(h_virial_array, access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);
-            size_t virial_pitch = h_virial_array.getPitch();
+           // now, add up the net forces
+           unsigned int nparticles = m_pdata->getN();
+           assert(nparticles <= net_force.getNumElements());
+           assert(6 * nparticles <= net_virial.getNumElements());
+           const GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+           const GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+           const GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
+           ArrayHandle<Scalar4> h_force(h_force_array, access_location::host, access_mode::read);
+           ArrayHandle<Scalar> h_virial(h_virial_array, access_location::host, access_mode::read);
+           ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);
+           size_t virial_pitch = h_virial_array.getPitch();
 
-            assert(nparticles <= h_force_array.getNumElements());
-            assert(6 * nparticles <= h_virial_array.getNumElements());
-            assert(nparticles <= h_torque_array.getNumElements());
+           assert(nparticles <= h_force_array.getNumElements());
+           assert(6 * nparticles <= h_virial_array.getNumElements());
+           assert(nparticles <= h_torque_array.getNumElements());
 
-            for (unsigned int j = 0; j < nparticles; j++)
-                {
-                h_net_force.data[j].x += h_force.data[j].x;
-                h_net_force.data[j].y += h_force.data[j].y;
-                h_net_force.data[j].z += h_force.data[j].z;
-                h_net_force.data[j].w += h_force.data[j].w;
+           for (unsigned int j = 0; j < nparticles; j++)
+               {
+               h_net_force.data[j].x += h_force.data[j].x;
+               h_net_force.data[j].y += h_force.data[j].y;
+               h_net_force.data[j].z += h_force.data[j].z;
+               h_net_force.data[j].w += h_force.data[j].w;
 
-                h_net_torque.data[j].x += h_torque.data[j].x;
-                h_net_torque.data[j].y += h_torque.data[j].y;
-                h_net_torque.data[j].z += h_torque.data[j].z;
-                h_net_torque.data[j].w += h_torque.data[j].w;
+               h_net_torque.data[j].x += h_torque.data[j].x;
+               h_net_torque.data[j].y += h_torque.data[j].y;
+               h_net_torque.data[j].z += h_torque.data[j].z;
+               h_net_torque.data[j].w += h_torque.data[j].w;
 
-                for (unsigned int k = 0; k < 6; k++)
-                    {
-                    h_net_virial.data[k * net_virial_pitch + j]
-                        += h_virial.data[k * virial_pitch + j];
-                    }
-                }
-            for (unsigned int k = 0; k < 6; k++)
-                {
-                external_virial[k] += constraint_force->getExternalVirial(k);
-                }
+               for (unsigned int k = 0; k < 6; k++)
+                   {
+                   h_net_virial.data[k * net_virial_pitch + j]
+                       += h_virial.data[k * virial_pitch + j];
+                   }
+               }
+           for (unsigned int k = 0; k < 6; k++)
+               {
+               external_virial[k] += constraint_force->getExternalVirial(k);
+               }
 
-            external_energy += constraint_force->getExternalEnergy();
-            }
+           external_energy += constraint_force->getExternalEnergy();
+           }
         }
 
     for (unsigned int k = 0; k < 6; k++)

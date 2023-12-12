@@ -229,7 +229,7 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        if(m_manifold.implicitFunction(pi) > 0 )
+	if(m_manifold.implicitFunction(pi) >= 0 )
 		continue;
 
 	vec3<Scalar> norm = -normalize(vec3<Scalar>(m_manifold.derivative(pi))); 
@@ -239,8 +239,14 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	if(normal_magnitude < 0)
 		continue;
 
+
 	vec3<Scalar> perp_force =  -net_force + normal_magnitude*norm;
 	Scalar perp_magnitude = fast::sqrt(dot(perp_force,perp_force));
+
+	std::cout << perp_force.x << " " << perp_force.y << " " << perp_force.z;
+	std::cout << " | " << norm.x << " " << norm.y << " " << norm.z;
+	std::cout << " Friction| " << net_force.x << " " << net_force.y << " " << net_force.z << std::endl;
+
 
 	if( perp_magnitude > m_mus[typei]*normal_magnitude)
 		perp_force *= (normal_magnitude*m_muk[typei]/perp_magnitude);
@@ -281,14 +287,14 @@ void WallForceConstraintCompute<Manifold>::computeConstraintForces()
 
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-	Scalar distance = -m_manifold.implicitFunction(pi) ;
+	Scalar distance = m_manifold.implicitFunction(pi) ;
 
         if(distance >= 0)
 		continue;
 
 	vec3<Scalar> norm = normalize(vec3<Scalar>(m_manifold.derivative(pi))); 
 
-	norm *= (m_k[typei]*distance);
+	norm *= (-m_k[typei]*distance);
 
         h_force.data[idx].x += norm.x;
         h_force.data[idx].y += norm.y;
@@ -313,7 +319,9 @@ void export_WallForceConstraintCompute(pybind11::module& m, const std::string& n
                      std::shared_ptr<WallForceConstraintCompute<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            Manifold>());
+                            Manifold>())
+        .def("setParams", &WallForceConstraintCompute<Manifold>::setParamsPython)
+        .def("getParams", &WallForceConstraintCompute<Manifold>::getParams);
     }
 
     } // end namespace detail
