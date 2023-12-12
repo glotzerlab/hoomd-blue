@@ -6,35 +6,35 @@
 #include "hoomd/hpmc/IntegratorHPMC.h"
 
 namespace hoomd
-{
+    {
 namespace hpmc
-{
+    {
 
 /*** Compute Lennard-Jones energy between two particles.
 
 For use with HPMC simulations.
 */
 class PatchEnergyLJ : public hpmc::PatchEnergy
-{
-public:
+    {
+    public:
     PatchEnergyLJ(std::shared_ptr<SystemDefinition> sysdef);
-    virtual ~PatchEnergyLJ() {}
+    virtual ~PatchEnergyLJ() { }
 
     virtual LongReal getRCut();
     virtual ShortReal energy(const vec3<ShortReal>& r_ij,
-                         unsigned int type_i,
-                         const quat<ShortReal>& q_i,
-                         ShortReal d_i,
-                         ShortReal charge_i,
-                         unsigned int type_j,
-                         const quat<ShortReal>& q_j,
-                         ShortReal d_j,
-                         ShortReal charge_j);
+                             unsigned int type_i,
+                             const quat<ShortReal>& q_i,
+                             ShortReal d_i,
+                             ShortReal charge_i,
+                             unsigned int type_j,
+                             const quat<ShortReal>& q_j,
+                             ShortReal d_j,
+                             ShortReal charge_j);
 
     virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
     virtual pybind11::dict getParamsPython(pybind11::tuple typ);
 
-protected:
+    protected:
     /// Shifting modes that can be applied to the energy
     enum EnergyShiftMode
         {
@@ -117,7 +117,7 @@ protected:
 
     Index2DUpperTriangular m_type_param_index;
     std::vector<ParamType> m_params;
-};
+    };
 
 namespace detail
     {

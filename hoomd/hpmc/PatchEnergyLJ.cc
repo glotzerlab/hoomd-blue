@@ -4,21 +4,20 @@
 #include "PatchEnergyLJ.h"
 
 namespace hoomd
-{
+    {
 namespace hpmc
-{
+    {
 
-PatchEnergyLJ::PatchEnergyLJ(std::shared_ptr<SystemDefinition> sysdef)  :
-    PatchEnergy(sysdef),
-    m_type_param_index(sysdef->getParticleData()->getNTypes()),
-    m_params(sysdef->getParticleData()->getNTypes())
+PatchEnergyLJ::PatchEnergyLJ(std::shared_ptr<SystemDefinition> sysdef)
+    : PatchEnergy(sysdef), m_type_param_index(sysdef->getParticleData()->getNTypes()),
+      m_params(sysdef->getParticleData()->getNTypes())
     {
     }
 
 LongReal PatchEnergyLJ::getRCut()
     {
     LongReal r_cut = 0;
-    for (const auto& param: m_params)
+    for (const auto& param : m_params)
         {
         r_cut = std::max(r_cut, LongReal(slow::sqrt(param.r_cut_squared)));
         }
@@ -26,14 +25,14 @@ LongReal PatchEnergyLJ::getRCut()
     }
 
 ShortReal PatchEnergyLJ::energy(const vec3<ShortReal>& r_ij,
-                         unsigned int type_i,
-                         const quat<ShortReal>& q_i,
-                         ShortReal d_i,
-                         ShortReal charge_i,
-                         unsigned int type_j,
-                         const quat<ShortReal>& q_j,
-                         ShortReal d_j,
-                         ShortReal charge_j)
+                                unsigned int type_i,
+                                const quat<ShortReal>& q_i,
+                                ShortReal d_i,
+                                ShortReal charge_i,
+                                unsigned int type_j,
+                                const quat<ShortReal>& q_j,
+                                ShortReal d_j,
+                                ShortReal charge_j)
     {
     ShortReal r_squared = dot(r_ij, r_ij);
 
@@ -91,7 +90,6 @@ void export_PatchEnergyLJ(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PatchEnergyLJ::setParamsPython)
         .def("getParams", &PatchEnergyLJ::getParamsPython);
-
     }
     } // end namespace detail
     } // end namespace hpmc
