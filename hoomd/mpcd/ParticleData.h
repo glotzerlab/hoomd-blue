@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_PARTICLE_DATA_H_
@@ -73,7 +73,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     public:
     //! Number constructor
     ParticleData(unsigned int N,
-                 const std::shared_ptr<const BoxDim> local_box,
+                 std::shared_ptr<const BoxDim> local_box,
                  Scalar kT,
                  unsigned int seed,
                  unsigned int ndimensions,
@@ -82,8 +82,8 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
                  = std::shared_ptr<DomainDecomposition>());
 
     //! Snapshot constructor
-    ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                 const std::shared_ptr<const BoxDim> global_box,
+    ParticleData(const mpcd::ParticleDataSnapshot& snapshot,
+                 std::shared_ptr<const BoxDim> global_box,
                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
@@ -92,19 +92,19 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     ~ParticleData();
 
     //! Initialize the MPCD particle data from a snapshot
-    void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
-                                const std::shared_ptr<const BoxDim> global_box);
+    void initializeFromSnapshot(const mpcd::ParticleDataSnapshot& snapshot,
+                                std::shared_ptr<const BoxDim> global_box);
 
     //! Default initialize the MPCD particle data per rank
     void initializeRandom(unsigned int N,
-                          const std::shared_ptr<const BoxDim> local_box,
+                          std::shared_ptr<const BoxDim> local_box,
                           Scalar kT,
                           unsigned int seed,
                           unsigned int ndimensions);
 
     //! Take a snapshot of the MPCD particle data
-    void takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                      const std::shared_ptr<const BoxDim> global_box) const;
+    void takeSnapshot(mpcd::ParticleDataSnapshot& snapshot,
+                      std::shared_ptr<const BoxDim> global_box) const;
 
     //! \name accessor methods
     //@{
@@ -442,11 +442,10 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     Nano::Signal<void()> m_virtual_signal; //!< Signal for number of virtual particles changing
 
     //! Check for a valid snapshot
-    bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);
+    bool checkSnapshot(const mpcd::ParticleDataSnapshot& snapshot);
 
     //! Check if all particles lie within the box
-    bool checkInBox(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-                    const std::shared_ptr<const BoxDim> box);
+    bool checkInBox(const mpcd::ParticleDataSnapshot& snapshot, std::shared_ptr<const BoxDim> box);
 
     //! Set the global number of particles (for parallel simulations)
     void setNGlobal(unsigned int nglobal);

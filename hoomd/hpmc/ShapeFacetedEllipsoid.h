@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
-#include "HPMCPrecisionSetup.h"
 #include "OBB.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeSphere.h"
@@ -50,8 +49,8 @@ struct FacetedEllipsoidParams : ShapeParams
     FacetedEllipsoidParams(unsigned int n_facet, bool managed)
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
-        n = ManagedArray<vec3<OverlapReal>>(n_facet, managed);
-        offset = ManagedArray<OverlapReal>(n_facet, managed);
+        n = ManagedArray<vec3<ShortReal>>(n_facet, managed);
+        offset = ManagedArray<ShortReal>(n_facet, managed);
         }
 
     /// Construct from a Python dictionary
@@ -61,9 +60,9 @@ struct FacetedEllipsoidParams : ShapeParams
         pybind11::list normals = v["normals"];
         pybind11::list offsets = v["offsets"];
         pybind11::object vertices = v["vertices"];
-        a = v["a"].cast<OverlapReal>();
-        b = v["b"].cast<OverlapReal>();
-        c = v["c"].cast<OverlapReal>();
+        a = v["a"].cast<ShortReal>();
+        b = v["b"].cast<ShortReal>();
+        c = v["c"].cast<ShortReal>();
         pybind11::tuple origin_tuple = v["origin"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
@@ -78,10 +77,10 @@ struct FacetedEllipsoidParams : ShapeParams
                 throw std::runtime_error("Each normal must have 3 elements: found "
                                          + pybind11::str(normals_i).cast<std::string>() + " in "
                                          + pybind11::str(normals).cast<std::string>());
-            n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]),
-                                     pybind11::cast<OverlapReal>(normals_i[1]),
-                                     pybind11::cast<OverlapReal>(normals_i[2]));
-            offset[i] = pybind11::cast<OverlapReal>(offsets[i]);
+            n[i] = vec3<ShortReal>(pybind11::cast<ShortReal>(normals_i[0]),
+                                   pybind11::cast<ShortReal>(normals_i[1]),
+                                   pybind11::cast<ShortReal>(normals_i[2]));
+            offset[i] = pybind11::cast<ShortReal>(offsets[i]);
             }
 
         // extract the vertices from the python list
@@ -107,9 +106,9 @@ struct FacetedEllipsoidParams : ShapeParams
             }
 
         // set the origin
-        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]),
-                                   pybind11::cast<OverlapReal>(origin_tuple[1]),
-                                   pybind11::cast<OverlapReal>(origin_tuple[2]));
+        origin = vec3<ShortReal>(pybind11::cast<ShortReal>(origin_tuple[0]),
+                                 pybind11::cast<ShortReal>(origin_tuple[1]),
+                                 pybind11::cast<ShortReal>(origin_tuple[2]));
 
         // add the edge-sphere vertices
         initializeVertices(managed);
@@ -127,9 +126,9 @@ struct FacetedEllipsoidParams : ShapeParams
             {
             pybind11::list vert_i = vertices[i];
             pybind11::list vert;
-            OverlapReal x = vert_i[0].cast<OverlapReal>();
-            OverlapReal y = vert_i[1].cast<OverlapReal>();
-            OverlapReal z = vert_i[2].cast<OverlapReal>();
+            ShortReal x = vert_i[0].cast<ShortReal>();
+            ShortReal y = vert_i[1].cast<ShortReal>();
+            ShortReal z = vert_i[2].cast<ShortReal>();
             vert.append(x * a);
             vert.append(y * b);
             vert.append(z * c);
@@ -140,7 +139,7 @@ struct FacetedEllipsoidParams : ShapeParams
             {
             offsets.append(offset[i]);
 
-            vec3<OverlapReal> normal_i = n[i];
+            vec3<ShortReal> normal_i = n[i];
             pybind11::list normal_i_list;
             normal_i_list.append(normal_i.x);
             normal_i_list.append(normal_i.y);
@@ -170,55 +169,55 @@ struct FacetedEllipsoidParams : ShapeParams
         {
         const Scalar tolerance = 1e-5;
         additional_verts = detail::PolyhedronVertices(2 * N * N, managed);
-        additional_verts.diameter = OverlapReal(2.0); // for unit sphere
+        additional_verts.diameter = ShortReal(2.0); // for unit sphere
         additional_verts.N = 0;
 
         // iterate over unique pairs of planes
         for (unsigned int i = 0; i < N; ++i)
             {
-            vec3<OverlapReal> n_p(n[i]);
+            vec3<ShortReal> n_p(n[i]);
             // transform plane normal into the coordinate system of the unit sphere
             n_p.x *= a;
             n_p.y *= b;
             n_p.z *= c;
 
-            OverlapReal b(offset[i]);
+            ShortReal b(offset[i]);
 
             for (unsigned int j = i + 1; j < N; ++j)
                 {
-                vec3<OverlapReal> np2(n[j]);
+                vec3<ShortReal> np2(n[j]);
                 // transform plane normal into the coordinate system of the unit sphere
                 np2.x *= a;
                 np2.y *= b;
                 np2.z *= c;
 
-                OverlapReal b2 = offset[j];
-                OverlapReal np2_sq = dot(np2, np2);
+                ShortReal b2 = offset[j];
+                ShortReal np2_sq = dot(np2, np2);
 
                 // determine intersection line between plane i and plane j
 
                 // point on intersection line closest to center of sphere
-                OverlapReal dotp = dot(np2, n_p);
-                OverlapReal denom = dotp * dotp - dot(n_p, n_p) * np2_sq;
-                OverlapReal lambda0 = OverlapReal(2.0) * (b2 * dotp - b * np2_sq) / denom;
-                OverlapReal lambda1 = OverlapReal(2.0) * (-b2 * dot(n_p, n_p) + b * dotp) / denom;
+                ShortReal dotp = dot(np2, n_p);
+                ShortReal denom = dotp * dotp - dot(n_p, n_p) * np2_sq;
+                ShortReal lambda0 = ShortReal(2.0) * (b2 * dotp - b * np2_sq) / denom;
+                ShortReal lambda1 = ShortReal(2.0) * (-b2 * dot(n_p, n_p) + b * dotp) / denom;
 
-                vec3<OverlapReal> r = -(lambda0 * n_p + lambda1 * np2) / OverlapReal(2.0);
+                vec3<ShortReal> r = -(lambda0 * n_p + lambda1 * np2) / ShortReal(2.0);
 
                 // if the line does not intersect the sphere, ignore
-                if (dot(r, r) > OverlapReal(1.0))
+                if (dot(r, r) > ShortReal(1.0))
                     continue;
 
                 // the line intersects with the sphere at two points, one of
                 // which maximizes the support function
-                vec3<OverlapReal> c01 = cross(n_p, np2);
-                OverlapReal s = fast::sqrt((OverlapReal(1.0) - dot(r, r)) * dot(c01, c01));
+                vec3<ShortReal> c01 = cross(n_p, np2);
+                ShortReal s = fast::sqrt((ShortReal(1.0) - dot(r, r)) * dot(c01, c01));
 
-                OverlapReal t0 = (-dot(r, c01) - s) / dot(c01, c01);
-                OverlapReal t1 = (-dot(r, c01) + s) / dot(c01, c01);
+                ShortReal t0 = (-dot(r, c01) - s) / dot(c01, c01);
+                ShortReal t1 = (-dot(r, c01) + s) / dot(c01, c01);
 
-                vec3<OverlapReal> v1 = r + t0 * c01;
-                vec3<OverlapReal> v2 = r + t1 * c01;
+                vec3<ShortReal> v1 = r + t0 * c01;
+                vec3<ShortReal> v2 = r + t1 * c01;
 
                 // check first point
                 bool allowed = true;
@@ -227,23 +226,23 @@ struct FacetedEllipsoidParams : ShapeParams
                     if (k == i || k == j)
                         continue;
 
-                    vec3<OverlapReal> np3(n[k]);
+                    vec3<ShortReal> np3(n[k]);
                     // transform plane normal into the coordinate system of the unit sphere
                     np3.x *= a;
                     np3.y *= b;
                     np3.z *= c;
 
-                    OverlapReal b3(offset[k]);
+                    ShortReal b3(offset[k]);
 
                     // is this vertex inside the volume bounded by all halfspaces?
-                    if (dot(np3, v1) + b3 > OverlapReal(0.0))
+                    if (dot(np3, v1) + b3 > ShortReal(0.0))
                         {
                         allowed = false;
                         break;
                         }
                     }
 
-                if (allowed && dot(v1, v1) <= OverlapReal(1.0 + tolerance))
+                if (allowed && dot(v1, v1) <= ShortReal(1.0 + tolerance))
                     {
                     additional_verts.x[additional_verts.N] = v1.x;
                     additional_verts.y[additional_verts.N] = v1.y;
@@ -258,23 +257,23 @@ struct FacetedEllipsoidParams : ShapeParams
                     if (k == i || k == j)
                         continue;
 
-                    vec3<OverlapReal> np3(n[k]);
+                    vec3<ShortReal> np3(n[k]);
                     // transform plane normal into the coordinate system of the unit sphere
                     np3.x *= a;
                     np3.y *= b;
                     np3.z *= c;
 
-                    OverlapReal b3(offset[k]);
+                    ShortReal b3(offset[k]);
 
                     // is this vertex inside the volume bounded by all halfspaces?
-                    if (dot(np3, v2) + b3 > OverlapReal(0.0))
+                    if (dot(np3, v2) + b3 > ShortReal(0.0))
                         {
                         allowed = false;
                         break;
                         }
                     }
 
-                if (allowed && dot(v2, v2) <= (OverlapReal(1.0 + tolerance)))
+                if (allowed && dot(v2, v2) <= (ShortReal(1.0 + tolerance)))
                     {
                     additional_verts.x[additional_verts.N] = v2.x;
                     additional_verts.y[additional_verts.N] = v2.y;
@@ -294,22 +293,22 @@ struct FacetedEllipsoidParams : ShapeParams
     PolyhedronVertices additional_verts;
 
     /// Normal vectors of planes
-    ManagedArray<vec3<OverlapReal>> n;
+    ManagedArray<vec3<ShortReal>> n;
 
     /// Offset of every plane
-    ManagedArray<OverlapReal> offset;
+    ManagedArray<ShortReal> offset;
 
     /// First half-axis
-    OverlapReal a;
+    ShortReal a;
 
     /// Second half-axis
-    OverlapReal b;
+    ShortReal b;
 
     /// Third half-axis
-    OverlapReal c;
+    ShortReal c;
 
     /// Origin shift
-    vec3<OverlapReal> origin;
+    vec3<ShortReal> origin;
 
     /// Number of cut planes
     unsigned int N;
@@ -354,25 +353,25 @@ class SupportFuncFacetedEllipsoid
         @param _sweep_radius additional sweep radius
     */
     DEVICE SupportFuncFacetedEllipsoid(const FacetedEllipsoidParams& _params,
-                                       const OverlapReal& _sweep_radius = OverlapReal(0.0))
+                                       const ShortReal& _sweep_radius = ShortReal(0.0))
         : params(_params), sweep_radius(_sweep_radius)
         {
         }
 
-    DEVICE inline bool isInside(const vec3<OverlapReal>& v, unsigned int plane) const
+    DEVICE inline bool isInside(const vec3<ShortReal>& v, unsigned int plane) const
         {
         // is this vertex masked by a plane?
-        vec3<OverlapReal> np = params.n[plane];
+        vec3<ShortReal> np = params.n[plane];
 
         // transform plane normal into the coordinate system of the unit sphere
         // so that dot(np,v) has dimensions of b [length], since v is a unit vector
         np.x *= params.a;
         np.y *= params.b;
         np.z *= params.c;
-        OverlapReal b = params.offset[plane];
+        ShortReal b = params.offset[plane];
 
         // is current supporting vertex inside the half-space defined by this plane?
-        return (dot(np, v) + b <= OverlapReal(0.0));
+        return (dot(np, v) + b <= ShortReal(0.0));
         }
 
     /** Compute the support function
@@ -380,20 +379,20 @@ class SupportFuncFacetedEllipsoid
         @param n Normal vector input (in the local frame)
         @returns Local coords of the point furthest in the direction of n
     */
-    DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& n_in) const
+    DEVICE vec3<ShortReal> operator()(const vec3<ShortReal>& n_in) const
         {
         const Scalar tolerance = 1e-5;
 
         // transform support direction into coordinate system of the unit sphere
-        vec3<OverlapReal> n(n_in);
+        vec3<ShortReal> n(n_in);
         n.x *= params.a;
         n.y *= params.b;
         n.z *= params.c;
 
-        OverlapReal nsq = dot(n, n);
-        vec3<OverlapReal> n_sphere = n * fast::rsqrt(nsq);
+        ShortReal nsq = dot(n, n);
+        vec3<ShortReal> n_sphere = n * fast::rsqrt(nsq);
 
-        vec3<OverlapReal> max_vec = n_sphere;
+        vec3<ShortReal> max_vec = n_sphere;
         bool have_vertex = true;
 
         unsigned int n_planes = params.N;
@@ -409,24 +408,24 @@ class SupportFuncFacetedEllipsoid
         // iterate over intersecting planes
         for (unsigned int i = 0; i < n_planes; i++)
             {
-            vec3<OverlapReal> n_p = params.n[i];
+            vec3<ShortReal> n_p = params.n[i];
             // transform plane normal into the coordinate system of the unit sphere
             n_p.x *= params.a;
             n_p.y *= params.b;
             n_p.z *= params.c;
 
-            OverlapReal np_sq = dot(n_p, n_p);
-            OverlapReal b = params.offset[i];
+            ShortReal np_sq = dot(n_p, n_p);
+            ShortReal b = params.offset[i];
 
             // compute supporting vertex on intersection boundary (circle)
             // between plane and sphere
-            OverlapReal alpha = dot(n_sphere, n_p);
-            OverlapReal arg = (OverlapReal(1.0) - alpha * alpha / np_sq);
-            vec3<OverlapReal> v;
-            if (arg >= OverlapReal(tolerance))
+            ShortReal alpha = dot(n_sphere, n_p);
+            ShortReal arg = (ShortReal(1.0) - alpha * alpha / np_sq);
+            vec3<ShortReal> v;
+            if (arg >= ShortReal(tolerance))
                 {
-                OverlapReal arg2 = OverlapReal(1.0) - b * b / np_sq;
-                OverlapReal invgamma = fast::sqrt(arg2 / arg);
+                ShortReal arg2 = ShortReal(1.0) - b * b / np_sq;
+                ShortReal invgamma = fast::sqrt(arg2 / arg);
 
                 // Intersection vertex that maximizes support function
                 v = invgamma * (n_sphere - alpha / np_sq * n_p) - n_p * b / np_sq;
@@ -458,7 +457,7 @@ class SupportFuncFacetedEllipsoid
         if (params.additional_verts.N)
             {
             detail::SupportFuncConvexPolyhedron s(params.additional_verts);
-            vec3<OverlapReal> v = s(n);
+            vec3<ShortReal> v = s(n);
 
             if (!have_vertex || dot(v, n) > dot(max_vec, n))
                 {
@@ -471,8 +470,8 @@ class SupportFuncFacetedEllipsoid
         if (params.verts.N)
             {
             detail::SupportFuncConvexPolyhedron s(params.verts);
-            vec3<OverlapReal> v = s(n);
-            if (dot(v, v) <= OverlapReal(1.0) && (!have_vertex || dot(v, n) > dot(max_vec, n)))
+            vec3<ShortReal> v = s(n);
+            if (dot(v, v) <= ShortReal(1.0) && (!have_vertex || dot(v, n) > dot(max_vec, n)))
                 {
                 max_vec = v;
                 have_vertex = true;
@@ -496,7 +495,7 @@ class SupportFuncFacetedEllipsoid
     const FacetedEllipsoidParams& params;
 
     /// The radius of a sphere sweeping the shape
-    const OverlapReal sweep_radius;
+    const ShortReal sweep_radius;
     };
 
     } // end namespace detail
@@ -535,13 +534,13 @@ struct ShapeFacetedEllipsoid
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
-        return OverlapReal(2) * detail::max(params.a, detail::max(params.b, params.c));
+        return ShortReal(2) * detail::max(params.a, detail::max(params.b, params.c));
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         return 0.0;
         }
@@ -552,22 +551,22 @@ struct ShapeFacetedEllipsoid
         // use support function of the ellipsoid to determine the furthest extent in each direction
         detail::SupportFuncFacetedEllipsoid sfunc(params);
 
-        vec3<OverlapReal> e_x(1, 0, 0);
-        vec3<OverlapReal> e_y(0, 1, 0);
-        vec3<OverlapReal> e_z(0, 0, 1);
-        quat<OverlapReal> q(orientation);
-        vec3<OverlapReal> s_x_plus
-            = rotate(q, sfunc(rotate(conj(q), e_x)) + vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_y_plus
-            = rotate(q, sfunc(rotate(conj(q), e_y)) + vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_z_plus
-            = rotate(q, sfunc(rotate(conj(q), e_z)) + vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_x_minus
-            = rotate(q, sfunc(rotate(conj(q), -e_x)) + vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_y_minus
-            = rotate(q, sfunc(rotate(conj(q), -e_y)) + vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_z_minus
-            = rotate(q, sfunc(rotate(conj(q), -e_z)) + vec3<OverlapReal>(params.origin));
+        vec3<ShortReal> e_x(1, 0, 0);
+        vec3<ShortReal> e_y(0, 1, 0);
+        vec3<ShortReal> e_z(0, 0, 1);
+        quat<ShortReal> q(orientation);
+        vec3<ShortReal> s_x_plus
+            = rotate(q, sfunc(rotate(conj(q), e_x)) + vec3<ShortReal>(params.origin));
+        vec3<ShortReal> s_y_plus
+            = rotate(q, sfunc(rotate(conj(q), e_y)) + vec3<ShortReal>(params.origin));
+        vec3<ShortReal> s_z_plus
+            = rotate(q, sfunc(rotate(conj(q), e_z)) + vec3<ShortReal>(params.origin));
+        vec3<ShortReal> s_x_minus
+            = rotate(q, sfunc(rotate(conj(q), -e_x)) + vec3<ShortReal>(params.origin));
+        vec3<ShortReal> s_y_minus
+            = rotate(q, sfunc(rotate(conj(q), -e_y)) + vec3<ShortReal>(params.origin));
+        vec3<ShortReal> s_z_minus
+            = rotate(q, sfunc(rotate(conj(q), -e_z)) + vec3<ShortReal>(params.origin));
 
         // translate out from the position by the furthest extent
         vec3<Scalar> upper(pos.x + s_x_plus.x, pos.y + s_y_plus.y, pos.z + s_z_plus.z);
@@ -580,15 +579,15 @@ struct ShapeFacetedEllipsoid
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         detail::SupportFuncFacetedEllipsoid sfunc(params);
-        vec3<OverlapReal> e_x(1, 0, 0);
-        vec3<OverlapReal> e_y(0, 1, 0);
-        vec3<OverlapReal> e_z(0, 0, 1);
-        vec3<OverlapReal> s_x_minus = sfunc(-e_x) + vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_y_minus = sfunc(-e_y) + vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_z_minus = sfunc(-e_z) + vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_x_plus = sfunc(e_x) + vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_y_plus = sfunc(e_y) + vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_z_plus = sfunc(e_z) + vec3<OverlapReal>(params.origin);
+        vec3<ShortReal> e_x(1, 0, 0);
+        vec3<ShortReal> e_y(0, 1, 0);
+        vec3<ShortReal> e_z(0, 0, 1);
+        vec3<ShortReal> s_x_minus = sfunc(-e_x) + vec3<ShortReal>(params.origin);
+        vec3<ShortReal> s_y_minus = sfunc(-e_y) + vec3<ShortReal>(params.origin);
+        vec3<ShortReal> s_z_minus = sfunc(-e_z) + vec3<ShortReal>(params.origin);
+        vec3<ShortReal> s_x_plus = sfunc(e_x) + vec3<ShortReal>(params.origin);
+        vec3<ShortReal> s_y_plus = sfunc(e_y) + vec3<ShortReal>(params.origin);
+        vec3<ShortReal> s_z_plus = sfunc(e_z) + vec3<ShortReal>(params.origin);
 
         detail::OBB obb;
         obb.center = pos;
@@ -636,17 +635,17 @@ test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r
                                                            const ShapeFacetedEllipsoid& b,
                                                            unsigned int& err)
     {
-    vec3<OverlapReal> dr(r_ab);
+    vec3<ShortReal> dr(r_ab);
 
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     return detail::xenocollide_3d(
         detail::SupportFuncFacetedEllipsoid(a.params),
         detail::SupportFuncFacetedEllipsoid(b.params),
-        rotate(conj(quat<OverlapReal>(a.orientation)),
-               dr + rotate(quat<OverlapReal>(b.orientation), b.params.origin))
+        rotate(conj(quat<ShortReal>(a.orientation)),
+               dr + rotate(quat<ShortReal>(b.orientation), b.params.origin))
             - a.params.origin,
-        conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-        DaDb / OverlapReal(2.0),
+        conj(quat<ShortReal>(a.orientation)) * quat<ShortReal>(b.orientation),
+        DaDb / ShortReal(2.0),
         err);
     }
 

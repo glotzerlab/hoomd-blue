@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_WALL_H_
@@ -44,8 +44,8 @@ struct SphereWall
           verts(new detail::PolyhedronVertices(1, false))
         {
         verts->N = 0; // case for sphere (can be 0 or 1)
-        verts->diameter = OverlapReal(r + r);
-        verts->sweep_radius = OverlapReal(r);
+        verts->diameter = ShortReal(r + r);
+        verts->sweep_radius = ShortReal(r);
         verts->ignore = 0;
         }
 #ifndef __HIPCC__
@@ -108,7 +108,7 @@ struct CylinderWall
 
         // set the position of the vertices and the diameter later
         verts->N = 2;
-        verts->sweep_radius = OverlapReal(r);
+        verts->sweep_radius = ShortReal(r);
         verts->ignore = 0;
         }
 #ifndef __HIPCC__
@@ -227,7 +227,7 @@ DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall
 
     Scalar rxyz_sq = shifted_pos.x * shifted_pos.x + shifted_pos.y * shifted_pos.y
                      + shifted_pos.z * shifted_pos.z; // distance from the container origin.
-    Scalar max_dist = sqrt(rxyz_sq) + (shape.getCircumsphereDiameter() / OverlapReal(2.0));
+    Scalar max_dist = sqrt(rxyz_sq) + (shape.getCircumsphereDiameter() / ShortReal(2.0));
     if (!wall.inside)
         {
         // if we must be outside the wall, subtract particle radius from min_dist
@@ -632,7 +632,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
-                           const BoxDim& box_old)
+                           const BoxDim& box_old,
+                           const Scalar3& origin_old)
         {
         unsigned int numOverlaps = countOverlaps(0, false);
         if (numOverlaps > 0)
@@ -729,15 +730,15 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         {
         vec3<Scalar> v0;
         v0 = Scalar(shape.getCircumsphereDiameter()) * wall.orientation;
-        wall.verts->x[0] = OverlapReal(-v0.x);
-        wall.verts->y[0] = OverlapReal(-v0.y);
-        wall.verts->z[0] = OverlapReal(-v0.z);
+        wall.verts->x[0] = ShortReal(-v0.x);
+        wall.verts->y[0] = ShortReal(-v0.y);
+        wall.verts->z[0] = ShortReal(-v0.z);
 
-        wall.verts->x[1] = OverlapReal(v0.x);
-        wall.verts->y[1] = OverlapReal(v0.y);
-        wall.verts->z[1] = OverlapReal(v0.z);
+        wall.verts->x[1] = ShortReal(v0.x);
+        wall.verts->y[1] = ShortReal(v0.y);
+        wall.verts->z[1] = ShortReal(v0.z);
         wall.verts->diameter
-            = OverlapReal(2.0 * (shape.getCircumsphereDiameter() + wall.verts->sweep_radius));
+            = ShortReal(2.0 * (shape.getCircumsphereDiameter() + wall.verts->sweep_radius));
         }
 
     protected:

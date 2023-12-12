@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -109,6 +109,9 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         {
         m_rigid_bodies = new_rigid;
         }
+
+    /// Validate method groups.
+    void validateGroups();
 
     protected:
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>

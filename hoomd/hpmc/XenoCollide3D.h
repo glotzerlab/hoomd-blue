@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HPMCPrecisionSetup.h"
 #include "MinkowskiMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -73,22 +72,22 @@ const unsigned int XENOCOLLIDE_3D_MAX_ITERATIONS = 1024;
 template<class SupportFuncA, class SupportFuncB>
 DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
                                   const SupportFuncB& sb,
-                                  const vec3<OverlapReal>& ab_t,
-                                  const quat<OverlapReal>& q,
-                                  const OverlapReal R,
+                                  const vec3<ShortReal>& ab_t,
+                                  const quat<ShortReal>& q,
+                                  const ShortReal R,
                                   unsigned int& err_count)
     {
     // This implementation of XenoCollide is hand-written from the description of the algorithm on
     // page 171 of _Games Programming Gems 7_
 
-    vec3<OverlapReal> v0, v1, v2, v3, v4, n;
+    vec3<ShortReal> v0, v1, v2, v3, v4, n;
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);
-    OverlapReal d;
-    const OverlapReal precision_tol
-        = OverlapReal(1e-7); // precision tolerance for single-precision floats near 1.0
+    ShortReal d;
+    const ShortReal precision_tol
+        = ShortReal(1e-7); // precision tolerance for single-precision floats near 1.0
 
     // square root of precision tolerance, in distance units
-    const OverlapReal root_tol = OverlapReal(3e-4) * R;
+    const ShortReal root_tol = ShortReal(3e-4) * R;
 
     if (fabs(ab_t.x) < root_tol && fabs(ab_t.y) < root_tol && fabs(ab_t.z) < root_tol)
         {
@@ -109,7 +108,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     v1 = S(-v0); // should be guaranteed ||v1|| > 0
 
     /* if (dot(v1, v1 - v0) <= 0) // by convexity */
-    if (dot(v1, v0) > OverlapReal(0.0))
+    if (dot(v1, v0) > ShortReal(0.0))
         return false; // origin is outside v1 support plane
 
     // find support v2 perpendicular to v0, v1 plane
@@ -125,13 +124,13 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     v2 = S(n); // Convexity should guarantee ||v2|| > 0, but v2 == v1 may be possible in edge cases
                // of {B}-{A}
     // particles do not overlap if origin outside v2 support plane
-    if (dot(v2, n) < OverlapReal(0.0))
+    if (dot(v2, n) < ShortReal(0.0))
         return false;
 
     // Find next support direction perpendicular to plane (v1,v0,v2)
     n = cross(v1 - v0, v2 - v0);
     // Maintain known handedness of the portal: make sure plane normal points towards origin
-    if (dot(n, v0) > OverlapReal(0.0))
+    if (dot(n, v0) > ShortReal(0.0))
         {
         v1.swap(v2);
         n = -n;
@@ -161,7 +160,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         // v0), -v0) < 0)
         // -> if (dot(cross(v1 - v0, v3 - v0), v0) < 0)
         // A little bit of algebra shows that dot(cross(a - c, b - c), c) == dot(cross(a, b), c)
-        if (dot(cross(v1, v3), v0) < OverlapReal(0.0))
+        if (dot(cross(v1, v3), v0) < ShortReal(0.0))
             {
             // replace v2 and find new support direction
             v2 = v3; // preserve handedness
@@ -169,7 +168,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
             continue; // continue iterating to find valid portal
             }
         // Check (v2, v0, v3)
-        if (dot(cross(v3, v2), v0) < OverlapReal(0.0))
+        if (dot(cross(v3, v2), v0) < ShortReal(0.0))
             {
             // replace v1 and find new support direction
             v1 = v3;
@@ -194,7 +193,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         // check if origin is inside (or overlapping)
         // the = is important, because in an MC simulation you are guaranteed to find cases where
         // edges and or vertices touch exactly
-        if (dot(v1, n) >= OverlapReal(0.0))
+        if (dot(v1, n) >= ShortReal(0.0))
             {
             return true;
             }
@@ -205,18 +204,18 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
 
         // ----
         // if (origin outside support plane) return false
-        if (dot(v4, n) < OverlapReal(0.0))
+        if (dot(v4, n) < ShortReal(0.0))
             {
             return false;
             }
 
         // Perform tolerance checks
         // are we within an epsilon of the surface of the shape? If yes, done, one way or another
-        const OverlapReal tol_multiplier = 10000;
+        const ShortReal tol_multiplier = 10000;
         n = cross(v2 - v1, v3 - v1);
         d = dot((v4 - v1) * tol_multiplier, n);
         // d is in units of length**3, multiply by R**2 * |n| to put in the same units
-        OverlapReal tol = precision_tol * tol_multiplier * R * R * fast::sqrt(dot(n, n));
+        ShortReal tol = precision_tol * tol_multiplier * R * R * fast::sqrt(dot(n, n));
 
         // First, check if v4 is on plane (v2,v1,v3)
         if (fabs(d) < tol)
@@ -270,17 +269,17 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         //        (v1 % v4) * v0 == v1 * (v4 % v0)    > 0 if origin inside (v1, v4, v0)
         //        (v2 % v4) * v0 == v2 * (v4 % v0)    > 0 if origin inside (v2, v4, v0)
         //        (v3 % v4) * v0 == v3 * (v4 % v0)    > 0 if origin inside (v3, v4, v0)
-        vec3<OverlapReal> x = cross(v4, v0);
-        if (dot(v1, x) > OverlapReal(0.0))
+        vec3<ShortReal> x = cross(v4, v0);
+        if (dot(v1, x) > ShortReal(0.0))
             {
-            if (dot(v2, x) > OverlapReal(0.0))
+            if (dot(v2, x) > ShortReal(0.0))
                 v1 = v4; // Inside v1 & inside v2 ==> eliminate v1
             else
                 v3 = v4; // Inside v1 & outside v2 ==> eliminate v3
             }
         else
             {
-            if (dot(v3, x) > OverlapReal(0.0))
+            if (dot(v3, x) > ShortReal(0.0))
                 v2 = v4; // Outside v1 & inside v3 ==> eliminate v2
             else
                 v1 = v4; // Outside v1 & outside v3 ==> eliminate v1

@@ -26,7 +26,7 @@ set(files __init__.py
     test_manifolds.py
     test_meta_wall_list.py
     test_methods.py
-    test_meshbond.py
+    test_meshpotential.py
     test_minimize_fire.py
     test_reverse_perturbation_flow.py
     test_table_pressure.py
@@ -42,6 +42,8 @@ set(files __init__.py
     test_update_group_dof.py
     test_wall_data.py
     test_wall_potential.py
+    test_burst_writer.py
+    test_hdf5.py
     )
 
 install(FILES ${files}

@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Installing binaries
@@ -24,18 +24,28 @@ Conda package
 **HOOMD-blue** is available on conda-forge_ on the *linux-64*, *osx-64*, and *osx-arm64* platforms.
 Install the ``hoomd`` package from the conda-forge_ channel into a conda environment::
 
-    $ conda install -c conda-forge hoomd
+    $ conda install hoomd=4.3.0
 
-Recent versions of ``conda`` auto-detect whether your system has a GPU and installs the appropriate
-package. Override this and force GPU package installation with::
+``conda`` auto-detects whether your system has a GPU and attempts to install the appropriate
+package. Override this and force the GPU enabled package installation with::
 
-    $ conda install -c conda-forge "hoomd=*=*gpu*"
+    $ export CONDA_OVERRIDE_CUDA="12.0"
+    $ conda install "hoomd=4.3.0=*gpu*" "cuda-version=12.0"
+
+Similarly, you can force CPU only package installation with::
+
+    $ conda install "hoomd=4.3.0=*cpu*"
+
+.. note::
+
+    CUDA 11.2 compatible packages are also available. Replace "12.0" with "11.2" above when
+    installing HOOMD-blue on systems with CUDA 11 compatible drivers.
 
 .. note::
 
     To use :ref:`run time compilation` on **macOS**, install the ``compilers`` package::
 
-        $ conda install -c conda-forge compilers
+        $ conda install compilers
 
     Without this package you will get *file not found* errors when HOOMD-blue performs the run time
     compilation.
@@ -43,7 +53,9 @@ package. Override this and force GPU package installation with::
 .. tip::
 
     Use mambaforge_, miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid
-    package conflicts with conda-forge_ packages.
+    package conflicts with conda-forge_ packages. When using miniconda_, follow the instructions
+    provided in the conda-forge_ documentation to configure the channel selection so that all
+    packages are installed from the conda-forge_ channel.
 
 .. _mambaforge: https://github.com/conda-forge/miniforge
 .. _miniforge: https://github.com/conda-forge/miniforge

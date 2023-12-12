@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement type conversion helpers."""
@@ -146,7 +146,7 @@ class Either(_HelpValidate):
 
     For instance if a parameter can either be a length 6 tuple or float then
 
-    .. code-blocks:: python
+    Example::
 
        e = Either(to_type_converter((float,) * 6), to_type_converter(float))
 
@@ -439,7 +439,7 @@ class TypeConverterSequence(TypeConverter):
         fix length sequences (`TypeConverterFixedLengthSequence` exists for
         this). An Example,
 
-        .. code-block:: python
+        Example::
 
             # All elements should be floats
             TypeConverterSequence(float)
@@ -480,7 +480,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         When validating, a sequence of the exact length given on instantiation
         is expected, else an error is raised.
 
-        .. code-block:: python
+        Example::
 
             # Three floats
             TypeConverterFixedLengthSequence((float, float, float))
@@ -538,7 +538,7 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
         errors or returns a mapping with all the same keys as the inputted
         mapping.
 
-        .. code-block:: python
+        Example::
 
             t = TypeConverterMapping({'str': str, 'list_of_floats': [float]})
 
@@ -600,7 +600,7 @@ def to_type_converter(value):
     This is the function to use when defining validation not any of the
     `TypeConverter` subclasses.
 
-    .. code-block:: python
+    Example::
 
         # list take a list of tuples of 3 floats each
         validation = to_type_converter(

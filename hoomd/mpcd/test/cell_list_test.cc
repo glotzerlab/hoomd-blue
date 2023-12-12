@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
@@ -21,14 +21,14 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(6.0, 8.0, 10.0);
     snap->particle_data.type_mapping.push_back("A");
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    // initialize mpcd system
-    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
-    auto pdata_1 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
+    auto pdata_1 = sysdef->getMPCDParticleData();
 
     // define a system of different edge lengths
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_1));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
 
     // compute the cell list dimensions
     cl->computeDimensions();
@@ -99,27 +99,23 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
+    // place each particle in a different cell, doubling the first cell
+    snap->mpcd_data.resize(9);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(0.5, -0.5, -0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(-0.5, 0.5, -0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, -0.5);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-0.5, -0.5, 0.5);
+    snap->mpcd_data.position[5] = vec3<Scalar>(0.5, -0.5, 0.5);
+    snap->mpcd_data.position[6] = vec3<Scalar>(-0.5, 0.5, 0.5);
+    snap->mpcd_data.position[7] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[8] = vec3<Scalar>(-0.5, -0.5, -0.5);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    // place each particle in a different cell, doubling the first cell
-    std::shared_ptr<mpcd::ParticleData> pdata_9;
-        {
-        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(9);
+    std::shared_ptr<mpcd::ParticleData> pdata_9 = sysdef->getMPCDParticleData();
 
-        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[1] = vec3<Scalar>(0.5, -0.5, -0.5);
-        mpcd_snap->position[2] = vec3<Scalar>(-0.5, 0.5, -0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, -0.5);
-        mpcd_snap->position[4] = vec3<Scalar>(-0.5, -0.5, 0.5);
-        mpcd_snap->position[5] = vec3<Scalar>(0.5, -0.5, 0.5);
-        mpcd_snap->position[6] = vec3<Scalar>(-0.5, 0.5, 0.5);
-        mpcd_snap->position[7] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        mpcd_snap->position[8] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        pdata_9 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
-        }
-
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_9));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
     cl->compute(0);
 
         // check that each particle is in the proper bin (cell list and velocity)
@@ -283,16 +279,13 @@ template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfig
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(0.1, 0.1, 0.1);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    std::shared_ptr<mpcd::ParticleData> pdata_1;
-        {
-        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
-        mpcd_snap->position[0] = vec3<Scalar>(0.1, 0.1, 0.1);
-        pdata_1 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
-        }
-
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_1));
+    std::shared_ptr<mpcd::ParticleData> pdata_1 = sysdef->getMPCDParticleData();
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
     cl->compute(0);
         {
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
@@ -399,24 +392,20 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
         pdata_snap.type[6] = 0;
         pdata_snap.type[7] = 1;
         }
+    snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(0.5, -0.5, -0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(-0.5, 0.5, -0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, -0.5);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-0.5, -0.5, 0.5);
+    snap->mpcd_data.position[5] = vec3<Scalar>(0.5, -0.5, 0.5);
+    snap->mpcd_data.position[6] = vec3<Scalar>(-0.5, 0.5, 0.5);
+    snap->mpcd_data.position[7] = vec3<Scalar>(0.5, 0.5, 0.5);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    std::shared_ptr<mpcd::ParticleData> pdata_8;
-        {
-        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
-        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[1] = vec3<Scalar>(0.5, -0.5, -0.5);
-        mpcd_snap->position[2] = vec3<Scalar>(-0.5, 0.5, -0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, -0.5);
-        mpcd_snap->position[4] = vec3<Scalar>(-0.5, -0.5, 0.5);
-        mpcd_snap->position[5] = vec3<Scalar>(0.5, -0.5, 0.5);
-        mpcd_snap->position[6] = vec3<Scalar>(-0.5, 0.5, 0.5);
-        mpcd_snap->position[7] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        pdata_8 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
-        }
-
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_8));
+    std::shared_ptr<mpcd::ParticleData> pdata_8 = sysdef->getMPCDParticleData();
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
     cl->compute(0);
 
         // at first, there is no embedded particle, so everything should just look like the test

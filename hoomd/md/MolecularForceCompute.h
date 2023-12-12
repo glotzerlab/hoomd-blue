@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
@@ -112,6 +112,12 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         checkParticlesSorted();
 
         return m_molecule_idx;
+        }
+
+    /// Get the number of molecules (global)
+    unsigned int getNMoleculesGlobal() const
+        {
+        return m_n_molecules_global;
         }
 
     protected:

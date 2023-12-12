@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -24,13 +24,13 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     {
     public:
     //! Constructor
-    ATCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    ATCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                          uint64_t cur_timestep,
                          uint64_t period,
                          int phase,
-                         std::shared_ptr<mpcd::CellThermoCompute> thermo,
-                         std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                          std::shared_ptr<Variant> T);
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     protected:
     //! Draw velocities for particles in each cell on the GPU

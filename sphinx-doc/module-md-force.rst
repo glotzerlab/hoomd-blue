@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.force
@@ -24,6 +24,7 @@ md.force
 
     .. autoclass:: Force
         :members:
+        :show-inheritance:
 
     .. autoclass:: Active
         :show-inheritance:

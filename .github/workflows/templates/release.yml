@@ -12,6 +12,10 @@ name: GitHub Release
 <% block env %>
 env:
   name: hoomd
+
+defaults:
+  run:
+    shell: bash
 <% endblock %>
 <% block jobs %>
 jobs:
@@ -23,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v4.1.1
         with:
           fetch-depth: 0
           submodules: true
@@ -40,20 +44,20 @@ jobs:
         run: echo "tag=$(echo ${GITHUB_REF} | sed  -e 's/refs\/tags\///g')" >> $GITHUB_ENV
 
       - name: Write version change log
-        run: .github/workflows/make-changelog-md.sh  ${tag} | tee ${GITHUB_WORKSPACE}/changelog.md
+        run: .github/workflows/make-changelog-md.sh  ${tag:1} | tee ${GITHUB_WORKSPACE}/changelog.md
         working-directory: code
 
       - name: Copy source
-        run: cp -R code ${name}-${tag}
+        run: cp -R code ${name}-${tag:1}
 
       - name: Remove .git
-        run: rm -rf ${name}-${tag}/.git && ls -laR ${name}-${tag}
+        run: rm -rf ${name}-${tag:1}/.git && ls -laR ${name}-${tag:1}
 
       - name: Tar source
-        run: tar -cvzf ${name}-${tag}.tar.gz ${name}-${tag}
+        run: tar -cvzf ${name}-${tag:1}.tar.gz ${name}-${tag:1}
 
       - name: Upload release files
-        uses: actions/upload-artifact@v3.1.1
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: release
           path: |
@@ -67,7 +71,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3.0.1
+        uses: actions/download-artifact@v3.0.2
         with:
           name: release
 

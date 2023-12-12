@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
@@ -22,31 +22,25 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
+    // place each particle in a different cell, doubling the first cell
+    snap->mpcd_data.resize(5);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-0.5, 0.5, 0.5);
+
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
+    snap->mpcd_data.velocity[4] = vec3<Scalar>(1.0, -1.0, 4.0);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    // place each particle in a different cell, doubling the first cell
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(5);
-
-        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap->position[4] = vec3<Scalar>(-0.5, 0.5, 0.5);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
-        mpcd_snap->velocity[4] = vec3<Scalar>(1.0, -1.0, 4.0);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    std::shared_ptr<mpcd::ParticleData> pdata_5 = mpcd_sys->getParticleData();
-
-    std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
-    std::shared_ptr<CT> thermo = std::make_shared<CT>(mpcd_sys);
+    std::shared_ptr<mpcd::ParticleData> pdata_5 = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {
@@ -247,33 +241,26 @@ template<class CT> void cell_thermo_embed_test(std::shared_ptr<ExecutionConfigur
         pdata_snap.vel[2] = vec3<Scalar>(0.0, -3.0, 0.0);
         pdata_snap.vel[3] = vec3<Scalar>(0.0, 0.0, -5.0);
         }
+    snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, 0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        // MPCD particles have same velocity, different masses though
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(4);
-
-        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5, 0.5);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
 
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
     std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
 
-    std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->setEmbeddedGroup(group);
-    std::shared_ptr<CT> thermo = std::make_shared<CT>(mpcd_sys);
+    std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {

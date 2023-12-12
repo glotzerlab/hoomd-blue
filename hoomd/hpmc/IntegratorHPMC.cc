@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMC.h"
@@ -152,6 +152,12 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
         } // end lexical scope
 
     m_pdata->setGlobalBox(new_box);
+
+    // scale the origin
+    Scalar3 old_origin = m_pdata->getOrigin();
+    Scalar3 fractional_old_origin = curBox.makeFraction(old_origin);
+    Scalar3 new_origin = new_box.makeCoordinates(fractional_old_origin);
+    m_pdata->translateOrigin(new_origin - old_origin);
 
     // we have moved particles, communicate those changes
     this->communicate(false);

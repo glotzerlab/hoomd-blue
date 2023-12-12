@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
@@ -94,7 +94,7 @@ def test_scale(base_box):
 
 
 def test_volume(base_box):
-    assert isclose(base_box.volume, np.product(base_box.L))
+    assert isclose(base_box.volume, np.prod(base_box.L))
     for L in np.linspace(1, 10, 10):
         box = Box.cube(L)
         assert isclose(box.volume, L**3)

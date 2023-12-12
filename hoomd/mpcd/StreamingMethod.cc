@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -11,18 +11,18 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  * \param cur_timestep Current system timestep
  * \param period Number of timesteps between collisions
  * \param phase Phase shift for periodic updates
  */
-mpcd::StreamingMethod::StreamingMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::StreamingMethod::StreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
                                        unsigned int cur_timestep,
                                        unsigned int period,
                                        int phase)
-    : m_mpcd_sys(sysdata), m_sysdef(m_mpcd_sys->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()), m_mpcd_pdata(m_mpcd_sys->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()), m_mpcd_dt(0.0), m_period(period)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_mpcd_dt(0.0), m_period(period)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD StreamingMethod" << std::endl;
 
@@ -119,7 +119,7 @@ void mpcd::detail::export_StreamingMethod(pybind11::module& m)
     pybind11::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod>>(
         m,
         "StreamingMethod")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int>())
         .def("setPeriod", &mpcd::StreamingMethod::setPeriod)
         .def("setField", &mpcd::StreamingMethod::setField)
         .def("removeField", &mpcd::StreamingMethod::removeField);

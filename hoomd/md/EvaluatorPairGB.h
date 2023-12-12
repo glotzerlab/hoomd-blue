@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_PAIR_GB_H__
@@ -94,7 +94,7 @@ class EvaluatorPairGB
 
 #endif
         }
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
         __attribute__((aligned(8)));
 #else
         __attribute__((aligned(16)));
@@ -146,12 +146,6 @@ class EvaluatorPairGB
         {
         }
 
-    //! uses diameter
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
     //! Whether the pair potential uses shape.
     HOSTDEVICE static bool needsShape()
         {
@@ -181,12 +175,6 @@ class EvaluatorPairGB
         {
         return true;
         }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i

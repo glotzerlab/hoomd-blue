@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ForceCompute.cc
@@ -520,41 +520,6 @@ void ForceCompute::compute(uint64_t timestep)
 
     m_particles_sorted = false;
     m_computed_flags = m_pdata->getFlags();
-    }
-
-/*! \param num_iters Number of iterations to average for the benchmark
-    \returns Milliseconds of execution time per calculation
-
-    Calls computeForces repeatedly to benchmark the force compute.
-*/
-
-double ForceCompute::benchmark(unsigned int num_iters)
-    {
-    ClockSource t;
-    // warm up run
-    computeForces(0);
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        hipDeviceSynchronize();
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    // benchmark
-    uint64_t start_time = t.getTime();
-    for (unsigned int i = 0; i < num_iters; i++)
-        computeForces(0);
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        hipDeviceSynchronize();
-#endif
-    uint64_t total_time_ns = t.getTime() - start_time;
-
-    // convert the run time to milliseconds
-    return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
 /*! \param tag Global particle tag

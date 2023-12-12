@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -131,21 +131,11 @@ template<typename T> void CommunicatorGridGPU<T>::communicate(const GlobalArray<
         }
 
         {
-// access send and recv buffers
-#ifdef ENABLE_MPI_CUDA
-        ArrayHandle<T> send_buf_handle(this->m_send_buf,
-                                       access_location::device,
-                                       access_mode::read);
-        ArrayHandle<T> recv_buf_handle(this->m_recv_buf,
-                                       access_location::device,
-                                       access_mode::overwrite);
-#else
+        // access send and recv buffers
         ArrayHandle<T> send_buf_handle(this->m_send_buf, access_location::host, access_mode::read);
         ArrayHandle<T> recv_buf_handle(this->m_recv_buf,
                                        access_location::host,
                                        access_mode::overwrite);
-#endif
-
         typedef std::map<unsigned int, unsigned int>::iterator it_t;
         std::vector<MPI_Request> reqs(2 * this->m_neighbors.size());
 

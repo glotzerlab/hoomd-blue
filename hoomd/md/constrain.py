@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Constraints.
@@ -126,8 +126,8 @@ class Rigid(Constraint):
     .. rubric:: Constituent particles
 
     Select one or more particle types in the simulation to use as the central
-    particles. For each rigid body particle type, ou specify the constituent
-    particle position and orientations in body coordinates (see `body`). Then,
+    particles. For each rigid body particle type, set the constituent particle
+    type, position and orientations in body coordinates (see `body`). Then,
     `Rigid` takes control of the constituent particles and sets their position
     and orientation in the simulation box relative to the position and
     orientation of the central particle:
@@ -146,11 +146,10 @@ class Rigid(Constraint):
     of the central particle of that rigid body. `Rigid` also sets the
     constituent particle image consistent with the image of the central particle
     and the location of the constituent particle wrapped back into the
-    box. `Rigid` does not modify the constituent particle type ids, charge,
-    or diameter.
+    box.
 
     Warning:
-        `Rigid` **overwrites** the constituent particle positions and
+        `Rigid` **overwrites** the constituent particle type ids, positions and
         orientations. To change the position and orientation of a body, set the
         desired position and orientation of the central particle and call
         `run(0) <Simulation.run>` to trigger `Rigid` to update the particles.
@@ -194,6 +193,13 @@ class Rigid(Constraint):
     constraint force (see `Glaser 2020
     <https://dx.doi.org/10.1016/j.commatsci.2019.109430>`_).
 
+    Note:
+        Include ``'body'`` in the `Neighborlist exclusions
+        <hoomd.md.nlist.NeighborList.exclusions>` to avoid calculating
+        inter-body forces that will sum to 0. This is *required* in many cases
+        where nearby particles lead to numerical errors from extremely large
+        forces.
+
     .. rubric:: Integrating bodies
 
     Set the ``rigid`` attribute of `hoomd.md.Integrator` to an instance of
@@ -223,9 +229,9 @@ class Rigid(Constraint):
     `hoomd.write.GSD` and initialize the new `Simulation <hoomd.Simulation>`
     using `create_state_from_gsd <Simulation.create_state_from_gsd>`. GSD stores
     all the particle data fields needed to reconstruct the state of the system,
-    including the body, angular momentum, and orientation of the body. You must
-    specify the same local body space environment to `body` as you did in the
-    earlier simulation - GSD does not store this information.
+    including the body, angular momentum, and orientation of the body. Set the
+    same local body space environment to `body` as in the earlier simulation -
+    GSD does not store this information.
 
     Example::
 
@@ -234,15 +240,11 @@ class Rigid(Constraint):
             "constituent_types": ['A_const', 'A_const'],
             "positions": [(0,0,1),(0,0,-1)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
-            "charges": [0.0, 0.0],
-            "diameters": [1.0, 1.0]
             }
         rigid.body['B'] = {
             "constituent_types": ['B_const', 'B_const'],
             "positions": [(0,0,.5),(0,0,-.5)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
-            "charges": [0.0, 1.0],
-            "diameters": [1.5, 1.0]
             }
 
         # Can set rigid body definition to be None explicitly.
@@ -270,23 +272,11 @@ class Rigid(Constraint):
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
 
-        - ``charges`` (`list` [`float`]): List of charges of constituent
-          particles.
-
-          .. deprecated:: v3.7.0
-             ``charges`` will be removed in v4.
-
-        - ``diameters`` (`list` [`float`]): List of diameters of constituent
-          particles.
-
-          .. deprecated:: v3.7.0
-             ``diameters`` will be removed in v4.
-
-        Of these, `Rigid` uses ``positions`` and ``orientation`` to set the
-        constituent particle positions and orientations every time step.
-        `create_bodies` uses ``constituent_types``, ``charges``, and
-        ``diameters`` to populate those particle properties when creating
-        constituent particles.
+        Of these, `Rigid` uses ``constituent_types``, ``positions`` and
+        ``orientations`` to set the constituent particle type ids, positions and
+        orientations every time step. `create_bodies` uses all these parameters
+        to populate those particle properties when creating constituent
+        particles.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
     """
@@ -300,19 +290,20 @@ class Rigid(Constraint):
                 'constituent_types': [str],
                 'positions': [(float,) * 3],
                 'orientations': [(float,) * 4],
-                'charges': [float],
-                'diameters': [float]
             }),
                                      allow_none=True),
                               len_keys=1))
         self._add_typeparam(body)
         self.body.default = None
 
-    def create_bodies(self, state):
+    def create_bodies(self, state, charges=None):
         r"""Create rigid bodies from central particles in state.
 
         Args:
             state (hoomd.State): The state in which to create rigid bodies.
+            charges (dict[str, list[float]]): (optional) The charges for each of
+                the constituent particles, defaults to ``None``. If ``None``,
+                all charges are zero. The keys should be the central particles.
 
         `create_bodies` removes any existing constituent particles and adds new
         ones based on the body definitions in `body`. It overwrites all existing
@@ -322,7 +313,7 @@ class Rigid(Constraint):
             raise RuntimeError(
                 "Cannot call create_bodies after running simulation.")
         super()._attach(state._simulation)
-        self._cpp_obj.createRigidBodies()
+        self._cpp_obj.createRigidBodies({} if charges is None else charges)
         # Restore previous state
         self._detach()
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolyhedron.h"
@@ -92,43 +92,23 @@ struct ShapeSpheropolyhedron
         }
 
     //! Get the circumsphere diameter
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
     //! Get the in-sphere radius
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        // generate a tight fitting AABB
-        // detail::SupportFuncSpheropolyhedron sfunc(verts);
-
-        // // use support function of the to determine the furthest extent in each direction
-        // quat<OverlapReal> o(orientation);
-        // vec3<OverlapReal> e_x(1,0,0);
-        // vec3<OverlapReal> e_y(0,1,0);
-        // vec3<OverlapReal> e_z(0,0,1);
-        // vec3<OverlapReal> s_x = rotate(o, sfunc(rotate(conj(o),e_x)));
-        // vec3<OverlapReal> s_y = rotate(o, sfunc(rotate(conj(o),e_y)));
-        // vec3<OverlapReal> s_z = rotate(o, sfunc(rotate(conj(o),e_z)));
-        // vec3<OverlapReal> s_neg_x = rotate(o, sfunc(rotate(conj(o),-e_x)));
-        // vec3<OverlapReal> s_neg_y = rotate(o, sfunc(rotate(conj(o),-e_y)));
-        // vec3<OverlapReal> s_neg_z = rotate(o, sfunc(rotate(conj(o),-e_z)));
-
-        // // translate out from the position by the furthest extents
-        // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
-        // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, pos.z + s_neg_z.z);
-
-        // return hoomd::detail::AABB(lower, upper);
-        // ^^^^^^ The above method is slow, just use the bounding sphere
+        // Generate the AABB of a bounding sphere, computing tight fitting AABBs is slow.
         return hoomd::detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
@@ -173,15 +153,15 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeSpheropolyhedron& b,
                                 unsigned int& err)
     {
-    vec3<OverlapReal> dr = r_ab;
+    vec3<ShortReal> dr = r_ab;
 
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
     return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts, a.verts.sweep_radius),
                           detail::SupportFuncConvexPolyhedron(b.verts, b.verts.sweep_radius),
-                          rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                          conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb / OverlapReal(2.0),
+                          rotate(conj(quat<ShortReal>(a.orientation)), dr),
+                          conj(quat<ShortReal>(a.orientation)) * quat<ShortReal>(b.orientation),
+                          DaDb / ShortReal(2.0),
                           err);
 
     /*

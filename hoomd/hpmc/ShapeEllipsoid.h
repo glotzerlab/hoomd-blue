@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
-#include "HPMCPrecisionSetup.h"
 #include "ShapeSphere.h" //< For the base template of test_overlap
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
@@ -23,7 +22,7 @@
 #define ELLIPSOID_OVERLAP_TRUE 1
 #define ELLIPSOID_OVERLAP_FALSE 0
 
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 #define ELLIPSOID_OVERLAP_PRECISION 1e-3
 #else
 #define ELLIPSOID_OVERLAP_PRECISION 1e-6
@@ -40,13 +39,13 @@ namespace hpmc
 struct EllipsoidParams : ShapeParams
     {
     /// Principle semi-axis of the ellipsoid in the x-direction
-    OverlapReal x;
+    ShortReal x;
 
     /// Principle semi-axis of the ellipsoid in the y-direction
-    OverlapReal y;
+    ShortReal y;
 
     /// Principle semi-axis of the ellipsoid in the z-direction
-    OverlapReal z;
+    ShortReal z;
 
     /// True when move statistics should not be counted
     unsigned int ignore;
@@ -64,9 +63,9 @@ struct EllipsoidParams : ShapeParams
     EllipsoidParams(pybind11::dict v, bool managed = false)
         {
         ignore = v["ignore_statistics"].cast<unsigned int>();
-        x = v["a"].cast<OverlapReal>();
-        y = v["b"].cast<OverlapReal>();
-        z = v["c"].cast<OverlapReal>();
+        x = v["a"].cast<ShortReal>();
+        y = v["b"].cast<ShortReal>();
+        z = v["c"].cast<ShortReal>();
         }
 
     /// Convert parameters to a python dictionary
@@ -115,17 +114,17 @@ struct ShapeEllipsoid
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the maximum of the 3 axes
-        return OverlapReal(2) * detail::max(axes.x, detail::max(axes.y, axes.z));
+        return ShortReal(2) * detail::max(axes.x, detail::max(axes.y, axes.z));
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     /** Support function of the shape (in local coordinates), used in getAABB
@@ -148,10 +147,10 @@ struct ShapeEllipsoid
     /// Return the bounding box of the shape in world coordinates
     DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        OverlapReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
+        ShortReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
 
         // generate a tight fitting AABB
-        // OverlapReal min_axis = min(axes.x, min(axes.y, axes.z));
+        // ShortReal min_axis = min(axes.x, min(axes.y, axes.z));
 
         // use support function of the ellipsoid to determine the furthest extent in each direction
         // vec3<Scalar> e_x(1,0,0);
@@ -202,18 +201,18 @@ namespace detail
 
     @pre M has 10 elements
 */
-DEVICE inline void compute_ellipsoid_matrix(OverlapReal* M,
-                                            const vec3<OverlapReal>& pos,
-                                            const quat<OverlapReal>& orientation,
+DEVICE inline void compute_ellipsoid_matrix(ShortReal* M,
+                                            const vec3<ShortReal>& pos,
+                                            const quat<ShortReal>& orientation,
                                             const EllipsoidParams& axes)
     {
     // calculate rotation matrix
-    rotmat3<OverlapReal> R(orientation);
+    rotmat3<ShortReal> R(orientation);
 
     // calculate ellipsoid matrix
-    OverlapReal a = OverlapReal(1.0) / (axes.x * axes.x);
-    OverlapReal b = OverlapReal(1.0) / (axes.y * axes.y);
-    OverlapReal c = OverlapReal(1.0) / (axes.z * axes.z);
+    ShortReal a = ShortReal(1.0) / (axes.x * axes.x);
+    ShortReal b = ShortReal(1.0) / (axes.y * axes.y);
+    ShortReal c = ShortReal(1.0) / (axes.z * axes.z);
     // ...rotation part
     // M[i][j] = a * R[i][0] * R[j][0] + b * R[i][1] * R[j][1] + c * R[i][2] * R[j][2];
     M[0] = a * R.row0.x * R.row0.x + b * R.row0.y * R.row0.y + c * R.row0.z * R.row0.z;
@@ -225,15 +224,15 @@ DEVICE inline void compute_ellipsoid_matrix(OverlapReal* M,
 
     // calculateTranslationPart(x, M);
     // precalculation
-    OverlapReal M0x0 = M[0] * pos.x;
-    OverlapReal M1x0 = M[1] * pos.x;
-    OverlapReal M1x1 = M[1] * pos.y;
-    OverlapReal M2x1 = M[2] * pos.y;
-    OverlapReal M3x0 = M[3] * pos.x;
-    OverlapReal M3x2 = M[3] * pos.z;
-    OverlapReal M4x1 = M[4] * pos.y;
-    OverlapReal M4x2 = M[4] * pos.z;
-    OverlapReal M5x2 = M[5] * pos.z;
+    ShortReal M0x0 = M[0] * pos.x;
+    ShortReal M1x0 = M[1] * pos.x;
+    ShortReal M1x1 = M[1] * pos.y;
+    ShortReal M2x1 = M[2] * pos.y;
+    ShortReal M3x0 = M[3] * pos.x;
+    ShortReal M3x2 = M[3] * pos.z;
+    ShortReal M4x1 = M[4] * pos.y;
+    ShortReal M4x2 = M[4] * pos.z;
+    ShortReal M5x2 = M[5] * pos.z;
 
     // ...translation part
     // M[i][3] = M[3][i] = -M[i][0] * x[0] - M[i][1] * x[1] - M[i][2] * x[2];
@@ -243,8 +242,8 @@ DEVICE inline void compute_ellipsoid_matrix(OverlapReal* M,
     // ...mixed part
     // M[3][3] = -1.0 + M[0][0] * x[0] * x[0] + M[1][1] * x[1] * x[1] + M[2][2] * x[2] * x[2] +
     //           2.0 * (M[0][1] * x[0] * x[1] + M[1][2] * x[1] * x[2] + M[2][0] * x[2] * x[0]);
-    M[9] = OverlapReal(-1.0) + pos.x * (M0x0 + OverlapReal(2.0) * M1x1)
-           + pos.y * (M2x1 + OverlapReal(2.0) * M4x2) + pos.z * (M5x2 + OverlapReal(2.0) * M3x0);
+    M[9] = ShortReal(-1.0) + pos.x * (M0x0 + ShortReal(2.0) * M1x1)
+           + pos.y * (M2x1 + ShortReal(2.0) * M4x2) + pos.z * (M5x2 + ShortReal(2.0) * M3x0);
     }
 
 /** Checks for overlap between two ellipsoids
@@ -255,7 +254,7 @@ DEVICE inline void compute_ellipsoid_matrix(OverlapReal* M,
 
     @pre Both M1 and M2 are 10 elements
 */
-DEVICE inline int test_overlap_ellipsoids(OverlapReal* M1, OverlapReal* M2)
+DEVICE inline int test_overlap_ellipsoids(ShortReal* M1, ShortReal* M2)
     {
     // FIRST: calculate the coefficients a4, a3, a2, a1, a0 of the
     // characteristic polynomial that interpolates between M1 and M2
@@ -454,22 +453,22 @@ DEVICE inline bool test_overlap<ShapeEllipsoid, ShapeEllipsoid>(const vec3<Scala
                                                                 unsigned int& err)
     {
     // matrix representations of the two ellipsoids
-    vec3<OverlapReal> dr(r_ab);
+    vec3<ShortReal> dr(r_ab);
 
     // shortcut if ellipsoids are actually spheres
     if (a.axes.x == a.axes.y && a.axes.x == a.axes.z && b.axes.x == b.axes.y
         && b.axes.x == b.axes.z)
         {
-        OverlapReal ab = a.axes.x + b.axes.x;
+        ShortReal ab = a.axes.x + b.axes.x;
         return (dot(dr, dr) <= ab * ab);
         }
 
-    OverlapReal Ma[10], Mb[10];
+    ShortReal Ma[10], Mb[10];
     detail::compute_ellipsoid_matrix(Ma,
-                                     vec3<OverlapReal>(0, 0, 0),
-                                     quat<OverlapReal>(a.orientation),
+                                     vec3<ShortReal>(0, 0, 0),
+                                     quat<ShortReal>(a.orientation),
                                      a.axes);
-    detail::compute_ellipsoid_matrix(Mb, dr, quat<OverlapReal>(b.orientation), b.axes);
+    detail::compute_ellipsoid_matrix(Mb, dr, quat<ShortReal>(b.orientation), b.axes);
 
     int ret_val = detail::test_overlap_ellipsoids(Ma, Mb);
     if (ret_val == ELLIPSOID_OVERLAP_ERROR)

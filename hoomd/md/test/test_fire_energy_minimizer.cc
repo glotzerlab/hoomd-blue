@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -12,7 +12,8 @@
 
 #ifdef ENABLE_HIP
 #include "hoomd/md/FIREEnergyMinimizerGPU.h"
-#include "hoomd/md/TwoStepNVEGPU.h"
+#include "hoomd/md/TwoStepConstantVolumeGPU.h"
+#include <hoomd/md/ComputeThermoGPU.h>
 #endif
 
 #include "hoomd/filter/ParticleFilterAll.h"
@@ -21,7 +22,7 @@
 #include "hoomd/md/EvaluatorPairLJ.h"
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/md/PotentialPair.h"
-#include "hoomd/md/TwoStepNVE.h"
+#include "hoomd/md/TwoStepConstantVolume.h"
 
 #include <math.h>
 
@@ -31,15 +32,18 @@ using namespace hoomd::md;
 
 typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 
+#include "hoomd/md/TwoStepConstantVolumeGPU.h"
 #include "hoomd/test/upp11_config.h"
+
 HOOMD_UP_MAIN();
 
 //! Typedef'd FIREEnergyMinimizer class factory
 typedef std::function<std::shared_ptr<FIREEnergyMinimizer>(std::shared_ptr<SystemDefinition> sysdef,
                                                            Scalar dT)>
     fire_creator;
-typedef std::function<std::shared_ptr<TwoStepNVE>(std::shared_ptr<SystemDefinition> sysdef,
-                                                  std::shared_ptr<ParticleGroup> group)>
+typedef std::function<std::shared_ptr<TwoStepConstantVolume>(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group)>
     nve_creator;
 
 //! FIREEnergyMinimizer creator
@@ -50,18 +54,30 @@ base_class_fire_creator(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
     }
 
 //! TwoStepNVE factory for the unit tests
-std::shared_ptr<TwoStepNVE> base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
-                                                   std::shared_ptr<ParticleGroup> group)
+std::shared_ptr<TwoStepConstantVolume>
+base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group)
     {
-    return std::shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group));
+    auto thermo = std::make_shared<ComputeThermo>(sysdef, group);
+    auto tstat = std::make_shared<Thermostat>(std::make_shared<VariantConstant>(1.),
+                                              group,
+                                              thermo,
+                                              sysdef);
+    return std::shared_ptr<TwoStepConstantVolume>(new TwoStepConstantVolume(sysdef, group, tstat));
     }
 
 #ifdef ENABLE_HIP
 //! TwoStepNVEGPU factory for the unit tests
-std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
-                                            std::shared_ptr<ParticleGroup> group)
+std::shared_ptr<TwoStepConstantVolume> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                       std::shared_ptr<ParticleGroup> group)
     {
-    return std::shared_ptr<TwoStepNVE>(new TwoStepNVEGPU(sysdef, group));
+    auto thermo = std::make_shared<ComputeThermoGPU>(sysdef, group);
+    auto tstat = std::make_shared<Thermostat>(std::make_shared<VariantConstant>(1.),
+                                              group,
+                                              thermo,
+                                              sysdef);
+    return std::shared_ptr<TwoStepConstantVolume>(
+        new TwoStepConstantVolumeGPU(sysdef, group, tstat));
     }
 
 //! FIREEnergyMinimizerGPU creator
@@ -279,7 +295,7 @@ void fire_smallsystem_test(fire_creator fire_creator1,
     fc->setRcut(1, 1, 2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef, group_all);
+    std::shared_ptr<TwoStepConstantVolume> nve = nve_creator1(sysdef, group_all);
     std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
     fire->getIntegrationMethods().push_back(nve);
     fire->setFtol(5.0);
@@ -356,7 +372,7 @@ void fire_twoparticle_test(fire_creator fire_creator1,
     fc->setRcut(0, 0, 3.0);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef, group_one);
+    std::shared_ptr<TwoStepConstantVolume> nve = nve_creator1(sysdef, group_one);
     std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
     fire->getIntegrationMethods().push_back(nve);
 

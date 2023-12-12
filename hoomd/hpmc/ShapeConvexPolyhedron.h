@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -45,7 +45,7 @@ struct PolyhedronVertices : ShapeParams
     {
     /// Default constructor initializes zero values.
     DEVICE PolyhedronVertices()
-        : n_hull_verts(0), N(0), diameter(OverlapReal(0)), sweep_radius(OverlapReal(0)), ignore(0)
+        : n_hull_verts(0), N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
         {
         }
 
@@ -54,22 +54,19 @@ struct PolyhedronVertices : ShapeParams
      */
     PolyhedronVertices(unsigned int _N, bool managed = false) : ignore(0)
         {
-        std::vector<vec3<OverlapReal>> v(_N, vec3<OverlapReal>(0, 0, 0));
-        x = ManagedArray<OverlapReal>(1, managed);
-        y = ManagedArray<OverlapReal>(1, managed);
-        z = ManagedArray<OverlapReal>(1, managed);
-        setVerts(v, 0);
+        std::vector<vec3<ShortReal>> v(_N, vec3<ShortReal>(0, 0, 0));
+        setVerts(v, 0, managed);
         }
 
-    PolyhedronVertices(const std::vector<vec3<OverlapReal>>& verts,
-                       OverlapReal sweep_radius_,
+    PolyhedronVertices(const std::vector<vec3<ShortReal>>& verts,
+                       ShortReal sweep_radius_,
                        unsigned int ignore_,
                        bool managed = false)
         : x((unsigned int)verts.size(), managed), y((unsigned int)verts.size(), managed),
           z((unsigned int)verts.size(), managed), n_hull_verts(0), N((unsigned int)verts.size()),
           diameter(0.0), sweep_radius(sweep_radius_), ignore(ignore_)
         {
-        setVerts(verts, sweep_radius_);
+        setVerts(verts, sweep_radius_, managed);
         }
 
     /** Set the shape vertices
@@ -79,25 +76,26 @@ struct PolyhedronVertices : ShapeParams
         @param verts Vertices to set
         @param sweep_radius_ Sweep radius
     */
-    void setVerts(const std::vector<vec3<OverlapReal>>& verts, OverlapReal sweep_radius_)
+    void setVerts(const std::vector<vec3<ShortReal>>& verts,
+                  ShortReal sweep_radius_,
+                  bool managed = false)
         {
         N = (unsigned int)verts.size();
         diameter = 0;
         sweep_radius = sweep_radius_;
-        bool managed = x.isManaged();
 
         unsigned int align_size = 8; // for AVX
         unsigned int N_align = ((N + align_size - 1) / align_size) * align_size;
-        x = ManagedArray<OverlapReal>(N_align, managed, 32); // 32byte alignment for AVX
-        y = ManagedArray<OverlapReal>(N_align, managed, 32);
-        z = ManagedArray<OverlapReal>(N_align, managed, 32);
+        x = ManagedArray<ShortReal>(N_align, managed, 32); // 32byte alignment for AVX
+        y = ManagedArray<ShortReal>(N_align, managed, 32);
+        z = ManagedArray<ShortReal>(N_align, managed, 32);
         for (unsigned int i = 0; i < N_align; ++i)
             {
-            x[i] = y[i] = z[i] = OverlapReal(0.0);
+            x[i] = y[i] = z[i] = ShortReal(0.0);
             }
 
         // copy the verts over from the std vector and compute the radius on the way
-        OverlapReal radius_sq = OverlapReal(0.0);
+        ShortReal radius_sq = ShortReal(0.0);
         for (unsigned int i = 0; i < verts.size(); i++)
             {
             const auto& vert = verts[i];
@@ -112,17 +110,17 @@ struct PolyhedronVertices : ShapeParams
         if (N >= 3)
             {
             // compute convex hull of vertices
-            std::vector<quickhull::Vector3<OverlapReal>> qh_pts;
+            std::vector<quickhull::Vector3<ShortReal>> qh_pts;
             for (unsigned int i = 0; i < N; i++)
                 {
-                quickhull::Vector3<OverlapReal> vert;
+                quickhull::Vector3<ShortReal> vert;
                 vert.x = x[i];
                 vert.y = y[i];
                 vert.z = z[i];
                 qh_pts.push_back(vert);
                 }
 
-            quickhull::QuickHull<OverlapReal> qh;
+            quickhull::QuickHull<ShortReal> qh;
             // argument 2: CCW orientation of triangles viewed from outside
             // argument 3: use existing vertex list
             auto hull = qh.getConvexHull(qh_pts, false, true);
@@ -137,10 +135,10 @@ struct PolyhedronVertices : ShapeParams
 
         if (N >= 1)
             {
-            std::vector<OverlapReal> vertex_radii(N, sweep_radius);
-            std::vector<vec3<OverlapReal>> pts(N);
+            std::vector<ShortReal> vertex_radii(N, sweep_radius);
+            std::vector<vec3<ShortReal>> pts(N);
             for (unsigned int i = 0; i < N; ++i)
-                pts[i] = vec3<OverlapReal>(x[i], y[i], z[i]);
+                pts[i] = vec3<ShortReal>(x[i], y[i], z[i]);
 
             obb = detail::compute_obb(pts, vertex_radii, managed);
             }
@@ -154,19 +152,19 @@ struct PolyhedronVertices : ShapeParams
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
         // extract the verts from the python list
-        std::vector<vec3<OverlapReal>> vert_vector;
+        std::vector<vec3<ShortReal>> vert_vector;
         for (unsigned int i = 0; i < pybind11::len(verts); i++)
             {
             pybind11::list verts_i = verts[i];
             if (len(verts_i) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
-            vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]),
-                                                       pybind11::cast<OverlapReal>(verts_i[1]),
-                                                       pybind11::cast<OverlapReal>(verts_i[2]));
+            vec3<ShortReal> vert = vec3<ShortReal>(pybind11::cast<ShortReal>(verts_i[0]),
+                                                   pybind11::cast<ShortReal>(verts_i[1]),
+                                                   pybind11::cast<ShortReal>(verts_i[2]));
             vert_vector.push_back(vert);
             }
 
-        setVerts(vert_vector, v["sweep_radius"].cast<float>());
+        setVerts(vert_vector, v["sweep_radius"].cast<float>(), managed);
         }
 
     /// Convert parameters to a python dictionary
@@ -223,13 +221,13 @@ struct PolyhedronVertices : ShapeParams
 #endif
 
     /// X coordinate of vertices
-    ManagedArray<OverlapReal> x;
+    ManagedArray<ShortReal> x;
 
     /// Y coordinate of vertices
-    ManagedArray<OverlapReal> y;
+    ManagedArray<ShortReal> y;
 
     /// Z coordinate of vertices
-    ManagedArray<OverlapReal> z;
+    ManagedArray<ShortReal> z;
 
     /** List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex
         hull
@@ -243,10 +241,10 @@ struct PolyhedronVertices : ShapeParams
     unsigned int N;
 
     /// Circumsphere diameter
-    OverlapReal diameter;
+    ShortReal diameter;
 
     /// Radius of the sphere sweep (used for spheropolyhedra)
-    OverlapReal sweep_radius;
+    ShortReal sweep_radius;
 
     /// True when move statistics should not be counted
     unsigned int ignore;
@@ -271,7 +269,7 @@ class SupportFuncConvexPolyhedron
         been set to zero.
     */
     DEVICE SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
-                                       OverlapReal extra_sweep_radius = OverlapReal(0.0))
+                                       ShortReal extra_sweep_radius = ShortReal(0.0))
         : verts(_verts), sweep_radius(extra_sweep_radius)
         {
         }
@@ -281,15 +279,14 @@ class SupportFuncConvexPolyhedron
         @param n Normal vector input (in the local frame)
         @returns Local coords of the point furthest in the direction of n
     */
-    DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& n) const
+    DEVICE vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
         {
-        OverlapReal max_dot = -(verts.diameter * verts.diameter);
+        ShortReal max_dot = -(verts.diameter * verts.diameter);
         unsigned int max_idx = 0;
 
         if (verts.N > 0)
             {
-#if !defined(__HIPCC__) && defined(__AVX__) \
-    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+#if !defined(__HIPCC__) && defined(__AVX__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with AVX 8 at a time on the CPU when working with more than
             // 4 verts
             __m256 nx_v = _mm256_broadcast_ss(&n.x);
@@ -342,8 +339,7 @@ class SupportFuncConvexPolyhedron
                     break;
                     }
                 }
-#elif !defined(__HIPCC__) && defined(__SSE__) \
-    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+#elif !defined(__HIPCC__) && defined(__SSE__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with SSE 4 at a time on the CPU
             __m128 nx_v = _mm_load_ps1(&n.x);
             __m128 ny_v = _mm_load_ps1(&n.y);
@@ -394,24 +390,24 @@ class SupportFuncConvexPolyhedron
             // if no AVX or SSE, or running in double precision, fall back on serial computation
             // this code path also triggers on the GPU
 
-            OverlapReal max_dot0 = dot(n, vec3<OverlapReal>(verts.x[0], verts.y[0], verts.z[0]));
+            ShortReal max_dot0 = dot(n, vec3<ShortReal>(verts.x[0], verts.y[0], verts.z[0]));
             unsigned int max_idx0 = 0;
-            OverlapReal max_dot1 = dot(n, vec3<OverlapReal>(verts.x[1], verts.y[1], verts.z[1]));
+            ShortReal max_dot1 = dot(n, vec3<ShortReal>(verts.x[1], verts.y[1], verts.z[1]));
             unsigned int max_idx1 = 1;
-            OverlapReal max_dot2 = dot(n, vec3<OverlapReal>(verts.x[2], verts.y[2], verts.z[2]));
+            ShortReal max_dot2 = dot(n, vec3<ShortReal>(verts.x[2], verts.y[2], verts.z[2]));
             unsigned int max_idx2 = 2;
-            OverlapReal max_dot3 = dot(n, vec3<OverlapReal>(verts.x[3], verts.y[3], verts.z[3]));
+            ShortReal max_dot3 = dot(n, vec3<ShortReal>(verts.x[3], verts.y[3], verts.z[3]));
             unsigned int max_idx3 = 3;
 
             for (unsigned int i = 4; i < verts.N; i += 4)
                 {
-                const OverlapReal* verts_x = verts.x.get() + i;
-                const OverlapReal* verts_y = verts.y.get() + i;
-                const OverlapReal* verts_z = verts.z.get() + i;
-                OverlapReal d0 = dot(n, vec3<OverlapReal>(verts_x[0], verts_y[0], verts_z[0]));
-                OverlapReal d1 = dot(n, vec3<OverlapReal>(verts_x[1], verts_y[1], verts_z[1]));
-                OverlapReal d2 = dot(n, vec3<OverlapReal>(verts_x[2], verts_y[2], verts_z[2]));
-                OverlapReal d3 = dot(n, vec3<OverlapReal>(verts_x[3], verts_y[3], verts_z[3]));
+                const ShortReal* verts_x = verts.x.get() + i;
+                const ShortReal* verts_y = verts.y.get() + i;
+                const ShortReal* verts_z = verts.z.get() + i;
+                ShortReal d0 = dot(n, vec3<ShortReal>(verts_x[0], verts_y[0], verts_z[0]));
+                ShortReal d1 = dot(n, vec3<ShortReal>(verts_x[1], verts_y[1], verts_z[1]));
+                ShortReal d2 = dot(n, vec3<ShortReal>(verts_x[2], verts_y[2], verts_z[2]));
+                ShortReal d3 = dot(n, vec3<ShortReal>(verts_x[3], verts_y[3], verts_z[3]));
 
                 if (d0 > max_dot0)
                     {
@@ -455,24 +451,24 @@ class SupportFuncConvexPolyhedron
                 }
 #endif
 
-            vec3<OverlapReal> v(verts.x[max_idx], verts.y[max_idx], verts.z[max_idx]);
-            if (sweep_radius != OverlapReal(0.0))
+            vec3<ShortReal> v(verts.x[max_idx], verts.y[max_idx], verts.z[max_idx]);
+            if (sweep_radius != ShortReal(0.0))
                 return v + (sweep_radius * fast::rsqrt(dot(n, n))) * n;
             else
                 return v;
             } // end if(verts.N > 0)
         else
             {
-            if (sweep_radius != OverlapReal(0.0))
+            if (sweep_radius != ShortReal(0.0))
                 return (sweep_radius * fast::rsqrt(dot(n, n))) * n;
             else
-                return vec3<OverlapReal>(0.0, 0.0, 0.0); // No verts!
+                return vec3<ShortReal>(0.0, 0.0, 0.0); // No verts!
             }
         }
 
     private:
     const PolyhedronVertices& verts; //!< Vertices of the polyhedron
-    const OverlapReal sweep_radius;  //!< Extra sweep radius
+    const ShortReal sweep_radius;    //!< Extra sweep radius
     };
 
 /** Geometric primitives for closest point calculation
@@ -480,99 +476,99 @@ class SupportFuncConvexPolyhedron
     From Real Time Collision Detection (Christer Ericson)
     https://doi.org/10.1201/b14581
 */
-DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& p,
-                                                       const vec3<OverlapReal>& a,
-                                                       const vec3<OverlapReal>& b,
-                                                       const vec3<OverlapReal>& c)
+DEVICE inline vec3<ShortReal> closestPointOnTriangle(const vec3<ShortReal>& p,
+                                                     const vec3<ShortReal>& a,
+                                                     const vec3<ShortReal>& b,
+                                                     const vec3<ShortReal>& c)
     {
-    vec3<OverlapReal> ab = b - a;
-    vec3<OverlapReal> ac = c - a;
-    vec3<OverlapReal> ap = p - a;
+    vec3<ShortReal> ab = b - a;
+    vec3<ShortReal> ac = c - a;
+    vec3<ShortReal> ap = p - a;
 
-    OverlapReal d1 = dot(ab, ap);
-    OverlapReal d2 = dot(ac, ap);
-    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0))
+    ShortReal d1 = dot(ab, ap);
+    ShortReal d2 = dot(ac, ap);
+    if (d1 <= ShortReal(0.0) && d2 <= ShortReal(0.0))
         return a; // barycentric coordinates (1,0,0)
 
     // Check if P in vertex region outside B
-    vec3<OverlapReal> bp = p - b;
-    OverlapReal d3 = dot(ab, bp);
-    OverlapReal d4 = dot(ac, bp);
-    if (d3 >= OverlapReal(0.0) && d4 <= d3)
+    vec3<ShortReal> bp = p - b;
+    ShortReal d3 = dot(ab, bp);
+    ShortReal d4 = dot(ac, bp);
+    if (d3 >= ShortReal(0.0) && d4 <= d3)
         return b; // barycentric coordinates (0,1,0)
 
     // Check if P in edge region of AB, if so return projection of P onto AB
-    OverlapReal vc = d1 * d4 - d3 * d2;
-    if (vc <= OverlapReal(0.0) && d1 >= OverlapReal(0.0) && d3 <= OverlapReal(0.0))
+    ShortReal vc = d1 * d4 - d3 * d2;
+    if (vc <= ShortReal(0.0) && d1 >= ShortReal(0.0) && d3 <= ShortReal(0.0))
         {
-        OverlapReal v = d1 / (d1 - d3);
+        ShortReal v = d1 / (d1 - d3);
         return a + v * ab; // barycentric coordinates (1-v,v,0)
         }
 
     // Check if P in vertex region outside C
-    vec3<OverlapReal> cp = p - c;
-    OverlapReal d5 = dot(ab, cp);
-    OverlapReal d6 = dot(ac, cp);
-    if (d6 >= OverlapReal(0.0) && d5 <= d6)
+    vec3<ShortReal> cp = p - c;
+    ShortReal d5 = dot(ab, cp);
+    ShortReal d6 = dot(ac, cp);
+    if (d6 >= ShortReal(0.0) && d5 <= d6)
         return c; // barycentric coordinates (0,0,1)
 
     // Check if P in edge region of AC, if so return projection of P onto AC
-    OverlapReal vb = d5 * d2 - d1 * d6;
-    if (vb <= OverlapReal(0.0) && d2 >= OverlapReal(0.0) && d6 <= OverlapReal(0.0))
+    ShortReal vb = d5 * d2 - d1 * d6;
+    if (vb <= ShortReal(0.0) && d2 >= ShortReal(0.0) && d6 <= ShortReal(0.0))
         {
-        OverlapReal w = d2 / (d2 - d6);
+        ShortReal w = d2 / (d2 - d6);
         return a + w * ac; // barycentric coordinates (1-w,0,w)
         }
     // Check if P in edge region of BC, if so return projection of P onto BC
-    OverlapReal va = d3 * d6 - d5 * d4;
-    if (va <= OverlapReal(0.0) && (d4 - d3) >= OverlapReal(0.0) && (d5 - d6) >= OverlapReal(0.0))
+    ShortReal va = d3 * d6 - d5 * d4;
+    if (va <= ShortReal(0.0) && (d4 - d3) >= ShortReal(0.0) && (d5 - d6) >= ShortReal(0.0))
         {
-        OverlapReal w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        ShortReal w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
         return b + w * (c - b); // barycentric coordinates (0,1-w,w)
         }
 
     // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-    OverlapReal denom = OverlapReal(1.0) / (va + vb + vc);
-    OverlapReal v = vb * denom;
-    OverlapReal w = vc * denom;
+    ShortReal denom = ShortReal(1.0) / (va + vb + vc);
+    ShortReal v = vb * denom;
+    ShortReal w = vc * denom;
     return a + ab * v + ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
     }
 
 /// Test if point p lies outside plane through abc
-DEVICE inline bool PointOutsideOfPlane(const vec3<OverlapReal>& p,
-                                       const vec3<OverlapReal>& a,
-                                       const vec3<OverlapReal>& b,
-                                       const vec3<OverlapReal>& c)
+DEVICE inline bool PointOutsideOfPlane(const vec3<ShortReal>& p,
+                                       const vec3<ShortReal>& a,
+                                       const vec3<ShortReal>& b,
+                                       const vec3<ShortReal>& c)
     {
-    return dot(p - a, cross(b - a, c - a)) >= OverlapReal(0.0);
+    return dot(p - a, cross(b - a, c - a)) >= ShortReal(0.0);
     }
 
 /// Find the point on a segment closest to point p
-DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c,
-                                                      const vec3<OverlapReal>& a,
-                                                      const vec3<OverlapReal>& b,
-                                                      OverlapReal& t)
+DEVICE inline vec3<ShortReal> ClosestPtPointSegment(const vec3<ShortReal>& c,
+                                                    const vec3<ShortReal>& a,
+                                                    const vec3<ShortReal>& b,
+                                                    ShortReal& t)
     {
-    vec3<OverlapReal> ab = b - a;
+    vec3<ShortReal> ab = b - a;
 
-    vec3<OverlapReal> d;
+    vec3<ShortReal> d;
 
     // Project c onto ab, but deferring divide by dot(ab,ab)
     t = dot(c - a, ab);
 
-    if (t <= OverlapReal(0.0))
+    if (t <= ShortReal(0.0))
         {
         // c projects outside the [a,b] interval, on the a side; clamp to a
-        t = OverlapReal(0.0);
+        t = ShortReal(0.0);
         d = a;
         }
     else
         {
-        OverlapReal denom = dot(ab, ab);
+        ShortReal denom = dot(ab, ab);
         if (t >= denom)
             {
             // c project outside the [a,b] interval, on the b side; clamp to b
-            t = OverlapReal(1.0);
+            t = ShortReal(1.0);
             d = b;
             }
         else
@@ -600,7 +596,7 @@ class ProjectionFuncConvexPolyhedron
         @param _verts Polyhedron vertices
     */
     DEVICE ProjectionFuncConvexPolyhedron(const PolyhedronVertices& _verts,
-                                          OverlapReal extra_sweep_radius = OverlapReal(0.0))
+                                          ShortReal extra_sweep_radius = ShortReal(0.0))
         : verts(_verts), sweep_radius(extra_sweep_radius)
         {
         }
@@ -610,11 +606,11 @@ class ProjectionFuncConvexPolyhedron
         @param p Point to compute the projection for
         @returns Local coords of the point in the shape closest to p
     */
-    DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& p) const
+    DEVICE vec3<ShortReal> operator()(const vec3<ShortReal>& p) const
         {
         // Find the point on the convex hull closest to p
-        vec3<OverlapReal> closest_p = p;
-        OverlapReal closest_dsq(FLT_MAX);
+        vec3<ShortReal> closest_p = p;
+        ShortReal closest_dsq(FLT_MAX);
 
         // iterate over triangles of convex hull to find closest point on every face
         unsigned int n_hull_verts = verts.n_hull_verts;
@@ -627,9 +623,9 @@ class ProjectionFuncConvexPolyhedron
                 unsigned int l = verts.hull_verts[i + 1];
                 unsigned int m = verts.hull_verts[i + 2];
 
-                vec3<OverlapReal> a(verts.x[k], verts.y[k], verts.z[k]);
-                vec3<OverlapReal> b(verts.x[l], verts.y[l], verts.z[l]);
-                vec3<OverlapReal> c(verts.x[m], verts.y[m], verts.z[m]);
+                vec3<ShortReal> a(verts.x[k], verts.y[k], verts.z[k]);
+                vec3<ShortReal> b(verts.x[l], verts.y[l], verts.z[l]);
+                vec3<ShortReal> c(verts.x[m], verts.y[m], verts.z[m]);
 
                 // is the point on the outside of the plane?
                 /* For this to work correctly in the degenerate case, i.e. planar facet and 1d line,
@@ -637,8 +633,8 @@ class ProjectionFuncConvexPolyhedron
                  */
                 if (PointOutsideOfPlane(p, a, b, c))
                     {
-                    vec3<OverlapReal> q = closestPointOnTriangle(p, a, b, c);
-                    OverlapReal dsq = dot(p - q, p - q);
+                    vec3<ShortReal> q = closestPointOnTriangle(p, a, b, c);
+                    ShortReal dsq = dot(p - q, p - q);
 
                     if (dsq < closest_dsq)
                         {
@@ -654,21 +650,21 @@ class ProjectionFuncConvexPolyhedron
             if (verts.N == 0)
                 {
                 // return the origin;
-                closest_p = vec3<OverlapReal>(0, 0, 0);
+                closest_p = vec3<ShortReal>(0, 0, 0);
                 }
             else if (verts.N == 1)
                 {
                 // return the only point there is
-                closest_p = vec3<OverlapReal>(verts.x[0], verts.y[0], verts.z[0]);
+                closest_p = vec3<ShortReal>(verts.x[0], verts.y[0], verts.z[0]);
                 }
             else if (verts.N == 2)
                 {
                 // line segment
-                OverlapReal t;
+                ShortReal t;
                 closest_p
                     = ClosestPtPointSegment(p,
-                                            vec3<OverlapReal>(verts.x[0], verts.y[0], verts.z[0]),
-                                            vec3<OverlapReal>(verts.x[1], verts.y[1], verts.z[1]),
+                                            vec3<ShortReal>(verts.x[0], verts.y[0], verts.z[0]),
+                                            vec3<ShortReal>(verts.x[1], verts.y[1], verts.z[1]),
                                             t);
                 }
             }
@@ -676,13 +672,13 @@ class ProjectionFuncConvexPolyhedron
         if (sweep_radius != 0.0 && (p.x != closest_p.x || p.y != closest_p.y || p.z != closest_p.z))
             {
             // point is on the surface, see if we have to project further out
-            vec3<OverlapReal> del = p - closest_p;
-            OverlapReal dsq = dot(del, del);
+            vec3<ShortReal> del = p - closest_p;
+            ShortReal dsq = dot(del, del);
             if (dsq > sweep_radius * sweep_radius)
                 {
                 // add the sphere radius in direction of closest approach, or the closest point
                 // inside the sphere
-                OverlapReal d = fast::sqrt(dsq);
+                ShortReal d = fast::sqrt(dsq);
                 return closest_p + sweep_radius / d * del;
                 }
             else
@@ -695,7 +691,7 @@ class ProjectionFuncConvexPolyhedron
 
     private:
     const PolyhedronVertices& verts; //!< Vertices of the polyhedron
-    const OverlapReal sweep_radius;  //!< extra sphere sweep radius
+    const ShortReal sweep_radius;    //!< extra sphere sweep radius
     };
 
     }; // end namespace detail
@@ -733,44 +729,23 @@ struct ShapeConvexPolyhedron
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     /// Return the bounding box of the shape in world coordinates
     DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        // generate a tight AABB around the polyhedron
-        // detail::SupportFuncConvexPolyhedron sfunc(verts);
-
-        // // use support function of the to determine the furthest extent in each direction
-        // quat<OverlapReal> o(orientation);
-        // vec3<OverlapReal> e_x(1,0,0);
-        // vec3<OverlapReal> e_y(0,1,0);
-        // vec3<OverlapReal> e_z(0,0,1);
-        // vec3<OverlapReal> s_x = rotate(o, sfunc(rotate(conj(o),e_x)));
-        // vec3<OverlapReal> s_y = rotate(o, sfunc(rotate(conj(o),e_y)));
-        // vec3<OverlapReal> s_z = rotate(o, sfunc(rotate(conj(o),e_z)));
-        // vec3<OverlapReal> s_neg_x = rotate(o, sfunc(rotate(conj(o),-e_x)));
-        // vec3<OverlapReal> s_neg_y = rotate(o, sfunc(rotate(conj(o),-e_y)));
-        // vec3<OverlapReal> s_neg_z = rotate(o, sfunc(rotate(conj(o),-e_z)));
-
-        // // translate out from the position by the furthest extents
-        // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
-        // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, pos.z + s_neg_z.z);
-
-        // return hoomd::detail::AABB(lower, upper);
-
-        // ^^^^^^^ The above method is slow, just use a box that bounds the circumsphere
+        // Generate the AABB of a bounding sphere, computing tight fitting AABBs is slow.
         return hoomd::detail::AABB(pos, getCircumsphereDiameter() / Scalar(2));
         }
 
@@ -819,16 +794,16 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeConvexPolyhedron& b,
                                 unsigned int& err)
     {
-    vec3<OverlapReal> dr(r_ab);
+    vec3<ShortReal> dr(r_ab);
 
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
     return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
                                   detail::SupportFuncConvexPolyhedron(b.verts),
-                                  rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                                  conj(quat<OverlapReal>(a.orientation))
-                                      * quat<OverlapReal>(b.orientation),
-                                  DaDb / OverlapReal(2.0),
+                                  rotate(conj(quat<ShortReal>(a.orientation)), dr),
+                                  conj(quat<ShortReal>(a.orientation))
+                                      * quat<ShortReal>(b.orientation),
+                                  DaDb / ShortReal(2.0),
                                   err);
 
     /*
@@ -851,30 +826,30 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     \ingroup shape
 */
-DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
-                                         const ShapeConvexPolyhedron& a,
-                                         const ShapeConvexPolyhedron& b,
-                                         const vec3<Scalar>& direction,
-                                         unsigned int& err,
-                                         vec3<Scalar>& collisionPlaneVector)
+DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
+                                       const ShapeConvexPolyhedron& a,
+                                       const ShapeConvexPolyhedron& b,
+                                       const vec3<Scalar>& direction,
+                                       unsigned int& err,
+                                       vec3<Scalar>& collisionPlaneVector)
     {
-    vec3<OverlapReal> dr(r_ab);
-    vec3<OverlapReal> to(direction);
+    vec3<ShortReal> dr(r_ab);
+    vec3<ShortReal> to(direction);
 
-    vec3<OverlapReal> csp(collisionPlaneVector);
+    vec3<ShortReal> csp(collisionPlaneVector);
 
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    OverlapReal distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                                                detail::SupportFuncConvexPolyhedron(b.verts),
-                                                rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                                                conj(quat<OverlapReal>(a.orientation))
-                                                    * quat<OverlapReal>(b.orientation),
-                                                rotate(conj(quat<OverlapReal>(a.orientation)), to),
-                                                DaDb / OverlapReal(2.0),
-                                                err,
-                                                csp);
-    collisionPlaneVector = vec3<Scalar>(rotate(quat<OverlapReal>(a.orientation), csp));
+    ShortReal distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                                              detail::SupportFuncConvexPolyhedron(b.verts),
+                                              rotate(conj(quat<ShortReal>(a.orientation)), dr),
+                                              conj(quat<ShortReal>(a.orientation))
+                                                  * quat<ShortReal>(b.orientation),
+                                              rotate(conj(quat<ShortReal>(a.orientation)), to),
+                                              DaDb / ShortReal(2.0),
+                                              err,
+                                              csp);
+    collisionPlaneVector = vec3<Scalar>(rotate(quat<ShortReal>(a.orientation), csp));
 
     return distance;
     }

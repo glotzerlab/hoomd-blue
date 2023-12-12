@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ParticleGroup.h"
@@ -19,146 +19,6 @@ using namespace std;
 
 namespace hoomd
     {
-/*! \param sysdef System the particles are to be selected from
-    \param rigid true selects particles that are in bodies, false selects particles that are not
-   part of a body
-*/
-ParticleFilterBody::ParticleFilterBody(bool body) : ParticleFilter(), m_body(body) { }
-
-/*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the body criteria selected
-*/
-std::vector<unsigned int>
-ParticleFilterBody::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
-    {
-    std::vector<unsigned int> member_tags;
-    auto pdata = sysdef->getParticleData();
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-
-        // get position of particle
-        unsigned int body = h_body.data[idx];
-
-        // see if it matches the criteria
-        bool result = false;
-        if (m_body && body != NO_BODY)
-            result = true;
-        if (!m_body && body == NO_BODY)
-            result = true;
-
-        if (result)
-            member_tags.push_back(tag);
-        }
-    return member_tags;
-    }
-
-//////////////////////////////////////////////////////////////////////////////
-// ParticleFilterFloppy
-
-/*! \param floppy true selects particles that are in floppy bodies, false selects particles that are
- * not part of a floppy (non-rigid body)
- */
-ParticleFilterFloppy::ParticleFilterFloppy(bool floppy) : ParticleFilter(), m_floppy(floppy) { }
-
-/*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the rigid criteria selected
-*/
-std::vector<unsigned int>
-ParticleFilterFloppy::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
-    {
-    std::vector<unsigned int> member_tags;
-    auto pdata = sysdef->getParticleData();
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-
-        // get position of particle
-        unsigned int body = h_body.data[idx];
-
-        // see if it matches the criteria
-        bool result = false;
-        if (m_floppy && body >= MIN_FLOPPY && body != NO_BODY)
-            result = true;
-        if (!m_floppy && (body < MIN_FLOPPY || body == NO_BODY))
-            result = true;
-
-        if (result)
-            member_tags.push_back(tag);
-        }
-    return member_tags;
-    }
-
-ParticleFilterRigidCenter::ParticleFilterRigidCenter() : ParticleFilter() { }
-
-/*! \returns true if the type of particle \a tag is a center particle of a rigid body
- */
-std::vector<unsigned int>
-ParticleFilterRigidCenter::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
-    {
-    std::vector<unsigned int> member_tags;
-    auto pdata = sysdef->getParticleData();
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-
-        // get position of particle
-        unsigned int body = h_body.data[idx];
-
-        if (body == tag)
-            member_tags.push_back(tag);
-        }
-    return member_tags;
-    }
-
-ParticleFilterCuboid::ParticleFilterCuboid(Scalar3 min, Scalar3 max)
-    : ParticleFilter(), m_min(min), m_max(max)
-    {
-    }
-
-/*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag is in the cuboid
-
-    Evaluation is performed by \a m_min.x <= x < \a m_max.x so that multiple cuboids stacked next to
-   each other do not have overlapping sets of particles.
-*/
-std::vector<unsigned int>
-ParticleFilterCuboid::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
-    {
-    std::vector<unsigned int> member_tags;
-    auto pdata = sysdef->getParticleData();
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_postype(pdata->getPositions(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-        // get position of particle
-        Scalar4 postype = h_postype.data[idx];
-
-        // see if it matches the criteria
-        bool result = (m_min.x <= postype.x && postype.x < m_max.x && m_min.y <= postype.y
-                       && postype.y < m_max.y && m_min.z <= postype.z && postype.z < m_max.z);
-        if (result)
-            member_tags.push_back(tag);
-        }
-
-    return member_tags;
-    }
-
 //////////////////////////////////////////////////////////////////////////////
 // ParticleGroup
 
@@ -314,7 +174,7 @@ ParticleGroup::~ParticleGroup()
 
 /*! \param force_update If true, always update member tags
  */
-void ParticleGroup::updateMemberTags(bool force_update) const
+void ParticleGroup::updateMemberTags(bool force_update)
     {
     if (m_selector && !(m_update_tags || force_update) && !m_warning_printed)
         {
@@ -394,9 +254,43 @@ void ParticleGroup::updateMemberTags(bool force_update) const
     // now that the tag list is completely set up and all memory is allocated, rebuild the index
     // list
     rebuildIndexList();
+
+    // count the number of central and free particles in the group
+    // updateMemberTags cannot call any member function that would result in a checkRebuild() call
+    m_n_central_and_free_global = 0;
+
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
+    ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag,
+                                              access_location::host,
+                                              access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        unsigned int tag = h_tag.data[i];
+        unsigned int body = h_body.data[i];
+
+        if (h_is_member_tag.data[tag] && (body == tag || body > MIN_FLOPPY))
+            {
+            m_n_central_and_free_global++;
+            }
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &m_n_central_and_free_global,
+                      1,
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif
     }
 
-void ParticleGroup::reallocate() const
+void ParticleGroup::reallocate()
     {
     m_is_member.resize(m_pdata->getMaxN());
 
@@ -414,7 +308,7 @@ void ParticleGroup::reallocate() const
 /*! \returns Total mass of all particles in the group
     \note This method acquires the ParticleData internally
 */
-Scalar ParticleGroup::getTotalMass() const
+Scalar ParticleGroup::getTotalMass()
     {
     // grab the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
@@ -432,7 +326,7 @@ Scalar ParticleGroup::getTotalMass() const
 /*! \returns The center of mass of the group, in unwrapped coordinates
     \note This method acquires the ParticleData internally
 */
-Scalar3 ParticleGroup::getCenterOfMass() const
+Scalar3 ParticleGroup::getCenterOfMass()
     {
     // grab the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
@@ -614,7 +508,7 @@ std::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(std::shared_ptr<Pa
 
 /*! Builds the by-tag-lookup table for group membership
  */
-void ParticleGroup::buildTagHash() const
+void ParticleGroup::buildTagHash()
     {
     ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag,
                                               access_location::host,
@@ -639,7 +533,7 @@ void ParticleGroup::buildTagHash() const
    group \post m_member_idx is updated listing all particle indices belonging to the group, in index
    order
 */
-void ParticleGroup::rebuildIndexList() const
+void ParticleGroup::rebuildIndexList()
     {
     // notice message
     m_pdata->getExecConf()->msg->notice(10) << "ParticleGroup: rebuilding index" << std::endl;
@@ -695,7 +589,7 @@ void ParticleGroup::rebuildIndexList() const
 #endif
     }
 
-void ParticleGroup::updateGPUAdvice() const
+void ParticleGroup::updateGPUAdvice()
     {
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
@@ -734,7 +628,7 @@ void ParticleGroup::updateGPUAdvice() const
 
 #ifdef ENABLE_HIP
 //! rebuild index list on the GPU
-void ParticleGroup::rebuildIndexListGPU() const
+void ParticleGroup::rebuildIndexListGPU()
     {
     ArrayHandle<unsigned int> d_is_member(m_is_member,
                                           access_location::device,
@@ -816,12 +710,16 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                    access_mode::read);
 
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
 
     // Total the system's linear momentum
     vec3<Scalar> tot_momentum(0, 0, 0);
 
     // Loop over all particles in the group
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
         {
         unsigned int j = this->getMemberIndex(group_idx);
         unsigned int ptag = h_tag.data[j];
@@ -832,17 +730,26 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate a random velocity
+        // Generate a random velocity, excluding constituent particles
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
-        h_vel.data[j].x = normal(rng);
-        h_vel.data[j].y = normal(rng);
-        if (n_dimensions > 2)
-            h_vel.data[j].z = normal(rng);
+        // check if particles are constituent particles
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != NO_BODY)
+            {
+            h_vel.data[j].x = 0;
+            h_vel.data[j].y = 0;
+            h_vel.data[j].z = 0;
+            }
         else
-            h_vel.data[j].z = 0; // For 2D systems
-
+            {
+            h_vel.data[j].x = normal(rng);
+            h_vel.data[j].y = normal(rng);
+            if (n_dimensions > 2)
+                h_vel.data[j].z = normal(rng);
+            else
+                h_vel.data[j].z = 0; // For 2D systems
+            }
         tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
 
         // Generate random angular momentum if the particle has rotational degrees of freedom.
@@ -850,12 +757,15 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (I.x > 0)
-            p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
-        if (I.y > 0)
-            p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
-        if (I.z > 0)
-            p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
+            {
+            if (I.x > 0)
+                p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
+            if (I.y > 0)
+                p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
+            if (I.z > 0)
+                p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+            }
 
         // Store the angular momentum quaternion
         quat<Scalar> p = Scalar(2.0) * q * p_vec;
@@ -883,12 +793,15 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         {
         unsigned int j = this->getMemberIndex(group_idx);
         Scalar mass = h_vel.data[j].w;
-        h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
-        h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
-        if (n_dimensions > 2)
-            h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
-        else
-            h_vel.data[j].z = 0; // For 2D systems
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
+            {
+            h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
+            h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
+            if (n_dimensions > 2)
+                h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
+            else
+                h_vel.data[j].z = 0; // For 2D systems
+            }
         }
     }
 

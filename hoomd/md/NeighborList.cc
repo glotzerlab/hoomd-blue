@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -31,10 +31,9 @@ namespace md
 */
 NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(0.0), m_rcut_min(0.0),
-      m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false),
-      m_storage_mode(half), m_meshbond_data(NULL), m_rcut_changed(true), m_updates(0),
-      m_forced_updates(0), m_dangerous_updates(0), m_force_update(true), m_dist_check(true),
-      m_has_been_updated_once(false)
+      m_r_buff(r_buff), m_filter_body(false), m_storage_mode(half), m_meshbond_data(NULL),
+      m_rcut_changed(true), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
+      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -541,15 +540,6 @@ void NeighborList::checkBoxSize()
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
     Scalar rmax = m_rcut_max_max + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    if (m_filter_body)
-        {
-        // add the maximum diameter of all composite particles
-        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5 * max_d_comp;
-        }
 
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0)
         || (periodic.y && nearest_plane_distance.y <= rmax * 2.0)
@@ -557,8 +547,8 @@ void NeighborList::checkBoxSize()
             && nearest_plane_distance.z <= rmax * 2.0))
         {
         std::ostringstream oss;
-        oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
-            << "rmax=" << rmax << std::endl;
+        oss << "nlist: Simulation box is too small, the neighbor list is searching beyond the "
+            << " minimum image: rmax=" << rmax << std::endl;
 
         if (box.getPeriodic().x)
             oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
@@ -568,32 +558,6 @@ void NeighborList::checkBoxSize()
             oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
         throw std::runtime_error(oss.str());
         }
-    }
-
-/*! \returns an estimate of the number of neighbors per particle
-    This mean-field estimate may be very bad depending on how clustered particles are.
-    Derived classes can override this method to provide better estimates.
-
-    \note Under NO circumstances should calling this method produce any
-    appreciable amount of overhead. This is mainly a warning to
-    derived classes.
-*/
-Scalar NeighborList::estimateNNeigh()
-    {
-    // calculate a number density of particles
-    BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
-    Scalar vol = L.x * L.y * L.z;
-    Scalar n_dens = Scalar(m_pdata->getN()) / vol;
-
-    // calculate the average number of neighbors by multiplying by the volume
-    // within the cutoff
-    Scalar r_max = getMaxRCut() + m_r_buff;
-    // diameter shifting requires to communicate a larger rlist
-    if (m_diameter_shift)
-        r_max += m_d_max - Scalar(1.0);
-    Scalar vol_cut = Scalar(4.0 / 3.0 * M_PI) * r_max * r_max * r_max;
-    return n_dens * vol_cut;
     }
 
 /*! \param tag1 TAG (not index) of the first particle in the pair
@@ -827,11 +791,6 @@ void NeighborList::countExclusions()
             << "Particles with more than " << MAX_COUNT_EXCLUDED
             << " exclusions: " << excluded_count[MAX_COUNT_EXCLUDED + 1] << endl;
         }
-
-    if (m_diameter_shift)
-        m_exec_conf->msg->notice(2) << "Neighbors included by diameter          : yes" << endl;
-    else
-        m_exec_conf->msg->notice(2) << "Neighbors included by diameter          : no" << endl;
 
     if (m_filter_body)
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
@@ -2039,19 +1998,12 @@ void export_NeighborList(pybind11::module& m)
         .def_property("check_dist", &NeighborList::getDistCheck, &NeighborList::setDistCheck)
         .def("setStorageMode", &NeighborList::setStorageMode)
         .def_property("exclusions", &NeighborList::getExclusions, &NeighborList::setExclusions)
-        .def_property("diameter_shift",
-                      &NeighborList::getDiameterShift,
-                      &NeighborList::setDiameterShift)
-        .def_property("max_diameter",
-                      &NeighborList::getMaximumDiameter,
-                      &NeighborList::setMaximumDiameter)
         .def("addMesh", &NeighborList::AddMesh)
         .def("getMaxRCut", &NeighborList::getMaxRCut)
         .def("getMinRCut", &NeighborList::getMinRCut)
         .def("getMaxRList", &NeighborList::getMaxRList)
         .def("getMinRList", &NeighborList::getMinRList)
         .def("forceUpdate", &NeighborList::forceUpdate)
-        .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME__H__
@@ -8,7 +8,6 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Compute.h"
 
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
 
@@ -97,7 +96,7 @@ ComputeFreeVolume<Shape>::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sy
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
 
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 
@@ -175,7 +174,10 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
             Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
-
+            if (this->m_sysdef->getNDimensions() == 2)
+                {
+                zrand = 0;
+                }
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));
 
@@ -294,8 +296,8 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
 
     // total free volume
     const BoxDim global_box = this->m_pdata->getGlobalBox();
-    Scalar V_free
-        = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample * global_box.getVolume();
+    Scalar V_free = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample
+                    * global_box.getVolume(this->m_sysdef->getNDimensions() == 2);
 
     return V_free;
     }

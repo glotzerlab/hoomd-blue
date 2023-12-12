@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement BoxMCMoveSize."""
@@ -97,9 +97,10 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
             ],
             max_move_size=OnlyIf(
                 to_type_converter({
-                    attr: OnlyTypes(float,
-                                    allow_none=True,
-                                    postprocess=self._flag_move_size_update)
+                    attr:
+                        OnlyTypes(float,
+                                  allow_none=True,
+                                  postprocess=self._flag_move_size_update)
                     for attr in _MoveSizeTuneDefinition.acceptable_attrs
                 }),))
         params["boxmc"] = boxmc

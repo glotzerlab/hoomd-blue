@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -49,7 +49,7 @@ class TestCustomWriter:
         action = WriteTimestep()
         action.flags = [hoomd.custom.Action.Flags.PRESSURE_TENSOR]
         sim.operations += hoomd.write.CustomWriter(2, action)
-        gauss = hoomd.md.pair.Gauss(hoomd.md.nlist.Cell(0.5))
+        gauss = hoomd.md.pair.Gaussian(hoomd.md.nlist.Cell(0.5))
         gauss.params[("A", "A")] = {"sigma": 1.0, "epsilon": 1.0}
         gauss.r_cut[("A", "A")] = 2.0
         sim.operations += hoomd.md.Integrator(

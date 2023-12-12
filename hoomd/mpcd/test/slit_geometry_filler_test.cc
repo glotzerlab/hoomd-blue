@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/SlitGeometryFiller.h"
@@ -18,19 +18,15 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(1, -2, 3);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
-
-        mpcd_snap->position[0] = vec3<Scalar>(1, -2, 3);
-        mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    auto pdata = mpcd_sys->getParticleData();
-    mpcd_sys->getCellList()->setCellSize(2.0);
+    auto pdata = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    cl->setCellSize(2.0);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit channel with half width 5
@@ -39,7 +35,8 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
                                                                    mpcd::detail::boundary::no_slip);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::SlitGeometryFiller> filler
-        = std::make_shared<F>(mpcd_sys, 2.0, 1, kT, slit);
+        = std::make_shared<F>(sysdef, 2.0, 1, kT, slit);
+    filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list
@@ -115,7 +112,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
      * Change the cell size so that we lie exactly on a boundary.
      */
     pdata->removeVirtualParticles();
-    mpcd_sys->getCellList()->setCellSize(1.0);
+    cl->setCellSize(1.0);
     filler->fill(2);
     // volume to fill is now from 5->5.5 on + side, same other parameters
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (20 * 20 / 2) * 2);
@@ -138,7 +135,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     /*
      * Test the average properties of the virtual particles.
      */
-    mpcd_sys->getCellList()->setCellSize(2.0);
+    cl->setCellSize(2.0);
     unsigned int N_lo(0), N_hi(0);
     Scalar3 v_lo = make_scalar3(0, 0, 0);
     Scalar3 v_hi = make_scalar3(0, 0, 0);

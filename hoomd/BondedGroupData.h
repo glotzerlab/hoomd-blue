@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
@@ -931,93 +931,6 @@ extern char name_triangle_data[];
 
 //! Definition of TriangleData
 typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
-
-/*
- * MeshTriangleData
- */
-extern char name_meshtriangle_data[];
-
-// Definition of a meshtriangle
-struct MeshTriangle
-    {
-    typedef group_storage<6> members_t;
-
-    //! Constructor
-    /*! \param type Type of meshtriangle
-     * \param _a First triangle member
-     * \param _b Second triangle member
-     * \param _c Third triangle member
-     * \param _ea First edge
-     * \param _eb Second edge
-     * \param _ec Third edge
-     */
-    MeshTriangle(unsigned int _type,
-                 unsigned int _a,
-                 unsigned int _b,
-                 unsigned int _c,
-                 unsigned int _ea,
-                 unsigned int _eb,
-                 unsigned int _ec)
-        : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
-        {
-        }
-
-    //! Constructor that takes a members_t (used internally by MeshTriangleData)
-    /*! \param type
-     *  \param members group members
-     */
-    MeshTriangle(typeval_t _typeval, members_t _members)
-        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]),
-          ea(_members.tag[3]), eb(_members.tag[4]), ec(_members.tag[5])
-        {
-        }
-
-    members_t get_members() const
-        {
-        members_t m;
-        m.tag[0] = a;
-        m.tag[1] = b;
-        m.tag[2] = c;
-        m.tag[3] = ea;
-        m.tag[4] = eb;
-        m.tag[5] = ec;
-        return m;
-        }
-
-    typeval_t get_typeval() const
-        {
-        typeval_t t;
-        t.type = type;
-        return t;
-        }
-
-    static void export_to_python(pybind11::module& m)
-        {
-        pybind11::class_<MeshTriangle>(m, "MeshTriangle")
-            .def(pybind11::init<unsigned int,
-                                unsigned int,
-                                unsigned int,
-                                unsigned int,
-                                unsigned int,
-                                unsigned int,
-                                unsigned int>())
-            .def_readonly("type", &MeshTriangle::type)
-            .def_readonly("a", &MeshTriangle::a)
-            .def_readonly("b", &MeshTriangle::b)
-            .def_readonly("c", &MeshTriangle::c)
-            .def_readonly("ea", &MeshTriangle::ea)
-            .def_readonly("eb", &MeshTriangle::eb)
-            .def_readonly("ec", &MeshTriangle::ec);
-        }
-
-    unsigned int type; //!< Group type
-    unsigned int a;    //!< First dihedral member
-    unsigned int b;    //!< Second dihedral member
-    unsigned int c;    //!< Third dihedral member
-    unsigned int ea;   //!< First endge
-    unsigned int eb;   //!< Second edge
-    unsigned int ec;   //!< Third edge
-    };
 
 /*
  * DihedralData

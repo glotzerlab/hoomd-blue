@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPUDepletants.cuh
@@ -202,7 +202,7 @@ __launch_bounds__(max_threads)
         if (dim == 3)
             obb_i.lengths.z += r;
         else
-            obb_i.lengths.z = OverlapReal(0.5);
+            obb_i.lengths.z = ShortReal(0.5);
         }
 
     if (master && group == 0)

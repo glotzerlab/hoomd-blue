@@ -62,7 +62,7 @@ body:
     attributes:
       label: HOOMD-blue version
       description: What version of HOOMD-blue are you using?
-      placeholder: 3.7.0
+      placeholder: 4.3.0
     validations:
       required: true
   - type: markdown
@@ -73,7 +73,7 @@ body:
     attributes:
       label: Python version
       description: What version of Python are you using?
-      placeholder: 3.10.6
+      placeholder: 3.11.3
     validations:
       required: true
   - type: markdown

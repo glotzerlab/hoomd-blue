@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -17,7 +17,7 @@ def test_before_attaching():
 
 def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
 
     trigger = hoomd.trigger.Periodic(100)
@@ -41,7 +41,7 @@ def test_momentum_is_zero(simulation_factory, two_particle_snapshot_factory):
         snap.particles.mass[0] = 1
         snap.particles.mass[1] = 1
     sim = simulation_factory(snap)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
 
     zm = hoomd.md.update.ZeroMomentum(hoomd.trigger.Periodic(1))

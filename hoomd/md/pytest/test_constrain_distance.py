@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -81,7 +81,7 @@ def test_attach_detach(simulation_factory, polymer_snapshot_factory):
     # attached
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -101,7 +101,7 @@ def test_pickling(simulation_factory, polymer_snapshot_factory):
     # attached
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -115,7 +115,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
 
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 

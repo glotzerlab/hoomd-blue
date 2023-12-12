@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 ==========
@@ -105,14 +105,15 @@ Molecular dynamics:
 
     import hoomd
 
-    cell = hoomd.md.nlist.Cell()
+    cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.r_cut[('A', 'A')] = 2.5
 
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    nvt = hoomd.md.methods.NVT(kT=1.5, filter=hoomd.filter.All(), tau=1.0)
+    bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+    nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(), thermostat=bussi)
     integrator.methods.append(nvt)
 
     gpu = hoomd.device.GPU()
@@ -124,37 +125,19 @@ Molecular dynamics:
 
     sim.run(1e5)
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Getting started
-
-    features
-    installation
-    building
-    migrating
-    changelog
-    citing
+.. rubric::
+    Contents
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Tutorials
+    :maxdepth: 2
+    :caption: Guides
 
-    tutorial/00-Introducing-HOOMD-blue/00-index
-    tutorial/01-Introducing-Molecular-Dynamics/00-index
-    tutorial/02-Logging/00-index
-    tutorial/03-Parallel-Simulations-With-MPI/00-index
-    tutorial/04-Custom-Actions-In-Python/00-index
-    tutorial/05-Organizing-and-Executing-Simulations/00-index
-    tutorial/06-Modelling-Rigid-Bodies/00-index
+    getting-started
+    tutorials
+    how-to
 
 .. toctree::
-    :maxdepth: 1
-    :caption: How to guides
-
-    howto/molecular
-
-.. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Python API
 
    package-hoomd
@@ -162,22 +145,13 @@ Molecular dynamics:
    package-md
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Developer guide
-
-    contributing
-    style
-    testing
-    components
-
-.. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Reference
 
-   notation
-   units
-   deprecated
-   logo
-   license
-   credits
+   documentation
+   changes
+   developers
+
+   open-source
+
    indices

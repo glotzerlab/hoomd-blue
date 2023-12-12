@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __UPDATER_MUVT_H__
@@ -1942,12 +1942,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
-        OverlapReal r_cut_patch(0.0);
+        ShortReal r_cut_patch(0.0);
         Scalar r_cut_self(0.0);
 
         if (patch)
             {
-            r_cut_patch = OverlapReal(patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type));
+            r_cut_patch = ShortReal(patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type));
             r_cut_self = r_cut_patch + 0.5 * patch->getAdditiveCutoff(type);
             }
 
@@ -2032,9 +2032,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                                  access_mode::read);
 
             Shape shape(orientation, params[type]);
-            OverlapReal R_query
-                = std::max(shape.getCircumsphereDiameter() / OverlapReal(2.0),
-                           r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
+            ShortReal R_query = std::max(shape.getCircumsphereDiameter() / ShortReal(2.0),
+                                         r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)

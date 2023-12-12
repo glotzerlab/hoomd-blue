@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -30,7 +30,6 @@ namespace kernel
     \param d_vel array of particle positions and masses
     \param d_image array of particle images
     \param box simulation box
-    \param d_diameter array of particle diameters
     \param d_tag array of particle tags
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param nwork Number of group members to process on this GPU
@@ -40,12 +39,9 @@ namespace kernel
     \param d_torque Device array of net torque on each particle
     \param d_inertia Device array of moment of inertial of each particle
     \param d_angmom Device array of transformed angular momentum quaternion of each particle (see
-   online documentation) \param d_gamma List of per-type gammas \param n_types Number of particle
-   types in the simulation \param use_alpha If true, gamma = alpha * diameter \param alpha Scale
-   factor to convert diameter to alpha (when use_alpha is true) \param timestep Current timestep of
-   the simulation \param seed User chosen random number seed \param T Temperature set point \param
-   aniso If set true, the system would go through rigid body updates for its orientation \param
-   deltaT Amount of real time to step forward in one time step \param D Dimensionality of the system
+        online documentation)
+    \param d_gamma List of per-type gammas
+    \param n_types Number of particle types in the simulation
     \param d_noiseless_t If set true, there will be no translational noise (random force)
     \param d_noiseless_r If set true, there will be no rotational noise (random torque)
     \param offset Offset of this GPU into group indices
@@ -59,7 +55,6 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              Scalar4* d_vel,
                                              int3* d_image,
                                              const BoxDim box,
-                                             const Scalar* d_diameter,
                                              const unsigned int* d_tag,
                                              const unsigned int* d_group_members,
                                              const unsigned int nwork,
@@ -71,8 +66,6 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              Scalar4* d_angmom,
                                              const Scalar* d_gamma,
                                              const unsigned int n_types,
-                                             const bool use_alpha,
-                                             const Scalar alpha,
                                              const uint64_t timestep,
                                              const uint16_t seed,
                                              const Scalar T,
@@ -91,17 +84,14 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
 
     if (enable_shared_cache)
         {
-        if (!use_alpha)
+        // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
+        // convention)
+        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
             {
-            // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
-            // convention)
-            for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
-                {
-                if (cur_offset + threadIdx.x < n_types)
-                    s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
-                }
-            __syncthreads();
+            if (cur_offset + threadIdx.x < n_types)
+                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
             }
+        __syncthreads();
 
         // read in the gamma_r, stored in s_gammas_r[0: n_type], which is s_gamma_r[0:n_type]
 
@@ -140,23 +130,15 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_alpha)
+        // determine gamma from type
+        unsigned int typ = __scalar_as_int(postype.w);
+        if (enable_shared_cache)
             {
-            // determine gamma from diameter
-            gamma = alpha * d_diameter[idx];
+            gamma = s_gammas[typ];
             }
         else
             {
-            // determine gamma from type
-            unsigned int typ = __scalar_as_int(postype.w);
-            if (enable_shared_cache)
-                {
-                gamma = s_gammas[typ];
-                }
-            else
-                {
-                gamma = d_gamma[typ];
-                }
+            gamma = d_gamma[typ];
             }
 
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1
@@ -309,7 +291,6 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
     \param d_vel array of particle positions and masses
     \param d_image array of particle images
     \param box simulation box
-    \param d_diameter array of particle diameters
     \param d_tag array of particle tags
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
@@ -332,7 +313,6 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  int3* d_image,
                                  const BoxDim& box,
-                                 const Scalar* d_diameter,
                                  const unsigned int* d_tag,
                                  const unsigned int* d_group_members,
                                  const unsigned int group_size,
@@ -384,7 +364,6 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                            d_vel,
                            d_image,
                            box,
-                           d_diameter,
                            d_tag,
                            d_group_members,
                            nwork,
@@ -396,8 +375,6 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                            d_angmom,
                            langevin_args.d_gamma,
                            langevin_args.n_types,
-                           langevin_args.use_alpha,
-                           langevin_args.alpha,
                            langevin_args.timestep,
                            langevin_args.seed,
                            langevin_args.T,

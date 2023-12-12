@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test the internal wall data lists for C++.
@@ -44,20 +44,16 @@ class TestArrayViewPython(conftest.BaseListTest):
         return generate
 
     def _generate_sphere(self):
-        return _md.SphereWall(self.float(),
-                              (self.float(), self.float(), self.float()),
-                              self.bool(), self.bool())
+        args = (float, (float,) * 3, bool, bool)
+        return _md.SphereWall(*self.generator(args))
 
     def _generate_cylinder(self):
-        return _md.CylinderWall(self.float(),
-                                (self.float(), self.float(), self.float()),
-                                (self.float(), self.float(), self.float()),
-                                self.bool(), self.bool())
+        args = (float, (float,) * 3, (float,) * 3, bool, bool)
+        return _md.CylinderWall(*self.generator(args))
 
     def _generate_plane(self):
-        return _md.PlaneWall((self.float(), self.float(), self.float()),
-                             (self.float(), self.float(), self.float()),
-                             self.bool())
+        args = ((float,) * 3, (float,) * 3, bool)
+        return _md.PlaneWall(*self.generator(args))
 
     def test_contains(self, populated_collection, generate_plain_collection):
         """Contains does not work for array views."""

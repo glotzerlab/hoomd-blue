@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
@@ -97,22 +97,12 @@ class EvaluatorExternalPeriodic
         {
         }
 
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
-
     //! External Periodic doesn't need charges
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter value
+    //! Accept the optional charge value.
     /*! \param qi Charge of particle i
      */
     DEVICE void setCharge(Scalar qi) { }

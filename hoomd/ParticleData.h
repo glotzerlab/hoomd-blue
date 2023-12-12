@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.h
@@ -42,7 +42,6 @@
 #include "DomainDecomposition.h"
 
 #include <bitset>
-#include <map>
 #include <stack>
 #include <stdlib.h>
 #include <string>
@@ -107,29 +106,6 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 const unsigned int NOT_LOCAL = 0xffffffff;
 
     } // end namespace hoomd
-
-#ifdef ENABLE_MPI
-namespace cereal
-    {
-//! Serialization of vec3<Real>
-template<class Archive, class Real>
-void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
-    {
-    ar& v.x;
-    ar& v.y;
-    ar& v.z;
-    }
-
-//! Serialization of quat<Real>
-template<class Archive, class Real>
-void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
-    {
-    // serialize both members
-    ar& q.s;
-    ar& q.v;
-    }
-    } // namespace cereal
-#endif
 
 namespace hoomd
     {
@@ -615,20 +591,6 @@ class PYBIND11_EXPORT ParticleData
         return has_bodies;
         }
 
-    //! Return the maximum diameter of all registered composite particles
-    Scalar getMaxCompositeParticleDiameter()
-        {
-        Scalar d_max = 0.0;
-        m_composite_particles_signal.emit_accumulate(
-            [&](Scalar d)
-            {
-                if (d > d_max)
-                    d_max = d;
-            });
-
-        return d_max;
-        }
-
     //! Return positions and types
     const GlobalArray<Scalar4>& getPositions() const
         {
@@ -916,20 +878,17 @@ class PYBIND11_EXPORT ParticleData
     //! Notify listeners that ghost particles have been removed
     void notifyGhostParticlesRemoved();
 
-    //! Connects a function to be called every time the maximum diameter of composite particles is
-    //! needed
-    /*! The signal slot returns the maximum diameter
-     */
-    Nano::Signal<Scalar()>& getCompositeParticlesSignal()
-        {
-        return m_composite_particles_signal;
-        }
-
     //! Gets the particle type index given a name
     unsigned int getTypeByName(const std::string& name) const;
 
     //! Gets the name of a given particle type index
     std::string getNameByType(unsigned int type) const;
+
+    /// Get the complete type mapping
+    const std::vector<std::string>& getTypeMapping() const
+        {
+        return m_type_mapping;
+        }
 
     //! Get the types for python
     pybind11::list getTypesPy()
@@ -1172,8 +1131,7 @@ class PYBIND11_EXPORT ParticleData
                                 bool ignore_bodies = false);
 
     //! Take a snapshot
-    template<class Real>
-    std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real>& snapshot);
+    template<class Real> void takeSnapshot(SnapshotParticleData<Real>& snapshot);
 
     //! Add ghost particles at the end of the local particle data
     void addGhostParticles(const unsigned int nghosts);
@@ -1311,9 +1269,6 @@ class PYBIND11_EXPORT ParticleData
                                                            //!< particles are removed
     Nano::Signal<void()> m_global_particle_num_signal; //!< Signal that is triggered when the global
                                                        //!< number of particles changes
-    Nano::Signal<Scalar()>
-        m_composite_particles_signal; //!< Signal that is triggered when the maximum diameter of a
-                                      //!< composite particle is needed
 
 #ifdef ENABLE_MPI
     Nano::Signal<void(unsigned int, unsigned int, unsigned int)>

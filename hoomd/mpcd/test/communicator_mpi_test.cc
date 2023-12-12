@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -18,9 +18,8 @@ using namespace std::placeholders;
 using namespace hoomd;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
-typedef std::function<std::shared_ptr<mpcd::Communicator>(
-    std::shared_ptr<mpcd::SystemData> mpcd_sys,
-    unsigned int nstages)>
+typedef std::function<std::shared_ptr<mpcd::Communicator>(std::shared_ptr<SystemDefinition> sysdef,
+                                                          unsigned int nstages)>
     communicator_creator;
 
 #include "hoomd/test/upp11_config.h"
@@ -48,59 +47,56 @@ void test_communicator_migrate(communicator_creator comm_creator,
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
-    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
+    snap->mpcd_data.resize(8);
     BoxDim ref_box = BoxDim(2.0);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->type_mapping.push_back("M");
-        mpcd_snap->type_mapping.push_back("P");
-        mpcd_snap->type_mapping.push_back("H");
-        mpcd_snap->type_mapping.push_back("R");
-        mpcd_snap->type_mapping.push_back("L");
-        mpcd_snap->type_mapping.push_back("G");
-        mpcd_snap->type_mapping.push_back("PSU");
-        mpcd_snap->type_mapping.push_back("PU");
+    snap->mpcd_data.type_mapping.push_back("M");
+    snap->mpcd_data.type_mapping.push_back("P");
+    snap->mpcd_data.type_mapping.push_back("H");
+    snap->mpcd_data.type_mapping.push_back("R");
+    snap->mpcd_data.type_mapping.push_back("L");
+    snap->mpcd_data.type_mapping.push_back("G");
+    snap->mpcd_data.type_mapping.push_back("PSU");
+    snap->mpcd_data.type_mapping.push_back("PU");
 
-        mpcd_snap->resize(8);
-        mpcd_snap->position[0] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, -0.5)));
-        mpcd_snap->position[1] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, -0.5)));
-        mpcd_snap->position[2] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, -0.5)));
-        mpcd_snap->position[3] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, -0.5)));
-        mpcd_snap->position[4] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, 0.5)));
-        mpcd_snap->position[5] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, 0.5)));
-        mpcd_snap->position[6] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, 0.5)));
-        mpcd_snap->position[7] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, 0.5)));
+    snap->mpcd_data.position[0] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, -0.5)));
+    snap->mpcd_data.position[1] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, -0.5)));
+    snap->mpcd_data.position[2] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, -0.5)));
+    snap->mpcd_data.position[3] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, -0.5)));
+    snap->mpcd_data.position[4] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, 0.5)));
+    snap->mpcd_data.position[5] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, 0.5)));
+    snap->mpcd_data.position[6] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, 0.5)));
+    snap->mpcd_data.position[7] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, 0.5)));
 
-        mpcd_snap->velocity[0] = vec3<Scalar>(0., -0.5, 0.5);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1., -1.5, 1.5);
-        mpcd_snap->velocity[2] = vec3<Scalar>(2., -2.5, 2.5);
-        mpcd_snap->velocity[3] = vec3<Scalar>(3., -3.5, 3.5);
-        mpcd_snap->velocity[4] = vec3<Scalar>(4., -4.5, 4.5);
-        mpcd_snap->velocity[5] = vec3<Scalar>(5., -5.5, 5.5);
-        mpcd_snap->velocity[6] = vec3<Scalar>(6., -6.5, 6.5);
-        mpcd_snap->velocity[7] = vec3<Scalar>(7., -7.5, 7.5);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(0., -0.5, 0.5);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1., -1.5, 1.5);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(2., -2.5, 2.5);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(3., -3.5, 3.5);
+    snap->mpcd_data.velocity[4] = vec3<Scalar>(4., -4.5, 4.5);
+    snap->mpcd_data.velocity[5] = vec3<Scalar>(5., -5.5, 5.5);
+    snap->mpcd_data.velocity[6] = vec3<Scalar>(6., -6.5, 6.5);
+    snap->mpcd_data.velocity[7] = vec3<Scalar>(7., -7.5, 7.5);
 
-        mpcd_snap->type[0] = 0;
-        mpcd_snap->type[1] = 1;
-        mpcd_snap->type[2] = 2;
-        mpcd_snap->type[3] = 3;
-        mpcd_snap->type[4] = 4;
-        mpcd_snap->type[5] = 5;
-        mpcd_snap->type[6] = 6;
-        mpcd_snap->type[7] = 7;
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    snap->mpcd_data.type[0] = 0;
+    snap->mpcd_data.type[1] = 1;
+    snap->mpcd_data.type[2] = 2;
+    snap->mpcd_data.type[3] = 3;
+    snap->mpcd_data.type[4] = 4;
+    snap->mpcd_data.type[5] = 5;
+    snap->mpcd_data.type[6] = 6;
+    snap->mpcd_data.type[7] = 7;
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     // set a small cell size so that nothing will lie in the diffusion layer
-    mpcd_sys->getCellList()->setCellSize(0.05);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    cl->setCellSize(0.05);
 
     // initialize the communicator
-    std::shared_ptr<mpcd::Communicator> comm = comm_creator(mpcd_sys, nstages);
+    std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
+    comm->setCellList(cl);
 
     // check that all particles were initialized onto their proper ranks
-    std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
+    std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
 
     // each rank should own one particle, in tag order, and should have everyone in the right place
     UP_ASSERT_EQUAL(pdata->getNGlobal(), 8);
@@ -713,36 +709,33 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(4.0, 2.0, 1.0);
     snap->particle_data.type_mapping.push_back("A");
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    // initialize a 4x2x1 domain decomposition
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box->getL(), 4, 2, 1));
-    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-
-        mpcd_snap->resize(8);
-        mpcd_snap->position[0] = vec3<Scalar>(-1.5, -0.5, 0.0);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5, 0.0);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, -0.5, 0.0);
-        mpcd_snap->position[3] = vec3<Scalar>(1.5, -0.5, 0.0);
-        mpcd_snap->position[4] = vec3<Scalar>(-1.5, 0.5, 0.0);
-        mpcd_snap->position[5] = vec3<Scalar>(-0.5, 0.5, 0.0);
-        mpcd_snap->position[6] = vec3<Scalar>(0.5, 0.5, 0.0);
-        mpcd_snap->position[7] = vec3<Scalar>(1.5, 0.5, 0.0);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-1.5, -0.5, 0.0);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, 0.0);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.0);
+    snap->mpcd_data.position[3] = vec3<Scalar>(1.5, -0.5, 0.0);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-1.5, 0.5, 0.0);
+    snap->mpcd_data.position[5] = vec3<Scalar>(-0.5, 0.5, 0.0);
+    snap->mpcd_data.position[6] = vec3<Scalar>(0.5, 0.5, 0.0);
+    snap->mpcd_data.position[7] = vec3<Scalar>(1.5, 0.5, 0.0);
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     // set a small cell size so that nothing will lie in the diffusion layer
-    mpcd_sys->getCellList()->setCellSize(0.05);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    cl->setCellSize(0.05);
 
     // initialize the communicator
-    std::shared_ptr<mpcd::Communicator> comm = comm_creator(mpcd_sys, nstages);
+    std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
+    comm->setCellList(cl);
     MigrateSelectOp migrate_op(comm);
 
     // check that all particles were initialized onto their proper ranks
-    std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
+    std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
     UP_ASSERT_EQUAL(pdata->getNGlobal(), 8);
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     UP_ASSERT_EQUAL(pdata->getTag(0), exec_conf->getRank());
@@ -925,12 +918,10 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
         = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box->getL(), nx, ny, nz);
     auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
 
-    // empty MPCD system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-
     // initialize the communicator
-    auto comm = std::make_shared<mpcd::Communicator>(mpcd_sys);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto comm = std::make_shared<mpcd::Communicator>(sysdef);
+    comm->setCellList(cl);
     if (should_fail)
         {
         UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm->communicate(0); });
@@ -941,7 +932,7 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
         }
 
     // make sure test gets run again
-    mpcd_sys->getCellList()->setNExtraCells(1);
+    cl->setNExtraCells(1);
     if (should_fail)
         {
         UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm->communicate(1); });
@@ -957,124 +948,120 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
  * \a nstages is ignored because it is meaningless for the CPU base class
  */
 std::shared_ptr<mpcd::Communicator>
-base_class_communicator_creator(std::shared_ptr<mpcd::SystemData> mpcd_sys, unsigned int nstages)
+base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef, unsigned int nstages)
     {
-    return std::shared_ptr<mpcd::Communicator>(new mpcd::Communicator(mpcd_sys));
+    return std::shared_ptr<mpcd::Communicator>(new mpcd::Communicator(sysdef));
     }
+
+UP_SUITE_BEGIN(cpu_tests)
 
 UP_TEST(mpcd_communicator_migrate_test)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU));
 
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(2.0), 3);
+    test_communicator_migrate(communicator_creator_base, exec_conf_cpu, BoxDim(2.0), 3);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0, 2.0, 3.0), 3);
+    test_communicator_migrate(communicator_creator_base, exec_conf_cpu, BoxDim(1.0, 2.0, 3.0), 3);
     }
 
 UP_TEST(mpcd_communicator_migrate_ortho_test)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU));
 
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_migrate_ortho(communicator_creator_base, exec_conf, 3);
+    test_communicator_migrate_ortho(communicator_creator_base, exec_conf_cpu, 3);
     }
 
 UP_TEST(mpcd_communicator_overdecompose_test)
     {
-        // two ranks in any direction
-        {
-        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>());
-        exec_conf->getMPIConfig()->splitPartitions(2);
-        test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 1, 2, false);
-        }
-        // four ranks in any direction
-        {
-        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>());
-        exec_conf->getMPIConfig()->splitPartitions(4);
-        test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
-        test_communicator_overdecompose(exec_conf, 1, 1, 4, false);
-        }
-        // eight ranks in any direction
-        {
-        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>());
-        exec_conf->getMPIConfig()->splitPartitions(8);
-        test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
-        test_communicator_overdecompose(exec_conf, 1, 8, 1, true);
-        test_communicator_overdecompose(exec_conf, 1, 1, 8, true);
-        }
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU));
+
+    test_communicator_overdecompose(exec_conf_cpu, 8, 1, 1, true);
+    test_communicator_overdecompose(exec_conf_cpu, 1, 8, 1, true);
+    test_communicator_overdecompose(exec_conf_cpu, 1, 1, 8, true);
     }
+UP_SUITE_END()
+
 #ifdef ENABLE_HIP
 std::shared_ptr<mpcd::Communicator>
-gpu_communicator_creator(std::shared_ptr<mpcd::SystemData> mpcd_sys, unsigned int nstages)
+gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef, unsigned int nstages)
     {
     std::shared_ptr<mpcd::CommunicatorGPU> comm
-        = std::shared_ptr<mpcd::CommunicatorGPU>(new mpcd::CommunicatorGPU(mpcd_sys));
+        = std::shared_ptr<mpcd::CommunicatorGPU>(new mpcd::CommunicatorGPU(sysdef));
     comm->setMaxStages(nstages);
     return comm;
     }
 
+UP_SUITE_BEGIN(gpu_tests)
+
 UP_TEST(mpcd_communicator_migrate_test_GPU_one_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(2.0), 1);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(2.0), 1);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(1.0, 2.0, 3.0), 1);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(1.0, 2.0, 3.0), 1);
     }
 
 UP_TEST(mpcd_communicator_migrate_test_GPU_two_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(2.0), 2);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(2.0), 2);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(1.0, 2.0, 3.0), 2);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(1.0, 2.0, 3.0), 2);
     }
 
 UP_TEST(mpcd_communicator_migrate_test_GPU_three_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(2.0), 3);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(2.0), 3);
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, exec_conf, BoxDim(1.0, 2.0, 3.0), 3);
+    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu, BoxDim(1.0, 2.0, 3.0), 3);
     }
 
 UP_TEST(mpcd_communicator_migrate_ortho_test_GPU_one_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 1);
+    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf_gpu, 1);
     }
 
 UP_TEST(mpcd_communicator_migrate_ortho_test_GPU_two_stage)
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 2);
+    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf_gpu, 2);
     }
+
+UP_SUITE_END()
+
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

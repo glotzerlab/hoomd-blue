@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -84,7 +84,7 @@ struct tersoff_args_t
 
 #ifdef __HIPCC__
 
-#if !defined(SINGLE_PRECISION)
+#if HOOMD_LONGREAL_SIZE == 64
 
 #if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers

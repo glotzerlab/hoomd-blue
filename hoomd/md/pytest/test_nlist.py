@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import copy as cp
@@ -260,7 +260,8 @@ def _setup_with_force_no_rcut(sim_factory, snap_factory):
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
     lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(
+        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -276,7 +277,8 @@ def _setup_with_force_rcut_later(sim_factory, snap_factory):
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
     lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(
+        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -294,7 +296,8 @@ def _setup_with_force_rcut_on_nlist(sim_factory, snap_factory):
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
     lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(
+        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -310,7 +313,8 @@ def _setup_with_force_drop_nlist(sim_factory, snap_factory):
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(
+        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -328,7 +332,8 @@ def _setup_with_force_drop_force(sim_factory, snap_factory):
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(
+        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 

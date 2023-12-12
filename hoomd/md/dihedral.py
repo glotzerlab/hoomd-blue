@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Dihedral forces.
@@ -60,6 +60,10 @@ class Dihedral(Force):
         for `isinstance` or `issubclass` checks.
     """
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def __init__(self):
         super().__init__()
 
@@ -72,9 +76,9 @@ class Dihedral(Force):
 
         # create the c++ mirror class
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_class = getattr(_md, self._cpp_class_name)
+            cpp_class = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cpp_class = getattr(_md, self._cpp_class_name + "GPU")
+            cpp_class = getattr(self._ext_module, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
 
@@ -104,7 +108,7 @@ class Periodic(Dihedral):
 
     Examples::
 
-        harmonic = dihedral.Harmonic()
+        harmonic = dihedral.Periodic()
         harmonic.params['A-A-A-A'] = dict(k=3.0, d=-1, n=3, phi0=0)
         harmonic.params['A-B-C-D'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
     """
@@ -116,15 +120,6 @@ class Periodic(Dihedral):
             'params', 'dihedral_types',
             TypeParameterDict(k=float, d=float, n=int, phi0=float, len_keys=1))
         self._add_typeparam(params)
-
-
-class Harmonic(Periodic):
-    """Periodic dihedral force.
-
-    .. deprecated:: v3.7.0
-        Use `Periodic`.
-    """
-    pass
 
 
 class Table(Dihedral):
