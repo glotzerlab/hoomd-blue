@@ -402,6 +402,10 @@ class HPMCIntegrator(Integrator):
             typeparam_inter_matrix
         ])
 
+        self._pair_potentials = hoomd.data.syncedlist.SyncedList(
+            hoomd.hpmc.pair.Pair,
+            hoomd.data.syncedlist._PartialGetAttr('_cpp_obj'))
+
     def _attach_hook(self):
         """Initialize the reflected c++ class.
 
@@ -442,6 +446,9 @@ class HPMCIntegrator(Integrator):
         if self._pair_potential is not None:
             self._pair_potential._attach(self._simulation)
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
+
+        self._pair_potentials._sync(self._simulation, self._cpp_obj.pair_potentials)
+
         super()._attach_hook()
 
     def _detach_hook(self):
@@ -449,6 +456,7 @@ class HPMCIntegrator(Integrator):
             self._external_potential._detach()
         if self._pair_potential is not None:
             self._pair_potential._detach()
+        self._pair_potentials._unsync()
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -456,6 +464,15 @@ class HPMCIntegrator(Integrator):
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
+
+    @property
+    def pair_potentials(self):
+        return self._pair_potentials
+
+    @pair_potentials.setter
+    def pair_potentials(self, value):
+        self._pair_potentials.clear()
+        self._pair_potentials.extend(value)
 
     @log(category='sequence', requires_run=True)
     def map_overlaps(self):
@@ -544,8 +561,7 @@ class HPMCIntegrator(Integrator):
 
     @pair_potential.setter
     def pair_potential(self, new_potential):
-        if (not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase)
-                and not isinstance(new_potential, hoomd.hpmc.pair.Pair)):
+        if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
             raise TypeError(
                 "Pair potentials should be an instance of CPPPotentialBase")
         if self._attached:

@@ -14,21 +14,19 @@ namespace hpmc
 
 For use with HPMC simulations.
 */
-class PatchEnergyLJ : public hpmc::PatchEnergy
+class PatchEnergyLJ : public hpmc::PairPotential
     {
     public:
     PatchEnergyLJ(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~PatchEnergyLJ() { }
 
-    virtual LongReal getRCut();
+    virtual ShortReal getRCut();
     virtual ShortReal energy(const vec3<ShortReal>& r_ij,
                              unsigned int type_i,
                              const quat<ShortReal>& q_i,
-                             ShortReal d_i,
                              ShortReal charge_i,
                              unsigned int type_j,
                              const quat<ShortReal>& q_j,
-                             ShortReal d_j,
                              ShortReal charge_j);
 
     virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);

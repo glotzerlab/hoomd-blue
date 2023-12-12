@@ -528,6 +528,12 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return r_cut;
         }
 
+    /// Get the list of pair potentials.
+    std::vector<std::shared_ptr<PairPotential>>& getPairPotentials()
+        {
+        return m_pair_potentials;
+        }
+
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
@@ -571,7 +577,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
-    /// Pair energy evaluators
+    /// Pair potential evaluators.
     std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
 
     private:

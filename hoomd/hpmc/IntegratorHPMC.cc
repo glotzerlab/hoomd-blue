@@ -6,6 +6,9 @@
 #include "hoomd/VectorMath.h"
 #include <sstream>
 
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::PairPotential>>);
+
 using namespace std;
 
 /*! \file IntegratorHPMC.cc
@@ -242,6 +245,13 @@ void export_IntegratorHPMC(pybind11::module& m)
         "PatchEnergy")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
 
+    pybind11::class_<hpmc::PairPotential, std::shared_ptr<hpmc::PairPotential>>(
+        m,
+        "PairPotential")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+
+    pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");
+
     pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m,
                                                                                   "IntegratorHPMC")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
@@ -262,7 +272,8 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
-                      &IntegratorHPMC::setTranslationMoveProbability);
+                      &IntegratorHPMC::setTranslationMoveProbability)
+        .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials);
 
     pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
