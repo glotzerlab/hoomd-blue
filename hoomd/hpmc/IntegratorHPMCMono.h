@@ -818,7 +818,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                                 );
                                         }
                                     }
-                                for (const auto& pair: m_pair_energies)
+                                for (const auto& pair: m_pair_potentials)
                                     {
                                     patch_field_energy_diff -= pair->energy(vec3<ShortReal>(r_ij), typ_i,
                                                                 quat<ShortReal>(shape_i.orientation),
@@ -912,7 +912,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                                     float(h_charge.data[j]));
                                         }
 
-                                    for (const auto& pair: m_pair_energies)
+                                    for (const auto& pair: m_pair_potentials)
                                         {
                                         patch_field_energy_diff += pair->energy(vec3<ShortReal>(r_ij), typ_i,
                                                                     quat<ShortReal>(orientation_i),
@@ -1278,7 +1278,7 @@ double IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                                         }
                                     }
 
-                                for (const auto& pair: m_pair_energies)
+                                for (const auto& pair: m_pair_potentials)
                                     {
                                     energy += pair->energy(vec3<ShortReal>(r_ij), typ_i,
                                                                 quat<ShortReal>(orientation_i),

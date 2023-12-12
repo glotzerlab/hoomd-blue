@@ -186,18 +186,18 @@ class PatchEnergy : public Autotuned
 
 /*** Functor that computes pair interactions between particles
 
-    PairEnergy allows cutoff energetic interactions to be included in an HPMC simulation. This
+    PairPotential allows cutoff energetic interactions to be included in an HPMC simulation. This
     abstract base class defines the API for the patch energy object, consisting of cutoff radius
     and the pair energy evaluation fuction.
 
-    Provide a PairEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
+    Provide a PairPotential instance to IntegratorHPMC. The pairwise patch energy will be evaluated
     when needed during the HPMC trial moves.
 */
-class PairEnergy
+class PairPotential
     {
     public:
-    PairEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
-    virtual ~PairEnergy() { }
+    PairPotential(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
+    virtual ~PairPotential() { }
 
     /// Returns the non-additive cutoff radius.
     virtual ShortReal getRCut()
@@ -493,7 +493,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     /// Test if this has pairwise interactions.
     bool hasPairInteractions()
         {
-        return m_patch || m_pair_energies.size() > 0;
+        return m_patch || m_pair_potentials.size() > 0;
         }
 
     /// Get pairwise interaction maximum r_cut.
@@ -504,7 +504,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             r_cut = static_cast<ShortReal>(m_patch->getRCut());
             }
-        for (const auto& pair : m_pair_energies)
+        for (const auto& pair : m_pair_potentials)
             {
             r_cut = std::max(r_cut, pair->getRCut());
             }
@@ -520,7 +520,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             r_cut = static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ));
             }
-        for (const auto& pair : m_pair_energies)
+        for (const auto& pair : m_pair_potentials)
             {
             r_cut = std::max(r_cut, pair->getAdditiveRCut(typ));
             }
@@ -572,7 +572,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
     /// Pair energy evaluators
-    std::vector<std::shared_ptr<PairEnergy>> m_pair_energies;
+    std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
 
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
