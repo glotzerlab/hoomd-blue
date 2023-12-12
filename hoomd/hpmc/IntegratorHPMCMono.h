@@ -299,7 +299,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
             flags[comm_flag::orientation] = 1;
 
-            if (m_patch)
+            if (hasPairInteractions())
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
@@ -379,7 +379,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual float computePatchEnergy(uint64_t timestep);
+        virtual double computePatchEnergy(uint64_t timestep);
 
         //! Build the AABB tree (if needed)
         const hoomd::detail::AABBTree& buildAABBTree();
@@ -725,10 +725,10 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             bool overlap=false;
             ShortReal r_cut_patch = 0;
 
-            if (m_patch)
+            if (hasPairInteractions())
                 {
-                r_cut_patch = static_cast<ShortReal>(m_patch->getRCut()) + static_cast<ShortReal>(0.5) *
-                    static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_i));
+                r_cut_patch = getMaxPairInteractionRCut() + static_cast<ShortReal>(0.5) *
+                    getMaxPairInteractionAdditiveRCut(typ_i);
                 }
 
             // subtract minimum AABB extent from search radius
@@ -791,11 +791,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
-                                Scalar rcut = 0.0;
-                                if (m_patch)
-                                    rcut = r_cut_patch + 0.5 *
-                                        static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_j));
-
                                 counters.overlap_checks++;
                                 if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_i, shape_j)
@@ -804,21 +799,36 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (m_patch && dot(r_ij,r_ij) <= rcut*rcut) // If there is no overlap and m_patch is not NULL, calculate energy
+
+                                if (m_patch)
                                     {
+                                    Scalar r_cut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
                                     // deltaU = U_old - U_new: subtract energy of new configuration
-                                    patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
-                                                               quat<float>(shape_i.orientation),
-                                                               float(h_diameter.data[i]),
-                                                               float(h_charge.data[i]),
-                                                               typ_j,
-                                                               quat<float>(orientation_j),
-                                                               float(h_diameter.data[j]),
-                                                               float(h_charge.data[j])
-                                                               );
+
+                                    if (dot(r_ij,r_ij) <= r_cut*r_cut)
+                                        {
+                                        patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
+                                                                quat<float>(shape_i.orientation),
+                                                                float(h_diameter.data[i]),
+                                                                float(h_charge.data[i]),
+                                                                typ_j,
+                                                                quat<float>(orientation_j),
+                                                                float(h_diameter.data[j]),
+                                                                float(h_charge.data[j])
+                                                                );
+                                        }
+                                    }
+                                for (const auto& pair: m_pair_energies)
+                                    {
+                                    patch_field_energy_diff -= pair->energy(vec3<ShortReal>(r_ij), typ_i,
+                                                                quat<ShortReal>(shape_i.orientation),
+                                                                ShortReal(h_charge.data[i]),
+                                                                typ_j,
+                                                                quat<ShortReal>(orientation_j),
+                                                                ShortReal(h_charge.data[j]));
                                     }
                                 }
-                            }
+                           }
                         }
                     else
                         {
@@ -834,8 +844,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     break;
                 } // end loop over images
 
-            // calculate old patch energy only if m_patch not NULL and no overlaps
-            if (m_patch && !overlap)
+            // Calculate old pair energy only when there are pair energies to calculate.
+            if (hasPairInteractions() && !overlap)
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
@@ -885,19 +895,32 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
                                     Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
-                                    Scalar rcut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
+                                    if (m_patch)
+                                        {
+                                        Scalar rcut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
 
-                                    // deltaU = U_old - U_new: add energy of old configuration
-                                    if (dot(r_ij,r_ij) <= rcut*rcut)
-                                        patch_field_energy_diff += m_patch->energy(r_ij,
-                                                                   typ_i,
-                                                                   quat<float>(orientation_i),
-                                                                   float(h_diameter.data[i]),
-                                                                   float(h_charge.data[i]),
-                                                                   typ_j,
-                                                                   quat<float>(orientation_j),
-                                                                   float(h_diameter.data[j]),
-                                                                   float(h_charge.data[j]));
+                                        // deltaU = U_old - U_new: add energy of old configuration
+                                        if (dot(r_ij,r_ij) <= rcut*rcut)
+                                            patch_field_energy_diff += m_patch->energy(r_ij,
+                                                                    typ_i,
+                                                                    quat<float>(orientation_i),
+                                                                    float(h_diameter.data[i]),
+                                                                    float(h_charge.data[i]),
+                                                                    typ_j,
+                                                                    quat<float>(orientation_j),
+                                                                    float(h_diameter.data[j]),
+                                                                    float(h_charge.data[j]));
+                                        }
+
+                                    for (const auto& pair: m_pair_energies)
+                                        {
+                                        patch_field_energy_diff += pair->energy(vec3<ShortReal>(r_ij), typ_i,
+                                                                    quat<ShortReal>(orientation_i),
+                                                                    ShortReal(h_charge.data[i]),
+                                                                    typ_j,
+                                                                    quat<ShortReal>(orientation_j),
+                                                                    ShortReal(h_charge.data[j]));
+                                        }
                                     }
                                 }
                             }
@@ -908,7 +931,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                             }
                         }  // end loop over AABB nodes
                     } // end loop over images
-                } // end if (m_patch)
+                }
 
             // Add external energetic contribution if there are no overlaps
             if (m_external && !overlap)
@@ -1147,13 +1170,13 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     }
 
 template<class Shape>
-float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
+double IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     {
     // sum up in double precision
     double energy = 0.0;
 
     // return if nothing to do
-    if (!m_patch) return float(energy);
+    if (!hasPairInteractions()) return 0;
 
     m_exec_conf->msg->notice(10) << "HPMC compute patch energy: " << timestep << std::endl;
 
@@ -1191,7 +1214,8 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
         Scalar charge_i = h_charge.data[i];
 
         // the cut-off
-        ShortReal r_cut = ShortReal(m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
+        ShortReal r_cut = getMaxPairInteractionRCut() + static_cast<ShortReal>(0.5) *
+                    getMaxPairInteractionAdditiveRCut(typ_i);
 
         // subtract minimum AABB extent from search radius
         ShortReal R_query = std::max(shape_i.getCircumsphereDiameter()/ShortReal(2.0),
@@ -1233,19 +1257,36 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                             Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
                             // count unique pairs within range
-                            Scalar rcut_ij = r_cut + 0.5*m_patch->getAdditiveCutoff(typ_j);
-
-                            if (h_tag.data[i] <= h_tag.data[j] && dot(r_ij,r_ij) <= rcut_ij*rcut_ij)
+                            if (h_tag.data[i] <= h_tag.data[j])
                                 {
-                                energy += m_patch->energy(r_ij,
-                                       typ_i,
-                                       quat<float>(orientation_i),
-                                       float(d_i),
-                                       float(charge_i),
-                                       typ_j,
-                                       quat<float>(orientation_j),
-                                       float(d_j),
-                                       float(charge_j));
+                                if (m_patch)
+                                    {
+                                    Scalar rcut_ij = r_cut + 0.5*m_patch->getAdditiveCutoff(typ_j);
+
+
+                                    if (dot(r_ij,r_ij) <= rcut_ij*rcut_ij)
+                                        {
+                                        energy += m_patch->energy(r_ij,
+                                            typ_i,
+                                            quat<float>(orientation_i),
+                                            float(d_i),
+                                            float(charge_i),
+                                            typ_j,
+                                            quat<float>(orientation_j),
+                                            float(d_j),
+                                            float(charge_j));
+                                        }
+                                    }
+
+                                for (const auto& pair: m_pair_energies)
+                                    {
+                                    energy += pair->energy(vec3<ShortReal>(r_ij), typ_i,
+                                                                quat<ShortReal>(orientation_i),
+                                                                ShortReal(h_charge.data[i]),
+                                                                typ_j,
+                                                                quat<ShortReal>(orientation_j),
+                                                                ShortReal(h_charge.data[j]));
+                                    }
                                 }
                             }
                         }
@@ -1267,7 +1308,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
         }
     #endif
 
-    return float(energy);
+    return energy;
     }
 
 
@@ -1310,11 +1351,11 @@ ShortReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
         minD = std::min(minD, temp.getCircumsphereDiameter());
         }
 
-    if (m_patch)
+    if (hasPairInteractions())
         {
         ShortReal max_extent = 0.0;
         for (unsigned int typ =0; typ < this->m_pdata->getNTypes(); typ++)
-            max_extent = std::max(max_extent, (ShortReal) m_patch->getAdditiveCutoff(typ));
+            max_extent = std::max(max_extent, getMaxPairInteractionAdditiveRCut(typ));
         minD = std::max((ShortReal) 0.0, minD-max_extent);
         }
 
@@ -1432,16 +1473,20 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             Shape temp_i(quat<Scalar>(), m_params[typ_i]);
 
             Scalar r_cut_patch_i(0.0);
-            if (m_patch)
-                r_cut_patch_i = static_cast<ShortReal>(m_patch->getRCut()) +
-                    0.5*static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_i));
+            if (hasPairInteractions())
+                {
+                r_cut_patch_i = getMaxPairInteractionRCut() +
+                    static_cast<ShortReal>(0.5) * getMaxPairInteractionAdditiveRCut(typ_i);
+                }
 
             Scalar range_i(0.0);
             for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
                 {
                 Scalar r_cut_patch_ij(0.0);
-                if (m_patch)
-                    r_cut_patch_ij = r_cut_patch_i + 0.5*static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_j));
+                if (hasPairInteractions())
+                    {
+                    r_cut_patch_ij = r_cut_patch_i + static_cast<ShortReal>(0.5)*getMaxPairInteractionAdditiveRCut(typ_j);
+                    }
 
                 Shape temp_j(quat<Scalar>(), m_params[typ_j]);
                 Scalar r_cut_shape(0.0);
@@ -1610,15 +1655,15 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
     this->m_nominal_width += this->m_extra_image_width;
 
     // Account for patch width
-    if (this->m_patch)
+    if (hasPairInteractions())
         {
         Scalar max_extent = 0.0;
         for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
             {
-            max_extent = std::max(max_extent, this->m_patch->getAdditiveCutoff(typ));
+            max_extent = std::max(max_extent, static_cast<Scalar>(getMaxPairInteractionAdditiveRCut(typ)));
             }
 
-        this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRCut() + max_extent);
+        this->m_nominal_width = std::max(this->m_nominal_width, getMaxPairInteractionRCut() + max_extent);
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
@@ -1680,12 +1725,12 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                     unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
                     Shape shape(quat<Scalar>(h_orientation.data[i]), m_params[typ_i]);
 
-                    if (!this->m_patch)
+                    if (!hasPairInteractions())
                         m_aabbs[i] = shape.getAABB(vec3<Scalar>(h_postype.data[i]));
                     else
                         {
                         Scalar radius = std::max(0.5*shape.getCircumsphereDiameter(),
-                            0.5*this->m_patch->getAdditiveCutoff(typ_i));
+                            0.5*getMaxPairInteractionAdditiveRCut(typ_i));
                         m_aabbs[i] = hoomd::detail::AABB(vec3<Scalar>(h_postype.data[i]), radius);
                         }
                     }

@@ -184,6 +184,59 @@ class PatchEnergy : public Autotuned
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
     };                                          // end class PatchEnergy
 
+/*** Functor that computes pair interactions between particles
+
+    PairEnergy allows cutoff energetic interactions to be included in an HPMC simulation. This
+    abstract base class defines the API for the patch energy object, consisting of cutoff radius
+    and the pair energy evaluation fuction.
+
+    Provide a PairEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
+    when needed during the HPMC trial moves.
+*/
+class PairEnergy
+    {
+    public:
+    PairEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
+    virtual ~PairEnergy() { }
+
+    /// Returns the non-additive cutoff radius.
+    virtual ShortReal getRCut()
+        {
+        return 0;
+        }
+
+    /// Returns the additive part of the cutoff distance for a given type.
+    virtual ShortReal getAdditiveRCut(unsigned int type)
+        {
+        return 0;
+        }
+
+    /*** Evaluate the energy of the patch interaction
+
+        @param r_ij Vector pointing from particle i to j.
+        @param type_i Integer type index of particle i.
+        @param charge_i Charge of particle i.
+        @param q_i Orientation quaternion of particle i.
+        @param type_j Integer type index of particle j.
+        @param q_j Orientation quaternion of particle j.
+        @param charge_j Charge of particle j.
+        @returns Energy of the pair interaction.
+    */
+    virtual ShortReal energy(const vec3<ShortReal>& r_ij,
+                             unsigned int type_i,
+                             const quat<ShortReal>& q_i,
+                             ShortReal charge_i,
+                             unsigned int type_j,
+                             const quat<ShortReal>& q_j,
+                             ShortReal charge_j)
+        {
+        return 0;
+        }
+
+    protected:
+    std::shared_ptr<SystemDefinition> m_sysdef;
+    };
+
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
     IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
@@ -412,7 +465,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     /*! \param timestep the current time step
      * \returns the total patch energy
      */
-    virtual float computePatchEnergy(uint64_t timestep)
+    virtual double computePatchEnergy(uint64_t timestep)
         {
         // base class method returns 0
         return 0.0;
@@ -435,6 +488,44 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     std::shared_ptr<PatchEnergy> getPatchEnergy()
         {
         return m_patch;
+        }
+
+    /// Test if this has pairwise interactions.
+    bool hasPairInteractions()
+        {
+        return m_patch || m_pair_energies.size() > 0;
+        }
+
+    /// Get pairwise interaction maximum r_cut.
+    ShortReal getMaxPairInteractionRCut()
+        {
+        ShortReal r_cut = 0;
+        if (m_patch)
+            {
+            r_cut = static_cast<ShortReal>(m_patch->getRCut());
+            }
+        for (const auto& pair : m_pair_energies)
+            {
+            r_cut = std::max(r_cut, pair->getRCut());
+            }
+
+        return r_cut;
+        }
+
+    /// Get pairwise interaction maximum additive r_cut.
+    ShortReal getMaxPairInteractionAdditiveRCut(unsigned int typ)
+        {
+        ShortReal r_cut = 0;
+        if (m_patch)
+            {
+            r_cut = static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ));
+            }
+        for (const auto& pair : m_pair_energies)
+            {
+            r_cut = std::max(r_cut, pair->getAdditiveRCut(typ));
+            }
+
+        return r_cut;
         }
 
     protected:
@@ -479,6 +570,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 #endif
 
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
+
+    /// Pair energy evaluators
+    std::vector<std::shared_ptr<PairEnergy>> m_pair_energies;
 
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
