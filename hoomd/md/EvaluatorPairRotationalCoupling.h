@@ -40,6 +40,7 @@ class EvaluatorPairRotationalCoupling
         {
         Scalar kappa; //! force coefficient.
 	bool take_momentum;
+	int to_zero;
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -58,7 +59,7 @@ class EvaluatorPairRotationalCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0), take_momentum(true) { }
+        HOSTDEVICE param_type() : kappa(0), take_momentum(true), to_zero(0) { }
 
 #ifndef __HIPCC__
 
@@ -66,6 +67,7 @@ class EvaluatorPairRotationalCoupling
             {
             kappa = v["kappa"].cast<Scalar>();
             take_momentum = v["take_momentum"].cast<bool>();
+            to_zero = v["to_zero"].cast<int>();
             }
 
         pybind11::object toPython()
@@ -73,6 +75,7 @@ class EvaluatorPairRotationalCoupling
             pybind11::dict v;
             v["kappa"] = kappa;
             v["take_momentum"] = take_momentum;
+            v["to_zero"] = to_zero;
             return std::move(v);
             }
 
@@ -128,7 +131,7 @@ class EvaluatorPairRotationalCoupling
                                                Scalar _rcutsq,
                                                const param_type& _params)
         : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
-          kappa(_params.kappa), take_momentum(_params.take_momentum)
+          kappa(_params.kappa), take_momentum(_params.take_momentum), to_zero(_params.to_zero)
         {
         }
 
@@ -196,7 +199,7 @@ class EvaluatorPairRotationalCoupling
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai)
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj)
         {
 	am = true;
 	if(take_momentum)
@@ -207,7 +210,12 @@ class EvaluatorPairRotationalCoupling
 		    am = false;
 		}
 	else 
-		ang_mom = vec3<Scalar>(0,0,1);
+		{
+		if(tj == 1)
+	 	    ang_mom = vec3<Scalar>(0,0,1);
+		else
+		    am = false;
+		}
         }
 
     //! Evaluate the force and energy
@@ -235,12 +243,19 @@ class EvaluatorPairRotationalCoupling
                 return false;
 
             Scalar rinv = fast::rsqrt(rsq);
-            Scalar rcutinv = fast::rsqrt(rcutsq);
 
-            Scalar d = rinv - rcutinv;
+	    Scalar d = rinv;
+
+	    if(to_zero == 1)
+		d -= fast::rsqrt(rcutsq);
+
+            d = d*d;
+
+	    if(to_zero == 2)
+		d -= 1.0/rcutsq;
 
             vec3<Scalar> f = kappa * d * rinv * cross(ang_mom, rvec);
-
+	    
             force = vec_to_scalar3(f);
             }
         else
@@ -287,6 +302,7 @@ class EvaluatorPairRotationalCoupling
     bool am;
     Scalar kappa;
     bool take_momentum;
+    int to_zero;
     // const param_type &params;   //!< The pair potential parameters
     };
 

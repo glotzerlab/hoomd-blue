@@ -354,9 +354,9 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 if (evaluator::needsAngularMomentum())
                     {
                     if (reciprocal)
-                        eval.setAngularMomentum(ai + aj);
+                        eval.setAngularMomentum(ai + aj,1);
                     else
-                        eval.setAngularMomentum(aj);
+                        eval.setAngularMomentum(aj,__scalar_as_int(postypej.w));
                     }
 
                 // call evaluator

@@ -672,9 +672,9 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 if (aniso_evaluator::needsAngularMomentum())
                     {
                     if (m_reciprocal)
-                        eval.setAngularMomentum(ai + aj);
+                        eval.setAngularMomentum(ai + aj,1);
                     else
-                        eval.setAngularMomentum(aj);
+                        eval.setAngularMomentum(aj,typej);
                     }
 
                 bool evaluated = eval.evaluate(force, pair_eng, energy_shift, torque_i, torque_j);

@@ -203,7 +203,7 @@ class EvaluatorPairLubricationCoupling
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai)
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj)
         {
 	am = true;
 	if(take_momentum)
@@ -214,7 +214,12 @@ class EvaluatorPairLubricationCoupling
 		    am = false;
 		}
 	else 
-		ang_mom = vec3<Scalar>(0,0,1);
+		{
+		if(tj == 1)
+	 	    ang_mom = vec3<Scalar>(0,0,1);
+		else
+		    am = false;
+		}
 	}
 
 

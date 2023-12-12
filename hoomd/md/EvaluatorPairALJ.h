@@ -522,7 +522,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai) { }
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj) { }
 
     //! Evaluate the force and energy.
     /*! \param force Output parameter to write the computed force.
