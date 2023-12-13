@@ -810,33 +810,16 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     break;
                                     }
 
-                                if (m_patch)
-                                    {
-                                    Scalar r_cut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
-                                    // deltaU = U_old - U_new: subtract energy of new configuration
-
-                                    if (dot(r_ij,r_ij) <= r_cut*r_cut)
-                                        {
-                                        patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
-                                                                quat<float>(shape_i.orientation),
-                                                                float(h_diameter.data[i]),
-                                                                float(h_charge.data[i]),
-                                                                typ_j,
-                                                                quat<float>(orientation_j),
-                                                                float(h_diameter.data[j]),
-                                                                float(h_charge.data[j])
-                                                                );
-                                        }
-                                    }
-                                for (const auto& pair: m_pair_potentials)
-                                    {
-                                    patch_field_energy_diff -= pair->energy(vec3<ShortReal>(r_ij), typ_i,
-                                                                quat<ShortReal>(shape_i.orientation),
-                                                                ShortReal(h_charge.data[i]),
-                                                                typ_j,
-                                                                quat<ShortReal>(orientation_j),
-                                                                ShortReal(h_charge.data[j]));
-                                    }
+                                // deltaU = U_old - U_new: subtract energy of new configuration
+                                patch_field_energy_diff -= computeOnePairEnergy(r_ij, typ_i,
+                                                        quat<ShortReal>(shape_i.orientation),
+                                                        ShortReal(h_diameter.data[i]),
+                                                        ShortReal(h_charge.data[i]),
+                                                        typ_j,
+                                                        quat<ShortReal>(orientation_j),
+                                                        ShortReal(h_diameter.data[j]),
+                                                        ShortReal(h_charge.data[j])
+                                                        );
                                 }
                            }
                         }
@@ -905,32 +888,16 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
                                     Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
-                                    if (m_patch)
-                                        {
-                                        Scalar rcut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
-
-                                        // deltaU = U_old - U_new: add energy of old configuration
-                                        if (dot(r_ij,r_ij) <= rcut*rcut)
-                                            patch_field_energy_diff += m_patch->energy(r_ij,
-                                                                    typ_i,
-                                                                    quat<float>(orientation_i),
-                                                                    float(h_diameter.data[i]),
-                                                                    float(h_charge.data[i]),
-                                                                    typ_j,
-                                                                    quat<float>(orientation_j),
-                                                                    float(h_diameter.data[j]),
-                                                                    float(h_charge.data[j]));
-                                        }
-
-                                    for (const auto& pair: m_pair_potentials)
-                                        {
-                                        patch_field_energy_diff += pair->energy(vec3<ShortReal>(r_ij), typ_i,
-                                                                    quat<ShortReal>(orientation_i),
-                                                                    ShortReal(h_charge.data[i]),
-                                                                    typ_j,
-                                                                    quat<ShortReal>(orientation_j),
-                                                                    ShortReal(h_charge.data[j]));
-                                        }
+                                    // deltaU = U_old - U_new: add energy of old configuration
+                                    patch_field_energy_diff += computeOnePairEnergy(r_ij,
+                                                            typ_i,
+                                                            quat<ShortReal>(orientation_i),
+                                                            ShortReal(h_diameter.data[i]),
+                                                            ShortReal(h_charge.data[i]),
+                                                            typ_j,
+                                                            quat<ShortReal>(orientation_j),
+                                                            ShortReal(h_diameter.data[j]),
+                                                            ShortReal(h_charge.data[j]));
                                     }
                                 }
                             }
@@ -1277,7 +1244,8 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                                 {
                                 if (selected_pair)
                                     {
-                                    energy += selected_pair->energy(vec3<ShortReal>(r_ij), typ_i,
+                                    energy += selected_pair->energy(vec3<ShortReal>(r_ij),
+                                                                    typ_i,
                                                                     quat<ShortReal>(orientation_i),
                                                                     ShortReal(h_charge.data[i]),
                                                                     typ_j,
@@ -1286,35 +1254,15 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                                     }
                                 else
                                     {
-                                    if (m_patch)
-                                        {
-                                        Scalar rcut_ij = r_cut
-                                                         + 0.5*m_patch->getAdditiveCutoff(typ_j);
-
-
-                                        if (dot(r_ij,r_ij) <= rcut_ij*rcut_ij)
-                                            {
-                                            energy += m_patch->energy(r_ij,
-                                                typ_i,
-                                                quat<float>(orientation_i),
-                                                float(d_i),
-                                                float(charge_i),
-                                                typ_j,
-                                                quat<float>(orientation_j),
-                                                float(d_j),
-                                                float(charge_j));
-                                            }
-                                        }
-
-                                    for (const auto& pair: m_pair_potentials)
-                                        {
-                                        energy += pair->energy(vec3<ShortReal>(r_ij), typ_i,
-                                                               quat<ShortReal>(orientation_i),
-                                                               ShortReal(h_charge.data[i]),
-                                                               typ_j,
-                                                               quat<ShortReal>(orientation_j),
-                                                               ShortReal(h_charge.data[j]));
-                                        }
+                                    energy += computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                                        typ_i,
+                                        quat<ShortReal>(orientation_i),
+                                        ShortReal(d_i),
+                                        ShortReal(charge_i),
+                                        typ_j,
+                                        quat<ShortReal>(orientation_j),
+                                        ShortReal(d_j),
+                                        ShortReal(charge_j));
                                     }
                                 }
                             }
