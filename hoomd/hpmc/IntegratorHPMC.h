@@ -544,8 +544,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         ShortReal energy = 0;
         if (m_patch)
             {
-            ShortReal r_cut
-                = ShortReal(m_patch->getRCut() + 0.5 * m_patch->getAdditiveCutoff(type_j));
+            ShortReal r_cut = ShortReal(
+                m_patch->getRCut()
+                + 0.5 * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j)));
             if (dot(r_ij, r_ij) <= r_cut * r_cut)
                 {
                 energy
