@@ -121,7 +121,7 @@ class LennardJones(Pair):
     See Also:
         `hoomd.md.pair.LJ`
 
-        `hoomd.md.pair.Pair`
+        `hoomd.md.pair`
 
     .. rubric:: Example
 

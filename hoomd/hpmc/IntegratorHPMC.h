@@ -213,6 +213,9 @@ class PairPotential
 
     /*** Evaluate the energy of the patch interaction
 
+        Subclasses *must* check the r_ij and return 0 when the interaction range is beyond the
+        cutoff. HPMCIntegrator may call `energy` with r_ij vectors longer than the requested r_cut.
+
         @param r_ij Vector pointing from particle i to j.
         @param type_i Integer type index of particle i.
         @param charge_i Charge of particle i.
