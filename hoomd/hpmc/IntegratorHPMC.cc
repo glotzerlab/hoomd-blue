@@ -245,9 +245,7 @@ void export_IntegratorHPMC(pybind11::module& m)
         "PatchEnergy")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
 
-    pybind11::class_<hpmc::PairPotential, std::shared_ptr<hpmc::PairPotential>>(
-        m,
-        "PairPotential")
+    pybind11::class_<hpmc::PairPotential, std::shared_ptr<hpmc::PairPotential>>(m, "PairPotential")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
 
     pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");

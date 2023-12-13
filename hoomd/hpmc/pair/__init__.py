@@ -108,8 +108,10 @@ class LennardJones(Pair):
 
     Args:
         default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
-        default_r_on (float): Default XPLOR on radius :math:`[\\mathrm{length}]`.
-        default_mode (str): Default energy shifting/smoothing mode.
+        default_r_on (float): Default XPLOR on radius
+          :math:`[\\mathrm{length}]`.
+        default_mode (str): Default energy
+          shifting/smoothing mode.
 
     `LennardJones` computes the Lennard-Jones pair potential between every pair
     of particles in the simulation state. The functional form of the potential,
@@ -137,10 +139,10 @@ class LennardJones(Pair):
           Energy well depth :math:`\\varepsilon` :math:`[\\mathrm{energy}]`.
         * ``sigma`` (`float`, **required**) -
           Particle size :math:`\\sigma` :math:`[\\mathrm{length}]`.
-        * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`. Defaults
-          to the value given in ``default_r_cut`` on construction.
-        * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`. Defaults
-          to the value given in ``default_r_on`` on construction.
+        * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`.
+          Defaults to the value given in ``default_r_cut`` on construction.
+        * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`.
+          Defaults to the value given in ``default_r_on`` on construction.
         * ``mode`` (`str`): The energy shifting/smoothing mode: Possible values:
           ``"none"``, ``"shift"``, ``"xplor"``. Defaults to the value given
           in ``default_mode`` on construction.

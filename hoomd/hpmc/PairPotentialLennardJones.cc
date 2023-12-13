@@ -25,12 +25,12 @@ ShortReal PairPotentialLennardJones::getRCut()
     }
 
 ShortReal PairPotentialLennardJones::energy(const vec3<ShortReal>& r_ij,
-                                unsigned int type_i,
-                                const quat<ShortReal>& q_i,
-                                ShortReal charge_i,
-                                unsigned int type_j,
-                                const quat<ShortReal>& q_j,
-                                ShortReal charge_j)
+                                            unsigned int type_i,
+                                            const quat<ShortReal>& q_i,
+                                            ShortReal charge_i,
+                                            unsigned int type_j,
+                                            const quat<ShortReal>& q_j,
+                                            ShortReal charge_j)
     {
     ShortReal r_squared = dot(r_ij, r_ij);
 
@@ -84,7 +84,9 @@ namespace detail
     {
 void export_PairPotentialLennardJones(pybind11::module& m)
     {
-    pybind11::class_<PairPotentialLennardJones, PairPotential, std::shared_ptr<PairPotentialLennardJones>>(m, "PairPotentialLennardJones")
+    pybind11::class_<PairPotentialLennardJones,
+                     PairPotential,
+                     std::shared_ptr<PairPotentialLennardJones>>(m, "PairPotentialLennardJones")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialLennardJones::setParamsPython)
         .def("getParams", &PairPotentialLennardJones::getParamsPython);

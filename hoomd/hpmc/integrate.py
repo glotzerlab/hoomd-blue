@@ -450,7 +450,8 @@ class HPMCIntegrator(Integrator):
             self._pair_potential._attach(self._simulation)
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
 
-        self._pair_potentials._sync(self._simulation, self._cpp_obj.pair_potentials)
+        self._pair_potentials._sync(self._simulation,
+                                    self._cpp_obj.pair_potentials)
 
         super()._attach_hook()
 
