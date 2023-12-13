@@ -1649,7 +1649,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
     }); // end task arena execute()
     #endif
 
-    if (m_mc->getPatchEnergy())
+    if (m_mc->hasPairInteractions())
         {
         // sum up interaction energies
         #ifdef ENABLE_TBB_TASK
