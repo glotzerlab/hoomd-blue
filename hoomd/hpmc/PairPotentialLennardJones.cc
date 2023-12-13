@@ -54,9 +54,16 @@ ShortReal PairPotentialLennardJones::energy(const vec3<ShortReal>& r_ij,
         energy -= r_cut_6_inverse * (lj1 * r_cut_6_inverse - lj2);
         }
 
-    if (param.mode == xplor)
+    if (param.mode == xplor && r_squared > param.r_on_squared)
         {
-        // TODO
+        ShortReal a = param.r_cut_squared - param.r_on_squared;
+        ShortReal denominator = a * a * a;
+
+        ShortReal b = param.r_cut_squared - r_squared;
+        ShortReal numerator = b * b
+                              * (param.r_cut_squared + ShortReal(2.0) * r_squared
+                                 - ShortReal(3.0) * param.r_on_squared);
+        energy *= numerator / denominator;
         }
 
     return energy;
