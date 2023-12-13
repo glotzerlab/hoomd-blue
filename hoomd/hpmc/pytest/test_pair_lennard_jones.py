@@ -22,7 +22,6 @@ def test_valid_construction(device, constructor_args):
 
 
 @pytest.fixture(scope='session')
-@pytest.mark.cpu
 def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     """Make a MC simulation with two particles separate dy by a distance d."""
 
@@ -39,6 +38,7 @@ def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     return make_simulation
 
 
+@pytest.mark.cpu
 def test_attaching(mc_simulation_factory):
     """Test that LennardJones attaches."""
     lennard_jones = hoomd.hpmc.pair.LennardJones()
@@ -67,6 +67,7 @@ invalid_parameters = [
 
 
 @pytest.mark.parametrize("parameters", invalid_parameters)
+@pytest.mark.cpu
 def test_invalid_params(mc_simulation_factory, parameters):
     """Test that LennardJones validates parameters."""
     lennard_jones = hoomd.hpmc.pair.LennardJones()
@@ -152,6 +153,7 @@ lennard_jones_test_parameters = [
 
 @pytest.mark.parametrize('params, d, expected_energy',
                          lennard_jones_test_parameters)
+@pytest.mark.cpu
 def test_energy(mc_simulation_factory, params, d, expected_energy):
     """Test that LennardJones computes the correct energies for 1 pair."""
     lennard_jones = hoomd.hpmc.pair.LennardJones()
@@ -165,6 +167,7 @@ def test_energy(mc_simulation_factory, params, d, expected_energy):
                                                  rel=1e-5)
 
 
+@pytest.mark.cpu
 def test_multiple_pair_potentials(mc_simulation_factory):
     """Test that energy operates correctly with multiple pair potentials."""
     lennard_jones_1 = hoomd.hpmc.pair.LennardJones()
