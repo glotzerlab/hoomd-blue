@@ -529,15 +529,8 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
 
     unsigned int N_old = m_pdata->getN();
 
-    extra_ndof = 0;
-
-    auto patch = m_mc->getPatchEnergy();
-
-    if (patch)
-        {
-        // energy of old configuration
-        lnboltzmann += m_mc->computePatchEnergy(timestep);
-        }
+    // energy of old configuration
+    lnboltzmann += m_mc->computeTotalPairEnergy(timestep);
 
         {
         // Get particle positions
@@ -569,10 +562,10 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
     // check for overlaps
     bool overlap = m_mc->countOverlaps(true);
 
-    if (!overlap && patch)
+    if (!overlap)
         {
         // energy of new configuration
-        lnboltzmann -= m_mc->computePatchEnergy(timestep);
+        lnboltzmann -= m_mc->computeTotalPairEnergy(timestep);
         }
 
     if (!overlap)

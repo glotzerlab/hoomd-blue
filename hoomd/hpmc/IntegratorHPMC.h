@@ -464,11 +464,11 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_external_base;
         }
 
-    //! Compute the energy due to patch interactions
+    //! Compute the total energy from pair interactions.
     /*! \param timestep the current time step
      * \returns the total patch energy
      */
-    virtual double computePatchEnergy(uint64_t timestep)
+    virtual double computeTotalPairEnergy(uint64_t timestep)
         {
         // base class method returns 0
         return 0.0;

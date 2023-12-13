@@ -375,11 +375,21 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return true if anisotropic particles are present
         virtual bool hasOrientation() { return m_hasOrientation; }
 
-        //! Compute the energy due to patch interactions
+        //! Compute the total energy from pair interactions.
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual double computePatchEnergy(uint64_t timestep);
+        virtual double computeTotalPairEnergy(uint64_t timestep);
+
+        /*** Compute the pair energy from one pair potential or all pair interactions
+
+        @param selected_pair Pair potential to use when computing the energy. When null, compute
+        the total energy of all pair interactions.
+
+        Note: selected_pair *must* be a member of pair_potentials to ensure that the AABB tree
+        is constructed properly.
+        **/
+        double computePairEnergy(uint64_t timestep, std::shared_ptr<PairPotential> selected_pair = nullptr);
 
         //! Build the AABB tree (if needed)
         const hoomd::detail::AABBTree& buildAABBTree();
@@ -1170,7 +1180,13 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     }
 
 template<class Shape>
-double IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
+double IntegratorHPMCMono<Shape>::computeTotalPairEnergy(uint64_t timestep)
+    {
+    return computePairEnergy(timestep);
+    }
+
+template <class Shape>
+double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shared_ptr<PairPotential> selected_pair)
     {
     // sum up in double precision
     double energy = 0.0;
@@ -1182,7 +1198,7 @@ double IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
 
     if (!m_past_first_run)
         {
-        throw std::runtime_error("computePatchEnergy must be called after run().");
+        throw std::runtime_error("Call simulation.run(0) before evaluating HPMC pair energies.");
         }
 
     // build an up to date AABB tree
@@ -1259,33 +1275,46 @@ double IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                             // count unique pairs within range
                             if (h_tag.data[i] <= h_tag.data[j])
                                 {
-                                if (m_patch)
+                                if (selected_pair)
                                     {
-                                    Scalar rcut_ij = r_cut + 0.5*m_patch->getAdditiveCutoff(typ_j);
-
-
-                                    if (dot(r_ij,r_ij) <= rcut_ij*rcut_ij)
-                                        {
-                                        energy += m_patch->energy(r_ij,
-                                            typ_i,
-                                            quat<float>(orientation_i),
-                                            float(d_i),
-                                            float(charge_i),
-                                            typ_j,
-                                            quat<float>(orientation_j),
-                                            float(d_j),
-                                            float(charge_j));
-                                        }
+                                    energy += selected_pair->energy(vec3<ShortReal>(r_ij), typ_i,
+                                                                    quat<ShortReal>(orientation_i),
+                                                                    ShortReal(h_charge.data[i]),
+                                                                    typ_j,
+                                                                    quat<ShortReal>(orientation_j),
+                                                                    ShortReal(h_charge.data[j]));
                                     }
-
-                                for (const auto& pair: m_pair_potentials)
+                                else
                                     {
-                                    energy += pair->energy(vec3<ShortReal>(r_ij), typ_i,
-                                                                quat<ShortReal>(orientation_i),
-                                                                ShortReal(h_charge.data[i]),
-                                                                typ_j,
-                                                                quat<ShortReal>(orientation_j),
-                                                                ShortReal(h_charge.data[j]));
+                                    if (m_patch)
+                                        {
+                                        Scalar rcut_ij = r_cut
+                                                         + 0.5*m_patch->getAdditiveCutoff(typ_j);
+
+
+                                        if (dot(r_ij,r_ij) <= rcut_ij*rcut_ij)
+                                            {
+                                            energy += m_patch->energy(r_ij,
+                                                typ_i,
+                                                quat<float>(orientation_i),
+                                                float(d_i),
+                                                float(charge_i),
+                                                typ_j,
+                                                quat<float>(orientation_j),
+                                                float(d_j),
+                                                float(charge_j));
+                                            }
+                                        }
+
+                                    for (const auto& pair: m_pair_potentials)
+                                        {
+                                        energy += pair->energy(vec3<ShortReal>(r_ij), typ_i,
+                                                               quat<ShortReal>(orientation_i),
+                                                               ShortReal(h_charge.data[i]),
+                                                               typ_j,
+                                                               quat<ShortReal>(orientation_j),
+                                                               ShortReal(h_charge.data[j]));
+                                        }
                                     }
                                 }
                             }
@@ -2713,7 +2742,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
           .def("getShape", &IntegratorHPMCMono<Shape>::getShape)
           .def("setShape", &IntegratorHPMCMono<Shape>::setShape)
-          .def("computePatchEnergy", &IntegratorHPMCMono<Shape>::computePatchEnergy)
+          .def("computePairEnergy", &IntegratorHPMCMono<Shape>::computePairEnergy)
           ;
     }
 

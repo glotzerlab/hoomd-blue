@@ -77,7 +77,8 @@ class Pair(hoomd.operation._HOOMDBaseObject):
 
     @hoomd.logging.log(requires_run=True)
     def energy(self):
-        """float: Total interaction energy of the system in the current state.
+        """float: Potential energy contributed by this potential \
+        :math:`[\\mathrm{energy}]`.
 
         Typically:
 
@@ -100,7 +101,7 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
-        return integrator._cpp_obj.computePatchEnergy(timestep)
+        return integrator._cpp_obj.computePairEnergy(timestep, self._cpp_obj)
 
 
 class LennardJones(Pair):
