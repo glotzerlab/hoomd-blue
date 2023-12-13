@@ -500,7 +500,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
     /// Get pairwise interaction maximum r_cut.
-    ShortReal getMaxPairInteractionRCut()
+    ShortReal getMaxPairInteractionRCut() const
         {
         ShortReal r_cut = 0;
         if (m_patch)
@@ -516,7 +516,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
     /// Get pairwise interaction maximum additive r_cut.
-    ShortReal getMaxPairInteractionAdditiveRCut(unsigned int typ)
+    ShortReal getMaxPairInteractionAdditiveRCut(unsigned int typ) const
         {
         ShortReal r_cut = 0;
         if (m_patch)

@@ -326,15 +326,13 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
     const Scalar max_core_diameter = m_mc->getMaxCoreDiameter();
     Scalar max_r_cut_patch = 0.0;
 
-    if (m_mc->getPatchEnergy())
+    for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
         {
-        for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
-            {
-            const Scalar r_cut_patch_i = m_mc->getPatchEnergy()->getRCut()
-                                         + m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i);
-            max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
-            }
+        const Scalar r_cut_patch_i
+            = m_mc->getMaxPairInteractionRCut() + m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+        max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
         }
+
     return std::max(max_core_diameter, max_r_cut_patch);
     }
 
@@ -348,12 +346,12 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
     without any communication.
       - The integrator performs the ghost exchange (with the ghost width extra that we add)
 
-    This function is a wrapper that calls the appropriate method depending on the value of
-    m_mc->getPatchEnergy()
+    This function is a wrapper that calls the appropriate method depending on whether a binary or
+    linear search is required.
 */
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
-    if (m_mc->getPatchEnergy() || m_shape_requires_expansion_moves)
+    if (m_mc->hasPairInteractions() || m_shape_requires_expansion_moves)
         {
         countHistogramLinearSearch(timestep);
         }
@@ -507,13 +505,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        ShortReal r_cut_patch = 0;
-        if (m_mc->getPatchEnergy())
-            {
-            r_cut_patch
-                = static_cast<ShortReal>(m_mc->getPatchEnergy()->getRCut()
-                                         + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i));
-            }
+        ShortReal r_cut_patch = m_mc->getMaxPairInteractionRCut()
+                                + ShortReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
         const ShortReal R_query
             = std::max(shape_i.getCircumsphereDiameter() / ShortReal(2.0),
                        r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
@@ -555,19 +548,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             const vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
-                            if (m_mc->getPatchEnergy())
-                                {
-                                u_ij_0 = m_mc->getPatchEnergy()->energy(
-                                    r_ij,
-                                    typ_i,
-                                    quat<float>(shape_i.orientation),
-                                    float(h_diameter.data[i]),
-                                    float(h_charge.data[i]),
-                                    typ_j,
-                                    quat<float>(orientation_j),
-                                    float(h_diameter.data[j]),
-                                    float(h_charge.data[j]));
-                                }
+                            u_ij_0
+                                = m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                                                             typ_i,
+                                                             quat<ShortReal>(shape_i.orientation),
+                                                             ShortReal(h_diameter.data[i]),
+                                                             ShortReal(h_charge.data[i]),
+                                                             typ_j,
+                                                             quat<ShortReal>(orientation_j),
+                                                             ShortReal(h_diameter.data[j]),
+                                                             ShortReal(h_charge.data[j]));
 
                             // first do compressions
                             for (size_t bin_to_sample = 0; bin_to_sample < min_bin_compression;
@@ -594,22 +584,22 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                                 // if no hard overlap, check for a soft overlap if we have
                                 // patches
-                                if (!hard_overlap && m_mc->getPatchEnergy())
+                                if (!hard_overlap)
                                     {
                                     // compute the energy at this size of the perturbation and
                                     // compare to the energy in the unperturbed state
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new = m_mc->getPatchEnergy()->energy(
-                                        r_ij_scaled,
+                                    double u_ij_new = m_mc->computeOnePairEnergy(
+                                        vec3<ShortReal>(r_ij_scaled),
                                         typ_i,
-                                        quat<float>(shape_i.orientation),
-                                        float(h_diameter.data[i]),
-                                        float(h_charge.data[i]),
+                                        quat<ShortReal>(shape_i.orientation),
+                                        ShortReal(h_diameter.data[i]),
+                                        ShortReal(h_charge.data[i]),
                                         typ_j,
-                                        quat<float>(orientation_j),
-                                        float(h_diameter.data[j]),
-                                        float(h_charge.data[j]));
+                                        quat<ShortReal>(orientation_j),
+                                        ShortReal(h_diameter.data[j]),
+                                        ShortReal(h_charge.data[j]));
                                     // if energy has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins
@@ -626,7 +616,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                                 = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
                                             }
                                         }
-                                    } // end if (!hard_overlap && m_mc->getPatchEnergy())
+                                    } // end if (!hard_overlap)
                                 }     // end loop over bins for compression
 
                             // do expansions
@@ -653,22 +643,22 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     } // end if (hard_overlap)
 
                                 // if no hard overlap, check for a soft overlap if necessary
-                                if (!hard_overlap && m_mc->getPatchEnergy())
+                                if (!hard_overlap)
                                     {
                                     // compute the energy at this size of the perturbation and
                                     // compare to the energy in the unperturbed state
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new = m_mc->getPatchEnergy()->energy(
-                                        r_ij_scaled,
+                                    double u_ij_new = m_mc->computeOnePairEnergy(
+                                        vec3<ShortReal>(r_ij_scaled),
                                         typ_i,
-                                        quat<float>(shape_i.orientation),
-                                        float(h_diameter.data[i]),
-                                        float(h_charge.data[i]),
+                                        quat<ShortReal>(shape_i.orientation),
+                                        ShortReal(h_diameter.data[i]),
+                                        ShortReal(h_charge.data[i]),
                                         typ_j,
-                                        quat<float>(orientation_j),
-                                        float(h_diameter.data[j]),
-                                        float(h_charge.data[j]));
+                                        quat<ShortReal>(orientation_j),
+                                        ShortReal(h_diameter.data[j]),
+                                        ShortReal(h_charge.data[j]));
                                     // if energy has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins
@@ -685,7 +675,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                                 = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
                                             }
                                         }
-                                    } // end if (!hard_overlap && m_mc->getPatchEnergy())
+                                    } // end if (!hard_overlap)
                                 }     // end loop over histogram bins for expansions
                             }
                         }
