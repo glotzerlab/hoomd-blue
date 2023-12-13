@@ -14,11 +14,11 @@ namespace hpmc
 
 For use with HPMC simulations.
 */
-class PatchEnergyLJ : public hpmc::PairPotential
+class PairPotentialLennardJones : public hpmc::PairPotential
     {
     public:
-    PatchEnergyLJ(std::shared_ptr<SystemDefinition> sysdef);
-    virtual ~PatchEnergyLJ() { }
+    PairPotentialLennardJones(std::shared_ptr<SystemDefinition> sysdef);
+    virtual ~PairPotentialLennardJones() { }
 
     virtual ShortReal getRCut();
     virtual ShortReal energy(const vec3<ShortReal>& r_ij,
@@ -119,7 +119,7 @@ class PatchEnergyLJ : public hpmc::PairPotential
 
 namespace detail
     {
-void export_PatchEnergyLJ(pybind11::module& m);
+void export_PairPotentialLennardJones(pybind11::module& m);
 
     } // end namespace detail
     } // end namespace hpmc

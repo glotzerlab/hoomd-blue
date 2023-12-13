@@ -161,9 +161,12 @@ External potentials apply to each particle individually:
                                                                  \mathbf{q}_i)
 
 Potential classes in :doc:`module-hpmc-pair` evaluate
-:math:`U_{\mathrm{pair},ij}`. Assign a class instance to
-`HPMCIntegrator.pair_potential` to apply it during integration. Similarly,
-potential classes in :doc:`module-hpmc-external` evaluate
+:math:`U_{\mathrm{pair},ij}`. HPMC sums the `Pair <hoomd.hpmc.pair.Pair>`
+potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` with the
+`CPPPotentialBase <hoomd.hpmc.pair.user.CPPPotentialBase>` potential in
+`pair_potential <HPMCIntegrator.pair_potential>` during integration.
+
+Similarly, potential classes in :doc:`module-hpmc-external` evaluate
 :math:`U_{\mathrm{external},i}`. Assign a class instance to
 `HPMCIntegrator.external_potential` to apply it during integration.
 
@@ -467,6 +470,7 @@ class HPMCIntegrator(Integrator):
 
     @property
     def pair_potentials(self):
+        """list[hoomd.hpmc.pair.Pair] Pair potentials to apply."""
         return self._pair_potentials
 
     @pair_potentials.setter

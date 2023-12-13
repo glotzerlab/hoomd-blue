@@ -39,7 +39,7 @@ namespace hpmc
     {
 namespace detail
     {
-void export_PatchEnergyLJ(pybind11::module& m);
+void export_PairPotentialLennardJones(pybind11::module& m);
     }
     } // namespace hpmc
     } // namespace hoomd
@@ -135,7 +135,7 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_hpmc_nec_counters(m);
 
-    export_PatchEnergyLJ(m);
+    export_PairPotentialLennardJones(m);
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

@@ -3,9 +3,32 @@
 
 """Pair Potentials for Monte Carlo.
 
-Define :math:`U_{\\mathrm{pair},ij}` for use with
-`hoomd.hpmc.integrate.HPMCIntegrator`. Assign a pair potential instance to
-`hpmc.integrate.HPMCIntegrator.pair_potential` to activate the potential.
+Define :math:`U_{\\mathrm{pair},ij}` for use with `HPMCIntegrator
+<hoomd.hpmc.integrate.HPMCIntegrator>`. Add `Pair` potential instances to
+`pair_potentials <hpmc.integrate.HPMCIntegrator.pair_potentials>` to apply
+the potential during MC integration.
+
+.. rubric:: Example:
+
+.. skip next if(not hoomd.version.hpmc_built)
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    sphere = hoomd.hpmc.integrate.Sphere()
+    sphere.shape['A'] = dict(diameter=0.0)
+    simulation.operations.integrator = sphere
+
+    pair =  hoomd.hpmc.pair.LennardJones()
+    pair.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
+
+    logger = hoomd.logging.Logger()
+
+.. skip next if(not hoomd.version.hpmc_built)
+
+.. code-block:: python
+
+    simulation.operations.integrator.pair_potentials = [pair]
 """
 
 from . import user
@@ -14,7 +37,24 @@ import hoomd
 
 
 class Pair(hoomd.operation._HOOMDBaseObject):
-    """Pair potential for HPMC."""
+    """Pair potential base class (HPMC).
+
+    Pair potential energies define energetic interactions between pairs of
+    particles in `hoomd.hpmc.integrate.HPMCIntegrator`.  Particles within a
+    cutoff distance interact with an energy that is a function the
+    type and orientation of the particles and the vector pointing from the *i*
+    particle to the *j* particle center.
+
+    .. rubric:: Mixed precision
+
+    HPMC pair potentials evaluate the energy with reduced precision
+    in the local particle reference frame about particle *i*.
+
+    Note:
+        The base class `Pair` implements common attributes (`energy`, for
+        example) and may be used in for `isinstance` or `issubclass` checks.
+        `Pair` should not be instantiated directly by users.
+    """
 
     def _attach_hook(self):
         integrator = self._simulation.operations.integrator
@@ -39,23 +79,76 @@ class Pair(hoomd.operation._HOOMDBaseObject):
     def energy(self):
         """float: Total interaction energy of the system in the current state.
 
+        Typically:
+
         .. math::
 
             U = \\sum_{i=0}^\\mathrm{N_particles-1}
-            \\sum_{j=0}^\\mathrm{N_particles-1}
+            \\sum_{j=i+1}^\\mathrm{N_particles-1}
             U_{\\mathrm{pair},ij}
 
-        Returns `None` when the patch object and integrator are not
-        attached.
+        See `hoomd.hpmc.integrate` for the full expression which includes
+        the evaluation over multiple images when the simulation box is small.
+
+        .. rubric:: Example
+
+        .. skip next if(not hoomd.version.hpmc_built)
+
+        .. code-block:: python
+
+            logger.add(obj=pair, quantities=['energy'])
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
         return integrator._cpp_obj.computePatchEnergy(timestep)
 
 
-class LJ(Pair):
-    """Lennard-Jones pair potential"""
-    _cpp_class_name = "PatchEnergyLJ"
+class LennardJones(Pair):
+    """Lennard-Jones pair potential (HPMC).
+
+    Args:
+        default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        default_r_on (float): Default XPLOR on radius :math:`[\\mathrm{length}]`.
+        default_mode (str): Default energy shifting/smoothing mode.
+
+    `LennardJones` computes the Lennard-Jones pair potential between every pair
+    of particles in the simulation state. The functional form of the potential,
+    including its behavior under shifting modes, is identical to that in
+    the MD pair potential `hoomd.md.pair.LJ`.
+
+    See Also:
+        `hoomd.md.pair.LJ`
+
+        `hoomd.md.pair.Pair`
+
+    .. rubric:: Example
+
+    .. code-block:: python
+
+        lennard_jones =  hoomd.hpmc.pair.LennardJones()
+        lennard_jones.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
+        simulation.operations.integrator.pair_potentials = [lennard_jones]
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          Energy well depth :math:`\\varepsilon` :math:`[\\mathrm{energy}]`.
+        * ``sigma`` (`float`, **required**) -
+          Particle size :math:`\\sigma` :math:`[\\mathrm{length}]`.
+        * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`. Defaults
+          to the value given in ``default_r_cut`` on construction.
+        * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`. Defaults
+          to the value given in ``default_r_on`` on construction.
+        * ``mode`` (`str`): The energy shifting/smoothing mode: Possible values:
+          ``"none"``, ``"shift"``, ``"xplor"``. Defaults to the value given
+          in ``default_mode`` on construction.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    _cpp_class_name = "PairPotentialLennardJones"
 
     def __init__(self,
                  default_r_cut=None,

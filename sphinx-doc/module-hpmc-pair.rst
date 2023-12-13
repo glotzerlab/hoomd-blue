@@ -4,8 +4,22 @@
 hoomd.hpmc.pair
 ---------------
 
+.. rubric:: Overview
+
+.. py:currentmodule:: hoomd.hpmc.pair
+
+.. autosummary::
+    :nosignatures:
+
+    LennardJones
+    Pair
+
+.. rubric:: Details
+
 .. automodule:: hoomd.hpmc.pair
     :synopsis: Pair potentials for HPMC.
+    :members: LennardJones,
+              Pair
 
 .. rubric:: Modules
 
