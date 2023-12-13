@@ -146,7 +146,12 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     // maximum core diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
     double max_diameter = m_mc->getMaxCoreDiameter();
     double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
-    double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+    double min_scale;
+    if (min_move_size==0){
+        min_scale = m_min_scale;
+    } else {
+        min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+    };
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(
