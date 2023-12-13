@@ -532,22 +532,25 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
     ShortReal computeOnePairEnergy(const vec3<ShortReal>& r_ij,
-                         unsigned int type_i,
-                         const quat<ShortReal>& q_i,
-                         ShortReal d_i,
-                         ShortReal charge_i,
-                         unsigned int type_j,
-                         const quat<ShortReal>& q_j,
-                         ShortReal d_j,
-                         ShortReal charge_j)
+                                   unsigned int type_i,
+                                   const quat<ShortReal>& q_i,
+                                   ShortReal d_i,
+                                   ShortReal charge_i,
+                                   unsigned int type_j,
+                                   const quat<ShortReal>& q_j,
+                                   ShortReal d_j,
+                                   ShortReal charge_j)
         {
         ShortReal energy = 0;
         if (m_patch)
             {
-            ShortReal r_cut = ShortReal(m_patch->getRCut() + 0.5 * m_patch->getAdditiveCutoff(type_j));
-            if (dot(r_ij,r_ij) <= r_cut*r_cut)
+            ShortReal r_cut
+                = ShortReal(m_patch->getRCut() + 0.5 * m_patch->getAdditiveCutoff(type_j));
+            if (dot(r_ij, r_ij) <= r_cut * r_cut)
                 {
-                energy += m_patch->energy(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
+                energy
+                    += m_patch
+                           ->energy(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
                 }
             }
         for (const auto& pair : m_pair_potentials)
