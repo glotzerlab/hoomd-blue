@@ -103,7 +103,7 @@ class CPPPotentialBase(AutotunedObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
-        return integrator._cpp_obj.computePatchEnergy(timestep)
+        return integrator._cpp_obj.computeTotalPairEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
         r"""Wrap the provided code into a function with the expected signature.
