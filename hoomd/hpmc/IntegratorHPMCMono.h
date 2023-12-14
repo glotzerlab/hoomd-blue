@@ -943,8 +943,18 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     }
 
                 // update the position of the particle in the tree for future updates
-                hoomd::detail::AABB aabb = aabb_i_local;
-                aabb.translate(pos_i);
+                hoomd::detail::AABB aabb;
+                if (!m_patch)
+                    {
+                    aabb = shape_i.getAABB(pos_i);
+                    }
+                else
+                    {
+                    Scalar radius = std::max(0.5*shape_i.getCircumsphereDiameter(),
+                        0.5*m_patch->getAdditiveCutoff(typ_i));
+                    aabb = hoomd::detail::AABB(pos_i, radius);
+                    }
+
                 m_aabb_tree.update(i, aabb);
 
                 // update position of particle
