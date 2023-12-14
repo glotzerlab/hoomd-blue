@@ -159,49 +159,49 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
         double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
         min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
         };
-        };
+    };
 
-    // Create a prng instance for this timestep
-    hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::UpdaterQuickCompress, timestep, m_sysdef->getSeed()),
+// Create a prng instance for this timestep
+hoomd::RandomGenerator
+    rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterQuickCompress, timestep, m_sysdef->getSeed()),
         hoomd::Counter(m_instance));
 
-    // choose a scale randomly between min_scale and 1.0
-    hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
-    double scale = uniform(rng);
+// choose a scale randomly between min_scale and 1.0
+hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
+double scale = uniform(rng);
 
-    // TODO: This slow. We will implement a general reusable fix later in #705
-    const auto& target_box = *m_target_box;
+// TODO: This slow. We will implement a general reusable fix later in #705
+const auto& target_box = *m_target_box;
 
-    // construct the scaled box
-    BoxDim current_box = m_pdata->getGlobalBox();
-    Scalar3 new_L;
-    Scalar new_xy, new_xz, new_yz;
-    if (m_sysdef->getNDimensions() == 3)
-        {
-        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-        new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
-        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
-        new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
-        new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
-        }
-    else
-        {
-        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+// construct the scaled box
+BoxDim current_box = m_pdata->getGlobalBox();
+Scalar3 new_L;
+Scalar new_xy, new_xz, new_yz;
+if (m_sysdef->getNDimensions() == 3)
+    {
+    new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
+    new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
+    new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
+    new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+    new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
+    new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+    }
+else
+    {
+    new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
+    new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
+    new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
 
-        // assume that the unused fields in the 2D target box are valid
-        new_L.z = target_box.getL().z;
-        new_xz = target_box.getTiltFactorXZ();
-        new_yz = target_box.getTiltFactorYZ();
-        }
+    // assume that the unused fields in the 2D target box are valid
+    new_L.z = target_box.getL().z;
+    new_xz = target_box.getTiltFactorXZ();
+    new_yz = target_box.getTiltFactorYZ();
+    }
 
-    BoxDim new_box = current_box;
-    new_box.setL(new_L);
-    new_box.setTiltFactors(new_xy, new_xz, new_yz);
-    return new_box;
+BoxDim new_box = current_box;
+new_box.setL(new_L);
+new_box.setTiltFactors(new_xy, new_xz, new_yz);
+return new_box;
     }
 
 namespace detail
@@ -236,4 +236,4 @@ void export_UpdaterQuickCompress(pybind11::module& m)
     }
     } // end namespace detail
     } // end namespace hpmc
-    } // end namespace hoomd
+} // end namespace hoomd
