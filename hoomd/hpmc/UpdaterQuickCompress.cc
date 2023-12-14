@@ -16,7 +16,7 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            bool allow_unsafe_resize,
                                            std::shared_ptr<BoxDim> target_box)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
-      m_target_box(target_box)
+      m_allow_unsafe_resize(allow_unsafe_resize), m_target_box(target_box)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterQuickCompress" << std::endl;
     setMinScale(min_scale);
