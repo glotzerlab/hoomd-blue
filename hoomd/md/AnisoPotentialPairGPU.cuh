@@ -68,7 +68,7 @@ struct a_pair_args_t
                   bool _update_shape_param)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
           N(_N), n_max(_n_max), d_pos(_d_pos), d_charge(_d_charge), d_orientation(_d_orientation),
-          d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
+          d_tag(_d_tag), d_angmom(_d_angmom), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
           d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes), reciprocal(_reciprocal),
 	  block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),

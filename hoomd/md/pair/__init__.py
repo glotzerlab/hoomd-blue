@@ -160,4 +160,5 @@ from .pair import (
     Table,
     TWF,
     LJGauss,
+    DipoleInterface,
 )
