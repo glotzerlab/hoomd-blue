@@ -159,6 +159,7 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
         double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
         min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
         };
+        };
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(
