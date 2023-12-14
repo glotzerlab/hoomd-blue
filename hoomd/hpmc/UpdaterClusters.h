@@ -381,12 +381,12 @@ class UpdaterClusters : public Updater
 
         #ifndef ENABLE_TBB_TASK
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local vector of particle pairs due to overlap
-        std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
-        std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
+        std::map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_old_old;    //!< Energy of interaction old-old
+        std::map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_new_old;    //!< Energy of interaction old-old
         #else
         tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;
-        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;
-        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_old_old;
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_new_old;
         #endif
 
         hpmc_clusters_counters_t m_count_total;                 //!< Total count since initialization
@@ -1131,7 +1131,7 @@ void UpdaterClusters<Shape>::flip(uint64_t timestep)
             hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters2, timestep, seed),
                                          hoomd::Counter(m_clusters[icluster][0]));
 
-            bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= m_flip_probability;
+            bool flip = hoomd::detail::generate_canonical<LongReal>(rng_i) <= m_flip_probability;
 
             if (!flip)
                 {
@@ -1251,21 +1251,21 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                     auto p = std::make_pair(i,j);
 
                                     // if particle interacts in different image already, add to that energy
-                                    ShortReal U = 0.0;
+                                    LongReal U = 0.0;
                                         {
                                         auto it_energy = m_energy_old_old.find(p);
                                         if (it_energy != m_energy_old_old.end())
                                             U = it_energy->second;
                                         }
 
-                                    U += m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij), typ_i,
-                                                        quat<ShortReal>(orientation_i),
-                                                        ShortReal(d_i),
-                                                        ShortReal(charge_i),
+                                    U += m_mc->computeOnePairEnergy(r_ij, typ_i,
+                                                        orientation_i,
+                                                        d_i,
+                                                        charge_i,
                                                         typ_j,
-                                                        quat<ShortReal>(h_orientation_backup.data[j]),
-                                                        ShortReal(h_diameter.data[j]),
-                                                        ShortReal(h_charge.data[j]));
+                                                        quat<LongReal>(h_orientation_backup.data[j]),
+                                                        h_diameter.data[j],
+                                                        h_charge.data[j]);
 
                                     // update map
                                     m_energy_old_old[p] = U;
@@ -1375,7 +1375,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             {
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
-            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(ShortReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(LongReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             // compute V(r'-r)
@@ -1416,22 +1416,22 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                     auto p = std::make_pair(i, j);
 
                                     // if particle interacts in different image already, add to that energy
-                                    float U = 0.0;
+                                    LongReal U = 0.0;
                                         {
                                         auto it_energy = m_energy_new_old.find(p);
                                         if (it_energy != m_energy_new_old.end())
                                             U = it_energy->second;
                                         }
 
-                                    U += m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                                    U += m_mc->computeOnePairEnergy(r_ij,
                                                         typ_i,
-                                                        quat<ShortReal>(shape_i.orientation),
-                                                        ShortReal(h_diameter.data[i]),
-                                                        ShortReal(h_charge.data[i]),
+                                                        shape_i.orientation,
+                                                        h_diameter.data[i],
+                                                        h_charge.data[i],
                                                         typ_j,
-                                                        quat<ShortReal>(h_orientation_backup.data[j]),
-                                                        ShortReal(h_diameter.data[j]),
-                                                        ShortReal(h_charge.data[j]));
+                                                        quat<LongReal>(h_orientation_backup.data[j]),
+                                                        h_diameter.data[j],
+                                                        h_charge.data[j]);
 
                                     // update map
                                     m_energy_new_old[p] = U;
@@ -1653,14 +1653,14 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         {
         // sum up interaction energies
         #ifdef ENABLE_TBB_TASK
-        tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, float> delta_U;
+        tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, LongReal> delta_U;
         #else
-        std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
+        std::map< std::pair<unsigned int, unsigned int>, LongReal> delta_U;
         #endif
 
         for (auto it = m_energy_old_old.begin(); it != m_energy_old_old.end(); ++it)
             {
-            float delU = -it->second;
+            LongReal delU = -it->second;
             unsigned int i = it->first.first;
             unsigned int j = it->first.second;
 
@@ -1677,7 +1677,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
 
         for (auto it = m_energy_new_old.begin(); it != m_energy_new_old.end(); ++it)
             {
-            float delU = it->second;
+            LongReal delU = it->second;
             unsigned int i = it->first.first;
             unsigned int j = it->first.second;
 
@@ -1701,7 +1701,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             {
             for (auto it = r.begin(); it != r.end(); ++it)
                 {
-                float delU = it->second;
+                LongReal delU = it->second;
                 unsigned int i = it->first.first;
                 unsigned int j = it->first.second;
 
@@ -1709,8 +1709,8 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
                 hoomd::RandomGenerator rng_ij(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClustersPairwise, timestep, seed),
                                               hoomd::Counter(std::min(i,j), std::max(i,j)));
 
-                float pij = 1.0f-exp(-delU);
-                if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA
+                LongReal pij = 1.0f-exp(-delU);
+                if (hoomd::detail::generate_canonical<LongReal>(rng_ij) <= pij) // GCA
                     {
                     // add bond
                     m_G.addEdge(i,j);

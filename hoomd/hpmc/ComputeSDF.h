@@ -387,8 +387,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
         size_t min_bin = m_hist_compression.size();
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
-        Scalar4 orientation_i = h_orientation.data[i];
-        Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
+        const quat<LongReal> orientation_i(h_orientation.data[i]);
+        Shape shape_i(orientation_i, params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // construct the AABB around the particle's circumsphere
@@ -424,14 +424,14 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
                                 continue;
 
                             Scalar4 postype_j = h_postype.data[j];
-                            Scalar4 orientation_j = h_orientation.data[j];
+                            const quat<LongReal> orientation_j(h_orientation.data[j]);
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             size_t bin = computeBin(r_ij,
-                                                    quat<Scalar>(orientation_i),
-                                                    quat<Scalar>(orientation_j),
+                                                    orientation_i,
+                                                    orientation_j,
                                                     params[__scalar_as_int(postype_i.w)],
                                                     params[__scalar_as_int(postype_j.w)]);
 
@@ -498,18 +498,18 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
         // read in the current position and orientation
         const Scalar4 postype_i = h_postype.data[i];
-        const Scalar4 orientation_i = h_orientation.data[i];
+        const quat<LongReal> orientation_i(h_orientation.data[i]);
         const int typ_i = __scalar_as_int(postype_i.w);
-        const Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
+        const Shape shape_i(orientation_i, params[__scalar_as_int(postype_i.w)]);
         const vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        ShortReal r_cut_patch = m_mc->getMaxPairInteractionRCut()
-                                + ShortReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
-        const ShortReal R_query
-            = std::max(shape_i.getCircumsphereDiameter() / ShortReal(2.0),
-                       r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
+        LongReal r_cut_patch = m_mc->getMaxPairInteractionRCut()
+                                + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+        const LongReal R_query
+            = std::max(shape_i.getCircumsphereDiameter() / LongReal(2.0),
+                       r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
         hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0), R_query + extra_width);
 
         const size_t n_images = image_list.size();
@@ -541,7 +541,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                 }
 
                             const Scalar4 postype_j = h_postype.data[j];
-                            const Scalar4 orientation_j = h_orientation.data[j];
+                            const quat<LongReal> orientation_j(h_orientation.data[j]);
                             const int typ_j = __scalar_as_int(postype_j.w);
 
                             // put particles in coordinate system of particle i
@@ -549,15 +549,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
                             u_ij_0
-                                = m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                                = m_mc->computeOnePairEnergy(r_ij,
                                                              typ_i,
-                                                             quat<ShortReal>(shape_i.orientation),
-                                                             ShortReal(h_diameter.data[i]),
-                                                             ShortReal(h_charge.data[i]),
+                                                             shape_i.orientation,
+                                                             h_diameter.data[i],
+                                                             h_charge.data[i],
                                                              typ_j,
-                                                             quat<ShortReal>(orientation_j),
-                                                             ShortReal(h_diameter.data[j]),
-                                                             ShortReal(h_charge.data[j]));
+                                                             orientation_j,
+                                                             h_diameter.data[j],
+                                                             h_charge.data[j]);
 
                             // first do compressions
                             for (size_t bin_to_sample = 0; bin_to_sample < min_bin_compression;
@@ -571,8 +571,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                 // check for any soft overlaps from m_mc.m_patch
                                 bool hard_overlap = detail::test_scaled_overlap<Shape>(
                                     r_ij,
-                                    quat<Scalar>(orientation_i),
-                                    quat<Scalar>(orientation_j),
+                                    orientation_i,
+                                    orientation_j,
                                     params[__scalar_as_int(postype_i.w)],
                                     params[__scalar_as_int(postype_j.w)],
                                     scale_factor);
@@ -591,15 +591,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
                                     double u_ij_new = m_mc->computeOnePairEnergy(
-                                        vec3<ShortReal>(r_ij_scaled),
+                                        r_ij_scaled,
                                         typ_i,
-                                        quat<ShortReal>(shape_i.orientation),
-                                        ShortReal(h_diameter.data[i]),
-                                        ShortReal(h_charge.data[i]),
+                                        shape_i.orientation,
+                                        h_diameter.data[i],
+                                        h_charge.data[i],
                                         typ_j,
-                                        quat<ShortReal>(orientation_j),
-                                        ShortReal(h_diameter.data[j]),
-                                        ShortReal(h_charge.data[j]));
+                                        orientation_j,
+                                        h_diameter.data[j],
+                                        h_charge.data[j]);
                                     // if energy has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins
@@ -631,8 +631,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                 // check for any soft overlaps from m_mc.m_patch
                                 bool hard_overlap = detail::test_scaled_overlap<Shape>(
                                     r_ij,
-                                    quat<Scalar>(orientation_i),
-                                    quat<Scalar>(orientation_j),
+                                    orientation_i,
+                                    orientation_j,
                                     params[__scalar_as_int(postype_i.w)],
                                     params[__scalar_as_int(postype_j.w)],
                                     scale_factor);
@@ -650,15 +650,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
                                     double u_ij_new = m_mc->computeOnePairEnergy(
-                                        vec3<ShortReal>(r_ij_scaled),
+                                        r_ij_scaled,
                                         typ_i,
-                                        quat<ShortReal>(shape_i.orientation),
-                                        ShortReal(h_diameter.data[i]),
-                                        ShortReal(h_charge.data[i]),
+                                        shape_i.orientation,
+                                        h_diameter.data[i],
+                                        h_charge.data[i],
                                         typ_j,
-                                        quat<ShortReal>(orientation_j),
-                                        ShortReal(h_diameter.data[j]),
-                                        ShortReal(h_charge.data[j]));
+                                        orientation_j,
+                                        h_diameter.data[j],
+                                        h_charge.data[j]);
                                     // if energy has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins

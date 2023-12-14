@@ -200,13 +200,13 @@ class PairPotential
     virtual ~PairPotential() { }
 
     /// Returns the non-additive cutoff radius.
-    virtual ShortReal getRCut()
+    virtual LongReal getRCut()
         {
         return 0;
         }
 
     /// Returns the additive part of the cutoff distance for a given type.
-    virtual ShortReal getAdditiveRCut(unsigned int type)
+    virtual LongReal getAdditiveRCut(unsigned int type)
         {
         return 0;
         }
@@ -225,13 +225,13 @@ class PairPotential
         @param charge_j Charge of particle j.
         @returns Energy of the pair interaction.
     */
-    virtual ShortReal energy(const vec3<ShortReal>& r_ij,
+    virtual LongReal energy(const vec3<LongReal>& r_ij,
                              unsigned int type_i,
-                             const quat<ShortReal>& q_i,
-                             ShortReal charge_i,
+                             const quat<LongReal>& q_i,
+                             LongReal charge_i,
                              unsigned int type_j,
-                             const quat<ShortReal>& q_j,
-                             ShortReal charge_j)
+                             const quat<LongReal>& q_j,
+                             LongReal charge_j)
         {
         return 0;
         }
@@ -500,12 +500,12 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
     /// Get pairwise interaction maximum r_cut.
-    ShortReal getMaxPairInteractionRCut() const
+    LongReal getMaxPairInteractionRCut() const
         {
-        ShortReal r_cut = 0;
+        LongReal r_cut = 0;
         if (m_patch)
             {
-            r_cut = static_cast<ShortReal>(m_patch->getRCut());
+            r_cut = m_patch->getRCut();
             }
         for (const auto& pair : m_pair_potentials)
             {
@@ -516,12 +516,12 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
     /// Get pairwise interaction maximum additive r_cut.
-    ShortReal getMaxPairInteractionAdditiveRCut(unsigned int typ) const
+    LongReal getMaxPairInteractionAdditiveRCut(unsigned int typ) const
         {
-        ShortReal r_cut = 0;
+        LongReal r_cut = 0;
         if (m_patch)
             {
-            r_cut = static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ));
+            r_cut = m_patch->getAdditiveCutoff(typ);
             }
         for (const auto& pair : m_pair_potentials)
             {
@@ -531,27 +531,26 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return r_cut;
         }
 
-    ShortReal computeOnePairEnergy(const vec3<ShortReal>& r_ij,
+    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(const vec3<LongReal>& r_ij,
                                    unsigned int type_i,
-                                   const quat<ShortReal>& q_i,
-                                   ShortReal d_i,
-                                   ShortReal charge_i,
+                                   const quat<LongReal>& q_i,
+                                   LongReal d_i,
+                                   LongReal charge_i,
                                    unsigned int type_j,
-                                   const quat<ShortReal>& q_j,
-                                   ShortReal d_j,
-                                   ShortReal charge_j)
+                                   const quat<LongReal>& q_j,
+                                   LongReal d_j,
+                                   LongReal charge_j)
         {
-        ShortReal energy = 0;
+        LongReal energy = 0;
         if (m_patch)
             {
-            ShortReal r_cut = ShortReal(
-                m_patch->getRCut()
-                + 0.5 * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j)));
+            LongReal r_cut = m_patch->getRCut()
+                + LongReal(0.5) * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j));
             if (dot(r_ij, r_ij) <= r_cut * r_cut)
                 {
                 energy
                     += m_patch
-                           ->energy(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
+                           ->energy(vec3<float>(r_ij), type_i, quat<float>(q_i), float(d_i), float(charge_i), type_j, quat<float>(q_j), float(d_j), float(charge_j));
                 }
             }
         for (const auto& pair : m_pair_potentials)

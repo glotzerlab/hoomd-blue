@@ -14,9 +14,9 @@ PairPotentialLennardJones::PairPotentialLennardJones(std::shared_ptr<SystemDefin
     {
     }
 
-ShortReal PairPotentialLennardJones::getRCut()
+LongReal PairPotentialLennardJones::getRCut()
     {
-    ShortReal r_cut = 0;
+    LongReal r_cut = 0;
     for (const auto& param : m_params)
         {
         r_cut = std::max(r_cut, slow::sqrt(param.r_cut_squared));
@@ -24,45 +24,45 @@ ShortReal PairPotentialLennardJones::getRCut()
     return r_cut;
     }
 
-ShortReal PairPotentialLennardJones::energy(const vec3<ShortReal>& r_ij,
+LongReal PairPotentialLennardJones::energy(const vec3<LongReal>& r_ij,
                                             unsigned int type_i,
-                                            const quat<ShortReal>& q_i,
-                                            ShortReal charge_i,
+                                            const quat<LongReal>& q_i,
+                                            LongReal charge_i,
                                             unsigned int type_j,
-                                            const quat<ShortReal>& q_j,
-                                            ShortReal charge_j)
+                                            const quat<LongReal>& q_j,
+                                            LongReal charge_j)
     {
-    ShortReal r_squared = dot(r_ij, r_ij);
+    LongReal r_squared = dot(r_ij, r_ij);
 
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
     if (r_squared > param.r_cut_squared)
         return 0;
 
-    ShortReal lj1 = param.epsilon_x_4 * param.sigma_6 * param.sigma_6;
-    ShortReal lj2 = param.epsilon_x_4 * param.sigma_6;
+    LongReal lj1 = param.epsilon_x_4 * param.sigma_6 * param.sigma_6;
+    LongReal lj2 = param.epsilon_x_4 * param.sigma_6;
 
-    ShortReal r_2_inverse = ShortReal(1.0) / r_squared;
-    ShortReal r_6_inverse = r_2_inverse * r_2_inverse * r_2_inverse;
+    LongReal r_2_inverse = LongReal(1.0) / r_squared;
+    LongReal r_6_inverse = r_2_inverse * r_2_inverse * r_2_inverse;
 
-    ShortReal energy = r_6_inverse * (lj1 * r_6_inverse - lj2);
+    LongReal energy = r_6_inverse * (lj1 * r_6_inverse - lj2);
 
     if (param.mode == shift)
         {
-        ShortReal r_cut_2_inverse = ShortReal(1.0) / param.r_cut_squared;
-        ShortReal r_cut_6_inverse = r_cut_2_inverse * r_cut_2_inverse * r_cut_2_inverse;
+        LongReal r_cut_2_inverse = LongReal(1.0) / param.r_cut_squared;
+        LongReal r_cut_6_inverse = r_cut_2_inverse * r_cut_2_inverse * r_cut_2_inverse;
         energy -= r_cut_6_inverse * (lj1 * r_cut_6_inverse - lj2);
         }
 
     if (param.mode == xplor && r_squared > param.r_on_squared)
         {
-        ShortReal a = param.r_cut_squared - param.r_on_squared;
-        ShortReal denominator = a * a * a;
+        LongReal a = param.r_cut_squared - param.r_on_squared;
+        LongReal denominator = a * a * a;
 
-        ShortReal b = param.r_cut_squared - r_squared;
-        ShortReal numerator = b * b
-                              * (param.r_cut_squared + ShortReal(2.0) * r_squared
-                                 - ShortReal(3.0) * param.r_on_squared);
+        LongReal b = param.r_cut_squared - r_squared;
+        LongReal numerator = b * b
+                              * (param.r_cut_squared + LongReal(2.0) * r_squared
+                                 - LongReal(3.0) * param.r_on_squared);
         energy *= numerator / denominator;
         }
 

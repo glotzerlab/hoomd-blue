@@ -228,7 +228,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual Scalar getMaxCoreDiameter();
 
         //! Get the minimum particle diameter
-        virtual ShortReal getMinCoreDiameter();
+        virtual LongReal getMinCoreDiameter();
 
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
@@ -672,7 +672,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
-            Scalar4 orientation_i = h_orientation.data[i];
             vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
             #ifdef ENABLE_MPI
@@ -688,11 +687,11 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
                                          hoomd::Counter(i, m_exec_conf->getRank(), i_nselect));
             int typ_i = __scalar_as_int(postype_i.w);
-            Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
+            Shape shape_i(quat<LongReal>(h_orientation.data[i]), m_params[typ_i]);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_translation_move_probability);
 
-            Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
+            Shape shape_old(shape_i.orientation, m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;
 
             if (move_type_translate)
@@ -733,17 +732,17 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
 
             bool overlap=false;
-            ShortReal r_cut_patch = 0;
+            LongReal r_cut_patch = 0;
 
             if (hasPairInteractions())
                 {
-                r_cut_patch = getMaxPairInteractionRCut() + static_cast<ShortReal>(0.5) *
+                r_cut_patch = getMaxPairInteractionRCut() + static_cast<LongReal>(0.5) *
                     getMaxPairInteractionAdditiveRCut(typ_i);
                 }
 
             // subtract minimum AABB extent from search radius
-            ShortReal R_query = std::max(shape_i.getCircumsphereDiameter()/ShortReal(2.0),
-                r_cut_patch-getMinCoreDiameter()/(ShortReal)2.0);
+            LongReal R_query = std::max(shape_i.getCircumsphereDiameter()/LongReal(2.0),
+                r_cut_patch-getMinCoreDiameter()/LongReal(2.0));
             hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // patch + field interaction deltaU
@@ -771,14 +770,14 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                 Scalar4 postype_j;
-                                Scalar4 orientation_j;
+                                quat<LongReal> orientation_j;
 
                                 // handle j==i situations
                                 if ( j != i )
                                     {
                                     // load the position and orientation of the j particle
                                     postype_j = h_postype.data[j];
-                                    orientation_j = h_orientation.data[j];
+                                    orientation_j = quat<LongReal>(h_orientation.data[j]);
                                     }
                                 else
                                     {
@@ -791,7 +790,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                         {
                                         // If this is particle i and we are in an outside image, use the translated position and orientation
                                         postype_j = make_scalar4(pos_i.x, pos_i.y, pos_i.z, postype_i.w);
-                                        orientation_j = quat_to_scalar4(shape_i.orientation);
+                                        orientation_j = shape_i.orientation;
                                         }
                                     }
 
@@ -799,7 +798,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+                                Shape shape_j(orientation_j, m_params[typ_j]);
 
                                 counters.overlap_checks++;
                                 if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
@@ -812,13 +811,13 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
                                 // deltaU = U_old - U_new: subtract energy of new configuration
                                 patch_field_energy_diff -= computeOnePairEnergy(r_ij, typ_i,
-                                                        quat<ShortReal>(shape_i.orientation),
-                                                        ShortReal(h_diameter.data[i]),
-                                                        ShortReal(h_charge.data[i]),
+                                                        shape_i.orientation,
+                                                        h_diameter.data[i],
+                                                        h_charge.data[i],
                                                         typ_j,
-                                                        quat<ShortReal>(orientation_j),
-                                                        ShortReal(h_diameter.data[j]),
-                                                        ShortReal(h_charge.data[j])
+                                                        shape_j.orientation,
+                                                        h_diameter.data[j],
+                                                        h_charge.data[j]
                                                         );
                                 }
                            }
@@ -859,14 +858,14 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                     Scalar4 postype_j;
-                                    Scalar4 orientation_j;
+                                    quat<LongReal> orientation_j;
 
                                     // handle j==i situations
                                     if ( j != i )
                                         {
                                         // load the position and orientation of the j particle
                                         postype_j = h_postype.data[j];
-                                        orientation_j = h_orientation.data[j];
+                                        orientation_j = quat<LongReal>(h_orientation.data[j]);
                                         }
                                     else
                                         {
@@ -879,25 +878,25 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                             {
                                             // If this is particle i and we are in an outside image, use the translated position and orientation
                                             postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
-                                            orientation_j = quat_to_scalar4(shape_old.orientation);
+                                            orientation_j = shape_old.orientation;
                                             }
                                         }
 
                                     // put particles in coordinate system of particle i
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+                                    Shape shape_j(orientation_j, m_params[typ_j]);
 
                                     // deltaU = U_old - U_new: add energy of old configuration
                                     patch_field_energy_diff += computeOnePairEnergy(r_ij,
                                                             typ_i,
-                                                            quat<ShortReal>(orientation_i),
-                                                            ShortReal(h_diameter.data[i]),
-                                                            ShortReal(h_charge.data[i]),
+                                                            shape_old.orientation,
+                                                            h_diameter.data[i],
+                                                            h_charge.data[i],
                                                             typ_j,
-                                                            quat<ShortReal>(orientation_j),
-                                                            ShortReal(h_diameter.data[j]),
-                                                            ShortReal(h_charge.data[j]));
+                                                            shape_j.orientation,
+                                                            h_diameter.data[j],
+                                                            h_charge.data[j]);
                                     }
                                 }
                             }
@@ -1197,22 +1196,20 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // read in the current position and orientation
-        Scalar4 postype_i = h_postype.data[i];
-        Scalar4 orientation_i = h_orientation.data[i];
+        const Scalar4 postype_i = h_postype.data[i];
+        const quat<LongReal> orientation_i(h_orientation.data[i]);
         unsigned int typ_i = __scalar_as_int(postype_i.w);
-        Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
-        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+        const vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        Scalar d_i = h_diameter.data[i];
-        Scalar charge_i = h_charge.data[i];
+        const Scalar d_i = h_diameter.data[i];
+        const Scalar charge_i = h_charge.data[i];
 
         // the cut-off
-        ShortReal r_cut = getMaxPairInteractionRCut() + static_cast<ShortReal>(0.5) *
+        LongReal r_cut = getMaxPairInteractionRCut() + static_cast<LongReal>(0.5) *
                     getMaxPairInteractionAdditiveRCut(typ_i);
 
         // subtract minimum AABB extent from search radius
-        ShortReal R_query = std::max(shape_i.getCircumsphereDiameter()/ShortReal(2.0),
-            r_cut-getMinCoreDiameter()/(ShortReal)2.0);
+        LongReal R_query = r_cut-getMinCoreDiameter()/LongReal(2.0);
         hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
         const unsigned int n_images = (unsigned int)m_image_list.size();
@@ -1238,41 +1235,39 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                             if (cur_image == 0 && i == j)
                                 continue;
 
-                            Scalar4 postype_j = h_postype.data[j];
-                            Scalar4 orientation_j = h_orientation.data[j];
-                            Scalar d_j = h_diameter.data[j];
-                            Scalar charge_j = h_charge.data[j];
+                            const Scalar4 postype_j = h_postype.data[j];
+                            const quat<LongReal> orientation_j(h_orientation.data[j]);
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+                            const Scalar d_j = h_diameter.data[j];
+                            const Scalar charge_j = h_charge.data[j];
 
                             // put particles in coordinate system of particle i
-                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
-
-                            unsigned int typ_j = __scalar_as_int(postype_j.w);
-                            Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+                            const vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             // count unique pairs within range
                             if (h_tag.data[i] <= h_tag.data[j])
                                 {
                                 if (selected_pair)
                                     {
-                                    energy += selected_pair->energy(vec3<ShortReal>(r_ij),
+                                    energy += selected_pair->energy(r_ij,
                                                                     typ_i,
-                                                                    quat<ShortReal>(orientation_i),
-                                                                    ShortReal(h_charge.data[i]),
+                                                                    orientation_i,
+                                                                    h_charge.data[i],
                                                                     typ_j,
-                                                                    quat<ShortReal>(orientation_j),
-                                                                    ShortReal(h_charge.data[j]));
+                                                                    orientation_j,
+                                                                    h_charge.data[j]);
                                     }
                                 else
                                     {
-                                    energy += computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                                    energy += computeOnePairEnergy(r_ij,
                                         typ_i,
-                                        quat<ShortReal>(orientation_i),
-                                        ShortReal(d_i),
-                                        ShortReal(charge_i),
+                                        orientation_i,
+                                        d_i,
+                                        charge_i,
                                         typ_j,
-                                        quat<ShortReal>(orientation_j),
-                                        ShortReal(d_j),
-                                        ShortReal(charge_j));
+                                        orientation_j,
+                                        d_j,
+                                        charge_j);
                                     }
                                 }
                             }
@@ -1328,22 +1323,22 @@ Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
     }
 
 template <class Shape>
-ShortReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
+LongReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
     {
     // for each type, create a temporary shape and return the minimum diameter
-    ShortReal minD = ShortReal(0.0);
+    LongReal minD = 0;
     for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
         {
         Shape temp(quat<Scalar>(), m_params[typ]);
-        minD = std::min(minD, temp.getCircumsphereDiameter());
+        minD = std::min(minD, LongReal(temp.getCircumsphereDiameter()));
         }
 
     if (hasPairInteractions())
         {
-        ShortReal max_extent = 0.0;
+        LongReal max_extent = 0.0;
         for (unsigned int typ =0; typ < this->m_pdata->getNTypes(); typ++)
             max_extent = std::max(max_extent, getMaxPairInteractionAdditiveRCut(typ));
-        minD = std::max((ShortReal) 0.0, minD-max_extent);
+        minD = std::max(LongReal(0.0), minD-max_extent);
         }
 
     return minD;

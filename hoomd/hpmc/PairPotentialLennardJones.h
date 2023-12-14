@@ -20,14 +20,14 @@ class PairPotentialLennardJones : public hpmc::PairPotential
     PairPotentialLennardJones(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~PairPotentialLennardJones() { }
 
-    virtual ShortReal getRCut();
-    virtual ShortReal energy(const vec3<ShortReal>& r_ij,
+    virtual LongReal getRCut();
+    virtual LongReal energy(const vec3<LongReal>& r_ij,
                              unsigned int type_i,
-                             const quat<ShortReal>& q_i,
-                             ShortReal charge_i,
+                             const quat<LongReal>& q_i,
+                             LongReal charge_i,
                              unsigned int type_j,
-                             const quat<ShortReal>& q_j,
-                             ShortReal charge_j);
+                             const quat<LongReal>& q_j,
+                             LongReal charge_j);
 
     virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
     virtual pybind11::dict getParamsPython(pybind11::tuple typ);
@@ -55,14 +55,14 @@ class PairPotentialLennardJones : public hpmc::PairPotential
 
         ParamType(pybind11::dict v)
             {
-            auto sigma(v["sigma"].cast<ShortReal>());
-            auto epsilon(v["epsilon"].cast<ShortReal>());
-            auto r_cut(v["r_cut"].cast<ShortReal>());
-            auto r_on(v["r_on"].cast<ShortReal>());
+            auto sigma(v["sigma"].cast<LongReal>());
+            auto epsilon(v["epsilon"].cast<LongReal>());
+            auto r_cut(v["r_cut"].cast<LongReal>());
+            auto r_on(v["r_on"].cast<LongReal>());
             auto mode_str(v["mode"].cast<std::string>());
 
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
-            epsilon_x_4 = ShortReal(4.0) * epsilon;
+            epsilon_x_4 = LongReal(4.0) * epsilon;
             r_cut_squared = r_cut * r_cut;
             r_on_squared = r_on * r_on;
 
@@ -106,10 +106,10 @@ class PairPotentialLennardJones : public hpmc::PairPotential
             return result;
             }
 
-        ShortReal sigma_6;
-        ShortReal epsilon_x_4;
-        ShortReal r_cut_squared;
-        ShortReal r_on_squared;
+        LongReal sigma_6;
+        LongReal epsilon_x_4;
+        LongReal r_cut_squared;
+        LongReal r_on_squared;
         EnergyShiftMode mode;
         };
 

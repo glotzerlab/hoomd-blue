@@ -1702,15 +1702,15 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                         {
                         vec3<Scalar> r_ij = pos - pos_image;
                         // self-energy
-                        lnboltzmann += m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                        lnboltzmann += m_mc->computeOnePairEnergy(r_ij,
                                                                   type,
-                                                                  quat<ShortReal>(orientation),
-                                                                  ShortReal(diameter),
-                                                                  ShortReal(charge),
+                                                                  orientation,
+                                                                  diameter,
+                                                                  charge,
                                                                   type,
-                                                                  quat<ShortReal>(orientation),
-                                                                  ShortReal(diameter),
-                                                                  ShortReal(charge));
+                                                                  orientation,
+                                                                  diameter,
+                                                                  charge);
                         }
 
                     hoomd::detail::AABB aabb = aabb_local;
@@ -1732,7 +1732,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                     unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                     Scalar4 postype_j = h_postype.data[j];
-                                    Scalar4 orientation_j = h_orientation.data[j];
+                                    quat<LongReal> orientation_j(h_orientation.data[j]);
 
                                     // put particles in coordinate system of particle i
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
@@ -1744,15 +1744,15 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                         continue;
 
                                     lnboltzmann += m_mc->computeOnePairEnergy(
-                                        vec3<ShortReal>(r_ij),
+                                        r_ij,
                                         type,
-                                        quat<ShortReal>(orientation),
-                                        ShortReal(diameter),
-                                        ShortReal(charge),
+                                        orientation,
+                                        diameter,
+                                        charge,
                                         typ_j,
-                                        quat<ShortReal>(orientation_j),
-                                        ShortReal(h_diameter.data[j]),
-                                        ShortReal(h_charge.data[j]));
+                                        orientation_j,
+                                        h_diameter.data[j],
+                                        h_charge.data[j]);
                                     }
                                 }
                             }
@@ -1921,12 +1921,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
-        ShortReal r_cut_patch(0.0);
+        LongReal r_cut_patch(0.0);
 
         if (m_mc->hasPairInteractions())
             {
             r_cut_patch = m_mc->getMaxPairInteractionRCut()
-                          + ShortReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
+                          + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
             }
 
         unsigned int err_count = 0;
@@ -1970,13 +1970,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                         }
 
                     // self-energy
-                    lnboltzmann -= m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                    lnboltzmann -= m_mc->computeOnePairEnergy(r_ij,
                                                               type,
-                                                              quat<ShortReal>(orientation),
+                                                              orientation,
                                                               1.0, // diameter i
                                                               0.0, // charge i
                                                               type,
-                                                              quat<ShortReal>(orientation),
+                                                              orientation,
                                                               1.0, // diameter i
                                                               0.0  // charge i
                     );
@@ -2007,8 +2007,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                                  access_mode::read);
 
             Shape shape(orientation, params[type]);
-            ShortReal R_query = std::max(shape.getCircumsphereDiameter() / ShortReal(2.0),
-                                         r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
+            LongReal R_query = std::max(shape.getCircumsphereDiameter() / LongReal(2.0),
+                                         r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -2034,13 +2034,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                 unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                 Scalar4 postype_j = h_postype.data[j];
-                                Scalar4 orientation_j = h_orientation.data[j];
+                                quat<LongReal> orientation_j(h_orientation.data[j]);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
+                                Shape shape_j(orientation_j, params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape, shape_j)
@@ -2051,15 +2051,15 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                     }
 
                                 lnboltzmann
-                                    -= m_mc->computeOnePairEnergy(vec3<ShortReal>(r_ij),
+                                    -= m_mc->computeOnePairEnergy(r_ij,
                                                                   type,
-                                                                  quat<ShortReal>(orientation),
-                                                                  ShortReal(1.0), // diameter i
-                                                                  ShortReal(0.0), // charge i
+                                                                  orientation,
+                                                                  1.0, // diameter i
+                                                                  0.0, // charge i
                                                                   typ_j,
-                                                                  quat<ShortReal>(orientation_j),
-                                                                  ShortReal(h_diameter.data[j]),
-                                                                  ShortReal(h_charge.data[j]));
+                                                                  orientation_j,
+                                                                  h_diameter.data[j],
+                                                                  h_charge.data[j]);
                                 }
                             }
                         }
