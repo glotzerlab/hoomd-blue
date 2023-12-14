@@ -13,30 +13,37 @@ import math
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
          target_box=hoomd.Box.from_box([10, 10, 10])),
-    dict(trigger=hoomd.trigger.After(100),
-         target_box=hoomd.Box.from_box([10, 20, 40]),
-         max_overlaps_per_particle=0.2),
-    dict(trigger=hoomd.trigger.Before(100),
-         target_box=hoomd.Box.from_box([50, 50]),
-         min_scale=0.75),
-    dict(trigger=hoomd.trigger.Periodic(1000),
-         target_box=hoomd.Box.from_box([80, 50, 40, 0.2, 0.4, 0.5]),
-         max_overlaps_per_particle=0.2,
-         min_scale=0.999),
+    dict(
+        trigger=hoomd.trigger.After(100),
+        target_box=hoomd.Box.from_box([10, 20, 40]),
+        max_overlaps_per_particle=0.2,
+    ),
+    dict(
+        trigger=hoomd.trigger.Before(100),
+        target_box=hoomd.Box.from_box([50, 50]),
+        min_scale=0.75,
+    ),
+    dict(
+        trigger=hoomd.trigger.Periodic(1000),
+        target_box=hoomd.Box.from_box([80, 50, 40, 0.2, 0.4, 0.5]),
+        max_overlaps_per_particle=0.2,
+        min_scale=0.999,
+    ),
 ]
 
 valid_attrs = [
-    ('trigger', hoomd.trigger.Periodic(10000)),
-    ('trigger', hoomd.trigger.After(100)),
-    ('trigger', hoomd.trigger.Before(12345)),
-    ('target_box', hoomd.Box.from_box([10, 20, 30])),
-    ('target_box', hoomd.Box.from_box([50, 50])),
-    ('max_overlaps_per_particle', 0.2),
-    ('max_overlaps_per_particle', 0.5),
-    ('max_overlaps_per_particle', 2.5),
-    ('min_scale', 0.1),
-    ('min_scale', 0.5),
-    ('min_scale', 0.9999),
+    ("trigger", hoomd.trigger.Periodic(10000)),
+    ("trigger", hoomd.trigger.After(100)),
+    ("trigger", hoomd.trigger.Before(12345)),
+    ("target_box", hoomd.Box.from_box([10, 20, 30])),
+    ("target_box", hoomd.Box.from_box([50, 50])),
+    ("max_overlaps_per_particle", 0.2),
+    ("max_overlaps_per_particle", 0.5),
+    ("max_overlaps_per_particle", 2.5),
+    ("min_scale", 0.1),
+    ("min_scale", 0.5),
+    ("min_scale", 0.9999),
+    # TODO: add tests for new allow_unsafe_resize
 ]
 
 
@@ -62,7 +69,7 @@ def test_valid_construction_and_attach(simulation_factory,
 
     # QuickCompress requires an HPMC integrator
     mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=1)
+    mc.shape["A"] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.operations._schedule()
@@ -96,7 +103,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
     # QuickCompress requires an HPMC integrator
     mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=1)
+    mc.shape["A"] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.operations._schedule()
@@ -121,7 +128,7 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     sim.operations.updaters.append(qc)
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape['A'] = dict(diameter=1)
+    mc.shape["A"] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.run(1)
@@ -155,7 +162,7 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     sim.operations.updaters.append(qc)
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape['A'] = dict(diameter=1)
+    mc.shape["A"] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.run(1)
@@ -175,10 +182,10 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that QuickCompress objects are picklable."""
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=hoomd.Box.square(10.))
+                                         target_box=hoomd.Box.square(10.0))
 
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape['A'] = dict(diameter=1)
+    mc.shape["A"] = dict(diameter=1)
     sim.operations.integrator = mc
     operation_pickling_check(qc, sim)

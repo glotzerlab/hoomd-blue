@@ -60,6 +60,18 @@ class UpdaterQuickCompress : public Updater
     */
     virtual void update(uint64_t timestep);
 
+    /// Get whether unsafe (overlap-allowed) resizes are enabled
+    double getAllowUnsafeResize()
+        {
+        return m_allow_unsafe_resize;
+        }
+
+    /// Set whether unsafe (overlap-allowed) resizes are enabled
+    void setAllowUnsafeResize(bool allow_unsafe_resize)
+        {
+        m_allow_unsafe_resize = allow_unsafe_resize;
+        }
+
     /// Get the maximum number of overlaps allowed per particle
     double getMaxOverlapsPerParticle()
         {
