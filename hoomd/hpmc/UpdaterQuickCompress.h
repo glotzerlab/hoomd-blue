@@ -39,6 +39,7 @@ class UpdaterQuickCompress : public Updater
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,
+                         bool allow_unsafe_resize,
                          std::shared_ptr<BoxDim> target_box);
 
     /// Destructor
