@@ -100,34 +100,47 @@ public:
         const param_type& _params,
         const shape_type& shape_i,
         const shape_type& shape_j)
-        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
+// #ifdef __HIPCC__
+        // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
+// #else
+        : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
+// #endif
         {
             // compute current janus direction vectors
 
             // rotate from particle to world frame
-            vec3<Scalar> ex(1,0,0);
-            vec3<Scalar> ey(0,1,0);
-            vec3<Scalar> ez(0,0,1);
+            vec3<ShortReal> ex(1,0,0);
+            vec3<ShortReal> ey(0,1,0);
+            vec3<ShortReal> ez(0,0,1);
 
             //TODO Real --> ShortReal could help
 
             // TODO try converting to rotation matrices
 
-            // orientation vectors of particle a in world frame
-            a1 = rotate(qi, ex);
-            a2 = rotate(qi, ey);
-            a3 = rotate(qi, ez);
-            // patch direction of particle a in world frame
-            ni_world = rotate(qi, n_i);
+            // a1, a2, a3 are orientation vectors of particle a in world frame
+            // b1, b2, b3 are orientation vectors of particle b in world frame
+            // ni_world, patch direction of particle a in world frame
+// #ifdef __HIPCC__
+            a1 = R_i * ex;
+            a2 = R_i * ey;
+            a3 = R_i * ez;
+            ni_world = R_i * (vec3<ShortReal>)n_i;
+            b1 = R_j * ex;
+            b2 = R_j * ey;
+            b3 = R_j * ez;
+            nj_world = R_j * (vec3<ShortReal>)n_j; 
+// #else
+//             a1 = rotate(qi, ex);
+//             a2 = rotate(qi, ey);
+//             a3 = rotate(qi, ez);
+//             ni_world = rotate(qi, n_i);
+//             b1 = rotate(qj, ex);
+//             b2 = rotate(qj, ey);
+//             b3 = rotate(qj, ez);
+//             nj_world = rotate(qj, n_j);
+// #endif
+            
             // std::cout << "ni world: " << vecString(ni_world);
-
-            // orientation vectors of particle b in world frame
-            b1 = rotate(qj, ex);
-            b2 = rotate(qj, ey);
-            b3 = rotate(qj, ez);
-
-            nj_world = rotate(qj, n_j);
-
 
             // compute distance
             drsq = dot(dr, dr);
@@ -359,9 +372,14 @@ public:
 #endif
 
 private:
-    vec3<Scalar> dr;
+// #ifdef __HIPCC__
     quat<Scalar> qi;
     quat<Scalar> qj;
+// #else
+    rotmat3<ShortReal> R_i;
+    rotmat3<ShortReal> R_j;
+// #endif
+    vec3<Scalar> dr;
     vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;
