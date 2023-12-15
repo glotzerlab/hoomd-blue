@@ -13,6 +13,7 @@ provided subclasses.
 import typing
 
 from hoomd import _hoomd
+from . import box
 
 
 class Variant(_hoomd.Variant):

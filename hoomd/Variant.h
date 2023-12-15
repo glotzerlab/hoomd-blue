@@ -11,10 +11,10 @@
 
 namespace hoomd
     {
-/** Defines quantities that vary with time steps.
+/** Defines scalar quantities that vary with time steps.
 
-    Variant provides an interface to define quanties (such as kT) that vary over time. The base
-    class provides a callable interface. Derived classes implement specific kinds of varying
+    Variant provides an interface to define scalar quanties (such as kT) that vary over time. The
+   base class provides a callable interface. Derived classes implement specific kinds of varying
     quantities.
 */
 class PYBIND11_EXPORT Variant
