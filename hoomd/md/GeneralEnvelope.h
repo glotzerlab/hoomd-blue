@@ -109,6 +109,10 @@ public:
             vec3<Scalar> ey(0,1,0);
             vec3<Scalar> ez(0,0,1);
 
+            //TODO Real --> ShortReal could help
+
+            // TODO try converting to rotation matrices
+
             // orientation vectors of particle a in world frame
             a1 = rotate(qi, ex);
             a2 = rotate(qi, ey);
@@ -134,6 +138,8 @@ public:
             // cos(angle between dr and pointing vector)
             costhetai = -dot(vec3<Scalar>(rhat), ni_world); // negative because dr = dx = pi - pj
             costhetaj = dot(vec3<Scalar>(rhat), nj_world);
+
+            //TODO precompute the 2 exponent expressions
         }
 
     //! uses diameter
