@@ -257,13 +257,11 @@ struct ShapeSphere
 */
 template<class ShapeA, class ShapeB>
 DEVICE inline bool
-check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB& b)
+check_circumsphere_overlap(const vec3<LongReal>& r_ab, const ShapeA& a, const ShapeB& b)
     {
-    vec2<ShortReal> dr(ShortReal(r_ab.x), ShortReal(r_ab.y));
-
-    ShortReal rsq = dot(dr, dr);
-    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq * ShortReal(4.0) <= DaDb * DaDb);
+    LongReal r_squared = dot(r_ab, r_ab);
+    LongReal diameter_sum = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    return (r_squared * LongReal(4.0) <= diameter_sum * diameter_sum);
     }
 
 //! Define the general overlap function
