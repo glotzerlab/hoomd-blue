@@ -113,7 +113,7 @@ class PairPotentialLennardJones : public hpmc::PairPotential
         EnergyShiftMode mode;
         };
 
-    Index2DUpperTriangular m_type_param_index;
+    Index2D m_type_param_index;
     std::vector<ParamType> m_params;
     };
 

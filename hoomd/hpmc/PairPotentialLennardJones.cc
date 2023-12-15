@@ -74,8 +74,10 @@ void PairPotentialLennardJones::setParamsPython(pybind11::tuple typ, pybind11::d
     auto pdata = m_sysdef->getParticleData();
     auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
     auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
-    unsigned int param_index = m_type_param_index(type_i, type_j);
-    m_params[param_index] = ParamType(params);
+    unsigned int param_index_1 = m_type_param_index(type_i, type_j);
+    m_params[param_index_1] = ParamType(params);
+    unsigned int param_index_2= m_type_param_index(type_j, type_i);
+    m_params[param_index_2] = ParamType(params);
     }
 
 pybind11::dict PairPotentialLennardJones::getParamsPython(pybind11::tuple typ)

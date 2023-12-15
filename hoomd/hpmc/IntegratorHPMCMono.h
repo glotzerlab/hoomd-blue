@@ -450,6 +450,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         Index2D m_overlap_idx;                      //!!< Indexer for interaction matrix
 
+        /// Cached maximum pair additive cutoff by type.
+        std::vector<LongReal> m_max_pair_additive_cutoff;
+
         /* Depletants related data members */
 
         GlobalVector<Scalar> m_fugacity;            //!< Average depletant number density in free volume, per type
@@ -650,6 +653,16 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
 
+    // precompute constants used many times in the loop
+    const LongReal min_core_radius = getMinCoreDiameter() * LongReal(0.5);
+    const LongReal max_pair_interaction_r_cut = getMaxPairInteractionRCut();
+
+    m_max_pair_additive_cutoff.clear();
+    for (unsigned int type = 0; type < m_pdata->getNTypes(); type++)
+        {
+        m_max_pair_additive_cutoff.push_back(getMaxPairInteractionAdditiveRCut(type));
+        }
+
     // loop over local particles nselect times
     for (unsigned int i_nselect = 0; i_nselect < m_nselect; i_nselect++)
         {
@@ -732,17 +745,19 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
 
             bool overlap=false;
-            LongReal r_cut_patch = 0;
+
+            // search for all particles that might touch this one
+            LongReal R_query = shape_i.getCircumsphereDiameter() / LongReal(2.0);
 
             if (hasPairInteractions())
                 {
-                r_cut_patch = getMaxPairInteractionRCut() + static_cast<LongReal>(0.5) *
-                    getMaxPairInteractionAdditiveRCut(typ_i);
+                // Extend the search to include the pair interaction r_cut
+                // subtract minimum AABB extent from search radius
+                LongReal r_cut_patch = max_pair_interaction_r_cut + LongReal(0.5) *
+                    m_max_pair_additive_cutoff[typ_i];
+                R_query = std::max(R_query, r_cut_patch - min_core_radius);
                 }
 
-            // subtract minimum AABB extent from search radius
-            LongReal R_query = std::max(shape_i.getCircumsphereDiameter()/LongReal(2.0),
-                r_cut_patch-getMinCoreDiameter()/LongReal(2.0));
             hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // patch + field interaction deltaU
@@ -810,6 +825,9 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     }
 
                                 // deltaU = U_old - U_new: subtract energy of new configuration
+                                LongReal max_r_cut = max_pair_interaction_r_cut + LongReal(0.5) * (m_max_pair_additive_cutoff[typ_i] + m_max_pair_additive_cutoff[typ_j]);
+                                if (dot(r_ij, r_ij) < max_r_cut * max_r_cut)
+                                    {
                                 patch_field_energy_diff -= computeOnePairEnergy(r_ij, typ_i,
                                                         shape_i.orientation,
                                                         h_diameter.data[i],
@@ -819,6 +837,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                         h_diameter.data[j],
                                                         h_charge.data[j]
                                                         );
+                                    }
                                 }
                            }
                         }
@@ -888,6 +907,9 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     Shape shape_j(orientation_j, m_params[typ_j]);
 
                                     // deltaU = U_old - U_new: add energy of old configuration
+                                LongReal max_r_cut = max_pair_interaction_r_cut + LongReal(0.5) * (m_max_pair_additive_cutoff[typ_i] + m_max_pair_additive_cutoff[typ_j]);
+                                if (dot(r_ij, r_ij) < max_r_cut * max_r_cut)
+                                    {
                                     patch_field_energy_diff += computeOnePairEnergy(r_ij,
                                                             typ_i,
                                                             shape_old.orientation,
@@ -897,6 +919,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                             shape_j.orientation,
                                                             h_diameter.data[j],
                                                             h_charge.data[j]);
+                                    }
                                     }
                                 }
                             }
@@ -949,8 +972,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     }
                 else
                     {
-                    Scalar radius = std::max(0.5*shape_i.getCircumsphereDiameter(),
-                        0.5*getMaxPairInteractionAdditiveRCut(typ_i));
+                    Scalar radius = std::max(LongReal(0.5) * shape_i.getCircumsphereDiameter(),
+                        LongReal(0.5) * m_max_pair_additive_cutoff[typ_i]);
                     aabb = hoomd::detail::AABB(pos_i, radius);
                     }
 
