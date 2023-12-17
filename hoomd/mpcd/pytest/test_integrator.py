@@ -84,6 +84,30 @@ def test_streaming_method(make_simulation):
     assert ig.streaming_method is stream
 
 
+def test_solvent_sorter(make_simulation):
+    sim = make_simulation()
+    sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
+
+    # check that constructor assigns right
+    ig = hoomd.mpcd.Integrator(dt=0.1, solvent_sorter=sorter)
+    sim.operations.integrator = ig
+    assert ig.solvent_sorter is sorter
+    sim.run(0)
+    assert ig.solvent_sorter is sorter
+
+    # clear out by setter
+    ig.solvent_sorter = None
+    assert ig.solvent_sorter is None
+    sim.run(0)
+    assert ig.solvent_sorter is None
+
+    # assign by setter
+    ig.solvent_sorter = sorter
+    assert ig.solvent_sorter is sorter
+    sim.run(0)
+    assert ig.solvent_sorter is sorter
+
+
 def test_attach_and_detach(make_simulation):
     sim = make_simulation()
     ig = hoomd.mpcd.Integrator(dt=0.1)
@@ -100,9 +124,11 @@ def test_attach_and_detach(make_simulation):
     ig.streaming_method = hoomd.mpcd.stream.Bulk(period=1)
     ig.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(
         period=1, angle=130)
+    ig.solvent_sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
     sim.run(0)
     assert ig.streaming_method._attached
     assert ig.collision_method._attached
+    assert ig.solvent_sorter._attached
 
     # detach with everything
     sim.operations._unschedule()
@@ -110,6 +136,7 @@ def test_attach_and_detach(make_simulation):
     assert not ig.cell_list._attached
     assert not ig.streaming_method._attached
     assert not ig.collision_method._attached
+    assert not ig.solvent_sorter._attached
 
 
 def test_pickling(make_simulation):

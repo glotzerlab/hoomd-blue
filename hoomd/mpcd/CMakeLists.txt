@@ -141,7 +141,7 @@ set(files
     force.py
     integrate.py
     stream.py
-    update.py
+    tune.py
     )
 
 install(FILES ${files}

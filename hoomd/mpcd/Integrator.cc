@@ -82,7 +82,7 @@ void mpcd::Integrator::update(uint64_t timestep)
         }
 
     // optionally sort for performance
-    if (m_sorter)
+    if (m_sorter && (*m_sorter->getTrigger())(timestep))
         m_sorter->update(timestep);
 
     // perform the core MPCD steps of collision and streaming
@@ -173,7 +173,7 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def_property("streaming_method",
                       &mpcd::Integrator::getStreamingMethod,
                       &mpcd::Integrator::setStreamingMethod)
-        .def_property("sorter", &mpcd::Integrator::getSorter, &mpcd::Integrator::setSorter)
+        .def_property("solvent_sorter", &mpcd::Integrator::getSorter, &mpcd::Integrator::setSorter)
         .def_property("filler", &mpcd::Integrator::getFiller, &mpcd::Integrator::setFiller);
     }
     } // end namespace hoomd
