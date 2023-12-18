@@ -191,7 +191,6 @@ public:
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetai-params.cosalpha)) );
         }
 
-    DEVICE inline Scalar Modulatori() { return fi(); }
 
     DEVICE inline Scalar fj() // called f(dr, nj) in the derivation
     // fj in python
@@ -199,7 +198,6 @@ public:
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetaj-params.cosalpha)) );
         }
 
-    DEVICE inline Scalar Modulatorj() { return fj(); }
 
 
     DEVICE Scalar dfi_du()
@@ -218,7 +216,7 @@ public:
 
     DEVICE Scalar ModulatorPrimei() // TODO call it derivative with respect to costhetai
         {
-            Scalar fact = Modulatori(); // TODO only calculate Modulatori once per instantiation
+            Scalar fact = fi(); // TODO only calculate Modulatori once per instantiation
             // the -1 comes from doing the derivative with respect to ni
             // return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
             return params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
@@ -226,7 +224,7 @@ public:
 
     DEVICE Scalar ModulatorPrimej() // TODO name after derivative
         {
-            Scalar fact = Modulatorj();
+            Scalar fact = fj();
             return params.omega * fast::exp(-params.omega*(costhetaj-params.cosalpha)) * fact * fact;
         }
 
@@ -247,20 +245,11 @@ public:
                          Scalar3& torque_div_energy_j) //torque_modulator
         {
             // common calculations
-            Scalar modi = Modulatori();
-            Scalar modj = Modulatorj();
-            Scalar modPi = ModulatorPrimei();
-            Scalar modPj = ModulatorPrimej();
+            Scalar modi = fi();
+            Scalar modj = fj();
 
             // the overall modulation
             envelope = modi*modj;
-
-            // intermediate calculations
-            Scalar iPj = modPi*modj/magdr; // TODO: make variable name more descriptive and check if these are correct. Jan 4: They are correct
-            Scalar jPi = modPj*modi/magdr;
-            // TODO Jan 4 2023: I don't think this division by s.magdr should be here mathematically, but probably for efficiency
-
-            // NEW way with Philipp Feb 9
 
             vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above (afuyeaad)
 
@@ -280,7 +269,7 @@ public:
 
             // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dr)));
 
-            torque_div_energy_j *= Scalar(-1) * Modulatori();
+            torque_div_energy_j *= Scalar(-1) * modi;
 
             // term2 = self.iso.energy(magdr) * (
 
