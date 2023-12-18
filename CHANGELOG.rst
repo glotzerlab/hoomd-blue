@@ -7,7 +7,24 @@ Change Log
 4.x
 ---
 
-4.4.0 (2024-12-04)
+4.4.1 (2023-12-18)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Correct ``net_virial`` values in local snapshots
+  (`#1672 <https://github.com/glotzerlab/hoomd-blue/pull/1672>`__).
+* Improve HPMC performance on the CPU when using a pair potential
+  (`#1679 <https://github.com/glotzerlab/hoomd-blue/pull/1679>`__).
+* Improve HPMC performance with 3D hard shapes
+  (`#1679 <https://github.com/glotzerlab/hoomd-blue/pull/1679>`__).
+
+*Changed*
+
+* Provide support via GitHub discussions
+  (`#1671 <https://github.com/glotzerlab/hoomd-blue/pull/1671>`__).
+
+4.4.0 (2023-12-04)
 ^^^^^^^^^^^^^^^^^^
 
 *Added*
@@ -42,7 +59,7 @@ Change Log
 * ``HPMCIntegrator.depletant_fugacity > 0``
   (`#1657 <https://github.com/glotzerlab/hoomd-blue/pull/1657>`__).
 
-4.3.0 (2024-10-24)
+4.3.0 (2023-10-24)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
@@ -70,7 +87,7 @@ Change Log
 * Add more code snippets to the class documentation
   (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
 
-4.2.1 (2024-10-02)
+4.2.1 (2023-10-02)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
@@ -84,7 +101,7 @@ Change Log
 * Apple clang 15 compiles HOOMD-blue without errors
   (`#1626 <https://github.com/glotzerlab/hoomd-blue/pull/1626>`__).
 
-4.2.0 (2024-09-20)
+4.2.0 (2023-09-20)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
@@ -130,7 +147,7 @@ Change Log
 * Removed the unused ``ExternalFieldComposite.h`` and all the related ``ExternalFieldComposite*``
   (`#1604 <https://github.com/glotzerlab/hoomd-blue/pull/1604>`__).
 
-4.1.0 (2024-08-07)
+4.1.0 (2023-08-07)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
