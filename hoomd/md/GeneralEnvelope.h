@@ -199,19 +199,18 @@ public:
         }
 
 
-
-    DEVICE Scalar dfi_du()
+    DEVICE Scalar dfi_du(Scalar fi)
         {
             //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
-            Scalar fact = fi();
-            return -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fact * fact;
+            // Scalar fact = fi();
+            return -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fi * fi;
         }
 
-    DEVICE Scalar dfj_du()
+    DEVICE Scalar dfj_du(Scalar fj)
         {
-            Scalar fact = fj();
+            // Scalar fact = fj();
             //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
-            return params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fact * fact;
+            return params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fj * fj;
         }
 
     DEVICE Scalar ModulatorPrimei() // TODO call it derivative with respect to costhetai
@@ -251,16 +250,16 @@ public:
             // the overall modulation
             envelope = modi*modj;
 
-            vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above (afuyeaad)
+            vec3<Scalar> dfi_dni = dfi_du(modi) * rhat; // TODO add -rhat here and take out above (afuyeaad)
 
             torque_div_energy_i =
                 vec_to_scalar3( n_i.x * cross( vec3<Scalar>(a1), dfi_dni)) +
                 vec_to_scalar3( n_i.y * cross( vec3<Scalar>(a2), dfi_dni)) +
                 vec_to_scalar3( n_i.z * cross( vec3<Scalar>(a3), dfi_dni));
 
-            torque_div_energy_i *= Scalar(-1) * Modulatorj();
+            torque_div_energy_i *= Scalar(-1) * modj;
 
-            vec3<Scalar> dfj_dnj = dfj_du() * rhat; // still positive
+            vec3<Scalar> dfj_dnj = dfj_du(modj) * rhat; // still positive
 
             torque_div_energy_j =
                 vec_to_scalar3( n_j.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
@@ -286,7 +285,7 @@ public:
 
             // //something wrong: this has to be a scalar
             // Scalar3 dfi_dui = dfi_dni();
-            Scalar dfi_dui = -dfi_du(); // TODO: remove this negative when I take out the one at afuyeaad
+            Scalar dfi_dui = -dfi_du(modi); // TODO: remove this negative when I take out the one at afuyeaad
 
             Scalar hi = -dot(dr, vec3<Scalar>(ni_world));
             vec3<Scalar> dhi = -ni_world;
@@ -294,7 +293,7 @@ public:
             vec3<Scalar> dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
             //           dui_dr = removedrhat * ( magdr* -ni_world - -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
 
-            Scalar dfj_duj = dfj_du();
+            Scalar dfj_duj = dfj_du(modj);
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
             dhi = nj_world;
             // // lo and dlo are the same
