@@ -329,7 +329,7 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
     for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
         {
         const Scalar r_cut_patch_i
-            = m_mc->getMaxPairInteractionRCut() + m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+            = m_mc->getMaxPairEnergyRCutNonAdditive() + m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
         max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
         }
 
@@ -505,7 +505,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        LongReal r_cut_patch = m_mc->getMaxPairInteractionRCut()
+        LongReal r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
                                 + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
         const LongReal R_query
             = std::max(shape_i.getCircumsphereDiameter() / LongReal(2.0),

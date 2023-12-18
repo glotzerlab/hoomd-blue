@@ -1173,7 +1173,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         {
         m_energy_old_old.clear();
         m_energy_new_old.clear();
-        r_cut_patch = m_mc->getMaxPairInteractionRCut();
+        r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive();
         }
 
     // cluster according to overlap of excluded volume shells

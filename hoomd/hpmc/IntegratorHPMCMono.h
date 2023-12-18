@@ -658,7 +658,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
     // precompute constants used many times in the loop
     const LongReal min_core_radius = getMinCoreDiameter() * LongReal(0.5);
-    const LongReal max_pair_interaction_r_cut = getMaxPairInteractionRCut();
+    const LongReal max_pair_interaction_r_cut = getMaxPairEnergyRCutNonAdditive();
 
     m_max_pair_additive_cutoff.clear();
     m_shape_circumsphere_radius.clear();
@@ -835,9 +835,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     }
 
                                 // deltaU = U_old - U_new: subtract energy of new configuration
-                                LongReal max_r_cut = max_pair_interaction_r_cut + LongReal(0.5) * (m_max_pair_additive_cutoff[typ_i] + m_max_pair_additive_cutoff[typ_j]);
-                                if (dot(r_ij, r_ij) < max_r_cut * max_r_cut)
-                                    {
                                 patch_field_energy_diff -= computeOnePairEnergy(r_squared, r_ij, typ_i,
                                                         shape_i.orientation,
                                                         h_diameter.data[i],
@@ -847,7 +844,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                         h_diameter.data[j],
                                                         h_charge.data[j]
                                                         );
-                                    }
                                 }
                            }
                         }
@@ -917,9 +913,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                     Shape shape_j(orientation_j, m_params[typ_j]);
 
                                     // deltaU = U_old - U_new: add energy of old configuration
-                                LongReal max_r_cut = max_pair_interaction_r_cut + LongReal(0.5) * (m_max_pair_additive_cutoff[typ_i] + m_max_pair_additive_cutoff[typ_j]);
-                                if (dot(r_ij, r_ij) < max_r_cut * max_r_cut)
-                                    {
                                     patch_field_energy_diff += computeOnePairEnergy(dot(r_ij, r_ij),
                                                             r_ij,
                                                             typ_i,
@@ -930,7 +923,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                             shape_j.orientation,
                                                             h_diameter.data[j],
                                                             h_charge.data[j]);
-                                    }
                                     }
                                 }
                             }
@@ -1239,7 +1231,7 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
         const Scalar charge_i = h_charge.data[i];
 
         // the cut-off
-        LongReal r_cut = getMaxPairInteractionRCut() + static_cast<LongReal>(0.5) *
+        LongReal r_cut = getMaxPairEnergyRCutNonAdditive() + static_cast<LongReal>(0.5) *
                     getMaxPairInteractionAdditiveRCut(typ_i);
 
         // subtract minimum AABB extent from search radius
@@ -1493,7 +1485,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             Scalar r_cut_patch_i(0.0);
             if (hasPairInteractions())
                 {
-                r_cut_patch_i = getMaxPairInteractionRCut() +
+                r_cut_patch_i = getMaxPairEnergyRCutNonAdditive() +
                     static_cast<ShortReal>(0.5) * getMaxPairInteractionAdditiveRCut(typ_i);
                 }
 
@@ -1681,7 +1673,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
             max_extent = std::max(max_extent, static_cast<Scalar>(getMaxPairInteractionAdditiveRCut(typ)));
             }
 
-        this->m_nominal_width = std::max(this->m_nominal_width, getMaxPairInteractionRCut() + max_extent);
+        this->m_nominal_width = std::max(this->m_nominal_width, getMaxPairEnergyRCutNonAdditive() + max_extent);
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;

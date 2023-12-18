@@ -20,7 +20,6 @@ class PairPotentialLennardJones : public hpmc::PairPotential
     PairPotentialLennardJones(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~PairPotentialLennardJones() { }
 
-    virtual LongReal getRCut();
     virtual LongReal energy(const LongReal r_squared,
                              const vec3<LongReal>& r_ij,
                              const unsigned int type_i,
@@ -28,7 +27,7 @@ class PairPotentialLennardJones : public hpmc::PairPotential
                              const LongReal charge_i,
                              const unsigned int type_j,
                              const quat<LongReal>& q_j,
-                             const LongReal charge_j);
+                             const LongReal charge_j) const;
 
     virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
     virtual pybind11::dict getParamsPython(pybind11::tuple typ);
@@ -114,7 +113,6 @@ class PairPotentialLennardJones : public hpmc::PairPotential
         EnergyShiftMode mode;
         };
 
-    Index2D m_type_param_index;
     std::vector<ParamType> m_params;
     };
 

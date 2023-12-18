@@ -1686,7 +1686,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                              access_mode::read);
 
                 // Check particle against AABB tree for neighbors
-                Scalar r_cut_patch = m_mc->getMaxPairInteractionRCut()
+                Scalar r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
                                      + 0.5 * m_mc->getMaxPairInteractionAdditiveRCut(type);
 
                 Scalar R_query = std::max(0.0, r_cut_patch - m_mc->getMinCoreDiameter() / 2.0);
@@ -1927,7 +1927,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         if (m_mc->hasPairInteractions())
             {
-            r_cut_patch = m_mc->getMaxPairInteractionRCut()
+            r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
                           + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
             }
 

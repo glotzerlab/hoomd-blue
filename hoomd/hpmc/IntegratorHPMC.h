@@ -445,8 +445,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_patch || m_pair_potentials.size() > 0;
         }
 
-    /// Get pairwise interaction maximum r_cut.
-    LongReal getMaxPairInteractionRCut() const
+    /// Get pairwise interaction maximum non-additive r_cut.
+    LongReal getMaxPairEnergyRCutNonAdditive() const
         {
         LongReal r_cut = 0;
         if (m_patch)
@@ -455,23 +455,29 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
         for (const auto& pair : m_pair_potentials)
             {
-            r_cut = std::max(r_cut, pair->getRCut());
+            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                {
+                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                    {
+                    r_cut = std::max(r_cut, pair->getRCutNonAdditive(type_i, type_j));
+                    }
+                }
             }
 
         return r_cut;
         }
 
     /// Get pairwise interaction maximum additive r_cut.
-    LongReal getMaxPairInteractionAdditiveRCut(unsigned int typ) const
+    LongReal getMaxPairInteractionAdditiveRCut(unsigned int type) const
         {
         LongReal r_cut = 0;
         if (m_patch)
             {
-            r_cut = m_patch->getAdditiveCutoff(typ);
+            r_cut = m_patch->getAdditiveCutoff(type);
             }
         for (const auto& pair : m_pair_potentials)
             {
-            r_cut = std::max(r_cut, pair->getAdditiveRCut(typ));
+            r_cut = std::max(r_cut, pair->getRCutAdditive(type));
             }
 
         return r_cut;
@@ -495,7 +501,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             LongReal r_cut = m_patch->getRCut()
                 + LongReal(0.5) * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j));
-            if (dot(r_ij, r_ij) <= r_cut * r_cut)
+            if (r_squared < r_cut * r_cut)
                 {
                 energy
                     += m_patch
@@ -504,7 +510,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
         for (const auto& pair : m_pair_potentials)
             {
-            energy += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+            if (r_squared < pair->getRCutSquaredTotal(type_i, type_j))
+                {
+                energy += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+                }
             }
 
         return energy;
