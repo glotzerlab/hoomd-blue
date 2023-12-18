@@ -9,19 +9,18 @@ namespace hpmc
     {
 
 PairPotentialLennardJones::PairPotentialLennardJones(std::shared_ptr<SystemDefinition> sysdef)
-    : PairPotential(sysdef),
-      m_params(m_type_param_index.getNumElements())
+    : PairPotential(sysdef), m_params(m_type_param_index.getNumElements())
     {
     }
 
 LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
-                                            const vec3<LongReal>& r_ij,
-                                            const unsigned int type_i,
-                                            const quat<LongReal>& q_i,
-                                            const LongReal charge_i,
-                                            const unsigned int type_j,
-                                            const quat<LongReal>& q_j,
-                                            const LongReal charge_j) const
+                                           const vec3<LongReal>& r_ij,
+                                           const unsigned int type_i,
+                                           const quat<LongReal>& q_i,
+                                           const LongReal charge_i,
+                                           const unsigned int type_j,
+                                           const quat<LongReal>& q_j,
+                                           const LongReal charge_j) const
     {
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
@@ -48,8 +47,8 @@ LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
 
         LongReal b = param.r_cut_squared - r_squared;
         LongReal numerator = b * b
-                              * (param.r_cut_squared + LongReal(2.0) * r_squared
-                                 - LongReal(3.0) * param.r_on_squared);
+                             * (param.r_cut_squared + LongReal(2.0) * r_squared
+                                - LongReal(3.0) * param.r_on_squared);
         energy *= numerator / denominator;
         }
 
@@ -63,7 +62,7 @@ void PairPotentialLennardJones::setParamsPython(pybind11::tuple typ, pybind11::d
     auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
     unsigned int param_index_1 = m_type_param_index(type_i, type_j);
     m_params[param_index_1] = ParamType(params);
-    unsigned int param_index_2= m_type_param_index(type_j, type_i);
+    unsigned int param_index_2 = m_type_param_index(type_j, type_i);
     m_params[param_index_2] = ParamType(params);
 
     setRCutNonAdditive(type_i, type_j, params["r_cut"].cast<LongReal>());

@@ -45,7 +45,7 @@ namespace detail
 void exportPairPotential(pybind11::module& m);
 
 void exportPairPotentialLennardJones(pybind11::module& m);
-    }
+    } // namespace detail
     } // namespace hpmc
     } // namespace hoomd
 

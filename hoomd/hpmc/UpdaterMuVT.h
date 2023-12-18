@@ -1744,17 +1744,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                     if (h_tag.data[j] == tag)
                                         continue;
 
-                                    lnboltzmann += m_mc->computeOnePairEnergy(
-                                        dot(r_ij, r_ij),
-                                        r_ij,
-                                        type,
-                                        orientation,
-                                        diameter,
-                                        charge,
-                                        typ_j,
-                                        orientation_j,
-                                        h_diameter.data[j],
-                                        h_charge.data[j]);
+                                    lnboltzmann += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                              r_ij,
+                                                                              type,
+                                                                              orientation,
+                                                                              diameter,
+                                                                              charge,
+                                                                              typ_j,
+                                                                              orientation_j,
+                                                                              h_diameter.data[j],
+                                                                              h_charge.data[j]);
                                     }
                                 }
                             }
@@ -2011,7 +2010,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
             Shape shape(orientation, params[type]);
             LongReal R_query = std::max(shape.getCircumsphereDiameter() / LongReal(2.0),
-                                         r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
+                                        r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -2053,17 +2052,16 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                     break;
                                     }
 
-                                lnboltzmann
-                                    -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
-                                                                  r_ij,
-                                                                  type,
-                                                                  orientation,
-                                                                  1.0, // diameter i
-                                                                  0.0, // charge i
-                                                                  typ_j,
-                                                                  orientation_j,
-                                                                  h_diameter.data[j],
-                                                                  h_charge.data[j]);
+                                lnboltzmann -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                          r_ij,
+                                                                          type,
+                                                                          orientation,
+                                                                          1.0, // diameter i
+                                                                          0.0, // charge i
+                                                                          typ_j,
+                                                                          orientation_j,
+                                                                          h_diameter.data[j],
+                                                                          h_charge.data[j]);
                                 }
                             }
                         }

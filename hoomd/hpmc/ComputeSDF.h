@@ -328,8 +328,8 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
 
     for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
         {
-        const Scalar r_cut_patch_i
-            = m_mc->getMaxPairEnergyRCutNonAdditive() + m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+        const Scalar r_cut_patch_i = m_mc->getMaxPairEnergyRCutNonAdditive()
+                                     + m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
         max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
         }
 
@@ -506,10 +506,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
         LongReal r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
-                                + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
-        const LongReal R_query
-            = std::max(shape_i.getCircumsphereDiameter() / LongReal(2.0),
-                       r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
+                               + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+        const LongReal R_query = std::max(shape_i.getCircumsphereDiameter() / LongReal(2.0),
+                                          r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
         hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0), R_query + extra_width);
 
         const size_t n_images = image_list.size();
@@ -548,17 +547,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             const vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
-                            u_ij_0
-                                = m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
-                                                             r_ij,
-                                                             typ_i,
-                                                             shape_i.orientation,
-                                                             h_diameter.data[i],
-                                                             h_charge.data[i],
-                                                             typ_j,
-                                                             orientation_j,
-                                                             h_diameter.data[j],
-                                                             h_charge.data[j]);
+                            u_ij_0 = m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                r_ij,
+                                                                typ_i,
+                                                                shape_i.orientation,
+                                                                h_diameter.data[i],
+                                                                h_charge.data[i],
+                                                                typ_j,
+                                                                orientation_j,
+                                                                h_diameter.data[j],
+                                                                h_charge.data[j]);
 
                             // first do compressions
                             for (size_t bin_to_sample = 0; bin_to_sample < min_bin_compression;
@@ -591,16 +589,17 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     // compare to the energy in the unperturbed state
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new = m_mc->computeOnePairEnergy(dot(r_ij_scaled, r_ij_scaled),
-                                        r_ij_scaled,
-                                        typ_i,
-                                        shape_i.orientation,
-                                        h_diameter.data[i],
-                                        h_charge.data[i],
-                                        typ_j,
-                                        orientation_j,
-                                        h_diameter.data[j],
-                                        h_charge.data[j]);
+                                    double u_ij_new
+                                        = m_mc->computeOnePairEnergy(dot(r_ij_scaled, r_ij_scaled),
+                                                                     r_ij_scaled,
+                                                                     typ_i,
+                                                                     shape_i.orientation,
+                                                                     h_diameter.data[i],
+                                                                     h_charge.data[i],
+                                                                     typ_j,
+                                                                     orientation_j,
+                                                                     h_diameter.data[j],
+                                                                     h_charge.data[j]);
                                     // if energy has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins
@@ -650,16 +649,17 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     // compare to the energy in the unperturbed state
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new = m_mc->computeOnePairEnergy(dot(r_ij_scaled, r_ij_scaled),
-                                        r_ij_scaled,
-                                        typ_i,
-                                        shape_i.orientation,
-                                        h_diameter.data[i],
-                                        h_charge.data[i],
-                                        typ_j,
-                                        orientation_j,
-                                        h_diameter.data[j],
-                                        h_charge.data[j]);
+                                    double u_ij_new
+                                        = m_mc->computeOnePairEnergy(dot(r_ij_scaled, r_ij_scaled),
+                                                                     r_ij_scaled,
+                                                                     typ_i,
+                                                                     shape_i.orientation,
+                                                                     h_diameter.data[i],
+                                                                     h_charge.data[i],
+                                                                     typ_j,
+                                                                     orientation_j,
+                                                                     h_diameter.data[j],
+                                                                     h_charge.data[j]);
                                     // if energy has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins

@@ -185,7 +185,6 @@ class PatchEnergy : public Autotuned
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
     };                                          // end class PatchEnergy
 
-
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
     IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
@@ -483,36 +482,44 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return r_cut;
         }
 
-    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(
-    const LongReal r_squared,
-    const vec3<LongReal>& r_ij,
+    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(const LongReal r_squared,
+                                                                        const vec3<LongReal>& r_ij,
 
-                                   unsigned int type_i,
-                                   const quat<LongReal>& q_i,
-                                   LongReal d_i,
-                                   LongReal charge_i,
-                                   unsigned int type_j,
-                                   const quat<LongReal>& q_j,
-                                   LongReal d_j,
-                                   LongReal charge_j)
+                                                                        unsigned int type_i,
+                                                                        const quat<LongReal>& q_i,
+                                                                        LongReal d_i,
+                                                                        LongReal charge_i,
+                                                                        unsigned int type_j,
+                                                                        const quat<LongReal>& q_j,
+                                                                        LongReal d_j,
+                                                                        LongReal charge_j)
         {
         LongReal energy = 0;
         if (m_patch)
             {
-            LongReal r_cut = m_patch->getRCut()
-                + LongReal(0.5) * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j));
+            LongReal r_cut
+                = m_patch->getRCut()
+                  + LongReal(0.5)
+                        * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j));
             if (r_squared < r_cut * r_cut)
                 {
-                energy
-                    += m_patch
-                           ->energy(vec3<float>(r_ij), type_i, quat<float>(q_i), float(d_i), float(charge_i), type_j, quat<float>(q_j), float(d_j), float(charge_j));
+                energy += m_patch->energy(vec3<float>(r_ij),
+                                          type_i,
+                                          quat<float>(q_i),
+                                          float(d_i),
+                                          float(charge_i),
+                                          type_j,
+                                          quat<float>(q_j),
+                                          float(d_j),
+                                          float(charge_j));
                 }
             }
         for (const auto& pair : m_pair_potentials)
             {
             if (r_squared < pair->getRCutSquaredTotal(type_i, type_j))
                 {
-                energy += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+                energy
+                    += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
                 }
             }
 

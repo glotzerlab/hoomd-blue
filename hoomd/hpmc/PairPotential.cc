@@ -15,4 +15,4 @@ void exportPairPotential(pybind11::module& m)
 
     pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");
     }
-    }
+    } // namespace hoomd::hpmc::detail

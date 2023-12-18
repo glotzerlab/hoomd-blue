@@ -21,13 +21,13 @@ class PairPotentialLennardJones : public hpmc::PairPotential
     virtual ~PairPotentialLennardJones() { }
 
     virtual LongReal energy(const LongReal r_squared,
-                             const vec3<LongReal>& r_ij,
-                             const unsigned int type_i,
-                             const quat<LongReal>& q_i,
-                             const LongReal charge_i,
-                             const unsigned int type_j,
-                             const quat<LongReal>& q_j,
-                             const LongReal charge_j) const;
+                            const vec3<LongReal>& r_ij,
+                            const unsigned int type_i,
+                            const quat<LongReal>& q_i,
+                            const LongReal charge_i,
+                            const unsigned int type_j,
+                            const quat<LongReal>& q_j,
+                            const LongReal charge_j) const;
 
     virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
     virtual pybind11::dict getParamsPython(pybind11::tuple typ);

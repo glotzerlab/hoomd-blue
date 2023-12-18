@@ -39,11 +39,11 @@ namespace hpmc
 class PairPotential
     {
     public:
-    PairPotential(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef),
-        m_type_param_index(sysdef->getParticleData()->getNTypes()),
-        m_r_cut_non_additive(m_type_param_index.getNumElements(), 0),
-        m_r_cut_additive(sysdef->getParticleData()->getNTypes(), 0),
-        m_r_cut_squared_total(m_type_param_index.getNumElements(), 0)
+    PairPotential(std::shared_ptr<SystemDefinition> sysdef)
+        : m_sysdef(sysdef), m_type_param_index(sysdef->getParticleData()->getNTypes()),
+          m_r_cut_non_additive(m_type_param_index.getNumElements(), 0),
+          m_r_cut_additive(sysdef->getParticleData()->getNTypes(), 0),
+          m_r_cut_squared_total(m_type_param_index.getNumElements(), 0)
         {
         }
     virtual ~PairPotential() { }
@@ -82,13 +82,13 @@ class PairPotential
         @returns Energy of the pair interaction.
     */
     virtual LongReal energy(const LongReal r_squared,
-                             const vec3<LongReal>& r_ij,
-                             const unsigned int type_i,
-                             const quat<LongReal>& q_i,
-                             const LongReal charge_i,
-                             const unsigned int type_j,
-                             const quat<LongReal>& q_j,
-                             const LongReal charge_j) const
+                            const vec3<LongReal>& r_ij,
+                            const unsigned int type_i,
+                            const quat<LongReal>& q_i,
+                            const LongReal charge_i,
+                            const unsigned int type_j,
+                            const quat<LongReal>& q_j,
+                            const LongReal charge_j) const
         {
         return 0;
         }
@@ -134,7 +134,8 @@ class PairPotential
     void updateRCutTotal(unsigned int type_i, unsigned int type_j)
         {
         unsigned int type_pair = m_type_param_index(type_i, type_j);
-        LongReal r_cut = m_r_cut_non_additive[type_pair] + LongReal(0.5) * m_r_cut_additive[type_i] + m_r_cut_additive[type_j];
+        LongReal r_cut = m_r_cut_non_additive[type_pair] + LongReal(0.5) * m_r_cut_additive[type_i]
+                         + m_r_cut_additive[type_j];
         m_r_cut_squared_total[type_pair] = r_cut * r_cut;
 
         type_pair = m_type_param_index(type_j, type_i);
@@ -144,4 +145,4 @@ class PairPotential
 
     } // end namespace hpmc
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
