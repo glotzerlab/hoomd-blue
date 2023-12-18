@@ -42,6 +42,16 @@ template<unsigned int ndim> class PYBIND11_EXPORT VectorVariant
 
 class PYBIND11_EXPORT VectorVariantBox : public VectorVariant<6>
     {
+    protected:
+    std::array<Scalar, 6> box_to_array(std::shared_ptr<BoxDim> box)
+        {
+        return std::array<Scalar, 6> {box->getL().x,
+                                      box->getL().y,
+                                      box->getL().z,
+                                      box->getTiltFactorXY(),
+                                      box->getTiltFactorXZ(),
+                                      box->getTiltFactorYZ()};
+        }
     };
 
 class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
@@ -211,6 +221,133 @@ class PYBIND11_EXPORT VectorVariantBoxLinear : public VectorVariantBox
 
     /// The length of the ramp.
     uint64_t m_t_ramp;
+    };
+
+class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBox
+    {
+    public:
+    VectorVariantBoxInverseVolumeRamp(std::shared_ptr<BoxDim> box1,
+                                      Scalar final_volume,
+                                      uint64_t t_start,
+                                      uint64_t t_ramp)
+        : m_box1(box1), m_final_volume(final_volume), m_t_start(t_start), m_t_ramp(t_ramp)
+        {
+        m_is2D = m_box1->getL().z == 0;
+        m_vol1 = m_box1->getVolume(m_is2D);
+        }
+
+    virtual array_type operator()(uint64_t timestep)
+        {
+        if (timestep < m_t_start)
+            {
+            return box_to_array(m_box1);
+            }
+        else if (timestep >= m_t_start + m_t_ramp)
+            {
+            Scalar scale;
+            if (m_is2D)
+                {
+                scale = pow(m_final_volume / m_vol1, Scalar(1.0 / 2.0));
+                }
+            else
+                {
+                scale = pow(m_final_volume / m_vol1, Scalar(1.0 / 3.0));
+                }
+            std::array<Scalar, 6> value;
+            Scalar3 L1 = m_box1->getL();
+            value[0] = L1.x * scale;
+            value[1] = L1.y * scale;
+            value[2] = L1.z * scale;
+            value[3] = m_box1->getTiltFactorXY();
+            value[4] = m_box1->getTiltFactorXZ();
+            value[5] = m_box1->getTiltFactorYZ();
+            return value;
+            }
+        else
+            {
+            double s = double(timestep - m_t_start) / double(m_t_ramp);
+            Scalar current_volume = s * m_final_volume + (1.0 - s) * m_vol1;
+            Scalar scale;
+            if (m_is2D)
+                {
+                scale = pow(current_volume / m_vol1, Scalar(1.0 / 2.0));
+                }
+            else
+                {
+                scale = pow(current_volume / m_vol1, Scalar(1.0 / 3.0));
+                }
+
+            std::array<Scalar, 6> value;
+            Scalar3 L1 = m_box1->getL();
+            value[0] = L1.x * scale;
+            value[1] = L1.y * scale;
+            value[2] = L1.z * scale;
+            value[3] = m_box1->getTiltFactorXY();
+            value[4] = m_box1->getTiltFactorXZ();
+            value[5] = m_box1->getTiltFactorYZ();
+            return value;
+            }
+        }
+
+    std::shared_ptr<BoxDim> getBox1()
+        {
+        return m_box1;
+        }
+
+    void setBox1(std::shared_ptr<BoxDim> box)
+        {
+        m_box1 = box;
+        }
+
+    /// Set the starting time step.
+    void setTStart(uint64_t t_start)
+        {
+        m_t_start = t_start;
+        }
+
+    /// Get the starting time step.
+    uint64_t getTStart() const
+        {
+        return m_t_start;
+        }
+
+    /// Set the length of the ramp.
+    void setTRamp(uint64_t t_ramp)
+        {
+        // doubles can only represent integers accuracy up to 2**53.
+        if (t_ramp >= 9007199254740992ull)
+            {
+            throw std::invalid_argument("t_ramp must be less than 2**53");
+            }
+        m_t_ramp = t_ramp;
+        }
+
+    /// Get the length of the ramp.
+    uint64_t getTRamp() const
+        {
+        return m_t_ramp;
+        }
+
+    protected:
+    /// The starting box.
+    std::shared_ptr<BoxDim> m_box1;
+
+    /// The volume of box1.
+    Scalar m_vol1;
+
+    /// The volume of the box at the end of the ramp.
+    Scalar m_final_volume;
+
+    /// The starting time step.
+    uint64_t m_t_start;
+
+    /// The length of the ramp.
+    uint64_t m_t_ramp;
+
+    /// Whether box1 is 2-dimensional or not
+    bool m_is2D;
+
+    Scalar m_current_volume;
     };
 
 namespace detail

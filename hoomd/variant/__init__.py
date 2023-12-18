@@ -7,13 +7,12 @@ A `Variant` object represents a scalar function of the time step. Some
 operations accept `Variant` values for certain parameters, such as the
 ``kT`` parameter to `hoomd.md.methods.thermostats.Bussi`.
 
-See `Variant` for detains on creating user-defined variants or use one of the
+See `Variant` for details on creating user-defined variants or use one of the
 provided subclasses.
 """
 import typing
 
 from hoomd import _hoomd
-from . import box
 
 
 class Variant(_hoomd.Variant):

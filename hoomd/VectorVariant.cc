@@ -54,6 +54,22 @@ void export_VectorVariantBox(pybind11::module& m)
         .def_property("t_ramp",
                       &VectorVariantBoxLinear::getTRamp,
                       &VectorVariantBoxLinear::setTRamp);
+
+    pybind11::class_<VectorVariantBoxInverseVolumeRamp,
+                     VectorVariantBox,
+                     std::shared_ptr<VectorVariantBoxInverseVolumeRamp>>(
+        m,
+        "VectorVariantBoxInverseVolumeRamp")
+        .def(pybind11::init<std::shared_ptr<BoxDim>, Scalar, uint64_t, uint64_t>())
+        .def_property("box1",
+                      &VectorVariantBoxInverseVolumeRamp::getBox1,
+                      &VectorVariantBoxInverseVolumeRamp::setBox1)
+        .def_property("t_start",
+                      &VectorVariantBoxInverseVolumeRamp::getTStart,
+                      &VectorVariantBoxInverseVolumeRamp::setTStart)
+        .def_property("t_ramp",
+                      &VectorVariantBoxInverseVolumeRamp::getTRamp,
+                      &VectorVariantBoxInverseVolumeRamp::setTRamp);
     }
 
     } // end namespace detail
