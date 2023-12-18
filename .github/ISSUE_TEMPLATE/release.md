@@ -14,7 +14,7 @@ Minor and major releases:
   - See current actions usage with: `rg --no-filename --hidden uses: | awk '{$1=$1;print}' | sort | uniq`
   - Use global search and replace to update them to the latest tags
 - [ ] Check for new or duplicate contributors since the last release:
-  `comm -13 <(git log LAST_TAG --format="%aN <%aE>" | sort | uniq) <(git log --format="%aN <%aE>" | sort | uniq)`.
+  `comm -13 (git log v4.3.0 --format="%aN <%aE>" | sort | uniq | psub) (git log --format="%aN <%aE>" | sort | uniq | psub)`.
   Add entries to `.mailmap` to remove duplicates.
 - [ ] Run [hoomd-benchmarks](https://github.com/glotzerlab/hoomd-benchmarks), check for performance
   regressions with the previous release, and post the tables in the release pull request.
@@ -23,8 +23,7 @@ Minor and major releases:
 All releases:
 
 - [ ] Update change log.
-  - ``git log --format=oneline --first-parent `git log -n 1 --pretty=format:%H -- CHANGELOG.rst`...``
-  - [milestone](https://github.com/glotzerlab/hoomd-blue/milestones)
+  - ``git log --format=oneline --first-parent $(git log -n 1 --pretty=format:%H -- CHANGELOG.rst)...``
 - [ ] Check readthedocs build, especially change log formatting.
 - [ ] Run *bumpversion*.
 - [ ] Tag and push.
