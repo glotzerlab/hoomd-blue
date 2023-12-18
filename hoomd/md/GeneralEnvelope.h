@@ -149,10 +149,11 @@ public:
             rhat = dr/magdr;
 
             // cos(angle between dr and pointing vector)
-            costhetai = -dot(vec3<Scalar>(rhat), ni_world); // negative because dr = dx = pi - pj
-            costhetaj = dot(vec3<Scalar>(rhat), nj_world);
+            Scalar costhetai = -dot(vec3<Scalar>(rhat), ni_world); // negative because dr = dx = pi - pj
+            Scalar costhetaj = dot(vec3<Scalar>(rhat), nj_world);
 
-            //TODO precompute the 2 exponent expressions
+            exp_negOmega_times_CosThetaI_minus_CosAlpha = fast::exp(-params.omega*(costhetai-params.cosalpha));
+            exp_negOmega_times_CosThetaJ_minus_CosAlpha = fast::exp(-params.omega*(costhetaj-params.cosalpha));
         }
 
     //! uses diameter
@@ -188,14 +189,14 @@ public:
     DEVICE Scalar fi() // called f(dr, ni) in the derivation
     //fi in python
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetai-params.cosalpha)) );
+            return Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaI_minus_CosAlpha );
         }
 
 
     DEVICE inline Scalar fj() // called f(dr, nj) in the derivation
     // fj in python
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetaj-params.cosalpha)) );
+            return Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaJ_minus_CosAlpha );
         }
 
 
@@ -203,14 +204,14 @@ public:
         {
             //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
             // Scalar fact = fi();
-            return -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fi * fi;
+            return -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha  * fi * fi;
         }
 
     DEVICE Scalar dfj_du(Scalar fj)
         {
             // Scalar fact = fj();
             //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
-            return params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fj * fj;
+            return params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha  * fj * fj;
         }
 
     DEVICE Scalar ModulatorPrimei() // TODO call it derivative with respect to costhetai
@@ -218,13 +219,13 @@ public:
             Scalar fact = fi(); // TODO only calculate Modulatori once per instantiation
             // the -1 comes from doing the derivative with respect to ni
             // return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
-            return params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
+            return params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * fact * fact;
         }
 
     DEVICE Scalar ModulatorPrimej() // TODO name after derivative
         {
             Scalar fact = fj();
-            return params.omega * fast::exp(-params.omega*(costhetaj-params.cosalpha)) * fact * fact;
+            return params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha * fact * fact;
         }
 
 
@@ -379,8 +380,8 @@ private:
     vec3<Scalar> rhat;
 
     vec3<Scalar> ei, ej;
-    Scalar costhetai;
-    Scalar costhetaj;
+    Scalar exp_negOmega_times_CosThetaI_minus_CosAlpha;
+    Scalar exp_negOmega_times_CosThetaJ_minus_CosAlpha;
 };
 
     } // end namespace md
