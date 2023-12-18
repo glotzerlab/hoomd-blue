@@ -549,7 +549,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
                             u_ij_0
-                                = m_mc->computeOnePairEnergy(r_ij,
+                                = m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                             r_ij,
                                                              typ_i,
                                                              shape_i.orientation,
                                                              h_diameter.data[i],
@@ -590,7 +591,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     // compare to the energy in the unperturbed state
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new = m_mc->computeOnePairEnergy(
+                                    double u_ij_new = m_mc->computeOnePairEnergy(dot(r_ij_scaled, r_ij_scaled),
                                         r_ij_scaled,
                                         typ_i,
                                         shape_i.orientation,
@@ -649,7 +650,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     // compare to the energy in the unperturbed state
                                     const vec3<Scalar> r_ij_scaled
                                         = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new = m_mc->computeOnePairEnergy(
+                                    double u_ij_new = m_mc->computeOnePairEnergy(dot(r_ij_scaled, r_ij_scaled),
                                         r_ij_scaled,
                                         typ_i,
                                         shape_i.orientation,

@@ -24,20 +24,17 @@ LongReal PairPotentialLennardJones::getRCut()
     return r_cut;
     }
 
-LongReal PairPotentialLennardJones::energy(const vec3<LongReal>& r_ij,
-                                            unsigned int type_i,
+LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
+                                            const vec3<LongReal>& r_ij,
+                                            const unsigned int type_i,
                                             const quat<LongReal>& q_i,
-                                            LongReal charge_i,
-                                            unsigned int type_j,
+                                            const LongReal charge_i,
+                                            const unsigned int type_j,
                                             const quat<LongReal>& q_j,
-                                            LongReal charge_j)
+                                            const LongReal charge_j)
     {
-    LongReal r_squared = dot(r_ij, r_ij);
-
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
-    if (r_squared > param.r_cut_squared)
-        return 0;
 
     LongReal lj1 = param.epsilon_x_4 * param.sigma_6 * param.sigma_6;
     LongReal lj2 = param.epsilon_x_4 * param.sigma_6;
@@ -91,7 +88,7 @@ pybind11::dict PairPotentialLennardJones::getParamsPython(pybind11::tuple typ)
 
 namespace detail
     {
-void export_PairPotentialLennardJones(pybind11::module& m)
+void exportPairPotentialLennardJones(pybind11::module& m)
     {
     pybind11::class_<PairPotentialLennardJones,
                      PairPotential,

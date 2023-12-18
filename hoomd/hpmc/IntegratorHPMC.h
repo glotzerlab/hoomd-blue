@@ -18,6 +18,7 @@
 
 #include "ExternalField.h"
 #include "HPMCCounters.h"
+#include "PairPotential.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -184,61 +185,6 @@ class PatchEnergy : public Autotuned
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
     };                                          // end class PatchEnergy
 
-/*** Functor that computes pair interactions between particles
-
-    PairPotential allows cutoff energetic interactions to be included in an HPMC simulation. This
-    abstract base class defines the API for the patch energy object, consisting of cutoff radius
-    and the pair energy evaluation fuction.
-
-    Provide a PairPotential instance to IntegratorHPMC. The pairwise patch energy will be evaluated
-    when needed during the HPMC trial moves.
-*/
-class PairPotential
-    {
-    public:
-    PairPotential(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
-    virtual ~PairPotential() { }
-
-    /// Returns the non-additive cutoff radius.
-    virtual LongReal getRCut()
-        {
-        return 0;
-        }
-
-    /// Returns the additive part of the cutoff distance for a given type.
-    virtual LongReal getAdditiveRCut(unsigned int type)
-        {
-        return 0;
-        }
-
-    /*** Evaluate the energy of the patch interaction
-
-        Subclasses *must* check the r_ij and return 0 when the interaction range is beyond the
-        cutoff. HPMCIntegrator may call `energy` with r_ij vectors longer than the requested r_cut.
-
-        @param r_ij Vector pointing from particle i to j.
-        @param type_i Integer type index of particle i.
-        @param charge_i Charge of particle i.
-        @param q_i Orientation quaternion of particle i.
-        @param type_j Integer type index of particle j.
-        @param q_j Orientation quaternion of particle j.
-        @param charge_j Charge of particle j.
-        @returns Energy of the pair interaction.
-    */
-    virtual LongReal energy(const vec3<LongReal>& r_ij,
-                             unsigned int type_i,
-                             const quat<LongReal>& q_i,
-                             LongReal charge_i,
-                             unsigned int type_j,
-                             const quat<LongReal>& q_j,
-                             LongReal charge_j)
-        {
-        return 0;
-        }
-
-    protected:
-    std::shared_ptr<SystemDefinition> m_sysdef;
-    };
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
@@ -531,7 +477,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return r_cut;
         }
 
-    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(const vec3<LongReal>& r_ij,
+    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(
+    const LongReal r_squared,
+    const vec3<LongReal>& r_ij,
+
                                    unsigned int type_i,
                                    const quat<LongReal>& q_i,
                                    LongReal d_i,
@@ -555,7 +504,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
         for (const auto& pair : m_pair_potentials)
             {
-            energy += pair->energy(r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+            energy += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
             }
 
         return energy;

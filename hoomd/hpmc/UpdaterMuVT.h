@@ -1702,7 +1702,8 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                         {
                         vec3<Scalar> r_ij = pos - pos_image;
                         // self-energy
-                        lnboltzmann += m_mc->computeOnePairEnergy(r_ij,
+                        lnboltzmann += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                  r_ij,
                                                                   type,
                                                                   orientation,
                                                                   diameter,
@@ -1744,6 +1745,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                         continue;
 
                                     lnboltzmann += m_mc->computeOnePairEnergy(
+                                        dot(r_ij, r_ij),
                                         r_ij,
                                         type,
                                         orientation,
@@ -1970,7 +1972,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                         }
 
                     // self-energy
-                    lnboltzmann -= m_mc->computeOnePairEnergy(r_ij,
+                    lnboltzmann -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                              r_ij,
                                                               type,
                                                               orientation,
                                                               1.0, // diameter i
@@ -2051,7 +2054,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                     }
 
                                 lnboltzmann
-                                    -= m_mc->computeOnePairEnergy(r_ij,
+                                    -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                  r_ij,
                                                                   type,
                                                                   orientation,
                                                                   1.0, // diameter i

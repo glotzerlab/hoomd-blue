@@ -453,6 +453,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /// Cached maximum pair additive cutoff by type.
         std::vector<LongReal> m_max_pair_additive_cutoff;
 
+        /// Cached shape radius by type.
+        std::vector<LongReal> m_shape_circumsphere_radius;
+
         /* Depletants related data members */
 
         GlobalVector<Scalar> m_fugacity;            //!< Average depletant number density in free volume, per type
@@ -658,8 +661,12 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     const LongReal max_pair_interaction_r_cut = getMaxPairInteractionRCut();
 
     m_max_pair_additive_cutoff.clear();
+    m_shape_circumsphere_radius.clear();
     for (unsigned int type = 0; type < m_pdata->getNTypes(); type++)
         {
+        quat<LongReal> q;
+        Shape shape(q, m_params[type]);
+        m_shape_circumsphere_radius.push_back(LongReal(0.5) * shape.getCircumsphereDiameter());
         m_max_pair_additive_cutoff.push_back(getMaxPairInteractionAdditiveRCut(type));
         }
 
@@ -747,7 +754,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             bool overlap=false;
 
             // search for all particles that might touch this one
-            LongReal R_query = shape_i.getCircumsphereDiameter() / LongReal(2.0);
+            LongReal R_query = m_shape_circumsphere_radius[typ_i];
 
             if (hasPairInteractions())
                 {
@@ -815,9 +822,12 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(orientation_j, m_params[typ_j]);
 
+                                LongReal r_squared = dot(r_ij, r_ij);
+                                LongReal max_overlap_distance = m_shape_circumsphere_radius[typ_i] + m_shape_circumsphere_radius[typ_j];
+
                                 counters.overlap_checks++;
                                 if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
-                                    && check_circumsphere_overlap(r_ij, shape_i, shape_j)
+                                    && r_squared < max_overlap_distance * max_overlap_distance
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
                                     {
                                     overlap = true;
@@ -828,7 +838,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 LongReal max_r_cut = max_pair_interaction_r_cut + LongReal(0.5) * (m_max_pair_additive_cutoff[typ_i] + m_max_pair_additive_cutoff[typ_j]);
                                 if (dot(r_ij, r_ij) < max_r_cut * max_r_cut)
                                     {
-                                patch_field_energy_diff -= computeOnePairEnergy(r_ij, typ_i,
+                                patch_field_energy_diff -= computeOnePairEnergy(r_squared, r_ij, typ_i,
                                                         shape_i.orientation,
                                                         h_diameter.data[i],
                                                         h_charge.data[i],
@@ -910,7 +920,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 LongReal max_r_cut = max_pair_interaction_r_cut + LongReal(0.5) * (m_max_pair_additive_cutoff[typ_i] + m_max_pair_additive_cutoff[typ_j]);
                                 if (dot(r_ij, r_ij) < max_r_cut * max_r_cut)
                                     {
-                                    patch_field_energy_diff += computeOnePairEnergy(r_ij,
+                                    patch_field_energy_diff += computeOnePairEnergy(dot(r_ij, r_ij),
+                                                            r_ij,
                                                             typ_i,
                                                             shape_old.orientation,
                                                             h_diameter.data[i],
@@ -972,7 +983,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     }
                 else
                     {
-                    Scalar radius = std::max(LongReal(0.5) * shape_i.getCircumsphereDiameter(),
+                    Scalar radius = std::max(LongReal(0.5) * m_shape_circumsphere_radius[typ_i],
                         LongReal(0.5) * m_max_pair_additive_cutoff[typ_i]);
                     aabb = hoomd::detail::AABB(pos_i, radius);
                     }
@@ -1272,7 +1283,8 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                                 {
                                 if (selected_pair)
                                     {
-                                    energy += selected_pair->energy(r_ij,
+                                    energy += selected_pair->energy(dot(r_ij, r_ij),
+                                                                    r_ij,
                                                                     typ_i,
                                                                     orientation_i,
                                                                     h_charge.data[i],
@@ -1282,7 +1294,8 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                                     }
                                 else
                                     {
-                                    energy += computeOnePairEnergy(r_ij,
+                                    energy += computeOnePairEnergy(dot(r_ij, r_ij),
+                                        r_ij,
                                         typ_i,
                                         orientation_i,
                                         d_i,

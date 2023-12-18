@@ -1258,7 +1258,8 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                             U = it_energy->second;
                                         }
 
-                                    U += m_mc->computeOnePairEnergy(r_ij, typ_i,
+                                    U += m_mc->computeOnePairEnergy(rsq_ij,
+                                                        r_ij, typ_i,
                                                         orientation_i,
                                                         d_i,
                                                         charge_i,
@@ -1423,7 +1424,8 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                             U = it_energy->second;
                                         }
 
-                                    U += m_mc->computeOnePairEnergy(r_ij,
+                                    U += m_mc->computeOnePairEnergy(rsq_ij,
+                                                        r_ij,
                                                         typ_i,
                                                         shape_i.orientation,
                                                         h_diameter.data[i],
