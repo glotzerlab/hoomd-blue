@@ -153,21 +153,21 @@ struct
     */
     DEVICE inline bool overlaps(const AABB& other) const
         {
-    #if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
         int r0 = _mm256_movemask_pd(_mm256_cmp_pd(other.upper_v, lower_v, 0x11)); // 0x11=lt
         int r1 = _mm256_movemask_pd(_mm256_cmp_pd(other.lower_v, upper_v, 0x1e)); // 0x1e=gt
         return !(r0 || r1);
 
-    #elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
         int r0 = _mm_movemask_ps(_mm_cmplt_ps(other.upper_v, lower_v));
         int r1 = _mm_movemask_ps(_mm_cmpgt_ps(other.lower_v, upper_v));
         return !(r0 || r1);
 
-    #else
+#else
         return !(other.upper.x < lower.x || other.lower.x > upper.x || other.upper.y < lower.y
-                || other.lower.y > upper.y || other.upper.z < lower.z || other.lower.z > upper.z);
+                 || other.lower.y > upper.y || other.upper.z < lower.z || other.lower.z > upper.z);
 
-    #endif
+#endif
         }
 
     //! Construct an AABB from a sphere
