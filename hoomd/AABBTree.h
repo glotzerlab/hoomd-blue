@@ -298,7 +298,7 @@ inline unsigned int AABBTree::query(std::vector<unsigned int>& hits, const AABB&
         const AABBNode& current_node = nodes[current_node_idx];
 
         box_overlap_counts++;
-        if (overlap(current_node.aabb, aabb))
+        if (aabb.overlaps(current_node.aabb))
             {
             if (current_node.left == INVALID_NODE)
                 {

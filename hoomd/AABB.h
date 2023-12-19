@@ -147,6 +147,29 @@ struct
 #endif
         }
 
+    /** Check if two AABBs overlap
+        @param other Second AABB
+        @returns true when the two AABBs overlap, false otherwise
+    */
+    DEVICE inline bool overlaps(const AABB& other) const
+        {
+    #if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+        int r0 = _mm256_movemask_pd(_mm256_cmp_pd(other.upper_v, lower_v, 0x11)); // 0x11=lt
+        int r1 = _mm256_movemask_pd(_mm256_cmp_pd(other.lower_v, upper_v, 0x1e)); // 0x1e=gt
+        return !(r0 || r1);
+
+    #elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+        int r0 = _mm_movemask_ps(_mm_cmplt_ps(other.upper_v, lower_v));
+        int r1 = _mm_movemask_ps(_mm_cmpgt_ps(other.lower_v, upper_v));
+        return !(r0 || r1);
+
+    #else
+        return !(other.upper.x < lower.x || other.lower.x > upper.x || other.upper.y < lower.y
+                || other.lower.y > upper.y || other.upper.z < lower.z || other.lower.z > upper.z);
+
+    #endif
+        }
+
     //! Construct an AABB from a sphere
     /*! \param _position Position of the sphere
         \param radius Radius of the sphere
@@ -274,30 +297,6 @@ struct
     ;
 #endif
 
-//! Check if two AABBs overlap
-/*! \param a First AABB
-    \param b Second AABB
-    \returns true when the two AABBs overlap, false otherwise
-*/
-DEVICE inline bool overlap(const AABB& a, const AABB& b)
-    {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
-    int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v, a.lower_v, 0x11)); // 0x11=lt
-    int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v, a.upper_v, 0x1e)); // 0x1e=gt
-    return !(r0 || r1);
-
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
-    int r0 = _mm_movemask_ps(_mm_cmplt_ps(b.upper_v, a.lower_v));
-    int r1 = _mm_movemask_ps(_mm_cmpgt_ps(b.lower_v, a.upper_v));
-    return !(r0 || r1);
-
-#else
-    return !(b.upper.x < a.lower.x || b.lower.x > a.upper.x || b.upper.y < a.lower.y
-             || b.lower.y > a.upper.y || b.upper.z < a.lower.z || b.lower.z > a.upper.z);
-
-#endif
-    }
-
 //! Check if one AABB contains another
 /*! \param a First AABB
     \param b Second AABB
@@ -352,6 +351,80 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
     return new_aabb;
     }
 #endif
+
+/** Ball data structure for use with AABB.
+
+    When querying the AABB tree for all points in a sphere, use a Ball-AABB check.
+**/
+struct
+#ifndef __HIPCC__
+    __attribute__((visibility("default")))
+#endif
+Ball
+    {
+    vec3<LongReal> m_center;
+    LongReal m_radius;
+
+    DEVICE Ball() :
+        m_center(0,0,0),
+        m_radius(0)
+        {
+        }
+
+    DEVICE Ball(const vec3<LongReal>& center, LongReal radius) :
+        m_center(center),
+        m_radius(radius)
+        {
+        }
+
+    DEVICE void translate(const vec3<Scalar>& v)
+        {
+        m_center += v;
+        }
+
+/** Check if a Ball and AABB overlap
+
+    @param other AABB
+    @returns true when the two shapes overlap, false otherwise
+*/
+DEVICE inline bool overlaps(const AABB& other) const
+    {
+    // https://stackoverflow.com/questions/28343716/sphere-intersection-test-of-aabb
+    LongReal d_squared_min = 0;
+
+    vec3<LongReal> box_min = other.getLower();
+    vec3<LongReal> box_max = other.getUpper();
+
+    if( m_center.x < box_min.x )
+        {
+        d_squared_min += ( m_center.x - box_min.x ) * ( m_center.x - box_min.x );
+        }
+    else if( m_center.x > box_max.x)
+        {
+        d_squared_min += ( m_center.x - box_max.x) * ( m_center.x - box_max.x);
+        }
+
+    if( m_center.y < box_min.y )
+        {
+        d_squared_min += ( m_center.y - box_min.y ) * ( m_center.y - box_min.y );
+        }
+    else if( m_center.y > box_max.y)
+        {
+        d_squared_min += ( m_center.y - box_max.y) * ( m_center.y - box_max.y);
+        }
+
+    if( m_center.z < box_min.z )
+        {
+        d_squared_min += ( m_center.z - box_min.z ) * ( m_center.z - box_min.z );
+        }
+    else if( m_center.z > box_max.z)
+        {
+        d_squared_min += ( m_center.z - box_max.z) * ( m_center.z - box_max.z);
+        }
+
+    return d_squared_min <= m_radius * m_radius;
+    }
+    };
 
 // end group overlap
 /*! @}*/

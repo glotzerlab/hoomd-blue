@@ -410,7 +410,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
             for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                  cur_node_idx++)
                 {
-                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -530,7 +530,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
             for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                  cur_node_idx++)
                 {
-                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
