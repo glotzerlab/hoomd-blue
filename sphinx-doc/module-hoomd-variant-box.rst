@@ -22,6 +22,7 @@ hoomd.variant.box
     :synopsis: Box variants.
     :no-members:
 
+    .. autoclass:: Box()
     .. autoclass:: Constant(box)
         :show-inheritance:
     .. autoclass:: Ramp(initial_box, final_box, t_start, t_ramp)
