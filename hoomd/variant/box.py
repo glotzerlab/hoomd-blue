@@ -10,11 +10,11 @@ from hoomd.data.typeconverter import box_preprocessing
 class Box(_hoomd.VectorVariantBox):
     """Box-like vector variant base class.
 
-    `hoomd.variant.box.Box` provides an interface to length-6 vector variants that
-    are valid `hoomd.box.box_like` objects.
-    The return value of the ``__call__`` method returns a length-6 array of
-    scalar values that represent the quantities ``Lx``, ``Ly``, ``Lz``,
-    ``xy``, ``xz``, and ``yz`` of a simulation box.
+    `hoomd.variant.box.Box` provides an interface to length-6 vector variants
+    that are valid `hoomd.box.box_like` objects.  The return value of the
+    ``__call__`` method returns a length-6 array of scalar values that represent
+    the quantities ``Lx``, ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` of a
+    simulation box.
     """
     pass
 
@@ -31,6 +31,7 @@ class Constant(_hoomd.VectorVariantBoxConstant, Box):
     Attributes:
         box (hoomd.Box): The box.
     """
+
     def __init__(self, box):
         box = box_preprocessing(box)
         _hoomd.VectorVariantBoxConstant.__init__(self, box._cpp_obj)
@@ -85,6 +86,7 @@ class LinearInverseVolume(_hoomd.VectorVariantBoxInverseVolumeRamp):
         t_start (int): The time step at the start of the ramp.
         t_ramp (int): The length of the ramp.
     """
+
     def __init__(self, initial_box, final_volume, t_start, t_ramp):
         box = box_preprocessing(initial_box)
         _hoomd.VectorVariantBoxInverseVolumeRamp.__init__(
