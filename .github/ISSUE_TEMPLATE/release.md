@@ -14,7 +14,7 @@ Minor and major releases:
   - See current actions usage with: `rg --no-filename --hidden uses: | awk '{$1=$1;print}' | sort | uniq`
   - Use global search and replace to update them to the latest tags
 - [ ] Check for new or duplicate contributors since the last release:
-  `comm -13 (git log LAST_TAG --format="%aN <%aE>" | sort | uniq | psub) (git log --format="%aN <%aE>" | sort | uniq | psub)`.
+  `comm -13 (git log $(git describe --tags --abbrev=0) --format="%aN <%aE>" | sort | uniq | psub) (git log --format="%aN <%aE>" | sort | uniq | psub)`.
   Add entries to `.mailmap` to remove duplicates.
 - [ ] Run [hoomd-benchmarks](https://github.com/glotzerlab/hoomd-benchmarks), check for performance
   regressions with the previous release, and post the tables in the release pull request.
