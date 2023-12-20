@@ -11,8 +11,9 @@ import math
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
 valid_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10),
-         target_box=hoomd.Box.from_box([10, 10, 10])),
+    dict(
+        trigger=hoomd.trigger.Periodic(10), target_box=hoomd.Box.from_box([10, 10, 10])
+    ),
     dict(
         trigger=hoomd.trigger.After(100),
         target_box=hoomd.Box.from_box([10, 20, 40]),
@@ -58,9 +59,9 @@ def test_valid_construction(constructor_args):
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_and_attach(simulation_factory,
-                                       two_particle_snapshot_factory,
-                                       constructor_args):
+def test_valid_construction_and_attach(
+    simulation_factory, two_particle_snapshot_factory, constructor_args
+):
     """Test that QuickCompress can be attached with valid arguments."""
     qc = hoomd.hpmc.update.QuickCompress(**constructor_args)
 
@@ -69,7 +70,7 @@ def test_valid_construction_and_attach(simulation_factory,
 
     # QuickCompress requires an HPMC integrator
     mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape["A"] = dict(diameter=1)
+    mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.operations._schedule()
@@ -82,28 +83,29 @@ def test_valid_construction_and_attach(simulation_factory,
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(attr, value):
     """Test that QuickCompress can get and set attributes."""
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=hoomd.Box.from_box(
-                                             [10, 10, 10]))
+    qc = hoomd.hpmc.update.QuickCompress(
+        trigger=hoomd.trigger.Periodic(10), target_box=hoomd.Box.from_box([10, 10, 10])
+    )
 
     setattr(qc, attr, value)
     assert getattr(qc, attr) == value
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_attached(attr, value, simulation_factory,
-                                two_particle_snapshot_factory):
+def test_valid_setattr_attached(
+    attr, value, simulation_factory, two_particle_snapshot_factory
+):
     """Test that QuickCompress can get and set attributes while attached."""
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=hoomd.Box.from_box(
-                                             [10, 10, 10]))
+    qc = hoomd.hpmc.update.QuickCompress(
+        trigger=hoomd.trigger.Periodic(10), target_box=hoomd.Box.from_box([10, 10, 10])
+    )
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.updaters.append(qc)
 
     # QuickCompress requires an HPMC integrator
     mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape["A"] = dict(diameter=1)
+    mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.operations._schedule()
@@ -118,17 +120,18 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     """Test that QuickCompress can compress (and expand) simulation boxes."""
     n = 7
     snap = lattice_snapshot_factory(n=n, a=1.1)
-    v_particle = 4 / 3 * math.pi * (0.5)**3
-    target_box = hoomd.Box.cube((n * n * n * v_particle / phi)**(1 / 3))
+    v_particle = 4 / 3 * math.pi * (0.5) ** 3
+    target_box = hoomd.Box.cube((n * n * n * v_particle / phi) ** (1 / 3))
 
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=target_box)
+    qc = hoomd.hpmc.update.QuickCompress(
+        trigger=hoomd.trigger.Periodic(10), target_box=target_box
+    )
 
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape["A"] = dict(diameter=1)
+    mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.run(1)
@@ -152,17 +155,18 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     """Test that QuickCompress can compress (and expand) simulation boxes."""
     n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.1)
-    v_particle = math.pi * (0.5)**2
-    target_box = hoomd.Box.square((n * n * v_particle / phi)**(1 / 2))
+    v_particle = math.pi * (0.5) ** 2
+    target_box = hoomd.Box.square((n * n * v_particle / phi) ** (1 / 2))
 
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=target_box)
+    qc = hoomd.hpmc.update.QuickCompress(
+        trigger=hoomd.trigger.Periodic(10), target_box=target_box
+    )
 
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape["A"] = dict(diameter=1)
+    mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
     sim.run(1)
@@ -181,11 +185,12 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that QuickCompress objects are picklable."""
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=hoomd.Box.square(10.0))
+    qc = hoomd.hpmc.update.QuickCompress(
+        trigger=hoomd.trigger.Periodic(10), target_box=hoomd.Box.square(10.0)
+    )
 
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape["A"] = dict(diameter=1)
+    mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
     operation_pickling_check(qc, sim)
