@@ -478,7 +478,7 @@ DEVICE inline bool excludedVolumeOverlap(const Shape& shape_a,
         upper_b.y += r;
         upper_b.z += r;
 
-        return overlap(aabb_a, aabb_b);
+        return aabb_b.overlaps(aabb_a);
         }
     }
 
@@ -566,7 +566,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
-        if (!overlap(aabb_a, aabb_b))
+        if (!aabb_b.overlaps(aabb_a))
             return false;
 
         // extend AABBs by the excluded volume radius
@@ -661,7 +661,7 @@ DEVICE inline ShortReal getSamplingVolumeIntersection(const Shape& shape_a,
         hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
-        if (!overlap(aabb_a, aabb_b))
+        if (!aabb_b.overlaps(aabb_a))
             return ShortReal(0.0);
 
         // extend AABBs by the excluded volume radius
