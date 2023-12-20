@@ -2,6 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterQuickCompress.h"
+
 #include "hoomd/RNGIdentifiers.h"
 
 namespace hoomd
@@ -16,7 +17,7 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            bool allow_unsafe_resize,
                                            std::shared_ptr<BoxDim> target_box)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
-      m_allow_unsafe_resize(allow_unsafe_resize), m_target_box(target_box)
+      m_target_box(target_box), m_allow_unsafe_resize(allow_unsafe_resize)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterQuickCompress" << std::endl;
     setMinScale(min_scale);
@@ -53,7 +54,8 @@ void UpdaterQuickCompress::update(uint64_t timestep)
         performBoxScale(timestep);
         }
 
-    // The compression is complete when we have reached the target box and there are no overlaps.
+    // The compression is complete when we have reached the target box and there are no
+    // overlaps.
     if (n_overlaps == 0 && current_box == *m_target_box)
         m_is_complete = true;
     else
@@ -140,13 +142,13 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
         }
 
     // If unsafe box moves are allowed, set min_scale without considering min_move_size.
-    // Otherwise, determine the worst case minimum allowable scale factor. The minimum allowable
-    // scale factor assumes that the typical accepted trial move shifts particles by the current
-    // acceptance ratio times the maximum displacement. Assuming that the particles are all spheres
-    // with their circumsphere diameter, set the minimum allowable scale factor so that overlaps of
-    // this size can be removed by trial move. The worst case estimate uses the minimum move size
-    // and the maximum core diameter. Cap the acceptance ratio at 0.5 to prevent excessive box
-    // moves.
+    // Otherwise, determine the worst case minimum allowable scale factor. The minimum
+    // allowable scale factor assumes that the typical accepted trial move shifts
+    // particles by the current acceptance ratio times the maximum displacement. Assuming
+    // that the particles are all spheres with their circumsphere diameter, set the
+    // minimum allowable scale factor so that overlaps of this size can be removed by
+    // trial move. The worst case estimate uses the minimum move size and the maximum core
+    // diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
     double min_scale;
 
     if (allow_unsafe_resize)
