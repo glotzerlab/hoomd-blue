@@ -18,6 +18,8 @@ Change Log
   (`#1679 <https://github.com/glotzerlab/hoomd-blue/pull/1679>`__).
 * Improve HPMC performance with 3D hard shapes
   (`#1679 <https://github.com/glotzerlab/hoomd-blue/pull/1679>`__).
+* Improve HPMC performance on the CPU
+  (`#1687 <https://github.com/glotzerlab/hoomd-blue/pull/1687>`__).
 
 *Changed*
 
