@@ -689,7 +689,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                     for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                          cur_node_idx++)
                         {
-                        if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                             {
                             if (aabb_tree.isNodeLeaf(cur_node_idx))
                                 {
@@ -766,7 +766,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                         for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                              cur_node_idx++)
                             {
-                            if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                            if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                                 {
                                 if (aabb_tree.isNodeLeaf(cur_node_idx))
                                     {
@@ -1721,7 +1721,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                     for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                          cur_node_idx++)
                         {
-                        if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                             {
                             if (aabb_tree.isNodeLeaf(cur_node_idx))
                                 {
@@ -2024,7 +2024,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                 for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                      cur_node_idx++)
                     {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                         {
                         if (aabb_tree.isNodeLeaf(cur_node_idx))
                             {
@@ -2372,7 +2372,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
                     for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                          cur_node_idx++)
                         {
-                        if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                             {
                             if (aabb_tree.isNodeLeaf(cur_node_idx))
                                 {
@@ -2571,7 +2571,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
                     for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                          cur_node_idx++)
                         {
-                        if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                             {
                             if (aabb_tree.isNodeLeaf(cur_node_idx))
                                 {
@@ -2788,7 +2788,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
                 for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                      cur_node_idx++)
                     {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                         {
                         if (aabb_tree.isNodeLeaf(cur_node_idx))
                             {
@@ -2974,7 +2974,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
                 for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                      cur_node_idx++)
                     {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                         {
                         if (aabb_tree.isNodeLeaf(cur_node_idx))
                             {

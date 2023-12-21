@@ -782,7 +782,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                         {
                         if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                             {
@@ -873,7 +873,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     // stackless search
                     for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                         {
-                        if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                             {
                             if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                                 {
@@ -1107,7 +1107,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -1248,7 +1248,7 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -1842,7 +1842,7 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -1998,7 +1998,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(this->m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -2075,7 +2075,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(this->m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
