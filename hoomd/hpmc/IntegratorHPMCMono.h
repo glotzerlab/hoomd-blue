@@ -1273,9 +1273,10 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                             // count unique pairs within range
                             if (h_tag.data[i] <= h_tag.data[j])
                                 {
-                                if (selected_pair)
+                                LongReal r_squared = dot(r_ij, r_ij);
+                                if (selected_pair && r_squared < selected_pair->getRCutSquaredTotal(typ_i, typ_j))
                                     {
-                                    energy += selected_pair->energy(dot(r_ij, r_ij),
+                                    energy += selected_pair->energy(r_squared,
                                                                     r_ij,
                                                                     typ_i,
                                                                     orientation_i,
@@ -1286,7 +1287,7 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
                                     }
                                 else
                                     {
-                                    energy += computeOnePairEnergy(dot(r_ij, r_ij),
+                                    energy += computeOnePairEnergy(r_squared,
                                         r_ij,
                                         typ_i,
                                         orientation_i,
