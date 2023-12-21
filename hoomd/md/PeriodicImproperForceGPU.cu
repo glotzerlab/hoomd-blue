@@ -222,7 +222,6 @@ __global__ void gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
         Scalar dthy = gbb * bby;
         Scalar dthz = gbb * bbz;
 
-        // Scalar df = -K * dfab;
         Scalar df = -K * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
 
         Scalar sx2 = df * dtgx;
