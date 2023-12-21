@@ -49,5 +49,5 @@ struct periodic_improper_params
 #endif
     } __attribute__((aligned(32)));
 
-    }
-    }
+    } // namespace md
+    } // namespace hoomd
