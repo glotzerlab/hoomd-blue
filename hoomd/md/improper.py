@@ -139,7 +139,7 @@ class Periodic(Improper):
               :math:`[\\mathrm{energy}]`.
             * ``chi0`` (`float`, **required**), equilibrium angle
               :math:`\\chi_0` :math:`[\\mathrm{radian}]`.
-            * ``n`` (`float`, **required**), periodic number
+            * ``n`` (`int`, **required**), periodic number
               :math:`n` :math:`[\\mathrm{dimensionless}]`.
             * ``d`` (`float`, **required**), sign factor
               :math:`d` :math:`[\\mathrm{dimensionless}]`.

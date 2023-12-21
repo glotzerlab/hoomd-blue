@@ -1,10 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*! \file PeriodicImproperForceComputeGPU.cc
-    \brief Defines PeriodicImproperForceComputeGPU
-*/
-
 #include "PeriodicImproperForceComputeGPU.h"
 
 using namespace std;
@@ -22,15 +18,8 @@ PeriodicImproperForceComputeGPU::PeriodicImproperForceComputeGPU(
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error()
-            << "Creating a ImproperForceComputeGPU with no GPU in the execution configuration"
-            << endl;
-        throw std::runtime_error("Error initializing ImproperForceComputeGPU");
+        throw std::runtime_error("ImproperForceComputeGPU requires a GPU device.");
         }
-
-    // allocate and zero device memory
-    GPUArray<Scalar4> params(m_improper_data->getNTypes(), m_exec_conf);
-    m_params.swap(params);
 
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -39,29 +28,6 @@ PeriodicImproperForceComputeGPU::PeriodicImproperForceComputeGPU(
     }
 
 PeriodicImproperForceComputeGPU::~PeriodicImproperForceComputeGPU() { }
-
-/*! \param type Type of the improper to set parameters for
-    \param K Stiffness parameter for the force computation
-    \param sign the sign of the cosine term
-        \param multiplicity the multiplicity of the cosine term
-    \param chi_0 the phase offset
-
-    Sets parameters for the potential of a particular improper type and updates the
-    parameters on the GPU.
-*/
-void PeriodicImproperForceComputeGPU::setParams(unsigned int type,
-                                                Scalar K,
-                                                Scalar sign,
-                                                int multiplicity,
-                                                Scalar chi_0)
-    {
-    PeriodicImproperForceCompute::setParams(type, K, sign, multiplicity, chi_0);
-
-    ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
-    // update the local copy of the memory
-    h_params.data[type]
-        = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(chi_0));
-    }
 
 /*! Internal method for computing the forces on the GPU.
     \post The force data on the GPU is written with the calculated forces
@@ -87,7 +53,9 @@ void PeriodicImproperForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<periodic_improper_params> d_params(m_params,
+                                                   access_location::device,
+                                                   access_mode::read);
 
     // run the kernel in parallel on all GPUs
     this->m_tuner->begin();

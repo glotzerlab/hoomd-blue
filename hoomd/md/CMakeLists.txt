@@ -171,6 +171,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
+                PeriodicImproper.h
                 PeriodicImproperForceCompute.h
                 PeriodicImproperForceComputeGPU.h
                 PPPMForceComputeGPU.h

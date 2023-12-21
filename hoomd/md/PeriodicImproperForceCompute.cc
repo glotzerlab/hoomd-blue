@@ -10,10 +10,6 @@
 
 using namespace std;
 
-/*! \file PeriodicImproperForceCompute.cc
-    \brief Contains code for the PeriodicImproperForceCompute class
-*/
-
 namespace hoomd
     {
 namespace md
@@ -22,73 +18,21 @@ namespace md
     \post Memory is allocated, and forces are zeroed.
 */
 PeriodicImproperForceCompute::PeriodicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL), m_chi_0(NULL)
+    : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PeriodicImproperForceCompute" << endl;
 
     // access the improper data for later use
     m_improper_data = m_sysdef->getImproperData();
 
-    // check for some silly errors a user could make
-    if (m_improper_data->getNTypes() == 0)
-        {
-        throw runtime_error("No improper types in the system.");
-        }
-
     // allocate the parameters
-    m_K = new Scalar[m_improper_data->getNTypes()];
-    m_sign = new Scalar[m_improper_data->getNTypes()];
-    m_multi = new int[m_improper_data->getNTypes()];
-    m_chi_0 = new Scalar[m_improper_data->getNTypes()];
+    GPUArray<periodic_improper_params> params(m_improper_data->getNTypes(), m_exec_conf);
+    m_params.swap(params);
     }
 
 PeriodicImproperForceCompute::~PeriodicImproperForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying PeriodicImproperForceCompute" << endl;
-
-    delete[] m_K;
-    delete[] m_sign;
-    delete[] m_multi;
-    delete[] m_chi_0;
-    m_K = NULL;
-    m_sign = NULL;
-    m_multi = NULL;
-    m_chi_0 = NULL;
-    }
-
-/*! \param type Type of the improper to set parameters for
-    \param K Stiffness parameter for the force computation
-    \param sign the sign of the cosign term
-    \param multiplicity of the improper itself
-
-    Sets parameters for the potential of a particular improper type
-*/
-void PeriodicImproperForceCompute::setParams(unsigned int type,
-                                             Scalar K,
-                                             Scalar sign,
-                                             int multiplicity,
-                                             Scalar chi_0)
-    {
-    // make sure the type is valid
-    if (type >= m_improper_data->getNTypes())
-        {
-        throw runtime_error("Invalid improper type.");
-        }
-
-    m_K[type] = K;
-    m_sign[type] = sign;
-    m_multi[type] = multiplicity;
-    m_chi_0[type] = chi_0;
-
-    // check for some silly errors a user could make
-    if (K <= 0)
-        m_exec_conf->msg->warning() << "improper.periodic: specified K <= 0" << endl;
-    if (sign != 1 && sign != -1)
-        m_exec_conf->msg->warning()
-            << "improper.periodic: a non unitary sign was specified" << endl;
-    if (chi_0 < 0 || chi_0 >= 2 * M_PI)
-        m_exec_conf->msg->warning()
-            << "improper.periodic: specified chi_0 outside [0, 2pi)" << endl;
     }
 
 void PeriodicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
@@ -96,18 +40,21 @@ void PeriodicImproperForceCompute::setParamsPython(std::string type, pybind11::d
     // make sure the type is valid
     auto typ = m_improper_data->getTypeByName(type);
     periodic_improper_params _params(params);
-    setParams(typ, _params.k, _params.d, _params.n, _params.chi_0);
+    ArrayHandle<periodic_improper_params> h_params(m_params,
+                                                   access_location::host,
+                                                   access_mode::readwrite);
+    h_params.data[typ] = _params;
     }
 
 pybind11::dict PeriodicImproperForceCompute::getParams(std::string type)
     {
     auto typ = m_improper_data->getTypeByName(type);
     pybind11::dict params;
-    params["k"] = m_K[typ];
-    params["d"] = m_sign[typ];
-    params["n"] = m_multi[typ];
-    params["chi0"] = m_chi_0[typ];
-    return params;
+
+    ArrayHandle<periodic_improper_params> h_params(m_params,
+                                                   access_location::host,
+                                                   access_mode::read);
+    return h_params.data[typ].asDict();
     }
 
 /*! Actually perform the force computation
@@ -122,6 +69,9 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
+    ArrayHandle<periodic_improper_params> h_params(m_params,
+                                                   access_location::host,
+                                                   access_mode::read);
 
     // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
@@ -158,11 +108,11 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         // throw an error if this angle is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
             {
-            this->m_exec_conf->msg->error()
-                << "improper.periodic: improper " << improper.tag[0] << " " << improper.tag[1]
-                << " " << improper.tag[2] << " " << improper.tag[3] << " incomplete." << endl
-                << endl;
-            throw std::runtime_error("Error in improper calculation");
+            std::ostringstream s;
+            s << "improper " << improper.tag[0] << " " << improper.tag[1] << " " << improper.tag[2]
+              << " " << improper.tag[3] << " is incomplete." << endl
+              << endl;
+            throw std::runtime_error(s.str());
             }
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
@@ -230,7 +180,8 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
             c_abcd = -1.0;
 
         unsigned int improper_type = m_improper_data->getTypeByIndex(i);
-        int multi = m_multi[improper_type];
+        const periodic_improper_params& param = h_params.data[improper_type];
+        int multi = param.n;
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab = Scalar(0.0);
@@ -248,8 +199,8 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         // cos_shift not always 1
         /////////////////////////
 
-        Scalar sign = m_sign[improper_type];
-        Scalar chi_0 = m_chi_0[improper_type];
+        Scalar sign = param.d;
+        Scalar chi_0 = param.chi_0;
         Scalar sin_chi_0 = fast::sin(chi_0);
         Scalar cos_chi_0 = fast::cos(chi_0);
         p = p * cos_chi_0 + dfab * sin_chi_0;
@@ -284,8 +235,7 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         Scalar dthz = gbb * bbz;
 
         //      Scalar df = -m_K[improper.type] * dfab;
-        Scalar df
-            = -m_K[improper_type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
+        Scalar df = -param.k * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
 
         Scalar sx2 = df * dtgx;
         Scalar sy2 = df * dtgy;
@@ -311,8 +261,7 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         // and accumulate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the improper
         // Scalar improper_eng = p*m_K[improper.type]*Scalar(1.0/4.0);
-        Scalar improper_eng
-            = p * m_K[improper_type] * Scalar(0.125); // the .125 term is (1/2)K * 1/4
+        Scalar improper_eng = p * param.k * Scalar(0.125); // the .125 term is (1/2)K * 1/4
 
         // compute 1/4 of the virial, 1/4 for each atom in the improper
         // upper triangular version of virial tensor

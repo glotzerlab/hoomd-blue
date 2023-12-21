@@ -1,18 +1,13 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "PeriodicImproper.h"
 #include "hip/hip_runtime.h"
 #include "hoomd/BondedGroupData.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 
-/*! \file PeriodicImproperForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the periodic improper forces. Used by
-   PeriodicImproperForceComputeGPU.
-*/
-
-#ifndef __PERIODICIMPROPERFORCEGPU_CUH__
-#define __PERIODICIMPROPERFORCEGPU_CUH__
+#pragma once
 
 namespace hoomd
     {
@@ -31,7 +26,7 @@ hipError_t gpu_compute_periodic_improper_forces(Scalar4* d_force,
                                                 const unsigned int* improper_ABCD,
                                                 const unsigned int pitch,
                                                 const unsigned int* n_impropers_list,
-                                                Scalar4* d_params,
+                                                periodic_improper_params* d_params,
                                                 unsigned int n_improper_types,
                                                 int block_size,
                                                 int warp_size);
@@ -39,5 +34,3 @@ hipError_t gpu_compute_periodic_improper_forces(Scalar4* d_force,
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd
-
-#endif

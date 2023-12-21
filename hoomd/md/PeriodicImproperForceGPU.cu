@@ -6,17 +6,6 @@
 
 #include <assert.h>
 
-#if HOOMD_LONGREAL_SIZE == 32
-#define __scalar2int_rn __float2int_rn
-#else
-#define __scalar2int_rn __double2int_rn
-#endif
-
-/*! \file PeriodicImproperForceGPU.cu
-    \brief Defines GPU kernel code for calculating the periodic improper forces. Used by
-   PeriodicImproperForceComputeGPU.
-*/
-
 namespace hoomd
     {
 namespace md
@@ -36,17 +25,18 @@ namespace kernel
     \param pitch Pitch of 2D improper list
     \param n_impropers_list List of numbers of impropers per atom
 */
-__global__ void gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
-                                                            Scalar* d_virial,
-                                                            const size_t virial_pitch,
-                                                            const unsigned int N,
-                                                            const Scalar4* d_pos,
-                                                            const Scalar4* d_params,
-                                                            BoxDim box,
-                                                            const group_storage<4>* tlist,
-                                                            const unsigned int* improper_ABCD,
-                                                            const unsigned int pitch,
-                                                            const unsigned int* n_impropers_list)
+__global__ void
+gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
+                                            Scalar* d_virial,
+                                            const size_t virial_pitch,
+                                            const unsigned int N,
+                                            const Scalar4* d_pos,
+                                            const periodic_improper_params* d_params,
+                                            BoxDim box,
+                                            const group_storage<4>* tlist,
+                                            const unsigned int* improper_ABCD,
+                                            const unsigned int pitch,
+                                            const unsigned int* n_impropers_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -134,12 +124,12 @@ __global__ void gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
         Scalar3 dcbm = -dcb;
         dcbm = box.minImage(dcbm);
 
-        // get the improper parameters (MEM TRANSFER: 12 bytes)
-        Scalar4 params = __ldg(d_params + cur_improper_type);
-        Scalar K = params.x;
-        Scalar sign = params.y;
-        Scalar multi = params.z;
-        Scalar chi_0 = params.w;
+        // get the improper parameters
+        periodic_improper_params params = d_params[cur_improper_type];
+        Scalar K = params.k;
+        Scalar sign = params.d;
+        int m = params.n;
+        Scalar chi_0 = params.chi_0;
 
         Scalar aax = dab.y * dcbm.z - dab.z * dcbm.y;
         Scalar aay = dab.z * dcbm.x - dab.x * dcbm.z;
@@ -175,7 +165,6 @@ __global__ void gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
         Scalar p = Scalar(1.0);
         Scalar ddfab;
         Scalar dfab = Scalar(0.0);
-        int m = __scalar2int_rn(multi);
 
         for (int jj = 0; jj < m; jj++)
             {
@@ -195,10 +184,10 @@ __global__ void gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
         p *= sign;
         dfab = dfab * cos_chi_0 - ddfab * sin_chi_0;
         dfab *= sign;
-        dfab *= -multi;
+        dfab *= -Scalar(m);
         p += Scalar(1.0);
 
-        if (multi < Scalar(1.0))
+        if (m < 1)
             {
             p = Scalar(1.0) + sign;
             dfab = Scalar(0.0);
@@ -332,7 +321,7 @@ hipError_t gpu_compute_periodic_improper_forces(Scalar4* d_force,
                                                 const unsigned int* improper_ABCD,
                                                 const unsigned int pitch,
                                                 const unsigned int* n_impropers_list,
-                                                Scalar4* d_params,
+                                                periodic_improper_params* d_params,
                                                 unsigned int n_improper_types,
                                                 int block_size,
                                                 int warp_size)
