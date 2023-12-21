@@ -46,8 +46,8 @@ class Integrator(_MDIntegrator):
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
 
-        sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the MPCD
-            particles.
+        solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
+            MPCD particles.
 
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.
@@ -70,14 +70,14 @@ class Integrator(_MDIntegrator):
 
 
     Attributes:
-        streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
-            for the MPCD solvent.
-
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
 
-        sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the MPCD
-            particles (recommended).
+        solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
+            MPCD particles (recommended).
+
+        streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
+            for the MPCD solvent.
 
     """
 

@@ -3,8 +3,8 @@
 
 r"""MPCD tuning operations.
 
-Tuning methods for the MPCD simulation. These operations will affect performance
-but not correctness.
+These operations will affect the performance of MPCD simulations but not
+their correctness.
 
 """
 
@@ -22,19 +22,18 @@ class ParticleSorter(Tuner):
 
     This tuner sorts the MPCD particles into cell order. To perform the sort,
     the cell list is first computed with the current particle order. Particles
-    are then reordered in memory, which can significantly improve performance
-    of all subsequent cell-based steps of the MPCD algorithm due to improved
-    cache coherency.
+    are then reordered in memory as they are stored in the cell list, which can
+    significantly improve performance of all subsequent cell-based steps of the
+    MPCD algorithm due to improved cache coherency.
 
-    The optimal frequency for sorting depends on the number of particles, so
-    the `trigger` itself should be tuned to give the maximum performance.
-    The `trigger` should be a multiple of :attr:`CollisionMethod.period` to avoid
-    unnecessary cell list builds. Typically, using a small multiple (tens) of
-    the collision period works best.
+    The optimal frequency for sorting depends on the number of particles, so the
+    `trigger` itself should be tuned to give the maximum performance. The
+    `trigger` should be a multiple of `hoomd.mpcd.collide.CollisionMethod.period`
+    to avoid unnecessary cell list builds. Typically, using a small multiple
+    (tens) of the collision period works best.
 
-    To avoid further unnecessary cell list builds, this `ParticleSorter` should
-    **not** be added to `hoomd.Operations.tuners`. Instead, set it in
-    `hoomd.mpcd.Integrator.sorter`.
+    For best performance, the `ParticleSorter` should **not** be added to
+    `hoomd.Operations.tuners`. Instead, set it in `hoomd.mpcd.Integrator.sorter`.
 
     Essentially all MPCD systems benefit from sorting, so it is recommended
     to use one for all simulations!
