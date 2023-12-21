@@ -230,10 +230,10 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                       &UpdaterQuickCompress::setTargetBox)
         .def_property("instance",
                       &UpdaterQuickCompress::getInstance,
+                      &UpdaterQuickCompress::setInstance)
+        .def_property("allow_unsafe_resize",
+                      &UpdaterQuickCompress::getInstance,
                       &UpdaterQuickCompress::setInstance);
-    .def_property("allow_unsafe_resize",
-                  &UpdaterQuickCompress::getInstance,
-                  &UpdaterQuickCompress::setInstance);
     }
     } // end namespace detail
     } // end namespace hpmc
