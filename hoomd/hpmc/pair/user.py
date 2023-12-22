@@ -248,7 +248,7 @@ class CPPPotential(CPPPotentialBase):
             "CPPPotential is deprecated since 4.5.0. "
             "Use a hpmc.pair.Pair potential.",
             FutureWarning,
-            stacklevel=1)
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -531,7 +531,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             "CPPPotentialUnion is deprecated since 4.5.0. "
             "Use a hpmc.pair.Pair potential.",
             FutureWarning,
-            stacklevel=1)
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}

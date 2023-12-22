@@ -585,7 +585,7 @@ class HPMCIntegrator(Integrator):
             "pair_potential is deprecated since 4.5.0. "
             "Use pair_potentials.",
             FutureWarning,
-            stacklevel=1)
+            stacklevel=2)
         return self._pair_potential
 
     @pair_potential.setter
@@ -594,7 +594,7 @@ class HPMCIntegrator(Integrator):
             "pair_potential is deprecated since 4.5.0. "
             "Use pair_potentials.",
             FutureWarning,
-            stacklevel=1)
+            stacklevel=4)
 
         if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
             raise TypeError(
