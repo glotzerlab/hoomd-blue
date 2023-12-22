@@ -10,8 +10,6 @@ the potential during MC integration.
 
 .. rubric:: Example:
 
-.. skip next if(not hoomd.version.hpmc_built)
-
 .. invisible-code-block: python
 
     simulation = hoomd.util.make_example_simulation()
@@ -23,8 +21,6 @@ the potential during MC integration.
     pair.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
 
     logger = hoomd.logging.Logger()
-
-.. skip next if(not hoomd.version.hpmc_built)
 
 .. code-block:: python
 
@@ -44,11 +40,6 @@ class Pair(hoomd.operation._HOOMDBaseObject):
     cutoff distance interact with an energy that is a function the
     type and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
-
-    .. rubric:: Mixed precision
-
-    HPMC pair potentials evaluate the energy with reduced precision
-    in the local particle reference frame about particle *i*.
 
     Note:
         The base class `Pair` implements common attributes (`energy`, for
@@ -92,8 +83,6 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         the evaluation over multiple images when the simulation box is small.
 
         .. rubric:: Example
-
-        .. skip next if(not hoomd.version.hpmc_built)
 
         .. code-block:: python
 

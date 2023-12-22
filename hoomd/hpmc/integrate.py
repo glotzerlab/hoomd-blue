@@ -259,6 +259,13 @@ acceptance criterion accordingly. See `Glaser 2015
 .. deprecated:: 4.4.0
 
     ``depletant_fugacity > 0`` is deprecated.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    sphere = hoomd.hpmc.integrate.Sphere()
+    sphere.shape['A'] = dict(diameter=0.0)
+    simulation.operations.integrator = sphere
 """
 
 from hoomd import _hoomd
@@ -471,7 +478,19 @@ class HPMCIntegrator(Integrator):
 
     @property
     def pair_potentials(self):
-        """list[hoomd.hpmc.pair.Pair] Pair potentials to apply."""
+        """list[hoomd.hpmc.pair.Pair]: Pair potentials to apply.
+
+        .. rubric:: Example
+
+        .. invisible-code-block: python
+
+            lennard_jones =  hoomd.hpmc.pair.LennardJones()
+            lennard_jones.params[('A', 'A')] = dict(
+                epsilon=1, sigma=1, r_cut=2.5)
+
+        .. code-block: python
+            simulation.operations.integrator.pair_potentials = [lennard_jones]
+        """
         return self._pair_potentials
 
     @pair_potentials.setter
@@ -562,10 +581,21 @@ class HPMCIntegrator(Integrator):
         :math:`U_{\mathrm{pair},ij}`. Defaults to `None`. May be set to an
         object from :doc:`module-hpmc-pair`.
         """
+        warnings.warn(
+            "pair_potential is deprecated since 4.5.0. "
+            "Use pair_potentials.",
+            FutureWarning,
+            stacklevel=1)
         return self._pair_potential
 
     @pair_potential.setter
     def pair_potential(self, new_potential):
+        warnings.warn(
+            "pair_potential is deprecated since 4.5.0. "
+            "Use pair_potentials.",
+            FutureWarning,
+            stacklevel=1)
+
         if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
             raise TypeError(
                 "Pair potentials should be an instance of CPPPotentialBase")

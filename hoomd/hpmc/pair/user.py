@@ -244,6 +244,12 @@ class CPPPotential(CPPPotentialBase):
         self._param_dict.update(param_dict)
         self.code = code
 
+        warnings.warn(
+            "CPPPotential is deprecated since 4.5.0. "
+            "Use a hpmc.pair.Pair potential.",
+            FutureWarning,
+            stacklevel=1)
+
     def _getattr_param(self, attr):
         if attr == 'code':
             return self._param_dict[attr]
@@ -520,6 +526,12 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         self.code_constituent = code_constituent
         self.code_isotropic = code_isotropic
+
+        warnings.warn(
+            "CPPPotentialUnion is deprecated since 4.5.0. "
+            "Use a hpmc.pair.Pair potential.",
+            FutureWarning,
+            stacklevel=1)
 
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}
