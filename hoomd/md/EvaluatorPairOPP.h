@@ -7,7 +7,7 @@
 #ifndef __HIPCC__
 #include <string>
 #endif
-
+ 
 #include "hoomd/HOOMDMath.h"
 
 /*! \file EvaluatorPairOPP.h
