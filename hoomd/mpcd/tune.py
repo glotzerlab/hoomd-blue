@@ -33,7 +33,7 @@ class ParticleSorter(Tuner):
     (tens) of the collision period works best.
 
     For best performance, the `ParticleSorter` should **not** be added to
-    `hoomd.Operations.tuners`. Instead, set it in `hoomd.mpcd.Integrator.sorter`.
+    `hoomd.Operations.tuners`. Instead, set it in `hoomd.mpcd.Integrator.solvent_sorter`.
 
     Essentially all MPCD systems benefit from sorting, so it is recommended
     to use one for all simulations!
