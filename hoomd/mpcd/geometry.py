@@ -1,6 +1,20 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+r"""MPCD geometries.
+
+A geometry defines solid boundaries that cannot be penetrated. These
+geometries are used for various operations in the MPCD algorithm including:
+
+* :class:`~hoomd.mpcd.stream.BounceBack` streaming for the solvent
+* Bounce back integration for MD particles
+* Virtual particle filling
+
+Each geometry may put constraints on the size of the simulation and where
+particles are allowed. These constraints will be documented by each object.
+
+"""
+
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.mpcd import _mpcd
 from hoomd.operation import _HOOMDBaseObject

@@ -12,8 +12,7 @@ mpcd.stream
     :nosignatures:
 
     Bulk
-    ParallelPlates
-    PlanarPore
+    BounceBack
     StreamingMethod
 
 .. rubric:: Details
@@ -22,6 +21,5 @@ mpcd.stream
     :synopsis: Streaming methods.
     :members: StreamingMethod,
               Bulk,
-              ParallelPlates,
-              PlanarPore
+              BounceBack
     :show-inheritance:
