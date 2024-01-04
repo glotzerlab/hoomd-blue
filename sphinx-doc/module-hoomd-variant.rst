@@ -40,8 +40,6 @@ hoomd.variant
         :members: min, max, __getstate__, __setstate__
     .. autodata:: variant_like
 
-.. autosummary::
-    :nosignatures:
 
 .. rubric:: Modules
 

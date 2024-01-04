@@ -43,7 +43,7 @@ template<unsigned int ndim> class PYBIND11_EXPORT VectorVariant
 class PYBIND11_EXPORT VectorVariantBox : public VectorVariant<6>
     {
     protected:
-    std::array<Scalar, 6> box_to_array(std::shared_ptr<BoxDim> box)
+    static std::array<Scalar, 6> box_to_array(std::shared_ptr<BoxDim> box)
         {
         return std::array<Scalar, 6> {box->getL().x,
                                       box->getL().y,
