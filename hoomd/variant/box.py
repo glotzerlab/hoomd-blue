@@ -43,8 +43,8 @@ class Ramp(_hoomd.VectorVariantBoxLinear):
     Args:
         initial_box (hoomd.box.box_like): The initial box.
         final_box (hoomd.box.box_like): The final box.
-        t_start (int): The time step at the start of the ramp.
-        t_ramp (int): The length of the ramp.
+        variant (hoomd.variant.variant_like): A variant used to interpolate
+            between the two boxes.
 
     Ramp returns the array corresponding to *initial_box* for
     :math:`t \\leq t_{\\mathrm{start}}` and *final_box* for
@@ -53,15 +53,15 @@ class Ramp(_hoomd.VectorVariantBoxLinear):
     Attributes:
         initial_box (hoomd.Box): The initial box.
         final_box (hoomd.Box): The final box.
-        t_start (int): The time step at the start of the ramp.
-        t_ramp (int): The length of the ramp.
+        variant (hoomd.variant.Variant): A variant used to interpolate between
+            the two boxes.
     """
 
-    def __init__(self, initial_box, final_box, t_start, t_ramp):
+    def __init__(self, initial_box, final_box, variant):
         box1 = box_preprocessing(initial_box)
         box2 = box_preprocessing(final_box)
         _hoomd.VectorVariantBoxLinear.__init__(self, box1._cpp_obj,
-                                               box2._cpp_obj, t_start, t_ramp)
+                                               box2._cpp_obj, variant)
 
 
 class LinearInverseVolume(_hoomd.VectorVariantBoxInverseVolumeRamp):

@@ -12,6 +12,7 @@
 
 #include "BoxDim.h"
 #include "HOOMDMath.h"
+#include "Variant.h"
 
 namespace hoomd
     {
@@ -98,53 +99,35 @@ class PYBIND11_EXPORT VectorVariantBoxLinear : public VectorVariantBox
     */
     VectorVariantBoxLinear(std::shared_ptr<BoxDim> box1,
                            std::shared_ptr<BoxDim> box2,
-                           uint64_t t_start,
-                           uint64_t t_ramp)
-        : m_box1(box1), m_box2(box2), m_t_start(t_start), m_t_ramp(t_ramp)
+                           std::shared_ptr<Variant> variant)
+        : m_box1(box1), m_box2(box2), m_variant(variant)
         {
         }
 
     /// Return the value.
     virtual array_type operator()(uint64_t timestep)
         {
-        if (timestep < m_t_start)
+        Scalar min = m_variant->min();
+        Scalar max = m_variant->max();
+        Scalar cur_value = (*m_variant)(timestep);
+        Scalar scale = 0;
+        if (cur_value == max)
             {
-            return std::array<Scalar, 6> {m_box1->getL().x,
-                                          m_box1->getL().y,
-                                          m_box1->getL().z,
-                                          m_box1->getTiltFactorXY(),
-                                          m_box1->getTiltFactorXZ(),
-                                          m_box1->getTiltFactorYZ()};
+            scale = 1;
             }
-        else if (timestep >= m_t_start + m_t_ramp)
+        else if (cur_value > min)
             {
-            return std::array<Scalar, 6> {m_box2->getL().x,
-                                          m_box2->getL().y,
-                                          m_box2->getL().z,
-                                          m_box2->getTiltFactorXY(),
-                                          m_box2->getTiltFactorXZ(),
-                                          m_box2->getTiltFactorYZ()};
+            scale = (cur_value - min) / (max - min);
             }
-        else
-            {
-            double s = double(timestep - m_t_start) / double(m_t_ramp);
-            std::array<Scalar, 6> value;
-            Scalar3 L1 = m_box1->getL();
-            Scalar3 L2 = m_box2->getL();
-            Scalar xy1 = m_box1->getTiltFactorXY();
-            Scalar xy2 = m_box2->getTiltFactorXY();
-            Scalar xz1 = m_box1->getTiltFactorXZ();
-            Scalar xz2 = m_box2->getTiltFactorXZ();
-            Scalar yz1 = m_box1->getTiltFactorYZ();
-            Scalar yz2 = m_box2->getTiltFactorYZ();
-            value[0] = L2.x * s + L1.x * (1.0 - s);
-            value[1] = L2.y * s + L1.y * (1.0 - s);
-            value[2] = L2.z * s + L1.z * (1.0 - s);
-            value[3] = xy2 * s + xy1 * (1.0 - s);
-            value[4] = xz2 * s + xz1 * (1.0 - s);
-            value[5] = yz2 * s + yz1 * (1.0 - s);
-            return value;
-            }
+
+        const auto& box1 = *m_box1;
+        const auto& box2 = *m_box2;
+        Scalar3 new_L = box2.getL() * scale + box1.getL() * (1.0 - scale);
+        Scalar xy = box2.getTiltFactorXY() * scale + (1.0 - scale) * box1.getTiltFactorXY();
+        Scalar xz = box2.getTiltFactorXZ() * scale + (1.0 - scale) * box1.getTiltFactorXZ();
+        Scalar yz = box2.getTiltFactorYZ() * scale + (1.0 - scale) * box1.getTiltFactorYZ();
+        array_type value = {new_L.x, new_L.y, new_L.z, xy, xz, yz};
+        return value;
         }
 
     std::shared_ptr<BoxDim> getBox1()
@@ -167,47 +150,27 @@ class PYBIND11_EXPORT VectorVariantBoxLinear : public VectorVariantBox
         m_box2 = box;
         }
 
-    /// Set the starting time step.
-    void setTStart(uint64_t t_start)
+    /// Set the variant for interpolation
+    void setVariant(std::shared_ptr<Variant> variant)
         {
-        m_t_start = t_start;
+        m_variant = variant;
         }
 
-    /// Get the starting time step.
-    uint64_t getTStart() const
+    /// Get the variant for interpolation
+    std::shared_ptr<Variant> getVariant()
         {
-        return m_t_start;
-        }
-
-    /// Set the length of the ramp.
-    void setTRamp(uint64_t t_ramp)
-        {
-        // doubles can only represent integers accuracy up to 2**53.
-        if (t_ramp >= 9007199254740992ull)
-            {
-            throw std::invalid_argument("t_ramp must be less than 2**53");
-            }
-        m_t_ramp = t_ramp;
-        }
-
-    /// Get the length of the ramp.
-    uint64_t getTRamp() const
-        {
-        return m_t_ramp;
+        return m_variant;
         }
 
     protected:
-    /// The starting box.
+    /// The starting box, associated with the minimum of the variant.
     std::shared_ptr<BoxDim> m_box1;
 
-    /// The final box.
+    /// The final box, associated with the maximum of the variant.
     std::shared_ptr<BoxDim> m_box2;
 
-    /// The starting time step.
-    uint64_t m_t_start;
-
-    /// The length of the ramp.
-    uint64_t m_t_ramp;
+    /// Variant that interpolates between boxes.
+    std::shared_ptr<Variant> m_variant;
     };
 
 class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBox
