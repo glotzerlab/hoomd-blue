@@ -257,13 +257,11 @@ struct ShapeSphere
 */
 template<class ShapeA, class ShapeB>
 DEVICE inline bool
-check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB& b)
+check_circumsphere_overlap(const vec3<LongReal>& r_ab, const ShapeA& a, const ShapeB& b)
     {
-    vec2<ShortReal> dr(ShortReal(r_ab.x), ShortReal(r_ab.y));
-
-    ShortReal rsq = dot(dr, dr);
-    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq * ShortReal(4.0) <= DaDb * DaDb);
+    LongReal r_squared = dot(r_ab, r_ab);
+    LongReal diameter_sum = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    return (r_squared * LongReal(4.0) <= diameter_sum * diameter_sum);
     }
 
 //! Define the general overlap function
@@ -480,7 +478,7 @@ DEVICE inline bool excludedVolumeOverlap(const Shape& shape_a,
         upper_b.y += r;
         upper_b.z += r;
 
-        return overlap(aabb_a, aabb_b);
+        return aabb_b.overlaps(aabb_a);
         }
     }
 
@@ -568,7 +566,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
-        if (!overlap(aabb_a, aabb_b))
+        if (!aabb_b.overlaps(aabb_a))
             return false;
 
         // extend AABBs by the excluded volume radius
@@ -663,7 +661,7 @@ DEVICE inline ShortReal getSamplingVolumeIntersection(const Shape& shape_a,
         hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
-        if (!overlap(aabb_a, aabb_b))
+        if (!aabb_b.overlaps(aabb_a))
             return ShortReal(0.0);
 
         // extend AABBs by the excluded volume radius
