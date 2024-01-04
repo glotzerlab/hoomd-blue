@@ -2,12 +2,12 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitGeometryFillerGPU.cu
- * \brief Defines GPU functions and kernels used by mpcd::SlitGeometryFillerGPU
+ * \file mpcd/ParallelPlateGeometryFillerGPU.cu
+ * \brief Defines GPU functions and kernels used by mpcd::ParallelPlateGeometryFillerGPU
  */
 
 #include "ParticleDataUtilities.h"
-#include "SlitPoreGeometryFillerGPU.cuh"
+#include "PlanarPoreGeometryFillerGPU.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
@@ -100,7 +100,7 @@ __global__ void slit_pore_draw_particles(Scalar4* d_pos,
 
     // initialize random number generator for positions and velocity
     hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::SlitPoreGeometryFiller, timestep, seed),
+        hoomd::Seed(hoomd::RNGIdentifier::PlanarPoreGeometryFiller, timestep, seed),
         hoomd::Counter(tag));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),

@@ -2,18 +2,18 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitGeometryFiller.h
- * \brief Definition of virtual particle filler for mpcd::detail::SlitGeometry.
+ * \file mpcd/ParallelPlateGeometryFiller.h
+ * \brief Definition of virtual particle filler for mpcd::ParallelPlateGeometry.
  */
 
-#ifndef MPCD_SLIT_GEOMETRY_FILLER_H_
-#define MPCD_SLIT_GEOMETRY_FILLER_H_
+#ifndef MPCD_PARALLEL_PLATE_GEOMETRY_FILLER_H_
+#define MPCD_PARALLEL_PLATE_GEOMETRY_FILLER_H_
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "SlitGeometry.h"
+#include "ParallelPlateGeometry.h"
 #include "VirtualParticleFiller.h"
 
 #include <pybind11/pybind11.h>
@@ -22,29 +22,29 @@ namespace hoomd
     {
 namespace mpcd
     {
-//! Adds virtual particles to the MPCD particle data for SlitGeometry
+//! Adds virtual particles to the MPCD particle data for ParallelPlateGeometry
 /*!
  * Particles are added to the volume that is overlapped by any of the cells that are also "inside"
  * the channel, subject to the grid shift.
  */
-class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
+class PYBIND11_EXPORT ParallelPlateGeometryFiller : public mpcd::VirtualParticleFiller
     {
     public:
-    SlitGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
-                       Scalar density,
-                       unsigned int type,
-                       std::shared_ptr<Variant> T,
-                       std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
+    ParallelPlateGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
+                                Scalar density,
+                                unsigned int type,
+                                std::shared_ptr<Variant> T,
+                                std::shared_ptr<const mpcd::ParallelPlateGeometry> geom);
 
-    virtual ~SlitGeometryFiller();
+    virtual ~ParallelPlateGeometryFiller();
 
-    void setGeometry(std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
+    void setGeometry(std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
         {
         m_geom = geom;
         }
 
     protected:
-    std::shared_ptr<const mpcd::detail::SlitGeometry> m_geom;
+    std::shared_ptr<const mpcd::ParallelPlateGeometry> m_geom;
     Scalar m_z_min;      //!< Min z coordinate for filling
     Scalar m_z_max;      //!< Max z coordinate for filling
     unsigned int m_N_lo; //!< Number of particles to fill below channel
@@ -59,9 +59,9 @@ class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
 
 namespace detail
     {
-//! Export SlitGeometryFiller to python
-void export_SlitGeometryFiller(pybind11::module& m);
+//! Export ParallelPlateGeometryFiller to python
+void export_ParallelPlateGeometryFiller(pybind11::module& m);
     }  // end namespace detail
     }  // end namespace mpcd
     }  // end namespace hoomd
-#endif // MPCD_SLIT_GEOMETRY_FILLER_H_
+#endif // MPCD_PARALLEL_PLATE_GEOMETRY_FILLER_H_

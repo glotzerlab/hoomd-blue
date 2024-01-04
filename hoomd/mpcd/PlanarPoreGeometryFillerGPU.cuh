@@ -5,13 +5,13 @@
 #define MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_CUH_
 
 /*!
- * \file mpcd/SlitGeometryFillerGPU.cuh
- * \brief Declaration of CUDA kernels for mpcd::SlitPoreGeometryFillerGPU
+ * \file mpcd/PlanarPoreGeometryFillerGPU.cuh
+ * \brief Declaration of CUDA kernels for mpcd::PlanarPoreGeometryFillerGPU
  */
 
 #include <cuda_runtime.h>
 
-#include "SlitPoreGeometry.h"
+#include "PlanarPoreGeometry.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
@@ -21,7 +21,7 @@ namespace mpcd
     {
 namespace gpu
     {
-//! Draw virtual particles in the SlitPoreGeometry
+//! Draw virtual particles in the PlanarPoreGeometry
 cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
                                      Scalar4* d_vel,
                                      unsigned int* d_tag,

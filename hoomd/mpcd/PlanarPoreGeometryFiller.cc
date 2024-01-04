@@ -2,11 +2,11 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitPoreGeometryFiller.cc
- * \brief Definition of mpcd::SlitPoreGeometryFiller
+ * \file mpcd/PlanarPoreGeometryFiller.cc
+ * \brief Definition of mpcd::PlanarPoreGeometryFiller
  */
 
-#include "SlitPoreGeometryFiller.h"
+#include "PlanarPoreGeometryFiller.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
@@ -14,17 +14,17 @@
 
 namespace hoomd
     {
-mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(
+mpcd::PlanarPoreGeometryFiller::PlanarPoreGeometryFiller(
     std::shared_ptr<SystemDefinition> sysdef,
     Scalar density,
     unsigned int type,
     std::shared_ptr<Variant> T,
     uint16_t seed,
-    std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
+    std::shared_ptr<const mpcd::PlanarPoreGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdef, density, type, T), m_num_boxes(0),
       m_boxes(MAX_BOXES, m_exec_conf), m_ranges(MAX_BOXES, m_exec_conf)
     {
-    m_exec_conf->msg->notice(5) << "Constructing MPCD SlitPoreGeometryFiller" << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing MPCD PlanarPoreGeometryFiller" << std::endl;
 
     setGeometry(geom);
 
@@ -32,19 +32,19 @@ mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(
     m_needs_recompute = true;
     m_recompute_cache = make_scalar3(-1, -1, -1);
     m_pdata->getBoxChangeSignal()
-        .connect<mpcd::SlitPoreGeometryFiller, &mpcd::SlitPoreGeometryFiller::notifyRecompute>(
+        .connect<mpcd::PlanarPoreGeometryFiller, &mpcd::PlanarPoreGeometryFiller::notifyRecompute>(
             this);
     }
 
-mpcd::SlitPoreGeometryFiller::~SlitPoreGeometryFiller()
+mpcd::PlanarPoreGeometryFiller::~PlanarPoreGeometryFiller()
     {
-    m_exec_conf->msg->notice(5) << "Destroying MPCD SlitPoreGeometryFiller" << std::endl;
+    m_exec_conf->msg->notice(5) << "Destroying MPCD PlanarPoreGeometryFiller" << std::endl;
     m_pdata->getBoxChangeSignal()
-        .disconnect<mpcd::SlitPoreGeometryFiller, &mpcd::SlitPoreGeometryFiller::notifyRecompute>(
-            this);
+        .disconnect<mpcd::PlanarPoreGeometryFiller,
+                    &mpcd::PlanarPoreGeometryFiller::notifyRecompute>(this);
     }
 
-void mpcd::SlitPoreGeometryFiller::computeNumFill()
+void mpcd::PlanarPoreGeometryFiller::computeNumFill()
     {
     const Scalar cell_size = m_cl->getCellSize();
     const Scalar max_shift = m_cl->getMaxGridShift();
@@ -144,7 +144,7 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
 /*!
  * \param timestep Current timestep to draw particles
  */
-void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
+void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
     {
     // quit early if not filling to ensure we don't access any memory that hasn't been set
     if (m_N_fill == 0)
@@ -180,7 +180,7 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::SlitPoreGeometryFiller, timestep, seed),
+            hoomd::Seed(hoomd::RNGIdentifier::PlanarPoreGeometryFiller, timestep, seed),
             hoomd::Counter(tag));
 
         // advanced past end of this box range, take the next
@@ -216,18 +216,18 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SlitPoreGeometryFiller(pybind11::module& m)
+void mpcd::detail::export_PlanarPoreGeometryFiller(pybind11::module& m)
     {
-    pybind11::class_<mpcd::SlitPoreGeometryFiller,
+    pybind11::class_<mpcd::PlanarPoreGeometryFiller,
                      mpcd::VirtualParticleFiller,
-                     std::shared_ptr<mpcd::SlitPoreGeometryFiller>>(m, "SlitPoreGeometryFiller")
+                     std::shared_ptr<mpcd::PlanarPoreGeometryFiller>>(m, "PlanarPoreGeometryFiller")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,
                             unsigned int,
-                            std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>())
-        .def("setGeometry", &mpcd::SlitPoreGeometryFiller::setGeometry);
+                            std::shared_ptr<const mpcd::PlanarPoreGeometry>>())
+        .def("setGeometry", &mpcd::PlanarPoreGeometryFiller::setGeometry);
     }
 
     } // end namespace hoomd

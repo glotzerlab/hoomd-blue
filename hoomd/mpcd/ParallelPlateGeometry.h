@@ -2,14 +2,12 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitGeometry.h
+ * \file mpcd/ParallelPlateGeometry.h
  * \brief Definition of the MPCD slit channel geometry
  */
 
-#ifndef MPCD_SLIT_GEOMETRY_H_
-#define MPCD_SLIT_GEOMETRY_H_
-
-#include "BoundaryCondition.h"
+#ifndef MPCD_PARALLEL_PLATE_GEOMETRY_H_
+#define MPCD_PARALLEL_PLATE_GEOMETRY_H_
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
@@ -24,8 +22,6 @@
 namespace hoomd
     {
 namespace mpcd
-    {
-namespace detail
     {
 //! Parallel plate (slit) geometry
 /*!
@@ -53,16 +49,19 @@ namespace detail
  * The wall boundary conditions can optionally be changed to slip conditions. For these BCs, the
  * previous discussion of the various flow profiles no longer applies.
  */
-class __attribute__((visibility("default"))) SlitGeometry
+class __attribute__((visibility("default"))) ParallelPlateGeometry
     {
     public:
     //! Constructor
     /*!
      * \param H Channel half-width
      * \param V Velocity of the wall
-     * \param bc Boundary condition at the wall (slip or no-slip)
+     * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE SlitGeometry(Scalar H, Scalar V, boundary bc) : m_H(H), m_V(V), m_bc(bc) { }
+    HOSTDEVICE ParallelPlateGeometry(Scalar H, Scalar V, bool no_slip)
+        : m_H(H), m_V(V), m_no_slip(no_slip)
+        {
+        }
 
     //! Detect collision between the particle and the boundary
     /*!
@@ -114,7 +113,7 @@ class __attribute__((visibility("default"))) SlitGeometry
 
         // update velocity according to boundary conditions
         // no-slip requires reflection of the tangential components
-        if (m_bc == boundary::no_slip)
+        if (m_no_slip)
             {
             vel.x = -vel.x + Scalar(sign * 2) * m_V;
             vel.y = -vel.y;
@@ -173,28 +172,27 @@ class __attribute__((visibility("default"))) SlitGeometry
     /*!
      * \returns Boundary condition at wall
      */
-    HOSTDEVICE boundary getBoundaryCondition() const
+    HOSTDEVICE bool getNoSlip() const
         {
-        return m_bc;
+        return m_no_slip;
         }
 
 #ifndef __HIPCC__
     //! Get the unique name of this geometry
     static std::string getName()
         {
-        return std::string("Slit");
+        return std::string("ParallelPlates");
         }
 #endif // __HIPCC__
 
     private:
-    const Scalar m_H;    //!< Half of the channel width
-    const Scalar m_V;    //!< Velocity of the wall
-    const boundary m_bc; //!< Boundary condition
+    const Scalar m_H;     //!< Half of the channel width
+    const Scalar m_V;     //!< Velocity of the wall
+    const bool m_no_slip; //!< Boundary condition
     };
 
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #undef HOSTDEVICE
 
-#endif // MPCD_SLIT_GEOMETRY_H_
+#endif // MPCD_PARALLEL_PLATE_GEOMETRY_H_

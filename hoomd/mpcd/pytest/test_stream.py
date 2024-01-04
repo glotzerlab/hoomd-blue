@@ -24,19 +24,18 @@ def snap():
     [
         (hoomd.mpcd.stream.Bulk, {}),
         (
-            hoomd.mpcd.stream.ParallelPlates,
+            hoomd.mpcd.stream.BounceBack,
             {
-                "H": 4.0,
-                "V": 0.0,
-                "no_slip": True,
+                "geometry":
+                    hoomd.mpcd.geometry.ParallelPlates(
+                        H=4.0, V=0.0, no_slip=True),
             },
         ),
         (
-            hoomd.mpcd.stream.PlanarPore,
+            hoomd.mpcd.stream.BounceBack,
             {
-                "H": 4.0,
-                "L": 3.0,
-                "no_slip": True,
+                "geometry":
+                    hoomd.mpcd.geometry.PlanarPore(H=4.0, L=3.0, no_slip=True)
             },
         ),
     ],
@@ -135,7 +134,8 @@ class TestParallelPlates:
             snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
             snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=4)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -173,7 +173,9 @@ class TestParallelPlates:
             snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
             snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=4, no_slip=False)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4, no_slip=False))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -219,7 +221,10 @@ class TestParallelPlates:
             snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
             snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-2.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=4, V=1, no_slip=True)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4, V=1, no_slip=True),
+        )
         ig = hoomd.mpcd.Integrator(dt=0.3, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -235,7 +240,8 @@ class TestParallelPlates:
     def test_validate_box(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=10)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=10))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -247,7 +253,8 @@ class TestParallelPlates:
         if snap.communicator.rank == 0:
             snap.mpcd.position[0] = [4.95, -4.95, 3.85]
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.ParallelPlates(period=1, H=3.8)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.8))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -285,7 +292,9 @@ class TestPlanarPore:
     def test_step_noslip(self, simulation_factory, snap):
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.PlanarPore(period=1, H=4, L=3, no_slip=True)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3, no_slip=True))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -352,7 +361,9 @@ class TestPlanarPore:
     def test_step_slip(self, simulation_factory, snap):
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.PlanarPore(period=1, H=4, L=3, no_slip=False)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3, no_slip=False))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -422,11 +433,13 @@ class TestPlanarPore:
         ig = hoomd.mpcd.Integrator(dt=0.1)
         sim.operations.integrator = ig
 
-        ig.streaming_method = hoomd.mpcd.stream.PlanarPore(period=1, H=10, L=2)
+        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=10, L=2))
         with pytest.raises(RuntimeError):
             sim.run(1)
 
-        ig.streaming_method = hoomd.mpcd.stream.PlanarPore(period=1, H=4, L=10)
+        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=10))
         with pytest.raises(RuntimeError):
             sim.run(1)
 
@@ -437,10 +450,12 @@ class TestPlanarPore:
         ig = hoomd.mpcd.Integrator(dt=0.1)
         sim.operations.integrator = ig
 
-        ig.streaming_method = hoomd.mpcd.stream.PlanarPore(period=1, H=3.8, L=3)
+        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=3.8, L=3))
         with pytest.raises(RuntimeError):
             sim.run(1)
 
-        ig.streaming_method = hoomd.mpcd.stream.PlanarPore(period=1, H=4, L=3.5)
+        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3.5))
         with pytest.raises(RuntimeError):
             sim.run(1)

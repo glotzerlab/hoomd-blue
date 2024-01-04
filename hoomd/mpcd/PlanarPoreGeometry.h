@@ -2,14 +2,12 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitPoreGeometry.h
+ * \file mpcd/PlanarPoreGeometry.h
  * \brief Definition of the MPCD slit pore geometry
  */
 
-#ifndef MPCD_SLIT_PORE_GEOMETRY_H_
-#define MPCD_SLIT_PORE_GEOMETRY_H_
-
-#include "BoundaryCondition.h"
+#ifndef MPCD_PLANAR_PORE_GEOMETRY_H_
+#define MPCD_PLANAR_PORE_GEOMETRY_H_
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
@@ -25,8 +23,7 @@ namespace hoomd
     {
 namespace mpcd
     {
-namespace detail
-    {
+
 //! Parallel plate (slit) geometry with pore boundaries
 /*!
  * This class defines the geometry consistent with two finite-length parallel plates. The plates
@@ -41,18 +38,21 @@ namespace detail
  * There is an infinite bounding wall with normal in \a x at the edges of the pore.
  * There are no bounding walls away from the pore (PBCs apply).
  *
- * \sa mpcd::detail::SlitGeometry for additional discussion of the boundary conditions, etc.
+ * \sa mpcd::ParallelPlateGeometry for additional discussion of the boundary conditions, etc.
  */
-class __attribute__((visibility("default"))) SlitPoreGeometry
+class __attribute__((visibility("default"))) PlanarPoreGeometry
     {
     public:
     //! Constructor
     /*!
      * \param H Channel half-width
      * \param L Pore half-length
-     * \param bc Boundary condition at the wall (slip or no-slip)
+     * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE SlitPoreGeometry(Scalar H, Scalar L, boundary bc) : m_H(H), m_L(L), m_bc(bc) { }
+    HOSTDEVICE PlanarPoreGeometry(Scalar H, Scalar L, bool no_slip)
+        : m_H(H), m_L(L), m_no_slip(no_slip)
+        {
+        }
 
     //! Detect collision between the particle and the boundary
     /*!
@@ -147,7 +147,7 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
         // update velocity according to boundary conditions
         // no-slip requires reflection of the tangential components
         const Scalar3 vn = dot(n, vel) * n;
-        if (m_bc == boundary::no_slip)
+        if (m_no_slip)
             {
             const Scalar3 vt = vel - vn;
             vel += Scalar(-2) * vt;
@@ -207,28 +207,27 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
     /*!
      * \returns Boundary condition at wall
      */
-    HOSTDEVICE boundary getBoundaryCondition() const
+    HOSTDEVICE bool getNoSlip() const
         {
-        return m_bc;
+        return m_no_slip;
         }
 
 #ifndef __HIPCC__
     //! Get the unique name of this geometry
     static std::string getName()
         {
-        return std::string("SlitPore");
+        return std::string("PlanarPore");
         }
 #endif // __HIPCC__
 
     private:
-    const Scalar m_H;    //!< Half of the channel width
-    const Scalar m_L;    //!< Half of the pore length
-    const boundary m_bc; //!< Boundary condition
+    const Scalar m_H;     //!< Half of the channel width
+    const Scalar m_L;     //!< Half of the pore length
+    const bool m_no_slip; //!< Boundary condition
     };
 
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #undef HOSTDEVICE
 
-#endif // MPCD_SLIT_PORE_GEOMETRY_H_
+#endif // MPCD_PLANAR_PORE_GEOMETRY_H_

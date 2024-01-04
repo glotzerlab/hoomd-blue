@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Communicator.h"
-#include "hoomd/mpcd/SlitPoreGeometryFiller.h"
+#include "hoomd/mpcd/ParallelPlateGeometryFiller.h"
 #ifdef ENABLE_HIP
-#include "hoomd/mpcd/SlitPoreGeometryFillerGPU.h"
+#include "hoomd/mpcd/ParallelPlateGeometryFillerGPU.h"
 #endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
@@ -14,7 +14,8 @@ HOOMD_UP_MAIN()
 
 using namespace hoomd;
 
-template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
+template<class F>
+void parallel_plate_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
@@ -33,34 +34,25 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
     sysdef->setCommunicator(pdata_comm);
 
     auto pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef, 2.0, false);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 
-    // create slit channel with half width 5 and half length 8
-    auto slit
-        = std::make_shared<const mpcd::detail::SlitPoreGeometry>(5.0,
-                                                                 8.0,
-                                                                 mpcd::detail::boundary::no_slip);
+    // create slit channel with half width 5
+    auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(5.0, 0.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
-    std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
-        = std::make_shared<F>(sysdef, 2.0, 0, kT, 42, slit);
+    std::shared_ptr<mpcd::ParallelPlateGeometryFiller> filler
+        = std::make_shared<F>(sysdef, 2.0, 0, kT, slit);
     filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list
-     *
-     * The fill volume is a U-shape |___|. The width of the sides is 1, since they align with the
-     * grid. The width of the bottom is 2, since the wall slices halfway through the cell. The are
-     * is the sum of the 3 rectangles, and the volume is multiplied by the box size.
-     *
-     * Each rank only owns half of this geometry, and then half of the y box size..
      */
     filler->fill(0);
     // volume to fill is from 5->5.5 (0.5) on + side, with cross section of 10^2 locally
-    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (1 * 3 + 2 * 8) * 10);
-    // globally, all ranks should have particles (8x larger)
-    UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 2 * 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (10 * 10 / 2));
+    // globally, cross section is 20^2 globally and also mirrored on bottom
+    UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 2 * (20 * 20 / 2) * 2);
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
@@ -68,8 +60,8 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
         for (unsigned int i = 0; i < pdata->getNVirtual(); ++i)
             {
             const unsigned int idx = pdata->getN() + i;
-            // each rank held 380 particles, so range is easy to determine
-            UP_ASSERT_EQUAL(h_tag.data[idx], 1 + exec_conf->getRank() * 380 + i);
+            // each rank held 100 particles, so range is easy to determine
+            UP_ASSERT_EQUAL(h_tag.data[idx], 1 + exec_conf->getRank() * 100 + i);
             UP_ASSERT(h_pos.data[idx].x >= box.getLo().x && h_pos.data[idx].x < box.getHi().x);
             UP_ASSERT(h_pos.data[idx].y >= box.getLo().y && h_pos.data[idx].y < box.getHi().y);
             UP_ASSERT(h_pos.data[idx].z >= box.getLo().z && h_pos.data[idx].z < box.getHi().z);
@@ -80,22 +72,22 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
      * Fill up a second time
      */
     filler->fill(1);
-    UP_ASSERT_EQUAL(pdata->getNVirtual(), 4 * (1 * 3 + 2 * 8) * 10);
-    UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 4 * 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * 2 * (10 * 10 / 2));
+    UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 2 * 2 * (20 * 20 / 2) * 2);
 
     pdata->removeVirtualParticles();
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
     }
 
-UP_TEST(slit_pore_fill_mpi)
+UP_TEST(parallel_plate_fill_mpi)
     {
-    slit_pore_fill_mpi_test<mpcd::SlitPoreGeometryFiller>(
+    parallel_plate_fill_mpi_test<mpcd::ParallelPlateGeometryFiller>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
-UP_TEST(slit_pore_fill_mpi_gpu)
+UP_TEST(parallel_plate_fill_mpi_gpu)
     {
-    slit_pore_fill_mpi_test<mpcd::SlitPoreGeometryFillerGPU>(
+    parallel_plate_fill_mpi_test<mpcd::ParallelPlateGeometryFillerGPU>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP

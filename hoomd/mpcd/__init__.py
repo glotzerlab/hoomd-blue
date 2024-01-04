@@ -69,6 +69,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 
 from hoomd.mpcd import collide
+from hoomd.mpcd import geometry
 from hoomd.mpcd import integrate
 from hoomd.mpcd.integrate import Integrator
 from hoomd.mpcd import stream

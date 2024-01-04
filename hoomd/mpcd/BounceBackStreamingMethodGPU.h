@@ -2,8 +2,8 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/ConfinedStreamingMethodGPU.h
- * \brief Declaration of mpcd::ConfinedStreamingMethodGPU
+ * \file mpcd/BounceBackStreamingMethodGPU.h
+ * \brief Declaration of mpcd::BounceBackStreamingMethodGPU
  */
 
 #ifndef MPCD_CONFINED_STREAMING_METHOD_GPU_H_
@@ -13,8 +13,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "ConfinedStreamingMethod.h"
-#include "ConfinedStreamingMethodGPU.cuh"
+#include "BounceBackStreamingMethod.h"
+#include "BounceBackStreamingMethodGPU.cuh"
 #include "hoomd/Autotuner.h"
 
 namespace hoomd
@@ -27,7 +27,8 @@ namespace mpcd
  * particles in a confined geometry.
  */
 template<class Geometry>
-class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamingMethod<Geometry>
+class PYBIND11_EXPORT BounceBackStreamingMethodGPU
+    : public mpcd::BounceBackStreamingMethod<Geometry>
     {
     public:
     //! Constructor
@@ -38,12 +39,12 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
      * \param phase Phase shift for periodic updates
      * \param geom Streaming geometry
      */
-    ConfinedStreamingMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int cur_timestep,
-                               unsigned int period,
-                               int phase,
-                               std::shared_ptr<const Geometry> geom)
-        : mpcd::ConfinedStreamingMethod<Geometry>(sysdef, cur_timestep, period, phase, geom)
+    BounceBackStreamingMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                 unsigned int cur_timestep,
+                                 unsigned int period,
+                                 int phase,
+                                 std::shared_ptr<const Geometry> geom)
+        : mpcd::BounceBackStreamingMethod<Geometry>(sysdef, cur_timestep, period, phase, geom)
         {
         m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                                        this->m_exec_conf,
@@ -61,7 +62,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
 /*!
  * \param timestep Current time to stream
  */
-template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint64_t timestep)
+template<class Geometry> void BounceBackStreamingMethodGPU<Geometry>::stream(uint64_t timestep)
     {
     if (!this->shouldStream(timestep))
         return;
@@ -111,12 +112,12 @@ namespace detail
 /*!
  * \param m Python module to export to
  */
-template<class Geometry> void export_ConfinedStreamingMethodGPU(pybind11::module& m)
+template<class Geometry> void export_BounceBackStreamingMethodGPU(pybind11::module& m)
     {
-    const std::string name = "ConfinedStreamingMethodGPU" + Geometry::getName();
-    pybind11::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>,
-                     mpcd::ConfinedStreamingMethod<Geometry>,
-                     std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>(m, name.c_str())
+    const std::string name = "BounceBackStreamingMethod" + Geometry::getName() + "GPU";
+    pybind11::class_<mpcd::BounceBackStreamingMethodGPU<Geometry>,
+                     mpcd::BounceBackStreamingMethod<Geometry>,
+                     std::shared_ptr<mpcd::BounceBackStreamingMethodGPU<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,

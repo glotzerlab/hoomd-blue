@@ -2,8 +2,8 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/ConfinedStreamingMethod.h
- * \brief Declaration of mpcd::ConfinedStreamingMethod
+ * \file mpcd/BounceBackStreamingMethod.h
+ * \brief Declaration of mpcd::BounceBackStreamingMethod
  */
 
 #ifndef MPCD_CONFINED_STREAMING_METHOD_H_
@@ -25,7 +25,7 @@ namespace mpcd
  * This method implements the base version of ballistic propagation of MPCD
  * particles in confined geometries.
  *
- * \tparam Geometry The confining geometry (e.g., BulkGeometry, SlitGeometry).
+ * \tparam Geometry The confining geometry.
  *
  * The integration scheme is essentially Verlet with specular reflections. The particle is streamed
  * forward over the time interval. If it moves outside the Geometry, it is placed back on the
@@ -41,7 +41,7 @@ namespace mpcd
  *
  */
 template<class Geometry>
-class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
+class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
     {
     public:
     //! Constructor
@@ -52,11 +52,11 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
      * \param phase Phase shift for periodic updates
      * \param geom Streaming geometry
      */
-    ConfinedStreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
-                            unsigned int cur_timestep,
-                            unsigned int period,
-                            int phase,
-                            std::shared_ptr<const Geometry> geom)
+    BounceBackStreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
+                              unsigned int cur_timestep,
+                              unsigned int period,
+                              int phase,
+                              std::shared_ptr<const Geometry> geom)
         : mpcd::StreamingMethod(sysdef, cur_timestep, period, phase), m_geom(geom),
           m_validate_geom(true)
         {
@@ -92,7 +92,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
 /*!
  * \param timestep Current time to stream
  */
-template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t timestep)
+template<class Geometry> void BounceBackStreamingMethod<Geometry>::stream(uint64_t timestep)
     {
     if (!shouldStream(timestep))
         return;
@@ -162,14 +162,14 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
     m_mpcd_pdata->invalidateCellCache();
     }
 
-template<class Geometry> void ConfinedStreamingMethod<Geometry>::validate()
+template<class Geometry> void BounceBackStreamingMethod<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
     const BoxDim box = m_pdata->getGlobalBox();
     const Scalar cell_width = m_cl->getCellSize();
     if (!m_geom->validateBox(box, cell_width))
         {
-        m_exec_conf->msg->error() << "ConfinedStreamingMethod: box too small for "
+        m_exec_conf->msg->error() << "BounceBackStreamingMethod: box too small for "
                                   << Geometry::getName() << " geometry. Increase box size."
                                   << std::endl;
         throw std::runtime_error("Simulation box too small for confined streaming method");
@@ -194,7 +194,7 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::validate()
  * Checks each MPCD particle position to determine if it lies within the geometry. If any particle
  * is out of bounds, an error is raised.
  */
-template<class Geometry> bool ConfinedStreamingMethod<Geometry>::validateParticles()
+template<class Geometry> bool BounceBackStreamingMethod<Geometry>::validateParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,
@@ -226,20 +226,18 @@ namespace detail
 /*!
  * \param m Python module to export to
  */
-template<class Geometry> void export_ConfinedStreamingMethod(pybind11::module& m)
+template<class Geometry> void export_BounceBackStreamingMethod(pybind11::module& m)
     {
-    const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
-    pybind11::class_<mpcd::ConfinedStreamingMethod<Geometry>,
+    const std::string name = "BounceBackStreamingMethod" + Geometry::getName();
+    pybind11::class_<mpcd::BounceBackStreamingMethod<Geometry>,
                      mpcd::StreamingMethod,
-                     std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
+                     std::shared_ptr<mpcd::BounceBackStreamingMethod<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,
                             std::shared_ptr<const Geometry>>())
-        .def_property("geometry",
-                      &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,
-                      &mpcd::ConfinedStreamingMethod<Geometry>::setGeometry);
+        .def_property_readonly("geometry", &mpcd::BounceBackStreamingMethod<Geometry>::getGeometry);
     }
     }  // end namespace detail
     }  // end namespace mpcd

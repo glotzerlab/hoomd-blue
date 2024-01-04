@@ -28,8 +28,8 @@ namespace detail
 //! Bulk (periodic) geometry
 /*!
  * This geometry is for a bulk fluid, and hence all of its methods simply indicate no collision
- * occurs. It exists so that we can leverage the ConfinedStreamingMethod integrator to still stream
- * in bulk.
+ * occurs. It exists so that we can leverage the BounceBackStreamingMethod integrator to still
+ * stream in bulk.
  */
 class __attribute__((visibility("default"))) BulkGeometry
     {

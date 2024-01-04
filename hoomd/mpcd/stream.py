@@ -49,7 +49,9 @@ are a few important caveats:
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.mpcd import _mpcd
+from hoomd.mpcd.geometry import Geometry
 from hoomd.operation import AutotunedObject
 
 
@@ -96,136 +98,73 @@ class Bulk(StreamingMethod):
     def _attach_hook(self):
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.GPU):
-            class_ = _mpcd.ConfinedStreamingMethodGPUBulk
+            class_ = _mpcd.BulkStreamingMethodGPU
         else:
-            class_ = _mpcd.ConfinedStreamingMethodBulk
+            class_ = _mpcd.BulkStreamingMethod
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
             self.period,
             0,
-            _mpcd.BulkGeometry(),
         )
 
         super()._attach_hook()
 
 
-class ParallelPlates(StreamingMethod):
-    r"""Parallel-plate channel.
+class BounceBack(StreamingMethod):
+    """Streaming with bounce-back rule for surfaces.
 
     Args:
         period (int): Number of integration steps covered by streaming step.
-        H (float): Channel half-width.
-        V (float): Wall speed.
-        no_slip (bool): If True, plates have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
-
-    `ParallelPlates` streams the MPCD particles between two infinite parallel
-    plates centered around the origin. The plates are placed at :math:`z=-H`
-    and :math:`z=+H`, so the total channel width is :math:`2H`. The plates may
-    be put into motion, moving with speeds :math:`-V` and :math:`+V` in the *x*
-    direction, respectively. If combined with a no-slip boundary condition,
-    this motion can be used to generate simple shear flow.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
 
     Attributes:
-        H (float): Channel half-width.
-
-        V (float): Wall speed.
-
-        no_slip (bool): If True, plates have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
-
-            `V` will have no effect if `no_slip` is False because the slip
-            surface cannot generate shear stress.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
 
     """
 
-    def __init__(self, period, H, V=0.0, no_slip=True):
+    def __init__(self, period, geometry):
         super().__init__(period)
 
-        param_dict = ParameterDict(
-            H=float(H),
-            V=float(V),
-            no_slip=bool(no_slip),
-        )
+        param_dict = ParameterDict(geometry=OnlyTypes(Geometry))
+        param_dict["geometry"] = geometry
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         sim = self._simulation
-        if isinstance(sim.device, hoomd.device.GPU):
-            class_ = _mpcd.ConfinedStreamingMethodGPUSlit
-        else:
-            class_ = _mpcd.ConfinedStreamingMethodSlit
 
-        bc = _mpcd.boundary.no_slip if self.no_slip else _mpcd.boundary.slip
-        slit = _mpcd.SlitGeometry(self.H, self.V, bc)
+        self.geometry._attach(sim)
+
+        # try to find class in map, otherwise default to internal MPCD module
+        geom_type = type(self.geometry)
+        try:
+            class_info = self._class_map[geom_type]
+        except KeyError:
+            class_info = (_mpcd,
+                          "BounceBackStreamingMethod" + geom_type.__name__)
+        class_info = list(class_info)
+        if isinstance(sim.device, hoomd.device.GPU):
+            class_info[1] += "GPU"
+        class_ = getattr(*class_info, None)
+        assert class_ is not None, "Streaming method for geometry not found"
+
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
             self.period,
             0,
-            slit,
+            self.geometry._cpp_obj,
         )
 
         super()._attach_hook()
 
+    def _detach_hook(self):
+        self.geometry._detach()
+        super()._detach_hook()
 
-class PlanarPore(StreamingMethod):
-    r"""Parallel plate pore.
+    _class_map = {}
 
-    Args:
-        period (int): Number of integration steps covered by streaming step.
-        H (float): Channel half-width.
-        L (float): Pore half-length.
-        no_slip (bool): If True, plates have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
-
-    `PlanarPore` is a finite-length pore version of `ParallelPlates`. The
-    geometry is similar, except that the plates extend from :math:`x=-L` to
-    :math:`x=+L` (total length *2L*). Additional solid walls
-    with normals in *x* prevent penetration into the regions above / below the
-    plates. The plates are infinite in *y*. Outside the pore, the simulation box
-    has full periodic boundaries; it is not confined by any walls. This model
-    hence mimics a narrow pore in, e.g., a membrane.
-
-    .. image:: mpcd_slit_pore.png
-
-    Attributes:
-        H (float): Channel half-width.
-
-        L (float): Pore half-length.
-
-        no_slip (bool): If True, plates have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
-
-    """
-
-    def __init__(self, period, H, L, no_slip=True):
-        super().__init__(period)
-
-        param_dict = ParameterDict(
-            H=float(H),
-            L=float(L),
-            no_slip=bool(no_slip),
-        )
-        self._param_dict.update(param_dict)
-
-    def _attach_hook(self):
-        sim = self._simulation
-        if isinstance(sim.device, hoomd.device.GPU):
-            class_ = _mpcd.ConfinedStreamingMethodGPUSlitPore
-        else:
-            class_ = _mpcd.ConfinedStreamingMethodSlitPore
-
-        bc = _mpcd.boundary.no_slip if self.no_slip else _mpcd.boundary.slip
-        slit = _mpcd.SlitPoreGeometry(self.H, self.L, bc)
-        self._cpp_obj = class_(
-            sim.state._cpp_sys_def,
-            sim.timestep,
-            self.period,
-            0,
-            slit,
-        )
-
-        super()._attach_hook()
+    @classmethod
+    def _register_geometry(cls, geometry, module, class_name):
+        cls._class_map[geometry] = (module, class_name)

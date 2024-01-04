@@ -2,32 +2,33 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitGeometryFiller.cc
- * \brief Definition of mpcd::SlitGeometryFiller
+ * \file mpcd/ParallelPlateGeometryFiller.cc
+ * \brief Definition of mpcd::ParallelPlateGeometryFiller
  */
 
-#include "SlitGeometryFiller.h"
+#include "ParallelPlateGeometryFiller.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
 namespace hoomd
     {
-mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
-                                             Scalar density,
-                                             unsigned int type,
-                                             std::shared_ptr<Variant> T,
-                                             std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
+mpcd::ParallelPlateGeometryFiller::ParallelPlateGeometryFiller(
+    std::shared_ptr<SystemDefinition> sysdef,
+    Scalar density,
+    unsigned int type,
+    std::shared_ptr<Variant> T,
+    std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdef, density, type, T), m_geom(geom)
     {
-    m_exec_conf->msg->notice(5) << "Constructing MPCD SlitGeometryFiller" << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing MPCD ParallelPlateGeometryFiller" << std::endl;
     }
 
-mpcd::SlitGeometryFiller::~SlitGeometryFiller()
+mpcd::ParallelPlateGeometryFiller::~ParallelPlateGeometryFiller()
     {
-    m_exec_conf->msg->notice(5) << "Destroying MPCD SlitGeometryFiller" << std::endl;
+    m_exec_conf->msg->notice(5) << "Destroying MPCD ParallelPlateGeometryFiller" << std::endl;
     }
 
-void mpcd::SlitGeometryFiller::computeNumFill()
+void mpcd::ParallelPlateGeometryFiller::computeNumFill()
     {
     // as a precaution, validate the global box with the current cell list
     const BoxDim& global_box = m_pdata->getGlobalBox();
@@ -76,7 +77,7 @@ void mpcd::SlitGeometryFiller::computeNumFill()
 /*!
  * \param timestep Current timestep to draw particles
  */
-void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
+void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,
@@ -102,7 +103,7 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+            hoomd::Seed(hoomd::RNGIdentifier::ParallelPlateGeometryFiller, timestep, seed),
             hoomd::Counter(tag));
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
@@ -139,17 +140,19 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
+void mpcd::detail::export_ParallelPlateGeometryFiller(pybind11::module& m)
     {
-    pybind11::class_<mpcd::SlitGeometryFiller,
+    pybind11::class_<mpcd::ParallelPlateGeometryFiller,
                      mpcd::VirtualParticleFiller,
-                     std::shared_ptr<mpcd::SlitGeometryFiller>>(m, "SlitGeometryFiller")
+                     std::shared_ptr<mpcd::ParallelPlateGeometryFiller>>(
+        m,
+        "ParallelPlateGeometryFiller")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,
-                            std::shared_ptr<const mpcd::detail::SlitGeometry>>())
-        .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry);
+                            std::shared_ptr<const mpcd::ParallelPlateGeometry>>())
+        .def("setGeometry", &mpcd::ParallelPlateGeometryFiller::setGeometry);
     }
 
     } // end namespace hoomd

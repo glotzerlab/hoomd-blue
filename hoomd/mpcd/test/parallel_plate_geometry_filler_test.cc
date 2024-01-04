@@ -1,9 +1,9 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/mpcd/SlitPoreGeometryFiller.h"
+#include "hoomd/mpcd/ParallelPlateGeometryFiller.h"
 #ifdef ENABLE_HIP
-#include "hoomd/mpcd/SlitPoreGeometryFillerGPU.h"
+#include "hoomd/mpcd/ParallelPlateGeometryFillerGPU.h"
 #endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
@@ -13,7 +13,8 @@ HOOMD_UP_MAIN()
 
 using namespace hoomd;
 
-template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
+template<class F>
+void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(20.0);
@@ -28,27 +29,20 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     auto cl = std::make_shared<mpcd::CellList>(sysdef, 2.0, false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
-    // create slit pore channel with half width 5, half length 8
-    auto slit
-        = std::make_shared<const mpcd::detail::SlitPoreGeometry>(5.0,
-                                                                 8.0,
-                                                                 mpcd::detail::boundary::no_slip);
-    // fill density 2, temperature 1.5
+    // create slit channel with half width 5
+    auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(5.0, 1.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
-    std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
-        = std::make_shared<F>(sysdef, 2.0, 1, kT, 42, slit);
+    std::shared_ptr<mpcd::ParallelPlateGeometryFiller> filler
+        = std::make_shared<F>(sysdef, 2.0, 1, kT, slit);
     filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list
-     *
-     * The fill volume is a U-shape |___|. The width of the sides is 1, since they align with the
-     * grid. The width of the bottom is 2, since the wall slices halfway through the cell. The area
-     * is the sum of the 3 rectangles, and the volume is multiplied by the box size.
      */
     filler->fill(0);
-    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
-        // count that particles have been placed on the right sides, and in right spaces
+    // volume to fill is from 5->7 (2) on + side, with cross section of 20^2, mirrored on bottom
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (2 * 20 * 20) * 2);
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -73,26 +67,21 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
             // type should be set
             UP_ASSERT_EQUAL(__scalar_as_int(h_pos.data[i].w), 1);
 
-            const Scalar4 r = h_pos.data[i];
-            if (r.x >= Scalar(-8.0) && r.x <= Scalar(8.0))
-                {
-                if (r.z < Scalar(-5.0))
-                    ++N_lo;
-                else if (r.z >= Scalar(5.0))
-                    ++N_hi;
-                }
+            const Scalar z = h_pos.data[i].z;
+            if (z < Scalar(-5.0))
+                ++N_lo;
+            else if (z >= Scalar(5.0))
+                ++N_hi;
             }
-        UP_ASSERT_EQUAL(N_lo, 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
-        UP_ASSERT_EQUAL(N_hi, 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
+        UP_ASSERT_EQUAL(N_lo, 2 * (2 * 20 * 20));
+        UP_ASSERT_EQUAL(N_hi, 2 * (2 * 20 * 20));
         }
 
     /*
-     * Fill the volume again with double the density, which should triple the number of virtual
-     * particles
+     * Fill the volume again, which should double the number of virtual particles
      */
-    filler->setDensity(4.0);
     filler->fill(1);
-    UP_ASSERT_EQUAL(pdata->getNVirtual(), 6 * 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * 2 * (2 * 20 * 20) * 2);
         // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
@@ -107,93 +96,102 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
             // tag should equal index on one rank with one filler
             UP_ASSERT_EQUAL(h_tag.data[i], i);
 
-            const Scalar4 r = h_pos.data[i];
-            if (r.x >= Scalar(-8.0) && r.x <= Scalar(8.0))
-                {
-                if (r.z < Scalar(-5.0))
-                    ++N_lo;
-                else if (r.z >= Scalar(5.0))
-                    ++N_hi;
-                }
+            const Scalar z = h_pos.data[i].z;
+            if (z < Scalar(-5.0))
+                ++N_lo;
+            else if (z >= Scalar(5.0))
+                ++N_hi;
             }
-        UP_ASSERT_EQUAL(N_lo, 6 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
-        UP_ASSERT_EQUAL(N_hi, 6 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
+        UP_ASSERT_EQUAL(N_lo, 2 * 2 * (2 * 20 * 20));
+        UP_ASSERT_EQUAL(N_hi, 2 * 2 * (2 * 20 * 20));
         }
 
     /*
      * Change the cell size so that we lie exactly on a boundary.
-     *
-     * Now, all sides of the U have thickness 0.5.
      */
     pdata->removeVirtualParticles();
     cl->setCellSize(1.0);
     filler->fill(2);
-    UP_ASSERT_EQUAL(pdata->getNVirtual(),
-                    (unsigned int)(4 * 2 * (0.5 * 4.5 + 0.5 * 16 + 0.5 * 4.5) * 20));
+    // volume to fill is now from 5->5.5 on + side, same other parameters
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (20 * 20 / 2) * 2);
         // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         unsigned int N_lo(0), N_hi(0);
         for (unsigned int i = pdata->getN(); i < pdata->getN() + pdata->getNVirtual(); ++i)
             {
-            const Scalar4 r = h_pos.data[i];
-            if (r.x >= Scalar(-8.0) && r.x <= Scalar(8.0))
-                {
-                if (r.z < Scalar(-5.0))
-                    ++N_lo;
-                else if (r.z >= Scalar(5.0))
-                    ++N_hi;
-                }
+            const Scalar z = h_pos.data[i].z;
+            if (z < Scalar(-5.0))
+                ++N_lo;
+            else if (z >= Scalar(5.0))
+                ++N_hi;
             }
-        UP_ASSERT_EQUAL(N_lo, (unsigned int)(4 * (8 + 4.5) * 20));
-        UP_ASSERT_EQUAL(N_hi, (unsigned int)(4 * (8 + 4.5) * 20));
+        UP_ASSERT_EQUAL(N_lo, 2 * (20 * 20 / 2));
+        UP_ASSERT_EQUAL(N_hi, 2 * (20 * 20 / 2));
         }
 
     /*
-     * Test the average fill properties of the virtual particles.
+     * Test the average properties of the virtual particles.
      */
-    filler->setDensity(2.0);
     cl->setCellSize(2.0);
-    unsigned int N_avg(0);
-    Scalar3 v_avg = make_scalar3(0, 0, 0);
+    unsigned int N_lo(0), N_hi(0);
+    Scalar3 v_lo = make_scalar3(0, 0, 0);
+    Scalar3 v_hi = make_scalar3(0, 0, 0);
     Scalar T_avg(0);
     for (unsigned int t = 0; t < 500; ++t)
         {
         pdata->removeVirtualParticles();
         filler->fill(3 + t);
 
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,
                                    access_mode::read);
+
         for (unsigned int i = pdata->getN(); i < pdata->getN() + pdata->getNVirtual(); ++i)
             {
+            const Scalar z = h_pos.data[i].z;
             const Scalar4 vel_cell = h_vel.data[i];
             const Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
-
-            ++N_avg;
-            v_avg += vel;
-            T_avg += dot(vel, vel);
+            if (z < Scalar(-5.0))
+                {
+                v_lo += vel;
+                T_avg += dot(vel - make_scalar3(-1.0, 0, 0), vel - make_scalar3(-1.0, 0, 0));
+                ++N_lo;
+                }
+            else if (z >= Scalar(5.0))
+                {
+                v_hi += vel;
+                T_avg += dot(vel - make_scalar3(1.0, 0, 0), vel - make_scalar3(1.0, 0, 0));
+                ++N_hi;
+                }
             }
         }
     // make averages
-    v_avg /= N_avg;
-    T_avg /= (3 * (N_avg - 1));
+    UP_ASSERT_EQUAL(N_lo, 500 * 2 * (2 * 20 * 20));
+    UP_ASSERT_EQUAL(N_hi, 500 * 2 * (2 * 20 * 20));
+    v_lo /= N_lo;
+    v_hi /= N_hi;
+    T_avg /= (3 * (N_lo + N_hi - 1));
 
-    CHECK_SMALL(v_avg.x, tol);
-    CHECK_SMALL(v_avg.y, tol);
-    CHECK_SMALL(v_avg.z, tol);
+    CHECK_CLOSE(v_lo.x, -1.0, tol);
+    CHECK_SMALL(v_lo.y, tol);
+    CHECK_SMALL(v_lo.z, tol);
+    CHECK_CLOSE(v_hi.x, 1.0, tol);
+    CHECK_SMALL(v_hi.y, tol);
+    CHECK_SMALL(v_hi.z, tol);
     CHECK_CLOSE(T_avg, 1.5, tol);
     }
 
-UP_TEST(slit_pore_fill_basic)
+UP_TEST(parallel_plate_fill_basic)
     {
-    slit_pore_fill_basic_test<mpcd::SlitPoreGeometryFiller>(
+    parallel_plate_fill_basic_test<mpcd::ParallelPlateGeometryFiller>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
-UP_TEST(slit_pore_fill_basic_gpu)
+UP_TEST(parallel_plate_fill_basic_gpu)
     {
-    slit_pore_fill_basic_test<mpcd::SlitPoreGeometryFillerGPU>(
+    parallel_plate_fill_basic_test<mpcd::ParallelPlateGeometryFillerGPU>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP
