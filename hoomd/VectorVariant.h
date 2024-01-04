@@ -59,16 +59,10 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
     public:
     /** Construct a VectorVariantBoxConstant.
 
-        @param values The values.
+        @param box The box.
     */
     VectorVariantBoxConstant(std::shared_ptr<BoxDim> box)
-        : m_value({box->getL().x,
-                   box->getL().y,
-                   box->getL().z,
-                   box->getTiltFactorXY(),
-                   box->getTiltFactorXZ(),
-                   box->getTiltFactorYZ()}),
-          m_box(box)
+        : m_box(box)
         {
         }
 
@@ -77,7 +71,7 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
     /// Return the value.
     virtual array_type operator()(uint64_t timestep)
         {
-        return m_value;
+        return box_to_array(m_box);
         }
 
     std::shared_ptr<BoxDim> getBox()
@@ -88,16 +82,9 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
     void setBox(std::shared_ptr<BoxDim> box)
         {
         m_box = box;
-        m_value = {box->getL().x,
-                   box->getL().y,
-                   box->getL().z,
-                   box->getTiltFactorXY(),
-                   box->getTiltFactorXZ(),
-                   box->getTiltFactorYZ()};
         }
 
     protected:
-    std::array<Scalar, 6> m_value;
     std::shared_ptr<BoxDim> m_box;
     };
 
