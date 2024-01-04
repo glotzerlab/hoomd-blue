@@ -61,7 +61,6 @@ from hoomd import version
 from hoomd import trigger
 from hoomd import variant
 from hoomd.box import Box, box_like
-from hoomd.variant import box
 from hoomd import data
 from hoomd import filter
 from hoomd import device
