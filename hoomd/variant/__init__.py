@@ -11,6 +11,7 @@ See `Variant` for details on creating user-defined variants or use one of the
 provided subclasses.
 """
 import typing
+from . import box
 
 from hoomd import _hoomd
 

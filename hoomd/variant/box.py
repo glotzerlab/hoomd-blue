@@ -4,7 +4,7 @@
 """Implement variants that return box parameters as a function of time."""
 
 from hoomd import _hoomd
-from hoomd.data.typeconverter import box_preprocessing
+from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
 
 
 class Box(_hoomd.VectorVariantBox):
@@ -58,8 +58,9 @@ class Ramp(_hoomd.VectorVariantBoxLinear):
     """
 
     def __init__(self, initial_box, final_box, variant):
-        box1 = box_preprocessing(initial_box)
-        box2 = box_preprocessing(final_box)
+        box1 = box_preprocessing(box1)
+        box2 = box_preprocessing(box2)
+        variant = variant_preprocessing(variant)
         _hoomd.VectorVariantBoxLinear.__init__(self, box1._cpp_obj,
                                                box2._cpp_obj, variant)
 
