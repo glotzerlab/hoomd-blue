@@ -23,6 +23,7 @@ template<class F> void planar_pore_fill_mpi_test(std::shared_ptr<ExecutionConfig
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
     snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.type_mapping.push_back("B");
     snap->mpcd_data.position[0] = vec3<Scalar>(1, 1, 1);
     snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
 
@@ -41,7 +42,7 @@ template<class F> void planar_pore_fill_mpi_test(std::shared_ptr<ExecutionConfig
     auto slit = std::make_shared<const mpcd::PlanarPoreGeometry>(5.0, 8.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::PlanarPoreGeometryFiller> filler
-        = std::make_shared<F>(sysdef, 2.0, 0, kT, 42, slit);
+        = std::make_shared<F>(sysdef, "A", 2.0, kT, slit);
     filler->setCellList(cl);
 
     /*

@@ -11,13 +11,14 @@
 namespace hoomd
     {
 mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<SystemDefinition> sysdef,
+                                                   const std::string& type,
                                                    Scalar density,
-                                                   unsigned int type,
                                                    std::shared_ptr<Variant> T)
     : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_density(density), m_type(type), m_T(T),
-      m_N_fill(0), m_first_tag(0)
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_density(density), m_T(T), m_N_fill(0),
+      m_first_tag(0)
     {
+    setType(type);
     }
 
 void mpcd::VirtualParticleFiller::fill(uint64_t timestep)
@@ -67,15 +68,14 @@ void mpcd::VirtualParticleFiller::setDensity(Scalar density)
     m_density = density;
     }
 
-void mpcd::VirtualParticleFiller::setType(unsigned int type)
+std::string mpcd::VirtualParticleFiller::getType() const
     {
-    if (type >= m_mpcd_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << "Invalid type id specified for MPCD virtual particle filler"
-                                  << std::endl;
-        throw std::runtime_error("Invalid type id");
-        }
-    m_type = type;
+    return m_mpcd_pdata->getNameByType(m_type);
+    }
+
+void mpcd::VirtualParticleFiller::setType(const std::string& type)
+    {
+    m_type = m_mpcd_pdata->getTypeByName(type);
     }
 
 /*!
@@ -87,12 +87,18 @@ void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
         m,
         "VirtualParticleFiller")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            const std::string&,
                             Scalar,
-                            unsigned int,
                             std::shared_ptr<Variant>>())
-        .def("setDensity", &mpcd::VirtualParticleFiller::setDensity)
-        .def("setType", &mpcd::VirtualParticleFiller::setType)
-        .def("setTemperature", &mpcd::VirtualParticleFiller::setTemperature);
+        .def_property("density",
+                      &mpcd::VirtualParticleFiller::getDensity,
+                      &mpcd::VirtualParticleFiller::setDensity)
+        .def_property("type",
+                      &mpcd::VirtualParticleFiller::getType,
+                      &mpcd::VirtualParticleFiller::setType)
+        .def_property("kT",
+                      &mpcd::VirtualParticleFiller::getTemperature,
+                      &mpcd::VirtualParticleFiller::setTemperature);
     }
 
     } // end namespace hoomd

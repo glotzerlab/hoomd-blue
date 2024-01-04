@@ -20,6 +20,8 @@
 #include "hoomd/Variant.h"
 #include <pybind11/pybind11.h>
 
+#include <string>
+
 namespace hoomd
     {
 namespace mpcd
@@ -38,8 +40,8 @@ class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
     {
     public:
     VirtualParticleFiller(std::shared_ptr<SystemDefinition> sysdef,
+                          const std::string& type,
                           Scalar density,
-                          unsigned int type,
                           std::shared_ptr<Variant> T);
 
     virtual ~VirtualParticleFiller() { }
@@ -47,11 +49,23 @@ class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
     //! Fill up virtual particles
     void fill(uint64_t timestep);
 
+    Scalar getDensity() const
+        {
+        return m_density;
+        }
+
     //! Set the fill particle density
     void setDensity(Scalar density);
 
+    std::string getType() const;
+
     //! Set the fill particle type
-    void setType(unsigned int type);
+    void setType(const std::string& type);
+
+    std::shared_ptr<Variant> getTemperature() const
+        {
+        return m_T;
+        }
 
     //! Set the fill particle temperature
     void setTemperature(std::shared_ptr<Variant> T)

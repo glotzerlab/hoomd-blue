@@ -21,6 +21,7 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
     snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.type_mapping.push_back("B");
     snap->mpcd_data.position[0] = vec3<Scalar>(1, -2, 3);
     snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -33,7 +34,7 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(5.0, 1.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::ParallelPlateGeometryFiller> filler
-        = std::make_shared<F>(sysdef, 2.0, 1, kT, slit);
+        = std::make_shared<F>(sysdef, "B", 2.0, kT, slit);
     filler->setCellList(cl);
 
     /*

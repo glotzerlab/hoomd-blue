@@ -10,10 +10,10 @@ their correctness.
 
 import hoomd
 from hoomd.mpcd import _mpcd
-from hoomd.operation import Tuner
+from hoomd.operation import TriggeredOperation
 
 
-class ParticleSorter(Tuner):
+class ParticleSorter(TriggeredOperation):
     r"""MPCD particle sorter.
 
     Args:

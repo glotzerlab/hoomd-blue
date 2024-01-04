@@ -27,8 +27,7 @@ to complex boundaries, the streaming geometry can be configured. MPCD solvent
 particles will be reflected from boundary surfaces using specular reflections
 (bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
 boundary conditions. (The external force is only applied to the particles at the
-beginning and the end of this process.) To help fully enforce the boundary
-conditions, "virtual" MPCD particles can be inserted near the boundary walls.
+beginning and the end of this process.)
 
 Although a streaming geometry is enforced on the MPCD solvent particles, there
 are a few important caveats:
@@ -49,14 +48,13 @@ are a few important caveats:
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyTypes
 from hoomd.mpcd import _mpcd
 from hoomd.mpcd.geometry import Geometry
-from hoomd.operation import AutotunedObject
+from hoomd.operation import Operation
 
 
-# TODO: add force and filler
-class StreamingMethod(AutotunedObject):
+# TODO: add force
+class StreamingMethod(Operation):
     """Base streaming method.
 
     Args:
@@ -127,7 +125,7 @@ class BounceBack(StreamingMethod):
     def __init__(self, period, geometry):
         super().__init__(period)
 
-        param_dict = ParameterDict(geometry=OnlyTypes(Geometry))
+        param_dict = ParameterDict(geometry=Geometry)
         param_dict["geometry"] = geometry
         self._param_dict.update(param_dict)
 

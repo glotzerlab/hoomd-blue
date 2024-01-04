@@ -31,13 +31,17 @@ class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::VirtualParticleFil
     {
     public:
     PlanarPoreGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
+                             const std::string& type,
                              Scalar density,
-                             unsigned int type,
                              std::shared_ptr<Variant> T,
-                             uint16_t seed,
                              std::shared_ptr<const mpcd::PlanarPoreGeometry> geom);
 
     virtual ~PlanarPoreGeometryFiller();
+
+    std::shared_ptr<const mpcd::PlanarPoreGeometry> getGeometry() const
+        {
+        return m_geom;
+        }
 
     void setGeometry(std::shared_ptr<const mpcd::PlanarPoreGeometry> geom)
         {

@@ -17,10 +17,10 @@ import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes, variant_preprocessing
 from hoomd.mpcd import _mpcd
-from hoomd.operation import AutotunedObject
+from hoomd.operation import Compute, Operation
 
 
-class CellList(AutotunedObject):
+class CellList(Compute):
     """Collision cell list.
 
     Args:
@@ -67,7 +67,7 @@ class CellList(AutotunedObject):
         super()._attach_hook()
 
 
-class CollisionMethod(AutotunedObject):
+class CollisionMethod(Operation):
     """Base collision method.
 
     Args:

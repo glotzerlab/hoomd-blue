@@ -13,11 +13,11 @@ namespace hoomd
     {
 mpcd::ParallelPlateGeometryFillerGPU::ParallelPlateGeometryFillerGPU(
     std::shared_ptr<SystemDefinition> sysdef,
+    const std::string& type,
     Scalar density,
-    unsigned int type,
     std::shared_ptr<Variant> T,
     std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
-    : mpcd::ParallelPlateGeometryFiller(sysdef, density, type, T, geom)
+    : mpcd::ParallelPlateGeometryFiller(sysdef, type, density, T, geom)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -78,8 +78,8 @@ void mpcd::detail::export_ParallelPlateGeometryFillerGPU(pybind11::module& m)
         m,
         "ParallelPlateGeometryFillerGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            const std::string&,
                             Scalar,
-                            unsigned int,
                             std::shared_ptr<Variant>,
                             std::shared_ptr<const mpcd::ParallelPlateGeometry>>());
     }
