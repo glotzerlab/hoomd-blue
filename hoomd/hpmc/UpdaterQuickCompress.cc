@@ -2,7 +2,6 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterQuickCompress.h"
-
 #include "hoomd/RNGIdentifiers.h"
 
 namespace hoomd
@@ -54,8 +53,7 @@ void UpdaterQuickCompress::update(uint64_t timestep)
         performBoxScale(timestep);
         }
 
-    // The compression is complete when we have reached the target box and there are no
-    // overlaps.
+    // The compression is complete when we have reached the target box and there are no overlaps.
     if (n_overlaps == 0 && current_box == *m_target_box)
         m_is_complete = true;
     else
