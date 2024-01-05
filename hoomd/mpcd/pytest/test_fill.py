@@ -70,7 +70,7 @@ class TestGeometryFiller:
                                                 kT=1.0,
                                                 geometry=cls(**init_args))
         sim = simulation_factory(snap)
-        ig = hoomd.mpcd.Integrator(dt=0.1, solvent_fillers=[filler])
+        ig = hoomd.mpcd.Integrator(dt=0.1, virtual_particle_fillers=[filler])
         sim.operations.integrator = ig
         sim.run(1)
 

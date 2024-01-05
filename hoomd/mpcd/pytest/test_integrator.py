@@ -84,7 +84,7 @@ def test_streaming_method(make_simulation):
     assert ig.streaming_method is stream
 
 
-def test_solvent_fillers(make_simulation):
+def test_virtual_particle_fillers(make_simulation):
     sim = make_simulation()
     geom = hoomd.mpcd.geometry.ParallelPlates(H=4.0)
     filler = hoomd.mpcd.fill.GeometryFiller(
@@ -95,13 +95,13 @@ def test_solvent_fillers(make_simulation):
     )
 
     # check that constructor assigns right
-    ig = hoomd.mpcd.Integrator(dt=0.1, solvent_fillers=[filler])
+    ig = hoomd.mpcd.Integrator(dt=0.1, virtual_particle_fillers=[filler])
     sim.operations.integrator = ig
-    assert len(ig.solvent_fillers) == 1
-    assert filler in ig.solvent_fillers
+    assert len(ig.virtual_particle_fillers) == 1
+    assert filler in ig.virtual_particle_fillers
     sim.run(0)
-    assert len(ig.solvent_fillers) == 1
-    assert filler in ig.solvent_fillers
+    assert len(ig.virtual_particle_fillers) == 1
+    assert filler in ig.virtual_particle_fillers
 
     # attach a second filler
     filler2 = hoomd.mpcd.fill.GeometryFiller(
@@ -110,19 +110,19 @@ def test_solvent_fillers(make_simulation):
         kT=1.0,
         geometry=geom,
     )
-    ig.solvent_fillers.append(filler2)
-    assert len(ig.solvent_fillers) == 2
-    assert filler in ig.solvent_fillers
-    assert filler2 in ig.solvent_fillers
+    ig.virtual_particle_fillers.append(filler2)
+    assert len(ig.virtual_particle_fillers) == 2
+    assert filler in ig.virtual_particle_fillers
+    assert filler2 in ig.virtual_particle_fillers
     sim.run(0)
-    assert len(ig.solvent_fillers) == 2
-    assert filler in ig.solvent_fillers
-    assert filler2 in ig.solvent_fillers
+    assert len(ig.virtual_particle_fillers) == 2
+    assert filler in ig.virtual_particle_fillers
+    assert filler2 in ig.virtual_particle_fillers
 
-    ig.solvent_fillers = []
-    assert len(ig.solvent_fillers) == 0
+    ig.virtual_particle_fillers = []
+    assert len(ig.virtual_particle_fillers) == 0
     sim.run(0)
-    assert len(ig.solvent_fillers) == 0
+    assert len(ig.virtual_particle_fillers) == 0
 
 
 def test_solvent_sorter(make_simulation):
@@ -160,7 +160,7 @@ def test_attach_and_detach(make_simulation):
     assert ig.cell_list._attached
     assert ig.streaming_method is None
     assert ig.collision_method is None
-    assert len(ig.solvent_fillers) == 0
+    assert len(ig.virtual_particle_fillers) == 0
     assert ig.solvent_sorter is None
 
     # attach with both methods

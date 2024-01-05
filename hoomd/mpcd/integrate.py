@@ -17,7 +17,7 @@ from hoomd.mpcd.tune import ParticleSorter
 
 @hoomd.logging.modify_namespace(("mpcd", "Integrator"))
 class Integrator(_MDIntegrator):
-    """MPCD integrator.
+    r"""MPCD integrator.
 
     Args:
         dt (float): Integrator time step size :math:`[\mathrm{time}]`.
@@ -50,7 +50,7 @@ class Integrator(_MDIntegrator):
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
 
-        solvent_fillers (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): Solvent
+        virtual_particle_fillers (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): Solvent
             virtual-particle filler(s).
 
         solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
@@ -80,14 +80,14 @@ class Integrator(_MDIntegrator):
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
 
-        solvent_fillers (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): Solvent
-            virtual-particle filler(s).
-
         solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
             MPCD particles (recommended).
 
         streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
             for the MPCD solvent.
+
+        virtual_particle_fillers (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]):
+            Solvent virtual-particle filler(s).
 
     """
 
@@ -102,7 +102,7 @@ class Integrator(_MDIntegrator):
         half_step_hook=None,
         streaming_method=None,
         collision_method=None,
-        solvent_fillers=None,
+        virtual_particle_fillers=None,
         solvent_sorter=None,
     ):
         super().__init__(
@@ -115,14 +115,15 @@ class Integrator(_MDIntegrator):
             half_step_hook,
         )
 
-        solvent_fillers = [] if solvent_fillers is None else solvent_fillers
-        self._solvent_fillers = syncedlist.SyncedList(
+        self._cell_list = CellList(cell_size=1.0, shift=True)
+
+        virtual_particle_fillers = ([] if virtual_particle_fillers is None else
+                                    virtual_particle_fillers)
+        self._virtual_particle_fillers = syncedlist.SyncedList(
             VirtualParticleFiller,
             syncedlist._PartialGetAttr("_cpp_obj"),
-            iterable=solvent_fillers,
+            iterable=virtual_particle_fillers,
         )
-
-        self._cell_list = CellList(cell_size=1.0, shift=True)
 
         param_dict = ParameterDict(
             streaming_method=OnlyTypes(StreamingMethod, allow_none=True),
@@ -149,17 +150,17 @@ class Integrator(_MDIntegrator):
         return self._cell_list
 
     @property
-    def solvent_fillers(self):
-        return self._solvent_fillers
+    def virtual_particle_fillers(self):
+        return self._virtual_particle_fillers
 
-    @solvent_fillers.setter
-    def solvent_fillers(self, value):
-        _set_synced_list(self._solvent_fillers, value)
+    @virtual_particle_fillers.setter
+    def virtual_particle_fillers(self, value):
+        _set_synced_list(self._virtual_particle_fillers, value)
 
     @property
     def _children(self):
         children = super()._children
-        for child in itertools.chain(self.solvent_fillers):
+        for child in itertools.chain(self.virtual_particle_fillers):
             children.extend(child._children)
         return children
 
@@ -174,14 +175,15 @@ class Integrator(_MDIntegrator):
 
         self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def,
                                          self.dt)
-        self._solvent_fillers._sync(self._simulation, self._cpp_obj.fillers)
+        self._virtual_particle_fillers._sync(self._simulation,
+                                             self._cpp_obj.fillers)
         self._cpp_obj.cell_list = self._cell_list._cpp_obj
 
         super(_MDIntegrator, self)._attach_hook()
 
     def _detach_hook(self):
-        self._solvent_fillers._unsync()
         self._cell_list._detach()
+        self._virtual_particle_fillers._unsync()
         if self.streaming_method is not None:
             self.streaming_method._detach()
         if self.collision_method is not None:

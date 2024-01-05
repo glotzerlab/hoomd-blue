@@ -62,7 +62,7 @@ class GeometryFiller(VirtualParticleFiller):
 
     Virtual particles are inserted in cells whose volume is sliced by the
     specified `geometry`. The algorithm for doing the filling depends on the
-    specific `geometry.
+    specific `geometry`.
 
     Attributes:
         geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around.
