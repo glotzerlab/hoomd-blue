@@ -19,5 +19,6 @@ hoomd.mpcd
     module-mpcd-collide
     module-mpcd-fill
     module-mpcd-geometry
+    module-mpcd-methods
     module-mpcd-stream
     module-mpcd-tune

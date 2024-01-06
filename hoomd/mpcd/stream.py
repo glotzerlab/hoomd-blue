@@ -22,28 +22,6 @@ where **r** and **v** are the particle position and velocity, respectively, and
 **f** is the external force acting on the particles of mass *m*. For a list of
 forces that can be applied, see :mod:`.mpcd.force`.
 
-Since one of the main strengths of the MPCD algorithm is that it can be coupled
-to complex boundaries, the streaming geometry can be configured. MPCD solvent
-particles will be reflected from boundary surfaces using specular reflections
-(bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
-boundary conditions. (The external force is only applied to the particles at the
-beginning and the end of this process.)
-
-Although a streaming geometry is enforced on the MPCD solvent particles, there
-are a few important caveats:
-
-1. Embedded particles are not coupled to the boundary walls. They must be
-   confined by an appropriate method, e.g., an external potential, an
-   explicit particle wall, or a bounce-back method.
-2. The confined geometry exists inside a fully periodic simulation box.
-   Hence, the box must be padded large enough that the MPCD cells do not
-   interact through the periodic boundary. Usually, this means adding at
-   least one extra layer of cells in the confined dimensions. Your periodic
-   simulation box will be validated by the confined geometry.
-3. It is an error for MPCD particles to lie "outside" the confined geometry.
-   You must initialize your system carefully to ensure all particles are
-   "inside" the geometry. An error will be raised otherwise.
-
 """
 
 import hoomd
@@ -116,6 +94,28 @@ class BounceBack(StreamingMethod):
     Args:
         period (int): Number of integration steps covered by streaming step.
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
+
+    One of the main strengths of the MPCD algorithm is that it can be coupled
+    to complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
+    the MPCD solvent particles from boundary surfaces using specular reflections
+    (bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
+    boundary conditions. (The external force is only applied to the particles at the
+    beginning and the end of this process.)
+
+    Although a streaming geometry is enforced on the MPCD solvent particles, there
+    are a few important caveats:
+
+    1. Embedded particles are not coupled to the boundary walls. They must be
+       confined by an appropriate method, e.g., an external potential, an
+       explicit particle wall, or a bounce-back method (`hoomd.mpcd.methods.BounceBack`).
+    2. The `geometry` exists inside a fully periodic simulation box.
+       Hence, the box must be padded large enough that the MPCD cells do not
+       interact through the periodic boundary. Usually, this means adding at
+       least one extra layer of cells in the confined dimensions. Your periodic
+       simulation box will be validated by the `geometry`.
+    3. It is an error for MPCD particles to lie "outside" the `geometry`.
+       You must initialize your system carefully to ensure all particles are
+       "inside" the geometry. An error will be raised otherwise.
 
     Attributes:
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.

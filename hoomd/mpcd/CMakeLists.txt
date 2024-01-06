@@ -146,6 +146,7 @@ set(files
     force.py
     geometry.py
     integrate.py
+    methods.py
     stream.py
     tune.py
     )
