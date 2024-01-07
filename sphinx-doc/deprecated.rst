@@ -24,3 +24,8 @@ documentation for more information on warning filters.
   * All TBB code will be removed in the 5.0 release.
 
 * ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
+
+* ``_InternalCustomUpdater.update`` (since 4.4.1)
+* ``_InternalCustomTuner.tune`` (since 4.4.1)
+* ``_InternalCustomWriter.write`` (since 4.4.1)
+* ``HDF5Log.write`` (since 4.4.1)
