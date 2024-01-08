@@ -181,12 +181,12 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
 
         unsigned int improper_type = m_improper_data->getTypeByIndex(i);
         const periodic_improper_params& param = h_params.data[improper_type];
-        int multi = param.n;
+        int n = param.n;
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab = Scalar(0.0);
 
-        for (int j = 0; j < multi; j++)
+        for (int j = 0; j < n; j++)
             {
             ddfab = p * c_abcd - dfab * s_abcd;
             dfab = p * s_abcd + dfab * c_abcd;
@@ -199,20 +199,20 @@ void PeriodicImproperForceCompute::computeForces(uint64_t timestep)
         // cos_shift not always 1
         /////////////////////////
 
-        Scalar sign = param.d;
+        Scalar d = param.d;
         Scalar chi_0 = param.chi_0;
         Scalar sin_chi_0 = fast::sin(chi_0);
         Scalar cos_chi_0 = fast::cos(chi_0);
         p = p * cos_chi_0 + dfab * sin_chi_0;
-        p = p * sign;
+        p = p * d;
         dfab = dfab * cos_chi_0 - ddfab * sin_chi_0;
-        dfab = dfab * sign;
-        dfab *= (Scalar)-multi;
+        dfab = dfab * d;
+        dfab *= (Scalar)-n;
         p += Scalar(1.0);
 
-        if (multi == 0)
+        if (n == 0)
             {
-            p = Scalar(1.0) + sign;
+            p = Scalar(1.0) + d;
             dfab = Scalar(0.0);
             }
 
