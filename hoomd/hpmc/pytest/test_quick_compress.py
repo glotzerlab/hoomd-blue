@@ -22,7 +22,8 @@ valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(1000),
          target_box=hoomd.Box.from_box([80, 50, 40, 0.2, 0.4, 0.5]),
          max_overlaps_per_particle=0.2,
-         min_scale=0.999),
+         min_scale=0.999,
+         allow_unsafe_resize=True),
 ]
 
 valid_attrs = [
@@ -37,6 +38,7 @@ valid_attrs = [
     ('min_scale', 0.1),
     ('min_scale', 0.5),
     ('min_scale', 0.9999),
+    ('allow_unsafe_resize', True),
 ]
 
 
@@ -106,16 +108,23 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
 
 @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.55, 0.58, 0.6])
+@pytest.mark.parametrize("allow_unsafe_resize", [False, True])
 @pytest.mark.validate
-def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
+def test_sphere_compression(phi, allow_unsafe_resize, simulation_factory,
+                            lattice_snapshot_factory):
     """Test that QuickCompress can compress (and expand) simulation boxes."""
+    if allow_unsafe_resize and phi > math.pi / 6:
+        pytest.skip("Skipped impossible compression.")
+
     n = 7
     snap = lattice_snapshot_factory(n=n, a=1.1)
     v_particle = 4 / 3 * math.pi * (0.5)**3
     target_box = hoomd.Box.cube((n * n * n * v_particle / phi)**(1 / 3))
 
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=target_box)
+    qc = hoomd.hpmc.update.QuickCompress(
+        trigger=hoomd.trigger.Periodic(10),
+        target_box=target_box,
+        allow_unsafe_resize=allow_unsafe_resize)
 
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
@@ -123,6 +132,9 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
+
+    if allow_unsafe_resize:
+        mc.d['A'] = 0
 
     sim.run(1)
 

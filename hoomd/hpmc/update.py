@@ -879,16 +879,19 @@ class QuickCompress(Updater):
                  trigger,
                  target_box,
                  max_overlaps_per_particle=0.25,
-                 min_scale=0.99):
+                 min_scale=0.99,
+                 allow_unsafe_resize=False):
         super().__init__(trigger)
 
         param_dict = ParameterDict(max_overlaps_per_particle=float,
                                    min_scale=float,
                                    target_box=hoomd.Box,
-                                   instance=int)
+                                   instance=int,
+                                   allow_unsafe_resize=bool)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
+        param_dict['allow_unsafe_resize'] = allow_unsafe_resize
 
         self._param_dict.update(param_dict)
 
