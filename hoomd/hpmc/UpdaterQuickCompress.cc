@@ -13,10 +13,9 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
-                                           bool allow_unsafe_resize,
                                            std::shared_ptr<BoxDim> target_box)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
-      m_target_box(target_box), m_allow_unsafe_resize(allow_unsafe_resize)
+      m_target_box(target_box)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterQuickCompress" << std::endl;
     setMinScale(min_scale);
@@ -158,7 +157,7 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
         double max_diameter = m_mc->getMaxCoreDiameter();
         double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
         min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
-        };
+        }
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(
@@ -230,8 +229,8 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                       &UpdaterQuickCompress::getInstance,
                       &UpdaterQuickCompress::setInstance)
         .def_property("allow_unsafe_resize",
-                      &UpdaterQuickCompress::getInstance,
-                      &UpdaterQuickCompress::setInstance);
+                      &UpdaterQuickCompress::getAllowUnsafeResize,
+                      &UpdaterQuickCompress::setAllowUnsafeResize);
     }
     } // end namespace detail
     } // end namespace hpmc
