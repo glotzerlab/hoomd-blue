@@ -139,14 +139,24 @@ lennard_jones_test_parameters = [
         lj(1.5, 2.5, 5.0, 1.1) * xplor_factor(1.5, 2.0, 2.5),
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.5, mode='xplor'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0, mode='xplor'),
         2.3,
-        lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.5, 2.5),
+        lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.0, 2.5),
     ),
     (
         dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0, mode='xplor'),
         2.3,
         lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.0, 2.5),
+    ),
+    (
+        dict(epsilon=5.0, sigma=1.1, r_cut=2, r_on=3, mode='xplor'),
+        1.5,
+        lj(1.5, 2, 5, 1.1) - lj(2, 2, 5, 1.1),
+    ),
+    (
+        dict(epsilon=1.0, sigma=1, r_cut=3, r_on=4, mode='xplor'),
+        3.2,
+        0,
     ),
 ]
 

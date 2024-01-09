@@ -33,7 +33,7 @@ LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
 
     LongReal energy = r_6_inverse * (lj1 * r_6_inverse - lj2);
 
-    if (param.mode == shift)
+    if (param.mode == shift || (param.mode == xplor && param.r_on_squared >= param.r_cut_squared))
         {
         LongReal r_cut_2_inverse = LongReal(1.0) / param.r_cut_squared;
         LongReal r_cut_6_inverse = r_cut_2_inverse * r_cut_2_inverse * r_cut_2_inverse;
