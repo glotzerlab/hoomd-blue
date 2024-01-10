@@ -1,4 +1,5 @@
 set(files __init__.py
+          scalar.py
           box.py
           )
 
