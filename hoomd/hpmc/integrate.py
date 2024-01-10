@@ -161,8 +161,8 @@ External potentials apply to each particle individually:
                                                                  \mathbf{q}_i)
 
 Potential classes in :doc:`module-hpmc-pair` evaluate
-:math:`U_{\mathrm{pair},ij}`. HPMC sums the `Pair <hoomd.hpmc.pair.Pair>`
-potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` with the
+:math:`U_{\mathrm{pair},ij}`. HPMC sums all the `Pair <hoomd.hpmc.pair.Pair>`
+potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` and the
 `CPPPotentialBase <hoomd.hpmc.pair.user.CPPPotentialBase>` potential in
 `pair_potential <HPMCIntegrator.pair_potential>` during integration.
 

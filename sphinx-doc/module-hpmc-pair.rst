@@ -18,6 +18,7 @@ hoomd.hpmc.pair
 
 .. automodule:: hoomd.hpmc.pair
     :synopsis: Pair potentials for HPMC.
+    :show-inheritance:
     :members: LennardJones,
               Pair
 

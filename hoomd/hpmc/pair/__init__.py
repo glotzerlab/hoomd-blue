@@ -4,9 +4,9 @@
 """Pair Potentials for Monte Carlo.
 
 Define :math:`U_{\\mathrm{pair},ij}` for use with `HPMCIntegrator
-<hoomd.hpmc.integrate.HPMCIntegrator>`. Add `Pair` potential instances to
-`pair_potentials <hpmc.integrate.HPMCIntegrator.pair_potentials>` to apply
-the potential during MC integration.
+<hoomd.hpmc.integrate.HPMCIntegrator>`, which will sum all the energy from all
+`Pair` potential instances in the
+`pair_potentials <hpmc.integrate.HPMCIntegrator.pair_potentials>` list.
 
 .. rubric:: Example:
 
@@ -35,11 +35,11 @@ import hoomd
 class Pair(hoomd.operation._HOOMDBaseObject):
     """Pair potential base class (HPMC).
 
-    Pair potential energies define energetic interactions between pairs of
-    particles in `hoomd.hpmc.integrate.HPMCIntegrator`.  Particles within a
-    cutoff distance interact with an energy that is a function the
-    type and orientation of the particles and the vector pointing from the *i*
-    particle to the *j* particle center.
+    Pair potentials define energetic interactions between pairs of particles in
+    `hoomd.hpmc.integrate.HPMCIntegrator`.  Particles within a cutoff distance
+    interact with an energy that is a function the type and orientation of the
+    particles and the vector pointing from the *i* particle to the *j* particle
+    center.
 
     Note:
         The base class `Pair` implements common attributes (`energy`, for
