@@ -55,3 +55,8 @@ class IsolationWarning(UserWarning):
         return ("The data structure is removed from its original data source, "
                 "and updates will no longer modify the previously composing "
                 "object. Call obj.to_base() to remove this warning.")
+
+
+class GPUNotAvailableError(NotImplementedError):
+    """Error for when a GPU specific feature was requested without a GPU."""
+    pass
