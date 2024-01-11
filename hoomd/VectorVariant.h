@@ -62,10 +62,7 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
 
         @param box The box.
     */
-    VectorVariantBoxConstant(std::shared_ptr<BoxDim> box)
-        : m_box(box)
-        {
-        }
+    VectorVariantBoxConstant(std::shared_ptr<BoxDim> box) : m_box(box) { }
 
     virtual ~VectorVariantBoxConstant() { }
 
@@ -184,7 +181,7 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
         {
         m_is2D = m_box1->getL().z == 0;
         m_vol1 = m_box1->getVolume(m_is2D);
-        std::shared_ptr<VariantRamp> variant(new VariantRamp{0, 1, t_start, t_ramp});
+        std::shared_ptr<VariantRamp> variant(new VariantRamp {0, 1, t_start, t_ramp});
         m_variant = variant;
         }
 
@@ -277,7 +274,7 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
     Scalar m_current_volume;
 
     /// Variant for computing scale value
-    std::shared_ptr<VariantRamp> m_variant;     //!< Variant that interpolates between boxes
+    std::shared_ptr<VariantRamp> m_variant; //!< Variant that interpolates between boxes
     };
 
 namespace detail

@@ -73,7 +73,8 @@ void export_VectorVariantBox(pybind11::module& m)
     pybind11::class_<VectorVariantBoxLinear,
                      VectorVariantBox,
                      std::shared_ptr<VectorVariantBoxLinear>>(m, "VectorVariantBoxLinear")
-        .def(pybind11::init<std::shared_ptr<BoxDim>, std::shared_ptr<BoxDim>, std::shared_ptr<Variant>>())
+        .def(pybind11::
+                 init<std::shared_ptr<BoxDim>, std::shared_ptr<BoxDim>, std::shared_ptr<Variant>>())
         .def_property("initial_box",
                       &VectorVariantBoxLinear::getBox1,
                       &VectorVariantBoxLinear::setBox1)
