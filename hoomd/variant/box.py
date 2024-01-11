@@ -58,8 +58,8 @@ class Ramp(_hoomd.VectorVariantBoxLinear):
     """
 
     def __init__(self, initial_box, final_box, variant):
-        box1 = box_preprocessing(box1)
-        box2 = box_preprocessing(box2)
+        box1 = box_preprocessing(initial_box)
+        box2 = box_preprocessing(final_box)
         variant = variant_preprocessing(variant)
         _hoomd.VectorVariantBoxLinear.__init__(self, box1._cpp_obj,
                                                box2._cpp_obj, variant)
