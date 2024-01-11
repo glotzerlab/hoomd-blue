@@ -80,8 +80,8 @@ namespace cereal
 template<class Archive> void serialize(Archive& ar, hoomd::typeval_t& t, const unsigned int version)
     {
     // serialize both members
-    ar& t.val;
-    ar& t.type;
+    ar & t.val;
+    ar & t.type;
     }
 
 //! Serialization of group_storage<2> (bonds)
