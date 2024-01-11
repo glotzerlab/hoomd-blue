@@ -185,7 +185,7 @@ class BoxResize(Updater):
                 box.
 
         Returns:
-            hoomd.Box: The box used at the given timestep.
+            Box: The box used at the given timestep.
             `None` before the first call to `Simulation.run`.
 
         .. rubric:: Example:
