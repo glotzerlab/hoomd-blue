@@ -82,7 +82,7 @@ class LinearInverseVolume(_hoomd.VectorVariantBoxInverseVolumeRamp):
     remain constant.
 
     Attributes:
-        initial_box (hoomd.box.box_like): The initial box.
+        initial_box (hoomd.Box): The initial box.
         final_volume (float): The volume of the final box.
         t_start (int): The time step at the start of the ramp.
         t_ramp (int): The length of the ramp.
