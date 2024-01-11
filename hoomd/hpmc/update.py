@@ -852,10 +852,9 @@ class QuickCompress(Updater):
 
     Warning:
         When the smallest MC translational move size is 0, `allow_unsafe_resize`
-        must be set to `True` to progress toward the target box. A decrease in
-        `max_overlaps_per_particle` is recommended when using this setting. In
-        all other cases, using the default `allow_unsafe_resize` = `False` is
-        preferred, as it proposes better box moves.
+        must be set to `True` to progress toward the target box. Decrease
+        `max_overlaps_per_particle` when using this setting to prevent
+        unresolvable overlaps.
 
     Warning:
         Use `QuickCompress` *OR* `BoxMC`. Do not use both at the same time.
