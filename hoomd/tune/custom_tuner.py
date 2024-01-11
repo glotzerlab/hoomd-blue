@@ -76,10 +76,10 @@ class _InternalCustomTuner(_InternalCustomOperation, Tuner):
     def tune(self, timestep):
         return self._action.act(timestep)
         """
-        .. deprecated:: 5.0.0
+        .. deprecated:: 4.5.0
 
-           use `Simulation` to call the operation
+           Use `Simulation` to call the operation.
         """
         warnings.warn(
             "`_InternalCustomTuner.tune` is deprecated,"
-            "use `Simulation` to call the operation", FutureWarning)
+            "use `Simulation` to call the operation.", FutureWarning)

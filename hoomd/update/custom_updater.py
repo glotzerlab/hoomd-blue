@@ -75,10 +75,10 @@ class _InternalCustomUpdater(_InternalCustomOperation, Updater):
     def update(self, timestep):
         return self._action.act(timestep)
         """
-        .. deprecated:: 5.0.0
+        .. deprecated:: 4.5.0
 
-            use `Simulation` to call the operation.
+            Use `Simulation` to call the operation.
         """
         warnings.warn(
             "`_InternalCustomUpdater.update` is deprecated,"
-            "use `Simulation` to call the operation", FutureWarning)
+            "use `Simulation` to call the operation.", FutureWarning)

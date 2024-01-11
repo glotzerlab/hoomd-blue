@@ -348,13 +348,13 @@ class HDF5Log(_InternalCustomWriter):
 
             hdf5_writer.write()
 
-        .. deprecated:: 5.0.0
+        .. deprecated:: 4.5.0
 
-            use `Simulation` to call the operation
+            Use `Simulation` to call the operation.
         """
         warnings.warn(
             "`HDF5Log.writer` is deprecated,"
-            "use `Simulation` to call the operation", FutureWarning)
+            "use `Simulation` to call the operation.", FutureWarning)
         self._action.act(timestep)
 
 

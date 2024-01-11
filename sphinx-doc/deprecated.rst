@@ -25,7 +25,7 @@ documentation for more information on warning filters.
 
 * ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
 
-* ``_InternalCustomUpdater.update`` (since 4.4.1)
-* ``_InternalCustomTuner.tune`` (since 4.4.1)
-* ``_InternalCustomWriter.write`` (since 4.4.1)
-* ``HDF5Log.write`` (since 4.4.1)
+* ``_InternalCustomUpdater.update`` (since 4.5.0)
+* ``_InternalCustomTuner.tune`` (since 4.5.0)
+* ``_InternalCustomWriter.write`` (since 4.5.0)
+* ``HDF5Log.write`` (since 4.5.0)
