@@ -17,3 +17,5 @@ from hoomd.variant.scalar import Ramp
 from hoomd.variant.scalar import Cycle
 from hoomd.variant.scalar import Power
 from hoomd.variant.scalar import variant_like
+
+from hoomd.variant import box
