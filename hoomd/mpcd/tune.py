@@ -17,8 +17,8 @@ class ParticleSorter(Tuner):
     r"""MPCD particle sorter.
 
     Args:
-        trigger (hoomd.trigger.trigger_like): Number of integration steps
-            between sorting.
+        trigger (hoomd.trigger.trigger_like): Select the time steps on which to
+            sort.
 
     This tuner sorts the MPCD particles into cell order. To perform the sort,
     the cell list is first computed with the current particle order. Particles
@@ -28,7 +28,7 @@ class ParticleSorter(Tuner):
 
     The optimal frequency for sorting depends on the number of particles, so the
     `trigger` itself should be tuned to give the maximum performance. The
-    `trigger` should be a multiple of `hoomd.mpcd.collide.CollisionMethod.period`
+    trigger's period should be a multiple of `hoomd.mpcd.collide.CollisionMethod.period`
     to avoid unnecessary cell list builds. Typically, using a small multiple
     (tens) of the collision period works best.
 
