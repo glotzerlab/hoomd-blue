@@ -6,6 +6,7 @@
 import hoomd
 import io
 from collections.abc import Iterable, Mapping, MutableMapping
+from hoomd.error import GPUNotAvailableError  # noqa: F401
 
 
 def _to_camel_case(string):
@@ -250,11 +251,6 @@ class _SafeNamespaceDict(_NamespaceDict):
                            "replacing.".format(namespace))
         else:
             super().__setitem__(namespace, value)
-
-
-class GPUNotAvailableError(NotImplementedError):
-    """Error for when a GPU specific feature was requested without a GPU."""
-    from hoomd.error import GPUNotAvailableError
 
 
 def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
