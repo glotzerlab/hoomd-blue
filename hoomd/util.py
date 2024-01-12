@@ -254,7 +254,7 @@ class _SafeNamespaceDict(_NamespaceDict):
 
 class GPUNotAvailableError(NotImplementedError):
     """Error for when a GPU specific feature was requested without a GPU."""
-    pass
+    from hoomd.error import GPUNotAvailableError
 
 
 class _NoGPU:

@@ -37,6 +37,19 @@ class TypeConversionError(ValueError):
     pass
 
 
+class GPUNotAvailableError(NotImplementedError):
+    """Error for when a GPU specific feature was requested without a GPU."""
+    pass
+
+
+class _NoGPU:
+    """Used in nonGPU builds of hoomd to raise errors for attempted use."""
+
+    def __init__(self, *args, **kwargs):
+        raise GPUNotAvailableError(
+            "This build of HOOMD-blue does not support GPUs.")
+
+
 class IncompleteSpecificationError(ValueError):
     """Error when a value is missing."""
     pass
@@ -55,8 +68,3 @@ class IsolationWarning(UserWarning):
         return ("The data structure is removed from its original data source, "
                 "and updates will no longer modify the previously composing "
                 "object. Call obj.to_base() to remove this warning.")
-
-
-class GPUNotAvailableError(NotImplementedError):
-    """Error for when a GPU specific feature was requested without a GPU."""
-    pass

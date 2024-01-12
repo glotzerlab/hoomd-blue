@@ -63,7 +63,7 @@ if hoomd.version.gpu_enabled:
             self._constraints = ConstraintLocalAccessGPU(state)
 
 else:
-    from hoomd.util import _NoGPU
+    from hoomd.error import _NoGPU
 
     class BondLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""

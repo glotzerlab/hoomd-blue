@@ -14,6 +14,7 @@ hoomd.error
     DataAccessError
     TypeConversionError
     MutabilityError
+    GPUNotAvailableError
 
 .. rubric:: Details
 
@@ -21,6 +22,7 @@ hoomd.error
     :synopsis: HOOMD errors
     :members: DataAccessError,
               TypeConversionError,
-              MutabilityError
+              MutabilityError,
+              GPUNotAvailableError
     :no-inherited-members:
     :show-inheritance:
