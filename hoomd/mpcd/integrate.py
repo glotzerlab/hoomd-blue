@@ -8,6 +8,7 @@ from hoomd.md.integrate import Integrator as _MDIntegrator
 from hoomd.mpcd import _mpcd
 from hoomd.mpcd.collide import CellList, CollisionMethod
 from hoomd.mpcd.stream import StreamingMethod
+from hoomd.mpcd.tune import ParticleSorter
 
 
 @hoomd.logging.modify_namespace(("mpcd", "Integrator"))
@@ -45,6 +46,9 @@ class Integrator(_MDIntegrator):
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
 
+        solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
+            MPCD particles.
+
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.
 
@@ -66,11 +70,14 @@ class Integrator(_MDIntegrator):
 
 
     Attributes:
-        streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
-            for the MPCD solvent.
-
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
+
+        solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
+            MPCD particles (recommended).
+
+        streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
+            for the MPCD solvent.
 
     """
 
@@ -85,6 +92,7 @@ class Integrator(_MDIntegrator):
         half_step_hook=None,
         streaming_method=None,
         collision_method=None,
+        solvent_sorter=None,
     ):
         super().__init__(
             dt,
@@ -96,13 +104,16 @@ class Integrator(_MDIntegrator):
             half_step_hook,
         )
 
-        param_dict = ParameterDict(
-            streaming_method=OnlyTypes(StreamingMethod, allow_none=True),
-            collision_method=OnlyTypes(CollisionMethod, allow_none=True),
-        )
+        param_dict = ParameterDict(streaming_method=OnlyTypes(StreamingMethod,
+                                                              allow_none=True),
+                                   collision_method=OnlyTypes(CollisionMethod,
+                                                              allow_none=True),
+                                   solvent_sorter=OnlyTypes(ParticleSorter,
+                                                            allow_none=True))
         param_dict.update(
             dict(streaming_method=streaming_method,
-                 collision_method=collision_method))
+                 collision_method=collision_method,
+                 solvent_sorter=solvent_sorter))
         self._param_dict.update(param_dict)
 
         self._cell_list = CellList(cell_size=1.0, shift=True)
@@ -124,6 +135,8 @@ class Integrator(_MDIntegrator):
             self.streaming_method._attach(self._simulation)
         if self.collision_method is not None:
             self.collision_method._attach(self._simulation)
+        if self.solvent_sorter is not None:
+            self.solvent_sorter._attach(self._simulation)
 
         self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def,
                                          self.dt)
@@ -137,45 +150,26 @@ class Integrator(_MDIntegrator):
             self.streaming_method._detach()
         if self.collision_method is not None:
             self.collision_method._detach()
+        if self.solvent_sorter is not None:
+            self.solvent_sorter._detach()
 
         super()._detach_hook()
 
     def _setattr_param(self, attr, value):
-        if attr == "streaming_method":
-            self._set_streaming_method(value)
-        elif attr == "collision_method":
-            self._set_collision_method(value)
+        if attr in ("streaming_method", "collision_method", "solvent_sorter"):
+            cur_value = getattr(self, attr)
+            if value is cur_value:
+                return
+
+            if value is not None and value._attached:
+                raise ValueError("Cannot attach to multiple integrators.")
+
+            # if already attached, change out which is attached, then set parameter
+            if self._attached:
+                if cur_value is not None:
+                    cur_value._detach()
+                if value is not None:
+                    value._attach(self._simulation)
+            self._param_dict[attr] = value
         else:
             super()._setattr_param(attr, value)
-
-    def _set_streaming_method(self, streaming_method):
-        if streaming_method is self.streaming_method:
-            return
-
-        if streaming_method is not None and streaming_method._attached:
-            raise ValueError(
-                "Cannot attach streaming method to multiple integrators.")
-
-        # if already attached, change out which is attached, then set parameter
-        if self._attached:
-            if self.streaming_method is not None:
-                self.streaming_method._detach()
-            if streaming_method is not None:
-                streaming_method._attach(self._simulation)
-        self._param_dict["streaming_method"] = streaming_method
-
-    def _set_collision_method(self, collision_method):
-        if collision_method is self.collision_method:
-            return
-
-        if collision_method is not None and collision_method._attached:
-            raise ValueError(
-                "Cannot attach collision method to multiple integrators.")
-
-        # if already attached, change out which is attached, then set parameter
-        if self._attached:
-            if self.collision_method is not None:
-                self.collision_method._detach()
-            if collision_method is not None:
-                collision_method._attach(self._simulation)
-        self._param_dict["collision_method"] = collision_method

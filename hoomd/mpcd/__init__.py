@@ -72,3 +72,4 @@ from hoomd.mpcd import collide
 from hoomd.mpcd import integrate
 from hoomd.mpcd.integrate import Integrator
 from hoomd.mpcd import stream
+from hoomd.mpcd import tune

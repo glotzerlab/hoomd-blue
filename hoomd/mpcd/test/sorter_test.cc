@@ -75,7 +75,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
     cl->setEmbeddedGroup(group);
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, nullptr);
     sorter->setCellList(cl);
     sorter->update(0);
 
@@ -273,7 +273,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
         }
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, nullptr);
     sorter->setCellList(cl);
     sorter->update(0);
 

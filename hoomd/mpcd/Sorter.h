@@ -15,8 +15,9 @@
 
 #include "CellList.h"
 
-#include "hoomd/Autotuned.h"
 #include "hoomd/SystemDefinition.h"
+#include "hoomd/Tuner.h"
+
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -38,29 +39,17 @@ namespace mpcd
  * because they cannot be removed easily if they are sorted with the rest of the particles,
  * and the performance gains from doing a separate (segmented) sort on them is probably small.
  */
-class PYBIND11_EXPORT Sorter : public Autotuned
+class PYBIND11_EXPORT Sorter : public Tuner
     {
     public:
     //! Constructor
-    Sorter(std::shared_ptr<SystemDefinition> sysdef,
-           unsigned int cur_timestep,
-           unsigned int period);
+    Sorter(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     //! Destructor
     virtual ~Sorter();
 
     //! Update the particle data order
     virtual void update(uint64_t timestep);
-
-    bool peekSort(uint64_t timestep) const;
-
-    //! Change the period
-    void setPeriod(unsigned int cur_timestep, unsigned int period)
-        {
-        m_period = period;
-        const unsigned int multiple = cur_timestep / m_period + (cur_timestep % m_period != 0);
-        m_next_timestep = multiple * m_period;
-        }
 
     //! Set the cell list used for sorting
     virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
@@ -72,27 +61,17 @@ class PYBIND11_EXPORT Sorter : public Autotuned
         }
 
     protected:
-    std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
-    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
-    std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
-
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
     std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
 
     GPUVector<unsigned int> m_order;  //!< Maps new sorted index onto old particle indexes
     GPUVector<unsigned int> m_rorder; //!< Maps old particle indexes onto new sorted indexes
 
-    unsigned int m_period;    //!< Sorting period
-    uint64_t m_next_timestep; //!< Next step to apply sorting
-
     //! Compute the sorting order at the current timestep
     virtual void computeOrder(uint64_t timestep);
 
     //! Apply the sorting order
     virtual void applyOrder() const;
-
-    private:
-    bool shouldSort(uint64_t timestep);
     };
 
 namespace detail

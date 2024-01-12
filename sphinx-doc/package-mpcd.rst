@@ -18,3 +18,4 @@ hoomd.mpcd
 
     module-mpcd-collide
     module-mpcd-stream
+    module-mpcd-tune
