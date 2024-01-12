@@ -37,6 +37,7 @@ import hoomd.util as util
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.data.parameterdicts import ParameterDict
+import warnings
 
 try:
     import h5py
@@ -346,7 +347,14 @@ class HDF5Log(_InternalCustomWriter):
         .. code-block:: python
 
             hdf5_writer.write()
+
+        .. deprecated:: 4.5.0
+
+            Use `Simulation` to call the operation.
         """
+        warnings.warn(
+            "`HDF5Log.writer` is deprecated,"
+            "use `Simulation` to call the operation.", FutureWarning)
         self._action.act(timestep)
 
 
