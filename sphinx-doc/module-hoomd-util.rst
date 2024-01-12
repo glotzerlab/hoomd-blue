@@ -11,12 +11,10 @@ hoomd.util
 .. autosummary::
     :nosignatures:
 
-    GPUNotAvailableError
     make_example_simulation
 
 .. rubric:: Details
 
 .. automodule:: hoomd.util
     :synopsis: Utilities
-    :members: GPUNotAvailableError,
-              make_example_simulation
+    :members: make_example_simulation
