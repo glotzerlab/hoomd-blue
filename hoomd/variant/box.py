@@ -65,8 +65,8 @@ class Ramp(_hoomd.VectorVariantBoxLinear):
                                                box2._cpp_obj, variant)
 
 
-class LinearInverseVolume(_hoomd.VectorVariantBoxInverseVolumeRamp):
-    """Produce dependent box arrays whose inverse volume is linear in time.
+class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp):
+    """Produce box arrays whose inverse volume changes linearly with time.
 
     Args:
         initial_box (hoomd.box.box_like): The initial box.
@@ -74,7 +74,7 @@ class LinearInverseVolume(_hoomd.VectorVariantBoxInverseVolumeRamp):
         t_start (int): The time step at the start of the ramp.
         t_ramp (int): The length of the ramp.
 
-    ``LinearInverseVolume`` produces box arrays that correspond to a box whose
+    ``InverseVolumeRamp`` produces box arrays that correspond to a box whose
     **inverse volume** (i.e., density for a constant number of particles) varies
     linearly with time. The shape of the box remains constant, that is, the
     ratios of the lengths of the box vectors (:math:`L_y / L_x` and

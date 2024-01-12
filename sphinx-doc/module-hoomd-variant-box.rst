@@ -14,7 +14,7 @@ hoomd.variant.box
     Box
     Constant
     Ramp
-    LinearInverseVolume
+    InverseVolumeRamp
 
 .. rubric:: Details
 
@@ -25,7 +25,7 @@ hoomd.variant.box
     .. autoclass:: Box()
     .. autoclass:: Constant(box)
         :show-inheritance:
-    .. autoclass:: Ramp(initial_box, final_box, t_start, t_ramp)
+    .. autoclass:: Ramp(initial_box, final_box, variant)
         :show-inheritance:
-    .. autoclass:: LinearInverseVolume(initial_box, final_volume, t_start, t_ramp)
+    .. autoclass:: InverseVolumeRamp(initial_box, final_volume, t_start, t_ramp)
         :show-inheritance:
