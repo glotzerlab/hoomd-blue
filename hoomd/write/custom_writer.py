@@ -15,6 +15,7 @@
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Writer
+import warnings
 
 
 class _WriterProperty:
@@ -74,3 +75,11 @@ class _InternalCustomWriter(_InternalCustomOperation, Writer):
 
     def write(self, timestep):
         return self._action.act(timestep)
+        """
+        .. deprecated:: 4.5.0
+
+            Use `Simulation` to call the operation.
+        """
+        warnings.warn(
+            "`_InternalCustomWriter.write` is deprecated,"
+            "use `Simulation` to call the operation.", FutureWarning)
