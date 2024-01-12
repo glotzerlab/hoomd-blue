@@ -24,9 +24,13 @@ documentation for more information on warning filters.
   * All TBB code will be removed in the 5.0 release.
 
 * ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
-
 * ``hpmc.pair.user.CPPPotentialBase``, ``hpmc.pair.user.CPPPotential``,
   ``hpmc.pair.user.CPPPotentialUnion``, ``hpmc.integrate.HPMCIntegrator.pair_potential``
   (since 4.5.0).
 
   * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
+
+* ``_InternalCustomUpdater.update`` (since 4.5.0)
+* ``_InternalCustomTuner.tune`` (since 4.5.0)
+* ``_InternalCustomWriter.write`` (since 4.5.0)
+* ``HDF5Log.write`` (since 4.5.0)

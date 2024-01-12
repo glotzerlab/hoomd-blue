@@ -745,6 +745,9 @@ class QuickCompress(Updater):
 
         min_scale (float): The minimum scale factor to apply to box dimensions.
 
+        allow_unsafe_resize (bool): When `True`, box moves are proposed
+            independent of particle translational move sizes.
+
     Use `QuickCompress` in conjunction with an HPMC integrator to scale the
     system to a target box size. `QuickCompress` can typically compress dilute
     systems to near random close packing densities in tens of thousands of time
@@ -838,7 +841,9 @@ class QuickCompress(Updater):
     distributed between ``max(min_scale, 1.0 - min_move_size / max_diameter)``
     and 1.0 where ``min_move_size`` is the smallest MC translational move size
     adjusted by the acceptance ratio and ``max_diameter`` is the circumsphere
-    diameter of the largest particle type.
+    diameter of the largest particle type. If `allow_unsafe_resize` is `True`,
+    box move sizes will be uniformly distributed between ``min_scale`` and 1.0
+    (with no consideration of ``min_move_size``).
 
     Tip:
         Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
@@ -846,8 +851,10 @@ class QuickCompress(Updater):
         acceptance ratio as the density of the system increases.
 
     Warning:
-        When the smallest MC translational move size is 0, `QuickCompress`
-        will scale the box by 1.0 and not progress toward the target box.
+        When the smallest MC translational move size is 0, `allow_unsafe_resize`
+        must be set to `True` to progress toward the target box. Decrease
+        `max_overlaps_per_particle` when using this setting to prevent
+        unresolvable overlaps.
 
     Warning:
         Use `QuickCompress` *OR* `BoxMC`. Do not use both at the same time.
@@ -873,22 +880,27 @@ class QuickCompress(Updater):
             When using multiple `QuickCompress` updaters in a single simulation,
             give each a unique value for `instance` so that they generate
             different streams of random numbers.
+
+        allow_unsafe_resize (bool): Flag that determines whether
     """
 
     def __init__(self,
                  trigger,
                  target_box,
                  max_overlaps_per_particle=0.25,
-                 min_scale=0.99):
+                 min_scale=0.99,
+                 allow_unsafe_resize=False):
         super().__init__(trigger)
 
         param_dict = ParameterDict(max_overlaps_per_particle=float,
                                    min_scale=float,
                                    target_box=hoomd.Box,
-                                   instance=int)
+                                   instance=int,
+                                   allow_unsafe_resize=bool)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
+        param_dict['allow_unsafe_resize'] = allow_unsafe_resize
 
         self._param_dict.update(param_dict)
 
