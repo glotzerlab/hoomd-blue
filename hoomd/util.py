@@ -257,14 +257,6 @@ class GPUNotAvailableError(NotImplementedError):
     from hoomd.error import GPUNotAvailableError
 
 
-class _NoGPU:
-    """Used in nonGPU builds of hoomd to raise errors for attempted use."""
-
-    def __init__(self, *args, **kwargs):
-        raise GPUNotAvailableError(
-            "This build of HOOMD-blue does not support GPUs.")
-
-
 def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
     """Make an example Simulation object.
 
