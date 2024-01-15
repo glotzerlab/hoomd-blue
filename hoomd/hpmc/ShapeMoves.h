@@ -212,8 +212,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     std::vector<std::vector<Scalar>>
         m_params_backup;                       // tunable shape parameters to perform trial moves on
     std::vector<std::vector<Scalar>> m_params; // tunable shape parameters to perform trial moves on
-    // callback that takes m_params as an argiment and returns a Python dictionary with the shape
-    // params.
+    // callback that takes m_params as an argument and returns a Python dictionary of shape params.
     pybind11::object m_python_callback;
     };
 
