@@ -252,6 +252,10 @@ Set `HPMCIntegrator.depletant_fugacity` to activate the implicit depletant code
 path. This inerts depletant particles during every trial move and modifies the
 acceptance criterion accordingly. See `Glaser 2015
 <https://dx.doi.org/10.1063/1.4935175>`_ for details.
+
+.. deprecated:: 4.4.0
+
+    ``depletant_fugacity > 0`` is deprecated.
 """
 
 from hoomd import _hoomd
@@ -264,6 +268,7 @@ from hoomd.operation import Integrator
 from hoomd.logging import log
 import hoomd
 import json
+import warnings
 
 
 class HPMCIntegrator(Integrator):
@@ -300,6 +305,10 @@ class HPMCIntegrator(Integrator):
 
     HPMC integrators use threaded execution on multiple CPU cores only when
     placing implicit depletants (``depletant_fugacity != 0``).
+
+    .. deprecated:: 4.4.0
+
+        ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
 
     .. rubric:: Mixed precision
 
@@ -398,6 +407,19 @@ class HPMCIntegrator(Integrator):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
+        if any([f != 0 for f in self.depletant_fugacity.values()]):
+            warnings.warn("depletant_fugacity > 0 is deprecated since 4.4.0.",
+                          FutureWarning,
+                          stacklevel=1)
+
+            if (isinstance(self._simulation.device, hoomd.device.CPU)
+                    and self._simulation.device.num_cpu_threads > 1):
+                warnings.warn(
+                    "num_cpu_threads > 1 is deprecated since 4.4.0. "
+                    "Use num_cpu_threads=1.",
+                    FutureWarning,
+                    stacklevel=1)
+
         self._simulation._warn_if_seed_unset()
         sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)
@@ -1611,8 +1633,8 @@ class SphereUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1740,8 +1762,8 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1867,8 +1889,8 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
 
     Each constituent shape in the union has its own shape parameters
-    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
-    :math:`\\mathbf{q}_k`` (see `shape`).
+    :math:`S_k`, position :math:`\\vec{r}_k`, and orientation
+    :math:`\\mathbf{q}_k` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.

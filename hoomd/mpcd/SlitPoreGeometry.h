@@ -109,7 +109,7 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
         // determine if collisions happend with the x or z walls.
         // if both occur, use the one that happened first (leaves the most time)
         // this neglects coming through the corner exactly, but that's OK to an approx.
-        uchar2 hits = make_uchar2(dts.x > 0 && dts.x<dt, dts.y> 0 && dts.y < dt);
+        uchar2 hits = make_uchar2(dts.x > 0 && dts.x < dt, dts.y > 0 && dts.y < dt);
         if (hits.x && hits.y)
             {
             if (dts.x < dts.y)

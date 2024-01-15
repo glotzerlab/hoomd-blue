@@ -6,7 +6,90 @@ Change Log
 
 4.x
 ---
-4.2.1 (2024-10-02)
+
+4.4.1 (2023-12-18)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Correct ``net_virial`` values in local snapshots
+  (`#1672 <https://github.com/glotzerlab/hoomd-blue/pull/1672>`__).
+* Improve HPMC performance on the CPU when using a pair potential
+  (`#1679 <https://github.com/glotzerlab/hoomd-blue/pull/1679>`__).
+* Improve HPMC performance with 3D hard shapes
+  (`#1679 <https://github.com/glotzerlab/hoomd-blue/pull/1679>`__).
+* Improve HPMC performance on the CPU
+  (`#1687 <https://github.com/glotzerlab/hoomd-blue/pull/1687>`__).
+
+*Changed*
+
+* Provide support via GitHub discussions
+  (`#1671 <https://github.com/glotzerlab/hoomd-blue/pull/1671>`__).
+
+4.4.0 (2023-12-04)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.md.external.field.Magnetic`` computes forces and torques on particles from an external
+  magnetic field (`#1637 <https://github.com/glotzerlab/hoomd-blue/pull/1637>`__).
+* Tutorial on placing barriers
+  (`hoomd-examples/#111 <https://github.com/glotzerlab/hoomd-examples/pull/111>`__).
+
+*Fixed*
+
+* Use ``mpirun`` specific local ranks to select GPUs before checking ``SLURM_LOCALID``
+  (`#1647 <https://github.com/glotzerlab/hoomd-blue/pull/1647>`__).
+* Fix typographical errors in ``RevCross`` documentation
+  (`#1642 <https://github.com/glotzerlab/hoomd-blue/pull/1642>`__).
+* Use standards compliant ``thrust::get``
+  (`#1660 <https://github.com/glotzerlab/hoomd-blue/pull/1660>`__).
+
+*Changed*
+
+* Removed unused code
+  (`#1646 <https://github.com/glotzerlab/hoomd-blue/pull/1646>`__).
+* No longer issue a warning when ``hoomd.md.Integrator`` is used without an integration method
+  (`#1659 <https://github.com/glotzerlab/hoomd-blue/pull/1659>`__).
+* Increase performance of ``Force.forces``, ``Force.torques``, ``Force.energies``, and
+  ``Force.virials`` (`#1654 <https://github.com/glotzerlab/hoomd-blue/pull/1654>`__).
+
+*Deprecated*
+
+* ``num_cpu_threads > 1``. Use ``num_cpu_threads = 1``
+  (`#1656 <https://github.com/glotzerlab/hoomd-blue/pull/1656>`__).
+* ``HPMCIntegrator.depletant_fugacity > 0``
+  (`#1657 <https://github.com/glotzerlab/hoomd-blue/pull/1657>`__).
+
+4.3.0 (2023-10-24)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``md.alchemy.methods.NVT`` now evolves the elements provided in ``alchemical_dof``
+  (`#1633 <https://github.com/glotzerlab/hoomd-blue/pull/1633>`__).
+* More consistent notice messages regarding MPI ranks used in GPU selection
+  (`#1635 <https://github.com/glotzerlab/hoomd-blue/pull/1635>`__).
+* ``hoomd.hpmc.compute.SDF`` computes correct pressures with patchy potentials.
+  (`#1636 <https://github.com/glotzerlab/hoomd-blue/pull/1636>`__).
+
+*Added*
+
+* Support GCC 13
+  (`#1634 <https://github.com/glotzerlab/hoomd-blue/pull/1634>`__).
+* Support Python 3.12
+  (`#1634 <https://github.com/glotzerlab/hoomd-blue/pull/1634>`__).
+* ``tau`` parameter to ``hoomd.md.methods.thermostats.Bussi``
+  (`#1619 <https://github.com/glotzerlab/hoomd-blue/pull/1619>`__).
+
+*Changed*
+
+* Revise class documentation.
+  (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
+* Add more code snippets to the class documentation
+  (`#1628 <https://github.com/glotzerlab/hoomd-blue/pull/1628>`__).
+
+4.2.1 (2023-10-02)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
@@ -20,7 +103,7 @@ Change Log
 * Apple clang 15 compiles HOOMD-blue without errors
   (`#1626 <https://github.com/glotzerlab/hoomd-blue/pull/1626>`__).
 
-4.2.0 (2024-09-20)
+4.2.0 (2023-09-20)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*
@@ -66,7 +149,7 @@ Change Log
 * Removed the unused ``ExternalFieldComposite.h`` and all the related ``ExternalFieldComposite*``
   (`#1604 <https://github.com/glotzerlab/hoomd-blue/pull/1604>`__).
 
-4.1.0 (2024-08-07)
+4.1.0 (2023-08-07)
 ^^^^^^^^^^^^^^^^^^
 
 *Fixed*

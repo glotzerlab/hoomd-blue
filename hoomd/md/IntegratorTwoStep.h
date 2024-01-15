@@ -119,8 +119,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
 
-    bool m_prepared;     //!< True if preprun has been called
-    bool m_gave_warning; //!< True if a warning has been given about no methods added
+    bool m_prepared; //!< True if preprun has been called
 
     /// True when orientation degrees of freedom should be integrated
     bool m_integrate_rotational_dof = false;
