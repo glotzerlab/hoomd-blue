@@ -336,7 +336,7 @@ void NeighborListTree::traverseTree()
                 for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree->getNumNodes();
                      ++cur_node_idx)
                     {
-                    if (overlap(cur_aabb_tree->getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(cur_aabb_tree->getNodeAABB(cur_node_idx)))
                         {
                         if (cur_aabb_tree->isNodeLeaf(cur_node_idx))
                             {

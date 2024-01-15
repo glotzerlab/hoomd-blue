@@ -115,7 +115,7 @@ struct OBB
         is_sphere = 1;
         }
 
-    DEVICE OBB(const hoomd::detail::AABB& aabb)
+    DEVICE explicit OBB(const hoomd::detail::AABB& aabb)
         {
         lengths = ShortReal(0.5)
                   * (vec3<ShortReal>(aabb.getUpper()) - vec3<ShortReal>(aabb.getLower()));

@@ -17,7 +17,7 @@ namespace hoomd
 namespace md
     {
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false)
+    : Integrator(sysdef, deltaT), m_prepared(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
 
@@ -51,13 +51,6 @@ IntegratorTwoStep::~IntegratorTwoStep()
 void IntegratorTwoStep::update(uint64_t timestep)
     {
     Integrator::update(timestep);
-
-    // issue a warning if no integration methods are set
-    if (!m_gave_warning && m_methods.size() == 0)
-        {
-        m_exec_conf->msg->warning() << "MD Integrator has no integration methods." << endl;
-        m_gave_warning = true;
-        }
 
     // ensure that prepRun() has been called
     assert(m_prepared);
