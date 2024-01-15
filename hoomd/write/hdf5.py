@@ -162,10 +162,7 @@ class _HDF5LogInternal(custom._InternalAction):
     def flush(self):
         """Write out all data currently buffered in memory.
 
-        Without calling this, data may be stored in the h5py.File object without
-        being written to disk yet.
-
-        .. rubric:: Examples
+        .. rubric:: Examples:
 
         Flush one writer:
 
@@ -282,29 +279,54 @@ class HDF5Log(_InternalCustomWriter):
     .. _h5py:
         https://docs.h5py.org/en/stable/high/file.html#opening-creating-files
 
-    .. rubric:: Example
+    .. rubric:: Example:
 
     .. code-block:: python
 
         logger = hoomd.logging.Logger(
             hoomd.write.HDF5Log.accepted_categories)
-        hdf5_writer = hoomd.write.HDF5Log(
+        hdf5_log = hoomd.write.HDF5Log(
             trigger=hoomd.trigger.Periodic(10_000),
             filename=hdf5_filename,
             logger=logger)
-        simulation.operations += hdf5_writer
+        simulation.operations.writers.append(hdf5_log)
 
     Attributes:
-        cls.accepted_categories (hoomd.logging.LoggerCategories): The enum value
+        accepted_categories (hoomd.logging.LoggerCategories): The enum value
             for all accepted categories for `HDF5Log` instances which is all
             categories other than "string", "strings", and "object" (see
             `hoomd.logging.LoggerCategories`).
-        trigger (hoomd.trigger.trigger_like): The trigger to determine when to
-            run the HDF5 backend.
-        filename (str): The filename of the HDF5 file written to.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                accepted_categories = hoomd.write.HDF5Log.accepted_categories
+
+        filename (str): The filename of the HDF5 file written to (*read only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                filename = hdf5_log.filename
+
         logger (hoomd.logging.Logger): The logger instance used for querying
-            log data.
-        mode (str): The mode the file was opened in.
+            log data (*read only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                logger = hdf5_log.logger
+
+        mode (str): The mode the file was opened in (*read only*).
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                mode = hdf5_log.mode
     """
     _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
@@ -319,7 +341,7 @@ class HDF5Log(_InternalCustomWriter):
             pressure tensor, rotational kinetic energy, or external field
             virial.
 
-        .. rubric:: Example
+        .. rubric:: Example:
 
         .. code-block:: python
 

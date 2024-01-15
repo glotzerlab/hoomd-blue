@@ -4,7 +4,7 @@
 Credits
 =======
 
-The following people have contributed to the to HOOMD-blue:
+The following people have contributed to HOOMD-blue:
 
 * Aaron Keys, University of Michigan
 * Adrien Chen, University of Florida

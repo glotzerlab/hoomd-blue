@@ -410,7 +410,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
             for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                  cur_node_idx++)
                 {
-                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -530,7 +530,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
             for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                  cur_node_idx++)
                 {
-                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -616,8 +616,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     if (u_ij_new != u_ij_0)
                                         {
                                         min_bin_compression = bin_to_sample;
-                                        hist_weight_ptl_i_compression
-                                            = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                        if (u_ij_new < u_ij_0)
+                                            {
+                                            hist_weight_ptl_i_compression = 0;
+                                            }
+                                        else
+                                            {
+                                            hist_weight_ptl_i_compression
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                            }
                                         }
                                     } // end if (!hard_overlap && m_mc->getPatchEnergy())
                                 }     // end loop over bins for compression
@@ -668,8 +675,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     if (u_ij_new != u_ij_0)
                                         {
                                         min_bin_expansion = bin_to_sample;
-                                        hist_weight_ptl_i_expansion
-                                            = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                        if (u_ij_new < u_ij_0)
+                                            {
+                                            hist_weight_ptl_i_expansion = 0;
+                                            }
+                                        else
+                                            {
+                                            hist_weight_ptl_i_expansion
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                            }
                                         }
                                     } // end if (!hard_overlap && m_mc->getPatchEnergy())
                                 }     // end loop over histogram bins for expansions
