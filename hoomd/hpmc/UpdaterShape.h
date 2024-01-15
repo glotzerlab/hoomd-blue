@@ -322,6 +322,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 m_exec_conf->msg->notice(5)
                     << "UpdaterShape move rejected -- overlaps found" << std::endl;
                 // revert shape parameter changes
+                m_move_function->retreat(timestep, typ_i);
                 h_det.data[typ_i] = h_det_old.data[typ_i];
                 m_mc->setParam(typ_i, shape_param_old);
                 }
