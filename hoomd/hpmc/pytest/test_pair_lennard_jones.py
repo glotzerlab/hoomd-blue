@@ -68,7 +68,7 @@ invalid_parameters = [
 
 @pytest.mark.parametrize("parameters", invalid_parameters)
 @pytest.mark.cpu
-def test_invalid_params(mc_simulation_factory, parameters):
+def test_invalid_params_on_attach(mc_simulation_factory, parameters):
     """Test that LennardJones validates parameters."""
     lennard_jones = hoomd.hpmc.pair.LennardJones()
     lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
