@@ -1686,8 +1686,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                              access_mode::read);
 
                 // Check particle against AABB tree for neighbors
-                Scalar r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
-                                     + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
+                Scalar r_cut_patch
+                    = m_mc->getMaxPairEnergyRCutNonAdditive()
+                      + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
 
                 Scalar R_query = std::max(0.0, r_cut_patch - m_mc->getMinCoreDiameter() / 2.0);
                 hoomd::detail::AABB aabb_local

@@ -134,8 +134,8 @@ class PairPotential
     void updateRCutTotal(unsigned int type_i, unsigned int type_j)
         {
         unsigned int type_pair = m_type_param_index(type_i, type_j);
-        LongReal r_cut = m_r_cut_non_additive[type_pair] + LongReal(0.5) * (m_r_cut_additive[type_i]
-                         + m_r_cut_additive[type_j]);
+        LongReal r_cut = m_r_cut_non_additive[type_pair]
+                         + LongReal(0.5) * (m_r_cut_additive[type_i] + m_r_cut_additive[type_j]);
         m_r_cut_squared_total[type_pair] = r_cut * r_cut;
 
         type_pair = m_type_param_index(type_j, type_i);
