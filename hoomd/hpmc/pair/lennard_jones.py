@@ -20,6 +20,7 @@ import hoomd
 
 from .pair import Pair
 
+
 class LennardJones(Pair):
     """Lennard-Jones pair potential (HPMC).
 

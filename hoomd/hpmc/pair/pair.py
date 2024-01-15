@@ -18,6 +18,7 @@
 
 import hoomd
 
+
 class Pair(hoomd.operation._HOOMDBaseObject):
     """Pair potential base class (HPMC).
 
