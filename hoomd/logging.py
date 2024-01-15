@@ -639,7 +639,7 @@ class Logger(_SafeNamespaceDict):
             are typically measures of operation performance rather than
             information about simulation state.
 
-    .. rubric:: Examples
+    .. rubric:: Examples:
 
     There are various ways to create a logger with different available
     loggables. Create a `Logger` with no options to allow all categories.

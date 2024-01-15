@@ -560,7 +560,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(this->m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                         {
                         if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
@@ -906,7 +906,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         // stackless search
                         for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                             {
-                            if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb))
+                            if (aabb.overlaps(this->m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                                 {
                                 if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                                     {
@@ -959,7 +959,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                             // stackless search
                             for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                                 {
-                                if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb))
+                                if (aabb.overlaps(this->m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                                     {
                                     if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                                         {
@@ -1226,7 +1226,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                    if (aabb_i_image.overlaps(m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                         {
                         if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
@@ -1326,7 +1326,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                if (aabb_i_image.overlaps(m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                         {
@@ -1391,7 +1391,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                    if (aabb_i_image.overlaps(m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                         {
                         if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {

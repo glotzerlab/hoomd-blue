@@ -29,3 +29,4 @@ hoomd.operation
 
     .. autoclass:: Operation
         :inherited-members:
+        :show-inheritance:

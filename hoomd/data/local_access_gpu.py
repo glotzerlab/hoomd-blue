@@ -118,6 +118,10 @@ ghost particles) in a read only array.
 
 All array-like properties return a `hoomd.data.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
+
+See Also:
+    Access the local snapshot of a state via
+    `hoomd.State.gpu_local_snapshot`.
 """
 
 LocalSnapshotGPU.__doc__ = _gpu_snapshot_docs

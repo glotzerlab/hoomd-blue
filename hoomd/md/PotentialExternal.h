@@ -4,6 +4,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GlobalArray.h"
+#include "hoomd/VectorMath.h"
 #include "hoomd/managed_allocator.h"
 #include "hoomd/md/EvaluatorExternalPeriodic.h"
 #include <memory>
@@ -42,6 +43,8 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     //! type of external potential parameters
     typedef typename evaluator::param_type param_type;
     typedef typename evaluator::field_type field_type;
+
+    bool isAnisotropic();
 
     //! Sets parameters of the evaluator
     pybind11::object getParams(std::string type);
@@ -99,8 +102,13 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
+
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
@@ -112,10 +120,12 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 
     // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
+    assert(h_torque.data);
     assert(h_virial.data);
 
     // for each of the particles
@@ -124,18 +134,19 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         // get the current particle properties
         Scalar3 X = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
-        Scalar3 F;
+        quat<Scalar> q(h_orientation.data[idx]);
+        Scalar3 F, T;
         Scalar energy;
         Scalar virial[6];
 
-        evaluator eval(X, box, h_params.data[type], *m_field);
+        evaluator eval(X, q, box, h_params.data[type], *m_field);
 
         if (evaluator::needsCharge())
             {
             Scalar qi = h_charge.data[idx];
             eval.setCharge(qi);
             }
-        eval.evalForceEnergyAndVirial(F, energy, virial);
+        eval.evalForceTorqueEnergyAndVirial(F, T, energy, virial);
 
         // apply the constraint force
         h_force.data[idx].x = F.x;
@@ -144,6 +155,10 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         h_force.data[idx].w = energy;
         for (int k = 0; k < 6; k++)
             h_virial.data[k * m_virial_pitch + idx] = virial[k];
+
+        h_torque.data[idx].x = T.x;
+        h_torque.data[idx].y = T.y;
+        h_torque.data[idx].z = T.z;
         }
     }
 
@@ -154,6 +169,13 @@ void PotentialExternal<evaluator>::validateType(unsigned int type, std::string a
         {
         throw std::runtime_error("Invalid type encountered when " + action);
         }
+    }
+
+//! Returns true if this ForceCompute requires anisotropic integration
+template<class evaluator> bool PotentialExternal<evaluator>::isAnisotropic()
+    {
+    // by default, only translational degrees of freedom are integrated
+    return evaluator::isAnisotropic();
     }
 
 //! Set the parameters for this potential

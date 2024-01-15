@@ -55,49 +55,49 @@ template<class Archive> void serialize(Archive& ar, hoomd::Scalar4& s, const uns
 //! Serialization of Scalar3
 template<class Archive> void serialize(Archive& ar, hoomd::Scalar3& s, const unsigned int version)
     {
-    ar& s.x;
-    ar& s.y;
-    ar& s.z;
+    ar & s.x;
+    ar & s.y;
+    ar & s.z;
     }
 
 //! Serialization of int3
 template<class Archive> void serialize(Archive& ar, int3& i, const unsigned int version)
     {
-    ar& i.x;
-    ar& i.y;
-    ar& i.z;
+    ar & i.x;
+    ar & i.y;
+    ar & i.z;
     }
 
 //! serialization of uint2
 template<class Archive> void serialize(Archive& ar, uint2& u, const unsigned int version)
     {
-    ar& u.x;
-    ar& u.y;
+    ar & u.x;
+    ar & u.y;
     }
 
 //! serialization of uint3
 template<class Archive> void serialize(Archive& ar, uint3& u, const unsigned int version)
     {
-    ar& u.x;
-    ar& u.y;
-    ar& u.z;
+    ar & u.x;
+    ar & u.y;
+    ar & u.z;
     }
 
 //! serialization of uchar3
 template<class Archive> void serialize(Archive& ar, uchar3& u, const unsigned int version)
     {
-    ar& u.x;
-    ar& u.y;
-    ar& u.z;
+    ar & u.x;
+    ar & u.y;
+    ar & u.z;
     }
 
 //! Serialization of vec3<Real>
 template<class Archive, class Real>
 void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
     {
-    ar& v.x;
-    ar& v.y;
-    ar& v.z;
+    ar & v.x;
+    ar & v.y;
+    ar & v.z;
     }
 
 //! Serialization of quat<Real>
@@ -105,8 +105,8 @@ template<class Archive, class Real>
 void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
     {
     // serialize both members
-    ar& q.s;
-    ar& q.v;
+    ar & q.s;
+    ar & q.v;
     }
 
 #ifdef ENABLE_TBB

@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.2
+      uses: glotzerlab/jetstream2-admin/start@v1.2.3
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
@@ -59,15 +59,15 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
         - {config: [clang14_py311, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda120_gcc11_py310, mpi, llvm, debug], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
@@ -82,7 +82,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true
@@ -168,16 +168,16 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang14_py311, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda120_gcc11_py310, mpi, llvm, debug], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
@@ -188,7 +188,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true
@@ -201,18 +201,18 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
     - name: Run pytest (serial)
-      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
-      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
       env:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -229,16 +229,16 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang14_py311, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda120_gcc11_py310, mpi, llvm, debug], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
@@ -249,7 +249,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true
@@ -283,13 +283,13 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang14_py311, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc13_py312], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda120_gcc11_py310, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda120_gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -299,7 +299,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true
@@ -313,10 +313,10 @@ jobs:
 
     - name: Run pytest (serial)
       if: ${{ !contains(matrix.config, 'mpi') }}
-      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
     - name: Run howto guides (serial)
       if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
@@ -334,10 +334,11 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
+        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang16_py311, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang15_py311, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang13_py310, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
@@ -361,7 +362,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true
@@ -447,11 +448,12 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
+        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang16_py311, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang15_py311, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang13_py310, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
@@ -475,7 +477,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true
@@ -488,18 +490,18 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
     - name: Run pytest (serial)
-      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
-      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
       env:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -516,11 +518,12 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.07.24-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
+        - {config: [gcc12_py311], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang16_py311, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang15_py311, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang13_py310, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
@@ -544,7 +547,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       with:
         path: code
         submodules: true

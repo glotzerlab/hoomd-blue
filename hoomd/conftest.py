@@ -66,9 +66,6 @@ if sybil is not None:
         pattern='*.py',
         # exclude files not yet tested with sybil
         excludes=[
-            'custom/custom_action.py',
-            'data/typeconverter.py',
-            'data/typeparam.py',
             'hpmc/pair/user.py',
         ],
         setup=setup_sybil_tests,
