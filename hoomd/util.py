@@ -286,6 +286,12 @@ def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
         `make_example_simulation` is intended for use in the documentation and
         other minimal working examples. Use `hoomd.Simulation` directly in other
         cases.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        simulation = hoomd.util.make_example_simulation()
     """
     if device is None:
         device = hoomd.device.CPU()

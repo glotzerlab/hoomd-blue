@@ -80,6 +80,10 @@ class LocalSnapshot(_LocalSnapshot):
         For the ``LocalAccess`` classes the affixed attributes mentioned above
         are not shown. Also of interest, ghost data always come immediately
         after the regular data.
+
+    See Also:
+        Access the local snapshot of a state via
+        `hoomd.State.cpu_local_snapshot`.
     """
 
     def __init__(self, state):

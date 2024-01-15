@@ -41,7 +41,16 @@ hoomd.data
         :inherited-members:
 
     .. autoclass:: hoomd.data.typeparam.TypeParameter
-        :members: default
+        :members: __delitem__,
+                  __eq__,
+                  __getitem__,
+                  __iter__,
+                  __len__,
+                  __setitem__,
+                  default,
+                  get,
+                  setdefault,
+                  to_base
 
 .. rubric:: Modules
 

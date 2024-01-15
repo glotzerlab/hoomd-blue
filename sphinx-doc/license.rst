@@ -50,9 +50,6 @@ Libraries
 Additionally, HOOMD-blue links to or compiles in code from the following
 libraries:
 
-**Sockets code** from `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_, used under the
-UIUC Open Source License.
-
 **Molfile plugin code** from VMD, used under the UIUC Open Source License::
 
     University of Illinois Open Source License

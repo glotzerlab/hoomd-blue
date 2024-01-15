@@ -92,8 +92,10 @@ _thermostat_definition = (
         "tau": float
     },
                     generator=generator),
-    ClassDefinition(hoomd.md.methods.thermostats.Bussi,
-                    {"kT": hoomd.variant.Variant},
+    ClassDefinition(hoomd.md.methods.thermostats.Bussi, {
+        "kT": hoomd.variant.Variant,
+        "tau": float
+    },
                     generator=generator),
     ClassDefinition(hoomd.md.methods.thermostats.Berendsen, {
         "kT": hoomd.variant.Variant,

@@ -92,6 +92,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
+		EvaluatorExternalMagneticField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
@@ -437,7 +438,7 @@ foreach(_evaluator ${_triplets})
     endif()
 endforeach()
 
-set(_external_evaluators Periodic ElectricField)
+set(_external_evaluators Periodic ElectricField MagneticField)
 
 foreach(_evaluator ${_external_evaluators})
     configure_file(export_PotentialExternal.cc.inc
