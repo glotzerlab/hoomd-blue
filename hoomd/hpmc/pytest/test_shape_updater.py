@@ -234,12 +234,22 @@ def test_python_callback_shape_move(simulation_factory,
     #  - shape and params should change
     #  - volume should remain unchanged
     move.param_move_probability = 1
-    sim.run(10)
-    assert np.sum(updater.shape_moves) == 20
+    sim.run(20)
+    assert np.sum(updater.shape_moves) == 40
+
+    # Check that the shape parameters have changed
     assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
     assert not np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
     assert not np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
     assert not np.allclose(move.params["A"], [1])
+
+    # Check that the shape parameters map back to the correct geometry
+    assert np.allclose(move.params["A"], [
+        mc.shape["A"]["a"] / mc.shape["A"]["b"],
+        mc.shape["A"]["a"] / mc.shape["A"]["c"]
+    ])
+
+    # Check that the callback is conserving volume properly
     assert np.allclose(updater.particle_volumes, 4 * np.pi / 3)
 
 
