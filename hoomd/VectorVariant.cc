@@ -28,6 +28,16 @@ class VectorVariantBoxPy : public VectorVariantBox
 namespace detail
     {
 
+// This testVariantCall function allows us to test that Python custom vector
+// variants work properly in C++. This ensures we can test that the function
+// itself can be called in C++ when defined in Python.
+
+/// Method to enable unit testing of C++ variant calls from pytest
+std::array<Scalar, 6> testVectorVariantBoxCall(std::shared_ptr<VectorVariantBox> t, uint64_t step)
+    {
+    return (*t)(step);
+    }
+
 void export_VectorVariantBox(pybind11::module& m)
     {
     pybind11::class_<VectorVariantBox, VectorVariantBoxPy, std::shared_ptr<VectorVariantBox>>(
@@ -70,20 +80,20 @@ void export_VectorVariantBox(pybind11::module& m)
                 */
         ;
 
-    pybind11::class_<VectorVariantBoxLinear,
+    pybind11::class_<VectorVariantBoxInterpolate,
                      VectorVariantBox,
-                     std::shared_ptr<VectorVariantBoxLinear>>(m, "VectorVariantBoxLinear")
+                     std::shared_ptr<VectorVariantBoxInterpolate>>(m, "VectorVariantBoxInterpolate")
         .def(pybind11::
                  init<std::shared_ptr<BoxDim>, std::shared_ptr<BoxDim>, std::shared_ptr<Variant>>())
         .def_property("initial_box",
-                      &VectorVariantBoxLinear::getBox1,
-                      &VectorVariantBoxLinear::setBox1)
+                      &VectorVariantBoxInterpolate::getBox1,
+                      &VectorVariantBoxInterpolate::setBox1)
         .def_property("final_box",
-                      &VectorVariantBoxLinear::getBox2,
-                      &VectorVariantBoxLinear::setBox2)
+                      &VectorVariantBoxInterpolate::getBox2,
+                      &VectorVariantBoxInterpolate::setBox2)
         .def_property("variant",
-                      &VectorVariantBoxLinear::getVariant,
-                      &VectorVariantBoxLinear::setVariant);
+                      &VectorVariantBoxInterpolate::getVariant,
+                      &VectorVariantBoxInterpolate::setVariant);
 
     pybind11::class_<VectorVariantBoxInverseVolumeRamp,
                      VectorVariantBox,
@@ -100,7 +110,10 @@ void export_VectorVariantBox(pybind11::module& m)
         .def_property("t_ramp",
                       &VectorVariantBoxInverseVolumeRamp::getTRamp,
                       &VectorVariantBoxInverseVolumeRamp::setTRamp);
+
+    m.def("_test_vector_variant_call", &testVectorVariantBoxCall);
     }
+
 
     } // end namespace detail
 

@@ -3,14 +3,15 @@
 
 """Implement variants that return box parameters as a function of time."""
 
-from hoomd import _hoomd
+from hoomd import _hoomd, Box
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
 
 
-class Box(_hoomd.VectorVariantBox):
+class BoxVariant(_hoomd.VectorVariantBox):
     """Box-like vector variant base class.
 
-    `hoomd.variant.box.Box` provides an interface to length-6 vector variants
+    `hoomd.variant.box.BoxVariant` provides an interface to length-6 vector variants
     that are valid `hoomd.box.box_like` objects.  The return value of the
     ``__call__`` method returns a length-6 array of scalar values that represent
     the quantities ``Lx``, ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` of a
@@ -19,7 +20,7 @@ class Box(_hoomd.VectorVariantBox):
     pass
 
 
-class Constant(_hoomd.VectorVariantBoxConstant, Box):
+class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
     """A constant box variant.
 
     Args:
@@ -34,10 +35,11 @@ class Constant(_hoomd.VectorVariantBoxConstant, Box):
 
     def __init__(self, box):
         box = box_preprocessing(box)
+        BoxVariant.__init__(self)
         _hoomd.VectorVariantBoxConstant.__init__(self, box._cpp_obj)
 
 
-class Ramp(_hoomd.VectorVariantBoxLinear):
+class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
     """Interpolate between two boxes linearly in time.
 
     Args:
@@ -61,11 +63,12 @@ class Ramp(_hoomd.VectorVariantBoxLinear):
         box1 = box_preprocessing(initial_box)
         box2 = box_preprocessing(final_box)
         variant = variant_preprocessing(variant)
-        _hoomd.VectorVariantBoxLinear.__init__(self, box1._cpp_obj,
+        BoxVariant.__init__(self)
+        _hoomd.VectorVariantBoxInterpolate.__init__(self, box1._cpp_obj,
                                                box2._cpp_obj, variant)
 
 
-class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp):
+class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
     """Produce box arrays whose inverse volume changes linearly with time.
 
     Args:
@@ -89,6 +92,7 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp):
     """
 
     def __init__(self, initial_box, final_volume, t_start, t_ramp):
+        BoxVariant.__init__(self)
         box = box_preprocessing(initial_box)
         _hoomd.VectorVariantBoxInverseVolumeRamp.__init__(
             self, box._cpp_obj, final_volume, t_start, t_ramp)

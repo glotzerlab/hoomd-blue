@@ -86,15 +86,15 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
     std::shared_ptr<BoxDim> m_box;
     };
 
-class PYBIND11_EXPORT VectorVariantBoxLinear : public VectorVariantBox
+class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
     {
     public:
-    /** Construct a VectorVariantBoxLinear to interpolate between two boxes linearly in time.
+    /** Construct a VectorVariantBoxInterpolate to interpolate between two boxes linearly in time.
 
         @param box1 The initial box
         @param box2 The final box
     */
-    VectorVariantBoxLinear(std::shared_ptr<BoxDim> box1,
+    VectorVariantBoxInterpolate(std::shared_ptr<BoxDim> box1,
                            std::shared_ptr<BoxDim> box2,
                            std::shared_ptr<Variant> variant)
         : m_box1(box1), m_box2(box2), m_variant(variant)
@@ -177,17 +177,15 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
                                       Scalar final_volume,
                                       uint64_t t_start,
                                       uint64_t t_ramp)
-        : m_box1(box1), m_final_volume(final_volume), m_t_start(t_start), m_t_ramp(t_ramp)
+        : m_box1(box1), m_final_volume(final_volume), m_variant(0, 1, t_start, t_ramp)
         {
         m_is2D = m_box1->getL().z == 0;
         m_vol1 = m_box1->getVolume(m_is2D);
-        std::shared_ptr<VariantRamp> variant(new VariantRamp {0, 1, t_start, t_ramp});
-        m_variant = variant;
         }
 
     virtual array_type operator()(uint64_t timestep)
         {
-        Scalar s = (*m_variant)(timestep);
+        Scalar s = m_variant(timestep);
         // current inverse volume = s * (1 / m_final_volume) + (1-s) * (1/m_vol1)
         // current volume = 1 / (current inverse volume)
         Scalar current_volume = 1 / (s / m_final_volume + (1.0 - s) / m_vol1);
@@ -225,30 +223,25 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
     /// Set the starting time step.
     void setTStart(uint64_t t_start)
         {
-        m_t_start = t_start;
+        m_variant.setTStart(t_start);
         }
 
     /// Get the starting time step.
     uint64_t getTStart() const
         {
-        return m_t_start;
+        return m_variant.getTStart();
         }
 
     /// Set the length of the ramp.
     void setTRamp(uint64_t t_ramp)
         {
-        // doubles can only represent integers accuracy up to 2**53.
-        if (t_ramp >= 9007199254740992ull)
-            {
-            throw std::invalid_argument("t_ramp must be less than 2**53");
-            }
-        m_t_ramp = t_ramp;
+        m_variant.setTRamp(t_ramp);
         }
 
     /// Get the length of the ramp.
     uint64_t getTRamp() const
         {
-        return m_t_ramp;
+        return m_variant.getTRamp();
         }
 
     protected:
@@ -261,12 +254,6 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
     /// The volume of the box at the end of the ramp.
     Scalar m_final_volume;
 
-    /// The starting time step.
-    uint64_t m_t_start;
-
-    /// The length of the ramp.
-    uint64_t m_t_ramp;
-
     /// Whether box1 is 2-dimensional or not
     bool m_is2D;
 
@@ -274,7 +261,7 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
     Scalar m_current_volume;
 
     /// Variant for computing scale value
-    std::shared_ptr<VariantRamp> m_variant; //!< Variant that interpolates between boxes
+    VariantRamp m_variant; //!< Variant that interpolates between boxes
     };
 
 namespace detail

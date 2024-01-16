@@ -11,9 +11,9 @@ hoomd.variant.box
 .. autosummary::
     :nosignatures:
 
-    Box
+    BoxVariant
     Constant
-    Ramp
+    Interpolate
     InverseVolumeRamp
 
 .. rubric:: Details
@@ -22,10 +22,10 @@ hoomd.variant.box
     :synopsis: Box variants.
     :no-members:
 
-    .. autoclass:: Box()
+    .. autoclass:: BoxVariant()
     .. autoclass:: Constant(box)
         :show-inheritance:
-    .. autoclass:: Ramp(initial_box, final_box, variant)
+    .. autoclass:: Interpolate(initial_box, final_box, variant)
         :show-inheritance:
     .. autoclass:: InverseVolumeRamp(initial_box, final_volume, t_start, t_ramp)
         :show-inheritance:
