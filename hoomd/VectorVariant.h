@@ -177,10 +177,10 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
                                       Scalar final_volume,
                                       uint64_t t_start,
                                       uint64_t t_ramp)
-        : m_box1(box1), m_final_volume(final_volume), m_variant(0, 1, t_start, t_ramp)
+        : m_initial_box(box1), m_final_volume(final_volume), m_variant(0, 1, t_start, t_ramp)
         {
-        m_is2D = m_box1->getL().z == 0;
-        m_vol1 = m_box1->getVolume(m_is2D);
+        m_is2D = m_initial_box->getL().z == 0;
+        m_initial_volume = m_initial_box->getVolume(m_is2D);
         }
 
     virtual array_type operator()(uint64_t timestep)
@@ -188,36 +188,38 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
         Scalar s = m_variant(timestep);
         // current inverse volume = s * (1 / m_final_volume) + (1-s) * (1/m_vol1)
         // current volume = 1 / (current inverse volume)
-        Scalar current_volume = 1 / (s / m_final_volume + (1.0 - s) / m_vol1);
+        Scalar current_volume = 1 / (s / m_final_volume + (1.0 - s) / m_initial_volume);
         Scalar L_scale;
         if (m_is2D)
             {
-            L_scale = pow(current_volume / m_vol1, Scalar(1.0 / 2.0));
+            L_scale = pow(current_volume / m_initial_volume, Scalar(1.0 / 2.0));
             }
         else
             {
-            L_scale = pow(current_volume / m_vol1, Scalar(1.0 / 3.0));
+            L_scale = pow(current_volume / m_initial_volume, Scalar(1.0 / 3.0));
             }
 
         std::array<Scalar, 6> value;
-        Scalar3 L1 = m_box1->getL();
+        Scalar3 L1 = m_initial_box->getL();
         value[0] = L1.x * L_scale;
         value[1] = L1.y * L_scale;
         value[2] = L1.z * L_scale;
-        value[3] = m_box1->getTiltFactorXY();
-        value[4] = m_box1->getTiltFactorXZ();
-        value[5] = m_box1->getTiltFactorYZ();
+        value[3] = m_initial_box->getTiltFactorXY();
+        value[4] = m_initial_box->getTiltFactorXZ();
+        value[5] = m_initial_box->getTiltFactorYZ();
         return value;
         }
 
-    std::shared_ptr<BoxDim> getBox1()
+    std::shared_ptr<BoxDim> getInitialBox()
         {
-        return m_box1;
+        return m_initial_box;
         }
 
-    void setBox1(std::shared_ptr<BoxDim> box)
+    void setInitialBox(std::shared_ptr<BoxDim> box)
         {
-        m_box1 = box;
+        m_initial_box = box;
+        m_is2D = box->getL().z == 0;
+        m_initial_volume = box->getVolume(m_is2D);
         }
 
     /// Set the starting time step.
@@ -244,12 +246,24 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
         return m_variant.getTRamp();
         }
 
+    /// Set the final volume
+    void setFinalVolume(Scalar volume)
+        {
+        m_final_volume = volume;
+        }
+    
+    /// Get the final volume
+    Scalar getFinalVolume() const
+        {
+        return m_final_volume;
+        }
+
     protected:
     /// The starting box.
-    std::shared_ptr<BoxDim> m_box1;
+    std::shared_ptr<BoxDim> m_initial_box;
 
     /// The volume of box1.
-    Scalar m_vol1;
+    Scalar m_initial_volume;
 
     /// The volume of the box at the end of the ramp.
     Scalar m_final_volume;

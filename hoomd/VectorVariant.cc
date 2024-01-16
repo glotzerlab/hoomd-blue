@@ -50,7 +50,7 @@ void export_VectorVariantBox(pybind11::module& m)
                      VectorVariantBox,
                      std::shared_ptr<VectorVariantBoxConstant>>(m, "VectorVariantBoxConstant")
         .def(pybind11::init<std::shared_ptr<BoxDim>>())
-        .def_property("box", &VectorVariantBoxConstant::getBox, &VectorVariantBoxConstant::setBox)
+        .def_property("_box", &VectorVariantBoxConstant::getBox, &VectorVariantBoxConstant::setBox)
         /*
         .def(
             pybind11::pickle(
@@ -85,10 +85,10 @@ void export_VectorVariantBox(pybind11::module& m)
                      std::shared_ptr<VectorVariantBoxInterpolate>>(m, "VectorVariantBoxInterpolate")
         .def(pybind11::
                  init<std::shared_ptr<BoxDim>, std::shared_ptr<BoxDim>, std::shared_ptr<Variant>>())
-        .def_property("initial_box",
+        .def_property("_initial_box",
                       &VectorVariantBoxInterpolate::getBox1,
                       &VectorVariantBoxInterpolate::setBox1)
-        .def_property("final_box",
+        .def_property("_final_box",
                       &VectorVariantBoxInterpolate::getBox2,
                       &VectorVariantBoxInterpolate::setBox2)
         .def_property("variant",
@@ -101,15 +101,18 @@ void export_VectorVariantBox(pybind11::module& m)
         m,
         "VectorVariantBoxInverseVolumeRamp")
         .def(pybind11::init<std::shared_ptr<BoxDim>, Scalar, uint64_t, uint64_t>())
-        .def_property("box1",
-                      &VectorVariantBoxInverseVolumeRamp::getBox1,
-                      &VectorVariantBoxInverseVolumeRamp::setBox1)
+        .def_property("_initial_box",
+                      &VectorVariantBoxInverseVolumeRamp::getInitialBox,
+                      &VectorVariantBoxInverseVolumeRamp::setInitialBox)
         .def_property("t_start",
                       &VectorVariantBoxInverseVolumeRamp::getTStart,
                       &VectorVariantBoxInverseVolumeRamp::setTStart)
         .def_property("t_ramp",
                       &VectorVariantBoxInverseVolumeRamp::getTRamp,
-                      &VectorVariantBoxInverseVolumeRamp::setTRamp);
+                      &VectorVariantBoxInverseVolumeRamp::setTRamp)
+        .def_property("final_volume",
+                      &VectorVariantBoxInverseVolumeRamp::getFinalVolume,
+                      &VectorVariantBoxInverseVolumeRamp::setFinalVolume);
 
     m.def("_test_vector_variant_call", &testVectorVariantBoxCall);
     }
