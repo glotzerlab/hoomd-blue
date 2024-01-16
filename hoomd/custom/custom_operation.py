@@ -216,9 +216,6 @@ class _InternalCustomOperation(CustomOperation,
             key: value.update_cls(self.__class__)
             for key, value in self._export_dict.items()
         }
-        # Wrap action act method with operation appropriate one.
-        wrapping_method = getattr(self, self._operation_func).__func__
-        setattr(wrapping_method, "__doc__", self._action.act.__doc__)
 
     def __dir__(self):
         """Expose all attributes for dynamic querying in notebooks and IDEs."""
