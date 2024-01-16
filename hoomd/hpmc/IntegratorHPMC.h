@@ -454,13 +454,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
         for (const auto& pair : m_pair_potentials)
             {
-            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
-                {
-                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
-                    {
-                    r_cut = std::max(r_cut, pair->getRCutNonAdditive(type_i, type_j));
-                    }
-                }
+            r_cut = std::max(r_cut, pair->getMaxRCutNonAdditive());
             }
 
         return r_cut;
