@@ -10,7 +10,7 @@ valid_constructor_args = [
     {},
     dict(default_r_cut=2.5),
     dict(default_r_on=2.0),
-    dict(default_mode='shift'),
+    dict(mode='shift'),
 ]
 
 
@@ -61,8 +61,7 @@ invalid_parameters = [
     dict(epsilon=1.0, sigma=1.0),
     dict(epsilon=1.0, sigma=1.0, r_cut='invalid'),
     dict(epsilon=1.0, sigma=1.0, r_cut=2.5, r_on='invalid'),
-    dict(epsilon=1.0, sigma=1.0, r_cut=2.5, r_on=2.0, mode='invalid'),
-    dict(epsilon=1.0, sigma=1.0, r_cut=2.5, r_on=2.0, mode='shift', invalid=10),
+    dict(epsilon=1.0, sigma=1.0, r_cut=2.5, r_on=2.0, invalid=10),
 ]
 
 
@@ -105,68 +104,79 @@ def lj(r, r_cut, epsilon, sigma):
 lennard_jones_test_parameters = [
     (
         dict(epsilon=2.0, sigma=1.5, r_cut=2.5),
+        'none',
         3.0,
         0.0,
     ),
     (
         dict(epsilon=2.0, sigma=1.5, r_cut=2.5),
+        'none',
         1.5 * 2**(1 / 6),
         -2.0,
     ),
     (
         dict(epsilon=3.0, sigma=0.5, r_cut=2.5),
+        'none',
         0.5,
         0,
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2, mode='none'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2),
+        'none',
         1.5,
         lj(1.5, 2, 5, 1.1),
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2, mode='shift'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2),
+        'shift',
         1.5,
         lj(1.5, 2, 5, 1.1) - lj(2, 2, 5, 1.1),
     ),
     (
-        dict(epsilon=1.0, sigma=1, r_cut=3, mode='shift'),
+        dict(epsilon=1.0, sigma=1, r_cut=3),
+        'shift',
         3.2,
         0,
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0, mode='xplor'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0),
+        'xplor',
         1.5,
         lj(1.5, 2.5, 5.0, 1.1) * xplor_factor(1.5, 2.0, 2.5),
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0, mode='xplor'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0),
+        'xplor',
         2.3,
         lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.0, 2.5),
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0, mode='xplor'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0),
+        'xplor',
         2.3,
         lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.0, 2.5),
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2, r_on=3, mode='xplor'),
+        dict(epsilon=5.0, sigma=1.1, r_cut=2, r_on=3),
+        'xplor',
         1.5,
         lj(1.5, 2, 5, 1.1) - lj(2, 2, 5, 1.1),
     ),
     (
-        dict(epsilon=1.0, sigma=1, r_cut=3, r_on=4, mode='xplor'),
+        dict(epsilon=1.0, sigma=1, r_cut=3, r_on=4),
+        'xplor',
         3.2,
         0,
     ),
 ]
 
 
-@pytest.mark.parametrize('params, d, expected_energy',
+@pytest.mark.parametrize('params, mode, d, expected_energy',
                          lennard_jones_test_parameters)
 @pytest.mark.cpu
-def test_energy(mc_simulation_factory, params, d, expected_energy):
+def test_energy(mc_simulation_factory, params, mode, d, expected_energy):
     """Test that LennardJones computes the correct energies for 1 pair."""
-    lennard_jones = hoomd.hpmc.pair.LennardJones()
+    lennard_jones = hoomd.hpmc.pair.LennardJones(mode=mode)
     lennard_jones.params[('A', 'A')] = params
 
     simulation = mc_simulation_factory(d=d)

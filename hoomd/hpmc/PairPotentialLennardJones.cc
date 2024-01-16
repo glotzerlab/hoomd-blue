@@ -33,14 +33,14 @@ LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
 
     LongReal energy = r_6_inverse * (lj1 * r_6_inverse - lj2);
 
-    if (param.mode == shift || (param.mode == xplor && param.r_on_squared >= param.r_cut_squared))
+    if (m_mode == shift || (m_mode == xplor && param.r_on_squared >= param.r_cut_squared))
         {
         LongReal r_cut_2_inverse = LongReal(1.0) / param.r_cut_squared;
         LongReal r_cut_6_inverse = r_cut_2_inverse * r_cut_2_inverse * r_cut_2_inverse;
         energy -= r_cut_6_inverse * (lj1 * r_cut_6_inverse - lj2);
         }
 
-    if (param.mode == xplor && r_squared > param.r_on_squared)
+    if (m_mode == xplor && r_squared > param.r_on_squared)
         {
         LongReal a = param.r_cut_squared - param.r_on_squared;
         LongReal denominator = a * a * a;
@@ -86,7 +86,10 @@ void exportPairPotentialLennardJones(pybind11::module& m)
                      std::shared_ptr<PairPotentialLennardJones>>(m, "PairPotentialLennardJones")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialLennardJones::setParamsPython)
-        .def("getParams", &PairPotentialLennardJones::getParamsPython);
+        .def("getParams", &PairPotentialLennardJones::getParamsPython)
+        .def_property("mode",
+                      &PairPotentialLennardJones::getMode,
+                      &PairPotentialLennardJones::setMode);
     }
     } // end namespace detail
     } // end namespace hpmc

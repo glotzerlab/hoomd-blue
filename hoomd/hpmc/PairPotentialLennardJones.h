@@ -29,8 +29,47 @@ class PairPotentialLennardJones : public hpmc::PairPotential
                             const quat<LongReal>& q_j,
                             const LongReal charge_j) const;
 
-    virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
-    virtual pybind11::dict getParamsPython(pybind11::tuple typ);
+    /// Set type pair dependent parameters to the potential.
+    void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+
+    /// Get type pair dependent parameters.
+    pybind11::dict getParamsPython(pybind11::tuple typ);
+
+    void setMode(const std::string& mode_str)
+        {
+        if (mode_str == "none")
+            {
+            m_mode = no_shift;
+            }
+        else if (mode_str == "shift")
+            {
+            m_mode = shift;
+            }
+        else if (mode_str == "xplor")
+            {
+            m_mode = xplor;
+            }
+        else
+            {
+            throw std::domain_error("Invalid mode " + mode_str);
+            }
+        }
+
+    std::string getMode()
+        {
+        std::string result = "none";
+
+        if (m_mode == shift)
+            {
+            result = "shift";
+            }
+        if (m_mode == xplor)
+            {
+            result = "xplor";
+            }
+
+        return result;
+        }
 
     protected:
     /// Shifting modes that can be applied to the energy
@@ -50,7 +89,6 @@ class PairPotentialLennardJones : public hpmc::PairPotential
             epsilon_x_4 = 0;
             r_cut_squared = 0;
             r_on_squared = 0;
-            mode = no_shift;
             }
 
         ParamType(pybind11::dict v)
@@ -59,29 +97,11 @@ class PairPotentialLennardJones : public hpmc::PairPotential
             auto epsilon(v["epsilon"].cast<LongReal>());
             auto r_cut(v["r_cut"].cast<LongReal>());
             auto r_on(v["r_on"].cast<LongReal>());
-            auto mode_str(v["mode"].cast<std::string>());
 
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
             epsilon_x_4 = LongReal(4.0) * epsilon;
             r_cut_squared = r_cut * r_cut;
             r_on_squared = r_on * r_on;
-
-            if (mode_str == "none")
-                {
-                mode = no_shift;
-                }
-            else if (mode_str == "shift")
-                {
-                mode = shift;
-                }
-            else if (mode_str == "xplor")
-                {
-                mode = xplor;
-                }
-            else
-                {
-                throw std::domain_error("Invalid mode " + mode_str);
-                }
             }
 
         pybind11::dict asDict()
@@ -92,16 +112,6 @@ class PairPotentialLennardJones : public hpmc::PairPotential
             result["epsilon"] = epsilon_x_4 / 4.0;
             result["r_cut"] = slow::sqrt(r_cut_squared);
             result["r_on"] = slow::sqrt(r_on_squared);
-            result["mode"] = "none";
-
-            if (mode == shift)
-                {
-                result["mode"] = "shift";
-                }
-            if (mode == xplor)
-                {
-                result["mode"] = "xplor";
-                }
 
             return result;
             }
@@ -110,10 +120,11 @@ class PairPotentialLennardJones : public hpmc::PairPotential
         LongReal epsilon_x_4;
         LongReal r_cut_squared;
         LongReal r_on_squared;
-        EnergyShiftMode mode;
         };
 
     std::vector<ParamType> m_params;
+
+    EnergyShiftMode m_mode = no_shift;
     };
 
     } // end namespace hpmc

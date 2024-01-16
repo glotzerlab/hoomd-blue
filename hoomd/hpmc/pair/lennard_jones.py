@@ -28,8 +28,7 @@ class LennardJones(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
         default_r_on (float): Default XPLOR on radius
           :math:`[\\mathrm{length}]`.
-        default_mode (str): Default energy
-          shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `LennardJones` computes the Lennard-Jones pair potential between every pair
     of particles in the simulation state. The functional form of the potential,
@@ -61,19 +60,20 @@ class LennardJones(Pair):
           Defaults to the value given in ``default_r_cut`` on construction.
         * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`.
           Defaults to the value given in ``default_r_on`` on construction.
-        * ``mode`` (`str`): The energy shifting/smoothing mode: Possible values:
-          ``"none"``, ``"shift"``, ``"xplor"``. Defaults to the value given
-          in ``default_mode`` on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        The energy shifting/smoothing mode: Possible values are:
+        ``"none"``, ``"shift"``, and ``"xplor"``.
+
+        Type: `str`
     """
     _cpp_class_name = "PairPotentialLennardJones"
 
-    def __init__(self,
-                 default_r_cut=None,
-                 default_r_on=0.0,
-                 default_mode='none'):
+    def __init__(self, default_r_cut=None, default_r_on=0.0, mode='none'):
         if default_r_cut is None:
             default_r_cut = float
         else:
@@ -86,6 +86,11 @@ class LennardJones(Pair):
                 sigma=float,
                 r_cut=default_r_cut,
                 r_on=float(default_r_on),
-                mode=str(default_mode),
                 len_keys=2))
         self._add_typeparam(params)
+
+        self._param_dict.update(
+            hoomd.data.parameterdicts.ParameterDict(
+                mode=hoomd.data.typeconverter.OnlyFrom(("none", "shift",
+                                                        "xplor"))))
+        self.mode = mode
