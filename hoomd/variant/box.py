@@ -4,7 +4,6 @@
 """Implement variants that return box parameters as a function of time."""
 
 from hoomd import _hoomd, Box
-from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
 
 
