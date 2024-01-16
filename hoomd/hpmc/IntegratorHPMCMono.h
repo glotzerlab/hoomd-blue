@@ -658,7 +658,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
     // precompute constants used many times in the loop
     const LongReal min_core_radius = getMinCoreDiameter() * LongReal(0.5);
-    const LongReal max_pair_interaction_r_cut = getMaxPairEnergyRCutNonAdditive();
+    const auto& pair_energy_search_radius = getPairEnergySearchRadius();
 
     m_max_pair_additive_cutoff.clear();
     m_shape_circumsphere_radius.clear();
@@ -760,9 +760,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 {
                 // Extend the search to include the pair interaction r_cut
                 // subtract minimum AABB extent from search radius
-                LongReal r_cut_patch = max_pair_interaction_r_cut + LongReal(0.5) *
-                    m_max_pair_additive_cutoff[typ_i];
-                R_query = std::max(R_query, r_cut_patch - min_core_radius);
+                R_query = std::max(R_query, pair_energy_search_radius[typ_i] - min_core_radius);
                 }
 
             hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
@@ -975,7 +973,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     }
                 else
                     {
-                    Scalar radius = std::max(LongReal(0.5) * m_shape_circumsphere_radius[typ_i],
+                    Scalar radius = std::max(m_shape_circumsphere_radius[typ_i],
                         LongReal(0.5) * m_max_pair_additive_cutoff[typ_i]);
                     aabb = hoomd::detail::AABB(pos_i, radius);
                     }
@@ -1218,6 +1216,10 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
     // access parameters and interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
 
+    // precompute constants used many times in the loop
+    const LongReal min_core_radius = getMinCoreDiameter() * LongReal(0.5);
+    const auto& pair_energy_search_radius = getPairEnergySearchRadius();
+
     // Loop over all particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -1230,12 +1232,8 @@ double IntegratorHPMCMono<Shape>::computePairEnergy(uint64_t timestep, std::shar
         const Scalar d_i = h_diameter.data[i];
         const Scalar charge_i = h_charge.data[i];
 
-        // the cut-off
-        LongReal r_cut = getMaxPairEnergyRCutNonAdditive() + static_cast<LongReal>(0.5) *
-                    getMaxPairInteractionAdditiveRCut(typ_i);
-
         // subtract minimum AABB extent from search radius
-        LongReal R_query = r_cut-getMinCoreDiameter()/LongReal(2.0);
+        LongReal R_query = pair_energy_search_radius[typ_i] - min_core_radius;
         hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
         const unsigned int n_images = (unsigned int)m_image_list.size();
@@ -1725,6 +1723,17 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
+            // precompute constants used many times in the loop
+            m_max_pair_additive_cutoff.clear();
+            m_shape_circumsphere_radius.clear();
+            for (unsigned int type = 0; type < m_pdata->getNTypes(); type++)
+                {
+                quat<LongReal> q;
+                Shape shape(q, m_params[type]);
+                m_shape_circumsphere_radius.push_back(LongReal(0.5) * shape.getCircumsphereDiameter());
+                m_max_pair_additive_cutoff.push_back(getMaxPairInteractionAdditiveRCut(type));
+                }
+
             // grow the AABB list to the needed size
             unsigned int n_aabb = m_pdata->getN()+m_pdata->getNGhosts();
             if (n_aabb > 0)
@@ -1740,8 +1749,8 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                         m_aabbs[i] = shape.getAABB(vec3<Scalar>(h_postype.data[i]));
                     else
                         {
-                        Scalar radius = std::max(0.5*shape.getCircumsphereDiameter(),
-                            0.5*getMaxPairInteractionAdditiveRCut(typ_i));
+                        Scalar radius = std::max(m_shape_circumsphere_radius[typ_i],
+                            LongReal(0.5)*m_max_pair_additive_cutoff[typ_i]);
                         m_aabbs[i] = hoomd::detail::AABB(vec3<Scalar>(h_postype.data[i]), radius);
                         }
                     }

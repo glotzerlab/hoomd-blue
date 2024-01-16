@@ -526,6 +526,21 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_pair_potentials;
         }
 
+    /// Returns an array (indexed by type) of the AABB tree search radius needed.
+    const std::vector<LongReal>& getPairEnergySearchRadius()
+        {
+        const LongReal max_pair_interaction_r_cut = getMaxPairEnergyRCutNonAdditive();
+        const unsigned int n_types = m_pdata->getNTypes();
+        m_pair_energy_search_radius.resize(n_types);
+
+        for (unsigned int type = 0; type < n_types; type++)
+            {
+            m_pair_energy_search_radius[type] = max_pair_interaction_r_cut + LongReal(0.5) * getMaxPairInteractionAdditiveRCut(type);
+            }
+
+        return m_pair_energy_search_radius;
+        }
+
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
@@ -571,6 +586,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     /// Pair potential evaluators.
     std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
+
+    /// Cached pair energy search radius.
+    std::vector<LongReal> m_pair_energy_search_radius;
 
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start

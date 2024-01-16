@@ -482,6 +482,10 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     const auto& params = m_mc->getParams();
 
+    // precompute constants used many times in the loop
+    const LongReal min_core_radius = m_mc->getMinCoreDiameter() * LongReal(0.5);
+    const auto& pair_energy_search_radius = m_mc->getPairEnergySearchRadius();
+
     // loop through N particles
     // At the top of this loop, we initialize min_bin to the size of the sdf histogram
     // For each of particle i's neighbors, we find the scaling that produces the first overlap.
@@ -505,10 +509,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        LongReal r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
-                               + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
-        const LongReal R_query = std::max(shape_i.getCircumsphereDiameter() / LongReal(2.0),
-                                          r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
+        const LongReal R_query = std::max(shape_i.getCircumsphereDiameter() * LongReal(0.5),
+                                          pair_energy_search_radius[typ_i] - min_core_radius);
         hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0), R_query + extra_width);
 
         const size_t n_images = image_list.size();
