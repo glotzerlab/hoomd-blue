@@ -535,7 +535,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
         for (unsigned int type = 0; type < n_types; type++)
             {
-            m_pair_energy_search_radius[type] = max_pair_interaction_r_cut + LongReal(0.5) * getMaxPairInteractionAdditiveRCut(type);
+            m_pair_energy_search_radius[type]
+                = max_pair_interaction_r_cut
+                  + LongReal(0.5) * getMaxPairInteractionAdditiveRCut(type);
             }
 
         return m_pair_energy_search_radius;
