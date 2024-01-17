@@ -12,7 +12,7 @@ Removed functionalities
 
 HOOMD-blue v5 removes functionalities deprecated in v4.x releases:
 
-* ``_InternalCustomUpdater.update`` 
+* ``_InternalCustomUpdater.update``
 * ``_InternalCustomTuner.tune``
 * ``_InternalCustomWriter.write``
 * ``HDF5Log.write``
