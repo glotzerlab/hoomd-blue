@@ -46,7 +46,6 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
         self._box = box._cpp_obj
 
 
-
 class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
     """Interpolate between two boxes linearly in time.
 
@@ -71,7 +70,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         variant = variant_preprocessing(variant)
         BoxVariant.__init__(self)
         _hoomd.VectorVariantBoxInterpolate.__init__(self, box1._cpp_obj,
-                                               box2._cpp_obj, variant)
+                                                    box2._cpp_obj, variant)
 
     @property
     def initial_box(self):
@@ -87,7 +86,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
     def final_box(self):
         """hoomd.Box: the final box."""
         return Box._from_cpp(self._final_box)
-   
+
     @final_box.setter
     def final_box(self, box):
         box = box_preprocessing(box)
@@ -126,7 +125,7 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
     def initial_box(self):
         """hoomd.Box: the initial box."""
         return Box._from_cpp(self._initial_box)
-    
+
     @initial_box.setter
     def initial_box(self, box):
         box = box_preprocessing(box)

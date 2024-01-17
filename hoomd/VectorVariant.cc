@@ -117,7 +117,6 @@ void export_VectorVariantBox(pybind11::module& m)
     m.def("_test_vector_variant_box_call", &testVectorVariantBoxCall);
     }
 
-
     } // end namespace detail
 
     } // end namespace hoomd

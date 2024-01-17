@@ -95,8 +95,8 @@ class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
         @param box2 The final box
     */
     VectorVariantBoxInterpolate(std::shared_ptr<BoxDim> box1,
-                           std::shared_ptr<BoxDim> box2,
-                           std::shared_ptr<Variant> variant)
+                                std::shared_ptr<BoxDim> box2,
+                                std::shared_ptr<Variant> variant)
         : m_box1(box1), m_box2(box2), m_variant(variant)
         {
         }
@@ -251,7 +251,7 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
         {
         m_final_volume = volume;
         }
-    
+
     /// Get the final volume
     Scalar getFinalVolume() const
         {
