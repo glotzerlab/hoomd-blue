@@ -114,7 +114,7 @@ void export_VectorVariantBox(pybind11::module& m)
                       &VectorVariantBoxInverseVolumeRamp::getFinalVolume,
                       &VectorVariantBoxInverseVolumeRamp::setFinalVolume);
 
-    m.def("_test_vector_variant_call", &testVectorVariantBoxCall);
+    m.def("_test_vector_variant_box_call", &testVectorVariantBoxCall);
     }
 
 
