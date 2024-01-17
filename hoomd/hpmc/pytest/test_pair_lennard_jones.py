@@ -17,8 +17,7 @@ valid_constructor_args = [
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(device, constructor_args):
     """Test that LennardJones can be constructed with valid arguments."""
-    lennard_jones = hoomd.hpmc.pair.LennardJones(**constructor_args)
-    assert lennard_jones is not None
+    hoomd.hpmc.pair.LennardJones(**constructor_args)
 
 
 @pytest.fixture(scope='session')
