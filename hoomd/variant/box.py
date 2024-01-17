@@ -10,11 +10,11 @@ from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
 class BoxVariant(_hoomd.VectorVariantBox):
     """Box-like vector variant base class.
 
-    `hoomd.variant.box.BoxVariant` provides an interface to length-6 vector variants
-    that are valid `hoomd.box.box_like` objects.  The return value of the
-    ``__call__`` method returns a length-6 array of scalar values that represent
-    the quantities ``Lx``, ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` of a
-    simulation box.
+    `hoomd.variant.box.BoxVariant` provides an interface to length-6 vector
+    variants that are valid `hoomd.box.box_like` objects.  The return value of
+    the ``__call__`` method returns a length-6 array of scalar values that
+    represent the quantities ``Lx``, ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz``
+    of a simulation box.
     """
     pass
 

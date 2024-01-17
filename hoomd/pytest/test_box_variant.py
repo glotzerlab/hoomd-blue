@@ -1,20 +1,17 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import copy
-from inspect import isclass
-import itertools
-import pickle
-
 import numpy as np
 import numpy.testing as npt
-from hoomd.conftest import pickling_check
 import hoomd
 import hoomd.variant
 import pytest
 
-box_to_array = lambda box: np.array(
-    [box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz])
+
+def box_to_array(box):
+    return np.array([box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz])
+
+
 _test_box1 = hoomd.Box(10, 50, 20, 0.2, 0.4, 0.6)
 _test_box2 = hoomd.Box(16, 25, 36, 0.1, 0.2, 0.3)
 _test_scalar_variant1 = hoomd.variant.Ramp(0, 1, 100, 200)
@@ -100,13 +97,15 @@ def test_custom():
                          _test_box1.xy, _test_box1.xz, _test_box1.yz)
     custom_variant = VolumeRampBoxVariant(_test_box1, final_volume, 100, 100)
 
-    box_t = lambda t: hoomd._hoomd._test_vector_variant_box_call(
-        custom_variant, t)
+    def box_t(custom_variant, timestep):
+        return hoomd._hoomd._test_vector_variant_box_call(
+            custom_variant, timestep)
+
     for _t, _f in ((0, 0), (42, 0), (100, 0), (101, 0.01), (150, 0.5),
                    (175, 0.75), (199, 0.99), (200, 1.0), (250, 1.0), (123456789,
                                                                       1.0)):
         test_box.volume = (1 - _f) * _test_box1.volume + _f * final_volume
-        npt.assert_allclose(box_t(_t), box_to_array(test_box))
+        npt.assert_allclose(box_t(custom_variant, _t), box_to_array(test_box))
 
 
 def test_interpolate_evaluation():
@@ -149,19 +148,22 @@ def test_inverse_volume_ramp_evaluation():
     t_ramp = 100
     variant = hoomd.variant.box.InverseVolumeRamp(box1, final_volume, t_start,
                                                   t_ramp)
-    volume = lambda variant, timestep: hoomd.Box(*variant(timestep)).volume
-    assert volume(variant, 0) == box1.volume
-    assert volume(variant, 5) == box1.volume
-    assert volume(variant, 10) == box1.volume
-    assert volume(variant, 11) != box1.volume
-    npt.assert_allclose(volume(variant, 35), 1 /
-                        (0.75 / box1.volume + 0.25 / final_volume))
-    npt.assert_allclose(volume(variant, 60), 1 /
-                        (0.5 * (1 / box1.volume + 1 / final_volume)))
-    npt.assert_allclose(volume(variant, 85), 1 /
-                        (0.25 / box1.volume + 0.75 / final_volume))
-    npt.assert_allclose(volume(variant, 110), final_volume)
-    npt.assert_allclose(volume(variant, 1010), final_volume)
+
+    def get_volume(variant, timestep):
+        return hoomd.Box(*variant(timestep)).volume
+
+    assert get_volume(variant, 0) == box1.volume
+    assert get_volume(variant, 5) == box1.volume
+    assert get_volume(variant, 10) == box1.volume
+    assert get_volume(variant, 11) != box1.volume
+    npt.assert_allclose(
+        get_volume(variant, 35), 1 / (0.75 / box1.volume + 0.25 / final_volume))
+    npt.assert_allclose(
+        get_volume(variant, 60), 1 / (0.5 / box1.volume + 0.5 / final_volume))
+    npt.assert_allclose(
+        get_volume(variant, 85), 1 / (0.25 / box1.volume + 0.75 / final_volume))
+    npt.assert_allclose(get_volume(variant, 110), final_volume)
+    npt.assert_allclose(get_volume(variant, 1010), final_volume)
     # make sure tilts don't change
     npt.assert_allclose(box1.tilts, variant(0)[3:])
     npt.assert_allclose(box1.tilts, variant(5)[3:])
