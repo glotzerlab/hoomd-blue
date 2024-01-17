@@ -206,7 +206,7 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
     mc.shape["A"] = ellipsoid
 
     # create simulation & attach objects
-    sim = simulation_factory(two_particle_snapshot_factory(d=10))
+    sim = simulation_factory(two_particle_snapshot_factory(d=2.5))
     sim.operations.integrator = mc
     sim.operations += updater
 
@@ -294,7 +294,7 @@ def test_python_callback_shape_move_pyramid(simulation_factory,
     mc.shape["A"] = dict(vertices=initial_pyramid)
 
     # create simulation & attach objects
-    sim = simulation_factory(two_particle_snapshot_factory(d=3))
+    sim = simulation_factory(two_particle_snapshot_factory(d=2.5))
     sim.operations.integrator = mc
     sim.operations += updater
 
