@@ -50,35 +50,7 @@ void export_VectorVariantBox(pybind11::module& m)
                      VectorVariantBox,
                      std::shared_ptr<VectorVariantBoxConstant>>(m, "VectorVariantBoxConstant")
         .def(pybind11::init<std::shared_ptr<BoxDim>>())
-        .def_property("_box", &VectorVariantBoxConstant::getBox, &VectorVariantBoxConstant::setBox)
-        /*
-        .def(
-            pybind11::pickle(
-                [](VectorVariantBoxConstant& variant)
-                {
-                    std::shared_ptr<BoxDim> box = variant.getBox();
-                    std::array<Scalar, 6> arr = {box->getL().x,
-                                                 box->getL().y,
-                                                 box->getL().z,
-                                                 box->getTiltFactorXY(),
-                                                 box->getTiltFactorXZ(),
-                                                 box->getTiltFactorYZ()};
-                    return pybind11::make_tuple(arr);
-                },
-                [](pybind11::tuple params)
-                {
-                    Scalar Lx = params[0][0].cast<Scalar>();
-                    Scalar Ly = params[0][1].cast<Scalar>();
-                    Scalar Lz = params[0][2].cast<Scalar>();
-                    Scalar xy = params[0][3].cast<Scalar>();
-                    Scalar xz = params[0][4].cast<Scalar>();
-                    Scalar yz = params[0][5].cast<Scalar>();
-                    std::shared_ptr<BoxDim> box(Lx, Ly, Lz);
-                    box->setTiltFactors(xy, xz, yz);
-                    return VectorVariantBoxConstant(box);
-                }));
-                */
-        ;
+        .def_property("_box", &VectorVariantBoxConstant::getBox, &VectorVariantBoxConstant::setBox);
 
     pybind11::class_<VectorVariantBoxInterpolate,
                      VectorVariantBox,
