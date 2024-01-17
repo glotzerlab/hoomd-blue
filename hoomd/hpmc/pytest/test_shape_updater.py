@@ -222,7 +222,7 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
 
     # run with 0 probability of performing a move:
     #  - shape and params should remain unchanged
-    #  - all moves accepted
+    #  - no shape moves proposed
     move.param_move_probability = 0
     sim.run(10)
     assert np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
@@ -234,8 +234,8 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
     #  - shape and params should change
     #  - volume should remain unchanged
     move.param_move_probability = 1
-    sim.run(20)
-    assert np.sum(updater.shape_moves) == 40
+    sim.run(50)
+    assert np.sum(updater.shape_moves) == 100
 
     # Check that the shape parameters have changed
     assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
@@ -321,8 +321,8 @@ def test_python_callback_shape_move_pyramid(simulation_factory,
     #  - shape and params should change
     #  - volume should remain unchanged
     move.param_move_probability = 1
-    sim.run(20)
-    assert np.sum(updater.shape_moves) == 40
+    sim.run(50)
+    assert np.sum(updater.shape_moves) == 100
 
     # Check that the shape parameters have changed
     current_h = move.params["A"][0]
