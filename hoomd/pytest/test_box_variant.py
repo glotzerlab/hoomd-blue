@@ -156,12 +156,12 @@ def test_inverse_volume_ramp_evaluation():
     assert get_volume(variant, 5) == box1.volume
     assert get_volume(variant, 10) == box1.volume
     assert get_volume(variant, 11) != box1.volume
-    npt.assert_allclose(
-        get_volume(variant, 35), 1 / (0.75 / box1.volume + 0.25 / final_volume))
-    npt.assert_allclose(
-        get_volume(variant, 60), 1 / (0.5 / box1.volume + 0.5 / final_volume))
-    npt.assert_allclose(
-        get_volume(variant, 85), 1 / (0.25 / box1.volume + 0.75 / final_volume))
+    npt.assert_allclose(get_volume(variant, 35),
+                        (0.75 / box1.volume + 0.25 / final_volume)**-1)
+    npt.assert_allclose(get_volume(variant, 60),
+                        (0.5 / box1.volume + 0.5 / final_volume)**-1)
+    npt.assert_allclose(get_volume(variant, 85),
+                        (0.25 / box1.volume + 0.75 / final_volume)**-1)
     npt.assert_allclose(get_volume(variant, 110), final_volume)
     npt.assert_allclose(get_volume(variant, 1010), final_volume)
     # make sure tilts don't change

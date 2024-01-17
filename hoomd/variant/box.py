@@ -55,7 +55,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         variant (hoomd.variant.variant_like): A variant used to interpolate
             between the two boxes.
 
-    Ramp returns the array corresponding to *initial_box* for
+    `Interpolate` returns the array corresponding to *initial_box* for
     :math:`t \\leq t_{\\mathrm{start}}` and *final_box* for
     :math:`t \\geq t_{\\mathrm{start}} + t_{\\mathrm{ramp}}`.
 
