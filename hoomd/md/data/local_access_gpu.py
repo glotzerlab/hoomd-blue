@@ -23,7 +23,7 @@ if hoomd.version.gpu_enabled:
         _array_cls = HOOMDGPUArray
 
 else:
-    from hoomd.util import _NoGPU
+    from hoomd.error import _NoGPU
 
     class ForceLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""

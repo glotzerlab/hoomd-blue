@@ -24,3 +24,13 @@ documentation for more information on warning filters.
   * All TBB code will be removed in the 5.0 release.
 
 * ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
+
+
+* ``hoomd.util.GPUNotAvailableError`` (since 4.5.0).
+
+  * use ``hoomd.error.GPUNotAvailableError``.
+
+* ``_InternalCustomUpdater.update`` (since 4.5.0)
+* ``_InternalCustomTuner.tune`` (since 4.5.0)
+* ``_InternalCustomWriter.write`` (since 4.5.0)
+* ``HDF5Log.write`` (since 4.5.0)

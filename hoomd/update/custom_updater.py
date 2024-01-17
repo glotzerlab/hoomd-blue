@@ -15,6 +15,7 @@
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Updater
+import warnings
 
 
 class _UpdaterProperty:
@@ -73,3 +74,11 @@ class _InternalCustomUpdater(_InternalCustomOperation, Updater):
 
     def update(self, timestep):
         return self._action.act(timestep)
+        """
+        .. deprecated:: 4.5.0
+
+            Use `Simulation` to call the operation.
+        """
+        warnings.warn(
+            "`_InternalCustomUpdater.update` is deprecated,"
+            "use `Simulation` to call the operation.", FutureWarning)

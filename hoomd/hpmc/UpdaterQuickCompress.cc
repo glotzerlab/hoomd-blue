@@ -138,15 +138,26 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
               / double(counter_delta.translate_accept_count + counter_delta.translate_reject_count);
         }
 
-    // Determine the worst case minimum allowable scale factor. The minimum allowable scale factor
-    // assumes that the typical accepted trial move shifts particles by the current acceptance ratio
-    // times the maximum displacement. Assuming that the particles are all spheres with their
-    // circumsphere diameter, set the minimum allowable scale factor so that overlaps of this size
-    // can be removed by trial move. The worst case estimate uses the minimum move size and the
-    // maximum core diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
-    double max_diameter = m_mc->getMaxCoreDiameter();
-    double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
-    double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+    // If unsafe box moves are allowed, set min_scale without considering min_move_size.
+    // Otherwise, determine the worst case minimum allowable scale factor. The minimum
+    // allowable scale factor assumes that the typical accepted trial move shifts
+    // particles by the current acceptance ratio times the maximum displacement. Assuming
+    // that the particles are all spheres with their circumsphere diameter, set the
+    // minimum allowable scale factor so that overlaps of this size can be removed by
+    // trial move. The worst case estimate uses the minimum move size and the maximum core
+    // diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
+    double min_scale;
+
+    if (m_allow_unsafe_resize)
+        {
+        min_scale = m_min_scale;
+        }
+    else
+        {
+        double max_diameter = m_mc->getMaxCoreDiameter();
+        double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
+        min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+        }
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(
@@ -216,7 +227,10 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                       &UpdaterQuickCompress::setTargetBox)
         .def_property("instance",
                       &UpdaterQuickCompress::getInstance,
-                      &UpdaterQuickCompress::setInstance);
+                      &UpdaterQuickCompress::setInstance)
+        .def_property("allow_unsafe_resize",
+                      &UpdaterQuickCompress::getAllowUnsafeResize,
+                      &UpdaterQuickCompress::setAllowUnsafeResize);
     }
     } // end namespace detail
     } // end namespace hpmc
