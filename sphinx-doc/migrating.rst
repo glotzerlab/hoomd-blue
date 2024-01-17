@@ -4,6 +4,20 @@
 Migrating to the latest version
 ===============================
 
+Migrating to HOOMD v5
+---------------------
+
+Removed functionalities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+HOOMD-blue v5 removes functionalities deprecated in v4.x releases:
+
+* ``_InternalCustomUpdater.update`` 
+* ``_InternalCustomTuner.tune``
+* ``_InternalCustomWriter.write``
+* ``HDF5Log.write``
+
+
 Migrating to HOOMD v4
 ---------------------
 
