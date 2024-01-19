@@ -751,7 +751,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                         {
                         if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                             {
@@ -846,7 +846,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     // stackless search
                     for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                         {
-                        if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                             {
                             if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                                 {
@@ -943,8 +943,18 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     }
 
                 // update the position of the particle in the tree for future updates
-                hoomd::detail::AABB aabb = aabb_i_local;
-                aabb.translate(pos_i);
+                hoomd::detail::AABB aabb;
+                if (!m_patch)
+                    {
+                    aabb = shape_i.getAABB(pos_i);
+                    }
+                else
+                    {
+                    Scalar radius = std::max(0.5*shape_i.getCircumsphereDiameter(),
+                        0.5*m_patch->getAdditiveCutoff(typ_i));
+                    aabb = hoomd::detail::AABB(pos_i, radius);
+                    }
+
                 m_aabb_tree.update(i, aabb);
 
                 // update position of particle
@@ -1072,7 +1082,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -1208,7 +1218,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -1787,7 +1797,7 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -1943,7 +1953,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(this->m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {
@@ -2020,7 +2030,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                if (aabb.overlaps(this->m_aabb_tree.getNodeAABB(cur_node_idx)))
                     {
                     if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                         {

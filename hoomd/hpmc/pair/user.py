@@ -22,6 +22,7 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.logging import log
 import numpy as np
+import warnings
 
 
 class CPPPotentialBase(AutotunedObject):
@@ -75,7 +76,7 @@ class CPPPotentialBase(AutotunedObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.3.0/hoomd/VectorMath.h
+            v4.4.1/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -336,6 +337,10 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
+    .. deprecated:: 4.4.1
+
+        ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
+
     See Also:
         :doc:`howto/cpppotential`.
 
@@ -523,6 +528,14 @@ class CPPPotentialUnion(CPPPotentialBase):
         return super()._getattr_param(attr)
 
     def _attach_hook(self):
+        if (isinstance(self._simulation.device, hoomd.device.CPU)
+                and self._simulation.device.num_cpu_threads > 1):
+            warnings.warn(
+                "num_cpu_threads > 1 is deprecated since 4.4.1. "
+                "Use num_cpu_threads=1.",
+                FutureWarning,
+                stacklevel=1)
+
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
