@@ -9,7 +9,6 @@
  * \brief Declaration of CUDA kernels for mpcd::BounceBackStreamingMethodGPU
  */
 
-#include "ExternalField.h"
 #include "ParticleDataUtilities.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
@@ -27,29 +26,28 @@ struct stream_args_t
     stream_args_t(Scalar4* _d_pos,
                   Scalar4* _d_vel,
                   const Scalar _mass,
-                  const mpcd::ExternalField* _field,
                   const BoxDim& _box,
                   const Scalar _dt,
                   const unsigned int _N,
                   const unsigned int _block_size)
-        : d_pos(_d_pos), d_vel(_d_vel), mass(_mass), field(_field), box(_box), dt(_dt), N(_N),
+        : d_pos(_d_pos), d_vel(_d_vel), mass(_mass), box(_box), dt(_dt), N(_N),
           block_size(_block_size)
         {
         }
 
-    Scalar4* d_pos;                   //!< Particle positions
-    Scalar4* d_vel;                   //!< Particle velocities
-    const Scalar mass;                //!< Particle mass
-    const mpcd::ExternalField* field; //!< Applied external field on particles
-    const BoxDim box;                 //!< Simulation box
-    const Scalar dt;                  //!< Timestep
-    const unsigned int N;             //!< Number of particles
-    const unsigned int block_size;    //!< Number of threads per block
+    Scalar4* d_pos;                //!< Particle positions
+    Scalar4* d_vel;                //!< Particle velocities
+    const Scalar mass;             //!< Particle mass
+    const BoxDim box;              //!< Simulation box
+    const Scalar dt;               //!< Timestep
+    const unsigned int N;          //!< Number of particles
+    const unsigned int block_size; //!< Number of threads per block
     };
 
 //! Kernel driver to stream particles ballistically
-template<class Geometry>
-cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom);
+template<class Geometry, class Force>
+cudaError_t
+confined_stream(const stream_args_t& args, const Geometry& geom, const Force& solvent_force);
 
 #ifdef __HIPCC__
 namespace kernel
@@ -79,15 +77,15 @@ namespace kernel
  * Particles are appropriately reflected from the boundaries defined by \a geom during the
  * position update step. The particle positions and velocities are updated accordingly.
  */
-template<class Geometry>
+template<class Geometry, class Force>
 __global__ void confined_stream(Scalar4* d_pos,
                                 Scalar4* d_vel,
                                 const Scalar mass,
-                                const mpcd::ExternalField* field,
                                 const BoxDim box,
                                 const Scalar dt,
                                 const unsigned int N,
-                                const Geometry geom)
+                                const Geometry geom,
+                                const Force force)
     {
     // one thread per particle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -101,10 +99,7 @@ __global__ void confined_stream(Scalar4* d_pos,
     const Scalar4 vel_cell = d_vel[idx];
     Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
     // estimate next velocity based on current acceleration
-    if (field)
-        {
-        vel += Scalar(0.5) * dt * field->evaluate(pos) / mass;
-        }
+    vel += Scalar(0.5) * dt * force.evaluate(pos) / mass;
 
     // propagate the particle to its new position ballistically
     Scalar dt_remain = dt;
@@ -115,10 +110,7 @@ __global__ void confined_stream(Scalar4* d_pos,
         collide = geom.detectCollision(pos, vel, dt_remain);
         } while (dt_remain > 0 && collide);
     // finalize velocity update
-    if (field)
-        {
-        vel += Scalar(0.5) * dt * field->evaluate(pos) / mass;
-        }
+    vel += Scalar(0.5) * dt * force.evaluate(pos) / mass;
 
     // wrap and update the position
     int3 image = make_int3(0, 0, 0);
@@ -138,12 +130,12 @@ __global__ void confined_stream(Scalar4* d_pos,
  *
  * \sa mpcd::gpu::kernel::confined_stream
  */
-template<class Geometry>
-cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
+template<class Geometry, class Force>
+cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom, const Force& force)
     {
     unsigned int max_block_size;
     cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::confined_stream<Geometry>);
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::confined_stream<Geometry, Force>);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(args.block_size, max_block_size);
@@ -151,11 +143,11 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
     mpcd::gpu::kernel::confined_stream<Geometry><<<grid, run_block_size>>>(args.d_pos,
                                                                            args.d_vel,
                                                                            args.mass,
-                                                                           args.field,
                                                                            args.box,
                                                                            args.dt,
                                                                            args.N,
-                                                                           geom);
+                                                                           geom,
+                                                                           force);
 
     return cudaSuccess;
     }

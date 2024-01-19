@@ -5,6 +5,7 @@
 #ifdef ENABLE_HIP
 #include "hoomd/mpcd/BulkStreamingMethodGPU.h"
 #endif // ENABLE_HIP
+#include "hoomd/mpcd/NoForce.h"
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -32,7 +33,7 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // setup a streaming method at timestep 2 with period 2 and phase 1
-    std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(sysdef, 2, 2, 1);
+    std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(sysdef, 2, 2, 1, nullptr);
     auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     stream->setCellList(cl);
 
@@ -111,14 +112,14 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
 //! basic test case for MPCD StreamingMethod class
 UP_TEST(mpcd_streaming_method_basic)
     {
-    streaming_method_basic_test<mpcd::BulkStreamingMethod>(
+    streaming_method_basic_test<mpcd::BulkStreamingMethod<mpcd::NoForce>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
 //! basic test case for MPCD StreamingMethod class
 UP_TEST(mpcd_streaming_method_setup)
     {
-    streaming_method_basic_test<mpcd::BulkStreamingMethodGPU>(
+    streaming_method_basic_test<mpcd::BulkStreamingMethodGPU<mpcd::NoForce>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP

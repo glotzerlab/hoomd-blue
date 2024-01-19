@@ -3,7 +3,6 @@ set(TEST_LIST
     at_collision_method
     cell_list
     cell_thermo_compute
-    #external_field
     parallel_plate_geometry_filler
     planar_pore_geometry_filler
     sorter
@@ -29,7 +28,6 @@ endif()
 macro(compile_test TEST_EXE TEST_SRC)
     # check for extra cuda files
     if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_EXE}.cu)
-        set(CUDA_SEPARABLE_COMPILATION OFF)
         set(_cuda_sources ${TEST_EXE}.cu)
     else()
         set(_cuda_sources "")

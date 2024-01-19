@@ -26,6 +26,7 @@ namespace mpcd
  * particles in confined geometries.
  *
  * \tparam Geometry The confining geometry.
+ * \tparam Force The solvent force.
  *
  * The integration scheme is essentially Verlet with specular reflections. The particle is streamed
  * forward over the time interval. If it moves outside the Geometry, it is placed back on the
@@ -40,7 +41,7 @@ namespace mpcd
  * geometry.
  *
  */
-template<class Geometry>
+template<class Geometry, class Force>
 class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
     {
     public:
@@ -51,14 +52,16 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
      * \param period Number of timesteps between collisions
      * \param phase Phase shift for periodic updates
      * \param geom Streaming geometry
+     * \param force Solvent force
      */
     BounceBackStreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
                               unsigned int cur_timestep,
                               unsigned int period,
                               int phase,
-                              std::shared_ptr<const Geometry> geom)
+                              std::shared_ptr<const Geometry> geom,
+                              std::shared_ptr<Force> force)
         : mpcd::StreamingMethod(sysdef, cur_timestep, period, phase), m_geom(geom),
-          m_validate_geom(true)
+          m_validate_geom(true), m_force(force)
         {
         }
 
@@ -78,9 +81,22 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
         m_geom = geom;
         }
 
+    //! Set the solvent force
+    std::shared_ptr<Force> getForce() const
+        {
+        return m_force;
+        }
+
+    //! Get the solvent force
+    void setForce(std::shared_ptr<Force> force)
+        {
+        m_force = force;
+        }
+
     protected:
     std::shared_ptr<const Geometry> m_geom; //!< Streaming geometry
     bool m_validate_geom;                   //!< If true, run a validation check on the geometry
+    std::shared_ptr<Force> m_force;         //!< Solvent force
 
     //! Validate the system with the streaming geometry
     void validate();
@@ -92,7 +108,8 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
 /*!
  * \param timestep Current time to stream
  */
-template<class Geometry> void BounceBackStreamingMethod<Geometry>::stream(uint64_t timestep)
+template<class Geometry, class Force>
+void BounceBackStreamingMethod<Geometry, Force>::stream(uint64_t timestep)
     {
     if (!shouldStream(timestep))
         return;
@@ -118,8 +135,8 @@ template<class Geometry> void BounceBackStreamingMethod<Geometry>::stream(uint64
                                access_mode::readwrite);
     const Scalar mass = m_mpcd_pdata->getMass();
 
-    // acquire polymorphic pointer to the external field
-    const mpcd::ExternalField* field = (m_field) ? m_field->get(access_location::host) : nullptr;
+    // default construct a force if one is not set
+    const Force force = (m_force) ? *m_force : Force();
 
     for (unsigned int cur_p = 0; cur_p < m_mpcd_pdata->getN(); ++cur_p)
         {
@@ -130,10 +147,7 @@ template<class Geometry> void BounceBackStreamingMethod<Geometry>::stream(uint64
         const Scalar4 vel_cell = h_vel.data[cur_p];
         Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
         // estimate next velocity based on current acceleration
-        if (field)
-            {
-            vel += Scalar(0.5) * m_mpcd_dt * field->evaluate(pos) / mass;
-            }
+        vel += Scalar(0.5) * m_mpcd_dt * force.evaluate(pos) / mass;
 
         // propagate the particle to its new position ballistically
         Scalar dt_remain = m_mpcd_dt;
@@ -144,10 +158,7 @@ template<class Geometry> void BounceBackStreamingMethod<Geometry>::stream(uint64
             collide = m_geom->detectCollision(pos, vel, dt_remain);
             } while (dt_remain > 0 && collide);
         // finalize velocity update
-        if (field)
-            {
-            vel += Scalar(0.5) * m_mpcd_dt * field->evaluate(pos) / mass;
-            }
+        vel += Scalar(0.5) * m_mpcd_dt * force.evaluate(pos) / mass;
 
         // wrap and update the position
         int3 image = make_int3(0, 0, 0);
@@ -162,7 +173,7 @@ template<class Geometry> void BounceBackStreamingMethod<Geometry>::stream(uint64
     m_mpcd_pdata->invalidateCellCache();
     }
 
-template<class Geometry> void BounceBackStreamingMethod<Geometry>::validate()
+template<class Geometry, class Force> void BounceBackStreamingMethod<Geometry, Force>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
     const BoxDim box = m_pdata->getGlobalBox();
@@ -194,7 +205,8 @@ template<class Geometry> void BounceBackStreamingMethod<Geometry>::validate()
  * Checks each MPCD particle position to determine if it lies within the geometry. If any particle
  * is out of bounds, an error is raised.
  */
-template<class Geometry> bool BounceBackStreamingMethod<Geometry>::validateParticles()
+template<class Geometry, class Force>
+bool BounceBackStreamingMethod<Geometry, Force>::validateParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,
@@ -226,18 +238,24 @@ namespace detail
 /*!
  * \param m Python module to export to
  */
-template<class Geometry> void export_BounceBackStreamingMethod(pybind11::module& m)
+template<class Geometry, class Force> void export_BounceBackStreamingMethod(pybind11::module& m)
     {
-    const std::string name = "BounceBackStreamingMethod" + Geometry::getName();
-    pybind11::class_<mpcd::BounceBackStreamingMethod<Geometry>,
+    const std::string name = "BounceBackStreamingMethod" + Geometry::getName() + Force::getName();
+    pybind11::class_<mpcd::BounceBackStreamingMethod<Geometry, Force>,
                      mpcd::StreamingMethod,
-                     std::shared_ptr<mpcd::BounceBackStreamingMethod<Geometry>>>(m, name.c_str())
+                     std::shared_ptr<mpcd::BounceBackStreamingMethod<Geometry, Force>>>(
+        m,
+        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,
-                            std::shared_ptr<const Geometry>>())
-        .def_property_readonly("geometry", &mpcd::BounceBackStreamingMethod<Geometry>::getGeometry);
+                            std::shared_ptr<const Geometry>,
+                            std::shared_ptr<Force>>())
+        .def_property_readonly("geometry",
+                               &mpcd::BounceBackStreamingMethod<Geometry, Force>::getGeometry)
+        .def_property_readonly("force",
+                               &mpcd::BounceBackStreamingMethod<Geometry, Force>::getForce);
     }
     }  // end namespace detail
     }  // end namespace mpcd

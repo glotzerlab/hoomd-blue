@@ -15,6 +15,12 @@
 #include "CellThermoComputeGPU.h"
 #endif // ENABLE_HIP
 
+// forces
+#include "BlockForce.h"
+#include "ConstantForce.h"
+#include "NoForce.h"
+#include "SineForce.h"
+
 // integration
 #include "Integrator.h"
 
@@ -120,6 +126,11 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_CellThermoComputeGPU(m);
 #endif // ENABLE_HIP
 
+    mpcd::detail::export_BlockForce(m);
+    mpcd::detail::export_ConstantForce(m);
+    mpcd::detail::export_NoForce(m);
+    mpcd::detail::export_SineForce(m);
+
     mpcd::detail::export_Integrator(m);
 
     mpcd::detail::export_CollisionMethod(m);
@@ -134,14 +145,24 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_PlanarPoreGeometry(m);
 
     mpcd::detail::export_StreamingMethod(m);
-    mpcd::detail::export_ExternalFieldPolymorph(m);
-    mpcd::detail::export_BulkStreamingMethod(m);
-    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry>(m);
-    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry,
+                                                   mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::ConstantForce>(
+        m);
 #ifdef ENABLE_HIP
-    mpcd::detail::export_BulkStreamingMethodGPU(m);
-    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry>(m);
-    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry, mpcd::NoForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry,
+                                                      mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry,
+                                                      mpcd::ConstantForce>(m);
 #endif // ENABLE_HIP
 
     mpcd::detail::export_BounceBackNVE<mpcd::ParallelPlateGeometry>(m);

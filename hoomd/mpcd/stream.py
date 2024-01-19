@@ -74,16 +74,12 @@ class Bulk(StreamingMethod):
     def _attach_hook(self):
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.GPU):
-            class_ = _mpcd.BulkStreamingMethodGPU
+            class_ = _mpcd.BulkStreamingMethodNoForceGPU
         else:
-            class_ = _mpcd.BulkStreamingMethod
+            class_ = _mpcd.BulkStreamingMethodNoForce
 
-        self._cpp_obj = class_(
-            sim.state._cpp_sys_def,
-            sim.timestep,
-            self.period,
-            0,
-        )
+        self._cpp_obj = class_(sim.state._cpp_sys_def, sim.timestep,
+                               self.period, 0, None)
 
         super()._attach_hook()
 
@@ -139,8 +135,10 @@ class BounceBack(StreamingMethod):
         try:
             class_info = self._class_map[geom_type]
         except KeyError:
-            class_info = (_mpcd,
-                          "BounceBackStreamingMethod" + geom_type.__name__)
+            class_info = (
+                _mpcd,
+                "BounceBackStreamingMethod" + geom_type.__name__ + "NoForce",
+            )
         class_info = list(class_info)
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
@@ -153,6 +151,7 @@ class BounceBack(StreamingMethod):
             self.period,
             0,
             self.geometry._cpp_obj,
+            None,
         )
 
         super()._attach_hook()
