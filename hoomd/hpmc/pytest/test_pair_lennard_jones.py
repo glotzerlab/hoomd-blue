@@ -206,3 +206,11 @@ def test_multiple_pair_potentials(mc_simulation_factory):
     assert lennard_jones_2.energy == pytest.approx(expected=-2.0, rel=1e-5)
     assert simulation.operations.integrator.pair_energy == pytest.approx(
         expected=-3.0, rel=1e-5)
+
+def test_logging():
+    hoomd.conftest.logging_check(
+        hoomd.hpmc.pair.LennardJones, ('hpmc', 'pair'),
+        {'energy': {
+            'category': hoomd.logging.LoggerCategories.scalar,
+            'default': True
+        }})

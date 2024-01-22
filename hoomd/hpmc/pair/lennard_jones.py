@@ -21,6 +21,7 @@ import hoomd
 from .pair import Pair
 
 
+@hoomd.logging.modify_namespace(('hpmc', 'pair', 'LennardJones'))
 class LennardJones(Pair):
     """Lennard-Jones pair potential (HPMC).
 
