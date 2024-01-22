@@ -12,8 +12,8 @@ namespace hpmc
     {
 /*** Functor that computes pair interactions between particles
 
-    PairPotential allows cutoff energetic interactions to be included in an HPMC simulation. This
-    abstract base class defines the API for the pair energy object, consisting of cutoff radius
+    PairPotential allows energetic interactions to be included in an HPMC simulation. This
+    abstract base class defines the API for the pair energy object, consisting of a cutoff radius
     and the pair energy evaluation fuction.
 
     Provide a PairPotential instance to IntegratorHPMC. The pairwise potential energy will be

@@ -478,7 +478,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     __attribute__((always_inline)) inline LongReal computeOnePairEnergy(const LongReal r_squared,
                                                                         const vec3<LongReal>& r_ij,
-
                                                                         unsigned int type_i,
                                                                         const quat<LongReal>& q_i,
                                                                         LongReal d_i,

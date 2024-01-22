@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Lennard Jones pair potential.
+"""Lennard-Jones pair potential.
 
 .. invisible-code-block: python
 
@@ -55,7 +55,7 @@ class LennardJones(Pair):
         * ``epsilon`` (`float`, **required**) -
           Energy well depth :math:`\\varepsilon` :math:`[\\mathrm{energy}]`.
         * ``sigma`` (`float`, **required**) -
-          Particle size :math:`\\sigma` :math:`[\\mathrm{length}]`.
+          Characteristic length scale :math:`\\sigma` :math:`[\\mathrm{length}]`.
         * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`.
           Defaults to the value given in ``default_r_cut`` on construction.
         * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`.
