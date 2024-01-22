@@ -103,7 +103,7 @@ class CPPPotentialBase(AutotunedObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
-        return integrator._cpp_obj.computePatchEnergy(timestep)
+        return integrator._cpp_obj.computeTotalPairEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
         r"""Wrap the provided code into a function with the expected signature.
@@ -243,6 +243,12 @@ class CPPPotential(CPPPotentialBase):
         param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
+
+        warnings.warn(
+            "CPPPotential is deprecated since 4.5.0. "
+            "Use a hpmc.pair.Pair potential.",
+            FutureWarning,
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -520,6 +526,12 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         self.code_constituent = code_constituent
         self.code_isotropic = code_isotropic
+
+        warnings.warn(
+            "CPPPotentialUnion is deprecated since 4.5.0. "
+            "Use a hpmc.pair.Pair potential.",
+            FutureWarning,
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}

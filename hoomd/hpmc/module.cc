@@ -33,9 +33,22 @@
 
 #include "modules.h"
 
-/*! \file module.cc
-    \brief Export classes to python
-*/
+namespace hoomd
+    {
+namespace hpmc
+    {
+namespace detail
+    {
+// Declare export methods in this file instead of in header files to avoid unecessary recompilations
+// of this file.
+
+void exportPairPotential(pybind11::module& m);
+
+void exportPairPotentialLennardJones(pybind11::module& m);
+    } // namespace detail
+    } // namespace hpmc
+    } // namespace hoomd
+
 using namespace hoomd::hpmc;
 using namespace hoomd::hpmc::detail;
 using namespace std;
@@ -126,6 +139,9 @@ PYBIND11_MODULE(_hpmc, m)
     export_hpmc_clusters_counters(m);
 
     export_hpmc_nec_counters(m);
+
+    exportPairPotential(m);
+    exportPairPotentialLennardJones(m);
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators
