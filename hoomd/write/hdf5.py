@@ -37,7 +37,6 @@ import hoomd.util as util
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.data.parameterdicts import ParameterDict
-import warnings
 
 try:
     import h5py
@@ -331,31 +330,6 @@ class HDF5Log(_InternalCustomWriter):
     """
     _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
-
-    def write(self, timestep=None):
-        """Write out data to the HDF5 file.
-
-        Writes out a frame at the current timestep from the composed logger.
-
-        Warning:
-            This may not be able to write out quantities which require the
-            pressure tensor, rotational kinetic energy, or external field
-            virial.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            hdf5_writer.write()
-
-        .. deprecated:: 4.5.0
-
-            Use `Simulation` to call the operation.
-        """
-        warnings.warn(
-            "`HDF5Log.writer` is deprecated,"
-            "use `Simulation` to call the operation.", FutureWarning)
-        self._action.act(timestep)
 
 
 __all__ = ["HDF5Log"]

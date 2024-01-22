@@ -15,7 +15,6 @@
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Tuner
-import warnings
 
 
 class _TunerProperty:
@@ -72,14 +71,3 @@ class _InternalCustomTuner(_InternalCustomOperation, Tuner):
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
     _operation_func = "tune"
-
-    def tune(self, timestep):
-        return self._action.act(timestep)
-        """
-        .. deprecated:: 4.5.0
-
-           Use `Simulation` to call the operation.
-        """
-        warnings.warn(
-            "`_InternalCustomTuner.tune` is deprecated,"
-            "use `Simulation` to call the operation.", FutureWarning)
