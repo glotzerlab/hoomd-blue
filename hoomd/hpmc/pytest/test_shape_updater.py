@@ -174,7 +174,7 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_python_callback_shape_move_ellipsoid(simulation_factory,
-                                              two_particle_snapshot_factory):
+                                              lattice_snapshot_factory):
     """Test ShapeSpace with a toy class that randomly squashes spheres \
            into oblate ellipsoids with constant volume."""
 
@@ -206,7 +206,7 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
     mc.shape["A"] = ellipsoid
 
     # create simulation & attach objects
-    sim = simulation_factory(two_particle_snapshot_factory(d=2.5))
+    sim = simulation_factory(lattice_snapshot_factory(a=2.5, n=3))
     sim.operations.integrator = mc
     sim.operations += updater
 
