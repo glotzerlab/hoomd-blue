@@ -206,7 +206,7 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
     mc.shape["A"] = ellipsoid
 
     # create simulation & attach objects
-    sim = simulation_factory(lattice_snapshot_factory(a=2.5, n=3))
+    sim = simulation_factory(lattice_snapshot_factory(a=2.75, n=3))
     sim.operations.integrator = mc
     sim.operations += updater
 
