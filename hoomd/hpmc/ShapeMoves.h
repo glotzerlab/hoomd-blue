@@ -40,7 +40,8 @@ template<typename Shape> class ShapeMoveBase
     virtual void update_shape(uint64_t,
                               const unsigned int&,
                               typename Shape::param_type&,
-                              hoomd::RandomGenerator&)
+                              hoomd::RandomGenerator&,
+                              bool managed)
         {
         }
 
@@ -141,7 +142,8 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       typename Shape::param_type& shape,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
@@ -278,7 +280,8 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& shape,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         // perturb the shape.
         for (unsigned int i = 0; i < shape.N; i++)
@@ -374,7 +377,8 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Matrix3S F_curr;
         // perform a scaling move
@@ -585,7 +589,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar stepsize = this->m_step_size[type_id];

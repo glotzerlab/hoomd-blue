@@ -288,7 +288,11 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                          hoomd::Counter(typ_i, 0, i_sweep));
 
             // perform an in-place shape update on shape_param_new
-            m_move_function->update_shape(timestep, typ_i, shape_param_new, rng_i);
+            m_move_function->update_shape(timestep,
+                                          typ_i,
+                                          shape_param_new,
+                                          rng_i,
+                                          m_exec_conf->isCUDAEnabled());
 
             // update det(I)
             detail::MassProperties<Shape> mp(shape_param_new);
