@@ -242,6 +242,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
+                      AnisoPotentialPairJanusGPU.cc
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       ConstantForceComputeGPU.cu

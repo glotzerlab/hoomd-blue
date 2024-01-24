@@ -18,6 +18,12 @@ void export_AnisoPotentialPairJanusLJGPU(pybind11::module& m)
         m,
         "AnisoPotentialPairJanusLJGPU");
     }
+void export_AnisoPotentialPairJanusYukawaGPU(pybind11::module& m) {
+    export_AnisoPotentialPairGPU<PairModulator<EvaluatorPairYukawa, GeneralEnvelope<JanusFactor>>>(
+        m,
+        "AnisoPotentialPairJanusYukawaGPU");
+}
+   
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

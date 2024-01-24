@@ -217,6 +217,9 @@ void export_AnisoPotentialPairALJ3DGPU(pybind11::module& m);
 void export_AnisoPotentialPairDipoleGPU(pybind11::module& m);
 void export_AnisoPotentialPairGBGPU(pybind11::module& m);
 
+void export_AnisoPotentialPairJanusLJGPU(pybind11::module& m);
+void export_AnisoPotentialPairJanusYukawaGPU(pybind11::module& m);
+        
 void export_PotentialBondHarmonicGPU(pybind11::module& m);
 void export_PotentialBondFENEGPU(pybind11::module& m);
 void export_PotentialBondTetherGPU(pybind11::module& m);
