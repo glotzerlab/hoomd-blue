@@ -221,16 +221,15 @@ class Device:
 
             Use `device`.
         """
-        warnings.warn(
-            "devices is deprecated, use device.", FutureWarning,
-            stacklevel=2)
+        warnings.warn("devices is deprecated, use device.",
+                      FutureWarning,
+                      stacklevel=2)
 
         return self._cpp_exec_conf.getActiveDevices()
 
     @property
     def device(self):
-        """str: Descriptions of the active hardware device.
-        """
+        """str: Descriptions of the active hardware device."""
         return self._cpp_exec_conf.getActiveDevices()[0]
 
     @property
@@ -379,9 +378,9 @@ class GPU(Device):
         super().__init__(communicator, notice_level, message_filename)
 
         if gpu_ids is not None:
-            warnings.warn(
-                "gpu_ids is deprecated, use gpu_id.", FutureWarning,
-                stacklevel=2)
+            warnings.warn("gpu_ids is deprecated, use gpu_id.",
+                          FutureWarning,
+                          stacklevel=2)
 
         if gpu_ids is not None and gpu_id is not None:
             raise ValueError("Set either gpu_id or gpu_ids, not both.")
