@@ -589,7 +589,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar stepsize = this->m_step_size[type_id];
