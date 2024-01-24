@@ -119,7 +119,7 @@ public:
 
             // a1, a2, a3 are orientation vectors of particle a in world frame
             // b1, b2, b3 are orientation vectors of particle b in world frame
-            // ni_world, patch direction of particle a in world frame
+            // ni_world is patch direction of particle a in world frame
 // #ifdef __HIPCC__
             a1 = R_i * ex;
             a2 = R_i * ey;
@@ -140,8 +140,6 @@ public:
 //             nj_world = rotate(qj, n_j);
 // #endif
             
-            // std::cout << "ni world: " << vecString(ni_world);
-
             // compute distance
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
