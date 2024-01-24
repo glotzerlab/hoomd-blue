@@ -45,4 +45,4 @@ install(PROGRAMS ${programs}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/pytest
        )
 
-copy_files_to_build("${programs}" "hoomd_pytest_programs" "*.py")
+copy_files_to_build("${programs}" "hoomd_pytest_programs" "*.sh")

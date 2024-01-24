@@ -9,7 +9,7 @@
 # @param validate_pattern: Check ${CMAKE_CURRENT_BINARY_DIR}/${validate_pattern} for files
 #                          that are not in ${files} and issue a warning.
 # @param Additional parameters: List of files to ignore
-macro(copy_files_to_build files target validate_pattern)
+function(copy_files_to_build files target validate_pattern)
     set(ignore_files ${ARGN})
 
     file(RELATIVE_PATH relative_dir ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
@@ -29,14 +29,16 @@ macro(copy_files_to_build files target validate_pattern)
 
     file(GLOB _matching_files "${CMAKE_CURRENT_BINARY_DIR}/${validate_pattern}")
     foreach(file ${_matching_files})
+        # message("Matching files: ${_matching_files}")
         file(RELATIVE_PATH relative_file ${CMAKE_CURRENT_BINARY_DIR} ${file})
+        # message("Expected files: ${files}")
         list(FIND files ${relative_file} found)
         if (found EQUAL -1 AND NOT ${relative_file} IN_LIST ignore_files)
             message(WARNING "${file} exists but is not provided by the source. "
                             "Remove this file to prevent unexpected errors.")
         endif()
     endforeach()
-endmacro()
+endfunction()
 
 # find a package by config first
 macro(find_package_config_first package version)

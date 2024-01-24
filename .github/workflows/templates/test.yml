@@ -21,6 +21,8 @@ env:
   OMPI_MCA_btl: "vader,self"
   # skip running the CPU tests in GPU builds
   _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
+  # Require GPU tests in GPU builds.
+  _HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_: 1
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
 <% endblock %>
