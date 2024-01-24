@@ -167,7 +167,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             }
         pybind11::object d = m_python_callback(type_id, m_params[type_id]);
         pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
-        shape = typename Shape::param_type(shape_dict);
+        shape = typename Shape::param_type(shape_dict, managed);
         }
 
     void retreat(uint64_t timestep, unsigned int type)
@@ -589,8 +589,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng,
-                      bool managed)
+                      hoomd::RandomGenerator& rng)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar stepsize = this->m_step_size[type_id];
