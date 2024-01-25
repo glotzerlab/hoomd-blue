@@ -83,6 +83,13 @@ class PairPotential
         return m_max_r_cut_non_additive;
         }
 
+    /// Set the parent potential
+    void setParent(std::shared_ptr<PairPotential> parent)
+        {
+        m_parent = parent;
+        parent->notifyRCutChanged();
+        }
+
     /*** Evaluate the energy of the pair interaction
 
         energy is given a pre-computed r_squared as many potentials use this parameter and the
@@ -127,13 +134,6 @@ class PairPotential
     virtual LongReal computeRCutAdditive(unsigned int type) const
         {
         return m_r_cut_additive[type];
-        }
-
-    /// Set the parent potential
-    void setParent(std::shared_ptr<PairPotential> parent)
-        {
-        m_parent = parent;
-        parent->notifyRCutChanged();
         }
 
     /// Notify all parents that r_cut has changed.

@@ -11,7 +11,8 @@ namespace hoomd::hpmc::detail
 void exportPairPotential(pybind11::module& m)
     {
     pybind11::class_<hpmc::PairPotential, std::shared_ptr<hpmc::PairPotential>>(m, "PairPotential")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setParent", &hpmc::PairPotential::setParent);
 
     pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");
     }
