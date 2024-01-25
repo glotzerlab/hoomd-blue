@@ -2,22 +2,22 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitGeometryFillerGPU.cc
- * \brief Definition of mpcd::SlitGeometryFillerGPU
+ * \file mpcd/ParallelPlateGeometryFillerGPU.cc
+ * \brief Definition of mpcd::ParallelPlateGeometryFillerGPU
  */
 
-#include "SlitGeometryFillerGPU.h"
-#include "SlitGeometryFillerGPU.cuh"
+#include "ParallelPlateGeometryFillerGPU.cuh"
+#include "ParallelPlateGeometryFillerGPU.h"
 
 namespace hoomd
     {
-mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(
+mpcd::ParallelPlateGeometryFillerGPU::ParallelPlateGeometryFillerGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     Scalar density,
     unsigned int type,
     std::shared_ptr<Variant> T,
-    std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
-    : mpcd::SlitGeometryFiller(sysdef, density, type, T, geom)
+    std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
+    : mpcd::ParallelPlateGeometryFiller(sysdef, density, type, T, geom)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -28,7 +28,7 @@ mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(
 /*!
  * \param timestep Current timestep
  */
-void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
+void mpcd::ParallelPlateGeometryFillerGPU::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(),
                                access_location::device,
@@ -70,16 +70,18 @@ void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SlitGeometryFillerGPU(pybind11::module& m)
+void mpcd::detail::export_ParallelPlateGeometryFillerGPU(pybind11::module& m)
     {
-    pybind11::class_<mpcd::SlitGeometryFillerGPU,
-                     mpcd::SlitGeometryFiller,
-                     std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
+    pybind11::class_<mpcd::ParallelPlateGeometryFillerGPU,
+                     mpcd::ParallelPlateGeometryFiller,
+                     std::shared_ptr<mpcd::ParallelPlateGeometryFillerGPU>>(
+        m,
+        "ParallelPlateGeometryFillerGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,
-                            std::shared_ptr<const mpcd::detail::SlitGeometry>>());
+                            std::shared_ptr<const mpcd::ParallelPlateGeometry>>());
     }
 
     } // end namespace hoomd

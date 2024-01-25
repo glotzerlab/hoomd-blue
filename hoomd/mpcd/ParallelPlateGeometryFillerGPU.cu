@@ -2,12 +2,12 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitGeometryFillerGPU.cu
- * \brief Defines GPU functions and kernels used by mpcd::SlitGeometryFillerGPU
+ * \file mpcd/ParallelPlateGeometryFillerGPU.cu
+ * \brief Defines GPU functions and kernels used by mpcd::ParallelPlateGeometryFillerGPU
  */
 
+#include "ParallelPlateGeometryFillerGPU.cuh"
 #include "ParticleDataUtilities.h"
-#include "SlitGeometryFillerGPU.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
@@ -45,7 +45,7 @@ namespace kernel
 __global__ void slit_draw_particles(Scalar4* d_pos,
                                     Scalar4* d_vel,
                                     unsigned int* d_tag,
-                                    const mpcd::detail::SlitGeometry geom,
+                                    const mpcd::ParallelPlateGeometry geom,
                                     const Scalar z_min,
                                     const Scalar z_max,
                                     const BoxDim box,
@@ -85,7 +85,7 @@ __global__ void slit_draw_particles(Scalar4* d_pos,
 
     // initialize random number generator for positions and velocity
     hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+        hoomd::Seed(hoomd::RNGIdentifier::ParallelPlateGeometryFiller, timestep, seed),
         hoomd::Counter(tag));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
@@ -129,7 +129,7 @@ __global__ void slit_draw_particles(Scalar4* d_pos,
 cudaError_t slit_draw_particles(Scalar4* d_pos,
                                 Scalar4* d_vel,
                                 unsigned int* d_tag,
-                                const mpcd::detail::SlitGeometry& geom,
+                                const mpcd::ParallelPlateGeometry& geom,
                                 const Scalar z_min,
                                 const Scalar z_max,
                                 const BoxDim& box,

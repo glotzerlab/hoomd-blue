@@ -5,8 +5,8 @@
 #define MPCD_CONFINED_STREAMING_METHOD_GPU_CUH_
 
 /*!
- * \file mpcd/ConfinedStreamingMethodGPU.cuh
- * \brief Declaration of CUDA kernels for mpcd::ConfinedStreamingMethodGPU
+ * \file mpcd/BounceBackStreamingMethodGPU.cuh
+ * \brief Declaration of CUDA kernels for mpcd::BounceBackStreamingMethodGPU
  */
 
 #include "ExternalField.h"

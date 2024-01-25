@@ -5,13 +5,13 @@
 #define MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_
 
 /*!
- * \file mpcd/SlitGeometryFillerGPU.cuh
- * \brief Declaration of CUDA kernels for mpcd::SlitGeometryFillerGPU
+ * \file mpcd/ParallelPlateGeometryFillerGPU.cuh
+ * \brief Declaration of CUDA kernels for mpcd::ParallelPlateGeometryFillerGPU
  */
 
 #include <cuda_runtime.h>
 
-#include "SlitGeometry.h"
+#include "ParallelPlateGeometry.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
@@ -21,11 +21,11 @@ namespace mpcd
     {
 namespace gpu
     {
-//! Draw virtual particles in the SlitGeometry
+//! Draw virtual particles in the ParallelPlateGeometry
 cudaError_t slit_draw_particles(Scalar4* d_pos,
                                 Scalar4* d_vel,
                                 unsigned int* d_tag,
-                                const mpcd::detail::SlitGeometry& geom,
+                                const mpcd::ParallelPlateGeometry& geom,
                                 const Scalar z_min,
                                 const Scalar z_max,
                                 const BoxDim& box,

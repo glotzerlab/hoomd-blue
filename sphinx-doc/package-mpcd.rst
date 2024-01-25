@@ -17,5 +17,6 @@ hoomd.mpcd
     :maxdepth: 1
 
     module-mpcd-collide
+    module-mpcd-geometry
     module-mpcd-stream
     module-mpcd-tune

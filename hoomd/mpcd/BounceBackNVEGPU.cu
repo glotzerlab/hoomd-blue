@@ -18,13 +18,13 @@ namespace gpu
     {
 //! Template instantiation of slit geometry streaming
 template cudaError_t
-nve_bounce_step_one<mpcd::detail::SlitGeometry>(const bounce_args_t& args,
-                                                const mpcd::detail::SlitGeometry& geom);
+nve_bounce_step_one<mpcd::ParallelPlateGeometry>(const bounce_args_t& args,
+                                                 const mpcd::ParallelPlateGeometry& geom);
 
 //! Template instantiation of slit pore geometry streaming
 template cudaError_t
-nve_bounce_step_one<mpcd::detail::SlitPoreGeometry>(const bounce_args_t& args,
-                                                    const mpcd::detail::SlitPoreGeometry& geom);
+nve_bounce_step_one<mpcd::PlanarPoreGeometry>(const bounce_args_t& args,
+                                              const mpcd::PlanarPoreGeometry& geom);
 
 namespace kernel
     {

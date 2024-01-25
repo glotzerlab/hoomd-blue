@@ -2,23 +2,23 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
- * \file mpcd/SlitPoreGeometryFillerGPU.cc
- * \brief Definition of mpcd::SlitPoreGeometryFillerGPU
+ * \file mpcd/PlanarPoreGeometryFillerGPU.cc
+ * \brief Definition of mpcd::PlanarPoreGeometryFillerGPU
  */
 
-#include "SlitPoreGeometryFillerGPU.h"
-#include "SlitPoreGeometryFillerGPU.cuh"
+#include "PlanarPoreGeometryFillerGPU.h"
+#include "PlanarPoreGeometryFillerGPU.cuh"
 
 namespace hoomd
     {
-mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(
+mpcd::PlanarPoreGeometryFillerGPU::PlanarPoreGeometryFillerGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     Scalar density,
     unsigned int type,
     std::shared_ptr<Variant> T,
     uint16_t seed,
-    std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
-    : mpcd::SlitPoreGeometryFiller(sysdef, density, type, T, seed, geom)
+    std::shared_ptr<const mpcd::PlanarPoreGeometry> geom)
+    : mpcd::PlanarPoreGeometryFiller(sysdef, density, type, T, seed, geom)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -29,7 +29,7 @@ mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(
 /*!
  * \param timestep Current timestep
  */
-void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
+void mpcd::PlanarPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(),
                                access_location::device,
@@ -74,18 +74,19 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SlitPoreGeometryFillerGPU(pybind11::module& m)
+void mpcd::detail::export_PlanarPoreGeometryFillerGPU(pybind11::module& m)
     {
-    pybind11::class_<mpcd::SlitPoreGeometryFillerGPU,
-                     mpcd::SlitPoreGeometryFiller,
-                     std::shared_ptr<mpcd::SlitPoreGeometryFillerGPU>>(m,
-                                                                       "SlitPoreGeometryFillerGPU")
+    pybind11::class_<mpcd::PlanarPoreGeometryFillerGPU,
+                     mpcd::PlanarPoreGeometryFiller,
+                     std::shared_ptr<mpcd::PlanarPoreGeometryFillerGPU>>(
+        m,
+        "PlanarPoreGeometryFillerGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,
                             unsigned int,
-                            std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>());
+                            std::shared_ptr<const mpcd::PlanarPoreGeometry>>());
     }
 
     } // end namespace hoomd

@@ -4,8 +4,8 @@ set(TEST_LIST
     cell_list
     cell_thermo_compute
     #external_field
-    slit_geometry_filler
-    slit_pore_geometry_filler
+    parallel_plate_geometry_filler
+    planar_pore_geometry_filler
     sorter
     srd_collision_method
     streaming_method
@@ -22,8 +22,8 @@ if(ENABLE_MPI)
     ADD_TO_MPI_TESTS(cell_list 8)
     ADD_TO_MPI_TESTS(cell_thermo_compute 8)
     ADD_TO_MPI_TESTS(communicator 8)
-    ADD_TO_MPI_TESTS(slit_geometry_filler 8)
-    ADD_TO_MPI_TESTS(slit_pore_geometry_filler 8)
+    ADD_TO_MPI_TESTS(parallel_plate_geometry_filler 8)
+    ADD_TO_MPI_TESTS(planar_pore_geometry_filler 8)
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
