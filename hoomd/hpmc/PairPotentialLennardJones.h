@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "hoomd/hpmc/IntegratorHPMC.h"
+#include "PairPotential.h"
 
 namespace hoomd
     {
