@@ -60,46 +60,26 @@ class PairPotential
     virtual ~PairPotential() { }
 
     /// Returns the non-additive cutoff radius.
-    inline LongReal getRCutNonAdditive(unsigned int type_i, unsigned int type_j)
+    inline LongReal getRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
         {
-        if (m_r_cut_updated)
-            {
-            updateRCutCache();
-            }
-
         return m_r_cut_non_additive[m_type_param_index(type_i, type_j)];
         }
 
     /// Returns the additive part of the cutoff distance for a given type.
-    inline LongReal getRCutAdditive(unsigned int type)
+    inline LongReal getRCutAdditive(unsigned int type) const
         {
-        if (m_r_cut_updated)
-            {
-            updateRCutCache();
-            }
-
         return m_r_cut_additive[type];
         }
 
     /// Returns the total cutoff radius squared.
-    inline LongReal getRCutSquaredTotal(unsigned int type_i, unsigned int type_j)
+    inline LongReal getRCutSquaredTotal(unsigned int type_i, unsigned int type_j) const
         {
-        if (m_r_cut_updated)
-            {
-            updateRCutCache();
-            }
-
         return m_r_cut_squared_total[m_type_param_index(type_i, type_j)];
         }
 
     /// Returns the maximum non-additive r_cut beteween any two types.
-    inline LongReal getMaxRCutNonAdditive()
+    inline LongReal getMaxRCutNonAdditive() const
         {
-        if (m_r_cut_updated)
-            {
-            updateRCutCache();
-            }
-
         return m_max_r_cut_non_additive;
         }
 
@@ -165,7 +145,7 @@ class PairPotential
             }
         else
             {
-            m_r_cut_updated = true;
+            updateRCutCache();
             }
         }
 
@@ -181,9 +161,6 @@ class PairPotential
 
     /// Pre-computed maximum additive r_cut.
     LongReal m_max_r_cut_non_additive = 0;
-
-    /// Record whether any r_cut value has been updated
-    bool m_r_cut_updated = false;
 
     /// Parent potential
     std::weak_ptr<PairPotential> m_parent;
@@ -218,8 +195,6 @@ class PairPotential
                 m_r_cut_squared_total[param_index_2] = r_cut * r_cut;
                 }
             }
-
-        m_r_cut_updated = false;
         }
     };
 
