@@ -42,8 +42,8 @@ documentation for more information on warning filters.
 * Single-process multi-GPU code path (since 4.5.0)
 * ``gpu_ids`` argument to ``GPU`` (since 4.5.0)
 
-    * Use ``gpu_id``.
+  * Use ``gpu_id``.
 
 * ``GPU.devices`` (since 4.5.0)
 
-    * Use ``device``.
+  * Use ``device``.
