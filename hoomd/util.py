@@ -6,7 +6,6 @@
 import hoomd
 import io
 from collections.abc import Iterable, Mapping, MutableMapping
-from hoomd.error import GPUNotAvailableError  # noqa: F401
 
 
 def _to_camel_case(string):
