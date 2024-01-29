@@ -5,6 +5,7 @@
 
 import hoomd
 import pytest
+import numpy
 import hoomd.hpmc.pytest.conftest
 
 # note: The parameterized tests validate parameters so we can't pass in values
@@ -121,7 +122,6 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     setattr(muvt, attr, value)
     assert getattr(muvt, attr) == value
 
-
 def test_insertion_removal(device, simulation_factory,
                            lattice_snapshot_factory):
     """Test that MuVT is able to insert and remove particles."""
@@ -159,3 +159,88 @@ def test_insertion_removal(device, simulation_factory,
 
     # make a wild guess: there be B particles
     assert (muvt.N['B'] > 0)
+
+def test_plane_wall_insertion(device, simulation_factory,
+                           one_particle_snapshot_factory):
+    """Test that MuVT considers a planar wall when inserting particles."""
+    sim = simulation_factory(
+        one_particle_snapshot_factory(particle_types=['A'],
+                                 dimensions=3,
+                                 position=(0, 0, 5),
+                                 orientation=(1, 0, 0, 0),
+                                 L=20)
+                                    )
+
+    sphere_radius = 0.6 
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.0, default_a=0.0)
+    mc.shape['A'] = dict(diameter=2*sphere_radius)
+    walls = [hoomd.wall.Plane(origin=(0,0,0),normal=(0,0,1))]
+    wall_potential = hoomd.hpmc.external.wall.WallPotential(walls)
+    mc.external_potential = wall_potential
+    sim.operations.integrator = mc
+
+    muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(1),
+                                  transfer_types=['A'])
+    muvt.fugacity['A'] = 1000
+    sim.operations.updaters.append(muvt)
+    sim.run(300)
+    snapshot = sim.state.get_snapshot()
+    pos = snapshot.particles.position
+    assert  numpy.min(pos[:,2]) >= sphere_radius 
+
+def test_spherical_wall_insertion(device, simulation_factory,
+                           one_particle_snapshot_factory):
+    """Test that MuVT considers a spherical wall when inserting particles."""
+    sim = simulation_factory(
+        one_particle_snapshot_factory(particle_types=['A'],
+                                 dimensions=3,
+                                 position=(0, 0, 0),
+                                 orientation=(1, 0, 0, 0),
+                                 L=20)
+                                    )
+
+
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
+    sphere_radius = 0.6 
+    mc.shape['A'] = dict(diameter=2*sphere_radius)
+    walls = [hoomd.wall.Sphere(radius=5)]
+    wall_potential = hoomd.hpmc.external.wall.WallPotential(walls)
+    mc.external_potential = wall_potential
+    sim.operations.integrator = mc
+
+    muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(1),
+                                  transfer_types=['A'])
+    muvt.fugacity['A'] = 1000
+    sim.operations.updaters.append(muvt)
+    sim.run(300)
+    snapshot = sim.state.get_snapshot()
+    pos = snapshot.particles.position
+    assert  numpy.max(numpy.linalg.norm(pos,axis=1))-sphere_radius <= 5 
+
+def test_cylindrical_wall_insertion(device, simulation_factory,
+                           one_particle_snapshot_factory):
+    """Test that MuVT considers a cylindrical wall when inserting particles."""
+    sim = simulation_factory(
+        one_particle_snapshot_factory(particle_types=['A'],
+                                 dimensions=3,
+                                 position=(0, 0, 0),
+                                 orientation=(1, 0, 0, 0),
+                                 L=20)
+                                    )
+
+    sphere_radius = 0.6 
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.0, default_a=0.0)
+    mc.shape['A'] = dict(diameter=2 * sphere_radius)
+    walls = [hoomd.wall.Cylinder(radius=5,axis=(0,0,1))]
+    wall_potential = hoomd.hpmc.external.wall.WallPotential(walls)
+    mc.external_potential = wall_potential
+    sim.operations.integrator = mc
+
+    muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(1),
+                                  transfer_types=['A'])
+    muvt.fugacity['A'] = 1000
+    sim.operations.updaters.append(muvt)
+    sim.run(300)
+    snapshot = sim.state.get_snapshot()
+    pos = snapshot.particles.position
+    assert  numpy.max(numpy.linalg.norm(pos[:,:2],axis=1))-sphere_radius <= 5 

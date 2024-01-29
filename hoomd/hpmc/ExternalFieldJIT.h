@@ -283,7 +283,8 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
                             const std::vector<std::string>&,
                             pybind11::array_t<float>>())
         .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy)
-        .def_property_readonly("param_array", &ExternalFieldJIT<Shape>::getParamArray);
+        .def_property_readonly("param_array", &ExternalFieldJIT<Shape>::getParamArray)
+        .def("energy", &ExternalFieldJIT::energy);
     }
 
     }  // end namespace hpmc

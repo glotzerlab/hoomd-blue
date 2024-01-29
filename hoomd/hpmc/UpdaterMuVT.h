@@ -1911,6 +1911,9 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     // do we have to compute energetic contribution?
     auto patch = m_mc->getPatchEnergy();
 
+    // do we have to compute a wall contribution
+    auto field = m_mc->getExternalField();
+
     lnboltzmann = Scalar(0.0);
 
     unsigned int overlap = 0;
@@ -1944,6 +1947,18 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         ShortReal r_cut_patch(0.0);
         Scalar r_cut_self(0.0);
+
+        if (field)
+            {
+            const BoxDim box = this->m_pdata->getGlobalBox();
+            lnboltzmann -= field->energy(box,
+                                         type,
+                                         pos,
+                                         quat<float>(orientation),
+                                         1.0, // diameter i
+                                         0.0 // charge i
+            );
+            }
 
         if (patch)
             {
