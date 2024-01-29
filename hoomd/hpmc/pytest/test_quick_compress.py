@@ -7,6 +7,7 @@ import hoomd
 from hoomd.conftest import operation_pickling_check
 import pytest
 import math
+import numpy as np
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
@@ -21,6 +22,10 @@ valid_constructor_args = [
          min_scale=0.75),
     dict(trigger=hoomd.trigger.Periodic(1000),
          target_box=hoomd.Box.from_box([80, 50, 40, 0.2, 0.4, 0.5]),
+         max_overlaps_per_particle=0.2,
+         min_scale=0.999),
+    dict(trigger=hoomd.trigger.Periodic(1000),
+         target_box=hoomd.Box.from_box([80, 50, 40, -0.2, 0.4, 0.5]),
          max_overlaps_per_particle=0.2,
          min_scale=0.999),
 ]
@@ -103,6 +108,48 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
     setattr(qc, attr, value)
     assert getattr(qc, attr) == value
+
+
+@pytest.mark.parametrize("xy", [-0.4, 0, 0.2])
+@pytest.mark.parametrize("xz", [-0.3, 0, 0.3])
+@pytest.mark.parametrize("yz", [-0.2, 0, 0.4])
+@pytest.mark.parametrize("phi", [0.01, 0.4, 0.6])
+@pytest.mark.validate
+def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
+                                      lattice_snapshot_factory):
+    """Test that QuickCompress can resize and reshape triclinic boxes."""
+    n = 3
+    snap = lattice_snapshot_factory(n=n, a=1.1)
+    snap.configuration.box = hoomd.Box.from_box([10, 9, 8, xy, xz, yz])
+
+    # Generate random tilts in [-1,1] and apply to the target box
+    tilts = np.random.rand(3) * 2 - 1
+    target_box = hoomd.Box.from_box([0.95, 1.05, 1, *tilts])
+
+    v_particle = 4 / 3 * math.pi * (0.5)**3
+    target_box.volume = n**3 * v_particle / phi
+
+    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(25),
+                                         target_box=target_box)
+
+    sim = simulation_factory(snap)
+
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
+    mc.shape['A'] = dict(diameter=1)
+    sim.operations.integrator = mc
+    sim.operations.updaters.append(qc)
+    sim.run(1)
+
+    # compression should not be complete yet
+    assert not qc.complete
+    # run long enough to compress the box
+    while not qc.complete and sim.timestep < 1e5:
+        sim.run(100)
+
+    # Check that compression is complete and debug which statement is incorrect
+    assert mc.overlaps == 0
+    assert sim.state.box == target_box
+    assert qc.complete
 
 
 @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.55, 0.58, 0.6])
