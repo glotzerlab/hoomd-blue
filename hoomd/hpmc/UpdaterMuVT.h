@@ -1650,6 +1650,28 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         // do we have to compute energetic contribution?
         auto patch = m_mc->getPatchEnergy();
 
+     	// do we have to compute a wall contribution?
+    	auto field = m_mc->getExternalField();
+
+     	if (field)
+     	    {
+     	   // getPosition() takes into account grid shift, correct for that
+            Scalar3 p = m_pdata->getPosition(tag) + m_pdata->getOrigin();
+     	    int3 tmp = make_int3(0, 0, 0);
+     	    m_pdata->getGlobalBox().wrap(p, tmp);
+     	    vec3<Scalar> pos(p);
+     	    const BoxDim box = this->m_pdata->getGlobalBox();
+     	    unsigned int type = this->m_pdata->getType(tag);
+     	    quat<Scalar> orientation(m_pdata->getOrientation(tag));
+     	    lnboltzmann += field->energy(box,
+     	                                 type,
+     	                                 pos,
+     	                                 quat<float>(orientation),
+     	                                 1.0, // diameter i
+     	                                 0.0 // charge i
+     	    );
+     	    }
+
         // if not, no overlaps generated
         if (patch)
             {
@@ -1795,6 +1817,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 }
 #endif
             }
+
         }
 
 // Depletants
@@ -1911,7 +1934,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     // do we have to compute energetic contribution?
     auto patch = m_mc->getPatchEnergy();
 
-    // do we have to compute a wall contribution
+    // do we have to compute a wall contribution?
     auto field = m_mc->getExternalField();
 
     lnboltzmann = Scalar(0.0);

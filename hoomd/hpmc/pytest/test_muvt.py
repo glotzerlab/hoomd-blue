@@ -160,6 +160,57 @@ def test_insertion_removal(device, simulation_factory,
     # make a wild guess: there be B particles
     assert (muvt.N['B'] > 0)
 
+@pytest.mark.skipif(not hoomd.version.llvm_enabled, reason='LLVM not enabled')
+def test_jit_remove_insert(device, simulation_factory,
+                           one_particle_snapshot_factory):
+    """Test that MuVT considers a cpp potential when removing particles by adding a high energy particles that should always be removed by the updater while inserting particles to the top of the box."""
+    sim = simulation_factory(
+        one_particle_snapshot_factory(particle_types=['A'],
+                                 dimensions=3,
+                                 position=(0, 0, -5),
+                                 orientation=(1, 0, 0, 0),
+                                 L=20)
+                                    )
+
+    sphere_radius = 0.6 
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.0, default_a=0.0)
+    mc.shape['A'] = dict(diameter=2*sphere_radius)
+
+    # code returns infinity if the particle center goes past the center of the box
+
+    center_wall = '''
+        if (r_i.z < 0. || r_i.z > box.getL().z/2)
+            return INFINITY;
+        else
+            return 0.0f;
+    '''
+    cpp_external_potential = hoomd.hpmc.external.user.CPPExternalPotential(
+        code=center_wall)
+
+    mc.external_potential = cpp_external_potential
+
+    sim.operations.integrator = mc
+
+    muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(1),
+                                  transfer_types=['A'])
+    muvt.fugacity['A'] = 1e6 
+    sim.operations.updaters.append(muvt)
+    sim.run(1000)
+    snapshot = sim.state.get_snapshot()
+    pos = snapshot.particles.position
+    
+    # We should have inserted particles successfully
+    assert muvt.insert_moves[0] > 0
+
+    # We should have successfully removed the high energy particle
+    assert muvt.remove_moves[0] > 0
+
+    # We should have successfully inserted only to the top of the box and removed the high energy particle
+    assert  numpy.min(pos[:,2]) >= 0. 
+
+    # We should have added more than one particle to the box
+    assert  len(pos) > 1 
+
 def test_plane_wall_insertion(device, simulation_factory,
                            one_particle_snapshot_factory):
     """Test that MuVT considers a planar wall when inserting particles."""
@@ -186,7 +237,9 @@ def test_plane_wall_insertion(device, simulation_factory,
     sim.run(300)
     snapshot = sim.state.get_snapshot()
     pos = snapshot.particles.position
+    # Test if inserted spheres are above the plane 
     assert  numpy.min(pos[:,2]) >= sphere_radius 
+    assert len(pos) > 1
 
 def test_spherical_wall_insertion(device, simulation_factory,
                            one_particle_snapshot_factory):
@@ -198,7 +251,6 @@ def test_spherical_wall_insertion(device, simulation_factory,
                                  orientation=(1, 0, 0, 0),
                                  L=20)
                                     )
-
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     sphere_radius = 0.6 
@@ -215,7 +267,9 @@ def test_spherical_wall_insertion(device, simulation_factory,
     sim.run(300)
     snapshot = sim.state.get_snapshot()
     pos = snapshot.particles.position
+    # Test if inserted spheres are inside the spherical wall
     assert  numpy.max(numpy.linalg.norm(pos,axis=1))-sphere_radius <= 5 
+    assert len(pos) > 1
 
 def test_cylindrical_wall_insertion(device, simulation_factory,
                            one_particle_snapshot_factory):
@@ -243,4 +297,6 @@ def test_cylindrical_wall_insertion(device, simulation_factory,
     sim.run(300)
     snapshot = sim.state.get_snapshot()
     pos = snapshot.particles.position
+    # Test if inserted spheres are inside the cylinder wall
     assert  numpy.max(numpy.linalg.norm(pos[:,:2],axis=1))-sphere_radius <= 5 
+    assert len(pos) > 1
