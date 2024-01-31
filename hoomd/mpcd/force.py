@@ -4,8 +4,8 @@
 r""" MPCD solvent forces.
 
 MPCD can apply a body force to each MPCD particle as a function of position.
-The external force should be compatible with the chosen `~hoomd.mpcd.geometry`.
-Global momentum conservation is typically broken by adding a solvent force, so
+The external force should be compatible with the chosen :mod:`~hoomd.mpcd.geometry`.
+Global momentum conservation can be broken by adding a solvent force, so
 care should be chosen that the entire model is designed so that the system
 does not have net acceleration. For example, solid boundaries can be used to
 dissipate momentum, or a balancing force can be applied to particles that are
@@ -23,10 +23,11 @@ from hoomd.operation import _HOOMDBaseObject
 class SolventForce(_HOOMDBaseObject):
     """Solvent force.
 
-    The SolventForce is a body force applied to each solvent particle. This
+    The `SolventForce` is a body force applied to each solvent particle. This
     class should not be instantiated directly. It exists for type checking.
 
     """
+
     pass
 
 
@@ -55,7 +56,7 @@ class BlockForce(SolventForce):
         \end{cases}
         \end{equation}
 
-    The BlockForce can be used to implement the double-parabola method for measuring
+    The `BlockForce` can be used to implement the double-parabola method for measuring
     viscosity by setting :math:`H = L_z/4` and :math:`w = L_z/4`, where :math:`L_z` is
     the size of the simulation box in *z*.
 
@@ -126,7 +127,7 @@ class SineForce(SolventForce):
         amplitude (float): Amplitude of the sinusoid.
         wavenumber (float): Wavenumber for the sinusoid.
 
-    SineForce applies a force with amplitude *F* in *x* that is sinusoidally
+    `SineForce` applies a force with amplitude *F* in *x* that is sinusoidally
     varying in *z* with wavenumber *k*:
 
     .. math::

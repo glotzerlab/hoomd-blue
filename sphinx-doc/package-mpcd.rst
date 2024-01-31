@@ -18,6 +18,7 @@ hoomd.mpcd
 
     module-mpcd-collide
     module-mpcd-fill
+    module-mpcd-force
     module-mpcd-geometry
     module-mpcd-methods
     module-mpcd-stream
