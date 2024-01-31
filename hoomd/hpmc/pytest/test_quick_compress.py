@@ -116,9 +116,10 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 @pytest.mark.parametrize("phi", [0.01, 0.4, 0.6])
 @pytest.mark.validate
 def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
-                                      lattice_snapshot_factory):
+                                      lattice_snapshot_factory, device):
     """Test that QuickCompress can resize and reshape triclinic boxes."""
-    n = (5, 5, 5)
+    n = 6 if device.communicator.num_ranks > 1 else 3
+
     snap = lattice_snapshot_factory(n=n, a=1.1)
     snap.configuration.box = hoomd.Box.from_box([10, 9, 8, xy, xz, yz])
 
@@ -127,7 +128,7 @@ def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
     target_box = hoomd.Box.from_box([0.95, 1.05, 1, *tilts])
 
     v_particle = 4 / 3 * math.pi * (0.5)**3
-    target_box.volume = np.prod(n) * v_particle / phi
+    target_box.volume = n**3 * v_particle / phi
 
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(25),
                                          target_box=target_box)
