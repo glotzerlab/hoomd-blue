@@ -154,14 +154,13 @@ DEVICE void move_rotateSphere(quat<Scalar>& orientation, vec3<Scalar>& normal, R
     // Marsaglia(1972). Generate a random unit quaternion. Scale it to a small rotation and
     // apply.
     quat<Scalar> q;
-    Scalar s1, s2, s3;
 
     Scalar phi = uniform(rng)*a;
     Scalar sin_phi = fast::sin(phi);
     q.s = fast::cos(phi);
-    q.v.x = sin_phi *  pos.x;
-    q.v.y = sin_phi * pos.y;
-    q.v.z = sin_phi * pos.z;
+    q.v.x = sin_phi * normal.x;
+    q.v.y = sin_phi * normal.y;
+    q.v.z = sin_phi * normal.z;
 
     // generate new trial orientation
     orientation = orientation * q;
