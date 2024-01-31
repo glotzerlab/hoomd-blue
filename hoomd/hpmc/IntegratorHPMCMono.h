@@ -1043,7 +1043,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                           continue;
                           }
 
-                      move_translateSphere(quat_pos_i,shape_i.orientation, rng_i, h_d.data[typ_i], sphere, parallel_transport);
+                      //move_translateSphere(quat_pos_i,shape_i.orientation, rng_i, h_d.data[typ_i], sphere, parallel_transport);
+                      move_translateSphere(quat_pos_i,shape_i.orientation, rng_i, h_d.data[typ_i], sphere, true);
 
 		      pos_i = sphere.sphericalToCartesian(quat_pos_i);
 
@@ -1065,7 +1066,14 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                           continue;
                           }
 
-                      move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
+                      //if (parallel_transport){
+                      if (true){
+		                pos_i = sphere.sphericalToCartesian(quat_pos_i);
+                        move_rotateSphere(shape_i.orientation, pos_i, rng_i, h_a.data[typ_i]);
+                      }
+                      else{
+                        move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
+                      }
                       }
 
 		         bool overlap=false;
