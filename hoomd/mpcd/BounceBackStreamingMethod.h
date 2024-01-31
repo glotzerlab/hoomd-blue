@@ -254,7 +254,7 @@ template<class Geometry, class Force> void export_BounceBackStreamingMethod(pybi
                             std::shared_ptr<Force>>())
         .def_property_readonly("geometry",
                                &mpcd::BounceBackStreamingMethod<Geometry, Force>::getGeometry)
-        .def_property_readonly("force",
+        .def_property_readonly("solvent_force",
                                &mpcd::BounceBackStreamingMethod<Geometry, Force>::getForce);
     }
     }  // end namespace detail

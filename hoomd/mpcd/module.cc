@@ -145,24 +145,47 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_PlanarPoreGeometry(m);
 
     mpcd::detail::export_StreamingMethod(m);
-    mpcd::detail::export_BulkStreamingMethod<mpcd::NoForce>(m);
+    // bulk
+    mpcd::detail::export_BulkStreamingMethod<mpcd::BlockForce>(m);
     mpcd::detail::export_BulkStreamingMethod<mpcd::ConstantForce>(m);
-    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::SineForce>(m);
+#ifdef ENABLE_HIP
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::BlockForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::ConstantForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::SineForce>(m);
+#endif // ENABLE_HIP
+    // parallel plate
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::BlockForce>(
+        m);
     mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry,
                                                    mpcd::ConstantForce>(m);
-    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
-    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::ConstantForce>(
-        m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::SineForce>(m);
 #ifdef ENABLE_HIP
-    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::NoForce>(m);
-    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::ConstantForce>(m);
-    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry, mpcd::NoForce>(
-        m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry,
+                                                      mpcd::BlockForce>(m);
     mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry,
                                                       mpcd::ConstantForce>(m);
-    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry, mpcd::NoForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry, mpcd::SineForce>(
+        m);
+#endif // ENABLE_HIP
+    // planar pore
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::BlockForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::ConstantForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::SineForce>(m);
+#ifdef ENABLE_HIP
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::BlockForce>(
+        m);
     mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry,
                                                       mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::SineForce>(m);
 #endif // ENABLE_HIP
 
     mpcd::detail::export_BounceBackNVE<mpcd::ParallelPlateGeometry>(m);
