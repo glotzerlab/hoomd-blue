@@ -121,7 +121,7 @@ def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
     n = 7 if device.communicator.num_ranks > 1 else 3
 
     snap = lattice_snapshot_factory(n=n, a=1.1)
-    snap.configuration.box = hoomd.Box.from_box([11, 10, 9, xy, xz, yz])
+    snap.configuration.box = hoomd.Box.from_box([14, 13, 12, xy, xz, yz])
 
     # Generate random tilts in [-1,1] and apply to the target box
     tilts = np.random.rand(3) * 2 - 1
