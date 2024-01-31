@@ -80,7 +80,6 @@ DEVICE inline void move_translateSphere(quat<Scalar>& quat_pos, quat<Scalar>& qu
     // apply the translation in the standard position
     quat_pos = quat_pos*p;
     quat_pos = quat_pos * (fast::rsqrt(norm2(quat_pos)));
-
     if(parallel_transport)
     	{
 	// apply the translation in the standard position
@@ -145,6 +144,32 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a)
         orientation = orientation * (fast::rsqrt(norm2(orientation)));
         }
     }
+
+template<class RNG>
+DEVICE void move_rotateSphere(quat<Scalar>& orientation, vec3<Scalar>& normal, RNG& rng, Scalar a)
+    {
+    hoomd::UniformDistribution<Scalar> uniform(Scalar(-1.0), Scalar(1.0));
+
+    // Frenkel and Smit reference Allen and Tildesley, referencing Vesley(1982), referencing
+    // Marsaglia(1972). Generate a random unit quaternion. Scale it to a small rotation and
+    // apply.
+    quat<Scalar> q;
+    Scalar s1, s2, s3;
+
+    Scalar phi = uniform(rng)*a;
+    Scalar sin_phi = fast::sin(phi);
+    q.s = fast::cos(phi);
+    q.v.x = sin_phi *  pos.x;
+    q.v.y = sin_phi * pos.y;
+    q.v.z = sin_phi * pos.z;
+
+    // generate new trial orientation
+    orientation = orientation * q;
+
+    // renormalize
+    orientation = orientation * (fast::rsqrt(norm2(orientation)));
+    }
+
 
 //! Helper function to test if a particle is in an active region
 /*! \param pos Position of the particle
