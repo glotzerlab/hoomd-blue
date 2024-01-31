@@ -118,7 +118,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
                                       lattice_snapshot_factory, device):
     """Test that QuickCompress can resize and reshape triclinic boxes."""
-    n = 6 if device.communicator.num_ranks > 1 else 3
+    n = 7 if device.communicator.num_ranks > 1 else 3
 
     snap = lattice_snapshot_factory(n=n, a=1.1)
     snap.configuration.box = hoomd.Box.from_box([11, 10, 9, xy, xz, yz])
