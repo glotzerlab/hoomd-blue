@@ -3,6 +3,7 @@ set(TEST_LIST
     at_collision_method
     cell_list
     cell_thermo_compute
+    force
     parallel_plate_geometry_filler
     planar_pore_geometry_filler
     sorter
@@ -48,7 +49,7 @@ endmacro(compile_test)
 foreach (CUR_TEST ${TEST_LIST})
     set(CUR_TEST_SRC ${CUR_TEST}_test.cc)
     set(CUR_TEST_EXE ${CUR_TEST}_test)
-    set(CUR_TEST_NAME mpcd-core-${CUR_TEST})
+    set(CUR_TEST_NAME mpcd-${CUR_TEST})
 
     compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
     if (ENABLE_MPI)
@@ -62,7 +63,7 @@ endforeach(CUR_TEST)
 foreach (CUR_TEST ${MPI_TEST_LIST})
     set(CUR_TEST_SRC ${CUR_TEST}_mpi_test.cc)
     set(CUR_TEST_EXE ${CUR_TEST}_mpi_test)
-    set(CUR_TEST_NAME mpcd-core-${CUR_TEST}-mpi)
+    set(CUR_TEST_NAME mpcd-${CUR_TEST}-mpi)
 
     compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
     add_test(NAME ${CUR_TEST_NAME} COMMAND

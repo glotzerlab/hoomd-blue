@@ -83,7 +83,7 @@ class __attribute__((visibility("default"))) SineForce
     //! Set the sine wavenumber
     void setWavenumber(Scalar k)
         {
-        m_F = k;
+        m_k = k;
         }
 
 #ifndef __HIPCC__
