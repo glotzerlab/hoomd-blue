@@ -14,6 +14,9 @@
 #include "hoomd/mpcd/@_force@.h"
 #include "hoomd/mpcd/@_geometry@.h"
 #include "hoomd/mpcd/BounceBackStreamingMethodGPU.cuh"
+
+#define GEOMETRY_CLASS @_geometry@
+#define FORCE_CLASS @_force@
 // clang-format on
 
 namespace hoomd
@@ -24,9 +27,9 @@ namespace gpu
     {
 //! Template instantiation of bulk geometry streaming
 template cudaError_t __attribute__((visibility("default")))
-confined_stream<@_geometry @, @_force @>(const stream_args_t& args,
-                                         const @_geometry @& geom,
-                                         const @_force @& force);
+confined_stream<GEOMETRY_CLASS, FORCE_CLASS>(const stream_args_t& args,
+                                             const GEOMETRY_CLASS& geom,
+                                             const FORCE_CLASS& force);
     } // end namespace gpu
     } // end namespace mpcd
     } // end namespace hoomd

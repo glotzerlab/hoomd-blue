@@ -13,6 +13,9 @@
 #include "hoomd/mpcd/@_force@.h"
 #include "hoomd/mpcd/@_geometry@.h"
 #include "hoomd/mpcd/BounceBackStreamingMethodGPU.h"
+
+#define GEOMETRY_CLASS @_geometry@
+#define FORCE_CLASS @_force@
 // clang-format on
 
 namespace hoomd
@@ -21,7 +24,7 @@ namespace mpcd
     {
 namespace detail
     {
-template void export_BounceBackStreamingMethodGPU<@_geometry @, @_force @>(pybind11::module& m);
+template void export_BounceBackStreamingMethodGPU<GEOMETRY_CLASS, FORCE_CLASS>(pybind11::module& m);
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

@@ -12,6 +12,8 @@
 // clang-format off
 #include "hoomd/mpcd/@_force@.h"
 #include "hoomd/mpcd/BulkStreamingMethod.h"
+
+#define FORCE_CLASS @_force@
 // clang-format on
 
 namespace hoomd
@@ -20,7 +22,7 @@ namespace mpcd
     {
 namespace detail
     {
-template void export_BulkStreamingMethod<@_force @>(pybind11::module& m);
+template void export_BulkStreamingMethod<FORCE_CLASS>(pybind11::module& m);
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
