@@ -84,8 +84,8 @@ DEVICE inline void move_translateSphere(quat<Scalar>& quat_pos, quat<Scalar>& qu
     if(parallel_transport)
     	{
 	// apply the translation in the standard position
-	quat_pos = quat_pos*p;
-	quat_pos = quat_pos * (fast::rsqrt(norm2(quat_pos)));
+	quat_ori = quat_ori*p;
+	quat_ori = quat_ori * (fast::rsqrt(norm2(quat_ori)));
 	}
     }
 
