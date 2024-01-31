@@ -60,7 +60,7 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
     }
 
 template<class RNG>
-DEVICE inline void move_translateSphere(quat<Scalar>& quat_pos, RNG& rng, Scalar d, const Sphere& sphere)
+DEVICE inline void move_translateSphere(quat<Scalar>& quat_pos, quat<Scalar>& quat_ori, RNG& rng, Scalar d, const Sphere& sphere, bool parallel_transport)
     {
    // Generate a random arc of maximum length d
     hoomd::UniformDistribution<Scalar> uniform(-1.0, 1.0);
@@ -80,6 +80,13 @@ DEVICE inline void move_translateSphere(quat<Scalar>& quat_pos, RNG& rng, Scalar
     // apply the translation in the standard position
     quat_pos = quat_pos*p;
     quat_pos = quat_pos * (fast::rsqrt(norm2(quat_pos)));
+
+    if(parallel_transport)
+    	{
+	// apply the translation in the standard position
+	quat_pos = quat_pos*p;
+	quat_pos = quat_pos * (fast::rsqrt(norm2(quat_pos)));
+	}
     }
 
 //! Rotation move

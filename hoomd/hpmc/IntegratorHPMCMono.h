@@ -1043,7 +1043,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                           continue;
                           }
 
-                      move_translateSphere(quat_pos_i, rng_i, h_d.data[typ_i], sphere);
+                      move_translateSphere(quat_pos_i,shape_i.orientation, rng_i, h_d.data[typ_i], sphere, parallel_transport);
 
 		      pos_i = sphere.sphericalToCartesian(quat_pos_i);
 
