@@ -14,8 +14,8 @@ def snap():
         snap_.configuration.box = [10, 10, 10, 0, 0, 0]
         snap_.particles.N = 2
         snap_.particles.types = ["A"]
-        snap_.particles.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
-        snap_.particles.velocity[:] = [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]]
+        snap_.particles.position[:] = [[4.95, 3.85, -4.95], [0.0, -3.8, 0.0]]
+        snap_.particles.velocity[:] = [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
         snap_.particles.mass[:] = [1.0, 2.0]
     return snap_
 
@@ -31,6 +31,14 @@ def integrator():
 
 class TestBounceBack:
 
+    def test_pickling(self, simulation_factory, snap, integrator):
+        pickling_check(integrator.methods[0])
+
+        sim = simulation_factory(snap)
+        sim.operations.integrator = integrator
+        sim.run(0)
+        pickling_check(integrator.methods[0])
+
     def test_step_noslip(self, simulation_factory, snap, integrator):
         """Test step with no-slip boundary conditions."""
         sim = simulation_factory(snap)
@@ -42,9 +50,9 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.95, 4.95, 3.95], [-0.1, -0.1, -3.9]])
+                [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
 
         # take another step where one particle will now hit the wall
         sim.run(1)
@@ -52,10 +60,10 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.95, 4.95, 3.95], [-0.2, -0.2, -4.0]])
+                [[-4.95, 3.95, 4.95], [-0.2, -4.0, -0.2]])
             np.testing.assert_array_almost_equal(
                 snap.particles.velocity,
-                [[-1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
+                [[-1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
 
         # take another step, reflecting the second particle
         sim.run(1)
@@ -63,9 +71,9 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[4.95, -4.95, 3.85], [-0.1, -0.1, -3.9]])
+                [[4.95, 3.85, -4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[-1.0, 1.0, -1.0], [1.0, 1.0, 1.0]])
+                snap.particles.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, 1.0]])
 
     def test_step_slip(self, simulation_factory, snap, integrator):
         """Test step with slip boundary conditions."""
@@ -80,9 +88,9 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.95, 4.95, 3.95], [-0.1, -0.1, -3.9]])
+                [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
 
         # take another step where one particle will now hit the wall
         sim.run(1)
@@ -90,7 +98,7 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.85, 4.85, 3.95], [-0.2, -0.2, -4.0]])
+                [[-4.85, 3.95, 4.85], [-0.2, -4.0, -0.2]])
             np.testing.assert_array_almost_equal(
                 snap.particles.velocity,
                 [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]])
@@ -101,9 +109,9 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.75, 4.75, 3.85], [-0.3, -0.3, -3.9]])
+                [[-4.75, 3.85, 4.75], [-0.3, -3.9, -0.3]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, -1.0, -1.0], [-1.0, -1.0, 1.0]])
+                snap.particles.velocity, [[1.0, -1.0, -1.0], [-1.0, 1.0, -1.0]])
 
     def test_step_moving_wall(self, simulation_factory, snap, integrator):
         integrator.dt = 0.3
@@ -120,13 +128,13 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.75, -4.95, 3.85], [-0.4, -0.1, -3.9]])
+                [[-4.75, 3.85, -4.95], [-0.4, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, 1.0, -1.0], [0.0, 1.0, 1.0]])
+                snap.particles.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]])
 
     def test_accel(self, simulation_factory, snap, integrator):
         force = hoomd.md.force.Constant(filter=hoomd.filter.All())
-        force.constant_force["A"] = (2, -2, 4)
+        force.constant_force["A"] = (2, 4, -2)
         integrator.forces.append(force)
 
         if snap.communicator.rank == 0:
@@ -139,26 +147,16 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[0.11, -0.11, 0.12], [-0.095, -0.105, -0.09]])
+                [[0.11, 0.12, -0.11], [-0.095, -0.09, -0.105]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.2, -1.2, 1.4], [-0.9, -1.1, -0.8]])
+                snap.particles.velocity, [[1.2, 1.4, -1.2], [-0.9, -0.8, -1.1]])
 
-    def test_validate_box(self, simulation_factory, snap, integrator):
-        """Test box validation raises an error on run."""
-        integrator.methods[0].geometry.H = 10
-
-        sim = simulation_factory(snap)
-        sim.operations.integrator = integrator
-
-        with pytest.raises(RuntimeError):
-            sim.run(1)
-
-    def test_test_of_bounds(self, simulation_factory, snap, integrator):
+    def test_test_out_of_bounds(self, simulation_factory, snap, integrator):
         """Test box validation raises an error on run."""
         integrator.methods[0].geometry.H = 3.8
 
         sim = simulation_factory(snap)
         sim.operations.integrator = integrator
 
-        with pytest.raises(RuntimeError):
-            sim.run(1)
+        sim.run(0)
+        assert not integrator.methods[0].check_particles()

@@ -172,6 +172,18 @@ class BounceBack(StreamingMethod):
         param_dict["geometry"] = geometry
         self._param_dict.update(param_dict)
 
+    def check_solvent_particles(self):
+        """Check if solvent particles are inside `geometry`.
+
+        This method can only be called after this object is attached to a
+        simulation.
+
+        Returns:
+            True if all solvent particles are inside `geometry`.
+
+        """
+        self._cpp_obj.check_solvent_particles()
+
     def _attach_hook(self):
         sim = self._simulation
 

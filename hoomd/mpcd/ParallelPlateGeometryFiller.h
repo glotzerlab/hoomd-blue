@@ -50,8 +50,8 @@ class PYBIND11_EXPORT ParallelPlateGeometryFiller : public mpcd::VirtualParticle
 
     protected:
     std::shared_ptr<const mpcd::ParallelPlateGeometry> m_geom;
-    Scalar m_z_min;      //!< Min z coordinate for filling
-    Scalar m_z_max;      //!< Max z coordinate for filling
+    Scalar m_y_min;      //!< Min y coordinate for filling
+    Scalar m_y_max;      //!< Max y coordinate for filling
     unsigned int m_N_lo; //!< Number of particles to fill below channel
     unsigned int m_N_hi; //!< number of particles to fill above channel
 

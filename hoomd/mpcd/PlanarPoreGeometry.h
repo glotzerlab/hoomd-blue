@@ -27,13 +27,13 @@ namespace mpcd
 //! Parallel plate (slit) geometry with pore boundaries
 /*!
  * This class defines the geometry consistent with two finite-length parallel plates. The plates
- * are finite in \a x, infinite in \a y, and stacked in \a z. If a uniform body force is applied
+ * are finite in \a x, infinite in \a z, and stacked in \a y. If a uniform body force is applied
  * to the fluid and there are no-slip boundary conditions, parabolic Poiseuille flow profile is
  * created subject to entrance/exit effects.
  *
- * The channel geometry is defined by two parameters: the channel half-width \a H in \a z and the
+ * The channel geometry is defined by two parameters: the channel half-width \a H in \a y and the
  * pore half-length \a L in \a x. The total distance between the plates is \f$2H\f$, and their total
- * length is \f$2L\f$. The plates are centered about the origin \f$(x,z)=(0,0)\f$.
+ * length is \f$2L\f$. The plates are centered about the origin \f$(x,y)=(0,0)\f$.
  *
  * There is an infinite bounding wall with normal in \a x at the edges of the pore.
  * There are no bounding walls away from the pore (PBCs apply).
@@ -75,7 +75,7 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
          * sign.x is +1 if outside pore in +x, -1 if outside pore in -x, and 0 otherwise.
          * sign.y is +1 if outside walls in +z, -1 if outside walls in -z, and 0 otherwise. */
         const char2 sign = make_char2((char)((pos.x >= m_L) - (pos.x <= -m_L)),
-                                      (char)((pos.z > m_H) - (pos.z < -m_H)));
+                                      (char)((pos.y > m_H) - (pos.y < -m_H)));
         // exit early if collision didn't happen
         if (sign.x != 0 || sign.y == 0)
             {
@@ -83,7 +83,7 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
             return false;
             }
 
-        // times to either hit the pore in x, or the wall in z
+        // times to either hit the pore in x, or the wall in y
         Scalar2 dts;
         if (vel.x != Scalar(0))
             {
@@ -96,9 +96,9 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
             // no collision
             dts.x = Scalar(-1);
             }
-        if (vel.z != Scalar(0))
+        if (vel.y != Scalar(0))
             {
-            dts.y = (pos.z - sign.y * m_H) / vel.z;
+            dts.y = (pos.y - sign.y * m_H) / vel.y;
             }
         else
             {
@@ -106,7 +106,7 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
             dts.y = Scalar(-1);
             }
 
-        // determine if collisions happend with the x or z walls.
+        // determine if collisions happend with the x or y walls.
         // if both occur, use the one that happened first (leaves the most time)
         // this neglects coming through the corner exactly, but that's OK to an approx.
         uchar2 hits = make_uchar2(dts.x > 0 && dts.x<dt, dts.y> 0 && dts.y < dt);
@@ -133,7 +133,7 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
         else if (!hits.x && hits.y)
             {
             dt = dts.y;
-            n.z = -sign.y;
+            n.y = -sign.y;
             }
         else
             {
@@ -165,24 +165,7 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
      */
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
-        return ((pos.x > -m_L && pos.x < m_L) && (pos.z > m_H || pos.z < -m_H));
-        }
-
-    //! Validate that the simulation box is large enough for the geometry
-    /*!
-     * \param box Global simulation box
-     * \param cell_size Size of MPCD cell
-     *
-     * The box is large enough for the pore if it is padded along the x and z direction so that
-     * the cells just outside the pore would not interact with each other through the boundary.
-     */
-    HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
-        {
-        const Scalar3 hi = box.getHi();
-        const Scalar3 lo = box.getLo();
-
-        return ((hi.x - m_L) >= cell_size && (-m_L - lo.x) >= cell_size && (hi.z - m_H) >= cell_size
-                && (-m_H - lo.z) >= cell_size);
+        return ((pos.x > -m_L && pos.x < m_L) && (pos.y > m_H || pos.y < -m_H));
         }
 
     //! Get pore half width

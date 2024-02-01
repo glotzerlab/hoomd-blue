@@ -68,10 +68,10 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
             // type should be set
             UP_ASSERT_EQUAL(__scalar_as_int(h_pos.data[i].w), 1);
 
-            const Scalar z = h_pos.data[i].z;
-            if (z < Scalar(-5.0))
+            const Scalar y = h_pos.data[i].y;
+            if (y < Scalar(-5.0))
                 ++N_lo;
-            else if (z >= Scalar(5.0))
+            else if (y >= Scalar(5.0))
                 ++N_hi;
             }
         UP_ASSERT_EQUAL(N_lo, 2 * (2 * 20 * 20));
@@ -97,10 +97,10 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
             // tag should equal index on one rank with one filler
             UP_ASSERT_EQUAL(h_tag.data[i], i);
 
-            const Scalar z = h_pos.data[i].z;
-            if (z < Scalar(-5.0))
+            const Scalar y = h_pos.data[i].y;
+            if (y < Scalar(-5.0))
                 ++N_lo;
-            else if (z >= Scalar(5.0))
+            else if (y >= Scalar(5.0))
                 ++N_hi;
             }
         UP_ASSERT_EQUAL(N_lo, 2 * 2 * (2 * 20 * 20));
@@ -121,10 +121,10 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
         unsigned int N_lo(0), N_hi(0);
         for (unsigned int i = pdata->getN(); i < pdata->getN() + pdata->getNVirtual(); ++i)
             {
-            const Scalar z = h_pos.data[i].z;
-            if (z < Scalar(-5.0))
+            const Scalar y = h_pos.data[i].y;
+            if (y < Scalar(-5.0))
                 ++N_lo;
-            else if (z >= Scalar(5.0))
+            else if (y >= Scalar(5.0))
                 ++N_hi;
             }
         UP_ASSERT_EQUAL(N_lo, 2 * (20 * 20 / 2));
@@ -151,16 +151,16 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
 
         for (unsigned int i = pdata->getN(); i < pdata->getN() + pdata->getNVirtual(); ++i)
             {
-            const Scalar z = h_pos.data[i].z;
+            const Scalar y = h_pos.data[i].y;
             const Scalar4 vel_cell = h_vel.data[i];
             const Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
-            if (z < Scalar(-5.0))
+            if (y < Scalar(-5.0))
                 {
                 v_lo += vel;
                 T_avg += dot(vel - make_scalar3(-1.0, 0, 0), vel - make_scalar3(-1.0, 0, 0));
                 ++N_lo;
                 }
-            else if (z >= Scalar(5.0))
+            else if (y >= Scalar(5.0))
                 {
                 v_hi += vel;
                 T_avg += dot(vel - make_scalar3(1.0, 0, 0), vel - make_scalar3(1.0, 0, 0));

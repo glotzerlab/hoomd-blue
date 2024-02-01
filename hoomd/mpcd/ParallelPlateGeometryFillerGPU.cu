@@ -24,8 +24,8 @@ namespace kernel
  * \param d_vel Particle velocities
  * \param d_tag Particle tags
  * \param geom Slit geometry to fill
- * \param z_min Lower bound to lower fill region
- * \param z_max Upper bound to upper fill region
+ * \param y_min Lower bound to lower fill region
+ * \param y_max Upper bound to upper fill region
  * \param box Local simulation box
  * \param type Type of fill particles
  * \param N_lo Number of particles to fill in lower region
@@ -46,8 +46,8 @@ __global__ void slit_draw_particles(Scalar4* d_pos,
                                     Scalar4* d_vel,
                                     unsigned int* d_tag,
                                     const mpcd::ParallelPlateGeometry geom,
-                                    const Scalar z_min,
-                                    const Scalar z_max,
+                                    const Scalar y_min,
+                                    const Scalar y_max,
                                     const BoxDim box,
                                     const unsigned int type,
                                     const unsigned int N_lo,
@@ -69,13 +69,13 @@ __global__ void slit_draw_particles(Scalar4* d_pos,
     Scalar3 hi = box.getHi();
     if (sign == -1) // bottom
         {
-        lo.z = z_min;
-        hi.z = -geom.getH();
+        lo.y = y_min;
+        hi.y = -geom.getH();
         }
     else // top
         {
-        lo.z = geom.getH();
-        hi.z = z_max;
+        lo.y = geom.getH();
+        hi.y = y_max;
         }
 
     // particle tag and index
@@ -110,8 +110,8 @@ __global__ void slit_draw_particles(Scalar4* d_pos,
  * \param d_vel Particle velocities
  * \param d_tag Particle tags
  * \param geom Slit geometry to fill
- * \param z_min Lower bound to lower fill region
- * \param z_max Upper bound to upper fill region
+ * \param y_min Lower bound to lower fill region
+ * \param y_max Upper bound to upper fill region
  * \param box Local simulation box
  * \param mass Mass of fill particles
  * \param type Type of fill particles
@@ -130,8 +130,8 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
                                 Scalar4* d_vel,
                                 unsigned int* d_tag,
                                 const mpcd::ParallelPlateGeometry& geom,
-                                const Scalar z_min,
-                                const Scalar z_max,
+                                const Scalar y_min,
+                                const Scalar y_max,
                                 const BoxDim& box,
                                 const Scalar mass,
                                 const unsigned int type,
@@ -162,8 +162,8 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
                                                           d_vel,
                                                           d_tag,
                                                           geom,
-                                                          z_min,
-                                                          z_max,
+                                                          y_min,
+                                                          y_max,
                                                           box,
                                                           type,
                                                           N_lo,

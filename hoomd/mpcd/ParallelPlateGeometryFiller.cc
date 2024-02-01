@@ -30,15 +30,8 @@ mpcd::ParallelPlateGeometryFiller::~ParallelPlateGeometryFiller()
 
 void mpcd::ParallelPlateGeometryFiller::computeNumFill()
     {
-    // as a precaution, validate the global box with the current cell list
     const BoxDim& global_box = m_pdata->getGlobalBox();
     const Scalar cell_size = m_cl->getCellSize();
-    if (!m_geom->validateBox(global_box, cell_size))
-        {
-        m_exec_conf->msg->error()
-            << "Invalid slit geometry for global box, cannot fill virtual particles." << std::endl;
-        throw std::runtime_error("Invalid slit geometry for global box");
-        }
 
     // box and slit geometry
     const BoxDim& box = m_pdata->getBox();
@@ -47,8 +40,8 @@ void mpcd::ParallelPlateGeometryFiller::computeNumFill()
     const Scalar H = m_geom->getH();
 
     // default is not to fill anything
-    m_z_min = -H;
-    m_z_max = H;
+    m_y_min = -H;
+    m_y_max = H;
     m_N_hi = m_N_lo = 0;
 
     /*
@@ -57,17 +50,17 @@ void mpcd::ParallelPlateGeometryFiller::computeNumFill()
      * max shift of this cell edge.
      */
     const Scalar max_shift = m_cl->getMaxGridShift();
-    const Scalar global_lo = global_box.getLo().z;
-    if (box.getHi().z >= H)
+    const Scalar global_lo = global_box.getLo().y;
+    if (box.getHi().y >= H)
         {
-        m_z_max = cell_size * std::ceil((H - global_lo) / cell_size) + global_lo + max_shift;
-        m_N_hi = (unsigned int)std::round((m_z_max - H) * A * m_density);
+        m_y_max = cell_size * std::ceil((H - global_lo) / cell_size) + global_lo + max_shift;
+        m_N_hi = (unsigned int)std::round((m_y_max - H) * A * m_density);
         }
 
-    if (box.getLo().z <= -H)
+    if (box.getLo().y <= -H)
         {
-        m_z_min = cell_size * std::floor((-H - global_lo) / cell_size) + global_lo - max_shift;
-        m_N_lo = (unsigned int)std::round((-H - m_z_min) * A * m_density);
+        m_y_min = cell_size * std::floor((-H - global_lo) / cell_size) + global_lo - max_shift;
+        m_N_lo = (unsigned int)std::round((-H - m_y_min) * A * m_density);
         }
 
     // total number of fill particles
@@ -108,13 +101,13 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
             {
-            lo.z = m_z_min;
-            hi.z = -m_geom->getH();
+            lo.y = m_y_min;
+            hi.y = -m_geom->getH();
             }
         else // top
             {
-            lo.z = m_geom->getH();
-            hi.z = m_z_max;
+            lo.y = m_geom->getH();
+            hi.y = m_y_max;
             }
 
         const unsigned int pidx = first_idx + i;

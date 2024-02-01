@@ -44,7 +44,7 @@ class PYBIND11_EXPORT BounceBackStreamingMethodGPU
                                  unsigned int cur_timestep,
                                  unsigned int period,
                                  int phase,
-                                 std::shared_ptr<const Geometry> geom,
+                                 std::shared_ptr<Geometry> geom,
                                  std::shared_ptr<Force> force)
         : mpcd::BounceBackStreamingMethod<Geometry, Force>(sysdef,
                                                            cur_timestep,
@@ -78,14 +78,6 @@ void BounceBackStreamingMethodGPU<Geometry, Force>::stream(uint64_t timestep)
     if (!this->m_cl)
         {
         throw std::runtime_error("Cell list has not been set");
-        }
-
-    // the validation step currently proceeds on the cpu because it is done infrequently.
-    // if it becomes a performance concern, it can be ported to the gpu
-    if (this->m_validate_geom)
-        {
-        this->validate();
-        this->m_validate_geom = false;
         }
 
     ArrayHandle<Scalar4> d_pos(this->m_mpcd_pdata->getPositions(),
@@ -134,7 +126,7 @@ template<class Geometry, class Force> void export_BounceBackStreamingMethodGPU(p
                             unsigned int,
                             unsigned int,
                             int,
-                            std::shared_ptr<const Geometry>,
+                            std::shared_ptr<Geometry>,
                             std::shared_ptr<Force>>());
     }
     }  // end namespace detail

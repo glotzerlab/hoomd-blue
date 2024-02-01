@@ -75,9 +75,9 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
             const Scalar4 r = h_pos.data[i];
             if (r.x >= Scalar(-8.0) && r.x <= Scalar(8.0))
                 {
-                if (r.z < Scalar(-5.0))
+                if (r.y < Scalar(-5.0))
                     ++N_lo;
-                else if (r.z >= Scalar(5.0))
+                else if (r.y >= Scalar(5.0))
                     ++N_hi;
                 }
             }
@@ -109,9 +109,9 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
             const Scalar4 r = h_pos.data[i];
             if (r.x >= Scalar(-8.0) && r.x <= Scalar(8.0))
                 {
-                if (r.z < Scalar(-5.0))
+                if (r.y < Scalar(-5.0))
                     ++N_lo;
-                else if (r.z >= Scalar(5.0))
+                else if (r.y >= Scalar(5.0))
                     ++N_hi;
                 }
             }
@@ -138,9 +138,9 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
             const Scalar4 r = h_pos.data[i];
             if (r.x >= Scalar(-8.0) && r.x <= Scalar(8.0))
                 {
-                if (r.z < Scalar(-5.0))
+                if (r.y < Scalar(-5.0))
                     ++N_lo;
-                else if (r.z >= Scalar(5.0))
+                else if (r.y >= Scalar(5.0))
                     ++N_hi;
                 }
             }
