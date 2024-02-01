@@ -3,8 +3,6 @@
 
 """Implement MD Integrator."""
 
-import itertools
-
 import hoomd
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
