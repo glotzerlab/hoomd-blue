@@ -28,11 +28,11 @@ namespace mpcd
 
 //! Constant, opposite force applied to particles in a block
 /*!
- * Imposes a constant force in x as a function of position in z:
+ * Imposes a constant force in x as a function of position in y:
  *
  * \f{eqnarray*}
- *      \mathbf{F} &= +F \mathbf{e}_x & H-w \le z < H+w \\
- *                 &= -F \mathbf{e}_x & -H-w \le z < -H+w \\
+ *      \mathbf{F} &= +F \mathbf{e}_x & H-w \le y < H+w \\
+ *                 &= -F \mathbf{e}_x & -H-w \le y < -H+w \\
  *                 &=    \mathbf{0}  & \mathrm{otherwise}
  * \f}
  *
@@ -40,8 +40,8 @@ namespace mpcd
  * block centers, and \a w is the block half-width.
  *
  * This force field can be used to implement the double-parabola method for measuring
- * viscosity by setting \f$H = L_z/4\f$ and \f$w=L_z/4\f$, or to mimick the reverse
- * nonequilibrium shear flow profile by setting \f$H = L_z/4\f$ and \a w to a small value.
+ * viscosity by setting \f$H = L_y/4\f$ and \f$w=L_y/4\f$, or to mimick the reverse
+ * nonequilibrium shear flow profile by setting \f$H = L_y/4\f$ and \a w to a small value.
  */
 class __attribute__((visibility("default"))) BlockForce
     {
@@ -69,8 +69,8 @@ class __attribute__((visibility("default"))) BlockForce
     HOSTDEVICE Scalar3 evaluate(const Scalar3& r) const
         {
         // sign = +1 if in top slab, -1 if in bottom slab, 0 if neither
-        const signed char sign = (char)((r.z >= m_H_minus_w && r.z < m_H_plus_w)
-                                        - (r.z >= -m_H_plus_w && r.z < -m_H_minus_w));
+        const signed char sign = (char)((r.y >= m_H_minus_w && r.y < m_H_plus_w)
+                                        - (r.y >= -m_H_plus_w && r.y < -m_H_minus_w));
         return make_scalar3(sign * m_F, 0, 0);
         }
 

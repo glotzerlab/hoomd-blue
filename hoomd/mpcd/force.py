@@ -41,7 +41,7 @@ class BlockForce(SolventForce):
         half_width (float): Half the width of each block.
 
     The ``force`` magnitude *F* is applied in the *x* direction on the particles
-    in blocks defined along the *z* direction by the ``half_separation`` *H* and
+    in blocks defined along the *y* direction by the ``half_separation`` *H* and
     the ``half_width`` *w*. The force in *x* is :math:`+F` in the upper block,
     :math:`-F` in the lower block, and zero otherwise.
 
@@ -50,15 +50,15 @@ class BlockForce(SolventForce):
 
         \begin{equation}
         \mathbf{F} = \begin{cases}
-        +F \mathbf{e}_x & |r_z - H| < w \\
-        -F \mathbf{e}_x & |r_z + H| < w \\
+        +F \mathbf{e}_x & |r_y - H| < w \\
+        -F \mathbf{e}_x & |r_y + H| < w \\
            \mathbf{0}   & \mathrm{otherwise}
         \end{cases}
         \end{equation}
 
     The `BlockForce` can be used to implement the double-parabola method for measuring
-    viscosity by setting :math:`H = L_z/4` and :math:`w = L_z/4`, where :math:`L_z` is
-    the size of the simulation box in *z*.
+    viscosity by setting :math:`H = L_y/4` and :math:`w = L_y/4`, where :math:`L_y` is
+    the size of the simulation box in *y*.
 
     Warning:
         You should define the blocks to lie fully within the simulation box and
@@ -128,14 +128,14 @@ class SineForce(SolventForce):
         wavenumber (float): Wavenumber for the sinusoid.
 
     `SineForce` applies a force with amplitude *F* in *x* that is sinusoidally
-    varying in *z* with wavenumber *k*:
+    varying in *y* with wavenumber *k*:
 
     .. math::
 
-        \mathbf{F}(\mathbf{r}) = F \sin (k r_z) \mathbf{e}_x
+        \mathbf{F}(\mathbf{r}) = F \sin (k r_y) \mathbf{e}_x
 
     Typically, the wavenumber should be something that is commensurate
-    with the simulation box. For example, :math:`k = 2\pi/L_z` will generate
+    with the simulation box. For example, :math:`k = 2\pi/L_y` will generate
     one period of the sine.
 
     Attributes:
