@@ -1664,14 +1664,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
             const BoxDim box = this->m_pdata->getGlobalBox();
             unsigned int type = this->m_pdata->getType(tag);
             quat<Scalar> orientation(m_pdata->getOrientation(tag));
+            Scalar diameter = m_pdata->getDiameter(tag);
+            Scalar charge = m_pdata->getCharge(tag);
             if (is_local)
                 {
                 lnboltzmann += field->energy(box,
                                              type,
                                              pos,
                                              quat<float>(orientation),
-                                             1.0, // diameter i
-                                             0.0  // charge i
+                                             float(diameter), // diameter i
+                                             float(charge)    // charge i
                 );
                 }
             }

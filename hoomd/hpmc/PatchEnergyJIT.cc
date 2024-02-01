@@ -69,6 +69,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
                             Scalar,
                             pybind11::array_t<float>>())
         .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
+        .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray);
     }
 
