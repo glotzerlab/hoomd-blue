@@ -150,8 +150,8 @@ def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
         sim.run(100)
 
     # Check that compression is complete and debug which statement is incorrect
+    assert sim.state.box == target_box, f"{sim.state.box}!={target_box}"
     assert mc.overlaps == 0
-    assert sim.state.box == target_box
     assert qc.complete
 
 
