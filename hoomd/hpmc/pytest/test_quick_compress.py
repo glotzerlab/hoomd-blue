@@ -119,9 +119,11 @@ def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
                                       lattice_snapshot_factory, device):
     """Test that QuickCompress can resize and reshape triclinic boxes."""
     n = 7 if device.communicator.num_ranks > 1 else 3
+    if isinstance(device, hoomd.device.GPU):
+        n = 8  # Increase simulation size even further to accomodate GPU
 
     snap = lattice_snapshot_factory(n=n, a=1.1)
-    snap.configuration.box = hoomd.Box.from_box([14, 13, 12, xy, xz, yz])
+    snap.configuration.box = hoomd.Box.from_box([15, 14, 13, xy, xz, yz])
 
     # Generate random tilts in [-1,1] and apply to the target box
     tilts = np.random.rand(3) * 2 - 1
