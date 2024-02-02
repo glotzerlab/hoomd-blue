@@ -123,7 +123,7 @@ def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
         n = 8  # Increase simulation size even further to accomodate GPU
 
     snap = lattice_snapshot_factory(n=n, a=1.1)
-    snap.configuration.box = hoomd.Box.from_box([15, 14, 13, xy, xz, yz])
+    snap.configuration.box = hoomd.Box.from_box([20, 18, 16, xy, xz, yz])
 
     # Generate random tilts in [-1,1] and apply to the target box
     tilts = np.random.rand(3) * 2 - 1
