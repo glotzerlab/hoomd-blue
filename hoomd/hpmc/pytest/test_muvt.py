@@ -172,6 +172,7 @@ def test_insertion_removal(device, simulation_factory,
     assert muvt.N["B"] > 0
 
 
+@pytest.mark.cpu
 @pytest.mark.skipif(not hoomd.version.llvm_enabled, reason="LLVM not enabled")
 def test_jit_remove_insert(device, simulation_factory,
                            one_particle_snapshot_factory):
@@ -228,6 +229,7 @@ def test_jit_remove_insert(device, simulation_factory,
     assert muvt.remove_moves[0] > 0
 
 
+@pytest.mark.cpu
 def test_plane_wall_insertion(device, simulation_factory,
                               one_particle_snapshot_factory):
     """Test that MuVT considers a planar wall when inserting particles."""
@@ -268,6 +270,7 @@ def test_plane_wall_insertion(device, simulation_factory,
     assert sum(muvt.remove_moves) > 0
 
 
+@pytest.mark.cpu
 def test_spherical_wall_insertion(device, simulation_factory,
                                   one_particle_snapshot_factory):
     """Test that MuVT considers a spherical wall when inserting particles."""
@@ -307,6 +310,7 @@ def test_spherical_wall_insertion(device, simulation_factory,
     assert sum(muvt.remove_moves) > 0
 
 
+@pytest.mark.cpu
 def test_cylindrical_wall_insertion(device, simulation_factory,
                                     one_particle_snapshot_factory):
     """Test that MuVT considers a cylindrical wall when inserting particles."""
