@@ -3,8 +3,6 @@
 
 """Implement MD Integrator."""
 
-import itertools
-
 import hoomd
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
@@ -94,18 +92,6 @@ class _DynamicIntegrator(BaseIntegrator):
     @methods.setter
     def methods(self, value):
         _set_synced_list(self._methods, value)
-
-    @property
-    def _children(self):
-        children = list(self.forces)
-        children.extend(self.constraints)
-        children.extend(self.methods)
-
-        for child in itertools.chain(self.forces, self.constraints,
-                                     self.methods):
-            children.extend(child._children)
-
-        return children
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":

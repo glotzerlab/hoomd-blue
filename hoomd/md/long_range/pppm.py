@@ -271,10 +271,6 @@ class Coulomb(Force):
             # ensure that the pair force uses the same neighbor list
             self._pair_force.nlist = value
 
-    @property
-    def _children(self):
-        return [self.nlist]
-
 
 def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     """Part of the algorithm that computes the estimated error of the method."""
