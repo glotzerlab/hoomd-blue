@@ -39,6 +39,25 @@ class ExternalField : public Compute
         return 0;
         }
 
+    //! Evaluate the energy of the force.
+    /*! \param box The system box.
+        \param type Particle type.
+        \param r_i Particle position
+        \param q_i Particle orientation.
+        \param diameter Particle diameter.
+        \param charge Particle charge.
+        \returns Energy due to the force
+    */
+    virtual float energy(const BoxDim& box,
+                         unsigned int type,
+                         const vec3<Scalar>& r_i,
+                         const quat<Scalar>& q_i,
+                         Scalar diameter,
+                         Scalar charge)
+        {
+        return 0;
+        }
+
     virtual bool hasVolume()
         {
         return false;
@@ -88,6 +107,7 @@ template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &ExternalFieldMono<Shape>::compute)
         .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
+        .def("energy", &ExternalFieldMono<Shape>::energy)
         .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE);
     }
 

@@ -629,6 +629,56 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return double(0.0);
         }
 
+    //! Evaluate the energy of the force.
+    /*! \param box The system box.
+        \param type Particle type.
+        \param r_i Particle position
+        \param q_i Particle orientation.
+        \param diameter Particle diameter.
+        \param charge Particle charge.
+        \returns Energy due to the force
+    */
+    virtual float energy(const BoxDim& box,
+                         unsigned int type,
+                         const vec3<Scalar>& r_i,
+                         const quat<Scalar>& q_i,
+                         Scalar diameter,
+                         Scalar charge)
+        {
+        const std::vector<typename Shape::param_type,
+                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
+            = m_mc->getParams();
+        Shape shape(q_i, params[type]);
+        vec3<Scalar> origin(m_pdata->getOrigin());
+
+        for (size_t i = 0; i < m_Spheres.size(); i++)
+            {
+            if (!test_confined(m_Spheres[i], shape, r_i, origin, box))
+                {
+                return INFINITY;
+                }
+            }
+
+        for (size_t i = 0; i < m_Cylinders.size(); i++)
+            {
+            set_cylinder_wall_verts(m_Cylinders[i], shape);
+            if (!test_confined(m_Cylinders[i], shape, r_i, origin, box))
+                {
+                return INFINITY;
+                }
+            }
+
+        for (size_t i = 0; i < m_Planes.size(); i++)
+            {
+            if (!test_confined(m_Planes[i], shape, r_i, origin, box))
+                {
+                return INFINITY;
+                }
+            }
+
+        return double(0.0);
+        }
+
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
