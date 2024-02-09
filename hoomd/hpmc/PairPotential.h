@@ -143,10 +143,8 @@ class PairPotential
             {
             parent->notifyRCutChanged();
             }
-        else
-            {
-            updateRCutCache();
-            }
+
+        updateRCutCache();
         }
 
     private:
