@@ -95,6 +95,10 @@ class PairPotential
         energy is given a pre-computed r_squared as many potentials use this parameter and the
         caller has already computed it.
 
+        To avoid repeated evaluations of r_square < r_cut_squared, the *caller* must perform the
+        check before calling energy. Implementations of energy are free to compute non-zero values
+        beyond r_cut when convenient.
+
         @param r_squared Pre-computed dot(r_ij, r_ij).
         @param r_ij Vector pointing from particle i to j.
         @param type_i Integer type index of particle i.
