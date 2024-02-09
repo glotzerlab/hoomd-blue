@@ -121,13 +121,6 @@ class PairPotential
         return 0;
         }
 
-    protected:
-    /// The system definition.
-    std::shared_ptr<SystemDefinition> m_sysdef;
-
-    /// Indexer to access arrays by pairs of type parameters
-    Index2D m_type_param_index;
-
     /// Compute the non-additive cuttoff radius
     virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
         {
@@ -139,6 +132,13 @@ class PairPotential
         {
         return m_r_cut_additive[type];
         }
+
+    protected:
+    /// The system definition.
+    std::shared_ptr<SystemDefinition> m_sysdef;
+
+    /// Indexer to access arrays by pairs of type parameters
+    Index2D m_type_param_index;
 
     /// Notify all parents that r_cut has changed.
     void notifyRCutChanged()
@@ -191,8 +191,9 @@ class PairPotential
                 m_r_cut_non_additive[param_index_1] = r_cut_ij;
                 m_r_cut_non_additive[param_index_2] = r_cut_ij;
 
-                LongReal r_cut = m_r_cut_non_additive[param_index_1]
-                        + LongReal(0.5) * (m_r_cut_additive[type_i] + m_r_cut_additive[type_j]);
+                LongReal r_cut
+                    = m_r_cut_non_additive[param_index_1]
+                      + LongReal(0.5) * (m_r_cut_additive[type_i] + m_r_cut_additive[type_j]);
                 m_r_cut_squared_total[param_index_1] = r_cut * r_cut;
                 m_r_cut_squared_total[param_index_2] = r_cut * r_cut;
                 }

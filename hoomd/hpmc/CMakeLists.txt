@@ -39,6 +39,7 @@ set(_hpmc_sources   module.cc
                     ExternalFieldWall.cc
                     PairPotential.cc
                     PairPotentialLennardJones.cc
+                    PairPotentialUnion.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
