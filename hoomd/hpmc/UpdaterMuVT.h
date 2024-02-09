@@ -1650,6 +1650,34 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         // do we have to compute energetic contribution?
         auto patch = m_mc->getPatchEnergy();
 
+        // do we have to compute a wall contribution?
+        auto field = m_mc->getExternalField();
+        unsigned int p = m_exec_conf->getPartition() % m_npartition;
+
+        if (field && (!m_gibbs || p == 0))
+            {
+            // getPosition() takes into account grid shift, correct for that
+            Scalar3 p = m_pdata->getPosition(tag) + m_pdata->getOrigin();
+            int3 tmp = make_int3(0, 0, 0);
+            m_pdata->getGlobalBox().wrap(p, tmp);
+            vec3<Scalar> pos(p);
+            const BoxDim box = this->m_pdata->getGlobalBox();
+            unsigned int type = this->m_pdata->getType(tag);
+            quat<Scalar> orientation(m_pdata->getOrientation(tag));
+            Scalar diameter = m_pdata->getDiameter(tag);
+            Scalar charge = m_pdata->getCharge(tag);
+            if (is_local)
+                {
+                lnboltzmann += field->energy(box,
+                                             type,
+                                             pos,
+                                             quat<float>(orientation),
+                                             float(diameter), // diameter i
+                                             float(charge)    // charge i
+                );
+                }
+            }
+
         // if not, no overlaps generated
         if (patch)
             {
@@ -1782,19 +1810,19 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                         } // end loop over AABB nodes
                     }     // end loop over images
                 }
+            }
 
 #ifdef ENABLE_MPI
-            if (m_sysdef->isDomainDecomposed())
-                {
-                MPI_Allreduce(MPI_IN_PLACE,
-                              &lnboltzmann,
-                              1,
-                              MPI_HOOMD_SCALAR,
-                              MPI_SUM,
-                              m_exec_conf->getMPICommunicator());
-                }
-#endif
+        if (m_sysdef->isDomainDecomposed())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &lnboltzmann,
+                          1,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
             }
+#endif
         }
 
 // Depletants
@@ -1911,6 +1939,9 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     // do we have to compute energetic contribution?
     auto patch = m_mc->getPatchEnergy();
 
+    // do we have to compute a wall contribution?
+    auto field = m_mc->getExternalField();
+
     lnboltzmann = Scalar(0.0);
 
     unsigned int overlap = 0;
@@ -1944,6 +1975,20 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         ShortReal r_cut_patch(0.0);
         Scalar r_cut_self(0.0);
+
+        unsigned int p = m_exec_conf->getPartition() % m_npartition;
+
+        if (field && (!m_gibbs || p == 0))
+            {
+            const BoxDim& box = this->m_pdata->getGlobalBox();
+            lnboltzmann -= field->energy(box,
+                                         type,
+                                         pos,
+                                         quat<float>(orientation),
+                                         1.0, // diameter i
+                                         0.0  // charge i
+            );
+            }
 
         if (patch)
             {
