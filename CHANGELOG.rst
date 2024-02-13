@@ -4,6 +4,25 @@
 Change Log
 ==========
 
+5.x
+---
+
+5.0.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Removed:
+
+* ``_InternalCustomUpdater.update``.
+  (`#1699 <https://github.com/glotzerlab/hoomd-blue/pull/1699>`__).
+* ``_InternalCustomTuner.tune``.
+  (`#1699 <https://github.com/glotzerlab/hoomd-blue/pull/1699>`__).
+* ``_InternalCustomWriter.write``.
+  (`#1699 <https://github.com/glotzerlab/hoomd-blue/pull/1699>`__).
+* ``HDF5Log.write``.
+  (`#1699 <https://github.com/glotzerlab/hoomd-blue/pull/1699>`__).
+* ``hoomd.util.GPUNotAvailableError``
+  (`#1694 <https://github.com/glotzerlab/hoomd-blue/pull/1694>`__).
+
 4.x
 ---
 
