@@ -7,6 +7,21 @@ Change Log
 4.x
 ---
 
+4.5.0 (2023-02-13)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``hoomd.hpmc.update.Shape`` properly restores shape alchemy parameters on rejected trial moves
+  (`#1696 <https://github.com/glotzerlab/hoomd-blue/pull/1696>`__).
+* ``hoomd.hpmc.update.Shape`` now functions with ``hoomd.device.GPU``
+  (`#1696 <https://github.com/glotzerlab/hoomd-blue/pull/1696>`__).
+* ``hoomd.hpmc.update.MuVT`` applies external potentials
+  (`#1711 <https://github.com/glotzerlab/hoomd-blue/pull/1711>`__).
+* ``hoomd.hpmc.update.QuickCompress`` can now reshape boxes with tilt factors <= 0
+  (`#1709 <https://github.com/glotzerlab/hoomd-blue/pull/1709>`__).
+
+
 4.4.1 (2023-12-18)
 ^^^^^^^^^^^^^^^^^^
 
