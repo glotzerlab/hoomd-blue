@@ -40,7 +40,8 @@ template<typename Shape> class ShapeMoveBase
     virtual void update_shape(uint64_t,
                               const unsigned int&,
                               typename Shape::param_type&,
-                              hoomd::RandomGenerator&)
+                              hoomd::RandomGenerator&,
+                              bool managed)
         {
         }
 
@@ -141,7 +142,8 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       typename Shape::param_type& shape,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
@@ -165,7 +167,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             }
         pybind11::object d = m_python_callback(type_id, m_params[type_id]);
         pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
-        shape = typename Shape::param_type(shape_dict);
+        shape = typename Shape::param_type(shape_dict, managed);
         }
 
     void retreat(uint64_t timestep, unsigned int type)
@@ -212,8 +214,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     std::vector<std::vector<Scalar>>
         m_params_backup;                       // tunable shape parameters to perform trial moves on
     std::vector<std::vector<Scalar>> m_params; // tunable shape parameters to perform trial moves on
-    // callback that takes m_params as an argiment and returns a Python dictionary with the shape
-    // params.
+    // callback that takes m_params as an argument and returns a Python dictionary of shape params.
     pybind11::object m_python_callback;
     };
 
@@ -279,7 +280,8 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& shape,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         // perturb the shape.
         for (unsigned int i = 0; i < shape.N; i++)
@@ -375,7 +377,8 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Matrix3S F_curr;
         // perform a scaling move
@@ -586,7 +589,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar stepsize = this->m_step_size[type_id];

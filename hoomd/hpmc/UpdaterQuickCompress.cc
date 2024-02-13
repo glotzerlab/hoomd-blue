@@ -3,6 +3,7 @@
 
 #include "UpdaterQuickCompress.h"
 #include "hoomd/RNGIdentifiers.h"
+#include <cmath>
 
 namespace hoomd
     {
@@ -111,7 +112,7 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
 
     @returns The scaled value.
 */
-static inline double scaleValue(double current, double target, double s)
+static inline double scaleLength(double current, double target, double s)
     {
     assert(s <= 1.0);
     if (target < current)
@@ -121,6 +122,20 @@ static inline double scaleValue(double current, double target, double s)
     else
         {
         return std::min(target, current * 1.0 / s);
+        }
+    }
+
+static inline double scaleTilt(double current, double target, double s)
+    {
+    assert(s <= 1.0);
+    double scaled_value = current + (1.0 - s) * target;
+    if (target < current)
+        {
+        return std::min(scaled_value, target);
+        }
+    else
+        {
+        return std::max(scaled_value, target);
         }
     }
 
@@ -168,7 +183,6 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
 
-    // TODO: This slow. We will implement a general reusable fix later in #705
     const auto& target_box = *m_target_box;
 
     // construct the scaled box
@@ -177,18 +191,18 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     Scalar new_xy, new_xz, new_yz;
     if (m_sysdef->getNDimensions() == 3)
         {
-        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-        new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
-        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
-        new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
-        new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
+        new_L.z = scaleLength(current_box.getL().z, target_box.getL().z, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_xz = scaleTilt(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
+        new_yz = scaleTilt(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
         }
     else
         {
-        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
 
         // assume that the unused fields in the 2D target box are valid
         new_L.z = target_box.getL().z;

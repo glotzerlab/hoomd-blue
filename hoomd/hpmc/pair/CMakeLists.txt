@@ -1,4 +1,6 @@
 set(files __init__.py
+        lennard_jones.py
+        pair.py
         user.py
  )
 

@@ -62,6 +62,7 @@ def test_gpu_specific_properties(device):
 
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
+    hoomd.device.GPU(gpu_id=0)
 
     c = device.compute_capability
     assert type(c) is tuple
