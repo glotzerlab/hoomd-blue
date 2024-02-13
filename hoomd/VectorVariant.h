@@ -40,8 +40,8 @@ template<unsigned int ndim> class PYBIND11_EXPORT VectorVariant
 
 /** Box vector variant.
 
-    VectorVariant class for representing box parameters. The operator() returns an array with 6 elements that
-    represent Lx, Ly, Lz, xy, xz, and yz.
+    VectorVariant class for representing box parameters. The operator() returns an array with 6
+   elements that represent Lx, Ly, Lz, xy, xz, and yz.
 */
 class PYBIND11_EXPORT VectorVariantBox : public VectorVariant<6>
     {
@@ -95,13 +95,15 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
 /** Interpolate box vector variant
 
     Vector variant that interpolates between two boxes based on a given scalar variant.
-    Returns the vector corresponding to initial_box when the scalar variant evaluates to its minimum value.
-    Returns the vector correspolding to final_box when the scalar variant evaluates to its maximum value.
-    Returns the array corresponding to the interpolated box when the scalar variant evaluates to values between its maximum and minimum values.
-    The i-th component of the interpolated box vector corresponds to the weighted average of the i-th components of initial_box and final_box, where the
-    weight f given to final_box is equal to the difference in the value of the scalar variant and the minimum value of the scalar variant, normalized by
-    the difference in the maximum and minimum values of the scalar variant.
-    I.e., f = (variant(timestep) - variant.minimum) / (variant.maximum - variant.minimum).
+    Returns the vector corresponding to initial_box when the scalar variant evaluates to its minimum
+   value. Returns the vector correspolding to final_box when the scalar variant evaluates to its
+   maximum value. Returns the array corresponding to the interpolated box when the scalar variant
+   evaluates to values between its maximum and minimum values. The i-th component of the
+   interpolated box vector corresponds to the weighted average of the i-th components of initial_box
+   and final_box, where the weight f given to final_box is equal to the difference in the value of
+   the scalar variant and the minimum value of the scalar variant, normalized by the difference in
+   the maximum and minimum values of the scalar variant. I.e., f = (variant(timestep) -
+   variant.minimum) / (variant.maximum - variant.minimum).
 
 */
 class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
@@ -138,9 +140,12 @@ class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
         const auto& initial_box = *m_initial_box;
         const auto& final_box = *m_final_box;
         Scalar3 new_L = final_box.getL() * scale + initial_box.getL() * (1.0 - scale);
-        Scalar xy = final_box.getTiltFactorXY() * scale + (1.0 - scale) * initial_box.getTiltFactorXY();
-        Scalar xz = final_box.getTiltFactorXZ() * scale + (1.0 - scale) * initial_box.getTiltFactorXZ();
-        Scalar yz = final_box.getTiltFactorYZ() * scale + (1.0 - scale) * initial_box.getTiltFactorYZ();
+        Scalar xy
+            = final_box.getTiltFactorXY() * scale + (1.0 - scale) * initial_box.getTiltFactorXY();
+        Scalar xz
+            = final_box.getTiltFactorXZ() * scale + (1.0 - scale) * initial_box.getTiltFactorXZ();
+        Scalar yz
+            = final_box.getTiltFactorYZ() * scale + (1.0 - scale) * initial_box.getTiltFactorYZ();
         array_type value = {new_L.x, new_L.y, new_L.z, xy, xz, yz};
         return value;
         }
@@ -190,8 +195,8 @@ class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
 
 /** Inverse volume interpolation box vector variant.
 
-    Returns the array corresponding to the box whose inverse volume (i.e., density) ramps from initial_box.volume
-    to final_volume over t_ramp steps while keeping the box shape constant.
+    Returns the array corresponding to the box whose inverse volume (i.e., density) ramps from
+   initial_box.volume to final_volume over t_ramp steps while keeping the box shape constant.
 */
 class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBox
     {
