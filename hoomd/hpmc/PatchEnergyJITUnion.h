@@ -120,6 +120,13 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         buildOBBTree(pid);
         }
 
+    void setPositionBuffer(unsigned int typeid, std::vector<vec3<float>> new_pos)
+        {
+        // probably should check to make sure the size is right
+        m_position[typeid] = new_pos;
+        buildOBBTree(typeid);
+        }
+
     //! Get per-type positions of the constituent particles as a python list of 3-tuples
     virtual pybind11::list getPositions(std::string type)
         {
@@ -133,6 +140,11 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             ret.append(tmp);
             }
         return ret;
+        }
+
+    std::vector<vec3<float>> getPositionBuffer(unsigned int typeid)
+        {
+        return m_position[typeid];
         }
 
     //! Set per-type positions of the constituent particles

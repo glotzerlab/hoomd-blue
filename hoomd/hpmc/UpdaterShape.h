@@ -5,6 +5,7 @@
 #define _UPDATER_SHAPE_H
 
 #include "IntegratorHPMCMono.h"
+#include "PatchEnergyJTIUnion.h"
 #include "ShapeMoves.h"
 #include "ShapeUtils.h"
 #include "hoomd/HOOMDMPI.h"
@@ -26,7 +27,8 @@ template<typename Shape> class UpdaterShape : public Updater
     UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                  std::shared_ptr<Trigger> trigger,
                  std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                 std::shared_ptr<ShapeMoveBase<Shape>> move);
+                 std::shared_ptr<ShapeMoveBase<Shape>> move,
+                 std::shared_ptr<PatchEnergyJITUnion> patch_potential);
 
     ~UpdaterShape();
 
@@ -175,6 +177,7 @@ template<typename Shape> class UpdaterShape : public Updater
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
     std::shared_ptr<ShapeMoveBase<Shape>>
         m_move_function;        // shape move function to apply in the updater
+    std::shared_ptr<PatchEnergyJITUnion> m_patch_potential; // patch energy to move with the shapes
     unsigned int m_type_select; // number of particle types to update in each move
     unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
     bool m_pretend;             // whether or not to pretend or actually perform shape move
@@ -197,8 +200,10 @@ template<class Shape>
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr<Trigger> trigger,
                                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                                  std::shared_ptr<ShapeMoveBase<Shape>> move)
-    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move), m_type_select(1), m_nsweeps(1),
+                                  std::shared_ptr<ShapeMoveBase<Shape>> move,
+                                  std::shared_ptr<PatchEnergyJITUnion> patch_potential)
+    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move),
+    m_patch_potential(patch_potential), m_type_select(1), m_nsweeps(1),
       m_pretend(false), m_multi_phase(false),
       m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_initialized(false)
@@ -272,6 +277,17 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             auto shape_param_old = typename Shape::param_type(mc_params[typ_i]);
             auto shape_param_new = typename Shape::param_type(shape_param_old);
 
+            // cache old patch positions and get initial energy
+            float energy_diff = 0.0;
+            std::vector<vec3<float>> patch_pos_old();
+            std::vector<vec3<float>> patch_pos_new();
+            if (m_patch_potential)
+                {
+                auto patch_pos_old = m_patch_potential.getPositionBuffer(typ_i);
+                auto patch_pos_new = m_patch_potential.getPositionBuffer(typ_i);
+                energy_diff -= m_mc->computeTotalPairEnergy(timestep);
+                }
+
             ArrayHandle<Scalar> h_det(m_determinant_inertia_tensor,
                                       access_location::host,
                                       access_mode::readwrite);
@@ -293,6 +309,15 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                           shape_param_new,
                                           rng_i,
                                           m_exec_conf->isCUDAEnabled());
+
+            // update the new patch positions and query the energy
+            if (m_patch_potential)
+                {
+                // in place update of patch_pos_new
+                project_to_surface(patch_pos_new, shape_param_new);
+                m_patch_potential->setPositionBuffer(typ_i, patch_pos_new);
+                energy_diff += m_mc->computeTotalPairEnergy(timestep);
+                }
 
             // update det(I)
             detail::MassProperties<Shape> mp(shape_param_new);
@@ -329,11 +354,15 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 m_move_function->retreat(timestep, typ_i);
                 h_det.data[typ_i] = h_det_old.data[typ_i];
                 m_mc->setParam(typ_i, shape_param_old);
+                if (m_patch_potential)
+                    {
+                    m_patch_potential->setPositionBuffer(typ_i, patch_pos_old);
+                    }
                 }
             else // potentially accept, check Metropolis first
                 {
                 Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
-                Scalar Z = slow::exp(log_boltz);
+                Scalar Z = slow::exp(log_boltz - energy_diff);
 
 #ifdef ENABLE_MPI
                 if (m_multi_phase)
@@ -366,6 +395,10 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         m_move_function->retreat(timestep, typ_i);
                         h_det.data[typ_i] = h_det_old.data[typ_i];
                         m_mc->setParam(typ_i, shape_param_old);
+                        if (m_patch_potential)
+                            {
+                            m_patch_potential->setPositionBuffer(typ_i, patch_pos_old);
+                            }
                         m_count_accepted[typ_i]++;
                         }
                     else // actually accept the move
@@ -381,6 +414,10 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     h_det.data[typ_i] = h_det_old.data[typ_i];
                     m_mc->setParam(typ_i, shape_param_old);
                     m_move_function->retreat(timestep, typ_i);
+                    if (m_patch_potential)
+                        {
+                        m_patch_potential->setPositionBuffer(typ_i, patch_pos_old);
+                        }
                     }
                 }
 

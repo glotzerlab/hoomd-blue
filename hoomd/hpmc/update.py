@@ -561,6 +561,11 @@ class Shape(Updater):
 
         nsweeps (int): Number of times to update shape definitions during each
             triggered timesteps.
+
+        patch_potential (hpmc.pair.user.CPPPotentialUnion): Patch potential object.
+            If not None, the patch positions defined by this object will be assumed
+            to sit on the surface of the shape and will be updated as the shape moves
+            are accepted or rejected.
     """
 
     def __init__(self,
@@ -568,13 +573,16 @@ class Shape(Updater):
                  shape_move,
                  pretend=False,
                  type_select=1,
-                 nsweeps=1):
+                 nsweeps=1,
+                 patch_potential=None):
         super().__init__(trigger)
         param_dict = ParameterDict(shape_move=hoomd.hpmc.shape_move.ShapeMove,
                                    pretend=bool(pretend),
                                    type_select=int(type_select),
-                                   nsweeps=int(nsweeps))
+                                   nsweeps=int(nsweeps),
+                                   patch_potential=hoomd.hpmc.pair.user.CPPPotentialUnion)
         param_dict["shape_move"] = shape_move
+        param_dict["patch_potential"] = patch_potential
         self._param_dict.update(param_dict)
 
     def _setattr_param(self, attr, value):
@@ -614,9 +622,14 @@ class Shape(Updater):
         updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
 
         self.shape_move._attach(self._simulation)
+
+        pp_cpp_obj = None
+        if self.patch_potential is not None:
+            self.patch_potential._attach(self._simulation)
+            pp_cpp_obj = self.patch_potential._cpp_obj
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     self.trigger, integrator._cpp_obj,
-                                    self.shape_move._cpp_obj)
+                                    self.shape_move._cpp_obj, pp_cpp_obj)
 
     @log(category='sequence', requires_run=True)
     def shape_moves(self):
