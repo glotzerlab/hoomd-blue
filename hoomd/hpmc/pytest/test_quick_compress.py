@@ -114,6 +114,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 @pytest.mark.parametrize("xz", [-0.3, 0, 0.3])
 @pytest.mark.parametrize("yz", [-0.2, 0, 0.4])
 @pytest.mark.parametrize("phi", [0.01, 0.4, 0.6])
+pytest.mark.cpu
 @pytest.mark.validate
 def test_sphere_compression_triclinic(xy, xz, yz, phi, simulation_factory,
                                       lattice_snapshot_factory, device):
