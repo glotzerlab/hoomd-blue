@@ -54,9 +54,9 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         variant (hoomd.variant.variant_like): A variant used to interpolate
             between the two boxes.
 
-    ``Interpolate`` returns arrays corresponding to a linear interpolation between the
-    initial and final boxes where the minimum of the variant gives ``initial_box`` and
-    the maximum gives ``final_box``:
+    ``Interpolate`` returns arrays corresponding to a linear interpolation
+    between the initial and final boxes where the minimum of the variant gives
+    ``initial_box`` and the maximum gives ``final_box``:
 
     .. math::
 
@@ -118,21 +118,23 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
         t_ramp (int): The length of the ramp.
 
     ``InverseVolumeRamp`` produces box arrays that correspond to a box whose
-    **inverse volume** (i.e., number density for a constant number of particles) varies
-    linearly. The shape of the box remains constant, that is, the
-    ratios of the lengths of the box vectors (:math:`L_y / L_x` and
-    :math:`L_z / L_x`) and the tilt factors (:math:`xy`, :math:`xz`, :math:`yz`)
-    remain constant.
+    **inverse volume** (i.e., number density for a constant number of particles)
+    varies linearly. The shape of the box remains constant, that is, the ratios
+    of the lengths of the box vectors (:math:`L_y / L_x` and :math:`L_z / L_x`)
+    and the tilt factors (:math:`xy`, :math:`xz`, :math:`yz`) remain constant.
     For ``initial_box`` with volume :math:`V_0` and `final_volume` :math:`V_f`,
-    ``InverseVolumeRamp`` returns arrays corresponding to boxes with volume :math:`V(t)`:
+    ``InverseVolumeRamp`` returns arrays corresponding to boxes with volume
+    :math:`V(t)`:
 
     .. math::
 
-        V(t) &= \\begin{cases} V_0 & t < t_{\\mathrm{start}} \\\\
-            \\left( \\lambda V_f^{-1} + (1 - \\lambda) V_0^{-1} \\right)^{-1} & t_{\\mathrm{start}} \\leq t < t_{\\mathrm{start}} + t_{\\mathrm{ramp}} \\\\
-            V_f & t \\geq t_{\\mathrm{start}} + t_{\\mathrm{ramp}} \\end{cases}
+        V(t) &= \\begin{cases} V_0 & t < t_{\\mathrm{start}} \\\\ \\left(
+        \\lambda V_f^{-1} + (1 - \\lambda) V_0^{-1} \\right)^{-1} &
+        t_{\\mathrm{start}} \\leq t < t_{\\mathrm{start}} + t_{\\mathrm{ramp}}
+        \\\\ V_f & t \\geq t_{\\mathrm{start}} + t_{\\mathrm{ramp}} \\end{cases}
 
-    where :math:`\\lambda = \\frac{t - t_{\\mathrm{start}}}{t_{\\mathrm{ramp}} - t_{\\mathrm{start}}}`.
+    where :math:`\\lambda = \\frac{t - t_{\\mathrm{start}}}{t_{\\mathrm{ramp}} -
+    t_{\\mathrm{start}}}`.
 
     Attributes:
         final_volume (float): The volume of the final box.
