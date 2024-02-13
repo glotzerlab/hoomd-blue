@@ -15,6 +15,9 @@
 #endif
 #endif
 
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::mpcd::VirtualParticleFiller>>);
+
 namespace hoomd
     {
 /*!
@@ -76,9 +79,12 @@ void mpcd::Integrator::update(uint64_t timestep)
 #endif // ENABLE_MPI
 
     // fill in any virtual particles
-    if (checkCollide(timestep) && m_filler)
+    if (checkCollide(timestep))
         {
-        m_filler->fill(timestep);
+        for (auto& filler : m_fillers)
+            {
+            filler->fill(timestep);
+            }
         }
 
     // optionally sort for performance
@@ -151,9 +157,9 @@ void mpcd::Integrator::syncCellList()
         m_mpcd_comm->setCellList(m_cl);
         }
 #endif
-    if (m_filler)
+    for (auto& filler : m_fillers)
         {
-        m_filler->setCellList(m_cl);
+        filler->setCellList(m_cl);
         }
     }
 
@@ -162,6 +168,10 @@ void mpcd::Integrator::syncCellList()
  */
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
+    pybind11::bind_vector<std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>>(
+        m,
+        "VirtualParticleFillerList");
+
     pybind11::class_<mpcd::Integrator,
                      hoomd::md::IntegratorTwoStep,
                      std::shared_ptr<mpcd::Integrator>>(m, "Integrator")
@@ -174,6 +184,6 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
                       &mpcd::Integrator::getStreamingMethod,
                       &mpcd::Integrator::setStreamingMethod)
         .def_property("solvent_sorter", &mpcd::Integrator::getSorter, &mpcd::Integrator::setSorter)
-        .def_property("filler", &mpcd::Integrator::getFiller, &mpcd::Integrator::setFiller);
+        .def_property_readonly("fillers", &mpcd::Integrator::getFillers);
     }
     } // end namespace hoomd

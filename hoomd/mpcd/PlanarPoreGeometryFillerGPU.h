@@ -27,10 +27,9 @@ class PYBIND11_EXPORT PlanarPoreGeometryFillerGPU : public mpcd::PlanarPoreGeome
     public:
     //! Constructor
     PlanarPoreGeometryFillerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                const std::string& type,
                                 Scalar density,
-                                unsigned int type,
                                 std::shared_ptr<Variant> T,
-                                uint16_t seed,
                                 std::shared_ptr<const mpcd::PlanarPoreGeometry> geom);
 
     protected:

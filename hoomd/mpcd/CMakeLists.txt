@@ -142,6 +142,7 @@ install(TARGETS _mpcd EXPORT HOOMDTargets
 set(files
     __init__.py
     collide.py
+    fill.py
     force.py
     geometry.py
     integrate.py

@@ -14,11 +14,11 @@ namespace hoomd
     {
 mpcd::ParallelPlateGeometryFiller::ParallelPlateGeometryFiller(
     std::shared_ptr<SystemDefinition> sysdef,
+    const std::string& type,
     Scalar density,
-    unsigned int type,
     std::shared_ptr<Variant> T,
     std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdef, density, type, T), m_geom(geom)
+    : mpcd::VirtualParticleFiller(sysdef, type, density, T), m_geom(geom)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParallelPlateGeometryFiller" << std::endl;
     }
@@ -148,11 +148,11 @@ void mpcd::detail::export_ParallelPlateGeometryFiller(pybind11::module& m)
         m,
         "ParallelPlateGeometryFiller")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            const std::string&,
                             Scalar,
-                            unsigned int,
                             std::shared_ptr<Variant>,
                             std::shared_ptr<const mpcd::ParallelPlateGeometry>>())
-        .def("setGeometry", &mpcd::ParallelPlateGeometryFiller::setGeometry);
+        .def_property_readonly("geometry", &mpcd::ParallelPlateGeometryFiller::getGeometry);
     }
 
     } // end namespace hoomd

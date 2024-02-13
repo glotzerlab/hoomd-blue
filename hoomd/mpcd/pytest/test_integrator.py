@@ -84,6 +84,52 @@ def test_streaming_method(make_simulation):
     assert ig.streaming_method is stream
 
 
+def test_virtual_particle_fillers(make_simulation):
+    sim = make_simulation()
+    geom = hoomd.mpcd.geometry.ParallelPlates(H=4.0)
+    filler = hoomd.mpcd.fill.GeometryFiller(
+        type="A",
+        density=5.0,
+        kT=1.0,
+        geometry=geom,
+    )
+
+    # check that constructor assigns right
+    ig = hoomd.mpcd.Integrator(dt=0.1, virtual_particle_fillers=[filler])
+    sim.operations.integrator = ig
+    assert len(ig.virtual_particle_fillers) == 1
+    assert filler in ig.virtual_particle_fillers
+    sim.run(0)
+    assert len(ig.virtual_particle_fillers) == 1
+    assert filler in ig.virtual_particle_fillers
+
+    # attach a second filler
+    filler2 = hoomd.mpcd.fill.GeometryFiller(
+        type="A",
+        density=1.0,
+        kT=1.0,
+        geometry=geom,
+    )
+    ig.virtual_particle_fillers.append(filler2)
+    assert len(ig.virtual_particle_fillers) == 2
+    assert filler in ig.virtual_particle_fillers
+    assert filler2 in ig.virtual_particle_fillers
+    sim.run(0)
+    assert len(ig.virtual_particle_fillers) == 2
+    assert filler in ig.virtual_particle_fillers
+    assert filler2 in ig.virtual_particle_fillers
+
+    # make sure synced list is working right with non-empty list assignment
+    ig.virtual_particle_fillers = [filler]
+    assert len(ig.virtual_particle_fillers) == 1
+    assert len(ig._cpp_obj.fillers) == 1
+
+    ig.virtual_particle_fillers = []
+    assert len(ig.virtual_particle_fillers) == 0
+    sim.run(0)
+    assert len(ig.virtual_particle_fillers) == 0
+
+
 def test_solvent_sorter(make_simulation):
     sim = make_simulation()
     sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
@@ -119,6 +165,8 @@ def test_attach_and_detach(make_simulation):
     assert ig.cell_list._attached
     assert ig.streaming_method is None
     assert ig.collision_method is None
+    assert len(ig.virtual_particle_fillers) == 0
+    assert ig.solvent_sorter is None
 
     # attach with both methods
     ig.streaming_method = hoomd.mpcd.stream.Bulk(period=1)

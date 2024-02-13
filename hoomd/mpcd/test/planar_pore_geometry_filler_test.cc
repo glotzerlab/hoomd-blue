@@ -21,6 +21,7 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     snap->particle_data.type_mapping.push_back("A");
     snap->mpcd_data.resize(1);
     snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.type_mapping.push_back("B");
     snap->mpcd_data.position[0] = vec3<Scalar>(1, -2, 3);
     snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -34,7 +35,7 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     // fill density 2, temperature 1.5
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::PlanarPoreGeometryFiller> filler
-        = std::make_shared<F>(sysdef, 2.0, 1, kT, 42, slit);
+        = std::make_shared<F>(sysdef, "B", 2.0, kT, slit);
     filler->setCellList(cl);
 
     /*

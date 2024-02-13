@@ -27,8 +27,8 @@ class PYBIND11_EXPORT ParallelPlateGeometryFillerGPU : public mpcd::ParallelPlat
     public:
     //! Constructor
     ParallelPlateGeometryFillerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                   const std::string& type,
                                    Scalar density,
-                                   unsigned int type,
                                    std::shared_ptr<Variant> T,
                                    std::shared_ptr<const mpcd::ParallelPlateGeometry> geom);
 

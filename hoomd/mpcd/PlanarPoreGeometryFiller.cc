@@ -16,12 +16,11 @@ namespace hoomd
     {
 mpcd::PlanarPoreGeometryFiller::PlanarPoreGeometryFiller(
     std::shared_ptr<SystemDefinition> sysdef,
+    const std::string& type,
     Scalar density,
-    unsigned int type,
     std::shared_ptr<Variant> T,
-    uint16_t seed,
     std::shared_ptr<const mpcd::PlanarPoreGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdef, density, type, T), m_num_boxes(0),
+    : mpcd::VirtualParticleFiller(sysdef, type, density, T), m_num_boxes(0),
       m_boxes(MAX_BOXES, m_exec_conf), m_ranges(MAX_BOXES, m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD PlanarPoreGeometryFiller" << std::endl;
@@ -222,12 +221,11 @@ void mpcd::detail::export_PlanarPoreGeometryFiller(pybind11::module& m)
                      mpcd::VirtualParticleFiller,
                      std::shared_ptr<mpcd::PlanarPoreGeometryFiller>>(m, "PlanarPoreGeometryFiller")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            const std::string&,
                             Scalar,
-                            unsigned int,
                             std::shared_ptr<Variant>,
-                            unsigned int,
                             std::shared_ptr<const mpcd::PlanarPoreGeometry>>())
-        .def("setGeometry", &mpcd::PlanarPoreGeometryFiller::setGeometry);
+        .def_property_readonly("geometry", &mpcd::PlanarPoreGeometryFiller::getGeometry);
     }
 
     } // end namespace hoomd

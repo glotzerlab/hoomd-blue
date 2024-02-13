@@ -31,12 +31,17 @@ class PYBIND11_EXPORT ParallelPlateGeometryFiller : public mpcd::VirtualParticle
     {
     public:
     ParallelPlateGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
+                                const std::string& type,
                                 Scalar density,
-                                unsigned int type,
                                 std::shared_ptr<Variant> T,
                                 std::shared_ptr<const mpcd::ParallelPlateGeometry> geom);
 
     virtual ~ParallelPlateGeometryFiller();
+
+    std::shared_ptr<const mpcd::ParallelPlateGeometry> getGeometry() const
+        {
+        return m_geom;
+        }
 
     void setGeometry(std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
         {

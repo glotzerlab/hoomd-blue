@@ -126,15 +126,10 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         m_sorter = sorter;
         }
 
-    std::shared_ptr<mpcd::VirtualParticleFiller> getFiller() const
+    //! Get the virtual particle fillers
+    std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>& getFillers()
         {
-        return m_filler;
-        }
-
-    //! Set the virtual particle filling method
-    void setFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler)
-        {
-        m_filler = filler;
+        return m_fillers;
         }
 
     protected:
@@ -145,7 +140,8 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
 #ifdef ENABLE_MPI
     std::shared_ptr<mpcd::Communicator> m_mpcd_comm; //!< MPCD communicator
 #endif
-    std::shared_ptr<mpcd::VirtualParticleFiller> m_filler; //!< MPCD virtual particle fillers
+    std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>
+        m_fillers; //!< MPCD virtual particle fillers
 
     private:
     //! Check if a collision will occur at the current timestep

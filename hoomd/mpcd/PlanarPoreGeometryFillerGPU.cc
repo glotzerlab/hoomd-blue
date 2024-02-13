@@ -13,12 +13,11 @@ namespace hoomd
     {
 mpcd::PlanarPoreGeometryFillerGPU::PlanarPoreGeometryFillerGPU(
     std::shared_ptr<SystemDefinition> sysdef,
+    const std::string& type,
     Scalar density,
-    unsigned int type,
     std::shared_ptr<Variant> T,
-    uint16_t seed,
     std::shared_ptr<const mpcd::PlanarPoreGeometry> geom)
-    : mpcd::PlanarPoreGeometryFiller(sysdef, density, type, T, seed, geom)
+    : mpcd::PlanarPoreGeometryFiller(sysdef, type, density, T, geom)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -82,10 +81,9 @@ void mpcd::detail::export_PlanarPoreGeometryFillerGPU(pybind11::module& m)
         m,
         "PlanarPoreGeometryFillerGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            const std::string&,
                             Scalar,
-                            unsigned int,
                             std::shared_ptr<Variant>,
-                            unsigned int,
                             std::shared_ptr<const mpcd::PlanarPoreGeometry>>());
     }
 
