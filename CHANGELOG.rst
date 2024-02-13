@@ -21,6 +21,53 @@ Change Log
 * ``hoomd.hpmc.update.QuickCompress`` can now reshape boxes with tilt factors <= 0
   (`#1709 <https://github.com/glotzerlab/hoomd-blue/pull/1709>`__).
 
+*Added*
+
+* Improve component build documentation and link to the ``hoomd-component-template`` repository
+  (`#1668 <https://github.com/glotzerlab/hoomd-blue/pull/1668>`__).
+* ``hoomd.md.improper.Periodic`` - CHARMM-like periodic improper potential
+  (`#1662 <https://github.com/glotzerlab/hoomd-blue/pull/1662>`__).
+* ``allow_unsafe_resize`` flag to ``hoomd.hpmc.update.QuickCompress``
+  (`#1678 <https://github.com/glotzerlab/hoomd-blue/pull/1678>`__).
+* ``hoomd.error.GPUNotAvailableError``
+  (`#1694 <https://github.com/glotzerlab/hoomd-blue/pull/1694>`__).
+* HPMC compile time pair potential framework (CPU only). Allows potential energy in HPMC simulations
+  without ``CPPPotential``.
+
+  * ``hoomd.hpmc.pair.LennardJones`` - Evaluate Lennard Jones energy between particles
+    (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+  * ``HPMCIntegrator.pair_potentials`` - Set a list of pair potentials to evaluate
+    (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+  * ``HPMCIntegrator.pair_energy`` (loggable) - Total pair energy from all pair potentials.
+    (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+
+*Deprecated*
+
+* ``_InternalCustomUpdater.update``.
+  (`#1692 <https://github.com/glotzerlab/hoomd-blue/pull/1692>`__).
+* ``_InternalCustomTuner.tune``.
+  (`#1692 <https://github.com/glotzerlab/hoomd-blue/pull/1692>`__).
+* ``_InternalCustomWriter.write``.
+  (`#1692 <https://github.com/glotzerlab/hoomd-blue/pull/1692>`__).
+* ``HDF5Log.write``.
+  (`#1692 <https://github.com/glotzerlab/hoomd-blue/pull/1692>`__).
+* ``hoomd.util.GPUNotAvailableError``
+  (`#1694 <https://github.com/glotzerlab/hoomd-blue/pull/1694>`__).
+* ``hoomd.hpmc.pair.user.CPPPotentialBase``
+  (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+* ``hoomd.hpmc.pair.user.CPPPotential`` - Use a built-in potential or compile your code in a component
+  (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+* ``hoomd.hpmc.pair.user.CPPPotentialUnion`` - Use a built-in potential or compile your code in a component
+  (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+* ``HPMCIntegrator.pair_potential`` - Use compiled potentials with ``pair_potentials``
+  (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+
+*Changed*
+
+* Refactored the C++ API for ``PatchEnergy`` potentials
+  (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+* Removed unused ``Operation._children`` methods
+  (`#1713 <https://github.com/glotzerlab/hoomd-blue/pull/1713>`__).
 
 4.4.1 (2023-12-18)
 ^^^^^^^^^^^^^^^^^^
