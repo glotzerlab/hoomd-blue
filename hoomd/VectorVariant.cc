@@ -38,7 +38,7 @@ std::array<Scalar, 6> testVectorVariantBoxCall(std::shared_ptr<VectorVariantBox>
     return (*t)(step);
     }
 
-void export_VectorVariantBox(pybind11::module& m)
+void export_VectorVariantBoxClasses(pybind11::module& m)
     {
     pybind11::class_<VectorVariantBox, VectorVariantBoxPy, std::shared_ptr<VectorVariantBox>>(
         m,
@@ -58,11 +58,11 @@ void export_VectorVariantBox(pybind11::module& m)
         .def(pybind11::
                  init<std::shared_ptr<BoxDim>, std::shared_ptr<BoxDim>, std::shared_ptr<Variant>>())
         .def_property("_initial_box",
-                      &VectorVariantBoxInterpolate::getBox1,
-                      &VectorVariantBoxInterpolate::setBox1)
+                      &VectorVariantBoxInterpolate::getInitialBox,
+                      &VectorVariantBoxInterpolate::setInitialBox)
         .def_property("_final_box",
-                      &VectorVariantBoxInterpolate::getBox2,
-                      &VectorVariantBoxInterpolate::setBox2)
+                      &VectorVariantBoxInterpolate::getFinalBox,
+                      &VectorVariantBoxInterpolate::setFinalBox)
         .def_property("variant",
                       &VectorVariantBoxInterpolate::getVariant,
                       &VectorVariantBoxInterpolate::setVariant);

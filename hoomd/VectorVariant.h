@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
-// Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 #pragma once
 
 #include <cstdint>
@@ -41,6 +38,11 @@ template<unsigned int ndim> class PYBIND11_EXPORT VectorVariant
         }
     };
 
+/** Box vector variant.
+
+    VectorVariant class for representing box parameters. The operator() returns an array with 6 elements that
+    represent Lx, Ly, Lz, xy, xz, and yz.
+*/
 class PYBIND11_EXPORT VectorVariantBox : public VectorVariant<6>
     {
     protected:
@@ -55,6 +57,10 @@ class PYBIND11_EXPORT VectorVariantBox : public VectorVariant<6>
         }
     };
 
+/** Constant box vector variant
+
+    Returns a constant vector.
+    */
 class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
     {
     public:
@@ -86,18 +92,30 @@ class PYBIND11_EXPORT VectorVariantBoxConstant : public VectorVariantBox
     std::shared_ptr<BoxDim> m_box;
     };
 
+/** Interpolate box vector variant
+
+    Vector variant that interpolates between two boxes based on a given scalar variant.
+    Returns the vector corresponding to initial_box when the scalar variant evaluates to its minimum value.
+    Returns the vector correspolding to final_box when the scalar variant evaluates to its maximum value.
+    Returns the array corresponding to the interpolated box when the scalar variant evaluates to values between its maximum and minimum values.
+    The i-th component of the interpolated box vector corresponds to the weighted average of the i-th components of initial_box and final_box, where the
+    weight f given to final_box is equal to the difference in the value of the scalar variant and the minimum value of the scalar variant, normalized by
+    the difference in the maximum and minimum values of the scalar variant.
+    I.e., f = (variant(timestep) - variant.minimum) / (variant.maximum - variant.minimum).
+
+*/
 class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
     {
     public:
-    /** Construct a VectorVariantBoxInterpolate to interpolate between two boxes linearly in time.
+    /** Construct a VectorVariantBoxInterpolate to interpolate between two boxes.
 
-        @param box1 The initial box
-        @param box2 The final box
+        @param initial_box The initial box
+        @param final_box The final box
     */
-    VectorVariantBoxInterpolate(std::shared_ptr<BoxDim> box1,
-                                std::shared_ptr<BoxDim> box2,
+    VectorVariantBoxInterpolate(std::shared_ptr<BoxDim> initial_box,
+                                std::shared_ptr<BoxDim> final_box,
                                 std::shared_ptr<Variant> variant)
-        : m_box1(box1), m_box2(box2), m_variant(variant)
+        : m_initial_box(initial_box), m_final_box(final_box), m_variant(variant)
         {
         }
 
@@ -117,34 +135,34 @@ class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
             scale = (cur_value - min) / (max - min);
             }
 
-        const auto& box1 = *m_box1;
-        const auto& box2 = *m_box2;
-        Scalar3 new_L = box2.getL() * scale + box1.getL() * (1.0 - scale);
-        Scalar xy = box2.getTiltFactorXY() * scale + (1.0 - scale) * box1.getTiltFactorXY();
-        Scalar xz = box2.getTiltFactorXZ() * scale + (1.0 - scale) * box1.getTiltFactorXZ();
-        Scalar yz = box2.getTiltFactorYZ() * scale + (1.0 - scale) * box1.getTiltFactorYZ();
+        const auto& initial_box = *m_initial_box;
+        const auto& final_box = *m_final_box;
+        Scalar3 new_L = final_box.getL() * scale + initial_box.getL() * (1.0 - scale);
+        Scalar xy = final_box.getTiltFactorXY() * scale + (1.0 - scale) * initial_box.getTiltFactorXY();
+        Scalar xz = final_box.getTiltFactorXZ() * scale + (1.0 - scale) * initial_box.getTiltFactorXZ();
+        Scalar yz = final_box.getTiltFactorYZ() * scale + (1.0 - scale) * initial_box.getTiltFactorYZ();
         array_type value = {new_L.x, new_L.y, new_L.z, xy, xz, yz};
         return value;
         }
 
-    std::shared_ptr<BoxDim> getBox1()
+    std::shared_ptr<BoxDim> getInitialBox()
         {
-        return m_box1;
+        return m_initial_box;
         }
 
-    void setBox1(std::shared_ptr<BoxDim> box)
+    void setInitialBox(std::shared_ptr<BoxDim> box)
         {
-        m_box1 = box;
+        m_initial_box = box;
         }
 
-    std::shared_ptr<BoxDim> getBox2()
+    std::shared_ptr<BoxDim> getFinalBox()
         {
-        return m_box2;
+        return m_final_box;
         }
 
-    void setBox2(std::shared_ptr<BoxDim> box)
+    void setFinalBox(std::shared_ptr<BoxDim> box)
         {
-        m_box2 = box;
+        m_final_box = box;
         }
 
     /// Set the variant for interpolation
@@ -161,26 +179,31 @@ class PYBIND11_EXPORT VectorVariantBoxInterpolate : public VectorVariantBox
 
     protected:
     /// The starting box, associated with the minimum of the variant.
-    std::shared_ptr<BoxDim> m_box1;
+    std::shared_ptr<BoxDim> m_initial_box;
 
     /// The final box, associated with the maximum of the variant.
-    std::shared_ptr<BoxDim> m_box2;
+    std::shared_ptr<BoxDim> m_final_box;
 
     /// Variant that interpolates between boxes.
     std::shared_ptr<Variant> m_variant;
     };
 
+/** Inverse volume interpolation box vector variant.
+
+    Returns the array corresponding to the box whose inverse volume (i.e., density) ramps from initial_box.volume
+    to final_volume over t_ramp steps while keeping the box shape constant.
+*/
 class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBox
     {
     public:
-    VectorVariantBoxInverseVolumeRamp(std::shared_ptr<BoxDim> box1,
+    VectorVariantBoxInverseVolumeRamp(std::shared_ptr<BoxDim> initial_box,
                                       Scalar final_volume,
                                       uint64_t t_start,
                                       uint64_t t_ramp)
-        : m_initial_box(box1), m_final_volume(final_volume), m_variant(0, 1, t_start, t_ramp)
+        : m_initial_box(initial_box), m_final_volume(final_volume), m_variant(0, 1, t_start, t_ramp)
         {
-        m_is2D = m_initial_box->getL().z == 0;
-        m_initial_volume = m_initial_box->getVolume(m_is2D);
+        m_is_2d = m_initial_box->getL().z == 0;
+        m_initial_volume = m_initial_box->getVolume(m_is_2d);
         }
 
     virtual array_type operator()(uint64_t timestep)
@@ -190,7 +213,7 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
         // current volume = 1 / (current inverse volume)
         Scalar current_volume = 1 / (s / m_final_volume + (1.0 - s) / m_initial_volume);
         Scalar L_scale;
-        if (m_is2D)
+        if (m_is_2d)
             {
             L_scale = pow(current_volume / m_initial_volume, Scalar(1.0 / 2.0));
             }
@@ -218,8 +241,8 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
     void setInitialBox(std::shared_ptr<BoxDim> box)
         {
         m_initial_box = box;
-        m_is2D = box->getL().z == 0;
-        m_initial_volume = box->getVolume(m_is2D);
+        m_is_2d = box->getL().z == 0;
+        m_initial_volume = box->getVolume(m_is_2d);
         }
 
     /// Set the starting time step.
@@ -262,27 +285,23 @@ class PYBIND11_EXPORT VectorVariantBoxInverseVolumeRamp : public VectorVariantBo
     /// The starting box.
     std::shared_ptr<BoxDim> m_initial_box;
 
-    /// The volume of box1.
+    /// The volume of the initial box.
     Scalar m_initial_volume;
 
     /// The volume of the box at the end of the ramp.
     Scalar m_final_volume;
 
-    /// Whether box1 is 2-dimensional or not
-    bool m_is2D;
-
-    /// The current value of the volume
-    Scalar m_current_volume;
+    /// Whether initial_box is 2-dimensional or not
+    bool m_is_2d;
 
     /// Variant for computing scale value
-    VariantRamp m_variant; //!< Variant that interpolates between boxes
+    VariantRamp m_variant;
     };
 
 namespace detail
     {
 /// Export Variant classes to Python
-void export_VectorVariantBox(pybind11::module& m);
-void export_VectorVariantBoxConstant(pybind11::module& m);
+void export_VectorVariantBoxClasses(pybind11::module& m);
 
     } // end namespace detail
 

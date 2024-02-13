@@ -27,7 +27,6 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
 
     `Constant` returns ``[box.Lx, box.Ly, box.Lz, box.xz, box.xz, box.yz]`` at
     all time steps.
-
     """
 
     def __init__(self, box):
@@ -47,7 +46,7 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
 
 
 class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
-    """Interpolate between two boxes linearly in time.
+    """Interpolate between two boxes linearly.
 
     Args:
         initial_box (hoomd.box.box_like): The initial box.
@@ -55,9 +54,25 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         variant (hoomd.variant.variant_like): A variant used to interpolate
             between the two boxes.
 
-    `Interpolate` returns the array corresponding to *initial_box* for
-    :math:`t \\leq t_{\\mathrm{start}}` and *final_box* for
-    :math:`t \\geq t_{\\mathrm{start}} + t_{\\mathrm{ramp}}`.
+    ``Interpolate`` returns arrays corresponding to a linear interpolation between the
+    initial and final boxes where the minimum of the variant gives ``initial_box`` and
+    the maximum gives ``final_box``:
+
+    .. math::
+
+        \\begin{align*}
+        L_{x}' &= \\lambda L_{2x} + (1 - \\lambda) L_{1x} \\\\
+        L_{y}' &= \\lambda L_{2y} + (1 - \\lambda) L_{1y} \\\\
+        L_{z}' &= \\lambda L_{2z} + (1 - \\lambda) L_{1z} \\\\
+        xy' &= \\lambda xy_{2} + (1 - \\lambda) xy_{1} \\\\
+        xz' &= \\lambda xz_{2} + (1 - \\lambda) xz_{1} \\\\
+        yz' &= \\lambda yz_{2} + (1 - \\lambda) yz_{1} \\\\
+        \\end{align*}
+
+    Where ``initial_box`` is :math:`(L_{ix}, L_{iy}, L_{iz}, xy_i, xz_i, yz_i)`,
+    ``final_box`` is :math:`(L_{fx}, L_{fy}, L_{fz}, xy_f, xz_f, yz_f)`,
+    :math:`\\lambda = \\frac{f(t) - \\min f}{\\max f - \\min f}`, :math:`t`
+    is the timestep, and :math:`f(t)` is given by `variant`.
 
     Attributes:
         variant (hoomd.variant.Variant): A variant used to interpolate between
@@ -74,7 +89,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
     @property
     def initial_box(self):
-        """hoomd.Box: the initial box."""
+        """hoomd.Box: The initial box."""
         return Box._from_cpp(self._initial_box)
 
     @initial_box.setter
@@ -94,7 +109,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
 
 class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
-    """Produce box arrays whose inverse volume changes linearly with time.
+    """Produce box arrays whose inverse volume changes linearly.
 
     Args:
         initial_box (hoomd.box.box_like): The initial box.
@@ -103,11 +118,21 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
         t_ramp (int): The length of the ramp.
 
     ``InverseVolumeRamp`` produces box arrays that correspond to a box whose
-    **inverse volume** (i.e., density for a constant number of particles) varies
-    linearly with time. The shape of the box remains constant, that is, the
+    **inverse volume** (i.e., number density for a constant number of particles) varies
+    linearly. The shape of the box remains constant, that is, the
     ratios of the lengths of the box vectors (:math:`L_y / L_x` and
-    :math:`L_z / L_x` and the tilt factors (:math:`xy`, :math:`xz`, :math:`yz`)
+    :math:`L_z / L_x`) and the tilt factors (:math:`xy`, :math:`xz`, :math:`yz`)
     remain constant.
+    For ``initial_box`` with volume :math:`V_0` and `final_volume` :math:`V_f`,
+    ``InverseVolumeRamp`` returns arrays corresponding to boxes with volume :math:`V(t)`:
+
+    .. math::
+
+        V(t) &= \\begin{cases} V_0 & t < t_{\\mathrm{start}} \\\\
+            \\left( \\lambda V_f^{-1} + (1 - \\lambda) V_0^{-1} \\right)^{-1} & t_{\\mathrm{start}} \\leq t < t_{\\mathrm{start}} + t_{\\mathrm{ramp}} \\\\
+            V_f & t \\geq t_{\\mathrm{start}} + t_{\\mathrm{ramp}} \\end{cases}
+
+    where :math:`\\lambda = \\frac{t - t_{\\mathrm{start}}}{t_{\\mathrm{ramp}} - t_{\\mathrm{start}}}`.
 
     Attributes:
         final_volume (float): The volume of the final box.
@@ -123,7 +148,7 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
 
     @property
     def initial_box(self):
-        """hoomd.Box: the initial box."""
+        """hoomd.Box: The initial box."""
         return Box._from_cpp(self._initial_box)
 
     @initial_box.setter

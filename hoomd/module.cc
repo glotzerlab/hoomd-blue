@@ -355,7 +355,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Variant(m);
 
     // vector variant
-    export_VectorVariantBox(m);
+    export_VectorVariantBoxClasses(m);
 
     // messenger
     export_Messenger(m);
