@@ -39,3 +39,11 @@ documentation for more information on warning filters.
 * ``_InternalCustomTuner.tune`` (since 4.5.0)
 * ``_InternalCustomWriter.write`` (since 4.5.0)
 * ``HDF5Log.write`` (since 4.5.0)
+* Single-process multi-GPU code path (since 4.5.0)
+* ``gpu_ids`` argument to ``GPU`` (since 4.5.0)
+
+  * Use ``gpu_id``.
+
+* ``GPU.devices`` (since 4.5.0)
+
+  * Use ``device``.
