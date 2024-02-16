@@ -79,6 +79,7 @@ set(_hpmc_headers
     OBBTree.h
     PairPotential.h
     PairPotentialLennardJones.h
+    PairPotentialUnion.h
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
