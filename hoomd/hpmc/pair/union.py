@@ -73,3 +73,6 @@ class Union(Pair):
 
         super()._attach_hook()
 
+    def _detach_hook(self):
+        if self.constituent_potential is not None:
+            self.constituent_potential._detach()
