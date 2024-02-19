@@ -1,8 +1,9 @@
 import hoomd
 from hoomd import hpmc
+from hoomd.hpmc import _hpmc
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.converter import OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyIf, OnlyTypes, to_type_converter
 
 from .pair import Pair
 
@@ -21,8 +22,7 @@ class Union(Pair):
 
     .. py:attribute:: body
 
-        - ``constituent_types`` (`list` [`str`]): List of types of constituent
-          particles.
+        - ``types`` (`list` [`str`]): List of types of constituent points.
 
         - ``positions`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
           relative positions of constituent points.
@@ -36,16 +36,17 @@ class Union(Pair):
 
     Attributes:
         consituent_potential (`hpmc.pair.Pair`):
-            Pair potential class defining the interactions of consituent points.
+            Pair potential class defining the interactions of constituent points.
         leaf_capacity (int):
             Maximum number of leaf nodes in the tree data structure used by this
             class.
 
     """
+    _cpp_class_name = "PairPotentialUnion"
 
-    def __init__(self, constituent_potential):
+    def __init__(self, constituent_potential, leaf_capacity=4):
         body = TypeParameter('body', 'particle_types', TypeParameterDict(
-            OnlyIf(to_type_converter(dict(constituent_types=[str],
+            OnlyIf(to_type_converter(dict(types=[str],
                                           positions=[(float,) * 3],
                                           orientations=[(float,) * 4],
                                           charges=[float])),
@@ -56,21 +57,19 @@ class Union(Pair):
 
         param_dict = ParameterDict(constituent_potential=OnlyTypes(hpmc.pair.Pair,
                                                                    allow_none=True),
-                                   leaf_capacity=int)
-        param_dict.update(dict(constituent_potential=constituent_potential))
-        param_dict.update(param_dict)
+                                   leaf_capacity=OnlyTypes(int, allow_none=True))
+        param_dict.update(dict(constituent_potential=constituent_potential,
+                               leaf_capacity=leaf_capacity))
+        self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        # no gpu implementation right now, error in that case
-        if isinstance(self._simulation.device. hoomd.device.GPU):
-            raise RuntimeError("Union Pair Potential is not supported on the GPU")
-
         # attach the constituent potential
         self.constituent_potential._attach(self._simulation)
 
-        # attach the union potential
-        cls = _hpmc.PairPotentialUnion
+        # attach the cur
         cpp_sys_def = self._simulation.state._cpp_sys_def
+        cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
         self._cpp_obj = cls(cpp_sys_def, self.constituent_potential._cpp_obj)
+
         super()._attach_hook()
 

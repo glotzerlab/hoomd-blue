@@ -47,10 +47,6 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         if isinstance(device, hoomd.device.GPU):
             raise RuntimeError("Not implemented on the GPU")
 
-        cpp_sys_def = self._simulation.state._cpp_sys_def
-        cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
-        self._cpp_obj = cls(cpp_sys_def)
-
         super()._attach_hook()
 
     @hoomd.logging.log(requires_run=True)
