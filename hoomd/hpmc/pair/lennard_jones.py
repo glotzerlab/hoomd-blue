@@ -103,3 +103,6 @@ class LennardJones(Pair):
         self._cpp_obj = cls(cpp_sys_def)
         super()._attach_hook()
 
+    def _detach_hook(self):
+        self._cpp_obj.setParent(None)
+        super()._detach_hook()

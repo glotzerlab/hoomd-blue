@@ -87,7 +87,11 @@ class PairPotential
     void setParent(std::shared_ptr<PairPotential> parent)
         {
         m_parent = parent;
-        parent->notifyRCutChanged();
+
+        if (auto parent = m_parent.lock())
+            {
+            parent->notifyRCutChanged();
+            }
         }
 
     /*** Evaluate the energy of the pair interaction
