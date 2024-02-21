@@ -142,14 +142,19 @@ class PairPotentialUnion : public hpmc::PairPotential
         LongReal energy = 0.0;
         const size_t N_i = m_position[type_i].size();
         const size_t N_j = m_position[type_j].size();
-        vec3<LongReal> r_ij_rotated = rotate(conj(q_j), r_ij);
+
+        const quat<LongReal> conj_q_j(conj(q_j));
+        const quat<LongReal> conj_q_j_q_i(conj_q_j * q_i);
+        const rotmat3<LongReal> rotate_i_to_j(conj_q_j_q_i);
+
+        vec3<LongReal> r_ij_rotated = rotate(conj_q_j, r_ij);
 
         for (unsigned int i = 0; i < N_i; i++)
             {
-            // Rotate and translate the constituents of i j's body frame.
+            // Rotate and translate the constituents of i to j's body frame.
             unsigned int constituent_type_i = m_type[type_i][i];
-            quat<LongReal> constituent_orientation_i = conj(q_j) * q_i * m_orientation[type_i][i];
-            vec3<LongReal> constituent_position_i(rotate(conj(q_j) * q_i, m_position[type_i][i])
+            quat<LongReal> constituent_orientation_i = conj_q_j_q_i * m_orientation[type_i][i];
+            vec3<LongReal> constituent_position_i(rotate_i_to_j * m_position[type_i][i]
                                                   - r_ij_rotated);
 
             // loop through leaf particles of cur_node_b
