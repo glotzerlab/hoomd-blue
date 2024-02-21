@@ -47,7 +47,18 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         if isinstance(device, hoomd.device.GPU):
             raise RuntimeError("Not implemented on the GPU")
 
+        # Default cpp obj instantiation. Subclasses can override by setting
+        # _cpp_obj before calling super()._attach_hook().
+        if getattr(self, "_cpp_obj", None) is None:
+            cpp_sys_def = self._simulation.state._cpp_sys_def
+            cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
+            self._cpp_obj = cls(cpp_sys_def)
+
         super()._attach_hook()
+
+    def _detach_hook(self):
+        self._cpp_obj.setParent(None)
+        super()._detach_hook()
 
     @hoomd.logging.log(requires_run=True)
     def energy(self):

@@ -75,7 +75,6 @@ class Union(Pair):
         # attach the constituent potential
         self.constituent_potential._attach(self._simulation)
 
-        # attach the cur
         cpp_sys_def = self._simulation.state._cpp_sys_def
         cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
         self._cpp_obj = cls(cpp_sys_def, self.constituent_potential._cpp_obj)
@@ -87,3 +86,5 @@ class Union(Pair):
     def _detach_hook(self):
         if self.constituent_potential is not None:
             self.constituent_potential._detach()
+
+        super()._detach_hook()

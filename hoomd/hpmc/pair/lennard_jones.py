@@ -96,13 +96,3 @@ class LennardJones(Pair):
                 mode=hoomd.data.typeconverter.OnlyFrom(("none", "shift",
                                                         "xplor"))))
         self.mode = mode
-
-    def _attach_hook(self):
-        cpp_sys_def = self._simulation.state._cpp_sys_def
-        cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
-        self._cpp_obj = cls(cpp_sys_def)
-        super()._attach_hook()
-
-    def _detach_hook(self):
-        self._cpp_obj.setParent(None)
-        super()._detach_hook()
