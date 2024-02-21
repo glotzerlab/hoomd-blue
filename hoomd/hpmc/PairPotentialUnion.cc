@@ -118,6 +118,7 @@ void PairPotentialUnion::setBody(std::string body_type, pybind11::object v)
             }
         }
 
+    updateExtent(body_type_id);
     buildOBBTree(body_type_id);
     notifyRCutChanged();
     }
@@ -157,40 +158,49 @@ pybind11::object PairPotentialUnion::getBody(std::string body_type)
     return std::move(v);
     }
 
-void PairPotentialUnion::buildOBBTree(unsigned int type)
+void PairPotentialUnion::updateExtent(unsigned int type_id)
     {
-    auto N = static_cast<unsigned int>(m_position[type].size());
-    hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
-    // extract member parameters, positions, and orientations and compute the rcut along the
-    // way
-    Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i,
-                           // used for r_cut calc
+    auto N = static_cast<unsigned int>(m_position[type_id].size());
+
+    Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i
+
     for (unsigned int i = 0; i < N; i++)
         {
-        auto pos = m_position[type][i];
-
-        // use a point-sized OBB
-        obbs[i] = hpmc::detail::OBB(pos, 0.0);
-
-        // calcuate distance from center of union to this constituent particle
-        Scalar r = sqrt(dot(pos, pos));
+        auto pos = m_position[type_id][i];
 
         // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere
         // diameter
+        Scalar r = sqrt(dot(pos, pos));
         extent_i = std::max(extent_i, Scalar(2 * r));
-
-        // we do not support exclusions
-        obbs[i].mask = 1;
         }
 
     // set the diameter
-    m_extent_type[type] = extent_i;
+    m_extent_type[type_id] = extent_i;
+    }
 
-    // build tree and store proxy structure
-    hpmc::detail::OBBTree tree;
-    tree.buildTree(obbs, N, m_leaf_capacity, false);
-    delete[] obbs;
-    m_tree[type] = hpmc::detail::GPUTree(tree, false);
+void PairPotentialUnion::buildOBBTree(unsigned int type_id)
+    {
+    if (m_leaf_capacity > 0)
+        {
+        auto N = static_cast<unsigned int>(m_position[type_id].size());
+        hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
+        for (unsigned int i = 0; i < N; i++)
+            {
+            auto pos = m_position[type_id][i];
+
+            // use a point-sized OBB
+            obbs[i] = hpmc::detail::OBB(pos, 0.0);
+
+            // we do not support exclusions
+            obbs[i].mask = 1;
+            }
+
+        // build tree and store proxy structure
+        hpmc::detail::OBBTree tree;
+        tree.buildTree(obbs, N, m_leaf_capacity, false);
+        delete[] obbs;
+        m_tree[type_id] = hpmc::detail::GPUTree(tree, false);
+        }
     }
 
 LongReal PairPotentialUnion::compute_leaf_leaf_energy(vec3<ShortReal> dr,

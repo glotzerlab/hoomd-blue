@@ -24,7 +24,7 @@ class PairPotentialUnion : public hpmc::PairPotential
     virtual ~PairPotentialUnion() { }
 
     /// Set OBB tree leaf capacity
-    virtual void setLeafCapacity(unsigned int leaf_capacity)
+    void setLeafCapacity(unsigned int leaf_capacity)
         {
         m_leaf_capacity = leaf_capacity;
         for (unsigned int type = 0; type < m_sysdef->getParticleData()->getNTypes(); type++)
@@ -34,7 +34,7 @@ class PairPotentialUnion : public hpmc::PairPotential
         }
 
     /// Get OBB tree leaf capacity
-    virtual unsigned int getLeafCapacity()
+    unsigned int getLeafCapacity()
         {
         return m_leaf_capacity;
         }
@@ -113,8 +113,11 @@ class PairPotentialUnion : public hpmc::PairPotential
     // The number of particles in a leaf of the internal tree data structure.
     unsigned int m_leaf_capacity;
 
+    /// Update extent.
+    void updateExtent(unsigned int type_id);
+
     /// Builds OBB tree based on geometric properties of the constituent particles.
-    virtual void buildOBBTree(unsigned int type_id);
+    void buildOBBTree(unsigned int type_id);
 
     /// Compute the energy of two overlapping leaf nodes.
     LongReal compute_leaf_leaf_energy(vec3<ShortReal> dr,
