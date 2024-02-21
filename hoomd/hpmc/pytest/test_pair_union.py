@@ -4,7 +4,6 @@
 """Test hoomd.hpmc.pair.Union."""
 
 import copy
-import hoomd
 import pytest
 import rowan
 import numpy as np
@@ -12,6 +11,10 @@ import numpy.testing as npt
 
 from hoomd import hpmc
 from hoomd.error import TypeConversionError
+
+
+class LJ:
+    pass
 
 
 @pytest.fixture(scope="function")
@@ -27,8 +30,8 @@ def test_contruction(pair_potential):
     hpmc.pair.Union(pair_potential)
 
     # this should not
-    with pytest.raises(TypeConversionError):
-        hpmc.pair.Union(hoomd.md.pair.LJ(hoomd.md.nlist.Cell))
+    with pytest.raises(TypeError):
+        hpmc.pair.Union(LJ())
 
 
 @pytest.fixture(scope='function')

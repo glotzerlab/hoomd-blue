@@ -17,7 +17,7 @@ class Union(Pair):
 
     `Union` computes the potential energy of a set of constituent points rigidly
     attached to a particle body. The constituent points on one particle interact
-    with consituent points on other particles in a pairwise fashion defined by
+    with constituent points on other particles in a pairwise fashion defined by
     the constituent potential.
 
     The position and orientation of the constituent points are defined relative
@@ -40,9 +40,6 @@ class Union(Pair):
         Type: `TypeParameter` [``particle_type``, `dict`]
 
     Attributes:
-        consituent_potential (`hpmc.pair.Pair`):
-            Pair potential class defining the interactions of constituent
-            points.
         leaf_capacity (int):
             Maximum number of leaf nodes in the tree data structure used by this
             class.
@@ -63,13 +60,19 @@ class Union(Pair):
         self._add_typeparam(body)
 
         param_dict = ParameterDict(
-            constituent_potential=OnlyTypes(hoomd.hpmc.pair.Pair,
-                                            allow_none=True),
             leaf_capacity=OnlyTypes(int, allow_none=True))
-        param_dict.update(
-            dict(constituent_potential=constituent_potential,
-                 leaf_capacity=leaf_capacity))
+        param_dict.update(dict(leaf_capacity=leaf_capacity))
         self._param_dict.update(param_dict)
+
+        if not isinstance(constituent_potential, hoomd.hpmc.pair.Pair):
+            raise TypeError(
+                "constituent_potential must subclass hoomd.hpmc.pair.Pair")
+        self._constituent_potential = constituent_potential
+
+    @property
+    def constituent_potential(self):
+        """hpmc.pair.Pair: Interactions between constituent points."""
+        return self._constituent_potential
 
     def _attach_hook(self):
         # attach the constituent potential
