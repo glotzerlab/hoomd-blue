@@ -237,7 +237,7 @@ LongReal PairPotentialUnion::compute_leaf_leaf_energy(vec3<LongReal> dr,
             vec3<LongReal> r_ij = m_position[type_b][jleaf] - pos_i;
 
             LongReal rsq = dot(r_ij, r_ij);
-            if (rsq < getRCutSquaredTotal(type_i, type_j))
+            if (rsq < m_constituent_potential->getRCutSquaredTotal(type_i, type_j))
                 {
                 energy += m_constituent_potential->energy(rsq,
                                                           r_ij,
@@ -281,7 +281,6 @@ LongReal PairPotentialUnion::energyAll(const LongReal r_squared,
                                        const quat<LongReal>& q_j,
                                        const LongReal charge_j) const
     {
-    std::cout << "Energy all" << std::endl;
     LongReal energy = 0.0;
     const size_t N_i = m_position[type_i].size();
     const size_t N_j = m_position[type_j].size();
@@ -303,7 +302,7 @@ LongReal PairPotentialUnion::energyAll(const LongReal r_squared,
             vec3<LongReal> constituent_r_ij = m_position[type_j][j] - constituent_position_i;
 
             LongReal rsq = dot(constituent_r_ij, constituent_r_ij);
-            if (rsq < getRCutSquaredTotal(type_i, type_j))
+            if (rsq < m_constituent_potential->getRCutSquaredTotal(type_i, type_j))
                 {
                 energy += m_constituent_potential->energy(rsq,
                                                           constituent_r_ij,

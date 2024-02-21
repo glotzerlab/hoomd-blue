@@ -24,6 +24,9 @@ class Union(Pair):
     to the position and orientation of the particle (i.e. in the particle
     reference frame).
 
+    TODO: document formally. Mention OBB and leaf_capcity.
+    TODO: document args.
+
     .. py:attribute:: body
 
         - ``types`` (`list` [`str`]): List of types of constituent points.
@@ -42,11 +45,11 @@ class Union(Pair):
     Attributes:
         leaf_capacity (int):
             Maximum number of leaf nodes in the tree data structure used by this
-            class.
+            class. Set ``leaf_capacity=0`` to use the all N*M code path.
     """
     _cpp_class_name = "PairPotentialUnion"
 
-    def __init__(self, constituent_potential, leaf_capacity):
+    def __init__(self, constituent_potential, leaf_capacity=0):
         body = TypeParameter(
             'body', 'particle_types',
             TypeParameterDict(OnlyIf(to_type_converter(

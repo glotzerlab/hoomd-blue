@@ -230,5 +230,5 @@ def test_energy(pair_union_simulation_factory, union_potential, leaf_capacity):
         return 4 * epsilon * (sdivd**12 - sdivd**6)
 
     system_energy = lj_energy(1.0, 1.0, 3.0) + lj_energy(
-        3.0, 1.0, 3.0) + lj_energy(2.0, 1.0, 1.0) + lj_energy(2.0, 1.0, 5.0)
+        3.0, 1.0, 3.0) + lj_energy(2.0, 1.0, 1.0)
     npt.assert_allclose(system_energy, union_potential.energy)
