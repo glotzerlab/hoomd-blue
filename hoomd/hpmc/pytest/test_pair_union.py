@@ -10,7 +10,7 @@ import numpy as np
 import numpy.testing as npt
 
 from hoomd import hpmc
-from hoomd.error import TypeConversionError
+from hoomd.error import TypeConversionError, IncompleteSpecificationError
 
 
 class LJ:
@@ -131,7 +131,8 @@ def invalid_body_dict(request):
 def test_invalid_body_params(pair_union_simulation_factory, union_potential,
                              invalid_body_dict):
     """Test that invalid parameter combinations result in errors."""
-    with pytest.raises((TypeConversionError, KeyError, RuntimeError)):
+    with pytest.raises((IncompleteSpecificationError, TypeConversionError,
+                        KeyError, RuntimeError)):
         union_potential.body["A"] = invalid_body_dict
         sim = pair_union_simulation_factory(union_potential)
         sim.run(0)
@@ -158,9 +159,8 @@ def test_get_set_body_params(pair_union_simulation_factory, union_potential):
     union_potential.body["A"] = body_dict
     assert union_potential.body["A"]["positions"] == body_dict["positions"]
     assert union_potential.body["A"]["types"] == body_dict["types"]
-    with pytest.raises(KeyError):
-        assert union_potential.body["A"]["orientations"]
-        assert union_potential.body["A"]["charges"]
+    assert union_potential.body["A"]["orientations"] is None
+    assert union_potential.body["A"]["charges"] is None
 
     # after attaching, setting as dict
     sim = pair_union_simulation_factory(union_potential)

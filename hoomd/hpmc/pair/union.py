@@ -36,9 +36,10 @@ class Union(Pair):
 
         - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
           `float`]]): List of orientations (as quaternions) of constituent
-          points.
+          points (optional, defaults to ``[(1,0,0,0)] * len(positions)``).
 
-        - ``charges`` (`list` [`float`]): List of charges of constituent points.
+        - ``charges`` (`list` [`float`]): List of charges of constituent points
+          (optional, defaults to ``[0] * len(positions)``).
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
@@ -52,13 +53,19 @@ class Union(Pair):
     def __init__(self, constituent_potential, leaf_capacity=0):
         body = TypeParameter(
             'body', 'particle_types',
-            TypeParameterDict(OnlyIf(to_type_converter(
-                dict(types=[str],
-                     positions=[(float,) * 3],
-                     orientations=[(float,) * 4],
-                     charges=[float])),
-                                     allow_none=True),
-                              len_keys=1))
+            TypeParameterDict(types=[str],
+                              positions=[(float,) * 3],
+                              orientations=OnlyIf(to_type_converter([
+                                  (float,) * 4
+                              ]),
+                                                  allow_none=True),
+                              charges=OnlyIf(to_type_converter([float]),
+                                             allow_none=True),
+                              len_keys=1,
+                              _defaults={
+                                  'orientations': None,
+                                  'charges': None
+                              }))
         self._add_typeparam(body)
 
         param_dict = ParameterDict(
