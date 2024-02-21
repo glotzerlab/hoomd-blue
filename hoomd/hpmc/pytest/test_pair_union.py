@@ -205,9 +205,12 @@ def test_detach(pair_union_simulation_factory, union_potential):
 
 
 @pytest.mark.cpu
-def test_energy(pair_union_simulation_factory, union_potential):
+@pytest.mark.parametrize("leaf_capacity", (0, 4))
+def test_energy(pair_union_simulation_factory, union_potential, leaf_capacity):
     """Test the energy is being calculated right in a small system."""
     # set up system
+    union_potential.leaf_capacity = leaf_capacity
+
     lj = union_potential.constituent_potential
     lj.params[("B", "B")] = dict(epsilon=3.0, sigma=1.0, r_cut=4.0)
     lj.params[("A", "B")] = dict(epsilon=2.0, sigma=1.0, r_cut=4.0)

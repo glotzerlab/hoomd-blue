@@ -81,14 +81,13 @@ void PairPotentialUnion::setBody(std::string body_type, pybind11::object v)
             {
             throw std::length_error("positions must be a list of 3-tuples.");
             }
-        m_position[body_type_id][i] = vec3<ShortReal>(r_python[0].cast<ShortReal>(),
-                                                      r_python[1].cast<ShortReal>(),
-                                                      r_python[2].cast<ShortReal>());
+        m_position[body_type_id][i] = vec3<LongReal>(r_python[0].cast<LongReal>(),
+                                                     r_python[1].cast<LongReal>(),
+                                                     r_python[2].cast<LongReal>());
 
         if (orientations.is_none())
             {
-            m_orientation[body_type_id][i]
-                = quat<ShortReal>(ShortReal(1.0), vec3<ShortReal>(0, 0, 0));
+            m_orientation[body_type_id][i] = quat<LongReal>(LongReal(1.0), vec3<LongReal>(0, 0, 0));
             }
         else
             {
@@ -99,10 +98,10 @@ void PairPotentialUnion::setBody(std::string body_type, pybind11::object v)
                 }
 
             m_orientation[body_type_id][i]
-                = quat<ShortReal>(q_python[0].cast<ShortReal>(),
-                                  vec3<ShortReal>(q_python[1].cast<ShortReal>(),
-                                                  q_python[2].cast<ShortReal>(),
-                                                  q_python[3].cast<ShortReal>()));
+                = quat<LongReal>(q_python[0].cast<LongReal>(),
+                                 vec3<LongReal>(q_python[1].cast<LongReal>(),
+                                                q_python[2].cast<LongReal>(),
+                                                q_python[3].cast<LongReal>()));
             }
 
         m_type[body_type_id][i]
@@ -114,7 +113,7 @@ void PairPotentialUnion::setBody(std::string body_type, pybind11::object v)
             }
         else
             {
-            m_charge[body_type_id][i] = pybind11::list(charges)[i].cast<ShortReal>();
+            m_charge[body_type_id][i] = pybind11::list(charges)[i].cast<LongReal>();
             }
         }
 
@@ -203,16 +202,16 @@ void PairPotentialUnion::buildOBBTree(unsigned int type_id)
         }
     }
 
-LongReal PairPotentialUnion::compute_leaf_leaf_energy(vec3<ShortReal> dr,
+LongReal PairPotentialUnion::compute_leaf_leaf_energy(vec3<LongReal> dr,
                                                       unsigned int type_a,
                                                       unsigned int type_b,
-                                                      const quat<ShortReal>& orientation_a,
-                                                      const quat<ShortReal>& orientation_b,
+                                                      const quat<LongReal>& orientation_a,
+                                                      const quat<LongReal>& orientation_b,
                                                       unsigned int cur_node_a,
                                                       unsigned int cur_node_b) const
     {
     LongReal energy = 0.0;
-    vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(orientation_b)), vec3<ShortReal>(dr));
+    vec3<LongReal> r_ab = rotate(conj(orientation_b), dr);
 
     // loop through leaf particles of cur_node_a
     unsigned int na = m_tree[type_a].getNumParticles(cur_node_a);
@@ -223,13 +222,10 @@ LongReal PairPotentialUnion::compute_leaf_leaf_energy(vec3<ShortReal> dr,
         unsigned int ileaf = m_tree[type_a].getParticleByNode(cur_node_a, i);
 
         unsigned int type_i = m_type[type_a][ileaf];
-        quat<ShortReal> orientation_i = conj(quat<ShortReal>(orientation_b))
-                                        * quat<ShortReal>(orientation_a)
-                                        * m_orientation[type_a][ileaf];
-        vec3<ShortReal> pos_i(
-            rotate(conj(quat<ShortReal>(orientation_b)) * quat<ShortReal>(orientation_a),
-                   m_position[type_a][ileaf])
-            - r_ab);
+        quat<LongReal> orientation_i
+            = conj(orientation_b) * orientation_a * m_orientation[type_a][ileaf];
+        vec3<LongReal> pos_i(rotate(conj(orientation_b) * orientation_a, m_position[type_a][ileaf])
+                             - r_ab);
 
         // loop through leaf particles of cur_node_b
         for (unsigned int j = 0; j < nb; j++)
@@ -237,10 +233,10 @@ LongReal PairPotentialUnion::compute_leaf_leaf_energy(vec3<ShortReal> dr,
             unsigned int jleaf = m_tree[type_b].getParticleByNode(cur_node_b, j);
 
             unsigned int type_j = m_type[type_b][jleaf];
-            quat<ShortReal> orientation_j = m_orientation[type_b][jleaf];
-            vec3<ShortReal> r_ij = m_position[type_b][jleaf] - pos_i;
+            quat<LongReal> orientation_j = m_orientation[type_b][jleaf];
+            vec3<LongReal> r_ij = m_position[type_b][jleaf] - pos_i;
 
-            ShortReal rsq = dot(r_ij, r_ij);
+            LongReal rsq = dot(r_ij, r_ij);
             if (rsq < getRCutSquaredTotal(type_i, type_j))
                 {
                 energy += m_constituent_potential->energy(rsq,
@@ -266,8 +262,72 @@ LongReal PairPotentialUnion::energy(const LongReal r_squared,
                                     const quat<LongReal>& q_j,
                                     const LongReal charge_j) const
     {
-    // TODO: Implement N^2 code path. Determine at what point OBB's make sense.
+    if (m_leaf_capacity == 0)
+        {
+        return energyAll(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+        }
+    else
+        {
+        return energyOBB(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+        }
+    }
 
+LongReal PairPotentialUnion::energyAll(const LongReal r_squared,
+                                       const vec3<LongReal>& r_ij,
+                                       const unsigned int type_i,
+                                       const quat<LongReal>& q_i,
+                                       const LongReal charge_i,
+                                       const unsigned int type_j,
+                                       const quat<LongReal>& q_j,
+                                       const LongReal charge_j) const
+    {
+    std::cout << "Energy all" << std::endl;
+    LongReal energy = 0.0;
+    const size_t N_i = m_position[type_i].size();
+    const size_t N_j = m_position[type_j].size();
+    vec3<LongReal> r_ij_rotated = rotate(conj(q_j), r_ij);
+
+    for (unsigned int i = 0; i < N_i; i++)
+        {
+        // Rotate and translate the constituents of i j's body frame.
+        unsigned int constituent_type_i = m_type[type_i][i];
+        quat<LongReal> constituent_orientation_i = conj(q_j) * q_i * m_orientation[type_i][i];
+        vec3<LongReal> constituent_position_i(rotate(conj(q_j) * q_i, m_position[type_i][i])
+                                              - r_ij_rotated);
+
+        // loop through leaf particles of cur_node_b
+        for (unsigned int j = 0; j < N_j; j++)
+            {
+            unsigned int constituent_type_j = m_type[type_j][j];
+            quat<LongReal> constituent_orientation_j = m_orientation[type_j][j];
+            vec3<LongReal> constituent_r_ij = m_position[type_j][j] - constituent_position_i;
+
+            LongReal rsq = dot(constituent_r_ij, constituent_r_ij);
+            if (rsq < getRCutSquaredTotal(type_i, type_j))
+                {
+                energy += m_constituent_potential->energy(rsq,
+                                                          constituent_r_ij,
+                                                          constituent_type_i,
+                                                          constituent_orientation_i,
+                                                          m_charge[type_i][i],
+                                                          constituent_type_j,
+                                                          constituent_orientation_j,
+                                                          m_charge[type_j][j]);
+                }
+            }
+        }
+    return energy;
+    }
+
+LongReal PairPotentialUnion::energyOBB(const LongReal r_squared,
+                                       const vec3<LongReal>& r_ij,
+                                       const unsigned int type_i,
+                                       const quat<LongReal>& q_i,
+                                       const LongReal charge_i,
+                                       const unsigned int type_j,
+                                       const quat<LongReal>& q_j,
+                                       const LongReal charge_j) const
+    {
     const hpmc::detail::GPUTree& tree_a = m_tree[type_i];
     const hpmc::detail::GPUTree& tree_b = m_tree[type_j];
     ShortReal r_cut_constituent = ShortReal(m_constituent_potential->getMaxRCutNonAdditive());

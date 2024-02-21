@@ -99,13 +99,13 @@ class PairPotentialUnion : public hpmc::PairPotential
     std::vector<Scalar> m_extent_type;
 
     /// The positions of the constituent particles.
-    std::vector<std::vector<vec3<ShortReal>>> m_position;
+    std::vector<std::vector<vec3<LongReal>>> m_position;
 
     // The orientations of the constituent particles.
-    std::vector<std::vector<quat<ShortReal>>> m_orientation;
+    std::vector<std::vector<quat<LongReal>>> m_orientation;
 
     // The charges of the constituent particles.
-    std::vector<std::vector<ShortReal>> m_charge;
+    std::vector<std::vector<LongReal>> m_charge;
 
     // The type identifiers of the constituent particles.
     std::vector<std::vector<unsigned int>> m_type;
@@ -120,13 +120,35 @@ class PairPotentialUnion : public hpmc::PairPotential
     void buildOBBTree(unsigned int type_id);
 
     /// Compute the energy of two overlapping leaf nodes.
-    LongReal compute_leaf_leaf_energy(vec3<ShortReal> dr,
+    LongReal compute_leaf_leaf_energy(vec3<LongReal> dr,
                                       unsigned int type_a,
                                       unsigned int type_b,
-                                      const quat<ShortReal>& orientation_a,
-                                      const quat<ShortReal>& orientation_b,
+                                      const quat<LongReal>& orientation_a,
+                                      const quat<LongReal>& orientation_b,
                                       unsigned int cur_node_a,
                                       unsigned int cur_node_b) const;
+
+    /*** Evaluate the energy of the pair interaction (all N * M pairs).
+     */
+    LongReal energyAll(const LongReal r_squared,
+                       const vec3<LongReal>& r_ij,
+                       const unsigned int type_i,
+                       const quat<LongReal>& q_i,
+                       const LongReal charge_i,
+                       const unsigned int type_j,
+                       const quat<LongReal>& q_j,
+                       const LongReal charge_j) const;
+
+    /*** Evaluate the energy of the pair interaction (using the OBB tree).
+     */
+    LongReal energyOBB(const LongReal r_squared,
+                       const vec3<LongReal>& r_ij,
+                       const unsigned int type_i,
+                       const quat<LongReal>& q_i,
+                       const LongReal charge_i,
+                       const unsigned int type_j,
+                       const quat<LongReal>& q_j,
+                       const LongReal charge_j) const;
     };
 
     } // end namespace hpmc

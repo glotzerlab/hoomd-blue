@@ -43,11 +43,10 @@ class Union(Pair):
         leaf_capacity (int):
             Maximum number of leaf nodes in the tree data structure used by this
             class.
-
     """
     _cpp_class_name = "PairPotentialUnion"
 
-    def __init__(self, constituent_potential, leaf_capacity=4):
+    def __init__(self, constituent_potential, leaf_capacity):
         body = TypeParameter(
             'body', 'particle_types',
             TypeParameterDict(OnlyIf(to_type_converter(
