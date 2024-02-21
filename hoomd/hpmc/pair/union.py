@@ -71,6 +71,8 @@ class Union(Pair):
         cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
         self._cpp_obj = cls(cpp_sys_def, self.constituent_potential._cpp_obj)
 
+        self.constituent_potential._cpp_obj.setParent(self._cpp_obj)
+
         super()._attach_hook()
 
     def _detach_hook(self):
