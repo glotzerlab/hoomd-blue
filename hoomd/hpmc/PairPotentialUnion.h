@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "PairPotential.h"
 #include "GPUTree.h"
+#include "PairPotential.h"
 
 namespace hoomd
     {
@@ -19,8 +19,9 @@ namespace hpmc
 class PairPotentialUnion : public hpmc::PairPotential
     {
     public:
-    PairPotentialUnion(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<PairPotential> constituent_potential);
-    virtual ~PairPotentialUnion() {}
+    PairPotentialUnion(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<PairPotential> constituent_potential);
+    virtual ~PairPotentialUnion() { }
 
     /// Set OBB tree leaf capacity
     virtual void setLeafCapacity(unsigned int leaf_capacity)
@@ -88,7 +89,6 @@ class PairPotentialUnion : public hpmc::PairPotential
         }
 
     protected:
-
     /// The pair potential to apply between constituents.
     std::shared_ptr<PairPotential> m_constituent_potential;
 
@@ -118,17 +118,17 @@ class PairPotentialUnion : public hpmc::PairPotential
 
     /// Compute the energy of two overlapping leaf nodes.
     LongReal compute_leaf_leaf_energy(vec3<ShortReal> dr,
-                                   unsigned int type_a,
-                                   unsigned int type_b,
-                                   const quat<ShortReal>& orientation_a,
-                                   const quat<ShortReal>& orientation_b,
-                                   unsigned int cur_node_a,
-                                   unsigned int cur_node_b) const;
+                                      unsigned int type_a,
+                                      unsigned int type_b,
+                                      const quat<ShortReal>& orientation_a,
+                                      const quat<ShortReal>& orientation_b,
+                                      unsigned int cur_node_a,
+                                      unsigned int cur_node_b) const;
     };
 
 namespace detail
     {
 void export_PairPotentialUnion(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd

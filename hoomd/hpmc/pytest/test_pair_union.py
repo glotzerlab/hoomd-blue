@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Test hoomd.hpmc.pair.Union."""
 
 import copy
@@ -8,7 +11,7 @@ import numpy as np
 import numpy.testing as npt
 
 from hoomd import hpmc
-from hoomd.error import TypeConversionError, IncompleteSpecificationError
+from hoomd.error import TypeConversionError
 
 
 @pytest.fixture(scope="function")
@@ -21,11 +24,11 @@ def pair_potential():
 def test_contruction(pair_potential):
     """Test hpmc union only works with hpmc pair potentials."""
     # this should work
-    patch = hpmc.pair.Union(pair_potential)
+    hpmc.pair.Union(pair_potential)
 
     # this should not
     with pytest.raises(TypeConversionError):
-        patch = hpmc.pair.Union(hoomd.md.pair.LJ(hoomd.md.nlist.Cell))
+        hpmc.pair.Union(hoomd.md.pair.LJ(hoomd.md.nlist.Cell))
 
 
 @pytest.fixture(scope='function')
@@ -46,8 +49,7 @@ def _valid_body_dicts():
              orientations=[(0.5, 0.5, -0.5, -0.5), (-0.5, 0.5, -0.5, 0.5)],
              charges=[-0.5, 0.5]),
         # orientations and charges should have defaults
-        dict(types=["A", "A"],
-             positions=[(0, 0, 1.0), (0, 0, -1.0)]),
+        dict(types=["A", "A"], positions=[(0, 0, 1.0), (0, 0, -1.0)]),
     ]
     return valid_dicts
 
@@ -58,20 +60,25 @@ def valid_body_dict(request):
 
 
 @pytest.fixture(scope='module')
-def pair_union_simulation_factory(simulation_factory, two_particle_snapshot_factory):
+def pair_union_simulation_factory(simulation_factory,
+                                  two_particle_snapshot_factory):
     """Make two particle sphere simulations with a union potential."""
+
     def make_union_sim(union_potential, particle_types=['A'], d=1):
-        sim = simulation_factory(two_particle_snapshot_factory(particle_types, d=d))
+        sim = simulation_factory(
+            two_particle_snapshot_factory(particle_types, d=d))
         sphere = hpmc.integrate.Sphere()
         sphere.shape["A"] = dict(diameter=2.0)
         sphere.pair_potentials = [union_potential]
         sim.operations.integrator = sphere
         return sim
+
     return make_union_sim
 
 
 @pytest.mark.cpu
-def test_valid_body_params(pair_union_simulation_factory, union_potential, valid_body_dict):
+def test_valid_body_params(pair_union_simulation_factory, union_potential,
+                           valid_body_dict):
     """Test we can set and attach with valid body params."""
     union_potential.body["A"] = valid_body_dict
     sim = pair_union_simulation_factory(union_potential)
@@ -118,8 +125,9 @@ def invalid_body_dict(request):
 
 
 @pytest.mark.cpu
-def test_invalid_body_params(pair_union_simulation_factory, union_potential, invalid_body_dict):
-    """Test that invalid parameter combinations result in errors being raised."""
+def test_invalid_body_params(pair_union_simulation_factory, union_potential,
+                             invalid_body_dict):
+    """Test that invalid parameter combinations result in errors."""
     with pytest.raises((TypeConversionError, KeyError, RuntimeError)):
         union_potential.body["A"] = invalid_body_dict
         sim = pair_union_simulation_factory(union_potential)
@@ -141,10 +149,9 @@ def test_default_body_params(pair_union_simulation_factory, union_potential):
 
 @pytest.mark.cpu
 def test_get_set_body_params(pair_union_simulation_factory, union_potential):
-    """Testing getting/setting in multiple ways, before and after attaching"""
+    """Testing getting/setting in multiple ways, before and after attaching."""
     # before attaching, setting as dict
-    body_dict = dict(types=['A'],
-                     positions=[(0, 0, 1)])
+    body_dict = dict(types=['A'], positions=[(0, 0, 1)])
     union_potential.body["A"] = body_dict
     assert union_potential.body["A"]["positions"] == body_dict["positions"]
     assert union_potential.body["A"]["types"] == body_dict["types"]
@@ -155,8 +162,7 @@ def test_get_set_body_params(pair_union_simulation_factory, union_potential):
     # after attaching, setting as dict
     sim = pair_union_simulation_factory(union_potential)
     sim.run(0)
-    new_body_dict = dict(types=['A'],
-                         positions=[(0, 1, 0)])
+    new_body_dict = dict(types=['A'], positions=[(0, 1, 0)])
     union_potential.body["A"] = new_body_dict
     assert union_potential.body["A"]["positions"] == new_body_dict["positions"]
     assert union_potential.body["A"]["types"] == new_body_dict["types"]
@@ -177,12 +183,13 @@ def test_get_set_body_params(pair_union_simulation_factory, union_potential):
     assert union_potential.body["A"]["orientations"] == [(0.5, 0.5, 0.5, 0.5)]
     assert union_potential.body["A"]["charges"] == [0]
 
+
 # TODO test get/set leaf capacity and constituent potential properties
+
 
 @pytest.mark.cpu
 def test_detach(pair_union_simulation_factory, union_potential):
-    body_dict = dict(types=['A'],
-                     positions=[(0, 0, 1)])
+    body_dict = dict(types=['A'], positions=[(0, 0, 1)])
     union_potential.body["A"] = body_dict
     sim = pair_union_simulation_factory(union_potential)
     sim.run(0)
@@ -206,7 +213,9 @@ def test_energy(pair_union_simulation_factory, union_potential):
                                      positions=[(-1, 0, 0), (1, 0, 0)])
     union_potential.body["B"] = dict(types=['A', 'B'],
                                      positions=[(-1, 0, 0), (1, 0, 0)])
-    sim = pair_union_simulation_factory(union_potential, particle_types=['A', 'B'], d=3)
+    sim = pair_union_simulation_factory(union_potential,
+                                        particle_types=['A', 'B'],
+                                        d=3)
     sim.operations.integrator.shape["B"] = dict(diameter=2)
     sim.run(0)
 
@@ -214,7 +223,6 @@ def test_energy(pair_union_simulation_factory, union_potential):
         sdivd = sigma / distance
         return 4 * epsilon * (sdivd**12 - sdivd**6)
 
-    # WARNING the last term is being computed by the patch potential, but shouldn't be
-    system_energy = lj_energy(1.0, 1.0, 3.0) + lj_energy(3.0, 1.0, 3.0) + lj_energy(2.0, 1.0, 1.0) + lj_energy(2.0, 1.0, 5.0)
+    system_energy = lj_energy(1.0, 1.0, 3.0) + lj_energy(
+        3.0, 1.0, 3.0) + lj_energy(2.0, 1.0, 1.0) + lj_energy(2.0, 1.0, 5.0)
     npt.assert_allclose(system_energy, union_potential.energy)
-
