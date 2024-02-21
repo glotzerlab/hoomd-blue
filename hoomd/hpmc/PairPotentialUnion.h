@@ -126,9 +126,5 @@ class PairPotentialUnion : public hpmc::PairPotential
                                       unsigned int cur_node_b) const;
     };
 
-namespace detail
-    {
-void export_PairPotentialUnion(pybind11::module& m);
-    } // end namespace detail
     } // end namespace hpmc
     } // end namespace hoomd
