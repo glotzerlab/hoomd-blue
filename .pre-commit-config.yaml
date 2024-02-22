@@ -40,7 +40,7 @@ repos:
     - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
-  rev: v0.2.0
+  rev: v0.3.2
   hooks:
   - id: fix-license-header
     name: Fix license headers (Python)
