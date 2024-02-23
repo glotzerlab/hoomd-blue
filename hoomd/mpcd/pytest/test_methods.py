@@ -162,3 +162,23 @@ class TestBounceBack:
 
         with pytest.raises(RuntimeError):
             sim.run(1)
+
+    def test_md_integrator(self, simulation_factory, snap):
+        """Test we can also attach to a normal MD integrator."""
+        bb = hoomd.mpcd.methods.BounceBack(
+            filter=hoomd.filter.All(),
+            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
+        integrator = hoomd.md.Integrator(dt=0.1, methods=[bb])
+
+        sim = simulation_factory(snap)
+        sim.operations.integrator = integrator
+
+        # verify one step works right
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            np.testing.assert_array_almost_equal(
+                snap.particles.position,
+                [[-4.95, 4.95, 3.95], [-0.1, -0.1, -3.9]])
+            np.testing.assert_array_almost_equal(
+                snap.particles.velocity, [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
