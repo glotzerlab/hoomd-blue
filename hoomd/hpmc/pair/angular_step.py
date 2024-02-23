@@ -28,6 +28,12 @@ class AngularStep(Pair):
     Args:
         delta(float): half opening angle of the patch in radian
 
+    `AngularStep` computes the angular step potential, which is a composite 
+    potential consist of an isotropic potential and a step function that is 
+    dependent on the relative orientation between patches. One example of this 
+    form of potential is the Kern-Frenkel model that is composed of a square 
+    well potential and a step function. 
+
     .. rubric:: Example
 
     .. code-block:: python
@@ -37,15 +43,15 @@ class AngularStep(Pair):
         angular_step.patch[('n')] = dict(delta=0.2)
         simulation.operations.integrator.pair_potentials = [angular_step]
 
+    .. py:attribute:: delta
+
+        The half opening angle of the patch in radian.
+
+        Type: `float`
     """
     
     _cpp_class_name = "PairPotentialAngularStep"
 
-    def __init__(self)
-        
-        params = hoomd.data.typeparam.TypeParameter(
-            'params', 'particle_types',
-            hoomd.data.parameterdicts.TypeParameterDict(
-                delta=float)
-        self._add_typeparam(params)
+    def __init__(self, delta=0.1):
+        self.delta = delta
 

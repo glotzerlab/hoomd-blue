@@ -18,7 +18,7 @@ PairPotentialAngularStep::PairPotentialAngularStep(std::shared_ptr<SystemDefinit
 std::shared_ptr<PairPotential> isotropic)
     : PairPotential(sysdef), 
     m_isotropic(isotropic),
-    m_patch(sysdef->getParticleData()->getNTypes())
+    m_patches(sysdef->getParticleData()->getNTypes())
     {
         if (!m_isotropic)
         {
@@ -28,15 +28,17 @@ std::shared_ptr<PairPotential> isotropic)
     }
 
 // protected 
-bool maskingFunction(const vec3<LongReal>& r_ij,
-                    const unsigned int type_i,
+bool maskingFunction(const vec3< LongReal>& r_ij,
+                    const unsigned int type_i, //type_m here?
                     const quat<LongReal>& q_i,
-                    const unsigned int type_j,
+                    const unsigned int type_j,  //type_n here?
                     const quat<LongReal>& q_j)
     {
 
-    const auto& patch_i = m_patch[type_i];
-    const auto& patch_j = m_patch[type_j];
+    const auto& patch_m = m_patch[type_m]; 
+    const auto& patch_n = m_patch[type_n]; 
+    //const auto& patch_i = m_patch[type_i]; 
+    //const auto& patch_j = m_patch[type_j]; 
 
     LongReal cos_delta = cos(patch.delta);
 
@@ -57,7 +59,7 @@ bool maskingFunction(const vec3<LongReal>& r_ij,
         }
     }
     
-LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
+virtual LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
                                                  const vec3<LongReal>& r_ij,
                                                  const unsigned int type_i,
                                                  const quat<LongReal>& q_i,
@@ -67,7 +69,7 @@ LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
                                                  const LongReal charge_j) const
     {                 
 
-    if (maskingFunction(r_ij, type_i, q_i, type_j, q_j))
+    if (maskingFunction(r_ij, type_i, q_i, type_j, q_j)) //type_m and type_n
     {
         LongReal lj_energy = m_isotropic->energy(r_squared, r_ij, type_i, q_i, 
                                                  charge_i, type_j, q_j, charge_j);
@@ -77,24 +79,40 @@ LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
 
     }
 
+/* -angular step potential: import the isotropic potential, if patch overlaps, the angular 
+step potential is exactly how the isotropic potential behaves. if patch does not overlap at all, 
+the angular potential is 0. 
+-my understanding: we do not need to input the isotropic potential parameter, because we will get
+it from elsewhere.
+-need to modify this section. Figure out what getTypeByName does. 
+- look into pybind11 documentation. 
+*/
+
 void PairPotentialAngularStep::setParamsPython(pybind11::tuple typ, pybind11::dict params)
     {
     auto pdata = m_sysdef->getParticleData();
-    auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
-    auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
-    unsigned int param_index_1 = m_type_param_index(type_i, type_j);
-    m_param[param_index_1] = ParamType(params);
-    unsigned int param_index_2 = m_type_param_index(type_j, type_i);
-    m_param[param_index_2] = ParamType(params);
+    auto type_m = pdata->getTypeByName(typ[0].cast<std::string>());
+    auto type_n = pdata->getTypeByName(typ[1].cast<std::string>());
+    m_patches[patch_m] = m_delta; // not sure how is delta represented here 
+    m_patches[patch_n] = m_delta; 
+    //auto type_i = pdata->getTypeByName(typ[0].cast<std::string>()); 
+    //auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
+    //unsigned int param_index_1 = m_type_param_index(type_i, type_j);
+    //m_param[param_index_1] = ParamType(params);
+    //unsigned int param_index_2 = m_type_param_index(type_j, type_i);
+    //m_param[param_index_2] = ParamType(params);
     }
 
 pybind11::dict PairPotentialAngularStep::getParamsPython(pybind11::tuple typ)
     {
     auto pdata = m_sysdef->getParticleData();
-    auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
-    auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
-    unsigned int param_index = m_type_param_index(type_i, type_j);
-    return m_params[param_index].asDict();
+    auto type_m = pdata->getTypeByName(typ[0].cast<std::string>());
+    auto type_n = pdata->getTypeByName(typ[1].cast<std::string>());
+    return m_patches[patch].asDict();
+    //auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
+    //auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
+    //unsigned int param_index = m_type_param_index(type_i, type_j);
+    //return m_params[param_index].asDict();
     }
 
 namespace detail
