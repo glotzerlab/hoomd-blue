@@ -69,6 +69,8 @@ class GeometryFiller(VirtualParticleFiller):
 
     """
 
+    _cpp_class_map = {}
+
     def __init__(self, type, density, kT, geometry):
         super().__init__(type, density, kT)
 
@@ -84,7 +86,7 @@ class GeometryFiller(VirtualParticleFiller):
         # try to find class in map, otherwise default to internal MPCD module
         geom_type = type(self.geometry)
         try:
-            class_info = self._class_map[geom_type]
+            class_info = self._cpp_class_map[geom_type]
         except KeyError:
             class_info = (_mpcd, geom_type.__name__ + "GeometryFiller")
         class_info = list(class_info)
@@ -107,12 +109,10 @@ class GeometryFiller(VirtualParticleFiller):
         self.geometry._detach()
         super()._detach_hook()
 
-    _class_map = {}
-
     @classmethod
-    def _register_geometry(cls, geometry, module, class_name):
-        cls._class_map[geometry] = (module, class_name)
+    def _register_cpp_class(cls, geometry, module, cpp_class_name):
+        cls._cpp_class_map[geometry] = (module, cpp_class_name)
 
 
-GeometryFiller._register_geometry(ParallelPlates, _mpcd,
-                                  "ParallelPlateGeometryFiller")
+GeometryFiller._register_cpp_class(ParallelPlates, _mpcd,
+                                   "ParallelPlateGeometryFiller")

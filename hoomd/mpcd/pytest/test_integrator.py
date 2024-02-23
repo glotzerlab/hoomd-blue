@@ -119,6 +119,11 @@ def test_virtual_particle_fillers(make_simulation):
     assert filler in ig.virtual_particle_fillers
     assert filler2 in ig.virtual_particle_fillers
 
+    # make sure synced list is working right with non-empty list assignment
+    ig.virtual_particle_fillers = [filler]
+    assert len(ig.virtual_particle_fillers) == 1
+    assert len(ig._cpp_obj.fillers) == 1
+
     ig.virtual_particle_fillers = []
     assert len(ig.virtual_particle_fillers) == 0
     sim.run(0)
