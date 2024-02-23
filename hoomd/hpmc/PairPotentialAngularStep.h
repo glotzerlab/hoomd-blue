@@ -52,13 +52,9 @@ class PairPotentialAngularStep : public hpmc::PairPotential
     std::shared_ptr<PairPotentialLennardJones> m_isotropic;
 
     /// Type pair parameters of potential
-    std:vector<std::vector<vec3<LongReal>>> m_patches; //m_directors
-    LongReal m_delta;
+    std:vector<std::vector<vec3<LongReal>>> m_directors;
+    <std::vector<vec3<LongReal>> m_delta;
 
-
-
-// a.patches['A'] = [0,1,1]
-// a.delta depends on particle type? 
 
     };
 

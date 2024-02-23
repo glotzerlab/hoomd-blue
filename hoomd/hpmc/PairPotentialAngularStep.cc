@@ -18,8 +18,9 @@ PairPotentialAngularStep::PairPotentialAngularStep(std::shared_ptr<SystemDefinit
 std::shared_ptr<PairPotential> isotropic)
     : PairPotential(sysdef), 
     m_isotropic(isotropic),
-    m_patches(sysdef->getParticleData()->getNTypes())
+    //m_patches(sysdef->getParticleData()->getNTypes())
     {
+    unsigned int ntypes = m_sysdef->getParticleData()->getNTypes()
         if (!m_isotropic)
         {
             raise std::runtime_error("Could not pass in the isotropic potential.");
@@ -29,16 +30,14 @@ std::shared_ptr<PairPotential> isotropic)
 
 // protected 
 bool maskingFunction(const vec3< LongReal>& r_ij,
-                    const unsigned int type_i, //type_m here?
+                    const unsigned int type_i, 
                     const quat<LongReal>& q_i,
-                    const unsigned int type_j,  //type_n here?
+                    const unsigned int type_j,
                     const quat<LongReal>& q_j)
     {
 
-    const auto& patch_m = m_patch[type_m]; 
-    const auto& patch_n = m_patch[type_n]; 
-    //const auto& patch_i = m_patch[type_i]; 
-    //const auto& patch_j = m_patch[type_j]; 
+    //const auto& patch_m = m_patches[type_i]; 
+    //const auto& patch_n = m_patches[type_j]; 
 
     LongReal cos_delta = cos(patch.delta);
 
@@ -46,16 +45,20 @@ bool maskingFunction(const vec3< LongReal>& r_ij,
     vec3<LongReal> ehat_i = rotate(q_i, ehat_particle_reference_frame);
     vec3<LongReal> ehat_j = rotate(q_j, ehat_particle_reference_frame);
 
-    LongReal r_ij_length = sqrtf(dot(r_ij, r_ij));
+    LongReal rhat_ij = sqrtf(dot(r_ij, r_ij));
 
-    if (dot(ehat_i, r_ij) >= cos_delta * r_ij_length
-        && dot(ehat_j, -r_ij) >= cos_delta * r_ij_length)
-        {
-        return true;
-        }
-    else
-        {
-        return false;
+    for (int m = 0; m < m_directors[type_i].size(); m++) {
+        for (int n = 0; n < m_directors[type_j].size(); n++) {
+            if (dot(ehat_i, r_ij) >= cos_delta * rhat_ij
+                && dot(ehat_j, -r_ij) >= cos_delta * rhat_ij)
+                {
+                return true;
+                }
+            else
+                {
+                return false;
+                }
+            }
         }
     }
     
@@ -87,6 +90,9 @@ it from elsewhere.
 -need to modify this section. Figure out what getTypeByName does. 
 - look into pybind11 documentation. 
 */
+
+void PairPotentialAngularStep::setPatch()
+
 
 void PairPotentialAngularStep::setParamsPython(pybind11::tuple typ, pybind11::dict params)
     {
