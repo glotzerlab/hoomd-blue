@@ -106,14 +106,6 @@ template<class Geometry> BounceBackNVE<Geometry>::~BounceBackNVE()
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
     {
-    if (m_aniso)
-        {
-        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with "
-                                     "bounce-back integrators."
-                                  << std::endl;
-        throw std::runtime_error("Anisotropic integration not supported with bounce-back");
-        }
-
     if (m_validate_geom)
         validate();
 
@@ -174,13 +166,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
     {
-    if (m_aniso)
-        {
-        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with "
-                                     "bounce-back integrators."
-                                  << std::endl;
-        throw std::runtime_error("Anisotropic integration not supported with bounce-back");
-        }
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);

@@ -166,7 +166,7 @@ class TestParallelPlates:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[-1.0, 1.0, -1.0], [1.0, 1.0, 1.0]])
 
-    def test_slip(self, simulation_factory, snap):
+    def test_step_slip(self, simulation_factory, snap):
         """Test step with slip boundary conditions."""
         if snap.communicator.rank == 0:
             snap.mpcd.N = 2

@@ -4,6 +4,7 @@ set(files __init__.py
     test_fill.py
     test_geometry.py
     test_integrator.py
+    test_methods.py
     test_snapshot.py
     test_stream.py
     test_tune.py
