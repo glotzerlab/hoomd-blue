@@ -18,15 +18,46 @@ PairPotentialAngularStep::PairPotentialAngularStep(std::shared_ptr<SystemDefinit
 std::shared_ptr<PairPotential> isotropic)
     : PairPotential(sysdef), 
     m_isotropic(isotropic),
-    //m_patches(sysdef->getParticleData()->getNTypes())
+    //m_directors(sysdef->getParticleData()->getNTypes())
     {
-    unsigned int ntypes = m_sysdef->getParticleData()->getNTypes()
+    //unsigned int ntypes = m_sysdef->getParticleData()->getNTypes()
+    //get patch index
+    unsigned int patch_index = 
+    m_directors.resize(patch_index)
+    m_delta.resize(patch_index)
         if (!m_isotropic)
         {
             raise std::runtime_error("Could not pass in the isotropic potential.");
         }
 
     }
+
+void PairPotentialAngularStep::setPatch(std::string patch_index, pybind11::object v)
+    {
+    unsigned int patch_index = 
+
+    if (v.is_none())
+        {
+        m_directors[patch_index].clear();
+        m_delta[patch_index].clear();
+        return;
+        }
+    pybind11::list directors = v["directors"];
+    pybind11::list deltas = v["deltas"];
+
+    auto N = pybind11::len(m_directors);
+
+    if (!deltas.is_none() && pybind11::len(deltas) != N)
+        {
+        throw std::runtime_error("the length of the delta list should match the length 
+                                    of the director list.");
+        }
+    }
+
+    m_directors[patch_index].resize(N);
+    m_deltas[patch_index].resize(N);
+    
+
 
 // protected 
 bool maskingFunction(const vec3< LongReal>& r_ij,
