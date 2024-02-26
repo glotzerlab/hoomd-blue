@@ -187,7 +187,33 @@ def test_get_set_body_params(pair_union_simulation_factory, union_potential):
     assert union_potential.body["A"]["charges"] == [0]
 
 
-# TODO test get/set leaf capacity and constituent potential properties
+@pytest.mark.cpu
+def test_get_set_properties(pair_union_simulation_factory, union_potential):
+    """Test getting/setting leaf capacity and constituent potential."""
+    # assert values are right on construction
+    assert union_potential.leaf_capacity == 0
+    lj = union_potential.constituent_potential
+    assert lj.params[('A', 'A')] == dict(epsilon=1.0,
+                                         sigma=1.0,
+                                         r_cut=2.0,
+                                         r_on=0.0)
+
+    # try to set params
+    with pytest.raises(AttributeError):
+        lj2 = hpmc.pair.LennardJones()
+        lj2.params[('A', 'A')] = dict(epsilon=0.5, sigma=2.0, r_cut=3.0)
+        union_potential.constituent_potential = lj2
+    union_potential.leaf_capacity = 3
+    assert union_potential.leaf_capacity == 3
+
+    # attach
+    union_potential.body["A"] = dict(types=["A"], positions=[(0, 0, 1)])
+    sim = pair_union_simulation_factory(union_potential)
+    sim.run(0)
+
+    # set after attaching
+    union_potential.leaf_capacity = 5
+    assert union_potential.leaf_capacity == 5
 
 
 @pytest.mark.cpu
