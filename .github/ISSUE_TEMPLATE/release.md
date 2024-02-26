@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release 4.x.y'
+title: 'Release 4.5.0'
 labels: ''
 assignees: 'joaander'
 
@@ -29,4 +29,4 @@ All releases:
 - [ ] Tag and push.
 - [ ] Update conda-forge recipe.
 - [ ] Update *glotzerlab-software*.
-- [ ] Announce release on mailing list.
+- [ ] Update *hoomd-component-template*.

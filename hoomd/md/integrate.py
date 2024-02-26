@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement MD Integrator."""
-
-import itertools
 
 import hoomd
 from hoomd.md import _md
@@ -94,18 +92,6 @@ class _DynamicIntegrator(BaseIntegrator):
     @methods.setter
     def methods(self, value):
         _set_synced_list(self._methods, value)
-
-    @property
-    def _children(self):
-        children = list(self.forces)
-        children.extend(self.constraints)
-        children.extend(self.methods)
-
-        for child in itertools.chain(self.forces, self.constraints,
-                                     self.methods):
-            children.extend(child._children)
-
-        return children
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":

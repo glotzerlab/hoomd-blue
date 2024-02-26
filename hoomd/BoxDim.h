@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxDim.h
@@ -609,24 +609,24 @@ struct
     //! Serialization method
     template<class Archive> void serialize(Archive& ar, const unsigned int version)
         {
-        ar& m_lo.x;
-        ar& m_lo.y;
-        ar& m_lo.z;
-        ar& m_hi.x;
-        ar& m_hi.y;
-        ar& m_hi.z;
-        ar& m_L.x;
-        ar& m_L.y;
-        ar& m_L.z;
-        ar& m_Linv.x;
-        ar& m_Linv.y;
-        ar& m_Linv.z;
-        ar& m_xy;
-        ar& m_xz;
-        ar& m_yz;
-        ar& m_periodic.x;
-        ar& m_periodic.y;
-        ar& m_periodic.z;
+        ar & m_lo.x;
+        ar & m_lo.y;
+        ar & m_lo.z;
+        ar & m_hi.x;
+        ar & m_hi.y;
+        ar & m_hi.z;
+        ar & m_L.x;
+        ar & m_L.y;
+        ar & m_L.z;
+        ar & m_Linv.x;
+        ar & m_Linv.y;
+        ar & m_Linv.z;
+        ar & m_xy;
+        ar & m_xz;
+        ar & m_yz;
+        ar & m_periodic.x;
+        ar & m_periodic.y;
+        ar & m_periodic.z;
         }
 #endif
 
