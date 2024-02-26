@@ -67,9 +67,9 @@ def pair_union_simulation_factory(simulation_factory,
                                   two_particle_snapshot_factory):
     """Make two particle sphere simulations with a union potential."""
 
-    def make_union_sim(union_potential, particle_types=['A'], d=1):
+    def make_union_sim(union_potential, particle_types=['A'], d=1, L=20):
         sim = simulation_factory(
-            two_particle_snapshot_factory(particle_types, d=d))
+            two_particle_snapshot_factory(particle_types, d=d, L=L))
         sphere = hpmc.integrate.Sphere()
         sphere.shape["A"] = dict(diameter=2.0)
         sphere.pair_potentials = [union_potential]
@@ -247,7 +247,8 @@ def test_energy(pair_union_simulation_factory, union_potential, leaf_capacity):
                                      positions=[(-1, 0, 0), (1, 0, 0)])
     sim = pair_union_simulation_factory(union_potential,
                                         particle_types=['A', 'B'],
-                                        d=3)
+                                        d=3,
+                                        L=30)
     sim.operations.integrator.shape["B"] = dict(diameter=2)
     sim.run(0)
 
