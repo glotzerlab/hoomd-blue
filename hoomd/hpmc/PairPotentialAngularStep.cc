@@ -3,10 +3,12 @@
 
 #include "PairPotentialAngularStep.h"
 
-/* The idea is that user can define the number of patches on a particle via defining
-the patch vectors. In addition, user can define the patch angles by providing a delta value 
-that represents the half opening angles of the patch.
-Is our conclusion from last meeting that there can only be multiple patch types on 1 particle?
+
+/* notes - delete later 
+-angular step potential: import the isotropic potential, if patch overlaps, the angular 
+step potential is exactly how the isotropic potential behaves. if patch does not overlap at all, 
+the angular potential is 0. 
+- user provide patch directors and half opening angle of the patch (delta)
 */
 
 namespace hoomd
@@ -34,7 +36,7 @@ std::shared_ptr<PairPotential> isotropic)
 
 void PairPotentialAngularStep::setPatch(std::string patch_index, pybind11::object v)
     {
-    unsigned int patch_index = 
+    unsigned int patch_index = ;
 
     if (v.is_none())
         {
@@ -56,8 +58,45 @@ void PairPotentialAngularStep::setPatch(std::string patch_index, pybind11::objec
 
     m_directors[patch_index].resize(N);
     m_deltas[patch_index].resize(N);
-    
 
+    for (unsigned int i = 0; i < N, i++)
+        {
+        pybind11::tuple r_python = directors[i];
+        if (pybind11::len(r_python) != 3)
+            {
+            throw std::length_error("directors must be a list of 3-tuples.");
+            }
+        m_directors[patch_index][i] = vec3<LongReal>(r_python[0].cast<LongReal>(),
+                                                     r_python[1].cast<LongReal>(),
+                                                     r_python[2].cast<LongReal>());
+        }
+    
+pybind11::object PairPotentialUnion::getPatch(std::string patch_index)
+    {
+    unsigned int patch_index = ;
+    size_t N = m_directors[patch_index].size();
+
+    if (N == 0)
+        {
+        return pybind11::none();
+        }
+
+    pybind11::list directors;
+    pybind11::list deltas;
+
+    for (unsigned int i = 0; i < N; i++)
+        {
+        directors.append(pybind11::make_tuple(m_directors[patch_index][i].x, //why .x? I thought [i] gives the x element
+                                              m_position[body_type_id][i].y,
+                                              m_position[body_type_id][i].z));
+        deltas.append(m_deltas[patch_index].s)
+        }
+
+    pybind11::dict v;
+    v["directors"] = directors;
+    v["deltas"] = deltas;
+    return std::move(v);
+    }
 
 // protected 
 bool maskingFunction(const vec3< LongReal>& r_ij,
@@ -67,10 +106,7 @@ bool maskingFunction(const vec3< LongReal>& r_ij,
                     const quat<LongReal>& q_j)
     {
 
-    //const auto& patch_m = m_patches[type_i]; 
-    //const auto& patch_n = m_patches[type_j]; 
-
-    LongReal cos_delta = cos(patch.delta);
+    LongReal cos_delta = cos(m_delta);
 
     const vec3<LongReal> ehat_particle_reference_frame(1,0,0);
     vec3<LongReal> ehat_i = rotate(q_i, ehat_particle_reference_frame);
@@ -113,45 +149,6 @@ virtual LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
 
     }
 
-/* -angular step potential: import the isotropic potential, if patch overlaps, the angular 
-step potential is exactly how the isotropic potential behaves. if patch does not overlap at all, 
-the angular potential is 0. 
--my understanding: we do not need to input the isotropic potential parameter, because we will get
-it from elsewhere.
--need to modify this section. Figure out what getTypeByName does. 
-- look into pybind11 documentation. 
-*/
-
-void PairPotentialAngularStep::setPatch()
-
-
-void PairPotentialAngularStep::setParamsPython(pybind11::tuple typ, pybind11::dict params)
-    {
-    auto pdata = m_sysdef->getParticleData();
-    auto type_m = pdata->getTypeByName(typ[0].cast<std::string>());
-    auto type_n = pdata->getTypeByName(typ[1].cast<std::string>());
-    m_patches[patch_m] = m_delta; // not sure how is delta represented here 
-    m_patches[patch_n] = m_delta; 
-    //auto type_i = pdata->getTypeByName(typ[0].cast<std::string>()); 
-    //auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
-    //unsigned int param_index_1 = m_type_param_index(type_i, type_j);
-    //m_param[param_index_1] = ParamType(params);
-    //unsigned int param_index_2 = m_type_param_index(type_j, type_i);
-    //m_param[param_index_2] = ParamType(params);
-    }
-
-pybind11::dict PairPotentialAngularStep::getParamsPython(pybind11::tuple typ)
-    {
-    auto pdata = m_sysdef->getParticleData();
-    auto type_m = pdata->getTypeByName(typ[0].cast<std::string>());
-    auto type_n = pdata->getTypeByName(typ[1].cast<std::string>());
-    return m_patches[patch].asDict();
-    //auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
-    //auto type_j = pdata->getTypeByName(typ[1].cast<std::string>());
-    //unsigned int param_index = m_type_param_index(type_i, type_j);
-    //return m_params[param_index].asDict();
-    }
-
 namespace detail
     {
 void exportPairPotentialAngularStep(pybind11::module& m)
@@ -160,8 +157,8 @@ void exportPairPotentialAngularStep(pybind11::module& m)
                      PairPotential,
                      std::shared_ptr<PairPotentialAngularStep>>(m, "PairPotentialAngularStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<PairPotential>>())
-        .def("setParams", &PairPotentialAngularStep::setParamsPython)
-        .def("getParams", &PairPotentialAngularStep::getParamsPython)
+        .def("setPatch", &PairPotentialAngularStep::setPatch)
+        .def("getPatch", &PairPotentialAngularStep::getPatch)
         .def_property("delta", &PairPotentialAngularStep::getDelta,
                       &PairPotentialAngularStep::setDelta) 
     }

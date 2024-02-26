@@ -22,12 +22,27 @@ class PairPotentialAngularStep : public hpmc::PairPotential
     std::shared_ptr<PairPotential> isotropic);
     virtual ~PairPotentialAngularStep() { }
 
+    void setPatch(std::string patch_index, pybind11:object v);
+
+    pybind11::object getPatch(std::string patch_index);
+
     bool maskingFunction(const vec3<LongReal>& r_ij,
                         const unsigned int type_i,
                         const quat<LongReal>& q_i,
                         const unsigned int type_j,
                         const quat<LongReal>& q_j);
 
+    /*** Evaluate the energy of the pair interaction
+        @param r_squared Pre-computed dot(r_ij, r_ij).
+        @param r_ij Vector pointing from particle i to j.
+        @param type_i Integer type index of particle i.
+        @param charge_i Charge of particle i.
+        @param q_i Orientation quaternion of particle i.
+        @param type_j Integer type index of particle j.
+        @param q_j Orientation quaternion of particle j.
+        @param charge_j Charge of particle j.
+        @returns Energy of the pair interaction.
+    */
 
     virtual LongReal energy(const LongReal r_squared,
                             const vec3<LongReal>& r_ij,
@@ -38,12 +53,12 @@ class PairPotentialAngularStep : public hpmc::PairPotential
                             const quat<LongReal>& q_j,
                             const LongReal charge_j) const;
 
-
-    /// Set type pair dependent parameters to the potential.
-    void setParamsPython(pybind11::tuple typ, pybind11::dict params);
-
-    /// Get type pair dependent parameters.
-    pybind11::dict getParamsPython(pybind11::tuple typ);
+    virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
+        {
+        // Pass on the non-additive r_cut from the isotropic (parent) potential.
+        return m_isotropic_potential->computeRCutNonAdditive(type_i, type_j);
+        }
+    
     void setDelta(LongReal delta){m_delta = delta;}
     LongReal getDelta(){return delta;}
 
@@ -54,7 +69,6 @@ class PairPotentialAngularStep : public hpmc::PairPotential
     /// Type pair parameters of potential
     std:vector<std::vector<vec3<LongReal>>> m_directors;
     <std::vector<vec3<LongReal>> m_delta;
-
 
     };
 

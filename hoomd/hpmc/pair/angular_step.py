@@ -8,12 +8,12 @@
     simulation = hoomd.util.make_example_simulation()
     sphere = hoomd.hpmc.integrate.Sphere()
     sphere.shape['A'] = dict(diameter=0.0)
+    sphere.shape['B'] = dict(diameter=0.0)
     simulation.operations.integrator = sphere
 
     pair =  hoomd.hpmc.pair.AngularStep()
-    pair.patch[('m')] = dict(delta=0.1)
-    pair.patch[('n')] = dict(delta=0.2)
-
+    pair.patch['A'] = {'directors', [(0.1, 0.1, 0.1), (0.1, 0.1, -0.1)], 
+                       'deltas', [0.1, 0.2]}  
     logger = hoomd.logging.Logger()
 """
 
