@@ -15,6 +15,7 @@ set(files __init__.py
           test_move_size_tuner.py
           test_pair_lennard_jones.py
           test_pair_user.py
+          test_pair_union.py
           test_pair_union_user.py
           test_quick_compress.py
           test_scale.py

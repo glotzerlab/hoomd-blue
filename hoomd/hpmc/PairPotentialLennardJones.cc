@@ -65,7 +65,7 @@ void PairPotentialLennardJones::setParamsPython(pybind11::tuple typ, pybind11::d
     unsigned int param_index_2 = m_type_param_index(type_j, type_i);
     m_params[param_index_2] = ParamType(params);
 
-    setRCutNonAdditive(type_i, type_j, params["r_cut"].cast<LongReal>());
+    notifyRCutChanged();
     }
 
 pybind11::dict PairPotentialLennardJones::getParamsPython(pybind11::tuple typ)

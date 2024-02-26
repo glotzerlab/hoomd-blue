@@ -30,3 +30,4 @@ Define :math:`U_{\\mathrm{pair},ij}` for use with `HPMCIntegrator
 from . import user
 from .pair import Pair
 from .lennard_jones import LennardJones
+from .union import Union

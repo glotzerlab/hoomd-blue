@@ -39,7 +39,6 @@ set(_hpmc_sources   module.cc
                     ExternalFieldWall.cc
                     PairPotential.cc
                     PairPotentialLennardJones.cc
-                    PairPotentialAngularStep.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
@@ -79,7 +78,11 @@ set(_hpmc_headers
     OBBTree.h
     PairPotential.h
     PairPotentialLennardJones.h
+<<<<<<< HEAD
     PairPotentialAngularStep.h
+=======
+    PairPotentialUnion.h
+>>>>>>> remotes/origin/hpmc-union-potential
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
