@@ -22,19 +22,9 @@ PairPotentialUnion::PairPotentialUnion(std::shared_ptr<SystemDefinition> sysdef,
     m_tree.resize(ntypes);
     }
 
-void PairPotentialUnion::setBody(std::string body_type, pybind11::object v)
+void PairPotentialUnion::setBody(std::string body_type, pybind11::dict v)
     {
     unsigned int body_type_id = m_sysdef->getParticleData()->getTypeByName(body_type);
-
-    if (v.is_none())
-        {
-        m_extent_type[body_type_id] = 0;
-        m_position[body_type_id].clear();
-        m_orientation[body_type_id].clear();
-        m_charge[body_type_id].clear();
-        m_type[body_type_id].clear();
-        return;
-        }
 
     pybind11::list positions = v["positions"];
     pybind11::object types_obj = v["types"];
@@ -126,10 +116,6 @@ pybind11::object PairPotentialUnion::getBody(std::string body_type)
     {
     unsigned int body_type_id = m_sysdef->getParticleData()->getTypeByName(body_type);
     size_t N = m_position[body_type_id].size();
-    if (N == 0)
-        {
-        return pybind11::none();
-        }
 
     pybind11::list positions;
     pybind11::list orientations;
