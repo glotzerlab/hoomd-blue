@@ -69,8 +69,23 @@ class PairPotentialUnion : public hpmc::PairPotential
     /// Compute the non-additive cuttoff radius
     virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
         {
-        // Pass on the non-additive r_cut from the constituent potential.
-        return m_constituent_potential->computeRCutNonAdditive(type_i, type_j);
+        // The non-additive part of the union r_cut is the maximum of the constituent non-additive
+        // r_cuts over type pairs that interact between two union particles of type_i and type_j
+
+        LongReal r_cut = 0;
+
+        for (auto& constituent_type_i : m_type[type_i])
+            {
+            for (auto& constituent_type_j : m_type[type_j])
+                {
+                r_cut
+                    = std::max(r_cut,
+                               m_constituent_potential->computeRCutNonAdditive(constituent_type_i,
+                                                                               constituent_type_j));
+                }
+            }
+
+        return r_cut;
         }
 
     /// Returns the additive part of the cutoff distance for a given type.
@@ -165,7 +180,8 @@ class PairPotentialUnion : public hpmc::PairPotential
                 vec3<LongReal> constituent_r_ij = m_position[type_j][j] - constituent_position_i;
 
                 LongReal rsq = dot(constituent_r_ij, constituent_r_ij);
-                if (rsq < m_constituent_potential->getRCutSquaredTotal(type_i, type_j))
+                if (rsq < m_constituent_potential->getRCutSquaredTotal(constituent_type_i,
+                                                                       constituent_type_j))
                     {
                     energy += m_constituent_potential->energy(rsq,
                                                               constituent_r_ij,
