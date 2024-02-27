@@ -56,7 +56,7 @@ class Union(Pair):
     :math:`U_\mathrm{constituent}` also depends on the constituent particle
     types and charges (not shown in the equation).
 
-    See also:
+    See Also:
         `hoomd.md.constrain.Rigid` implements a similar evaluation for MD
         simulations.
 
@@ -132,15 +132,14 @@ class Union(Pair):
     def __init__(self, constituent_potential, leaf_capacity=0):
         body = TypeParameter(
             'body', 'particle_types',
-            TypeParameterDict(OnlyIf(to_type_converter(dict(
-                              types=[str],
-                              positions=[(float,) * 3],
-                              orientations=OnlyIf(to_type_converter([
-                                  (float,) * 4
-                              ]),
-                                                  allow_none=True),
-                              charges=OnlyIf(to_type_converter([float]),
-                                             allow_none=True))), allow_none=True),
+            TypeParameterDict(OnlyIf(to_type_converter(
+                dict(types=[str],
+                     positions=[(float,) * 3],
+                     orientations=OnlyIf(to_type_converter([(float,) * 4]),
+                                         allow_none=True),
+                     charges=OnlyIf(to_type_converter([float]),
+                                    allow_none=True))),
+                                     allow_none=True),
                               len_keys=1,
                               _defaults={
                                   'orientations': None,
