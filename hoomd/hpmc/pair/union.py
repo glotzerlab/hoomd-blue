@@ -34,15 +34,15 @@ class Union(Pair):
             apply between constituent points.
 
         leaf_capacity (int):  Maximum number of leaf nodes in the tree data
-            structure used by this class. The default``leaf_capacity=0`` uses an
-            all N*M code path.
+            structure used by this class. The default ``leaf_capacity=0`` uses
+            an all N*M code path.
 
     `Union` computes the potential energy between sets of constituent points
-    that rigidly transform about each particle. The union potential betwee
+    that rigidly transform about each particle. The union potential between
     a pair of particles is:
 
     .. math::
-        U(\vec{r}_ij, \mathbf{q}_i, \mathbf{q}_j)) =
+        U(\vec{r}_{ij}, \mathbf{q}_i, \mathbf{q}_j)) =
         \sum_{a=1}^{N_{\mathrm{patches},i}} \sum_{b=1}^{N_{\mathrm{patches},j}}
         U_\mathrm{constituent}(\mathbf{q}_j \vec{P}_{j,b} \mathbf{q}_j^* -
         \vec{P}_{i,a},
@@ -82,14 +82,14 @@ class Union(Pair):
         union = hoomd.hpmc.pair.Union(constituent_potential=lennard_jones)
         union.body['R'] = dict(types=['A', 'A', 'A'],
                                positions=[(-1,0,0), (0,0,0), (1,0,0)])
-        union.body['A'] = dict(types=[], positions=[])
+        union.body['A'] = None
 
         simulation.operations.integrator.pair_potentials = [union]
 
     The particle types used as constituents must be particle types present in
     the system state, even when there are no actual particles of that type.
-    As shown above, set the body for constituent types to
-    ``dict(types=[], positions=[])``.
+    As shown above, set the body for constituent types to ``None`` (which is
+    equivalent to ``dict(types=[], positions=[])``).
 
     .. py:attribute:: body
 
@@ -114,26 +114,33 @@ class Union(Pair):
         - ``charges`` (`list` [`float`]): List of charges of constituent points
           (optional, defaults to ``[0] * len(positions)``).
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_type``, `dict`] or `None`
 
     Attributes:
         leaf_capacity (int):
             Maximum number of leaf nodes in the tree data structure used by this
             class. Set ``leaf_capacity=0`` to use an all N*M code path.
+
+            .. rubric:: Example
+
+            .. code-block:: python
+
+                union.leaf_capacity = 4
     """
     _cpp_class_name = "PairPotentialUnion"
 
     def __init__(self, constituent_potential, leaf_capacity=0):
         body = TypeParameter(
             'body', 'particle_types',
-            TypeParameterDict(types=[str],
+            TypeParameterDict(OnlyIf(to_type_converter(dict(
+                              types=[str],
                               positions=[(float,) * 3],
                               orientations=OnlyIf(to_type_converter([
                                   (float,) * 4
                               ]),
                                                   allow_none=True),
                               charges=OnlyIf(to_type_converter([float]),
-                                             allow_none=True),
+                                             allow_none=True))), allow_none=True),
                               len_keys=1,
                               _defaults={
                                   'orientations': None,
@@ -153,7 +160,14 @@ class Union(Pair):
 
     @property
     def constituent_potential(self):
-        """hpmc.pair.Pair: Interactions between constituent points."""
+        """hpmc.pair.Pair: Interactions between constituent points.
+
+        .. rubric:: Example
+
+        .. code-block:: python
+
+            union.constituent_potential
+        """
         return self._constituent_potential
 
     def _attach_hook(self):

@@ -66,6 +66,8 @@ class LennardJones(Pair):
         The energy shifting/smoothing mode: Possible values are:
         ``"none"``, ``"shift"``, and ``"xplor"``.
 
+        .. rubric:: Example
+
         .. code-block:: python
 
             lennard_jones.mode = 'shift'
