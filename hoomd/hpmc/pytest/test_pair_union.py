@@ -159,8 +159,8 @@ def test_get_set_body_params(pair_union_simulation_factory, union_potential):
     union_potential.body["A"] = body_dict
     assert union_potential.body["A"]["positions"] == body_dict["positions"]
     assert union_potential.body["A"]["types"] == body_dict["types"]
-    assert union_potential.body["A"]["orientations"] is None
-    assert union_potential.body["A"]["charges"] is None
+    assert 'orientations' not in union_potential.body["A"]
+    assert 'charges' not in union_potential.body["A"]
 
     # after attaching, setting as dict
     sim = pair_union_simulation_factory(union_potential)
