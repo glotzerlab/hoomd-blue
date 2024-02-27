@@ -40,7 +40,7 @@ class PairPotentialUnion : public hpmc::PairPotential
         }
 
     /// Set union body parameters
-    void setBody(std::string body_type, pybind11::dict v);
+    void setBody(std::string body_type, pybind11::object v);
 
     /// Get union body parameters
     pybind11::object getBody(std::string body_type);
