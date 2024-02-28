@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Deprecated
@@ -39,3 +39,11 @@ documentation for more information on warning filters.
 * ``_InternalCustomTuner.tune`` (since 4.5.0)
 * ``_InternalCustomWriter.write`` (since 4.5.0)
 * ``HDF5Log.write`` (since 4.5.0)
+* Single-process multi-GPU code path (since 4.5.0)
+* ``gpu_ids`` argument to ``GPU`` (since 4.5.0)
+
+  * Use ``gpu_id``.
+
+* ``GPU.devices`` (since 4.5.0)
+
+  * Use ``device``.
