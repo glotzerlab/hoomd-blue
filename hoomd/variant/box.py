@@ -35,7 +35,7 @@ class BoxVariant(_hoomd.VectorVariantBox):
         :param timestep: The time step.
         :type timestep: int
         :return: The value of the function at the given time step.
-        :rtype: list[float]
+        :rtype: [float, float, float, float, float, float]
     """
     pass
 
