@@ -10,11 +10,32 @@ from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
 class BoxVariant(_hoomd.VectorVariantBox):
     """Box-like vector variant base class.
 
-    `hoomd.variant.box.BoxVariant` provides an interface to length-6 vector
-    variants that are valid `hoomd.box.box_like` objects.  The return value of
-    the ``__call__`` method returns a length-6 array of scalar values that
-    represent the quantities ``Lx``, ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz``
-    of a simulation box.
+    `hoomd.variant.box.BoxVariant` provides an interface to vector variants that
+    are valid `hoomd.box.box_like` objects.  The return value of the
+    `__call__` method is a list of scalar values that represent the
+    quantities ``Lx``, ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` of a
+    simulation box.
+
+    Subclasses should override the `__call__` method and must explicitly call
+    the base class constructor in ``__init__``:
+
+    .. code-block:: python
+
+        class CustomBoxVariant(hoomd.variant.box.BoxVariant):
+            def __init__(self):
+                hoomd.variant.box.BoxVariant.__init__(self)
+
+            def __call__(self, timestep):
+                return [10 + timestep/1e6, 10, 10, 0, 0, 0]
+
+    .. py:method:: __call__(timestep)
+
+        Evaluate the function.
+
+        :param timestep: The time step.
+        :type timestep: int
+        :return: The value of the function at the given time step.
+        :rtype: list[float]
     """
     pass
 
@@ -99,7 +120,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
     @property
     def final_box(self):
-        """hoomd.Box: the final box."""
+        """hoomd.Box: The final box."""
         return Box._from_cpp(self._final_box)
 
     @final_box.setter
