@@ -38,6 +38,7 @@
 #include "Updater.h"
 #include "UpdaterRemoveDrift.h"
 #include "Variant.h"
+#include "VectorVariant.h"
 
 // ParticleFilter objects
 #include "filter/export_filters.h"
@@ -352,6 +353,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // variant
     export_Variant(m);
+
+    // vector variant
+    export_VectorVariantBoxClasses(m);
 
     // messenger
     export_Messenger(m);

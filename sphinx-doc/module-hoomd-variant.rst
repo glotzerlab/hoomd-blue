@@ -39,3 +39,11 @@ hoomd.variant
     .. autoclass:: Variant()
         :members: min, max, __getstate__, __setstate__
     .. autodata:: variant_like
+
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 1
+
+   module-hoomd-variant-box

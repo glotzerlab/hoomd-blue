@@ -95,6 +95,7 @@ set(_hoomd_sources Action.cc
                    Tuner.cc
                    Updater.cc
                    Variant.cc
+                   VectorVariant.cc
                    extern/BVLSSolver.cc
                    extern/gsd.c
                    extern/kiss_fft.cc
@@ -187,6 +188,7 @@ set(_hoomd_headers
     TextureTools.h
     Updater.h
     Variant.h
+    VectorVariant.h
     VectorMath.h
     WarpTools.cuh
     )
@@ -352,7 +354,6 @@ set(files box.py
           operations.py
           pytest_plugin_validate.py
           util.py
-          variant.py
           simulation.py
           state.py
           trigger.py
@@ -384,6 +385,7 @@ add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)
 add_subdirectory(update)
+add_subdirectory(variant)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
