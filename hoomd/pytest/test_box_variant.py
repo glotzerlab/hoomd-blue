@@ -101,11 +101,11 @@ def test_custom():
         return hoomd._hoomd._test_vector_variant_box_call(
             custom_variant, timestep)
 
-    for _t, _f in ((0, 0), (42, 0), (100, 0), (101, 0.01), (150, 0.5),
+    for t, f in ((0, 0), (42, 0), (100, 0), (101, 0.01), (150, 0.5),
                    (175, 0.75), (199, 0.99), (200, 1.0), (250, 1.0), (123456789,
                                                                       1.0)):
-        test_box.volume = (1 - _f) * _test_box1.volume + _f * final_volume
-        npt.assert_allclose(box_t(custom_variant, _t), box_to_array(test_box))
+        test_box.volume = (1 - f) * _test_box1.volume + f * final_volume
+        npt.assert_allclose(box_t(custom_variant, t), box_to_array(test_box))
 
 
 def test_interpolate_evaluation():
@@ -165,8 +165,5 @@ def test_inverse_volume_ramp_evaluation():
     npt.assert_allclose(get_volume(variant, 110), final_volume)
     npt.assert_allclose(get_volume(variant, 1010), final_volume)
     # make sure tilts don't change
-    npt.assert_allclose(box1.tilts, variant(0)[3:])
-    npt.assert_allclose(box1.tilts, variant(5)[3:])
-    npt.assert_allclose(box1.tilts, variant(25)[3:])
-    npt.assert_allclose(box1.tilts, variant(125)[3:])
-    npt.assert_allclose(box1.tilts, variant(625)[3:])
+    for step in (0, 5, 252 125, 625):
+        npt.assert_allclose(box1.tilts, variant(step)[3:])
