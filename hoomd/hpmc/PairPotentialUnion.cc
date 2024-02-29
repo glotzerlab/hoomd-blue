@@ -138,7 +138,7 @@ pybind11::object PairPotentialUnion::getBody(std::string body_type)
     v["positions"] = positions;
     v["orientations"] = orientations;
     v["charges"] = charges;
-    return std::move(v);
+    return v;
     }
 
 void PairPotentialUnion::updateExtent(unsigned int type_id)
