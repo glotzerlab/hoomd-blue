@@ -34,6 +34,11 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         `Pair` should not be instantiated directly by users.
     """
 
+    def _make_cpp_obj(self):
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
+        return cls(cpp_sys_def)
+
     def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, hoomd.hpmc.integrate.HPMCIntegrator):
@@ -47,12 +52,7 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         if isinstance(device, hoomd.device.GPU):
             raise RuntimeError("Not implemented on the GPU")
 
-        # Default cpp obj instantiation. Subclasses can override by setting
-        # _cpp_obj before calling super()._attach_hook().
-        if getattr(self, "_cpp_obj", None) is None:
-            cpp_sys_def = self._simulation.state._cpp_sys_def
-            cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
-            self._cpp_obj = cls(cpp_sys_def)
+        self._cpp_obj = self._make_cpp_obj()
 
         super()._attach_hook()
 
