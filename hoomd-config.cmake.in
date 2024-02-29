@@ -37,26 +37,8 @@ set(HOOMD_INSTALL_PREFIX "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 set(PYTHON_SITE_INSTALL_DIR "@PYTHON_SITE_INSTALL_DIR@")
 
 # configure python
-set(PYBIND11_PYTHON_VERSION 3)
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.15)
-    set(Python_FIND_UNVERSIONED_NAMES "FIRST")
-    find_package(Python REQUIRED COMPONENTS Interpreter Development)
-
-    set(PYTHON_SITE_PACKAGES ${Python_SITEARCH})
-
-    if (Python_FOUND)
-        execute_process(COMMAND ${Python_EXECUTABLE} "-c" "import sys; print(sys.prefix, end='')"
-                        RESULT_VARIABLE _success
-                        OUTPUT_VARIABLE PYTHON_PREFIX
-                        ERROR_VARIABLE _error)
-
-        if(NOT _success MATCHES 0)
-            message(FATAL_ERROR "Unable to determine python prefix: \n${_error}")
-        endif()
-
-    endif()
-endif()
-
+set(Python_FIND_UNVERSIONED_NAMES "FIRST")
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 2.2 CONFIG REQUIRED)
 find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
 

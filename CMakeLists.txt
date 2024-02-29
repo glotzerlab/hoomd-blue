@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9...3.27 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15...3.27 FATAL_ERROR)
 # >= 3.8 is required for CUDA language support
 # >= 3.9 is required for MPI::MPI_CXX target
 

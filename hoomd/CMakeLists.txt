@@ -231,7 +231,7 @@ endif (ENABLE_HIP)
 
 #########################
 ## Build the module
-pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
+hoomd_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
@@ -239,11 +239,7 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 # Work around support for the delete operator with pybind11 and older versions of clang
 # https://github.com/pybind/pybind11/issues/1604
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.11)
-        target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
-    else()
-        target_compile_options(_hoomd PUBLIC -fsized-deallocation)
-    endif()
+    target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
 endif()
 
 # add quick hull as its own library so that it's symbols can be public
