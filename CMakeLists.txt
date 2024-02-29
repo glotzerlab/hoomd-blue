@@ -116,12 +116,13 @@ include (HOOMDHIPSetup)
 
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-include (hoomd-macros)
 
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
+
+include (hoomd-macros)
 
 if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     option(BUILD_MPCD "Build the mpcd package" on)
