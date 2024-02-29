@@ -61,6 +61,8 @@ Change Log
   (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
 * ``HPMCIntegrator.pair_potential`` - Use compiled potentials with ``pair_potentials``
   (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+* Single-process multi-gpu code path
+  (`#1706 <https://github.com/glotzerlab/hoomd-blue/pull/1706>`__).
 
 *Changed*
 
