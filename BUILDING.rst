@@ -200,9 +200,10 @@ Options that find libraries and executables only take effect on a clean invocati
 these options, first remove ``CMakeCache.txt`` from the build directory and then run ``cmake`` with
 these options on the command line.
 
-- ``PYTHON_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
+- ``Python_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
 
-  - Default: ``python3.X`` detected on ``$PATH``.
+  - Default: ``python3.x`` found by `CMake's FindPython
+    <https://cmake.org/cmake/help/latest/module/FindPython.html>`__.
 
 - ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` or ``hipcc`` to build with.
 

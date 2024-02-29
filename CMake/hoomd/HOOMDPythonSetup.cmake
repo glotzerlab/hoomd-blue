@@ -1,4 +1,22 @@
 set(PYBIND11_PYTHON_VERSION 3)
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.15)
+    set(Python_FIND_UNVERSIONED_NAMES "FIRST")
+    find_package(Python REQUIRED COMPONENTS Interpreter Development)
+
+    set(PYTHON_SITE_PACKAGES ${Python_SITEARCH})
+
+    if (Python_FOUND)
+        execute_process(COMMAND ${Python_EXECUTABLE} "-c" "import sys; print(sys.prefix, end='')"
+                        RESULT_VARIABLE _success
+                        OUTPUT_VARIABLE PYTHON_PREFIX
+                        ERROR_VARIABLE _error)
+
+        if(NOT _success MATCHES 0)
+            message(FATAL_ERROR "Unable to determine python prefix: \n${_error}")
+        endif()
+
+    endif()
+endif()
 find_package(pybind11 2.2 CONFIG REQUIRED)
 
 if (pybind11_FOUND)

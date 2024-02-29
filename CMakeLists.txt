@@ -1,6 +1,10 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9...3.27 FATAL_ERROR)
 # >= 3.8 is required for CUDA language support
 # >= 3.9 is required for MPI::MPI_CXX target
+
+# Search for Python and other libraries in unix-like locations first and frameworks last.
+# This allows FindPython to find virtual environment Pythons before a homebrew or system Pythons.
+set(CMAKE_FIND_FRAMEWORK LAST)
 
 project (HOOMD LANGUAGES C CXX)
 
