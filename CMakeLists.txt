@@ -162,7 +162,7 @@ endif()
 
 #######################
 ## Get the compile date
-execute_process(COMMAND "date" "+%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
+execute_process(COMMAND "date" "+%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 ################################
 # set up unit tests
