@@ -38,24 +38,8 @@ void PairPotentialUnion::setBody(std::string body_type, pybind11::object v)
 
     pybind11::list positions = v["positions"];
     pybind11::object types_obj = v["types"];
-    pybind11::object orientations;
-    pybind11::object charges;
-    if (v.contains("orientations"))
-        {
-        orientations = v["orientations"];
-        }
-    else
-        {
-        orientations = pybind11::none();
-        }
-    if (v.contains("charges"))
-        {
-        charges = v["charges"];
-        }
-    else
-        {
-        charges = pybind11::none();
-        }
+    pybind11::object orientations = v.contains("orientations") ? v["orientations"] : pybind11:none();
+    pybind11::object charges = v.contains("charges") ? v["charges"] : pybind11::none();
 
     auto N = pybind11::len(positions);
     // Ensure proper list lengths

@@ -199,9 +199,9 @@ def test_get_set_properties(pair_union_simulation_factory, union_potential):
                                          r_on=0.0)
 
     # try to set params
+    lj2 = hpmc.pair.LennardJones()
+    lj2.params[('A', 'A')] = dict(epsilon=0.5, sigma=2.0, r_cut=3.0)
     with pytest.raises(AttributeError):
-        lj2 = hpmc.pair.LennardJones()
-        lj2.params[('A', 'A')] = dict(epsilon=0.5, sigma=2.0, r_cut=3.0)
         union_potential.constituent_potential = lj2
     union_potential.leaf_capacity = 3
     assert union_potential.leaf_capacity == 3
