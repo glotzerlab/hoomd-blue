@@ -40,22 +40,3 @@ if((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR "${_python_prefix}" STREQUAL 
 endif()
 
 find_package_message(hoomd_install "Installing hoomd python module to: ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}" "[${CMAKE_INSTALL_PREFIX}][${PYTHON_SITE_INSTALL_DIR}]")
-
-# hoomd_add_module links shared libraries to libpython, which breaks lots of things
-function(hoomd_add_module target_name)
-    cmake_parse_arguments(PARSE_ARGV 1 ARG "STATIC;SHARED;MODULE;NO_EXTRAS" "" "")
-
-    if(ARG_STATIC)
-        set(lib_type STATIC)
-    elseif(ARG_SHARED)
-        set(lib_type SHARED)
-    else()
-        set(lib_type MODULE)
-    endif()
-
-    add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
-    target_link_libraries(${target_name} PRIVATE pybind11::module)
-    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
-    pybind11_extension(${target_name})
-endfunction()
