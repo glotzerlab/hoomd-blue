@@ -158,7 +158,7 @@ endif()
 
 #######################
 ## Get the compile date
-exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
+execute_process(COMMAND "date" "+%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
 
 ################################
 # set up unit tests
