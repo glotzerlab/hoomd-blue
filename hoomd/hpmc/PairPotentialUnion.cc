@@ -168,10 +168,9 @@ LongReal PairPotentialUnion::computeRCutNonAdditive(unsigned int type_i, unsigne
         {
         for (auto& constituent_type_j : m_type[type_j])
             {
-            r_cut
-                = std::max(r_cut,
-                            m_constituent_potential->computeRCutNonAdditive(constituent_type_i,
-                                                                            constituent_type_j));
+            r_cut = std::max(r_cut,
+                             m_constituent_potential->computeRCutNonAdditive(constituent_type_i,
+                                                                             constituent_type_j));
             }
         }
 
