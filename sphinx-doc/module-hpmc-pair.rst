@@ -13,6 +13,7 @@ hoomd.hpmc.pair
 
     LennardJones
     Pair
+    Step
     Union
 
 .. rubric:: Details
@@ -22,6 +23,7 @@ hoomd.hpmc.pair
     :show-inheritance:
     :members: LennardJones,
               Pair,
+              Step,
               Union
 
 .. rubric:: Modules

@@ -46,6 +46,8 @@ void exportPairPotential(pybind11::module& m);
 
 void exportPairPotentialLennardJones(pybind11::module& m);
 
+void exportPairPotentialStep(pybind11::module& m);
+
 void exportPairPotentialUnion(pybind11::module& m);
     } // namespace detail
     } // namespace hpmc
@@ -144,6 +146,7 @@ PYBIND11_MODULE(_hpmc, m)
 
     exportPairPotential(m);
     exportPairPotentialLennardJones(m);
+    exportPairPotentialStep(m);
     exportPairPotentialUnion(m);
     }
 
