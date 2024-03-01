@@ -76,7 +76,11 @@ def test_invalid_params_on_attach(mc_simulation_factory, parameters):
     simulation.operations.integrator.pair_potentials = [lennard_jones]
     simulation.run(0)
 
-    with pytest.raises((RuntimeError, hoomd.error.TypeConversionError, KeyError)):
+    with pytest.raises((
+            RuntimeError,
+            hoomd.error.TypeConversionError,
+            KeyError,
+    )):
         lennard_jones.params[('A', 'A')] = parameters
 
 

@@ -21,9 +21,9 @@ from hoomd.data.typeconverter import OnlyIf, to_type_converter
 class Step(Pair):
     r"""Step function pair potential (HPMC).
 
-    `Step` computes a user-defined step function pair potential between every pair
-    of particles in the simulation state. The functional form of the potential
-    is:
+    `Step` computes a user-defined step function pair potential between every
+    pair of particles in the simulation state. The functional form of the
+    potential is:
 
     .. math::
 
@@ -62,8 +62,11 @@ class Step(Pair):
     def __init__(self):
         params = hoomd.data.typeparam.TypeParameter(
             'params', 'particle_types',
-            hoomd.data.parameterdicts.TypeParameterDict(OnlyIf(to_type_converter({
-                'epsilon': [float],
-                'r': [float],}), allow_none=True),
-                len_keys=2))
+            hoomd.data.parameterdicts.TypeParameterDict(OnlyIf(
+                to_type_converter({
+                    'epsilon': [float],
+                    'r': [float],
+                }),
+                allow_none=True),
+                                                        len_keys=2))
         self._add_typeparam(params)

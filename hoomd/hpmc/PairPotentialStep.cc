@@ -19,7 +19,7 @@ LongReal PairPotentialStep::computeRCutNonAdditive(unsigned int type_i, unsigned
     size_t n = m_params[param_index].m_r_squared.size();
     if (n > 0)
         {
-        return slow::sqrt(m_params[param_index].m_r_squared[n-1]);
+        return slow::sqrt(m_params[param_index].m_r_squared[n - 1]);
         }
     else
         {
@@ -28,13 +28,13 @@ LongReal PairPotentialStep::computeRCutNonAdditive(unsigned int type_i, unsigned
     }
 
 LongReal PairPotentialStep::energy(const LongReal r_squared,
-                                           const vec3<LongReal>& r_ij,
-                                           const unsigned int type_i,
-                                           const quat<LongReal>& q_i,
-                                           const LongReal charge_i,
-                                           const unsigned int type_j,
-                                           const quat<LongReal>& q_j,
-                                           const LongReal charge_j) const
+                                   const vec3<LongReal>& r_ij,
+                                   const unsigned int type_i,
+                                   const quat<LongReal>& q_i,
+                                   const LongReal charge_i,
+                                   const unsigned int type_j,
+                                   const quat<LongReal>& q_j,
+                                   const LongReal charge_j) const
     {
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
@@ -149,9 +149,9 @@ namespace detail
     {
 void exportPairPotentialStep(pybind11::module& m)
     {
-    pybind11::class_<PairPotentialStep,
-                     PairPotential,
-                     std::shared_ptr<PairPotentialStep>>(m, "PairPotentialStep")
+    pybind11::class_<PairPotentialStep, PairPotential, std::shared_ptr<PairPotentialStep>>(
+        m,
+        "PairPotentialStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialStep::setParamsPython)
         .def("getParams", &PairPotentialStep::getParamsPython);

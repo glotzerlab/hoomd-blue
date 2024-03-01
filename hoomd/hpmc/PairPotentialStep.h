@@ -39,13 +39,10 @@ class PairPotentialStep : public hpmc::PairPotential
     pybind11::dict getParamsPython(pybind11::tuple typ);
 
     protected:
-
     /// Type pair parameters of LJ potential
     struct ParamType
         {
-        ParamType()
-            {
-            }
+        ParamType() { }
 
         /// Construct a parameter set from a dictionary.
         ParamType(pybind11::dict v);

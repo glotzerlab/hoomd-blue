@@ -74,7 +74,11 @@ def test_invalid_params_on_attach(mc_simulation_factory, parameters):
     simulation.operations.integrator.pair_potentials = [step]
     simulation.run(0)
 
-    with pytest.raises((RuntimeError, hoomd.error.TypeConversionError, KeyError)):
+    with pytest.raises((
+            RuntimeError,
+            hoomd.error.TypeConversionError,
+            KeyError,
+    )):
         step.params[('A', 'A')] = parameters
 
 
@@ -145,8 +149,7 @@ step_test_parameters = [
 ]
 
 
-@pytest.mark.parametrize('params, d, expected_energy',
-                         step_test_parameters)
+@pytest.mark.parametrize('params, d, expected_energy', step_test_parameters)
 @pytest.mark.cpu
 def test_energy(mc_simulation_factory, params, d, expected_energy):
     """Test that Step computes the correct energies for 1 pair."""
@@ -157,8 +160,7 @@ def test_energy(mc_simulation_factory, params, d, expected_energy):
     simulation.operations.integrator.pair_potentials = [step]
     simulation.run(0)
 
-    assert step.energy == pytest.approx(expected=expected_energy,
-                                                 rel=1e-5)
+    assert step.energy == pytest.approx(expected=expected_energy, rel=1e-5)
 
 
 def test_logging():
