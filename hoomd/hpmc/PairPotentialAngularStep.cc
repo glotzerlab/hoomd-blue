@@ -17,37 +17,34 @@ namespace hpmc
     { 
 
 PairPotentialAngularStep::PairPotentialAngularStep(std::shared_ptr<SystemDefinition> sysdef, 
-std::shared_ptr<PairPotential> isotropic)
+std::shared_ptr<PairPotential> isotropic_potential)
     : PairPotential(sysdef), 
-    m_isotropic(isotropic),
-    //m_directors(sysdef->getParticleData()->getNTypes())
+    m_isotropic_potential(isotropic_potential)
     {
-    //unsigned int ntypes = m_sysdef->getParticleData()->getNTypes()
-    //get patch index
-    unsigned int patch_index = 
-    m_directors.resize(patch_index)
-    m_delta.resize(patch_index)
-        if (!m_isotropic)
+    unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
+    m_directors.resize(ntypes);
+    m_delta.resize(ntypes);
+
+        if (!m_isotropic_potential)
         {
             raise std::runtime_error("Could not pass in the isotropic potential.");
         }
-
     }
 
-void PairPotentialAngularStep::setPatch(std::string patch_index, pybind11::object v)
+void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::object v)
     {
-    unsigned int patch_index = ;
+    unsigned int particle_type_id = m_sysdef->getParticleData()->getTypeByName(particle_type);
 
     if (v.is_none())
         {
-        m_directors[patch_index].clear();
-        m_delta[patch_index].clear();
+        m_directors[particle_type_id].clear();
+        m_delta[particle_type_id].clear();
         return;
         }
     pybind11::list directors = v["directors"];
     pybind11::list deltas = v["deltas"];
 
-    auto N = pybind11::len(m_directors);
+    auto N = pybind11::len(directors);
 
     if (!deltas.is_none() && pybind11::len(deltas) != N)
         {
@@ -56,25 +53,35 @@ void PairPotentialAngularStep::setPatch(std::string patch_index, pybind11::objec
         }
     }
 
-    m_directors[patch_index].resize(N);
-    m_deltas[patch_index].resize(N);
+    m_directors[particle_type_id].resize(N);
+    m_deltas[particle_type_id].resize(N);
 
     for (unsigned int i = 0; i < N, i++)
         {
-        pybind11::tuple r_python = directors[i];
-        if (pybind11::len(r_python) != 3)
+        pybind11::tuple director_python = directors[i];
+        if (pybind11::len(director_python) != 3)
             {
-            throw std::length_error("directors must be a list of 3-tuples.");
+            throw std::length_error("director must be a list of 3-tuples.");
             }
-        m_directors[patch_index][i] = vec3<LongReal>(r_python[0].cast<LongReal>(),
-                                                     r_python[1].cast<LongReal>(),
-                                                     r_python[2].cast<LongReal>());
+        m_directors[particle_type_id][i] = vec3<LongReal>(director_python[0].cast<LongReal>(),
+                                                          director_python[1].cast<LongReal>(),
+                                                          director_python[2].cast<LongReal>());
+
+        pybind11::list delta_python = deltas[i];
+        if (pybind11::len(delta_python) != 1)
+            {
+            throw std::length_error("delta must be a single value.");
+            }
+        m_deltas[particle_type_id][i] = delta_python[0].cast<LongReal>();
+        
+        notifyRCutChanged();
         }
     
-pybind11::object PairPotentialUnion::getPatch(std::string patch_index)
+
+pybind11::object PairPotentialUnion::getPatch(std::string particle_type)
     {
-    unsigned int patch_index = ;
-    size_t N = m_directors[patch_index].size();
+    unsigned int particle_type_id = m_sysdef->getParticleData()->getTypeByName(particle_type);
+    size_t N = m_directors[particle_type_id].size();
 
     if (N == 0)
         {
@@ -86,10 +93,10 @@ pybind11::object PairPotentialUnion::getPatch(std::string patch_index)
 
     for (unsigned int i = 0; i < N; i++)
         {
-        directors.append(pybind11::make_tuple(m_directors[patch_index][i].x, //why .x? I thought [i] gives the x element
-                                              m_position[body_type_id][i].y,
-                                              m_position[body_type_id][i].z));
-        deltas.append(m_deltas[patch_index].s)
+        directors.append(pybind11::make_tuple(m_directors[particle_type_id][i].x,
+                                              m_position[particle_type_id][i].y,
+                                              m_position[particle_type_id][i].z));
+        deltas.append(m_deltas[particle_type_id][i])
         }
 
     pybind11::dict v;
@@ -141,7 +148,7 @@ virtual LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
 
     if (maskingFunction(r_ij, type_i, q_i, type_j, q_j)) //type_m and type_n
     {
-        LongReal lj_energy = m_isotropic->energy(r_squared, r_ij, type_i, q_i, 
+        LongReal lj_energy = m_isotropic_potential->energy(r_squared, r_ij, type_i, q_i, 
                                                  charge_i, type_j, q_j, charge_j);
         return lj_energy;
     }
@@ -159,8 +166,6 @@ void exportPairPotentialAngularStep(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<PairPotential>>())
         .def("setPatch", &PairPotentialAngularStep::setPatch)
         .def("getPatch", &PairPotentialAngularStep::getPatch)
-        .def_property("delta", &PairPotentialAngularStep::getDelta,
-                      &PairPotentialAngularStep::setDelta) 
     }
     } // end namespace detail
 
