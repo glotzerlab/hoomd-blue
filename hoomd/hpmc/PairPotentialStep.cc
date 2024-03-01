@@ -60,7 +60,7 @@ LongReal PairPotentialStep::energy(const LongReal r_squared,
             }
         }
 
-    if (L < N)
+    if (size_t(L) < N)
         {
         return param.m_epsilon[L];
         }
