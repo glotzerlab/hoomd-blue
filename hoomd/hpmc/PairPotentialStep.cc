@@ -60,7 +60,7 @@ LongReal PairPotentialStep::energy(const LongReal r_squared,
         size_t m = (L + R) / 2;
         LongReal r_squared_m = param.m_r_squared[m];
 
-        if (r_squared_m < r_squared)
+        if (r_squared_m <= r_squared)
             {
             L = m + 1;
             }
