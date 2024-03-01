@@ -200,7 +200,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         v["constituent_types"] = types;
         v["positions"] = positions;
         v["orientations"] = orientations;
-        return std::move(v);
+        return v;
         }
 
     /// Get the number of free particles (global)

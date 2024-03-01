@@ -157,6 +157,41 @@ pybind11::object PairPotentialUnion::getBody(std::string body_type)
     return v;
     }
 
+LongReal PairPotentialUnion::computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
+    {
+    // The non-additive part of the union r_cut is the maximum of the constituent non-additive
+    // r_cuts over type pairs that interact between two union particles of type_i and type_j
+
+    LongReal r_cut = 0;
+
+    for (auto& constituent_type_i : m_type[type_i])
+        {
+        for (auto& constituent_type_j : m_type[type_j])
+            {
+            r_cut
+                = std::max(r_cut,
+                            m_constituent_potential->computeRCutNonAdditive(constituent_type_i,
+                                                                            constituent_type_j));
+            }
+        }
+
+    return r_cut;
+    }
+
+LongReal PairPotentialUnion::computeRCutAdditive(unsigned int type) const
+    {
+    // The additive cutoff is twice the radius of the constituent particle furthest from the
+    // origin.
+    assert(type <= m_extent_type.size());
+
+    if (m_constituent_potential->computeRCutAdditive(type) > 0)
+        {
+        throw std::domain_error("Unsupported constituent potential.");
+        }
+
+    return m_extent_type[type];
+    }
+
 void PairPotentialUnion::updateExtent(unsigned int type_id)
     {
     auto N = static_cast<unsigned int>(m_position[type_id].size());
@@ -274,7 +309,7 @@ LongReal PairPotentialUnion::energy(const LongReal r_squared,
 
 namespace detail
     {
-void export_PairPotentialUnion(pybind11::module& m)
+void exportPairPotentialUnion(pybind11::module& m)
     {
     pybind11::class_<PairPotentialUnion, PairPotential, std::shared_ptr<PairPotentialUnion>>(
         m,
