@@ -128,6 +128,11 @@ PairPotentialStep::ParamType::ParamType(pybind11::dict v)
         m_epsilon[i] = epsilon_list[i].cast<LongReal>();
         LongReal r = r_list[i].cast<LongReal>();
         m_r_squared[i] = r * r;
+
+        if (i >= 1 && m_r_squared[i] <= m_r_squared[i - 1])
+            {
+            throw std::domain_error("r must monotonically increase.");
+            }
         }
     }
 

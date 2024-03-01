@@ -52,7 +52,8 @@ class Step(Pair):
         * ``epsilon`` (`list` [`float`], **required**) - Function values
           :math:`\varepsilon` :math:`[\mathrm{energy}]`.
         * ``r`` (`list` [`float`], **required**) - Points at which function
-          values are defined :math:`[\mathrm{length}]`.
+          values are defined :math:`[\mathrm{length}]`. The values of ``r``
+          *must* be listed in monotonically increasing order.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]

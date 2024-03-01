@@ -6,6 +6,7 @@
 import hoomd
 import pytest
 
+
 def test_valid_construction(device):
     """Test that Step can be constructed with valid arguments."""
     hoomd.hpmc.pair.Step()
@@ -53,6 +54,8 @@ invalid_parameters = [
     dict(epsilon='invalid', r=[1.0]),
     dict(epsilon=[1.0, 2.0], r=[0.5]),
     dict(epsilon=[1.0], r=[0.5], invalid=10),
+    dict(epsilon=[1.0, 2.0], r=[1.0, 0.5]),
+    dict(epsilon=[1, 2, 3, 4, 5], r=[0.1, 0.2, 0.3, 0.4, 0.4]),
 ]
 
 
@@ -72,6 +75,7 @@ def test_invalid_params_on_attach(mc_simulation_factory, parameters):
             RuntimeError,
             hoomd.error.TypeConversionError,
             KeyError,
+            ValueError,
     )):
         step.params[('A', 'A')] = parameters
 
