@@ -6,6 +6,7 @@
 import copy
 import pytest
 import numpy as np
+from numpy import npt
 
 from hoomd import hpmc
 from hoomd.error import TypeConversionError, IncompleteSpecificationError
@@ -34,9 +35,6 @@ def angular_step_potential(pair_potential):
 
 def _valid_particle_dicts():
     valid_dicts = [
-        # numpy arrays
-        dict(directors=np.array([[1.0, 0, 0], [0, 1.0, 0]]),
-             deltas=[0.1, 0.2]),
         # tuples
         dict(directors=[(1.0, 0, 0), (0, 1.0, 0)],
              deltas=[0.1, 0.2]),    
@@ -53,7 +51,13 @@ def pair_angular_step_simulation_factory(simulation_factory,
     """Make two particle sphere simulations with an angular step potential."""
 
     def make_angular_step_sim(angular_step_potential, 
-                              particle_types=['A'], d=1, L=20):
+                              particle_types=['A'], d=1, L=20, theta_0=0, theta_1=0):
+        snapshot = two_particle_snapshot_factory(particle_types, d=d, L=L)
+        if snapshot.communicator.rank == 0:
+            snapshot.particle.orientation[0] = [//TO DO]
+            snapshot.particle.orientation[1] = [//TO DO]
+        
+
         sim = simulation_factory(
             two_particle_snapshot_factory(particle_types, d=d, L=L))
         sphere = hpmc.integrate.Sphere()
@@ -91,13 +95,16 @@ def _invalid_particle_dicts():
         # set one of the values set to the wrong type
         dict(directors=[(1.0, 0, 0), (0, 1.0, 0)],
              deltas='invalid'),
+        # include an unexpected key
+        dict(directors=[(1.0, 0, 0), (0, 1.0, 0)],
+             deltas=[0.1, 0.2],
+             key='invalid'),
     ]
     return invalid_dicts
 
 @pytest.fixture(scope='module', params=_invalid_particle_dicts())
 def invalid_particle_dict(request):
     return copy.deepcopy(request.param)
-
 
 @pytest.mark.cpu
 def test_invalid_particle_params(pair_angular_step_simulation_factory, 
@@ -109,18 +116,6 @@ def test_invalid_particle_params(pair_angular_step_simulation_factory,
         angular_step_potential.patch["A"] = invalid_particle_dict
         sim = pair_angular_step_simulation_factory(angular_step_potential)
         sim.run(0)
-
-@pytest.mark.cpu
-def test_default_particle_params(pair_angular_step_simulation_factory, 
-                                 angular_step_potential):
-    """Test default values for directors and deltas."""
-    angular_step_potential.patch["A"] = dict()
-    sim = pair_angular_step_simulation_factory(angular_step_potential)
-    sim.run(0)
-
-    particle_dict = angular_step_potential.patch["A"]
-    assert (particle_dict["directors"], None)
-    assert (particle_dict["deltas"], None)
 
 @pytest.mark.cpu
 def test_get_set_patch_params(pair_angular_step_simulation_factory, 
@@ -188,7 +183,7 @@ def test_energy(pair_angular_step_simulation_factory,
                                         particle_types=['A', 'B'],
                                         d=3,
                                         L=30)
-    sim.operations.integrator.shape["B"] = dict(diameter=2)
+    sim.operations.integrator.shape["B"] = dict(diameter=0, orientable=True)
     sim.run(0)
 
     def lj_energy(epsilon, sigma, distance):
@@ -198,6 +193,3 @@ def test_energy(pair_angular_step_simulation_factory,
     system_energy = lj_energy(1.0, 1.0, 3.0) + lj_energy(
         3.0, 1.0, 3.0) + lj_energy(2.0, 1.0, 1.0)
     npt.assert_allclose(system_energy, angular_step_potential.energy)
-
-
-

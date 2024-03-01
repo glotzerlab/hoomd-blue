@@ -46,12 +46,11 @@ void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::obj
 
     auto N = pybind11::len(directors);
 
-    if (!deltas.is_none() && pybind11::len(deltas) != N)
+    if (pybind11::len(deltas) != N)
         {
         throw std::runtime_error("the length of the delta list should match the length 
                                     of the director list.");
         }
-    }
 
     m_directors[particle_type_id].resize(N);
     m_deltas[particle_type_id].resize(N);
@@ -66,17 +65,18 @@ void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::obj
         m_directors[particle_type_id][i] = vec3<LongReal>(director_python[0].cast<LongReal>(),
                                                           director_python[1].cast<LongReal>(),
                                                           director_python[2].cast<LongReal>());
+        // TO DO: normalize m_director to be unit length                                             
 
         pybind11::list delta_python = deltas[i];
-        if (pybind11::len(delta_python) != 1)
-            {
-            throw std::length_error("delta must be a single value.");
-            }
-        m_deltas[particle_type_id][i] = delta_python[0].cast<LongReal>();
+        m_deltas[particle_type_id][i] = delta_python.cast<LongReal>();
         
-        notifyRCutChanged();
-        }
+        if (m_deltas[particle_type_id][i] > 2 * M_PI || m_deltas[particle_type_id][i] < 0) 
+            {
+            throw std::domain_error("delta must be between 0 and 2 pi.");
+            }
     
+        }
+    }
 
 pybind11::object PairPotentialUnion::getPatch(std::string particle_type)
     {
@@ -102,38 +102,38 @@ pybind11::object PairPotentialUnion::getPatch(std::string particle_type)
     pybind11::dict v;
     v["directors"] = directors;
     v["deltas"] = deltas;
-    return std::move(v);
+    return v;
     }
 
 // protected 
-bool maskingFunction(const vec3< LongReal>& r_ij,
+bool maskingFunction(LongReal r_squared,
+    const vec3< LongReal>& r_ij,
                     const unsigned int type_i, 
                     const quat<LongReal>& q_i,
                     const unsigned int type_j,
-                    const quat<LongReal>& q_j)
+                    const quat<LongReal>& q_j) const
     {
 
-    LongReal cos_delta = cos(m_delta);
+    vec3<LongReal> rhat_ij = r_ij / fast::sqrt(r_squared);
 
-    const vec3<LongReal> ehat_particle_reference_frame(1,0,0);
-    vec3<LongReal> ehat_i = rotate(q_i, ehat_particle_reference_frame);
-    vec3<LongReal> ehat_j = rotate(q_j, ehat_particle_reference_frame);
+    for (int m = 0; m < m_directors[type_i].size(); m++) 
+        {
+        LongReal cos_delta_m = cos(m_delta[type_i][m]);
+        vec3<LongReal> ehat_m = rotate(q_i, m_directors[type_i][m]);
 
-    LongReal rhat_ij = sqrtf(dot(r_ij, r_ij));
-
-    for (int m = 0; m < m_directors[type_i].size(); m++) {
-        for (int n = 0; n < m_directors[type_j].size(); n++) {
-            if (dot(ehat_i, r_ij) >= cos_delta * rhat_ij
-                && dot(ehat_j, -r_ij) >= cos_delta * rhat_ij)
+        for (int n = 0; n < m_directors[type_j].size(); n++) 
+        {
+            LongReal cos_delta_n = cos(m_delta[type_j][n]);
+            vec3<LongReal> ehat_n = rotate(q_j, m_directors[type_j][n]);
+            
+            if (dot(ehat_m, rhat_ij) >= cos_delta_m 
+                && dot(ehat_n, -rhat_ij) >= cos_delta_n)
                 {
                 return true;
                 }
-            else
-                {
-                return false;
-                }
             }
         }
+    return false;
     }
     
 virtual LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
@@ -146,14 +146,12 @@ virtual LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
                                                  const LongReal charge_j) const
     {                 
 
-    if (maskingFunction(r_ij, type_i, q_i, type_j, q_j)) //type_m and type_n
+    if (maskingFunction(r_squared, r_ij, type_i, q_i, type_j, q_j))
     {
-        LongReal lj_energy = m_isotropic_potential->energy(r_squared, r_ij, type_i, q_i, 
+        return m_isotropic_potential->energy(r_squared, r_ij, type_i, q_i, 
                                                  charge_i, type_j, q_j, charge_j);
-        return lj_energy;
     }
     return 0; 
-
     }
 
 namespace detail
@@ -172,6 +170,3 @@ void exportPairPotentialAngularStep(pybind11::module& m)
     } // end namespace hpmc
     } // end namespace hoomd
 
-
-
-// 

@@ -84,16 +84,10 @@ class AngularStep(Pair):
         particle = TypeParameter(
             'particle', 'particle_types',
             TypeParameterDict(OnlyIf(to_type_converter(
-                dict(types=[str],
-                     directors=[(float,) * 3],
-                     deltas=OnlyIf(to_type_converter([float]),
-                                    allow_none=True))),
-                                     allow_none=True),
-                              len_keys=1,
-                              _defaults={
-                                  'directors': None,
-                                  'deltas': None
-                              }))
+                dict(directors=[(float,) * 3],
+                     deltas=[float])),
+                     allow_none=True)),
+                     len_keys=1,)
         self._add_typeparam(particle)
 
         if not isinstance(isotropic_potential, hoomd.hpmc.pair.Pair):
