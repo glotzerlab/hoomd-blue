@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include <numeric>
+
 #include "PairPotentialUnion.h"
 
 #include "hoomd/hpmc/OBBTree.h"
@@ -193,22 +195,14 @@ LongReal PairPotentialUnion::computeRCutAdditive(unsigned int type) const
 
 void PairPotentialUnion::updateExtent(unsigned int type_id)
     {
-    auto N = static_cast<unsigned int>(m_position[type_id].size());
+    // The extent is 2x the maximum distance of constituent particles to the origin
+    m_extent_type[type_id] = 0;
 
-    Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i
-
-    for (unsigned int i = 0; i < N; i++)
+    for (const auto& pos : m_position[type_id])
         {
-        auto pos = m_position[type_id][i];
-
-        // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere
-        // diameter
-        Scalar r = sqrt(dot(pos, pos));
-        extent_i = std::max(extent_i, Scalar(2 * r));
+        m_extent_type[type_id]
+            = std::max(m_extent_type[type_id], LongReal(2) * slow::sqrt(dot(pos, pos)));
         }
-
-    // set the diameter
-    m_extent_type[type_id] = extent_i;
     }
 
 void PairPotentialUnion::buildOBBTree(unsigned int type_id)
