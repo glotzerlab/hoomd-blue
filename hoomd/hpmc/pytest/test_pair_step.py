@@ -6,15 +6,9 @@
 import hoomd
 import pytest
 
-valid_constructor_args = [
-    {},
-]
-
-
-@pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction(device, constructor_args):
+def test_valid_construction(device):
     """Test that Step can be constructed with valid arguments."""
-    hoomd.hpmc.pair.Step(**constructor_args)
+    hoomd.hpmc.pair.Step()
 
 
 @pytest.fixture(scope='session')

@@ -41,6 +41,11 @@ LongReal PairPotentialStep::energy(const LongReal r_squared,
 
     size_t N = param.m_epsilon.size();
 
+    if (N == 0)
+        {
+        return 0;
+        }
+
     // Perform a binary search based on r_squared to find the relevant potential value.
     ssize_t L = 0;
     ssize_t R = N;
