@@ -17,6 +17,7 @@ set(files __init__.py
           test_pair_user.py
           test_pair_union.py
           test_pair_union_user.py
+          test_pair_angular_step.py
           test_quick_compress.py
           test_scale.py
           test_small_box_2d.py

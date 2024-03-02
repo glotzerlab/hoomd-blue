@@ -12,9 +12,9 @@
     simulation.operations.integrator = sphere
 
     lennard_jones =  hoomd.hpmc.pair.LennardJones()
-    lennard_jones.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
-    lennard_jones.params[('A', 'B')] = dict(epsilon=0.5, sigma=1, r_cut=2.5)
-    lennard_jones.params[('B', 'B')] = dict(epsilon=2, sigma=1, r_cut=2.5)
+    lennard_jones.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=4.0)
+    lennard_jones.params[('A', 'B')] = dict(epsilon=2, sigma=1, r_cut=4.0)
+    lennard_jones.params[('B', 'B')] = dict(epsilon=3, sigma=1, r_cut=4.0)
 """
 
 
@@ -51,11 +51,10 @@ class AngularStep(Pair):
 
         angular_step = hoomd.hpmc.pair.AngularStep(
                        isotropic_potential=lennard_jones)
-        angular_step.patch['A'] = dict(directors=[(1.0, 0, 0), (0, 1.0, 0)], 
+        angular_step.patch['A'] = dict(directors=[(1.0, 0, 0)], 
+                        deltas=[0.1])
+        angular_step.patch['B'] = dict(directors=[(1.0, 0, 0), (0, 1.0, 0)], 
                         deltas=[0.1, 0.2])
-        angular_step.patch['B'] = dict(directors=[(1.0, 0, 0), 
-                                                  (0, 1.0, 0), (0, 0, 1.0)], 
-                        deltas=[0.1, 0.2, 0.3])
         simulation.operations.integrator.pair_potentials = [angular_step]
 
     Set user-defined group of patch directors and delta values for each particle
