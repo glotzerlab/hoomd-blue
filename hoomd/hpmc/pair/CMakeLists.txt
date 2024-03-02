@@ -2,7 +2,7 @@ set(files __init__.py
         lennard_jones.py
         pair.py
         union.py
-        angular_step.py 
+        angular_step.py
         user.py
  )
 
