@@ -68,12 +68,13 @@ class TestStreamingMethod:
     @pytest.mark.parametrize(
         "force",
         [
+            None,
             hoomd.mpcd.force.BlockForce(
                 force=2.0, half_separation=3.0, half_width=0.5),
             hoomd.mpcd.force.ConstantForce(force=(1, -2, 3)),
             hoomd.mpcd.force.SineForce(amplitude=2.0, wavenumber=1),
         ],
-        ids=["BlockForce", "ConstantForce", "SineForce"],
+        ids=["NoForce", "BlockForce", "ConstantForce", "SineForce"],
     )
     def test_force_attach(self, simulation_factory, snap, cls, init_args,
                           force):
