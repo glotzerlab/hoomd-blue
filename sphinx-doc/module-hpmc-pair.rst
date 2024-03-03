@@ -22,7 +22,8 @@ hoomd.hpmc.pair
     :show-inheritance:
     :members: LennardJones,
               Pair,
-              Union
+              Union,
+              AngularStep
 
 .. rubric:: Modules
 

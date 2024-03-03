@@ -47,6 +47,8 @@ void exportPairPotential(pybind11::module& m);
 void exportPairPotentialLennardJones(pybind11::module& m);
 
 void export_PairPotentialUnion(pybind11::module& m);
+
+void export_PairPotentialAngularStep(pybind11::module& m);
     } // namespace detail
     } // namespace hpmc
     } // namespace hoomd
@@ -145,6 +147,7 @@ PYBIND11_MODULE(_hpmc, m)
     exportPairPotential(m);
     exportPairPotentialLennardJones(m);
     export_PairPotentialUnion(m);
+    export_PairPotentialAngularStep(m);
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators
