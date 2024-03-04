@@ -562,7 +562,7 @@ foreach(_evaluator ${_alchemical_pair_evaluators})
     set(_md_sources ${_md_sources} export_PotentialPairAlchemical${_evaluator}.cc)
 endforeach()
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
+hoomd_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_md ALIAS _md)
 
