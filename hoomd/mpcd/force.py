@@ -4,13 +4,14 @@
 r""" MPCD solvent forces.
 
 MPCD can apply a body force to each MPCD particle as a function of position.
-The external force should be compatible with the chosen `~hoomd.mpcd.geometry.Geometry`.
-Global momentum conservation can be broken by adding a solvent force, so
-care should be chosen that the entire model is designed so that the system
-does not have net acceleration. For example, solid boundaries can be used to
-dissipate momentum, or a balancing force can be applied to particles that are
-embedded in the solvent through the collision step. Additionally, a thermostat
-will likely be required to maintain temperature control in the driven system.
+The external force should be compatible with the chosen
+:class:`~hoomd.mpcd.geometry.Geometry`. Global momentum conservation can be
+broken by adding a solvent force, so care should be chosen that the entire model
+is designed so that the system does not have net acceleration. For example,
+solid boundaries can be used to dissipate momentum, or a balancing force can be
+applied to particles that are embedded in the solvent through the collision
+step. Additionally, a thermostat will likely be required to maintain temperature
+control in the driven system.
 
 .. invisible-code-block: python
 
