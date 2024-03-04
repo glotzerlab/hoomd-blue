@@ -6,6 +6,11 @@ r"""MPCD tuning operations.
 These operations will affect the performance of MPCD simulations but not
 their correctness.
 
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
+
 """
 
 import hoomd
@@ -38,9 +43,22 @@ class ParticleSorter(TriggeredOperation):
     Essentially all MPCD systems benefit from sorting, so it is recommended
     to use one for all simulations!
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        sorter = hoomd.mpcd.tune.ParticleSorter(trigger=20)
+        simulation.operations.integrator.solvent_sorter = sorter
+
     Attributes:
         trigger (hoomd.trigger.Trigger): Number of integration steps
             between sorting.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                sorter.trigger = 20
 
     """
 

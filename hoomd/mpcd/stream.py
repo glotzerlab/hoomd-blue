@@ -22,6 +22,11 @@ where **r** and **v** are the particle position and velocity, respectively, and
 **f** is the external force acting on the particles of mass *m*. For a list of
 forces that can be applied, see :mod:`.mpcd.force`.
 
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
+
 """
 
 import hoomd
@@ -40,6 +45,10 @@ class StreamingMethod(Operation):
         period (int): Number of integration steps covered by streaming step.
         solvent_force (SolventForce): Force on solvent.
 
+    .. invisible-code-block: python
+
+        streaming_method = hoomd.mpcd.stream.StreamingMethod(period=1)
+
     Attributes:
         period (int): Number of integration steps covered by streaming step.
 
@@ -51,6 +60,12 @@ class StreamingMethod(Operation):
             corresponding collision method. A smaller fraction of this may be
             used if an external force is applied, and more faithful numerical
             integration is needed.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                streaming_method.period = 1
 
         solvent_force (SolventForce): Force on solvent.
 
@@ -76,6 +91,24 @@ class Bulk(StreamingMethod):
     `Bulk` streams the MPCD particles in a fully periodic geometry (2D or 3D).
     This geometry is appropriate for modeling bulk fluids, i.e., those that
     are not confined by any surfaces.
+
+    .. rubric:: Examples:
+
+    Bulk streaming.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.Bulk(period=1)
+        simulation.operations.integrator.streaming_method = stream
+
+    Bulk streaming with applied force.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.Bulk(
+            period=1,
+            solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+        simulation.operations.integrator.streaming_method = stream
 
     """
 
@@ -142,8 +175,8 @@ class BounceBack(StreamingMethod):
     to complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
     the MPCD solvent particles from boundary surfaces using specular reflections
     (bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
-    boundary conditions. (The external force is only applied to the particles at the
-    beginning and the end of this process.)
+    boundary conditions. The external force is only applied to the particles at the
+    beginning and the end of this process.
 
     Although a streaming geometry is enforced on the MPCD solvent particles, there
     are a few important caveats:
@@ -159,6 +192,27 @@ class BounceBack(StreamingMethod):
     3. It is an error for MPCD particles to lie "outside" the `geometry`.
        You must initialize your system carefully to ensure all particles are
        "inside" the geometry. An error will be raised otherwise.
+
+    .. rubric:: Examples:
+
+    Shear flow between moving parallel plates.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.0, V=1.0, no_slip=True))
+        simulation.operations.integrator.streaming_method = stream
+
+    Pressure driven flow between parallel plates.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.0, no_slip=True),
+            solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+        simulation.operations.integrator.streaming_method = stream
 
     Attributes:
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
@@ -183,8 +237,14 @@ class BounceBack(StreamingMethod):
         Returns:
             True if all solvent particles are inside `geometry`.
 
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            assert stream.check_solvent_particles()
+
         """
-        self._cpp_obj.check_solvent_particles()
+        return self._cpp_obj.check_solvent_particles()
 
     def _attach_hook(self):
         sim = self._simulation

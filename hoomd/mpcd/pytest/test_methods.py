@@ -151,15 +151,17 @@ class TestBounceBack:
             np.testing.assert_array_almost_equal(
                 snap.particles.velocity, [[1.2, 1.4, -1.2], [-0.9, -0.8, -1.1]])
 
-    def test_test_out_of_bounds(self, simulation_factory, snap, integrator):
+    @pytest.mark.parametrize("H,expected_result", [(4.0, True), (3.8, False)])
+    def test_test_out_of_bounds(self, simulation_factory, snap, integrator, H,
+                                expected_result):
         """Test box validation raises an error on run."""
-        integrator.methods[0].geometry.H = 3.8
+        integrator.methods[0].geometry.H = H
 
         sim = simulation_factory(snap)
         sim.operations.integrator = integrator
 
         sim.run(0)
-        assert not integrator.methods[0].check_particles()
+        assert integrator.methods[0].check_particles() is expected_result
 
     def test_md_integrator(self, simulation_factory, snap):
         """Test we can also attach to a normal MD integrator."""

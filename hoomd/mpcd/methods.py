@@ -3,10 +3,15 @@
 
 r""" MPCD integration methods
 
-Defines extra integration methods useful for solutes (MD particles) embedded in
-an MPCD solvent. However, these methods are not restricted to MPCD
-simulations: they can be used as methods of `hoomd.md.Integrator`. For example,
-`BounceBack` might be used to run DPD simulations with surfaces.
+Extra integration methods for solutes (MD particles) embedded in an MPCD
+solvent. These methods are not restricted to MPCD simulations: they can be used
+as methods of `hoomd.md.Integrator`. For example, `BounceBack` might be used to
+run DPD simulations with surfaces.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
 
 """
 
@@ -19,7 +24,7 @@ from hoomd.mpcd.geometry import Geometry
 
 
 class BounceBack(Method):
-    r"""Velocity Verlet integration method with bounce-back rule for surfaces.
+    r"""Velocity Verlet integration method with bounce-back from surfaces.
 
     Args:
         filter (hoomd.filter.filter_like): Subset of particles on which to
@@ -59,6 +64,16 @@ class BounceBack(Method):
         complicated to validate easily, so it is the user's responsibility to
         choose the `filter` correctly.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        nve = hoomd.mpcd.methods.BounceBack(
+            filter=hoomd.filter.All(),
+            geometry=plates)
+        simulation.operations.integrator.methods.append(nve)
+
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
@@ -85,8 +100,14 @@ class BounceBack(Method):
         Returns:
             True if all particles are inside `geometry`.
 
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            assert nve.check_particles()
+
         """
-        self._cpp_obj.check_particles()
+        return self._cpp_obj.check_particles()
 
     def _attach_hook(self):
         sim = self._simulation

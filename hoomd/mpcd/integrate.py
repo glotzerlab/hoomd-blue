@@ -57,12 +57,14 @@ class Integrator(_MDIntegrator):
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.
 
-    In MPCD simulations, ``dt`` defines the amount of time that the system is
-    advanced forward every time step. MPCD streaming and collision steps can be
-    defined to occur in multiples of ``dt``. In these cases, any MD particle data
-    will be updated every ``dt``, while the MPCD particle data is updated
-    asynchronously for performance. For example, if MPCD streaming happens every
-    5 steps, then the particle data will be updated as follows::
+    In MPCD simulations, :attr:`~hoomd.md.Integrator.dt` defines the amount of
+    time that the system is advanced forward every time step. MPCD streaming and
+    collision steps can be defined to occur in multiples of
+    :attr:`~hoomd.md.Integrator.dt`. In these cases, any MD particle data will
+    be updated every :attr:`~hoomd.md.Integrator.dt`, while the MPCD particle
+    data is updated asynchronously for performance. For example, if MPCD
+    streaming happens every 5 steps, then the particle data will be updated as
+    follows::
 
                 0     1     2     3     4     5
         MD:     |---->|---->|---->|---->|---->|
@@ -73,6 +75,72 @@ class Integrator(_MDIntegrator):
     The MD particles can be read at any time step because their positions
     are updated every step.
 
+    .. rubric:: Examples:
+
+    .. invisible-code-block: python
+
+        simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+
+    MPCD integrator for pure solvent.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.Bulk(period=1)
+        collide = hoomd.mpcd.collide.StochasticRotationDynamics(period=1, angle=130)
+        integrator = hoomd.mpcd.Integrator(
+            dt=0.1,
+            streaming_method=stream,
+            collision_method=collide,
+            solvent_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
+        simulation.operations.integrator = integrator
+
+    MPCD integrator with solutes.
+
+    .. code-block:: python
+
+        dt_md = 0.005
+        dt_mpcd = 0.1
+        md_steps_per_collision = numpy.round(dt_mpcd / dt_md).astype(int)
+
+        stream = hoomd.mpcd.stream.Bulk(period=md_steps_per_collision)
+        collide = hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=md_steps_per_collision,
+            angle=130,
+            embedded_particles=hoomd.filter.All())
+        solute_method = hoomd.md.methods.ConstantVolume(
+            filter=collide.embedded_particles)
+
+        integrator = hoomd.mpcd.Integrator(
+            dt=dt_md,
+            methods=[solute_method],
+            streaming_method=stream,
+            collision_method=collide,
+            solvent_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20*md_steps_per_collision))
+        simulation.operations.integrator = integrator
+
+    MPCD integrator with virtual particle filler.
+
+    .. code-block:: python
+
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        collide = hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=1,
+            angle=130,
+            kT=1.0)
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A",
+            density=5.0,
+            kT=1.0,
+            geometry=plates)
+
+        integrator = hoomd.mpcd.Integrator(
+            dt=0.1,
+            streaming_method=stream,
+            collision_method=collide,
+            virtual_particle_fillers=[filler],
+            solvent_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
+        simulation.operations.integrator = integrator
 
     Attributes:
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
@@ -83,9 +151,6 @@ class Integrator(_MDIntegrator):
 
         streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
             for the MPCD solvent.
-
-        virtual_particle_fillers (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]):
-            Solvent virtual-particle filler(s).
 
     """
 
@@ -149,6 +214,10 @@ class Integrator(_MDIntegrator):
 
     @property
     def virtual_particle_fillers(self):
+        """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: Solvent
+            virtual-particle fillers.
+
+        """
         return self._virtual_particle_fillers
 
     @virtual_particle_fillers.setter
