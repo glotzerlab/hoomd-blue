@@ -206,6 +206,8 @@ class AndersenThermostat(CollisionMethod):
 
             Variable temperature.
 
+            .. code-block:: python
+
                 at.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 
     """
@@ -316,6 +318,8 @@ class StochasticRotationDynamics(CollisionMethod):
                 srd.kT = 1.0
 
             Variable temperature.
+
+            .. code-block:: python
 
                 srd.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 

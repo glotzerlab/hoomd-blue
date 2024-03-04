@@ -73,6 +73,8 @@ class VirtualParticleFiller(Operation):
 
             Variable temperature.
 
+            .. code-block:: python
+
                 filler.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 
     """
