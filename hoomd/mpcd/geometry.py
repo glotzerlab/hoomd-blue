@@ -96,8 +96,6 @@ class PlanarPore(Geometry):
     has full periodic boundaries; it is not confined by any walls. This model
     hence mimics a narrow pore in, e.g., a membrane.
 
-    .. image:: mpcd_slit_pore.png
-
     Attributes:
         H (float): Pore half-width.
 
