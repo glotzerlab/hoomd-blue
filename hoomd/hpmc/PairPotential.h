@@ -35,12 +35,12 @@ namespace hpmc
     sizes. The non-additive r_cut allows more freedom to implement models. Subclasses can use
     one of the two or both at the same time.
 
-    A PairPotential may be composed of another PairPotential (e.g. angular patches modulating a square
-    well). Each PairPotential maintains a weak pointer to its parent. Only the r_cut of the top most
-    parent is considered by IntegratorHPMC when computing interactions. Each PairPotential subclass
-    should override the default computeRCutNonAdditive and computeRCutAdditive methods as needed
-    to compute the various r_cut values as a function of parameters and child potentials. The base
-    implementations return 0.
+    A PairPotential may be composed of another PairPotential (e.g. angular patches modulating a
+   square well). Each PairPotential maintains a weak pointer to its parent. Only the r_cut of the
+   top most parent is considered by IntegratorHPMC when computing interactions. Each PairPotential
+   subclass should override the default computeRCutNonAdditive and computeRCutAdditive methods as
+   needed to compute the various r_cut values as a function of parameters and child potentials. The
+   base implementations return 0.
 
     The top level potential maintains cached values of the total and maximum r_cut values.
     Subclasses must call notifyRCutChanged whenever they would change the value of their computed
