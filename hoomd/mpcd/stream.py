@@ -165,6 +165,8 @@ class BounceBack(StreamingMethod):
 
     """
 
+    _cpp_class_map = {}
+
     def __init__(self, period, geometry, solvent_force=None):
         super().__init__(period, solvent_force)
 
@@ -234,11 +236,9 @@ class BounceBack(StreamingMethod):
             self.solvent_force._detach()
         super()._detach_hook()
 
-    _cpp_class_map = {}
-
     @classmethod
-    def _register_cpp_class(cls, geometry, force, module, class_name):
+    def _register_cpp_class(cls, geometry, module, cpp_class_name):
         # we will allow "None" for the force, but we need its class type not its value
         if force is None:
             force = type(None)
-        cls._cpp_cpp_class_map[geometry, force] = (module, class_name)
+        cls._cpp_cpp_class_map[geometry, force] = (module, cpp_class_name)

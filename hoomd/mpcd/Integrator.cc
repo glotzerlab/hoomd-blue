@@ -15,6 +15,9 @@
 #endif
 #endif
 
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::mpcd::VirtualParticleFiller>>);
+
 namespace hoomd
     {
 /*!
@@ -165,6 +168,10 @@ void mpcd::Integrator::syncCellList()
  */
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
+    pybind11::bind_vector<std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>>(
+        m,
+        "VirtualParticleFillerList");
+
     pybind11::class_<mpcd::Integrator,
                      hoomd::md::IntegratorTwoStep,
                      std::shared_ptr<mpcd::Integrator>>(m, "Integrator")

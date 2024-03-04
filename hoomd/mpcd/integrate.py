@@ -1,8 +1,6 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import itertools
-
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
@@ -156,13 +154,6 @@ class Integrator(_MDIntegrator):
     @virtual_particle_fillers.setter
     def virtual_particle_fillers(self, value):
         _set_synced_list(self._virtual_particle_fillers, value)
-
-    @property
-    def _children(self):
-        children = super()._children
-        for child in itertools.chain(self.virtual_particle_fillers):
-            children.extend(child._children)
-        return children
 
     def _attach_hook(self):
         self._cell_list._attach(self._simulation)

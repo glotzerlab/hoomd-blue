@@ -67,6 +67,8 @@ class BounceBack(Method):
 
     """
 
+    _cpp_class_map = {}
+
     def __init__(self, filter, geometry):
         super().__init__()
 
@@ -94,7 +96,7 @@ class BounceBack(Method):
         # try to find class in map, otherwise default to internal MPCD module
         geom_type = type(self.geometry)
         try:
-            class_info = self._class_map[geom_type]
+            class_info = self._cpp_class_map[geom_type]
         except KeyError:
             class_info = (_mpcd, "BounceBackNVE" + geom_type.__name__)
         class_info = list(class_info)
@@ -112,8 +114,6 @@ class BounceBack(Method):
         self.geometry._detach()
         super()._detach_hook()
 
-    _class_map = {}
-
     @classmethod
-    def _register_geometry(cls, geometry, module, class_name):
-        cls._class_map[geometry] = (module, class_name)
+    def _register_cpp_class(cls, geometry, module, cpp_class_name):
+        cls._cpp_class_map[geometry] = (module, cpp_class_name)
