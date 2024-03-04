@@ -152,8 +152,8 @@ class TestBounceBack:
                 snap.particles.velocity, [[1.2, 1.4, -1.2], [-0.9, -0.8, -1.1]])
 
     @pytest.mark.parametrize("H,expected_result", [(4.0, True), (3.8, False)])
-    def test_test_out_of_bounds(self, simulation_factory, snap, integrator, H,
-                                expected_result):
+    def test_check_particles(self, simulation_factory, snap, integrator, H,
+                             expected_result):
         """Test box validation raises an error on run."""
         integrator.methods[0].geometry.H = H
 

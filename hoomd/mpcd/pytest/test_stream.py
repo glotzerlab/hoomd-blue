@@ -291,8 +291,8 @@ class TestParallelPlates:
                 snap.mpcd.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]])
 
     @pytest.mark.parametrize("H,expected_result", [(4.0, True), (3.8, False)])
-    def test_test_out_of_bounds(self, simulation_factory, snap, H,
-                                expected_result):
+    def test_check_solvent_particles(self, simulation_factory, snap, H,
+                                     expected_result):
         if snap.communicator.rank == 0:
             snap.mpcd.position[0] = [0, 3.85, 0]
         sim = simulation_factory(snap)
@@ -470,7 +470,7 @@ class TestPlanarPore:
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
                                                  [3.18, -4.17, 0])
 
-    def test_test_out_of_bounds(self, simulation_factory, snap):
+    def test_check_solvent_particles(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
