@@ -75,7 +75,7 @@ class EvaluatorPairDipole
             pybind11::dict v;
             v["A"] = A;
             v["kappa"] = kappa;
-            return std::move(v);
+            return v;
             }
 
 #endif

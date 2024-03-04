@@ -1,6 +1,7 @@
 set(files __init__.py
         lennard_jones.py
         pair.py
+        union.py
         user.py
  )
 
