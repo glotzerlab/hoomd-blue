@@ -13,6 +13,7 @@ hoomd.hpmc.pair
 
     LennardJones
     Pair
+    Union
 
 .. rubric:: Details
 
@@ -20,7 +21,8 @@ hoomd.hpmc.pair
     :synopsis: Pair potentials for HPMC.
     :show-inheritance:
     :members: LennardJones,
-              Pair
+              Pair,
+              Union
 
 .. rubric:: Modules
 

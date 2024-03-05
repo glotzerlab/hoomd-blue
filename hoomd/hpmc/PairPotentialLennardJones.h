@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "hoomd/hpmc/IntegratorHPMC.h"
+#include "PairPotential.h"
 
 namespace hoomd
     {
@@ -28,6 +28,13 @@ class PairPotentialLennardJones : public hpmc::PairPotential
                             const unsigned int type_j,
                             const quat<LongReal>& q_j,
                             const LongReal charge_j) const;
+
+    /// Compute the non-additive cuttoff radius
+    virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
+        {
+        unsigned int param_index = m_type_param_index(type_i, type_j);
+        return slow::sqrt(m_params[param_index].r_cut_squared);
+        }
 
     /// Set type pair dependent parameters to the potential.
     void setParamsPython(pybind11::tuple typ, pybind11::dict params);
