@@ -177,6 +177,6 @@ class TestBounceBack:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.particles.position,
-                [[-4.95, 4.95, 3.95], [-0.1, -0.1, -3.9]])
+                [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
