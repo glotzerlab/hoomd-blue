@@ -894,9 +894,11 @@ class QuickCompress(Updater):
 
         param_dict = ParameterDict(max_overlaps_per_particle=float,
                                    min_scale=float,
-                                   target_box=hoomd.Box,
+                                   target_box=hoomd.variant.box.BoxVariant,
                                    instance=int,
                                    allow_unsafe_resize=bool)
+        if isinstance(target_box, hoomd.Box):
+            target_box = hoomd.variant.box.Constant(target_box)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
@@ -919,7 +921,7 @@ class QuickCompress(Updater):
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, self.trigger,
             integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
-            self.target_box._cpp_obj)
+            self.target_box)
 
     @property
     def complete(self):

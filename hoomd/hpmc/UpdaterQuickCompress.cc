@@ -14,7 +14,7 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
-                                           std::shared_ptr<BoxDim> target_box)
+                                           std::shared_ptr<VectorVariantBox> target_box)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
       m_target_box(target_box)
     {
@@ -48,13 +48,13 @@ void UpdaterQuickCompress::update(uint64_t timestep)
     auto n_overlaps = m_mc->countOverlaps(false);
     BoxDim current_box = m_pdata->getGlobalBox();
 
-    if (n_overlaps == 0 && current_box != *m_target_box)
+    if (n_overlaps == 0 && current_box != (*m_target_box)(timestep))
         {
         performBoxScale(timestep);
         }
 
     // The compression is complete when we have reached the target box and there are no overlaps.
-    if (n_overlaps == 0 && current_box == *m_target_box)
+    if (n_overlaps == 0 && current_box == (*m_target_box)(timestep))
         m_is_complete = true;
     else
         m_is_complete = false;
@@ -183,7 +183,13 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
 
-    const auto& target_box = *m_target_box;
+    const auto& target_box_dims = (*m_target_box)(timestep);
+    Scalar target_Lx = target_box_dims[0];
+    Scalar target_Ly = target_box_dims[1];
+    Scalar target_Lz = target_box_dims[2];
+    Scalar target_xy = target_box_dims[3];
+    Scalar target_xz = target_box_dims[4];
+    Scalar target_yz = target_box_dims[5];
 
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
@@ -191,23 +197,23 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     Scalar new_xy, new_xz, new_yz;
     if (m_sysdef->getNDimensions() == 3)
         {
-        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
-        new_L.z = scaleLength(current_box.getL().z, target_box.getL().z, scale);
-        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
-        new_xz = scaleTilt(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
-        new_yz = scaleTilt(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+        new_L.x = scaleLength(current_box.getL().x, target_Lx, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_Ly, scale);
+        new_L.z = scaleLength(current_box.getL().z, target_Lz, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_xy, scale);
+        new_xz = scaleTilt(current_box.getTiltFactorXZ(), target_xz, scale);
+        new_yz = scaleTilt(current_box.getTiltFactorYZ(), target_yz, scale);
         }
     else
         {
-        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
-        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_L.x = scaleLength(current_box.getL().x, target_Lx, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_Ly, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_xy, scale);
 
         // assume that the unused fields in the 2D target box are valid
-        new_L.z = target_box.getL().z;
-        new_xz = target_box.getTiltFactorXZ();
-        new_yz = target_box.getTiltFactorYZ();
+        new_L.z = target_Lz;
+        new_xz = target_xz;
+        new_yz = target_yz;
         }
 
     BoxDim new_box = current_box;
@@ -228,7 +234,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                             std::shared_ptr<IntegratorHPMC>,
                             double,
                             double,
-                            std::shared_ptr<BoxDim>>())
+                            std::shared_ptr<VectorVariantBox>>())
         .def("isComplete", &UpdaterQuickCompress::isComplete)
         .def_property("max_overlaps_per_particle",
                       &UpdaterQuickCompress::getMaxOverlapsPerParticle,
