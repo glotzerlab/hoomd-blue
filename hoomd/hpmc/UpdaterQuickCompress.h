@@ -20,9 +20,9 @@ namespace hpmc
     {
 /** Quick compression algorithm
 
-    Quickly compress HPMC systems to a (time-varying) target box volume. The quick compression algorithm performs
-    random box moves to compress the box and *temporarily* allows overlaps. Local trial moves
-    remove these overlaps over time.
+    Quickly compress HPMC systems to a (time-varying) target box volume. The quick compression
+   algorithm performs random box moves to compress the box and *temporarily* allows overlaps. Local
+   trial moves remove these overlaps over time.
 */
 class UpdaterQuickCompress : public Updater
     {

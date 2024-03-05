@@ -70,7 +70,6 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
         """Reduce values to picklable format."""
         return (type(self), (Box(*self.box.L, *self.box.tilts),))
 
-
     @property
     def box(self):
         """hoomd.Box: The box."""
@@ -115,7 +114,10 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
     """
-    _eq_attrs = ("initial_box", "final_box",)
+    _eq_attrs = (
+        "initial_box",
+        "final_box",
+    )
     __eq__ = BoxVariant._private_eq
 
     def __init__(self, initial_box, final_box, variant):
