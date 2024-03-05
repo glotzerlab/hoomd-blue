@@ -22,14 +22,25 @@ namespace hoomd
 namespace mpcd
     {
 
+template<class Force>
 class PYBIND11_EXPORT BulkStreamingMethod
-    : public BounceBackStreamingMethod<mpcd::detail::BulkGeometry>
+    : public BounceBackStreamingMethod<mpcd::detail::BulkGeometry, Force>
     {
     public:
     BulkStreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
                         unsigned int cur_timestep,
                         unsigned int period,
-                        int phase);
+                        int phase,
+                        std::shared_ptr<Force> force)
+        : mpcd::BounceBackStreamingMethod<mpcd::detail::BulkGeometry, Force>(
+            sysdef,
+            cur_timestep,
+            period,
+            phase,
+            std::make_shared<mpcd::detail::BulkGeometry>(),
+            force)
+        {
+        }
     };
 
 namespace detail
@@ -38,7 +49,20 @@ namespace detail
 /*!
  * \param m Python module to export to
  */
-void export_BulkStreamingMethod(pybind11::module& m);
+template<class Force> void export_BulkStreamingMethod(pybind11::module& m)
+    {
+    const std::string name = "BulkStreamingMethod" + Force::getName();
+    pybind11::class_<mpcd::BulkStreamingMethod<Force>,
+                     mpcd::StreamingMethod,
+                     std::shared_ptr<mpcd::BulkStreamingMethod<Force>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            std::shared_ptr<Force>>())
+        .def_property_readonly("solvent_force", &mpcd::BulkStreamingMethod<Force>::getForce);
+    }
+
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

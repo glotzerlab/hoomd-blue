@@ -1,69 +1,49 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD external force fields.
+r""" MPCD solvent forces.
 
-An external field specifies the force to be applied per MPCD particle in
-the equations of motion (see :py:mod:`.mpcd.stream`). The external force should
-be compatible with the chosen streaming geometry. Global momentum conservation is
-typically broken by adding an external force field; care should be chosen that
-the force field does not cause the system to net accelerate (i.e., it must maintain
-*average* momentum conservation). Additionally, a thermostat will likely be
-required to maintain temperature control in the driven system (see
-:py:mod:`.mpcd.collide`).
-
-.. note::
-
-    The external force **must** be attached to a streaming method
-    (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
-    On its own, the force object will not affect the system.
+MPCD can apply a body force to each MPCD particle as a function of position.
+The external force should be compatible with the chosen :mod:`~hoomd.mpcd.geometry`.
+Global momentum conservation can be broken by adding a solvent force, so
+care should be chosen that the entire model is designed so that the system
+does not have net acceleration. For example, solid boundaries can be used to
+dissipate momentum, or a balancing force can be applied to particles that are
+coupled to the solvent through the collision step. Additionally, a thermostat
+will likely be required to maintain temperature control in the driven system.
 
 """
 
-import hoomd
 from hoomd import _hoomd
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.mpcd import _mpcd
+from hoomd.operation import _HOOMDBaseObject
 
-from . import _mpcd
 
+class SolventForce(_HOOMDBaseObject):
+    """Solvent force.
 
-class _force():
-    r""" Base external force field.
-
-    This base class does some basic initialization tests, and then constructs the
-    polymorphic external field base class in C++. This base class is essentially a
-    factory that can initialize other derived classes. New classes need to be exported
-    in C++ with the appropriate template parameters, and then can be constructed at
-    the python level by a deriving type. Use :py:class:`constant` as an example.
+    The `SolventForce` is a body force applied to each solvent particle. This
+    class should not be instantiated directly. It exists for type checking.
 
     """
 
-    def __init__(self):
-        # check for hoomd initialization
-        if not hoomd.init.is_initialized():
-            raise RuntimeError(
-                'mpcd.force: system must be initialized before the external force.\n'
-            )
-
-        # check for mpcd initialization
-        if hoomd.context.current.mpcd is None:
-            hoomd.context.current.device.cpp_msg.error(
-                'mpcd.force: an MPCD system must be initialized before the external force.\n'
-            )
-            raise RuntimeError('MPCD system not initialized')
-
-        self._cpp = _mpcd.ExternalField(
-            hoomd.context.current.device.cpp_exec_conf)
+    pass
 
 
-class block(_force):
-    r""" Block force.
+class BlockForce(SolventForce):
+    r"""Block force.
 
     Args:
-        F (float): Magnitude of the force in *x* per particle.
-        H (float or None): Half-width between centers of block regions.
-        w (float or None): Half-width of blocks.
+        force (float): Magnitude of the force in *x* per particle.
+        half_separation (float): Half the distance between the centers of the
+            blocks.
+        half_width (float): Half the width of each block.
 
-    Imposes a constant force in *x* as a function of position in *z*:
+    The ``force`` magnitude *F* is applied in the *x* direction on the particles
+    in blocks defined along the *z* direction by the ``half_separation`` *H* and
+    the ``half_width`` *w*. The force in *x* is :math:`+F` in the upper block,
+    :math:`-F` in the lower block, and zero otherwise.
 
     .. math::
         :nowrap:
@@ -76,152 +56,79 @@ class block(_force):
         \end{cases}
         \end{equation}
 
-    The force is applied in blocks defined by *H* and *w* so that the force in *x*
-    is :math:`+F` in the upper block, :math:`-F` in the lower block, and zero otherwise.
-    The blocks must lie fully within the simulation box or an error will be raised.
-    The blocks also should not overlap (the force will be zero in any overlapping
-    regions), and a warning will be issued if the blocks overlap.
-
-    This force field can be used to implement the double-parabola method for measuring
+    The `BlockForce` can be used to implement the double-parabola method for measuring
     viscosity by setting :math:`H = L_z/4` and :math:`w = L_z/4`, where :math:`L_z` is
-    the size of the simulation box in *z*. If *H* or *w* is None, it will default to this
-    value based on the current simulation box.
+    the size of the simulation box in *z*.
 
-    Examples::
+    Warning:
+        You should define the blocks to lie fully within the simulation box and
+        to not overlap each other.
 
-        # fully specified blocks
-        force.block(F=1.0, H=5.0, w=5.0)
+    Attributes:
+        force (float): Magnitude of the force in *x* per particle.
 
-        # default blocks to full box
-        force.block(F=0.5)
+        half_separation (float): Half the distance between the centers of the
+            blocks.
 
-    .. note::
-
-        The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
-        On its own, the force object will not affect the system.
-
-    .. versionadded:: 2.6
+        half_width (float): Half the width of each block.
 
     """
 
-    def __init__(self, F, H=None, w=None):
+    def __init__(self, force, half_separation=None, half_width=None):
+        super().__init__()
 
-        # current box size
-        Lz = hoomd.context.current.system_definition.getParticleData(
-        ).getGlobalBox().getL().z
+        param_dict = ParameterDict(
+            force=float(force),
+            half_separation=float(half_separation),
+            half_width=float(half_width),
+        )
+        self._param_dict.update(param_dict)
 
-        # setup default blocks if needed
-        if H is None:
-            H = Lz / 4
-        if w is None:
-            w = Lz / 4
-
-        # validate block positions
-        if H <= 0 or H > Lz / 2:
-            hoomd.context.current.device.cpp_msg.error(
-                'mpcd.force.block: H = {} should be nonzero and inside box.\n'
-                .format(H))
-            raise ValueError('Invalid block spacing')
-        if w <= 0 or w > (Lz / 2 - H):
-            hoomd.context.current.device.cpp_msg.error(
-                'mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'
-                .format(w, H))
-            raise ValueError('Invalid block width')
-        if w > H:
-            hoomd.context.current.device.cpp_msg.warning(
-                'mpcd.force.block: blocks overlap with H = {} < w = {}.\n'
-                .format(H, w))
-
-        # initialize python level
-        _force.__init__(self)
-        self._F = F
-        self._H = H
-        self._w = w
-
-        # initialize c++
-        self._cpp.BlockForce(self.F, self.H, self.w)
-
-    @property
-    def F(self):
-        return self._F
-
-    @property
-    def H(self):
-        return self._H
-
-    @property
-    def w(self):
-        return self._w
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.BlockForce(self.force, self.half_separation,
+                                         self.half_width)
+        super()._attach_hook()
 
 
-class constant(_force):
-    r""" Constant force.
+class ConstantForce(SolventForce):
+    r"""Constant force.
 
     Args:
-        F (tuple): 3d vector specifying the force per particle.
+        force (`tuple` [`float`, `float`, `float`]): Force vector per particle.
 
-    The same constant-force is applied to all particles, independently of time
+    The same constant force is applied to all particles, independently of time
     and their positions. This force is useful for simulating pressure-driven
-    flow in conjunction with a confined geometry (e.g., :py:class:`~.stream.slit`)
-    having no-slip boundary conditions.
+    flow in conjunction with a confined geometry having no-slip boundary conditions.
+    It is also useful for measuring diffusion coefficients with nonequilibrium
+    methods.
 
-    Examples::
-
-        # tuple
-        force.constant((1.,0.,0.))
-
-        # list
-        force.constant([1.,2.,3.])
-
-        # NumPy array
-        g = np.array([0.,0.,-1.])
-        force.constant(g)
-
-    .. note::
-
-        The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
-        On its own, the force object will not affect the system.
-
-    .. versionadded:: 2.6
+    Attributes:
+        force (`tuple` [`float`, `float`, `float`]): Force vector per particle.
 
     """
 
-    def __init__(self, F):
+    def __init__(self, force):
+        super().__init__()
 
-        try:
-            if len(F) != 3:
-                hoomd.context.current.device.cpp_msg.error(
-                    'mpcd.force.constant: field must be a 3-component vector.\n'
-                )
-                raise ValueError('External field must be a 3-component vector')
-        except TypeError:
-            hoomd.context.current.device.cpp_msg.error(
-                'mpcd.force.constant: field must be a 3-component vector.\n')
-            raise ValueError('External field must be a 3-component vector')
+        param_dict = ParameterDict(force=(float, float, float))
+        param_dict["force"] = force
+        self._param_dict.update(param_dict)
 
-        # initialize python level
-        _force.__init__(self)
-        self._F = F
-
-        # initialize c++
-        self._cpp.ConstantForce(
-            _hoomd.make_scalar3(self.F[0], self.F[1], self.F[2]))
-
-    @property
-    def F(self):
-        return self._F
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.ConstantForce(
+            _hoomd.make_scalar3(self.force[0], self.force[1], self.force[2]))
+        super()._attach_hook()
 
 
-class sine(_force):
-    r""" Sine force.
+class SineForce(SolventForce):
+    r"""Sine force.
 
     Args:
-        F (float): Magnitude of the force in *x* per particle.
-        k (float): Wavenumber for the force.
+        amplitude (float): Amplitude of the sinusoid.
+        wavenumber (float): Wavenumber for the sinusoid.
 
-    Applies a force in *x* that is sinusoidally varying in *z*.
+    `SineForce` applies a force with amplitude *F* in *x* that is sinusoidally
+    varying in *z* with wavenumber *k*:
 
     .. math::
 
@@ -229,45 +136,22 @@ class sine(_force):
 
     Typically, the wavenumber should be something that is commensurate
     with the simulation box. For example, :math:`k = 2\pi/L_z` will generate
-    one period of the sine in :py:class:`~.stream.bulk` geometry.
+    one period of the sine.
 
-    Examples::
+    Attributes:
+        amplitude (float): Amplitude of the sinusoid.
 
-        # one period
-        k0 = 2.*np.pi/box.Lz
-        force.sine(F=1.0, k=k0)
-
-        # two periods
-        force.sine(F=0.5, k=2*k0)
-
-    The user will need to determine what value of *k* makes sense for their
-    problem, as it is too difficult to validate all values of *k* for all
-    streaming geometries.
-
-    .. note::
-
-        The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
-        On its own, the force object will not affect the system.
-
-    .. versionadded:: 2.6
+        wavenumber (float): Wavenumber for the sinusoid.
 
     """
 
-    def __init__(self, F, k):
+    def __init__(self, amplitude, wavenumber):
+        super().__init__()
 
-        # initialize python level
-        _force.__init__(self)
-        self._F = F
-        self._k = k
+        param_dict = ParameterDict(amplitude=float(amplitude),
+                                   wavenumber=float(wavenumber))
+        self._param_dict.update(param_dict)
 
-        # initialize c++
-        self._cpp.SineForce(self.F, self.k)
-
-    @property
-    def F(self):
-        return self._F
-
-    @property
-    def k(self):
-        return self._k
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.SineForce(self.amplitude, self.wavenumber)
+        super()._attach_hook()

@@ -14,9 +14,7 @@
 #endif
 
 #include "CellList.h"
-#include "ExternalField.h"
 #include "hoomd/Autotuned.h"
-#include "hoomd/GPUPolymorph.h"
 #include "hoomd/SystemDefinition.h"
 
 #include <pybind11/pybind11.h>
@@ -66,17 +64,6 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
         return m_mpcd_dt;
         }
 
-    std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> getField() const
-        {
-        return m_field;
-        }
-
-    //! Set the external field
-    void setField(std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> field)
-        {
-        m_field = field;
-        }
-
     //! Get the streaming period
     unsigned int getPeriod() const
         {
@@ -102,8 +89,6 @@ class PYBIND11_EXPORT StreamingMethod : public Autotuned
     Scalar m_mpcd_dt;         //!< Integration time step
     unsigned int m_period;    //!< Number of MD timesteps between streaming steps
     uint64_t m_next_timestep; //!< Timestep next streaming step should be performed
-
-    std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> m_field; //!< External field
 
     //! Check if streaming should occur
     virtual bool shouldStream(uint64_t timestep);

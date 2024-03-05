@@ -26,17 +26,19 @@ forces that can be applied, see :mod:`.mpcd.force`.
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.mpcd import _mpcd
+from hoomd.mpcd.force import SolventForce
 from hoomd.mpcd.geometry import Geometry
 from hoomd.operation import Operation
 
 
-# TODO: add force
 class StreamingMethod(Operation):
     """Base streaming method.
 
     Args:
         period (int): Number of integration steps covered by streaming step.
+        solvent_force (SolventForce): Force on solvent.
 
     Attributes:
         period (int): Number of integration steps covered by streaming step.
@@ -50,12 +52,17 @@ class StreamingMethod(Operation):
             used if an external force is applied, and more faithful numerical
             integration is needed.
 
+        solvent_force (SolventForce): Force on solvent.
+
     """
 
-    def __init__(self, period):
+    def __init__(self, period, solvent_force=None):
         super().__init__()
 
-        param_dict = ParameterDict(period=int(period),)
+        param_dict = ParameterDict(period=int(period),
+                                   solvent_force=OnlyTypes(SolventForce,
+                                                           allow_none=True))
+        param_dict["solvent_force"] = solvent_force
         self._param_dict.update(param_dict)
 
 
@@ -64,6 +71,7 @@ class Bulk(StreamingMethod):
 
     Args:
         period (int): Number of integration steps covered by streaming step.
+        solvent_force (SolventForce): Force on solvent.
 
     `Bulk` streams the MPCD particles in a fully periodic geometry (2D or 3D).
     This geometry is appropriate for modeling bulk fluids, i.e., those that
@@ -73,19 +81,53 @@ class Bulk(StreamingMethod):
 
     def _attach_hook(self):
         sim = self._simulation
-        if isinstance(sim.device, hoomd.device.GPU):
-            class_ = _mpcd.BulkStreamingMethodGPU
+
+        # attach and use solvent force if present
+        if self.solvent_force is not None:
+            self.solvent_force._attach(sim)
+            solvent_force = self.solvent_force._cpp_obj
         else:
-            class_ = _mpcd.BulkStreamingMethod
+            solvent_force = None
+
+        # try to find force in map, otherwise use default
+        force_type = type(self.solvent_force)
+        try:
+            class_info = self._cpp_class_map[force_type]
+        except KeyError:
+            if self.solvent_force is not None:
+                force_name = force_type.__name__
+            else:
+                force_name = "NoForce"
+            class_info = (
+                _mpcd,
+                "BulkStreamingMethod" + force_name,
+            )
+        class_info = list(class_info)
+        if isinstance(sim.device, hoomd.device.GPU):
+            class_info[1] += "GPU"
+        class_ = getattr(*class_info, None)
+        assert class_ is not None, "C++ streaming method could not be determined"
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
             self.period,
             0,
+            solvent_force,
         )
 
         super()._attach_hook()
+
+    def _detach_hook(self):
+        if self.solvent_force is not None:
+            self.solvent_force._detach()
+        super()._detach_hook()
+
+    _cpp_class_map = {}
+
+    @classmethod
+    def _register_cpp_class(cls, force, module, class_name):
+        cls._cpp_class_map[force] = (module, class_name)
 
 
 class BounceBack(StreamingMethod):
@@ -94,6 +136,7 @@ class BounceBack(StreamingMethod):
     Args:
         period (int): Number of integration steps covered by streaming step.
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
+        solvent_force (SolventForce): Force on solvent.
 
     One of the main strengths of the MPCD algorithm is that it can be coupled
     to complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
@@ -124,8 +167,8 @@ class BounceBack(StreamingMethod):
 
     _cpp_class_map = {}
 
-    def __init__(self, period, geometry):
-        super().__init__(period)
+    def __init__(self, period, geometry, solvent_force=None):
+        super().__init__(period, solvent_force)
 
         param_dict = ParameterDict(geometry=Geometry)
         param_dict["geometry"] = geometry
@@ -136,13 +179,28 @@ class BounceBack(StreamingMethod):
 
         self.geometry._attach(sim)
 
-        # try to find class in map, otherwise default to internal MPCD module
+        # attach and use solvent force if present
+        if self.solvent_force is not None:
+            self.solvent_force._attach(sim)
+            solvent_force = self.solvent_force._cpp_obj
+        else:
+            solvent_force = None
+
+        # try to find force in map, otherwise use default
         geom_type = type(self.geometry)
+        force_type = type(self.solvent_force)
         try:
-            class_info = self._cpp_class_map[geom_type]
+            class_info = self._cpp_class_map[geom_type, force_type]
         except KeyError:
-            class_info = (_mpcd,
-                          "BounceBackStreamingMethod" + geom_type.__name__)
+            if self.solvent_force is not None:
+                force_name = force_type.__name__
+            else:
+                force_name = "NoForce"
+
+            class_info = (
+                _mpcd,
+                "BounceBackStreamingMethod" + geom_type.__name__ + force_name,
+            )
         class_info = list(class_info)
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
@@ -155,14 +213,20 @@ class BounceBack(StreamingMethod):
             self.period,
             0,
             self.geometry._cpp_obj,
+            solvent_force,
         )
 
         super()._attach_hook()
 
     def _detach_hook(self):
         self.geometry._detach()
+        if self.solvent_force is not None:
+            self.solvent_force._detach()
         super()._detach_hook()
 
     @classmethod
     def _register_cpp_class(cls, geometry, module, cpp_class_name):
-        cls._cpp_class_map[geometry] = (module, cpp_class_name)
+        # we will allow "None" for the force, but we need its class type not its value
+        if force is None:
+            force = type(None)
+        cls._cpp_cpp_class_map[geometry, force] = (module, cpp_class_name)

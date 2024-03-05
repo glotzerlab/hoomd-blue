@@ -65,6 +65,59 @@ class TestStreamingMethod:
         sim.run(0)
         pickling_check(sm)
 
+    @pytest.mark.parametrize(
+        "force",
+        [
+            None,
+            hoomd.mpcd.force.BlockForce(
+                force=2.0, half_separation=3.0, half_width=0.5),
+            hoomd.mpcd.force.ConstantForce(force=(1, -2, 3)),
+            hoomd.mpcd.force.SineForce(amplitude=2.0, wavenumber=1),
+        ],
+        ids=["NoForce", "BlockForce", "ConstantForce", "SineForce"],
+    )
+    def test_force_attach(self, simulation_factory, snap, cls, init_args,
+                          force):
+        """Test that force can be attached with various forces."""
+        sm = cls(period=5, **init_args, solvent_force=force)
+        assert sm.solvent_force is force
+        pickling_check(sm)
+
+        sim = simulation_factory(snap)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
+                                                          streaming_method=sm)
+        sim.run(0)
+
+        assert sm.solvent_force is force
+        pickling_check(sm)
+
+    def test_forced_step(self, simulation_factory, snap, cls, init_args):
+        """Test a step with particle starting in the middle, constant force in +x and -z.
+
+        This test should be skipped or adapted if geometries are added for which
+        this point is / will be out of bounds, but is legal for all the ones we
+        have now.
+        """
+        if snap.communicator.rank == 0:
+            snap.mpcd.position[0] = [0, -1, 1]
+            snap.mpcd.velocity[0] = [1, -2, 3]
+
+        sim = simulation_factory(snap)
+        sm = cls(period=1,
+                 **init_args,
+                 solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, -1)))
+        ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
+        sim.operations.integrator = ig
+
+        # take 1 step and check updated velocity and position
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 [[1.1, -2.0, 2.9]])
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 [[0.105, -1.2, 1.295]])
+
 
 class TestBulk:
 
