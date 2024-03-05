@@ -736,7 +736,7 @@ class QuickCompress(Updater):
         trigger (hoomd.trigger.trigger_like): Update the box dimensions on
             triggered time steps.
 
-        target_box (hoomd.box.box_like): Dimensions of the target box.
+        target_box (hoomd.box.box_like or hoomd.variant.box.BoxVariant): Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
@@ -751,7 +751,7 @@ class QuickCompress(Updater):
     Use `QuickCompress` in conjunction with an HPMC integrator to scale the
     system to a target box size. `QuickCompress` can typically compress dilute
     systems to near random close packing densities in tens of thousands of time
-    steps.
+    steps. For more control over the rate of compression, use a `BoxVariant` for `target_box`.
 
     It operates by making small changes toward the `target_box`, but only
     when there are no particle overlaps in the current simulation state. In 3D:
@@ -867,7 +867,7 @@ class QuickCompress(Updater):
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
 
-        target_box (Box): Dimensions of the target box.
+        target_box (BoxVariant): The variant for the dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
