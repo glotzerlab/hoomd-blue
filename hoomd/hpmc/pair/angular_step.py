@@ -36,7 +36,28 @@ class AngularStep(Pair):
     this form of potential is the Kern-Frenkel model that is composed of
     a square well potential and an orientational masking function.
 
-    TODO: add math
+    .. math::
+        U(\vec{r}_{ij}, \mathbf{\Omega}_i, \mathbf{\Omega}_j)) =
+        \sum_{m=1}^{N_{\mathrm{patches},i}} \sum_{m=1}^{N_{\mathrm{patches},j}}
+        U_\mathrm{isotropic}(\vec{r}_{ij}) \cdot 
+        f(\mathbf{\Omega}_i, \mathbf{\Omega}_j)
+
+    where :math:`N_{\mathrm{patches},i}` is the number of patches on the
+    :math:`i` particle and :math:`U_\mathrm{isotropic}` is the isotropic 
+    potential. :math:`f(\mathbf{\Omega}_i, \mathbf{\Omega}_j)` is an 
+    orientational masking function given by: 
+
+        f(\mathbf{\Omega}_i, \mathbf{\Omega}_j) = \left\{ \begin{array}{ll} 
+        1 \quad \hat{e_{i}} \cdot \hat{r_{ij}} > cos\delta_{i} \quad and \quad 
+        \hat{e_{i}} \cdot \hat{r_{ji}} > cos\delta_{j} \\ 
+        0 \quad \text{otherwise} \end{array} \right.
+
+    where :math:`\hat{e_{i}}` and :math:`\hat{e_{j}}` are the unit vectors 
+    pointing from the particle center to the patches. :math:`\hat{r_{ij}}` 
+    is the unit vector pointing from particle :math:`i` to particle :math:`j`.
+    :math:`cos\delta_{i}` and :math:`cos\delta_{j}` are the half opening angles
+    of the patches on particles :math:`i` and :math:`j` accordingly. 
+ 
     
     .. rubric:: Example
 
