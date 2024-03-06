@@ -3,12 +3,6 @@
 
 #include "PairPotentialAngularStep.h"
 
-/* notes - delete later
--angular step potential: import the isotropic potential, if patch overlaps, the angular
-step potential is exactly how the isotropic potential behaves. if patch does not overlap at all,
-the angular potential is 0.
-- user provide patch directors and half opening angle of the patch (delta)
-*/
 
 namespace hoomd
     {
@@ -37,7 +31,7 @@ void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::obj
     if (v.is_none())
         {
         m_directors[particle_type_id].clear();
-        m_deltas.clear();
+        m_deltas[particle_type_id].clear();
         return;
         }
     pybind11::list directors = v["directors"];
@@ -52,7 +46,7 @@ void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::obj
         }
 
     m_directors[particle_type_id].resize(N);
-    m_deltas.resize(N);
+    m_deltas[particle_type_id].resize(N);
 
     for (unsigned int i = 0; i < N; i++)
         {

@@ -15,7 +15,6 @@ from hoomd.error import TypeConversionError, IncompleteSpecificationError
 class LJ:
     pass
 
-
 @pytest.fixture(scope="function")
 def pair_potential():
     lj = hpmc.pair.LennardJones()
@@ -56,11 +55,11 @@ def pair_angular_step_simulation_factory(simulation_factory,
                                          two_particle_snapshot_factory):
     """Make two particle sphere simulations with an angular step potential."""
 
-    def make_angular_step_sim(d=1, theta_0=[1, 0, 0, 0], theta_1=[1, 0, 0, 0]):
+    def make_angular_step_sim(d=1, theta_0=0, theta_1=0):
         snapshot = two_particle_snapshot_factory(d=d)
         if snapshot.communicator.rank == 0:
-            snapshot.particle.orientation[0] = theta_0
-            snapshot.particle.orientation[1] = theta_1
+            snapshot.particles.orientation[0] = rowan.from_axis_angle((0,0,1),theta_0)
+            snapshot.particles.orientation[1] = rowan.from_axis_angle((0,0,1),theta_1)
         sim = simulation_factory(snapshot)
 
         sphere = hpmc.integrate.Sphere()
@@ -76,7 +75,8 @@ def test_valid_particle_params(pair_angular_step_simulation_factory,
                                angular_step_potential, valid_particle_dict):
     """Test we can set and attach with valid particle params."""
     angular_step_potential.patch["A"] = valid_particle_dict
-    sim = pair_angular_step_simulation_factory(angular_step_potential)
+    sim = pair_angular_step_simulation_factory()
+    sim.operations.integrator.pair_potentials = [angular_step_potential]
     sim.run(0)
 
 
@@ -114,7 +114,8 @@ def test_invalid_particle_params(pair_angular_step_simulation_factory,
     with pytest.raises((IncompleteSpecificationError, TypeConversionError,
                         KeyError, RuntimeError)):
         angular_step_potential.patch["A"] = invalid_particle_dict
-        sim = pair_angular_step_simulation_factory(angular_step_potential)
+        sim = pair_angular_step_simulation_factory()
+        sim.operations.integrator.pair_potentials = [angular_step_potential]
         sim.run(0)
 
 
@@ -131,7 +132,8 @@ def test_get_set_patch_params(pair_angular_step_simulation_factory,
         "deltas"]
 
     # after attaching, setting as dict
-    sim = pair_angular_step_simulation_factory(angular_step_potential)
+    sim = pair_angular_step_simulation_factory()
+    sim.operations.integrator.pair_potentials = [angular_step_potential]
     sim.run(0)
     new_particle_dict = dict(directors=[(0, 1, 0)], deltas=[0.2])
     angular_step_potential.patch["A"] = new_particle_dict
@@ -140,15 +142,15 @@ def test_get_set_patch_params(pair_angular_step_simulation_factory,
     assert angular_step_potential.patch["A"]["deltas"] == new_particle_dict[
         "deltas"]
 
-    # after attaching, setting directors only
-    angular_step_potential.patch["A"]["directors"] = [(0, 1, 0)]
-    assert angular_step_potential.patch["A"]["directors"] == [(0, 1, 0)]
-    assert angular_step_potential.patch["A"]["deltas"] is None
-
-    # after attaching, setting deltas only
-    angular_step_potential.patch["A"]["deltas"] = [0.2]
-    assert angular_step_potential.patch["A"]["directors"] is None
+    # after attaching, change the director value 
+    angular_step_potential.patch["A"]["directors"] = [(0, 0, 1.0)]
+    assert angular_step_potential.patch["A"]["directors"] == [(0, 0, 1.0)]
     assert angular_step_potential.patch["A"]["deltas"] == [0.2]
+
+    # after attaching, change the delta value 
+    angular_step_potential.patch["A"]["deltas"] = [0.3]
+    assert angular_step_potential.patch["A"]["directors"] == [(0, 0, 1.0)]
+    assert angular_step_potential.patch["A"]["deltas"] == [0.3]
 
 
 @pytest.mark.cpu
@@ -156,7 +158,8 @@ def test_detach(pair_angular_step_simulation_factory, angular_step_potential):
     particle_dict = dict(directors=[(1.0, 0, 0), (0, 1.0, 0)],
                          deltas=[0.1, 0.2])
     angular_step_potential.patch["A"] = particle_dict
-    sim = pair_angular_step_simulation_factory(angular_step_potential)
+    sim = pair_angular_step_simulation_factory()
+    sim.operations.integrator.pair_potentials = [angular_step_potential]
     sim.run(0)
 
     # detach from simulation
@@ -179,56 +182,50 @@ def lj(r, r_cut, epsilon, sigma):
 angular_step_test_parameters = [
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        [0, 0, 0, 1],
+        0,
+        np.pi,
         5.0,  # >rcut
         0.0,
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        [1, 0, 0, 0],
+        0,
+        0,
         5.0,  # > rcut
         0.0,
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        [0, 0, 0, 1],
+        0,
+        np.pi,
         2.0,  # < rcut
         lj(2.0, 4.0, 1, 1),
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        [1, 0, 0, 0],
+        0,
+        0,
         2.0,  # < rcut
         0.0,
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        rowan.vector_vector_rotation(np.array([1, 0, 0]),
-                                     np.array([-np.cos(0.1),
-                                               np.sin(0.1), 0])),
+        0,
+        np.pi-0.099,
         5.0,  # < rcut
         0.0,
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        rowan.vector_vector_rotation(np.array([1, 0, 0]),
-                                     np.array([-np.cos(0.1),
-                                               np.sin(0.1), 0])),
+        0,
+        np.pi-0.099,
         2.0,  # < rcut
-        0.0,
+        lj(2.0, 4.0, 1, 1),
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        [1, 0, 0, 0],
-        rowan.vector_vector_rotation(np.array([1, 0, 0]),
-                                     np.array([-np.cos(0.05),
-                                               np.sin(0.05), 0])),
+        0,
+        np.pi-0.05,
         2.0,  # < rcut
         lj(2.0, 4.0, 1, 1),
     ),
@@ -243,7 +240,7 @@ def test_energy(pair_angular_step_simulation_factory, params, theta_0, theta_1,
     """Test that LennardJones computes the correct energies for 1 pair."""
     lennard_jones = hpmc.pair.LennardJones(mode='none')
     lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=4.0)
-    angular_step = hpmc.pair.angular_step(isotropic_potential=lennard_jones)
+    angular_step = hpmc.pair.AngularStep(isotropic_potential=lennard_jones)
     angular_step.patch['A'] = params
 
     simulation = pair_angular_step_simulation_factory(d=d,

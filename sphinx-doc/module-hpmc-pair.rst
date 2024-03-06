@@ -14,6 +14,7 @@ hoomd.hpmc.pair
     LennardJones
     Pair
     Union
+    AngularStep
 
 .. rubric:: Details
 
