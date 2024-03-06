@@ -122,17 +122,15 @@ class AngularStep(Pair):
         """
         return self._isotropic_potential
 
-    def _attach_hook(self):
-        # attach the constituent potential
-        self.isotropic_potential._attach(self._simulation)
-
+    def _make_cpp_obj(self):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
-        self._cpp_obj = cls(cpp_sys_def, self.isotropic_potential._cpp_obj)
+        return cls(cpp_sys_def, self.isotropic_potential._cpp_obj)
 
-        self.isotropic_potential._cpp_obj.setParent(self._cpp_obj)
-
+    def _attach_hook(self):
+        self.isotropic_potential._attach(self._simulation)
         super()._attach_hook()
+        self.isotropic_potential._cpp_obj.setParent(self._cpp_obj)
 
     def _detach_hook(self):
         if self.isotropic_potential is not None:
