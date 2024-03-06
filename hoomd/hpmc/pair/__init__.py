@@ -31,3 +31,4 @@ from . import user
 from .pair import Pair
 from .lennard_jones import LennardJones
 from .union import Union
+from .step import Step
