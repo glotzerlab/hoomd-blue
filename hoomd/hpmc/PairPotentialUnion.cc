@@ -1,5 +1,7 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+#include <numeric>
 
 #include "PairPotentialUnion.h"
 
@@ -154,27 +156,53 @@ pybind11::object PairPotentialUnion::getBody(std::string body_type)
     v["positions"] = positions;
     v["orientations"] = orientations;
     v["charges"] = charges;
-    return std::move(v);
+    return v;
+    }
+
+LongReal PairPotentialUnion::computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
+    {
+    // The non-additive part of the union r_cut is the maximum of the constituent non-additive
+    // r_cuts over type pairs that interact between two union particles of type_i and type_j
+
+    LongReal r_cut = 0;
+
+    for (auto& constituent_type_i : m_type[type_i])
+        {
+        for (auto& constituent_type_j : m_type[type_j])
+            {
+            r_cut = std::max(r_cut,
+                             m_constituent_potential->computeRCutNonAdditive(constituent_type_i,
+                                                                             constituent_type_j));
+            }
+        }
+
+    return r_cut;
+    }
+
+LongReal PairPotentialUnion::computeRCutAdditive(unsigned int type) const
+    {
+    // The additive cutoff is twice the radius of the constituent particle furthest from the
+    // origin.
+    assert(type <= m_extent_type.size());
+
+    if (m_constituent_potential->computeRCutAdditive(type) > 0)
+        {
+        throw std::domain_error("Unsupported constituent potential.");
+        }
+
+    return m_extent_type[type];
     }
 
 void PairPotentialUnion::updateExtent(unsigned int type_id)
     {
-    auto N = static_cast<unsigned int>(m_position[type_id].size());
+    // The extent is 2x the maximum distance of constituent particles to the origin
+    m_extent_type[type_id] = 0;
 
-    Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i
-
-    for (unsigned int i = 0; i < N; i++)
+    for (const auto& pos : m_position[type_id])
         {
-        auto pos = m_position[type_id][i];
-
-        // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere
-        // diameter
-        Scalar r = sqrt(dot(pos, pos));
-        extent_i = std::max(extent_i, Scalar(2 * r));
+        m_extent_type[type_id]
+            = std::max(m_extent_type[type_id], LongReal(2) * slow::sqrt(dot(pos, pos)));
         }
-
-    // set the diameter
-    m_extent_type[type_id] = extent_i;
     }
 
 void PairPotentialUnion::buildOBBTree(unsigned int type_id)
@@ -274,7 +302,7 @@ LongReal PairPotentialUnion::energy(const LongReal r_squared,
 
 namespace detail
     {
-void export_PairPotentialUnion(pybind11::module& m)
+void exportPairPotentialUnion(pybind11::module& m)
     {
     pybind11::class_<PairPotentialUnion, PairPotential, std::shared_ptr<PairPotentialUnion>>(
         m,

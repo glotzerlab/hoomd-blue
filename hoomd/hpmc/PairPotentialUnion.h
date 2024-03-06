@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -67,26 +67,10 @@ class PairPotentialUnion : public hpmc::PairPotential
                             const LongReal charge_j) const;
 
     /// Compute the non-additive cuttoff radius
-    virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
-        {
-        // Pass on the non-additive r_cut from the constituent potential.
-        return m_constituent_potential->computeRCutNonAdditive(type_i, type_j);
-        }
+    virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const;
 
     /// Returns the additive part of the cutoff distance for a given type.
-    virtual LongReal computeRCutAdditive(unsigned int type) const
-        {
-        // The additive cutoff is twice the radius of the constituent particle furthest from the
-        // origin.
-        assert(type <= m_extent_type.size());
-
-        if (m_constituent_potential->computeRCutAdditive(type) > 0)
-            {
-            throw std::domain_error("Unsupported constituent potential.");
-            }
-
-        return m_extent_type[type];
-        }
+    virtual LongReal computeRCutAdditive(unsigned int type) const;
 
     protected:
     /// The pair potential to apply between constituents.
@@ -165,7 +149,8 @@ class PairPotentialUnion : public hpmc::PairPotential
                 vec3<LongReal> constituent_r_ij = m_position[type_j][j] - constituent_position_i;
 
                 LongReal rsq = dot(constituent_r_ij, constituent_r_ij);
-                if (rsq < m_constituent_potential->getRCutSquaredTotal(type_i, type_j))
+                if (rsq < m_constituent_potential->getRCutSquaredTotal(constituent_type_i,
+                                                                       constituent_type_j))
                     {
                     energy += m_constituent_potential->energy(rsq,
                                                               constituent_r_ij,

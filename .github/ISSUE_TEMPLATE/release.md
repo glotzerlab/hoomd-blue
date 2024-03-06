@@ -29,4 +29,4 @@ All releases:
 - [ ] Tag and push.
 - [ ] Update conda-forge recipe.
 - [ ] Update *glotzerlab-software*.
-- [ ] Announce release on mailing list.
+- [ ] Update *hoomd-component-template*.

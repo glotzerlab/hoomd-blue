@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -35,12 +35,12 @@ namespace hpmc
     sizes. The non-additive r_cut allows more freedom to implement models. Subclasses can use
     one of the two or both at the same time.
 
-    A PairPotential may be compose another PairPotential (e.g. angular patches modulating a square
-    well). Each PairPotential maintains a weak pointer to its parent. Only the r_cut of the top most
-    parent is considered by IntegratorHPMC when computing interactions. Each PairPotential subclass
-    should override the default computeRCutNonAdditive and computeRCutAdditive methods as needed
-    to compute the various r_cut values as a function of parameters and child potentials. The base
-    implementations return 0.
+    A PairPotential may be composed of another PairPotential (e.g. angular patches modulating a
+   square well). Each PairPotential maintains a weak pointer to its parent. Only the r_cut of the
+   top most parent is considered by IntegratorHPMC when computing interactions. Each PairPotential
+   subclass should override the default computeRCutNonAdditive and computeRCutAdditive methods as
+   needed to compute the various r_cut values as a function of parameters and child potentials. The
+   base implementations return 0.
 
     The top level potential maintains cached values of the total and maximum r_cut values.
     Subclasses must call notifyRCutChanged whenever they would change the value of their computed
@@ -99,7 +99,7 @@ class PairPotential
         energy is given a pre-computed r_squared as many potentials use this parameter and the
         caller has already computed it.
 
-        To avoid repeated evaluations of r_square < r_cut_squared, the *caller* must perform the
+        To avoid repeated evaluations of r_squared < r_cut_squared, the *caller* must perform the
         check before calling energy. Implementations of energy are free to compute non-zero values
         beyond r_cut when convenient.
 
