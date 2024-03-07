@@ -10,6 +10,7 @@ from inspect import isclass
 from hoomd.error import TypeConversionError
 from hoomd.util import _is_iterable
 from hoomd.variant import Variant, Constant
+from hoomd.variant.box import Constant as ConstantBox
 from hoomd.trigger import Trigger, Periodic
 from hoomd.filter import ParticleFilter, CustomFilter
 import hoomd
@@ -61,6 +62,22 @@ def box_preprocessing(box):
         except Exception:
             raise ValueError(f"{box} is not convertible into a hoomd.Box object"
                              f". using hoomd.Box.from_box")
+
+
+def box_variant_preprocessing(input):
+    """Process box variants.
+
+    Convert boxes and length-6 array-like objects to
+    `hoomd.variant.box.Constant`.
+    """
+    if isinstance(input, hoomd.vector.box.BoxVariant):
+        return input
+    else:
+        try:
+            return ConstantBox(box_preprocessing(input))
+        except Exception:
+            raise ValueError(f"{input} is not convertible into a "
+                             f"hoomd.variant.box.BoxVariant object.")
 
 
 def positive_real(number):
@@ -391,6 +408,9 @@ class _BaseConverter:
             OnlyTypes(Trigger, preprocess=trigger_preprocessing),
         hoomd.Box:
             OnlyTypes(hoomd.Box, preprocess=box_preprocessing),
+        hoomd.variant.box.BoxVariant:
+            OnlyTypes(hoomd.variant.box.BoxVariant,
+                      preprocess=box_variant_preprocessing),
         # arrays default to float of one dimension of arbitrary length and
         # ordering
         np.ndarray:
