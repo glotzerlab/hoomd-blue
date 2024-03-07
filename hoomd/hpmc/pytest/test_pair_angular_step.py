@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.pair.AngularStep."""
@@ -14,6 +14,7 @@ from hoomd.error import TypeConversionError, IncompleteSpecificationError
 
 class LJ:
     pass
+
 
 @pytest.fixture(scope="function")
 def pair_potential():
@@ -58,8 +59,10 @@ def pair_angular_step_simulation_factory(simulation_factory,
     def make_angular_step_sim(d=1, theta_0=0, theta_1=0):
         snapshot = two_particle_snapshot_factory(d=d)
         if snapshot.communicator.rank == 0:
-            snapshot.particles.orientation[0] = rowan.from_axis_angle((0,0,1),theta_0)
-            snapshot.particles.orientation[1] = rowan.from_axis_angle((0,0,1),theta_1)
+            snapshot.particles.orientation[0] = rowan.from_axis_angle((0, 0, 1),
+                                                                      theta_0)
+            snapshot.particles.orientation[1] = rowan.from_axis_angle((0, 0, 1),
+                                                                      theta_1)
         sim = simulation_factory(snapshot)
 
         sphere = hpmc.integrate.Sphere()
@@ -142,12 +145,12 @@ def test_get_set_patch_params(pair_angular_step_simulation_factory,
     assert angular_step_potential.patch["A"]["deltas"] == new_particle_dict[
         "deltas"]
 
-    # after attaching, change the director value 
+    # after attaching, change the director value
     angular_step_potential.patch["A"]["directors"] = [(0, 0, 1.0)]
     assert angular_step_potential.patch["A"]["directors"] == [(0, 0, 1.0)]
     assert angular_step_potential.patch["A"]["deltas"] == [0.2]
 
-    # after attaching, change the delta value 
+    # after attaching, change the delta value
     angular_step_potential.patch["A"]["deltas"] = [0.3]
     assert angular_step_potential.patch["A"]["directors"] == [(0, 0, 1.0)]
     assert angular_step_potential.patch["A"]["deltas"] == [0.3]
@@ -211,21 +214,21 @@ angular_step_test_parameters = [
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
-        np.pi-0.099,
+        np.pi - 0.099,
         5.0,  # < rcut
         0.0,
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
-        np.pi-0.099,
+        np.pi - 0.099,
         2.0,  # < rcut
         lj(2.0, 4.0, 1, 1),
     ),
     (
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
-        np.pi-0.05,
+        np.pi - 0.05,
         2.0,  # < rcut
         lj(2.0, 4.0, 1, 1),
     ),

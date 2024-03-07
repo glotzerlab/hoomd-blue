@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Angular-step pair potential.
@@ -24,7 +24,7 @@ from .pair import Pair
 
 @hoomd.logging.modify_namespace(('hpmc', 'pair', 'AngularStep'))
 class AngularStep(Pair):
-    """Angular-step pair potential (HPMC).
+    r"""Angular-step pair potential (HPMC).
 
     Args:
         isotropic_potential (hoomd.hpmc.pair.Pair): the pair potential that act
@@ -39,26 +39,25 @@ class AngularStep(Pair):
     .. math::
         U(\vec{r}_{ij}, \mathbf{\Omega}_i, \mathbf{\Omega}_j)) =
         \sum_{m=1}^{N_{\mathrm{patches},i}} \sum_{m=1}^{N_{\mathrm{patches},j}}
-        U_\mathrm{isotropic}(\vec{r}_{ij}) \cdot 
+        U_\mathrm{isotropic}(\vec{r}_{ij}) \cdot
         f(\mathbf{\Omega}_i, \mathbf{\Omega}_j)
 
     where :math:`N_{\mathrm{patches},i}` is the number of patches on the
-    :math:`i` particle and :math:`U_\mathrm{isotropic}` is the isotropic 
-    potential. :math:`f(\mathbf{\Omega}_i, \mathbf{\Omega}_j)` is an 
-    orientational masking function given by: 
+    :math:`i` particle and :math:`U_\mathrm{isotropic}` is the isotropic
+    potential. :math:`f(\mathbf{\Omega}_i, \mathbf{\Omega}_j)` is an
+    orientational masking function given by:
 
-        f(\mathbf{\Omega}_i, \mathbf{\Omega}_j) = \left\{ \begin{array}{ll} 
-        1 \quad \hat{e_{i}} \cdot \hat{r_{ij}} > cos\delta_{i} \quad and \quad 
-        \hat{e_{i}} \cdot \hat{r_{ji}} > cos\delta_{j} \\ 
-        0 \quad \text{otherwise} \end{array} \right.
+        f(\mathbf{\Omega}_i, \mathbf{\Omega}_j) = \left\{ \begin{array}{ll}
+        1 \quad \hat{e_{i}} \cdot \hat{r_{ij}} > cos\delta_{i} \quad and \quad
+        \hat{e_{i}} \cdot \hat{r_{ji}} > cos\delta_{j} \\
+        0 \quad \text{otherwise} \end{array} \rights
 
-    where :math:`\hat{e_{i}}` and :math:`\hat{e_{j}}` are the unit vectors 
-    pointing from the particle center to the patches. :math:`\hat{r_{ij}}` 
+    where :math:`\hat{e_{i}}` and :math:`\hat{e_{j}}` are the unit vectors
+    pointing from the particle center to the patches. :math:`\hat{r_{ij}}`
     is the unit vector pointing from particle :math:`i` to particle :math:`j`.
-    :math:`cos\delta_{i}` and :math:`cos\delta_{j}` are the half opening angles
-    of the patches on particles :math:`i` and :math:`j` accordingly. 
- 
-    
+    :math:`cos\delta_{i}` and :math:`cos\delta_{j}` are the half opening
+    angles of the patches on particles :math:`i` and :math:`j` accordingly.
+
     .. rubric:: Example
 
     .. code-block:: python
@@ -71,8 +70,8 @@ class AngularStep(Pair):
 
     Set the patch directors and delta values for each particle
     type. Patch directors are the directional unit vectors that represent
-    the patch locations on a particle, and deltas are the half opening angles of
-    the patch in radian.
+    the patch locations on a particle, and deltas are the half opening angles
+    of the patch in radian.
 
     .. py:attribute:: patch
 
@@ -83,22 +82,19 @@ class AngularStep(Pair):
         The dictionary has the following keys:
         - ``directors`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
           directional vectors of the patches on a particle.
+
         - ``deltas`` (`list` [`float`]): List of delta values (the half opening
           angle of the patch in radian) of the patches.
-
     """
     _cpp_class_name = "PairPotentialAngularStep"
 
     def __init__(self, isotropic_potential):
         patch = TypeParameter(
-            'patch',
-            'particle_types',
-            TypeParameterDict(
-                OnlyIf(to_type_converter(
-                    dict(directors=[(float,) * 3], deltas=[float])),
-                       allow_none=True),
-            len_keys=1)
-        )
+            'patch', 'particle_types',
+            TypeParameterDict(OnlyIf(to_type_converter(
+                dict(directors=[(float,) * 3], deltas=[float])),
+                                     allow_none=True),
+                              len_keys=1))
         self._add_typeparam(patch)
 
         if not isinstance(isotropic_potential, hoomd.hpmc.pair.Pair):
@@ -118,7 +114,6 @@ class AngularStep(Pair):
         .. code-block:: python
 
             angular_step.isotropic_potential
-
         """
         return self._isotropic_potential
 
