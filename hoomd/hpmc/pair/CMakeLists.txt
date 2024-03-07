@@ -1,6 +1,7 @@
 set(files __init__.py
         lennard_jones.py
         pair.py
+        step.py
         union.py
         angular_step.py
         user.py
