@@ -22,10 +22,10 @@ hoomd.hpmc.pair
 .. automodule:: hoomd.hpmc.pair
     :synopsis: Pair potentials for HPMC.
     :show-inheritance:
-    :members: AngularStep
+    :members: AngularStep,
               LennardJones,
               Pair,
-			  Step,
+              Step,
               Union
 
 .. rubric:: Modules
