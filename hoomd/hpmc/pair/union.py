@@ -43,13 +43,14 @@ class Union(Pair):
 
     .. math::
         U(\vec{r}_{ij}, \mathbf{q}_i, \mathbf{q}_j)) =
-        \sum_{a=1}^{N_{\mathrm{patches},i}} \sum_{b=1}^{N_{\mathrm{patches},j}}
+        \sum_{a=1}^{N_{\mathrm{constituents},i}}
+        \sum_{b=1}^{N_{\mathrm{constituents},j}}
         U_\mathrm{constituent}(\mathbf{q}_j \vec{P}_{j,b} \mathbf{q}_j^* -
         \vec{P}_{i,a},
         \mathbf{q}_i \mathbf{Q}_{i,a}, \mathbf{q}_j \mathbf{Q}_{j,b})
 
-    where :math:`N_{\mathrm{patches},i}` is the number of patches on the
-    :math:`i` particle and :math:`U_\mathrm{constituent}` is the potential
+    where :math:`N_{\mathrm{constituents},i}` is the number of constituents on
+    the :math:`i` particle and :math:`U_\mathrm{constituent}` is the potential
     evaluated by the given ``constituent_potential``. :math:`\vec{P}_{i,a}` and
     :math:`\mathbf{Q}_{i,a}` are the constituent postitions and orientations
     with index :math:`a` on the :math:`i` particle.

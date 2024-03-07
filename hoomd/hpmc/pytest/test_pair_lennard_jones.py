@@ -154,12 +154,6 @@ lennard_jones_test_parameters = [
         lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.0, 2.5),
     ),
     (
-        dict(epsilon=5.0, sigma=1.1, r_cut=2.5, r_on=2.0),
-        'xplor',
-        2.3,
-        lj(2.3, 2.5, 5, 1.1) * xplor_factor(2.3, 2.0, 2.5),
-    ),
-    (
         dict(epsilon=5.0, sigma=1.1, r_cut=2, r_on=3),
         'xplor',
         1.5,
