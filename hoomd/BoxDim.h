@@ -141,6 +141,16 @@ struct
         m_xz = m_xy = m_yz = Scalar(0.0);
         }
 
+    /// Constructs a box from a std::array<Scalar, 6>
+    /** @param array Box parameters
+    */
+    HOSTDEVICE explicit BoxDim(const std::array<Scalar, 6>& array)
+        {
+        setL(make_scalar3(array[0], array[1], array[2]));
+        setTiltFactors(array[3], array[4], array[5]);
+        m_periodic = make_uchar3(1, 1, 1);
+        }
+
     //! Get the periodic flags
     /*! \return Periodic flags
      */
