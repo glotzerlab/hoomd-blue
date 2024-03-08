@@ -73,7 +73,7 @@ def box_variant_preprocessing(input):
         return input
     else:
         try:
-            return hoomd.variant.box.ConstantBox(box_preprocessing(input))
+            return hoomd.variant.box.Constant(box_preprocessing(input))
         except Exception:
             raise ValueError(f"{input} is not convertible into a "
                              f"hoomd.variant.box.BoxVariant object.")

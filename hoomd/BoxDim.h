@@ -143,7 +143,7 @@ struct
 
     /// Constructs a box from a std::array<Scalar, 6>
     /** @param array Box parameters
-    */
+     */
     HOSTDEVICE explicit BoxDim(const std::array<Scalar, 6>& array)
         {
         setL(make_scalar3(array[0], array[1], array[2]));
