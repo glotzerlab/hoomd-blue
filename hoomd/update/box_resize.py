@@ -51,10 +51,10 @@ class BoxResize(Updater):
                                s_z \\vec{a}_3' -
                     \\frac{\\vec{a}_1' + \\vec{a}_2' + \\vec{a}_3'}{2}
 
-    where :math:`\\vec{a}_k'` are the new box vectors determined by
-    :math:`box` evaluated at the current time step and the scale factors are
-    determined by the current particle position :math:`\\vec{r}_i` and the old
-    box vectors :math:`\\vec{a}_k`:
+    where :math:`\\vec{a}_k'` are the new box vectors determined by `box`
+    evaluated at the current time step and the scale factors are determined
+    by the current particle position :math:`\\vec{r}_i` and the previous box
+    vectors :math:`\\vec{a}_k`:
 
     .. math::
 
@@ -97,13 +97,15 @@ class BoxResize(Updater):
     .. code-block:: python
 
         box_resize = hoomd.update.BoxResize(trigger=hoomd.trigger.Periodic(10),
-                                            box1=inverse_volume_ramp)
+                                            box=inverse_volume_ramp)
         simulation.operations.updaters.append(box_resize)
 
     Attributes:
         box (hoomd.variant.box.BoxVariant): The box as a function of time.
 
             .. rubric:: Example:
+
+            .. code-block:: python
 
                 box_resize.box = inverse_volume_ramp
 
