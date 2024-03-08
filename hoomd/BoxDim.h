@@ -11,6 +11,8 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
+#include <array>
+
 // Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
 #if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
 #include "HOOMDMPI.h"
