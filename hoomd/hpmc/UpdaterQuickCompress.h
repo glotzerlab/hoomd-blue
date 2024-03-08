@@ -154,10 +154,10 @@ class UpdaterQuickCompress : public Updater
     bool m_allow_unsafe_resize = false;
 
     /// Perform the box scale move
-    void performBoxScale(uint64_t timestep);
+    void performBoxScale(uint64_t timestep, const BoxDim& target_box);
 
     /// Get the new box to set
-    BoxDim getNewBox(uint64_t timestep);
+    BoxDim getNewBox(uint64_t timestep, const BoxDim& target_box);
 
     /// Store the last HPMC counters
     hpmc_counters_t m_last_move_counters;

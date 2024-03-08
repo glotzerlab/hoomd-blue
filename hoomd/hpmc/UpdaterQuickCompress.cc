@@ -47,7 +47,6 @@ void UpdaterQuickCompress::update(uint64_t timestep)
     // count the number of overlaps in the current configuration
     auto n_overlaps = m_mc->countOverlaps(false);
     BoxDim current_box = m_pdata->getGlobalBox();
-
     BoxDim target_box = BoxDim((*m_target_box)(timestep));
     if (n_overlaps == 0 && current_box != target_box)
         {
@@ -61,9 +60,9 @@ void UpdaterQuickCompress::update(uint64_t timestep)
         m_is_complete = false;
     }
 
-void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
+void UpdaterQuickCompress::performBoxScale(uint64_t timestep, const BoxDim& target_box)
     {
-    auto new_box = getNewBox(timestep);
+    auto new_box = getNewBox(timestep, target_box);
     auto old_box = m_pdata->getGlobalBox();
 
     Scalar3 old_origin = m_pdata->getOrigin();
@@ -140,7 +139,7 @@ static inline double scaleTilt(double current, double target, double s)
         }
     }
 
-BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
+BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep, const BoxDim& target_box)
     {
     // compute the current MC translate acceptance ratio
     auto current_counters = m_mc->getCounters();
@@ -191,23 +190,23 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     Scalar new_xy, new_xz, new_yz;
     if (m_sysdef->getNDimensions() == 3)
         {
-        new_L.x = scaleLength(current_box.getL().x, target_Lx, scale);
-        new_L.y = scaleLength(current_box.getL().y, target_Ly, scale);
-        new_L.z = scaleLength(current_box.getL().z, target_Lz, scale);
-        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_xy, scale);
-        new_xz = scaleTilt(current_box.getTiltFactorXZ(), target_xz, scale);
-        new_yz = scaleTilt(current_box.getTiltFactorYZ(), target_yz, scale);
+        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
+        new_L.z = scaleLength(current_box.getL().z, target_box.getL().z, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_xz = scaleTilt(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
+        new_yz = scaleTilt(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
         }
     else
         {
-        new_L.x = scaleLength(current_box.getL().x, target_Lx, scale);
-        new_L.y = scaleLength(current_box.getL().y, target_Ly, scale);
-        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_xy, scale);
+        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
 
         // assume that the unused fields in the 2D target box are valid
-        new_L.z = target_Lz;
-        new_xz = target_xz;
-        new_yz = target_yz;
+        new_L.z = target_box.getL().z;
+        new_xz = target_box.getTiltFactorXZ();
+        new_yz = target_box.getTiltFactorYZ();
         }
 
     BoxDim new_box = current_box;
