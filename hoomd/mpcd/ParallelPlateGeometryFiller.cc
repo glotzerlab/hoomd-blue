@@ -18,7 +18,7 @@ mpcd::ParallelPlateGeometryFiller::ParallelPlateGeometryFiller(
     Scalar density,
     std::shared_ptr<Variant> T,
     std::shared_ptr<const mpcd::ParallelPlateGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdef, type, density, T), m_geom(geom)
+    : mpcd::ManualVirtualParticleFiller(sysdef, type, density, T), m_geom(geom)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParallelPlateGeometryFiller" << std::endl;
     }
@@ -91,13 +91,12 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
     uint16_t seed = m_sysdef->getSeed();
 
     // index to start filling from
-    const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
     for (unsigned int i = 0; i < m_N_fill; ++i)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
             hoomd::Seed(hoomd::RNGIdentifier::ParallelPlateGeometryFiller, timestep, seed),
-            hoomd::Counter(tag));
+            hoomd::Counter(tag, m_filler_id));
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
             {
@@ -110,7 +109,7 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
             hi.y = m_y_max;
             }
 
-        const unsigned int pidx = first_idx + i;
+        const unsigned int pidx = m_first_idx + i;
         h_pos.data[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                         hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                         hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),

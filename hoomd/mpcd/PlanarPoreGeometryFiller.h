@@ -13,8 +13,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "ManualVirtualParticleFiller.h"
 #include "PlanarPoreGeometry.h"
-#include "VirtualParticleFiller.h"
 
 #include <pybind11/pybind11.h>
 
@@ -27,7 +27,7 @@ namespace mpcd
  * Particles are added to the volume that is overlapped by any of the cells that are also "inside"
  * the channel, subject to the grid shift.
  */
-class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::VirtualParticleFiller
+class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::ManualVirtualParticleFiller
     {
     public:
     PlanarPoreGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,

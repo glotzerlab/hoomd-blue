@@ -44,8 +44,6 @@ void mpcd::PlanarPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
     ArrayHandle<Scalar4> d_boxes(m_boxes, access_location::device, access_mode::read);
     ArrayHandle<uint2> d_ranges(m_ranges, access_location::device, access_mode::read);
 
-    const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
-
     uint16_t seed = m_sysdef->getSeed();
 
     m_tuner->begin();
@@ -60,7 +58,7 @@ void mpcd::PlanarPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
                                         m_mpcd_pdata->getMass(),
                                         m_type,
                                         m_first_tag,
-                                        first_idx,
+                                        m_first_idx,
                                         (*m_T)(timestep),
                                         timestep,
                                         seed,

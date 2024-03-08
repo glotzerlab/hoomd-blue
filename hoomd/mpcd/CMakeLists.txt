@@ -12,6 +12,7 @@ set(_mpcd_cc_sources
     CollisionMethod.cc
     Communicator.cc
     Integrator.cc
+    ManualVirtualParticleFiller.cc
     ParallelPlateGeometryFiller.cc
     PlanarPoreGeometryFiller.cc
     Sorter.cc
@@ -34,6 +35,7 @@ set(_mpcd_headers
     Communicator.h
     CommunicatorUtilities.h
     Integrator.h
+    ManualVirtualParticleFiller.h
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
