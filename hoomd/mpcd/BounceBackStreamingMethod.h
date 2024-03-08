@@ -173,17 +173,31 @@ bool BounceBackStreamingMethod<Geometry, Force>::checkParticles()
                                     access_location::host,
                                     access_mode::read);
 
+    bool out_of_bounds = false;
     for (unsigned int idx = 0; idx < m_mpcd_pdata->getN(); ++idx)
         {
         const Scalar4 postype = h_pos.data[idx];
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         if (m_geom->isOutside(pos))
             {
-            return false;
+            out_of_bounds = true;
+            break;
             }
         }
 
-    return true;
+#ifdef ENABLE_MPI
+    if (m_exec_conf->getNRanks() > 1)
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &out_of_bounds,
+                      1,
+                      MPI_CXX_BOOL,
+                      MPI_LOR,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif // ENABLE_MPI
+
+    return !out_of_bounds;
     }
 
 namespace detail
