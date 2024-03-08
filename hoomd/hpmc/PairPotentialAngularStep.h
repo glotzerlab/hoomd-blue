@@ -61,11 +61,11 @@ class PairPotentialAngularStep : public hpmc::PairPotential
 
     protected:
     bool maskingFunction(LongReal r_squared,
-                        const vec3<LongReal>& r_ij,
-                        const unsigned int type_i,
-                        const quat<LongReal>& q_i,
-                        const unsigned int type_j,
-                        const quat<LongReal>& q_j) const
+                         const vec3<LongReal>& r_ij,
+                         const unsigned int type_i,
+                         const quat<LongReal>& q_i,
+                         const unsigned int type_j,
+                         const quat<LongReal>& q_j) const
         {
         vec3<LongReal> rhat_ij = r_ij / fast::sqrt(r_squared);
 

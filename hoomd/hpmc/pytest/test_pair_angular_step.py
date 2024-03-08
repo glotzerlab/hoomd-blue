@@ -131,8 +131,7 @@ def test_get_set_patch_params(pair_angular_step_simulation_factory,
     angular_step_potential.mask["A"] = particle_dict
     assert angular_step_potential.mask["A"]["directors"] == particle_dict[
         "directors"]
-    assert angular_step_potential.mask["A"]["deltas"] == particle_dict[
-        "deltas"]
+    assert angular_step_potential.mask["A"]["deltas"] == particle_dict["deltas"]
 
     # after attaching, setting as dict
     sim = pair_angular_step_simulation_factory()
@@ -176,78 +175,79 @@ def lj(r, r_cut, epsilon, sigma):
     """Compute the lj energy."""
     return 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
 
+
 # Test 1 particle type
 
 #  params
 #  theta_0, # rotation of the first particle
-#  theta_1, 
+#  theta_1,
 #  distance between particles,
 #  expected energy
 angular_step_test_parameters_one_type = [
-    (   # rotate pi (overlap), > rcut
+    (  # rotate pi (overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
-        np.pi, 
+        np.pi,
         5.0,
         0.0,
     ),
-    (   # no rotation (no overlap), > rcut
+    (  # no rotation (no overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         0,
         5.0,
         0.0,
     ),
-    (   # rotate pi (overlap), < rcut
+    (  # rotate pi (overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi,
         2.0,
         lj(2.0, 4.0, 1, 1),
     ),
-    (   # no rotation (no overlap), < rcut
+    (  # no rotation (no overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         0,
         2.0,
         0.0,
     ),
-    (   # rotate pi-0.5 (no overlap), > rcut
+    (  # rotate pi-0.5 (no overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.5,
         5.0,
         0.0,
     ),
-    (   # rotate pi-0.5 (no overlap), < rcut
+    (  # rotate pi-0.5 (no overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.5,
         2.0,  # < rcut
         0.0,
     ),
-    (   # rotate pi-0.099 (just overlapped), > rcut
+    (  # rotate pi-0.099 (just overlapped), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.099,
         5.0,
         0.0,
     ),
-    (   # rotate pi-0.099 (just overlapped), < rcut
+    (  # rotate pi-0.099 (just overlapped), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.099,
         2.0,
         lj(2.0, 4.0, 1, 1),
     ),
-    (   # rotate pi-0.05 (overlap), > rcut
+    (  # rotate pi-0.05 (overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.05,
         5.0,
         0.0,
     ),
-    (   # rotate pi-0.05 (overlap), < rcut
+    (  # rotate pi-0.05 (overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.05,
@@ -283,19 +283,19 @@ def test_energy(pair_angular_step_simulation_factory, params, theta_0, theta_1,
 #  params_0
 #  params_1
 #  theta_0, # rotation of the first particle
-#  theta_1, 
+#  theta_1,
 #  distance between particles,
 #  expected energy
 angular_step_test_parameters_two_types = [
-    (   # 2 types, rotate pi (overlap), > rcut
+    (  # 2 types, rotate pi (overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
-        np.pi, 
+        np.pi,
         5.0,
         0.0,
     ),
-    (   # 2 types, no rotation (no overlap), > rcut
+    (  # 2 types, no rotation (no overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -303,7 +303,7 @@ angular_step_test_parameters_two_types = [
         5.0,
         0.0,
     ),
-    (   # 2 types, rotate pi (overlap), < rcut
+    (  # 2 types, rotate pi (overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -311,7 +311,7 @@ angular_step_test_parameters_two_types = [
         2.0,
         lj(2.0, 4.0, 1, 1),
     ),
-    (   # 2 types, no rotation (no overlap), < rcut
+    (  # 2 types, no rotation (no overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -319,7 +319,7 @@ angular_step_test_parameters_two_types = [
         2.0,
         0.0,
     ),
-    (   # 2 types, rotate pi-0.5 (no overlap), > rcut
+    (  # 2 types, rotate pi-0.5 (no overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -327,7 +327,7 @@ angular_step_test_parameters_two_types = [
         5.0,
         0.0,
     ),
-    (   # 2 types, rotate pi-0.5 (no overlap), < rcut
+    (  # 2 types, rotate pi-0.5 (no overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -335,7 +335,7 @@ angular_step_test_parameters_two_types = [
         2.0,  # < rcut
         0.0,
     ),
-    (   # 2 types, rotate pi-0.099 (just overlapped), > rcut
+    (  # 2 types, rotate pi-0.099 (just overlapped), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -343,7 +343,7 @@ angular_step_test_parameters_two_types = [
         5.0,
         0.0,
     ),
-    (   # 2 types, rotate pi-0.099 (just overlapped), < rcut
+    (  # 2 types, rotate pi-0.099 (just overlapped), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -351,7 +351,7 @@ angular_step_test_parameters_two_types = [
         2.0,
         lj(2.0, 4.0, 1, 1),
     ),
-    (   # 2 types, rotate pi-0.05 (overlap), > rcut
+    (  # 2 types, rotate pi-0.05 (overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -359,7 +359,7 @@ angular_step_test_parameters_two_types = [
         5.0,
         0.0,
     ),
-    (   # 2 types, rotate pi-0.05 (overlap), < rcut
+    (  # 2 types, rotate pi-0.05 (overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
         0,
@@ -370,12 +370,12 @@ angular_step_test_parameters_two_types = [
 ]
 
 
-@pytest.mark.parametrize('params_0, params_1, theta_0, theta_1, d,' 
-                         'expected_energy',
-                         angular_step_test_parameters_two_types)
+@pytest.mark.parametrize(
+    'params_0, params_1, theta_0, theta_1, d,'
+    'expected_energy', angular_step_test_parameters_two_types)
 @pytest.mark.cpu
-def test_energy(pair_angular_step_simulation_factory, params_0, params_1,
-                theta_0, theta_1, d, expected_energy):
+def test_energy_two_types(pair_angular_step_simulation_factory, params_0,
+                          params_1, theta_0, theta_1, d, expected_energy):
     """Test that LennardJones computes the correct energies for 1 pair."""
     lennard_jones = hpmc.pair.LennardJones(mode='none')
     lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=4.0)

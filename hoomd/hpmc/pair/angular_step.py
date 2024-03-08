@@ -80,8 +80,8 @@ class AngularStep(Pair):
 
         The mask definition.
 
-        The mask describes the distribution of patches on the particle's 
-        surface and the masking function determines the interaction scale 
+        The mask describes the distribution of patches on the particle's
+        surface and the masking function determines the interaction scale
         factor as a function of two interacting particle's masks.
 
         The dictionary has the following keys:
