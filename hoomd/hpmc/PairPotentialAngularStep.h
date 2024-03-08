@@ -21,8 +21,10 @@ class PairPotentialAngularStep : public hpmc::PairPotential
                              std::shared_ptr<PairPotential> isotropic_potential);
     virtual ~PairPotentialAngularStep() { }
 
+    /// Set the patch parameters for a given particle type.
     void setMask(std::string particle_type, pybind11::object v);
 
+    /// Get the patch parameters for a given particle type.
     pybind11::object getMask(std::string particle_type);
 
     /*** Evaluate the energy of the pair interaction
@@ -67,12 +69,12 @@ class PairPotentialAngularStep : public hpmc::PairPotential
         {
         vec3<LongReal> rhat_ij = r_ij / fast::sqrt(r_squared);
 
-        for (int m = 0; m < m_directors[type_i].size(); m++)
+        for (size_t m = 0; m < m_directors[type_i].size(); m++)
             {
             LongReal cos_delta_m = m_cos_deltas[type_i][m];
             vec3<LongReal> ehat_m = rotate(q_i, m_directors[type_i][m]);
 
-            for (int n = 0; n < m_directors[type_j].size(); n++)
+            for (size_t n = 0; n < m_directors[type_j].size(); n++)
                 {
                 LongReal cos_delta_n = m_cos_deltas[type_j][n];
                 vec3<LongReal> ehat_n = rotate(q_j, m_directors[type_j][n]);
