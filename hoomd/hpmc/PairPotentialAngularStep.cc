@@ -15,7 +15,7 @@ PairPotentialAngularStep::PairPotentialAngularStep(
     {
     unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
     m_directors.resize(ntypes);
-    m_deltas.resize(ntypes);
+    m_cos_deltas.resize(ntypes);
 
     if (!m_isotropic_potential)
         {
@@ -23,14 +23,14 @@ PairPotentialAngularStep::PairPotentialAngularStep(
         }
     }
 
-void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::object v)
+void PairPotentialAngularStep::setMask(std::string particle_type, pybind11::object v)
     {
     unsigned int particle_type_id = m_sysdef->getParticleData()->getTypeByName(particle_type);
 
     if (v.is_none())
         {
         m_directors[particle_type_id].clear();
-        m_deltas[particle_type_id].clear();
+        m_cos_deltas[particle_type_id].clear();
         return;
         }
     pybind11::list directors = v["directors"];
@@ -45,7 +45,7 @@ void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::obj
         }
 
     m_directors[particle_type_id].resize(N);
-    m_deltas[particle_type_id].resize(N);
+    m_cos_deltas[particle_type_id].resize(N);
 
     for (unsigned int i = 0; i < N; i++)
         {
@@ -54,17 +54,23 @@ void PairPotentialAngularStep::setPatch(std::string particle_type, pybind11::obj
             {
             throw std::length_error("director must be a list of 3-tuples.");
             }
+
         m_directors[particle_type_id][i] = vec3<LongReal>(director_python[0].cast<LongReal>(),
                                                           director_python[1].cast<LongReal>(),
                                                           director_python[2].cast<LongReal>());
-        // TO DO: normalize m_director to be unit length
+
+        // normalize the directional vector
+        LongReal mag_sq = (m_directors[particle_type_id][i].x * m_directors[particle_type_id][i].x 
+        + m_directors[particle_type_id][i].y * m_directors[particle_type_id][i].y 
+        + m_directors[particle_type_id][i].z * m_directors[particle_type_id][i].z);
+        m_directors[particle_type_id][i] /= fast::sqrt(mag_sq);
 
         pybind11::handle delta_python = deltas[i];
-        m_deltas[particle_type_id][i] = delta_python.cast<LongReal>();
+        m_cos_deltas[particle_type_id][i] = cos(delta_python.cast<LongReal>());
         }
     }
 
-pybind11::object PairPotentialAngularStep::getPatch(std::string particle_type)
+pybind11::object PairPotentialAngularStep::getMask(std::string particle_type)
     {
     unsigned int particle_type_id = m_sysdef->getParticleData()->getTypeByName(particle_type);
     size_t N = m_directors[particle_type_id].size();
@@ -82,7 +88,7 @@ pybind11::object PairPotentialAngularStep::getPatch(std::string particle_type)
         directors.append(pybind11::make_tuple(m_directors[particle_type_id][i].x,
                                               m_directors[particle_type_id][i].y,
                                               m_directors[particle_type_id][i].z));
-        deltas.append(m_deltas[particle_type_id][i]);
+        deltas.append(acos(m_cos_deltas[particle_type_id][i]));
         }
 
     pybind11::dict v;
@@ -92,34 +98,6 @@ pybind11::object PairPotentialAngularStep::getPatch(std::string particle_type)
     }
 
 // protected
-bool PairPotentialAngularStep::maskingFunction(LongReal r_squared,
-                                               const vec3<LongReal>& r_ij,
-                                               const unsigned int type_i,
-                                               const quat<LongReal>& q_i,
-                                               const unsigned int type_j,
-                                               const quat<LongReal>& q_j) const
-    {
-    vec3<LongReal> rhat_ij = r_ij / fast::sqrt(r_squared);
-
-    for (int m = 0; m < m_directors[type_i].size(); m++)
-        {
-        LongReal cos_delta_m = cos(m_deltas[type_i][m]);
-        vec3<LongReal> ehat_m = rotate(q_i, m_directors[type_i][m]);
-
-        for (int n = 0; n < m_directors[type_j].size(); n++)
-            {
-            LongReal cos_delta_n = cos(m_deltas[type_j][n]);
-            vec3<LongReal> ehat_n = rotate(q_j, m_directors[type_j][n]);
-
-            if (dot(ehat_m, rhat_ij) >= cos_delta_m && dot(ehat_n, -rhat_ij) >= cos_delta_n)
-                {
-                return true;
-                }
-            }
-        }
-    return false;
-    }
-
 LongReal PairPotentialAngularStep::energy(const LongReal r_squared,
                                           const vec3<LongReal>& r_ij,
                                           const unsigned int type_i,
@@ -145,8 +123,8 @@ void exportPairPotentialAngularStep(pybind11::module& m)
                      PairPotential,
                      std::shared_ptr<PairPotentialAngularStep>>(m, "PairPotentialAngularStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<PairPotential>>())
-        .def("setPatch", &PairPotentialAngularStep::setPatch)
-        .def("getPatch", &PairPotentialAngularStep::getPatch);
+        .def("setMask", &PairPotentialAngularStep::setMask)
+        .def("getMask", &PairPotentialAngularStep::getMask);
     }
     } // end namespace detail
 

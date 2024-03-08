@@ -77,7 +77,7 @@ def pair_angular_step_simulation_factory(simulation_factory,
 def test_valid_particle_params(pair_angular_step_simulation_factory,
                                angular_step_potential, valid_particle_dict):
     """Test we can set and attach with valid particle params."""
-    angular_step_potential.patch["A"] = valid_particle_dict
+    angular_step_potential.mask["A"] = valid_particle_dict
     sim = pair_angular_step_simulation_factory()
     sim.operations.integrator.pair_potentials = [angular_step_potential]
     sim.run(0)
@@ -116,7 +116,7 @@ def test_invalid_particle_params(pair_angular_step_simulation_factory,
     """Test that invalid parameter combinations result in errors."""
     with pytest.raises((IncompleteSpecificationError, TypeConversionError,
                         KeyError, RuntimeError)):
-        angular_step_potential.patch["A"] = invalid_particle_dict
+        angular_step_potential.mask["A"] = invalid_particle_dict
         sim = pair_angular_step_simulation_factory()
         sim.operations.integrator.pair_potentials = [angular_step_potential]
         sim.run(0)
@@ -128,10 +128,10 @@ def test_get_set_patch_params(pair_angular_step_simulation_factory,
     """Testing getting/setting in multiple ways, before and after attaching."""
     # before attaching, setting as dict
     particle_dict = dict(directors=[(1.0, 0, 0)], deltas=[0.1])
-    angular_step_potential.patch["A"] = particle_dict
-    assert angular_step_potential.patch["A"]["directors"] == particle_dict[
+    angular_step_potential.mask["A"] = particle_dict
+    assert angular_step_potential.mask["A"]["directors"] == particle_dict[
         "directors"]
-    assert angular_step_potential.patch["A"]["deltas"] == particle_dict[
+    assert angular_step_potential.mask["A"]["deltas"] == particle_dict[
         "deltas"]
 
     # after attaching, setting as dict
@@ -139,28 +139,28 @@ def test_get_set_patch_params(pair_angular_step_simulation_factory,
     sim.operations.integrator.pair_potentials = [angular_step_potential]
     sim.run(0)
     new_particle_dict = dict(directors=[(0, 1, 0)], deltas=[0.2])
-    angular_step_potential.patch["A"] = new_particle_dict
-    assert angular_step_potential.patch["A"]["directors"] == new_particle_dict[
+    angular_step_potential.mask["A"] = new_particle_dict
+    assert angular_step_potential.mask["A"]["directors"] == new_particle_dict[
         "directors"]
-    assert angular_step_potential.patch["A"]["deltas"] == new_particle_dict[
+    assert angular_step_potential.mask["A"]["deltas"] == new_particle_dict[
         "deltas"]
 
     # after attaching, change the director value
-    angular_step_potential.patch["A"]["directors"] = [(0, 0, 1.0)]
-    assert angular_step_potential.patch["A"]["directors"] == [(0, 0, 1.0)]
-    assert angular_step_potential.patch["A"]["deltas"] == [0.2]
+    angular_step_potential.mask["A"]["directors"] = [(0, 0, 1.0)]
+    assert angular_step_potential.mask["A"]["directors"] == [(0, 0, 1.0)]
+    assert angular_step_potential.mask["A"]["deltas"] == [0.2]
 
     # after attaching, change the delta value
-    angular_step_potential.patch["A"]["deltas"] = [0.3]
-    assert angular_step_potential.patch["A"]["directors"] == [(0, 0, 1.0)]
-    assert angular_step_potential.patch["A"]["deltas"] == [0.3]
+    angular_step_potential.mask["A"]["deltas"] = [0.3]
+    assert angular_step_potential.mask["A"]["directors"] == [(0, 0, 1.0)]
+    assert angular_step_potential.mask["A"]["deltas"] == pytest.approx([0.3])
 
 
 @pytest.mark.cpu
 def test_detach(pair_angular_step_simulation_factory, angular_step_potential):
     particle_dict = dict(directors=[(1.0, 0, 0), (0, 1.0, 0)],
                          deltas=[0.1, 0.2])
-    angular_step_potential.patch["A"] = particle_dict
+    angular_step_potential.mask["A"] = particle_dict
     sim = pair_angular_step_simulation_factory()
     sim.operations.integrator.pair_potentials = [angular_step_potential]
     sim.run(0)
@@ -176,67 +176,89 @@ def lj(r, r_cut, epsilon, sigma):
     """Compute the lj energy."""
     return 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
 
+# Test 1 particle type
 
-# (patch dict,
-#  theta_0, # orientation of the first particle
-#  theta_1,
+#  params
+#  theta_0, # rotation of the first particle
+#  theta_1, 
 #  distance between particles,
-#  expected energy)
-angular_step_test_parameters = [
-    (
+#  expected energy
+angular_step_test_parameters_one_type = [
+    (   # rotate pi (overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        0,
+        np.pi, 
+        5.0,
+        0.0,
+    ),
+    (   # no rotation (no overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        0,
+        0,
+        5.0,
+        0.0,
+    ),
+    (   # rotate pi (overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi,
-        5.0,  # >rcut
-        0.0,
-    ),
-    (
-        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        0,
-        0,
-        5.0,  # > rcut
-        0.0,
-    ),
-    (
-        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
-        0,
-        np.pi,
-        2.0,  # < rcut
+        2.0,
         lj(2.0, 4.0, 1, 1),
     ),
-    (
+    (   # no rotation (no overlap), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         0,
+        2.0,
+        0.0,
+    ),
+    (   # rotate pi-0.5 (no overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        0,
+        np.pi - 0.5,
+        5.0,
+        0.0,
+    ),
+    (   # rotate pi-0.5 (no overlap), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        0,
+        np.pi - 0.5,
         2.0,  # < rcut
         0.0,
     ),
-    (
+    (   # rotate pi-0.099 (just overlapped), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.099,
-        5.0,  # < rcut
+        5.0,
         0.0,
     ),
-    (
+    (   # rotate pi-0.099 (just overlapped), < rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.099,
-        2.0,  # < rcut
+        2.0,
         lj(2.0, 4.0, 1, 1),
     ),
-    (
+    (   # rotate pi-0.05 (overlap), > rcut
         dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
         0,
         np.pi - 0.05,
-        2.0,  # < rcut
+        5.0,
+        0.0,
+    ),
+    (   # rotate pi-0.05 (overlap), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        0,
+        np.pi - 0.05,
+        2.0,
         lj(2.0, 4.0, 1, 1),
     ),
 ]
 
 
 @pytest.mark.parametrize('params, theta_0, theta_1, d, expected_energy',
-                         angular_step_test_parameters)
+                         angular_step_test_parameters_one_type)
 @pytest.mark.cpu
 def test_energy(pair_angular_step_simulation_factory, params, theta_0, theta_1,
                 d, expected_energy):
@@ -244,7 +266,124 @@ def test_energy(pair_angular_step_simulation_factory, params, theta_0, theta_1,
     lennard_jones = hpmc.pair.LennardJones(mode='none')
     lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=4.0)
     angular_step = hpmc.pair.AngularStep(isotropic_potential=lennard_jones)
-    angular_step.patch['A'] = params
+    angular_step.mask['A'] = params
+
+    simulation = pair_angular_step_simulation_factory(d=d,
+                                                      theta_0=theta_0,
+                                                      theta_1=theta_1)
+    simulation.operations.integrator.pair_potentials = [angular_step]
+    simulation.run(0)
+
+    assert angular_step.energy == pytest.approx(expected=expected_energy,
+                                                rel=1e-5)
+
+
+# Test 2 particle types
+
+#  params_0
+#  params_1
+#  theta_0, # rotation of the first particle
+#  theta_1, 
+#  distance between particles,
+#  expected energy
+angular_step_test_parameters_two_types = [
+    (   # 2 types, rotate pi (overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi, 
+        5.0,
+        0.0,
+    ),
+    (   # 2 types, no rotation (no overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        0,
+        5.0,
+        0.0,
+    ),
+    (   # 2 types, rotate pi (overlap), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi,
+        2.0,
+        lj(2.0, 4.0, 1, 1),
+    ),
+    (   # 2 types, no rotation (no overlap), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        0,
+        2.0,
+        0.0,
+    ),
+    (   # 2 types, rotate pi-0.5 (no overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi - 0.5,
+        5.0,
+        0.0,
+    ),
+    (   # 2 types, rotate pi-0.5 (no overlap), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi - 0.5,
+        2.0,  # < rcut
+        0.0,
+    ),
+    (   # 2 types, rotate pi-0.099 (just overlapped), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi - 0.099,
+        5.0,
+        0.0,
+    ),
+    (   # 2 types, rotate pi-0.099 (just overlapped), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi - 0.099,
+        2.0,
+        lj(2.0, 4.0, 1, 1),
+    ),
+    (   # 2 types, rotate pi-0.05 (overlap), > rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi - 0.05,
+        5.0,
+        0.0,
+    ),
+    (   # 2 types, rotate pi-0.05 (overlap), < rcut
+        dict(directors=[(1.0, 0, 0)], deltas=[0.1]),
+        dict(directors=[(1.0, 0, 0), (0.0, 1.0, 0.0)], deltas=[0.1, 0.2]),
+        0,
+        np.pi - 0.05,
+        2.0,
+        lj(2.0, 4.0, 1, 1),
+    ),
+]
+
+
+@pytest.mark.parametrize('params_0, params_1, theta_0, theta_1, d,' 
+                         'expected_energy',
+                         angular_step_test_parameters_two_types)
+@pytest.mark.cpu
+def test_energy(pair_angular_step_simulation_factory, params_0, params_1,
+                theta_0, theta_1, d, expected_energy):
+    """Test that LennardJones computes the correct energies for 1 pair."""
+    lennard_jones = hpmc.pair.LennardJones(mode='none')
+    lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=4.0)
+    lennard_jones.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=4.0)
+    lennard_jones.params[('B', 'B')] = dict(epsilon=3.0, sigma=1.0, r_cut=4.0)
+    angular_step = hpmc.pair.AngularStep(isotropic_potential=lennard_jones)
+    angular_step.mask['A'] = params_0
+    angular_step.mask['B'] = params_1
 
     simulation = pair_angular_step_simulation_factory(d=d,
                                                       theta_0=theta_0,

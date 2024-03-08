@@ -21,9 +21,9 @@ class PairPotentialAngularStep : public hpmc::PairPotential
                              std::shared_ptr<PairPotential> isotropic_potential);
     virtual ~PairPotentialAngularStep() { }
 
-    void setPatch(std::string particle_type, pybind11::object v);
+    void setMask(std::string particle_type, pybind11::object v);
 
-    pybind11::object getPatch(std::string particle_type);
+    pybind11::object getMask(std::string particle_type);
 
     /*** Evaluate the energy of the pair interaction
         @param r_squared Pre-computed dot(r_ij, r_ij).
@@ -60,11 +60,32 @@ class PairPotentialAngularStep : public hpmc::PairPotential
 
     protected:
     bool maskingFunction(LongReal r_squared,
-                         const vec3<LongReal>& r_ij,
-                         const unsigned int type_i,
-                         const quat<LongReal>& q_i,
-                         const unsigned int type_j,
-                         const quat<LongReal>& q_j) const;
+                        const vec3<LongReal>& r_ij,
+                        const unsigned int type_i,
+                        const quat<LongReal>& q_i,
+                        const unsigned int type_j,
+                        const quat<LongReal>& q_j) const
+        {
+        vec3<LongReal> rhat_ij = r_ij / fast::sqrt(r_squared);
+
+        for (int m = 0; m < m_directors[type_i].size(); m++)
+            {
+            LongReal cos_delta_m = m_cos_deltas[type_i][m];
+            vec3<LongReal> ehat_m = rotate(q_i, m_directors[type_i][m]);
+
+            for (int n = 0; n < m_directors[type_j].size(); n++)
+                {
+                LongReal cos_delta_n = m_cos_deltas[type_j][n];
+                vec3<LongReal> ehat_n = rotate(q_j, m_directors[type_j][n]);
+
+                if (dot(ehat_m, rhat_ij) >= cos_delta_m && dot(ehat_n, -rhat_ij) >= cos_delta_n)
+                    {
+                    return true;
+                    }
+                }
+            }
+        return false;
+        }
 
     /// Create a pointer to get the isotropic pair potential
     std::shared_ptr<PairPotential> m_isotropic_potential;
@@ -72,7 +93,7 @@ class PairPotentialAngularStep : public hpmc::PairPotential
 
     /// Type pair parameters of potential
     std::vector<std::vector<vec3<LongReal>>> m_directors;
-    std::vector<std::vector<LongReal>> m_deltas;
+    std::vector<std::vector<LongReal>> m_cos_deltas;
     };
 
     } // end namespace hpmc

@@ -11,7 +11,7 @@
     simulation.operations.integrator = sphere
 
     square_well = hoomd.hpmc.pair.Step()
-    step.params[('A', 'A')] = dict(epsilons=[-1], r=[2.0])
+    square_well.params[('A', 'A')] = dict(epsilon=[-1], r=[2.0])
 """
 
 import hoomd
@@ -68,7 +68,7 @@ class AngularStep(Pair):
 
         angular_step = hoomd.hpmc.pair.AngularStep(
                        isotropic_potential=square_well)
-        angular_step.patch['A'] = dict(directors=[(1.0, 0, 0)], deltas=[0.1])
+        angular_step.mask['A'] = dict(directors=[(1.0, 0, 0)], deltas=[0.1])
         simulation.operations.integrator.pair_potentials = [angular_step]
 
     Set the patch directors :math:`\vec{d}_m` and delta :math:`\delta_m`  values
@@ -76,11 +76,13 @@ class AngularStep(Pair):
     that represent the patch locations on a particle, and deltas are the half
     opening angles of the patch in radian.
 
-    .. py:attribute:: patch
+    .. py:attribute:: mask
 
-        The patch definition.
+        The mask definition.
 
-        Define the patch director and delta of each patch on a particle type.
+        The mask describes the distribution of patches on the particle's 
+        surface and the masking function determines the interaction scale 
+        factor as a function of two interacting particle's masks.
 
         The dictionary has the following keys:
 
@@ -92,13 +94,13 @@ class AngularStep(Pair):
     _cpp_class_name = "PairPotentialAngularStep"
 
     def __init__(self, isotropic_potential):
-        patch = TypeParameter(
-            'patch', 'particle_types',
+        mask = TypeParameter(
+            'mask', 'particle_types',
             TypeParameterDict(OnlyIf(to_type_converter(
                 dict(directors=[(float,) * 3], deltas=[float])),
                                      allow_none=True),
                               len_keys=1))
-        self._add_typeparam(patch)
+        self._add_typeparam(mask)
 
         if not isinstance(isotropic_potential, hoomd.hpmc.pair.Pair):
             raise TypeError(
