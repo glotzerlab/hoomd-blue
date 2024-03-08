@@ -36,7 +36,6 @@ class PairPotentialAngularStep : public hpmc::PairPotential
         @param charge_j Charge of particle j.
         @returns Energy of the pair interaction.
     */
-
     virtual LongReal energy(const LongReal r_squared,
                             const vec3<LongReal>& r_ij,
                             const unsigned int type_i,
