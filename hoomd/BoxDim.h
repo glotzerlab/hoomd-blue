@@ -601,22 +601,7 @@ struct
         return L1 == L2 && xy1 == xy2 && xz1 == xz2 && yz1 == yz2;
         }
 
-    HOSTDEVICE bool operator==(const std::array<Scalar, 6>& other) const
-        {
-        Scalar3 L = getL();
-        Scalar xy = getTiltFactorXY();
-        Scalar xz = getTiltFactorXZ();
-        Scalar yz = getTiltFactorYZ();
-        std::array<Scalar, 6> box = {L.x, L.y, L.z, xy, xz, yz};
-        return box == other;
-        }
-
     HOSTDEVICE bool operator!=(const BoxDim& other) const
-        {
-        return !((*this) == other);
-        }
-
-    HOSTDEVICE bool operator!=(const std::array<Scalar, 6>& other) const
         {
         return !((*this) == other);
         }

@@ -48,13 +48,14 @@ void UpdaterQuickCompress::update(uint64_t timestep)
     auto n_overlaps = m_mc->countOverlaps(false);
     BoxDim current_box = m_pdata->getGlobalBox();
 
-    if (n_overlaps == 0 && current_box != (*m_target_box)(timestep))
+    BoxDim target_box = BoxDim((*m_target_box)(timestep));
+    if (n_overlaps == 0 && current_box != target_box)
         {
-        performBoxScale(timestep);
+        performBoxScale(timestep, target_box);
         }
 
     // The compression is complete when we have reached the target box and there are no overlaps.
-    if (n_overlaps == 0 && current_box == (*m_target_box)(timestep))
+    if (n_overlaps == 0 && current_box == target_box)
         m_is_complete = true;
     else
         m_is_complete = false;
@@ -183,13 +184,6 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
 
-    const auto& target_box_dims = (*m_target_box)(timestep);
-    Scalar target_Lx = target_box_dims[0];
-    Scalar target_Ly = target_box_dims[1];
-    Scalar target_Lz = target_box_dims[2];
-    Scalar target_xy = target_box_dims[3];
-    Scalar target_xz = target_box_dims[4];
-    Scalar target_yz = target_box_dims[5];
 
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
