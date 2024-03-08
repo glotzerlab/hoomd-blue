@@ -53,8 +53,8 @@ class ParallelPlates(Geometry):
             Otherwise, they have the slip boundary condition.
 
     `ParallelPlates` confines the MPCD particles between two infinite parallel
-    plates centered around the origin. The plates are placed at :math:`z=-H`
-    and :math:`z=+H`, so the total channel width is :math:`2H`. The plates may
+    plates centered around the origin. The plates are placed at :math:`y=-H`
+    and :math:`y=+H`, so the total channel width is :math:`2H`. The plates may
     be put into motion, moving with speeds :math:`-V` and :math:`+V` in the *x*
     direction, respectively. If combined with a no-slip boundary condition,
     this motion can be used to generate simple shear flow.
@@ -92,11 +92,9 @@ class PlanarPore(Geometry):
     geometry is similar, except that the plates extend from :math:`x=-L` to
     :math:`x=+L` (total length *2L*). Additional solid walls
     with normals in *x* prevent penetration into the regions above / below the
-    plates. The plates are infinite in *y*. Outside the pore, the simulation box
+    plates. The plates are infinite in *z*. Outside the pore, the simulation box
     has full periodic boundaries; it is not confined by any walls. This model
     hence mimics a narrow pore in, e.g., a membrane.
-
-    .. image:: mpcd_slit_pore.png
 
     Attributes:
         H (float): Pore half-width.

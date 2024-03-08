@@ -62,15 +62,6 @@ class __attribute__((visibility("default"))) BulkGeometry
         return false;
         }
 
-    //! Validate the simulation box
-    /*!
-     * \returns True because the simulation box is always big enough to hold a bulk geometry.
-     */
-    HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
-        {
-        return true;
-        }
-
 #ifndef __HIPCC__
     //! Get the unique name of this geometry
     static std::string getName()

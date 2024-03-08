@@ -87,8 +87,8 @@ __global__ void slit_pore_draw_particles(Scalar4* d_pos,
             const Scalar4 fillbox = s_boxes[boxid];
             lo.x = fillbox.x;
             hi.x = fillbox.y;
-            lo.z = fillbox.z;
-            hi.z = fillbox.w;
+            lo.y = fillbox.z;
+            hi.y = fillbox.w;
             break;
             }
         }

@@ -59,13 +59,6 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
 
     // as a precaution, validate the global box with the current cell list
     const BoxDim& global_box = m_pdata->getGlobalBox();
-    if (!m_geom->validateBox(global_box, cell_size))
-        {
-        m_exec_conf->msg->error()
-            << "Invalid slit pore geometry for global box, cannot fill virtual particles."
-            << std::endl;
-        throw std::runtime_error("Invalid slit pore geometry for global box");
-        }
 
     // box and slit geometry
     const BoxDim& box = m_pdata->getBox();
@@ -73,7 +66,7 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
     const Scalar3 hi = box.getHi();
     const Scalar H = m_geom->getH();
     const Scalar L = m_geom->getL();
-    const Scalar Ly = box.getL().y;
+    const Scalar Lz = box.getL().z;
 
     /*
      * Determine the lowest / highest extent of a cells overlapping the boundaries.
@@ -82,25 +75,25 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
      */
     const Scalar3 global_lo = global_box.getLo();
     const Scalar3 global_hi = global_box.getHi();
-    Scalar2 x_bounds, z_bounds;
+    Scalar2 x_bounds, y_bounds;
     // upper bound on lower wall in x
     x_bounds.x = cell_size * std::ceil((-L - global_lo.x) / cell_size) + global_lo.x + max_shift;
     // lower bound on upper wall in x
     x_bounds.y = cell_size * std::floor((L - global_lo.x) / cell_size) + global_lo.x - max_shift;
-    // lower bound on lower wall in z
-    z_bounds.x = cell_size * std::floor((-H - global_lo.z) / cell_size) + global_lo.z - max_shift;
-    // upper bound on upper wall in z
-    z_bounds.y = cell_size * std::ceil((H - global_lo.z) / cell_size) + global_lo.z + max_shift;
+    // lower bound on lower wall in y
+    y_bounds.x = cell_size * std::floor((-H - global_lo.y) / cell_size) + global_lo.y - max_shift;
+    // upper bound on upper wall in y
+    y_bounds.y = cell_size * std::ceil((H - global_lo.y) / cell_size) + global_lo.y + max_shift;
 
-    // define the 6 2D bounding boxes (lo.x,hi.x,lo.z,hi.z) for filling in this geometry (y is
+    // define the 6 2D bounding boxes (lo.x,hi.x,lo.y,hi.y) for filling in this geometry (z is
     // infinite) (this is essentially a U shape inside the pore).
     std::array<Scalar4, MAX_BOXES> allboxes;
-    allboxes[0] = make_scalar4(-L, x_bounds.x, z_bounds.y, global_hi.z);
-    allboxes[1] = make_scalar4(x_bounds.y, L, z_bounds.y, global_hi.z);
-    allboxes[2] = make_scalar4(-L, x_bounds.x, global_lo.z, z_bounds.x);
-    allboxes[3] = make_scalar4(x_bounds.y, L, global_lo.z, z_bounds.x);
-    allboxes[4] = make_scalar4(-L, L, H, z_bounds.y);
-    allboxes[5] = make_scalar4(-L, L, z_bounds.x, -H);
+    allboxes[0] = make_scalar4(-L, x_bounds.x, y_bounds.y, global_hi.y);
+    allboxes[1] = make_scalar4(x_bounds.y, L, y_bounds.y, global_hi.y);
+    allboxes[2] = make_scalar4(-L, x_bounds.x, global_lo.y, y_bounds.x);
+    allboxes[3] = make_scalar4(x_bounds.y, L, global_lo.y, y_bounds.x);
+    allboxes[4] = make_scalar4(-L, L, H, y_bounds.y);
+    allboxes[5] = make_scalar4(-L, L, y_bounds.x, -H);
 
     // find all boxes that overlap the domain
     ArrayHandle<Scalar4> h_boxes(m_boxes, access_location::host, access_mode::overwrite);
@@ -111,16 +104,16 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
         {
         const Scalar4 fillbox = allboxes[i];
         // test for bounding box overlap between the domain and the fill box
-        if (!(hi.x < fillbox.x || lo.x > fillbox.y || hi.z < fillbox.z || lo.z > fillbox.w))
+        if (!(hi.x < fillbox.x || lo.x > fillbox.y || hi.y < fillbox.z || lo.y > fillbox.w))
             {
             // some overlap, so clamp the box to the local domain
             const Scalar4 clampbox = make_scalar4(std::max(fillbox.x, lo.x),
                                                   std::min(fillbox.y, hi.x),
-                                                  std::max(fillbox.z, lo.z),
-                                                  std::min(fillbox.w, hi.z));
+                                                  std::max(fillbox.z, lo.y),
+                                                  std::min(fillbox.w, hi.y));
 
             // determine volume (# of particles) for filling
-            const Scalar volume = (clampbox.y - clampbox.x) * Ly * (clampbox.w - clampbox.z);
+            const Scalar volume = (clampbox.y - clampbox.x) * (clampbox.w - clampbox.z) * Lz;
             const unsigned int N_box = (unsigned int)std::round(volume * m_density);
 
             // only add box if it isn't empty
@@ -190,8 +183,8 @@ void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
             const Scalar4 fillbox = h_boxes.data[boxid];
             lo.x = fillbox.x;
             hi.x = fillbox.y;
-            lo.z = fillbox.z;
-            hi.z = fillbox.w;
+            lo.y = fillbox.z;
+            hi.y = fillbox.w;
             }
 
         const unsigned int pidx = first_idx + i;

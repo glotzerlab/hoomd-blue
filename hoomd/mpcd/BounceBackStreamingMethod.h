@@ -33,12 +33,10 @@ namespace mpcd
  * boundary and its velocity is updated according to the boundary conditions. Streaming then
  * continues until the timestep is completed.
  *
- * To facilitate this, every Geometry must supply three methods:
+ * To facilitate this, every Geometry must supply two methods:
  *  1. detectCollision(): Determines when and where a collision occurs. If one does, this method
  * moves the particle back, reflects its velocity, and gives the time still remaining to integrate.
  *  2. isOutside(): Determines whether a particles lies outside the Geometry.
- *  3. validateBox(): Checks whether the global simulation box is consistent with the streaming
- * geometry.
  *
  */
 template<class Geometry, class Force>
@@ -58,10 +56,9 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
                               unsigned int cur_timestep,
                               unsigned int period,
                               int phase,
-                              std::shared_ptr<const Geometry> geom,
+                              std::shared_ptr<Geometry> geom,
                               std::shared_ptr<Force> force)
-        : mpcd::StreamingMethod(sysdef, cur_timestep, period, phase), m_geom(geom),
-          m_validate_geom(true), m_force(force)
+        : mpcd::StreamingMethod(sysdef, cur_timestep, period, phase), m_geom(geom), m_force(force)
         {
         }
 
@@ -69,15 +66,14 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
     virtual void stream(uint64_t timestep);
 
     //! Get the streaming geometry
-    std::shared_ptr<const Geometry> getGeometry() const
+    std::shared_ptr<Geometry> getGeometry() const
         {
         return m_geom;
         }
 
     //! Set the streaming geometry
-    void setGeometry(std::shared_ptr<const Geometry> geom)
+    void setGeometry(std::shared_ptr<Geometry> geom)
         {
-        m_validate_geom = true;
         m_geom = geom;
         }
 
@@ -93,16 +89,12 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
         m_force = force;
         }
 
-    protected:
-    std::shared_ptr<const Geometry> m_geom; //!< Streaming geometry
-    bool m_validate_geom;                   //!< If true, run a validation check on the geometry
-    std::shared_ptr<Force> m_force;         //!< Solvent force
-
-    //! Validate the system with the streaming geometry
-    void validate();
-
     //! Check that particles lie inside the geometry
-    virtual bool validateParticles();
+    virtual bool checkParticles();
+
+    protected:
+    std::shared_ptr<Geometry> m_geom; //!< Streaming geometry
+    std::shared_ptr<Force> m_force;   //!< Solvent force
     };
 
 /*!
@@ -117,12 +109,6 @@ void BounceBackStreamingMethod<Geometry, Force>::stream(uint64_t timestep)
     if (!m_cl)
         {
         throw std::runtime_error("Cell list has not been set");
-        }
-
-    if (m_validate_geom)
-        {
-        validate();
-        m_validate_geom = false;
         }
 
     const BoxDim box = m_cl->getCoverageBox();
@@ -173,40 +159,12 @@ void BounceBackStreamingMethod<Geometry, Force>::stream(uint64_t timestep)
     m_mpcd_pdata->invalidateCellCache();
     }
 
-template<class Geometry, class Force> void BounceBackStreamingMethod<Geometry, Force>::validate()
-    {
-    // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim box = m_pdata->getGlobalBox();
-    const Scalar cell_width = m_cl->getCellSize();
-    if (!m_geom->validateBox(box, cell_width))
-        {
-        m_exec_conf->msg->error() << "BounceBackStreamingMethod: box too small for "
-                                  << Geometry::getName() << " geometry. Increase box size."
-                                  << std::endl;
-        throw std::runtime_error("Simulation box too small for confined streaming method");
-        }
-
-    // check that no particles are out of bounds
-    unsigned char error = !validateParticles();
-#ifdef ENABLE_MPI
-    if (m_exec_conf->getNRanks() > 1)
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &error,
-                      1,
-                      MPI_UNSIGNED_CHAR,
-                      MPI_LOR,
-                      m_exec_conf->getMPICommunicator());
-#endif // ENABLE_MPI
-    if (error)
-        throw std::runtime_error("Invalid MPCD particle configuration for confined geometry");
-    }
-
 /*!
  * Checks each MPCD particle position to determine if it lies within the geometry. If any particle
  * is out of bounds, an error is raised.
  */
 template<class Geometry, class Force>
-bool BounceBackStreamingMethod<Geometry, Force>::validateParticles()
+bool BounceBackStreamingMethod<Geometry, Force>::checkParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,
@@ -221,10 +179,6 @@ bool BounceBackStreamingMethod<Geometry, Force>::validateParticles()
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         if (m_geom->isOutside(pos))
             {
-            m_exec_conf->msg->errorAllRanks()
-                << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y
-                << "," << pos.z << ") lies outside the " << Geometry::getName()
-                << " geometry. Fix configuration." << std::endl;
             return false;
             }
         }
@@ -250,12 +204,14 @@ template<class Geometry, class Force> void export_BounceBackStreamingMethod(pybi
                             unsigned int,
                             unsigned int,
                             int,
-                            std::shared_ptr<const Geometry>,
+                            std::shared_ptr<Geometry>,
                             std::shared_ptr<Force>>())
         .def_property_readonly("geometry",
                                &mpcd::BounceBackStreamingMethod<Geometry, Force>::getGeometry)
         .def_property_readonly("solvent_force",
-                               &mpcd::BounceBackStreamingMethod<Geometry, Force>::getForce);
+                               &mpcd::BounceBackStreamingMethod<Geometry, Force>::getForce)
+        .def("check_solvent_particles",
+             &BounceBackStreamingMethod<Geometry, Force>::checkParticles);
     }
     }  // end namespace detail
     }  // end namespace mpcd

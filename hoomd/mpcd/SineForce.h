@@ -28,11 +28,11 @@ namespace mpcd
 
 //! Shearing sine force
 /*!
- * Imposes a sinusoidally varying force in x as a function of position in z.
+ * Imposes a sinusoidally varying force in x as a function of position in y.
  * The shape of the force is controlled by the amplitude and the wavenumber.
  *
  * \f[
- * \mathbf{F}(\mathbf{r}) = F \sin (k r_z) \mathbf{e}_x
+ * \mathbf{F}(\mathbf{r}) = F \sin (k r_y) \mathbf{e}_x
  * \f]
  */
 class __attribute__((visibility("default"))) SineForce
@@ -53,13 +53,13 @@ class __attribute__((visibility("default"))) SineForce
      * \param r Particle position.
      * \returns Force on the particle.
      *
-     * Specifies the force to act in x as a function of z. Fast math
+     * Specifies the force to act in x as a function of y. Fast math
      * routines are used since this is probably sufficiently accurate,
      * given the other numerical errors already present.
      */
     HOSTDEVICE Scalar3 evaluate(const Scalar3& r) const
         {
-        return make_scalar3(m_F * fast::sin(m_k * r.z), 0, 0);
+        return make_scalar3(m_F * fast::sin(m_k * r.y), 0, 0);
         }
 
     //! Get the sine amplitude
@@ -96,7 +96,7 @@ class __attribute__((visibility("default"))) SineForce
 
     private:
     Scalar m_F; //!< Force constant
-    Scalar m_k; //!< Wavenumber for force in z
+    Scalar m_k; //!< Wavenumber for force in y
     };
 
 #ifndef __HIPCC__

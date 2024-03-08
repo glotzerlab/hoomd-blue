@@ -32,16 +32,16 @@ namespace mpcd
  *
  * The channel geometry is defined by two parameters: the channel half-width \a H, and the velocity
  * of the plates \a V. The total distance between the plates is \f$2H\f$. The plates are stacked in
- * the \a z direction, and are centered about the origin \f$z=0\f$. The upper plate moves in the
+ * the \a y direction, and are centered about the origin \f$y=0\f$. The upper plate moves in the
  * \f$+x\f$ direction with velocity \a V, and the lower plate moves in the \f$-x\f$ direction with
  * velocity \f$-V\f$. Hence, for no-slip boundary conditions there is a velocity profile:
  *
  * \f[
- *      v_x(z) = \frac{Vz}{H}
+ *      v_x(y) = \frac{Vy}{H}
  * \f]
  *
  * This gives an effective shear rate \f$\dot\gamma = V/H\f$, and the shear stress is
- * $\sigma_{xz}\f$.
+ * $\sigma_{xy}\f$.
  *
  * The geometry enforces boundary conditions \b only on the MPCD solvent particles. Additional
  * interactions are required with any embedded particles using appropriate wall potentials.
@@ -79,8 +79,8 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
         {
         /*
          * Detect if particle has left the box, and try to avoid branching or absolute value calls.
-         * The sign used in calculations is +1 if the particle is out-of-bounds in the +z direction,
-         * -1 if the particle is out-of-bounds in the -z direction, and 0 otherwise.
+         * The sign used in calculations is +1 if the particle is out-of-bounds in the +y direction,
+         * -1 if the particle is out-of-bounds in the -y direction, and 0 otherwise.
          *
          * We intentionally use > / < rather than >= / <= to make sure that spurious collisions do
          * not get detected when a particle is reset to the boundary location. A particle landing
@@ -88,10 +88,10 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
          * step, and so the motion is essentially equivalent up to an epsilon of difference in the
          * channel width.
          */
-        const signed char sign = (char)((pos.z > m_H) - (pos.z < -m_H));
+        const signed char sign = (char)((pos.y > m_H) - (pos.y < -m_H));
         // exit immediately if no collision is found or particle is not moving normal to the wall
         // (since no new collision could have occurred if there is no normal motion)
-        if (sign == 0 || vel.z == Scalar(0))
+        if (sign == 0 || vel.y == Scalar(0))
             {
             dt = Scalar(0);
             return false;
@@ -99,27 +99,27 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
 
         /*
          * Remaining integration time dt is amount of time spent traveling distance out of bounds.
-         * If sign = +1, then pos.z > H. If sign = -1, then pos.z < -H, and we need difference in
+         * If sign = +1, then pos.y > H. If sign = -1, then pos.y < -H, and we need difference in
          * the opposite direction.
          *
          * TODO: if dt < 0, it is a spurious collision. How should it be treated?
          */
-        dt = (pos.z - sign * m_H) / vel.z;
+        dt = (pos.y - sign * m_H) / vel.y;
 
         // backtrack the particle for dt to get to point of contact
         pos.x -= vel.x * dt;
-        pos.y -= vel.y * dt;
-        pos.z = sign * m_H;
+        pos.y = sign * m_H;
+        pos.z -= vel.z * dt;
 
         // update velocity according to boundary conditions
         // no-slip requires reflection of the tangential components
         if (m_no_slip)
             {
             vel.x = -vel.x + Scalar(sign * 2) * m_V;
-            vel.y = -vel.y;
+            vel.z = -vel.z;
             }
         // both slip and no-slip have no penetration of the surface
-        vel.z = -vel.z;
+        vel.y = -vel.y;
 
         return true;
         }
@@ -131,23 +131,7 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
      */
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
-        return (pos.z > m_H || pos.z < -m_H);
-        }
-
-    //! Validate that the simulation box is large enough for the geometry
-    /*!
-     * \param box Global simulation box
-     * \param cell_size Size of MPCD cell
-     *
-     * The box is large enough for the slit if it is padded along the z direction so that
-     * the cells just outside the slit would not interact with each other through the boundary.
-     */
-    HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
-        {
-        const Scalar hi = box.getHi().z;
-        const Scalar lo = box.getLo().z;
-
-        return ((hi - m_H) >= cell_size && ((-m_H - lo) >= cell_size));
+        return (pos.y > m_H || pos.y < -m_H);
         }
 
     //! Get channel half width

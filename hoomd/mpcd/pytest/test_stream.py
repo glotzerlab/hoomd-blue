@@ -184,8 +184,8 @@ class TestParallelPlates:
         """Test step with no-slip boundary conditions."""
         if snap.communicator.rank == 0:
             snap.mpcd.N = 2
-            snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
-            snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]]
+            snap.mpcd.position[:] = [[4.95, 3.85, -4.95], [0.0, -3.8, 0.0]]
+            snap.mpcd.velocity[:] = [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
@@ -197,34 +197,34 @@ class TestParallelPlates:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.95, 4.95, 3.95], [-0.1, -0.1, -3.9]])
+                snap.mpcd.position, [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity, [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
+                snap.mpcd.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
 
         # take another step where one particle will now hit the wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.95, 4.95, 3.95], [-0.2, -0.2, -4.0]])
+                snap.mpcd.position, [[-4.95, 3.95, 4.95], [-0.2, -4.0, -0.2]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity, [[-1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
+                snap.mpcd.velocity, [[-1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
 
         # take another step, reflecting the second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[4.95, -4.95, 3.85], [-0.1, -0.1, -3.9]])
+                snap.mpcd.position, [[4.95, 3.85, -4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity, [[-1.0, 1.0, -1.0], [1.0, 1.0, 1.0]])
+                snap.mpcd.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, 1.0]])
 
     def test_step_slip(self, simulation_factory, snap):
         """Test step with slip boundary conditions."""
         if snap.communicator.rank == 0:
             snap.mpcd.N = 2
-            snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
-            snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]]
+            snap.mpcd.position[:] = [[4.95, 3.85, -4.95], [0.0, -3.8, 0.0]]
+            snap.mpcd.velocity[:] = [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
@@ -237,16 +237,16 @@ class TestParallelPlates:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.95, 4.95, 3.95], [-0.1, -0.1, -3.9]])
+                snap.mpcd.position, [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity, [[1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
+                snap.mpcd.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
 
         # take another step where one particle will now hit the wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.85, 4.85, 3.95], [-0.2, -0.2, -4.0]])
+                snap.mpcd.position, [[-4.85, 3.95, 4.85], [-0.2, -4.0, -0.2]])
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]])
 
@@ -255,9 +255,9 @@ class TestParallelPlates:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.75, 4.75, 3.85], [-0.3, -0.3, -3.9]])
+                snap.mpcd.position, [[-4.75, 3.85, 4.75], [-0.3, -3.9, -0.3]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity, [[1.0, -1.0, -1.0], [-1.0, -1.0, 1.0]])
+                snap.mpcd.velocity, [[1.0, -1.0, -1.0], [-1.0, 1.0, -1.0]])
 
     def test_step_moving_wall(self, simulation_factory, snap):
         """Test step with moving wall.
@@ -271,8 +271,8 @@ class TestParallelPlates:
         """
         if snap.communicator.rank == 0:
             snap.mpcd.N = 2
-            snap.mpcd.position[:] = [[4.95, -4.95, 3.85], [0.0, 0.0, -3.8]]
-            snap.mpcd.velocity[:] = [[1.0, -1.0, 1.0], [-2.0, -1.0, -1.0]]
+            snap.mpcd.position[:] = [[4.95, 3.85, -4.95], [0.0, -3.8, 0.0]]
+            snap.mpcd.velocity[:] = [[1.0, 1.0, -1.0], [-2.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
@@ -286,33 +286,21 @@ class TestParallelPlates:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.75, -4.95, 3.85], [-0.4, -0.1, -3.9]])
+                snap.mpcd.position, [[-4.75, 3.85, -4.95], [-0.4, -3.9, -0.1]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity, [[1.0, 1.0, -1.0], [0.0, 1.0, 1.0]])
+                snap.mpcd.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]])
 
-    def test_validate_box(self, simulation_factory, snap):
-        """Test box validation raises an error on run."""
-        sim = simulation_factory(snap)
-        sm = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=10))
-        ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
-        sim.operations.integrator = ig
-
-        with pytest.raises(RuntimeError):
-            sim.run(1)
-
-    def test_test_of_bounds(self, simulation_factory, snap):
-        """Test box validation raises an error on run."""
+    def test_test_out_of_bounds(self, simulation_factory, snap):
         if snap.communicator.rank == 0:
-            snap.mpcd.position[0] = [4.95, -4.95, 3.85]
+            snap.mpcd.position[0] = [0, 3.85, 0]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.8))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
-        with pytest.raises(RuntimeError):
-            sim.run(1)
+        sim.run(0)
+        assert not sm.check_solvent_particles()
 
 
 class TestPlanarPore:
@@ -321,24 +309,24 @@ class TestPlanarPore:
         if snap.communicator.rank == 0:
             snap.mpcd.N = 8
             snap.mpcd.position[:] = [
-                [-3.05, -4, -4.11],
-                [3.05, 4, 4.11],
-                [-3.05, -2, 4.11],
-                [3.05, 2, -4.11],
-                [0, 0, 3.95],
-                [0, 0, -3.95],
-                [3.03, 0, -3.98],
-                [3.02, 0, -3.97],
+                [-3.05, -4.11, -4],
+                [3.05, 4.11, 4],
+                [-3.05, 4.11, -2],
+                [3.05, -4.11, 2],
+                [0, 3.95, 0],
+                [0, -3.95, 0],
+                [3.03, -3.98, 0],
+                [3.02, -3.97, 0],
             ]
             snap.mpcd.velocity[:] = [
-                [1.0, -1.0, 1.0],
-                [-1.0, 1.0, -1.0],
-                [1.0, 0.0, -1.0],
-                [-1.0, 0.0, 1.0],
-                [0.0, 0.0, 1.0],
-                [0.0, 0.0, -1.0],
-                [-1.0, 0.0, -1.0],
-                [-1.0, 0.0, -1.0],
+                [1.0, 1.0, -1.0],
+                [-1.0, -1.0, 1.0],
+                [1.0, -1.0, 0.0],
+                [-1.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, -1.0, 0.0],
+                [-1.0, -1.0, 0.0],
+                [-1.0, -1.0, 0.0],
             ]
         return snap
 
@@ -356,60 +344,60 @@ class TestPlanarPore:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [-3.05, -4, -4.11])
+                                                 [-3.05, -4.11, -4])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [-1.0, 1.0, -1.0])
+                                                 [-1.0, -1.0, 1.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.05, 4, 4.11])
+                                                 [3.05, 4.11, 4])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [1.0, -1.0, 1.0])
+                                                 [1.0, 1.0, -1.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-3.05, -2, 4.11])
+                                                 [-3.05, 4.11, -2])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [-1.0, 0.0, 1.0])
+                                                 [-1.0, 1.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 [3.05, 2, -4.11])
+                                                 [3.05, -4.11, 2])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 [1.0, 0.0, -1.0])
+                                                 [1.0, -1.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[4],
-                                                 [0, 0, 3.95])
+                                                 [0, 3.95, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[4],
-                                                 [0, 0, -1.0])
+                                                 [0, -1.0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[5],
-                                                 [0, 0, -3.95])
+                                                 [0, -3.95, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[5],
-                                                 [0, 0, 1.0])
-            # hits z = -4 after 0.02, then reverses. x is 3.01, so reverses to 3.09
+                                                 [0, 1.0, 0])
+            # hits y = -4 after 0.02, then reverses. x is 3.01, so reverses to 3.09
             np.testing.assert_array_almost_equal(snap.mpcd.position[6],
-                                                 [3.09, 0, -3.92])
+                                                 [3.09, -3.92, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[6],
-                                                 [1, 0, 1])
-            # hits x = 3 after 0.02, then reverses. z is -3.99, so reverses to -3.91
+                                                 [1, 1, 0])
+            # hits x = 3 after 0.02, then reverses. y is -3.99, so reverses to -3.91
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
-                                                 [3.08, 0, -3.91])
+                                                 [3.08, -3.91, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[7],
-                                                 [1, 0, 1])
+                                                 [1, 1, 0])
 
         # take another step where nothing hits now
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [-3.15, -3.9, -4.21])
+                                                 [-3.15, -4.21, -3.9])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.15, 3.9, 4.21])
+                                                 [3.15, 4.21, 3.9])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-3.15, -2, 4.21])
+                                                 [-3.15, 4.21, -2])
             np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 [3.15, 2, -4.21])
+                                                 [3.15, -4.21, 2])
             np.testing.assert_array_almost_equal(snap.mpcd.position[4],
-                                                 [0, 0, 3.85])
+                                                 [0, 3.85, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[5],
-                                                 [0, 0, -3.85])
+                                                 [0, -3.85, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[6],
-                                                 [3.19, 0, -3.82])
+                                                 [3.19, -3.82, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
-                                                 [3.18, 0, -3.81])
+                                                 [3.18, -3.81, 0])
 
     def test_step_slip(self, simulation_factory, snap):
         snap = self._make_particles(snap)
@@ -425,78 +413,62 @@ class TestPlanarPore:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [-3.05, -4.1, -4.01])
+                                                 [-3.05, -4.01, -4.1])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [-1.0, -1.0, 1.0])
+                                                 [-1.0, 1.0, -1.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.05, 4.1, 4.01])
+                                                 [3.05, 4.01, 4.1])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [1.0, 1.0, -1.0])
+                                                 [1.0, -1.0, 1.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-3.05, -2, 4.01])
+                                                 [-3.05, 4.01, -2])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [-1.0, 0.0, -1.0])
+                                                 [-1.0, -1.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 [3.05, 2, -4.01])
+                                                 [3.05, -4.01, 2])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 [1.0, 0.0, 1.0])
+                                                 [1.0, 1.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[4],
-                                                 [0, 0, 3.95])
+                                                 [0, 3.95, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[4],
-                                                 [0, 0, -1.0])
+                                                 [0, -1.0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[5],
-                                                 [0, 0, -3.95])
+                                                 [0, -3.95, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[5],
-                                                 [0, 0, 1.0])
-            # hits z = -4 after 0.02, then reverses. x is not touched because slip
+                                                 [0, 1.0, 0])
+            # hits y = -4 after 0.02, then reverses. x is not touched because slip
             np.testing.assert_array_almost_equal(snap.mpcd.position[6],
-                                                 [2.93, 0, -3.92])
+                                                 [2.93, -3.92, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[6],
-                                                 [-1, 0, 1])
-            # hits x = 3 after 0.02, then reverses. z is not touched because slip
+                                                 [-1, 1, 0])
+            # hits x = 3 after 0.02, then reverses. y is not touched because slip
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
-                                                 [3.08, 0, -4.07])
+                                                 [3.08, -4.07, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[7],
-                                                 [1, 0, -1])
+                                                 [1, -1, 0])
 
         # take another step where nothing hits now
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [-3.15, -4.2, -3.91])
+                                                 [-3.15, -3.91, -4.2])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.15, 4.2, 3.91])
+                                                 [3.15, 3.91, 4.2])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-3.15, -2, 3.91])
+                                                 [-3.15, 3.91, -2])
             np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 [3.15, 2, -3.91])
+                                                 [3.15, -3.91, 2])
             np.testing.assert_array_almost_equal(snap.mpcd.position[4],
-                                                 [0, 0, 3.85])
+                                                 [0, 3.85, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[5],
-                                                 [0, 0, -3.85])
+                                                 [0, -3.85, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[6],
-                                                 [2.83, 0, -3.82])
+                                                 [2.83, -3.82, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
-                                                 [3.18, 0, -4.17])
+                                                 [3.18, -4.17, 0])
 
-    def test_validate_box(self, simulation_factory, snap):
-        """Test box validation raises an error on run."""
-        sim = simulation_factory(snap)
-        ig = hoomd.mpcd.Integrator(dt=0.1)
-        sim.operations.integrator = ig
-
-        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=10, L=2))
-        with pytest.raises(RuntimeError):
-            sim.run(1)
-
-        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=10))
-        with pytest.raises(RuntimeError):
-            sim.run(1)
-
-    def test_test_of_bounds(self, simulation_factory, snap):
+    def test_test_out_of_bounds(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
@@ -505,10 +477,9 @@ class TestPlanarPore:
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=3.8, L=3))
-        with pytest.raises(RuntimeError):
-            sim.run(1)
+        sim.run(0)
+        assert not ig.streaming_method.check_solvent_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3.5))
-        with pytest.raises(RuntimeError):
-            sim.run(1)
+        assert not ig.streaming_method.check_solvent_particles()

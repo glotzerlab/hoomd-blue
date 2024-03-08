@@ -34,12 +34,12 @@ void test_force(std::shared_ptr<Force> force,
 UP_TEST(block_force)
     {
     auto force = std::make_shared<mpcd::BlockForce>(2, 3, 0.2);
-    std::vector<Scalar3> ref_pos = {make_scalar3(0, 0, 2.7),
-                                    make_scalar3(1, 2, 2.9),
-                                    make_scalar3(2, 1, 3.3),
-                                    make_scalar3(-1, 0, -2),
-                                    make_scalar3(4, 5, -3),
-                                    make_scalar3(4, 5, -4)};
+    std::vector<Scalar3> ref_pos = {make_scalar3(0, 2.7, 0),
+                                    make_scalar3(1, 2.9, 2),
+                                    make_scalar3(2, 3.3, 1),
+                                    make_scalar3(-1, -2, 0),
+                                    make_scalar3(4, -3, 5),
+                                    make_scalar3(4, -4, 5)};
     std::vector<Scalar3> ref_force = {make_scalar3(0, 0, 0),
                                       make_scalar3(2, 0, 0),
                                       make_scalar3(0, 0, 0),
@@ -71,7 +71,7 @@ UP_TEST(no_force)
 UP_TEST(sine_force)
     {
     auto force = std::make_shared<mpcd::SineForce>(Scalar(2.0), Scalar(M_PI));
-    std::vector<Scalar3> ref_pos = {make_scalar3(1, 2, 0.5), make_scalar3(-1, 0, -1. / 6.)};
+    std::vector<Scalar3> ref_pos = {make_scalar3(1, 0.5, 2), make_scalar3(-1, -1. / 6., 0)};
     std::vector<Scalar3> ref_force = {make_scalar3(2.0, 0, 0), make_scalar3(-1., 0, 0)};
     test_force(force, ref_pos, ref_force);
     }
