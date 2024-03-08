@@ -4,7 +4,7 @@
 """Implement variants that return box parameters as a function of time."""
 
 from hoomd import _hoomd, Box
-from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
+import hoomd
 
 
 class BoxVariant(_hoomd.VectorVariantBox):
@@ -62,7 +62,7 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
     __eq__ = BoxVariant._private_eq
 
     def __init__(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         BoxVariant.__init__(self)
         _hoomd.VectorVariantBoxConstant.__init__(self, box._cpp_obj)
 
@@ -77,7 +77,7 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
 
     @box.setter
     def box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._box = box._cpp_obj
 
 
@@ -121,9 +121,9 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
     __eq__ = BoxVariant._private_eq
 
     def __init__(self, initial_box, final_box, variant):
-        box1 = box_preprocessing(initial_box)
-        box2 = box_preprocessing(final_box)
-        variant = variant_preprocessing(variant)
+        box1 = hoomd.data.typeconverter.box_preprocessing(initial_box)
+        box2 = hoomd.data.typeconverter.box_preprocessing(final_box)
+        variant = hoomd.data.typeconverter.variant_preprocessing(variant)
         BoxVariant.__init__(self)
         _hoomd.VectorVariantBoxInterpolate.__init__(self, box1._cpp_obj,
                                                     box2._cpp_obj, variant)
@@ -135,7 +135,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
     @initial_box.setter
     def initial_box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._initial_box = box._cpp_obj
 
     @property
@@ -145,7 +145,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
     @final_box.setter
     def final_box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._final_box = box._cpp_obj
 
 
@@ -187,7 +187,7 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
 
     def __init__(self, initial_box, final_volume, t_start, t_ramp):
         BoxVariant.__init__(self)
-        box = box_preprocessing(initial_box)
+        box = hoomd.data.typeconverter.box_preprocessing(initial_box)
         _hoomd.VectorVariantBoxInverseVolumeRamp.__init__(
             self, box._cpp_obj, final_volume, t_start, t_ramp)
 
@@ -198,5 +198,5 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
 
     @initial_box.setter
     def initial_box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._initial_box = box._cpp_obj

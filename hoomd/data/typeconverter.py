@@ -10,7 +10,6 @@ from inspect import isclass
 from hoomd.error import TypeConversionError
 from hoomd.util import _is_iterable
 from hoomd.variant import Variant, Constant
-from hoomd.variant.box import Constant as ConstantBox
 from hoomd.trigger import Trigger, Periodic
 from hoomd.filter import ParticleFilter, CustomFilter
 import hoomd
@@ -70,11 +69,11 @@ def box_variant_preprocessing(input):
     Convert boxes and length-6 array-like objects to
     `hoomd.variant.box.Constant`.
     """
-    if isinstance(input, hoomd.vector.box.BoxVariant):
+    if isinstance(input, hoomd.variant.box.BoxVariant):
         return input
     else:
         try:
-            return ConstantBox(box_preprocessing(input))
+            return hoomd.variant.box.ConstantBox(box_preprocessing(input))
         except Exception:
             raise ValueError(f"{input} is not convertible into a "
                              f"hoomd.variant.box.BoxVariant object.")
