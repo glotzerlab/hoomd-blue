@@ -207,7 +207,7 @@ class Integrator(_MDIntegrator):
 
         A `CellList` is automatically created with each `Integrator`
         using typical defaults of cell size 1 and random grid shifting enabled.
-        You can change this configuration if desired.
+        You can change this parameter configuration if desired.
 
         """
         return self._cell_list

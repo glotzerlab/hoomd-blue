@@ -99,13 +99,9 @@ class CollisionMethod(Operation):
         period (int): Number of integration steps between collisions.
         embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
 
-    .. invisible-code-block: python
-
-        collision_method = hoomd.mpcd.collide.CollisionMethod(period=1)
-        simulation.operations.integrator.collision_method = collision_method
-
     Attributes:
-        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
+        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include
+            in collision (*read only*).
 
             These particles are included in per-cell quantities and have their
             velocities updated along with the MPCD particles.
@@ -122,13 +118,7 @@ class CollisionMethod(Operation):
                 will not be correctly transferred to the body. Support for this
                 is planned in future.
 
-            .. rubric:: Example:
-
-            .. code-block:: python
-
-                collision_method.embedded_particles = hoomd.filter.All()
-
-        period (int): Number of integration steps between collisions.
+        period (int): Number of integration steps between collisions (*read only*).
 
             A collision is executed each time the :attr:`~hoomd.Simulation.timestep`
             is a multiple of `period`. It must be a multiple of `period` for the

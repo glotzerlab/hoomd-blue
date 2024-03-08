@@ -38,18 +38,12 @@ class Geometry(_HOOMDBaseObject):
 
     Attributes:
         no_slip (bool): If True, plates have a no-slip boundary condition.
-            Otherwise, they have a slip boundary condition.
+            Otherwise, they have a slip boundary condition (*read only*).
 
             A no-slip boundary condition means that the average velocity is
             zero at the surface. A slip boundary condition means that the
             average *normal* velocity is zero at the surface, but there
             is no friction against the *tangential* velocity.
-
-            .. rubric:: Example:
-
-            .. code-block:: python
-
-                geometry.no_slip = True
 
     """
 
@@ -103,9 +97,9 @@ class ParallelPlates(Geometry):
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
-        H (float): Channel half-width.
+        H (float): Channel half-width (*read only*).
 
-        V (float): Wall speed.
+        V (float): Wall speed (*read only*).
 
             `V` will have no effect if `no_slip` is False because the slip
             surface cannot generate shear stress.
@@ -151,9 +145,9 @@ class PlanarPore(Geometry):
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
-        H (float): Pore half-width.
+        H (float): Pore half-width (*read only*).
 
-        L (float): Pore half-length.
+        L (float): Pore half-length (*read only*).
 
     """
 

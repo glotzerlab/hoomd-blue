@@ -76,9 +76,9 @@ class BounceBack(Method):
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
-            this method.
+            this method (*read only*).
 
-        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from (*read only*).
 
     """
 

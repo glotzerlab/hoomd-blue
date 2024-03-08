@@ -119,7 +119,7 @@ class GeometryFiller(VirtualParticleFiller):
         simulation.operations.integrator.virtual_particle_fillers = [filler]
 
     Attributes:
-        geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around (*read only*).
 
     """
 

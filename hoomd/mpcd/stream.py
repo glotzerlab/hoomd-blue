@@ -45,12 +45,9 @@ class StreamingMethod(Operation):
         period (int): Number of integration steps covered by streaming step.
         solvent_force (SolventForce): Force on solvent.
 
-    .. invisible-code-block: python
-
-        streaming_method = hoomd.mpcd.stream.StreamingMethod(period=1)
-
     Attributes:
-        period (int): Number of integration steps covered by streaming step.
+        period (int): Number of integration steps covered by streaming step
+            (*read only*).
 
             The MPCD particles will be streamed every time the
             :attr:`~hoomd.Simulation.timestep` is a multiple of `period`. The
@@ -61,13 +58,10 @@ class StreamingMethod(Operation):
             used if an external force is applied, and more faithful numerical
             integration is needed.
 
-            .. rubric:: Example:
-
-            .. code-block:: python
-
-                streaming_method.period = 1
-
         solvent_force (SolventForce): Force on solvent.
+
+            The `solvent_force` cannot be changed after the `StreamingMethod` is
+            constructed, but its attributes can be modified.
 
     """
 
@@ -215,7 +209,8 @@ class BounceBack(StreamingMethod):
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
-        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from
+            (*read only*).
 
     """
 
