@@ -12,13 +12,19 @@ import numpy as np
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
 valid_constructor_args = [
+    # 3d box from constant box variant
     dict(trigger=hoomd.trigger.Periodic(10),
          target_box=hoomd.variant.box.Constant(hoomd.Box.from_box([10, 10,
                                                                    10]))),
+    # 3d box with box object
     dict(trigger=hoomd.trigger.After(100),
-         target_box=hoomd.variant.box.Constant(hoomd.Box.from_box([10, 20,
-                                                                   40])),
+         target_box=hoomd.Box.from_box([10, 20, 40]),
          max_overlaps_per_particle=0.2),
+    # 2d box with box object
+    dict(trigger=hoomd.trigger.Before(100),
+         target_box=hoomd.Box.from_box([50, 50]),
+         min_scale=0.75),
+    # 2d box with box variant
     dict(trigger=hoomd.trigger.Before(100),
          target_box=hoomd.variant.box.Constant(hoomd.Box.from_box([50, 50])),
          min_scale=0.75),
@@ -78,7 +84,10 @@ def test_valid_construction(constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert getattr(qc, attr) == value
+        if type(value) is hoomd.Box:
+            assert getattr(qc, attr) == hoomd.variant.box.Constant(value)
+        else:
+            assert getattr(qc, attr) == value
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -100,7 +109,10 @@ def test_valid_construction_and_attach(simulation_factory,
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert getattr(qc, attr) == value
+        if type(value) is hoomd.Box:
+            assert getattr(qc, attr) == hoomd.variant.box.Constant(value)
+        else:
+            assert getattr(qc, attr) == value
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
@@ -260,7 +272,8 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 
 @pytest.mark.parametrize("ndim", [2, 3])
-def test_inverse_volume_slow_compress(ndim, simulation_factory,
+@pytest.mark.parametrize("vscale", [1.0, 0.5])
+def test_inverse_volume_slow_compress(ndim, vscale, simulation_factory,
                                       lattice_snapshot_factory):
     """Test that InverseVolumeRamp compresses at an appropriate rate.
 
@@ -268,12 +281,11 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
     specified t_start and t_ramp.
     """
     n = 3
-    phi = 0.5
     snap = lattice_snapshot_factory(dimensions=ndim, n=n, a=3.0)
-    v_particle = math.pi * (0.5)**2
-    target_box = hoomd.Box.square((n * n * v_particle / phi)**(1 / 2))
-    final_volume = n**ndim * v_particle / phi
     sim = simulation_factory(snap)
+    target_box = sim.state.box
+    target_box.volume *= vscale
+    final_volume = target_box.volume
     initial_volume = sim.state.box.volume
     t_ramp = 100
     target_box = hoomd.variant.box.InverseVolumeRamp(sim.state.box,
