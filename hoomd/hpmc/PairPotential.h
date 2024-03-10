@@ -134,7 +134,7 @@ class PairPotential
     /// Returns the additive part of the cutoff distance for a given type.
     virtual LongReal computeRCutAdditive(unsigned int type) const
         {
-        return m_r_cut_additive[type];
+        return 0;
         }
 
     protected:
