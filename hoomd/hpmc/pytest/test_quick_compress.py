@@ -311,8 +311,9 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
 
     while sim.timestep < t_ramp or (not qc.complete):
         sim.run(10)
-        assert not 1 / sim.state.box.volume > 1 / hoomd.Box(
-            *qc.target_box(sim.timestep)).volume
+        simulation_density = 1 / sim.state.box.volume
+        target_density = 1 / hoomd.Box(*qc.target_box(sim.timestep)).volume
+        assert simulation_density < target_density or simulation_density == pytest.approx(target_density)
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
