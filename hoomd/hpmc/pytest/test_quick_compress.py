@@ -278,7 +278,7 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
                                       lattice_snapshot_factory):
     """Test that InverseVolumeRamp compresses at an appropriate rate.
 
-    Ensure that the volume is no less than the set point determined by the
+    Ensure that the density is no greater than the set point determined by the
     specified t_start and t_ramp.
     """
     n = 6
@@ -297,7 +297,7 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
     else:
         final_packing_fraction = fraction_close_packing * close_packing
         final_volume = n**ndim * v_p / final_packing_fraction
-    t_ramp = 1000
+    t_ramp = 10000
     target_box = hoomd.variant.box.InverseVolumeRamp(sim.state.box,
                                                      final_volume, 0, t_ramp)
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
@@ -311,7 +311,7 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
 
     while sim.timestep < t_ramp or (not qc.complete):
         sim.run(10)
-        assert not sim.state.box.volume < hoomd.Box(
+        assert not 1 / sim.state.box.volume > 1 / hoomd.Box(
             *qc.target_box(sim.timestep)).volume
 
 
