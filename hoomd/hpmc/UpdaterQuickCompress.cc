@@ -183,7 +183,6 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep, const BoxDim& target_b
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
 
-
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
     Scalar3 new_L;
