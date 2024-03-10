@@ -273,7 +273,8 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 @pytest.mark.parametrize("ndim", [2, 3])
 @pytest.mark.parametrize("same_initial_and_final_box", [True, False])
-def test_inverse_volume_slow_compress(ndim, simulation_factory, same_initial_and_final_box,
+def test_inverse_volume_slow_compress(ndim, simulation_factory,
+                                      same_initial_and_final_box,
                                       lattice_snapshot_factory):
     """Test that InverseVolumeRamp compresses at an appropriate rate.
 
@@ -296,7 +297,6 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory, same_initial_and
     else:
         final_packing_fraction = fraction_close_packing * close_packing
         final_volume = n**ndim * v_p / final_packing_fraction
-    initial_volume = sim.state.box.volume
     t_ramp = 1000
     target_box = hoomd.variant.box.InverseVolumeRamp(sim.state.box,
                                                      final_volume, 0, t_ramp)
@@ -308,11 +308,12 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory, same_initial_and
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
-    scale = hoomd.variant.Ramp(0, 1, 0, t_ramp)
 
     while sim.timestep < t_ramp or (not qc.complete):
         sim.run(10)
-        assert not sim.state.box.volume < hoomd.Box(*qc.target_box(sim.timestep)).volume
+        assert not sim.state.box.volume < hoomd.Box(
+            *qc.target_box(sim.timestep)).volume
+
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that QuickCompress objects are picklable."""
