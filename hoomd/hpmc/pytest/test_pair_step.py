@@ -154,6 +154,11 @@ step_test_parameters = [
         0.0,
         1,
     ),
+    (
+        None,
+        0.0,
+        0.0,
+    )
 ]
 
 

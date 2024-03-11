@@ -140,11 +140,6 @@ PairPotentialStep::ParamType::ParamType(pybind11::object params)
 pybind11::dict PairPotentialStep::ParamType::asDict()
     {
     size_t N = m_epsilon.size();
-    if (N == 0)
-        {
-        return pybind11::none();
-        }
-
     pybind11::list epsilon;
     pybind11::list r;
 
