@@ -67,6 +67,7 @@ valid_attrs = [
     ('target_box',
      hoomd.variant.box.InverseVolumeRamp(hoomd.Box.from_box([10, 20, 30]), 3000,
                                          10, 100)),
+    ('target_box', hoomd.Box.cube(5)),
     ('max_overlaps_per_particle', 0.2),
     ('max_overlaps_per_particle', 0.5),
     ('max_overlaps_per_particle', 2.5),
@@ -123,6 +124,8 @@ def test_valid_setattr(attr, value):
                                              [10, 10, 10]))
 
     setattr(qc, attr, value)
+    if type(value) is hoomd.Box:
+        value = hoomd.variant.box.Constant(value)
     assert getattr(qc, attr) == value
 
 
@@ -145,6 +148,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     sim.operations._schedule()
 
     setattr(qc, attr, value)
+    if type(value) is hoomd.Box:
+        value = hoomd.variant.box.Constant(value)
     assert getattr(qc, attr) == value
 
 
