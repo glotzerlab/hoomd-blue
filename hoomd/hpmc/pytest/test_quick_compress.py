@@ -272,49 +272,61 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 
 @pytest.mark.parametrize("ndim", [2, 3])
-@pytest.mark.parametrize("same_initial_and_final_box", [True, False])
 def test_inverse_volume_slow_compress(ndim, simulation_factory,
-                                      same_initial_and_final_box,
                                       lattice_snapshot_factory):
     """Test that InverseVolumeRamp compresses at an appropriate rate.
 
     Ensure that the density is no greater than the set point determined by the
     specified t_start and t_ramp.
     """
-    n = 6
-    snap = lattice_snapshot_factory(dimensions=ndim, n=n, a=1.2)
-    sim = simulation_factory(snap)
+    n = 3
+    snap = lattice_snapshot_factory(dimensions=ndim, n=n, a=1.5)
+    sim_with_variant = simulation_factory(snap)
+    sim_with_target_box = simulation_factory(snap)
+    fraction_close_packing = 0.5
     if ndim == 2:
         close_packing = np.pi / 2 / np.sqrt(3)
         v_p = np.pi * 0.5**2
-        fraction_close_packing = 0.91
     else:
-        fraction_close_packing = 0.83
         close_packing = np.pi * np.sqrt(2) / 6
         v_p = 4 / 3 * np.pi * 0.5**3
-    if same_initial_and_final_box:
-        final_volume = sim.state.box.volume
-    else:
-        final_packing_fraction = fraction_close_packing * close_packing
-        final_volume = n**ndim * v_p / final_packing_fraction
+    final_packing_fraction = fraction_close_packing * close_packing
+    final_volume = n**ndim * v_p / final_packing_fraction
     t_ramp = 10000
-    target_box = hoomd.variant.box.InverseVolumeRamp(sim.state.box,
-                                                     final_volume, 0, t_ramp)
-    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=target_box)
-
-    sim.operations.updaters.append(qc)
+    target_box_variant = hoomd.variant.box.InverseVolumeRamp(
+        sim_with_target_box.state.box, final_volume, 0, t_ramp)
+    qc_trigger = 10
+    target_box = hoomd.Box(*target_box_variant(t_ramp))
+    qc_with_variant = hoomd.hpmc.update.QuickCompress(
+        trigger=qc_trigger, target_box=target_box_variant)
+    qc_with_target_box = hoomd.hpmc.update.QuickCompress(trigger=qc_trigger,
+                                                         target_box=target_box)
+    sim_with_variant.operations.updaters.append(qc_with_variant)
+    sim_with_target_box.operations.updaters.append(qc_with_target_box)
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
-    sim.operations.integrator = mc
+    sim_with_variant.operations.integrator = mc
 
-    while sim.timestep < t_ramp or (not qc.complete):
-        sim.run(10)
-        simulation_density = 1 / sim.state.box.volume
-        target_density = 1 / hoomd.Box(*qc.target_box(sim.timestep)).volume
-        assert simulation_density < target_density or (
-            simulation_density == pytest.approx(target_density))
+    mc2 = hoomd.hpmc.integrate.Sphere(default_d=0.05)
+    mc2.shape['A'] = dict(diameter=1)
+    sim_with_target_box.operations.integrator = mc2
+
+    sims = (sim_with_variant, sim_with_target_box)
+
+    def stop_loop(sims, target_box):
+        return all((_sim.state.box == target_box for _sim in sims))
+
+    while not stop_loop(sims, target_box):
+        for _sim in [sim_with_variant, sim_with_target_box]:
+            if _sim.state.box != target_box:
+                _sim.run(10)
+            if _sim is sim_with_variant:
+                current_target_volume = hoomd.Box(
+                    *target_box_variant(_sim.timestep)).volume
+                current_volume = _sim.state.box.volume
+                assert current_volume >= current_target_volume
+    assert sim_with_variant.timestep > sim_with_target_box.timestep
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
