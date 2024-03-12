@@ -858,7 +858,9 @@ class QuickCompress(Updater):
         target_box = hoomd.variant.box.InverseVolumeRamp(
             sim.state.box, sim.state.box.volume / 2, 0, 1_000)
         qc = hoomd.hpmc.update.QuickCompress(10, target_box)
-        while sim.timestep < target_box.t_ramp + target_box.t_start or (not qc.complete):
+        while (
+            sim.timestep < target_box.t_ramp + target_box.t_start or
+            not qc.complete):
             sim.run(100)
 
     Tip:
