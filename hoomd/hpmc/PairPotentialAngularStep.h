@@ -90,7 +90,6 @@ class PairPotentialAngularStep : public hpmc::PairPotential
 
     /// Create a pointer to get the isotropic pair potential
     std::shared_ptr<PairPotential> m_isotropic_potential;
-    // should this point to PairPotential or the LJ potential specifically?
 
     /// Type pair parameters of potential
     std::vector<std::vector<vec3<LongReal>>> m_directors;
