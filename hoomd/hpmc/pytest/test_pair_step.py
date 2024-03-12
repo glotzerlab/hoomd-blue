@@ -83,83 +83,67 @@ def test_invalid_params_on_attach(mc_simulation_factory, parameters):
 # (pair params,
 #  distance between particles,
 #  expected energy)
-step_test_parameters = [
-    (
-        dict(epsilon=[-1.125], r=[0.5]),
-        3.0,
-        0.0,
-    ),
-    (
-        dict(epsilon=[-1.125], r=[0.5]),
-        0.5125,
-        0.0,
-    ),
-    (
-        dict(epsilon=[-1.125], r=[0.5]),
-        0.5,
-        0,
-    ),
-    (
-        dict(epsilon=[-1.125], r=[0.5]),
-        0.25,
-        -1.125,
-    ),
-    (
-        dict(epsilon=[-1.125], r=[0.5]),
-        0.0,
-        -1.125,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        2.5,
-        0,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        2.4,
-        3,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        1.6,
-        3,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        1.5,
-        3,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        1.49,
-        2,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        0.6,
-        2,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        0.5,
-        2,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        0.49,
-        1,
-    ),
-    (
-        dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
-        0.0,
-        1,
-    ),
-    (
-        None,
-        0.0,
-        0.0,
-    )
-]
+step_test_parameters = [(
+    dict(epsilon=[-1.125], r=[0.5]),
+    3.0,
+    0.0,
+), (
+    dict(epsilon=[-1.125], r=[0.5]),
+    0.5125,
+    0.0,
+), (
+    dict(epsilon=[-1.125], r=[0.5]),
+    0.5,
+    0,
+), (
+    dict(epsilon=[-1.125], r=[0.5]),
+    0.25,
+    -1.125,
+), (
+    dict(epsilon=[-1.125], r=[0.5]),
+    0.0,
+    -1.125,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    2.5,
+    0,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    2.4,
+    3,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    1.6,
+    3,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    1.5,
+    3,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    1.49,
+    2,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    0.6,
+    2,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    0.5,
+    2,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    0.49,
+    1,
+), (
+    dict(epsilon=[1, 2, 3], r=[0.5, 1.5, 2.5]),
+    0.0,
+    1,
+), (
+    None,
+    0.0,
+    0.0,
+)]
 
 
 @pytest.mark.parametrize('params, d, expected_energy', step_test_parameters)
