@@ -40,6 +40,12 @@ def angular_step_potential(pair_potential):
 
 def _valid_particle_dicts():
     valid_dicts = [
+        # numpy arrays
+        dict(directors=[np.array([1.0, 0, 0]),
+                        np.array([0, 1.0, 0])],
+             deltas=[0.1, 0.2]),
+        # lists
+        dict(directors=[[1.0, 0, 0], [0, 1.0, 0]], deltas=[0.1, 0.2]),
         # tuples
         dict(directors=[(1.0, 0, 0), (0, 1.0, 0)], deltas=[0.1, 0.2]),
     ]
