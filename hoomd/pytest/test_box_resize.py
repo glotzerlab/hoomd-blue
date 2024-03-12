@@ -8,7 +8,6 @@ import hoomd
 from hoomd.conftest import operation_pickling_check
 from hoomd.error import MutabilityError
 
-
 _n_points = 10
 
 
@@ -270,12 +269,13 @@ def test_new_api(simulation_factory, two_particle_snapshot_factory):
 
     assert box_resize.box is inverse_volume_ramp
 
+
 def test_invalid_api(variant, trigger):
     box_variant = hoomd.variant.box.InverseVolumeRamp(
         initial_box=hoomd.Box.cube(6),
         final_volume=100,
         t_start=1_000,
-        t_ramp=21_000)    
+        t_ramp=21_000)
 
     box1 = hoomd.Box.cube(10)
     box2 = hoomd.Box.cube(20)
@@ -289,13 +289,19 @@ def test_invalid_api(variant, trigger):
     with pytest.raises(ValueError):
         hoomd.update.BoxResize(trigger=trigger, box2=box2, variant=variant)
     with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, box1=box1, box2=box2, variant=variant, box=box_variant)
+        hoomd.update.BoxResize(trigger=trigger,
+                               box1=box1,
+                               box2=box2,
+                               variant=variant,
+                               box=box_variant)
     with pytest.raises(ValueError):
         hoomd.update.BoxResize(trigger=trigger, box1=box1, box=box_variant)
     with pytest.raises(ValueError):
         hoomd.update.BoxResize(trigger=trigger, box2=box2, box=box_variant)
     with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, variant=variant, box=box_variant)
+        hoomd.update.BoxResize(trigger=trigger,
+                               variant=variant,
+                               box=box_variant)
 
     box_resize = hoomd.update.BoxResize(trigger=trigger, box=box_variant)
     with pytest.raises(RuntimeError):
