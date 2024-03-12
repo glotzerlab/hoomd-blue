@@ -277,6 +277,7 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 
 @pytest.mark.parametrize("ndim", [2, 3])
+@pytest.mark.validate
 def test_inverse_volume_slow_compress(ndim, simulation_factory,
                                       lattice_snapshot_factory):
     """Test that InverseVolumeRamp compresses at an appropriate rate.
@@ -284,8 +285,8 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
     Ensure that the density is no greater than the set point determined by the
     specified t_start and t_ramp.
     """
-    n = 3
-    snap = lattice_snapshot_factory(dimensions=ndim, n=n, a=1.5)
+    n = 5
+    snap = lattice_snapshot_factory(dimensions=ndim, n=n, a=5)
     sim_with_variant = simulation_factory(snap)
     sim_with_target_box = simulation_factory(snap)
     fraction_close_packing = 0.5
@@ -309,11 +310,11 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
     sim_with_variant.operations.updaters.append(qc_with_variant)
     sim_with_target_box.operations.updaters.append(qc_with_target_box)
 
-    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.01)
     mc.shape['A'] = dict(diameter=1)
     sim_with_variant.operations.integrator = mc
 
-    mc2 = hoomd.hpmc.integrate.Sphere(default_d=0.05)
+    mc2 = hoomd.hpmc.integrate.Sphere(default_d=0.01)
     mc2.shape['A'] = dict(diameter=1)
     sim_with_target_box.operations.integrator = mc2
 
@@ -326,11 +327,15 @@ def test_inverse_volume_slow_compress(ndim, simulation_factory,
         for _sim in [sim_with_variant, sim_with_target_box]:
             if _sim.state.box != target_box:
                 _sim.run(10)
+            # ensure system with variant compresses no faster than the variant
+            # dictates
             if _sim is sim_with_variant:
                 current_target_volume = hoomd.Box(
                     *target_box_variant(_sim.timestep)).volume
                 current_volume = _sim.state.box.volume
                 assert current_volume >= current_target_volume
+    # ensure that the system with the variant took longer to compress than the
+    # system without Box as target_box
     assert sim_with_variant.timestep > sim_with_target_box.timestep
 
 
