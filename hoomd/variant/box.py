@@ -4,7 +4,7 @@
 """Implement variants that return box parameters as a function of time."""
 
 from hoomd import _hoomd, Box
-from hoomd.data.typeconverter import box_preprocessing, variant_preprocessing
+import hoomd
 
 
 class BoxVariant(_hoomd.VectorVariantBox):
@@ -37,7 +37,16 @@ class BoxVariant(_hoomd.VectorVariantBox):
         :return: The value of the function at the given time step.
         :rtype: [float, float, float, float, float, float]
     """
-    pass
+
+    def _private_eq(self, other):
+        """Return whether two vector variants are equivalent."""
+        if not isinstance(other, BoxVariant):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in self._eq_attrs)
 
 
 class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
@@ -49,11 +58,17 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
     `Constant` returns ``[box.Lx, box.Ly, box.Lz, box.xz, box.xz, box.yz]`` at
     all time steps.
     """
+    _eq_attrs = ("box",)
+    __eq__ = BoxVariant._private_eq
 
     def __init__(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         BoxVariant.__init__(self)
         _hoomd.VectorVariantBoxConstant.__init__(self, box._cpp_obj)
+
+    def __reduce__(self):
+        """Reduce values to picklable format."""
+        return (type(self), (Box(*self.box.L, *self.box.tilts),))
 
     @property
     def box(self):
@@ -62,7 +77,7 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
 
     @box.setter
     def box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._box = box._cpp_obj
 
 
@@ -99,11 +114,16 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
     """
+    _eq_attrs = (
+        "initial_box",
+        "final_box",
+    )
+    __eq__ = BoxVariant._private_eq
 
     def __init__(self, initial_box, final_box, variant):
-        box1 = box_preprocessing(initial_box)
-        box2 = box_preprocessing(final_box)
-        variant = variant_preprocessing(variant)
+        box1 = hoomd.data.typeconverter.box_preprocessing(initial_box)
+        box2 = hoomd.data.typeconverter.box_preprocessing(final_box)
+        variant = hoomd.data.typeconverter.variant_preprocessing(variant)
         BoxVariant.__init__(self)
         _hoomd.VectorVariantBoxInterpolate.__init__(self, box1._cpp_obj,
                                                     box2._cpp_obj, variant)
@@ -115,7 +135,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
     @initial_box.setter
     def initial_box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._initial_box = box._cpp_obj
 
     @property
@@ -125,7 +145,7 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
 
     @final_box.setter
     def final_box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._final_box = box._cpp_obj
 
 
@@ -162,10 +182,12 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
         t_start (int): The time step at the start of the ramp.
         t_ramp (int): The length of the ramp.
     """
+    _eq_attrs = ("initial_box", "final_volume", "t_start", "t_ramp")
+    __eq__ = BoxVariant._private_eq
 
     def __init__(self, initial_box, final_volume, t_start, t_ramp):
         BoxVariant.__init__(self)
-        box = box_preprocessing(initial_box)
+        box = hoomd.data.typeconverter.box_preprocessing(initial_box)
         _hoomd.VectorVariantBoxInverseVolumeRamp.__init__(
             self, box._cpp_obj, final_volume, t_start, t_ramp)
 
@@ -176,5 +198,5 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
 
     @initial_box.setter
     def initial_box(self, box):
-        box = box_preprocessing(box)
+        box = hoomd.data.typeconverter.box_preprocessing(box)
         self._initial_box = box._cpp_obj

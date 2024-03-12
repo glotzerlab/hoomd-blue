@@ -63,6 +63,22 @@ def box_preprocessing(box):
                              f". using hoomd.Box.from_box")
 
 
+def box_variant_preprocessing(input):
+    """Process box variants.
+
+    Convert boxes and length-6 array-like objects to
+    `hoomd.variant.box.Constant`.
+    """
+    if isinstance(input, hoomd.variant.box.BoxVariant):
+        return input
+    else:
+        try:
+            return hoomd.variant.box.Constant(box_preprocessing(input))
+        except Exception:
+            raise ValueError(f"{input} is not convertible into a "
+                             f"hoomd.variant.box.BoxVariant object.")
+
+
 def positive_real(number):
     """Ensure that a value is positive."""
     try:
@@ -391,6 +407,9 @@ class _BaseConverter:
             OnlyTypes(Trigger, preprocess=trigger_preprocessing),
         hoomd.Box:
             OnlyTypes(hoomd.Box, preprocess=box_preprocessing),
+        hoomd.variant.box.BoxVariant:
+            OnlyTypes(hoomd.variant.box.BoxVariant,
+                      preprocess=box_variant_preprocessing),
         # arrays default to float of one dimension of arbitrary length and
         # ordering
         np.ndarray:
