@@ -780,21 +780,21 @@ class QuickCompress(Updater):
           & L_{\mathrm{target},z} \ge L_z
           \end{cases} \\
           xy' &= \begin{cases}
-          \max( xy \cdot s, xy_\mathrm{target} )
+          \min( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} < xy \\
-          \min( xy / s, xy_\mathrm{target} )
+          \max( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} \ge xy
           \end{cases} \\
           xz' &= \begin{cases}
-          \max( xz \cdot s, xz_\mathrm{target} )
+          \min( xz + (1-s) \cdot xz_\mathrm{target}, xz_\mathrm{target} )
           & xz_\mathrm{target} < xz \\
-          \min( xz / s, xz_\mathrm{target} )
+          \max( xz + (1-s) \cdot xz_\mathrm{target}, xz_\mathrm{target} )
           & xz_\mathrm{target} \ge xz
           \end{cases} \\
           yz' &= \begin{cases}
-          \max( yz \cdot s, yz_\mathrm{target} )
+          \min( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} < yz \\
-          \min( yz / s, yz_\mathrm{target} )
+          \max( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} \ge yz
           \end{cases} \\
 
@@ -816,9 +816,9 @@ class QuickCompress(Updater):
           \end{cases} \\
           L_z' &= L_z \\
           xy' &= \begin{cases}
-          \max( xy \cdot s, xy_\mathrm{target} )
+          \min( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} < xy \\
-          \min( xy / s, xy_\mathrm{target} )
+          \max( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} \ge xy
           \end{cases} \\
           xz' &= xz \\
