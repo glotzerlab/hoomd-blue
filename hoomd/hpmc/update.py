@@ -755,8 +755,9 @@ class QuickCompress(Updater):
     steps. For more control over the rate of compression, use a `BoxVariant` for
     `target_box`.
 
-    It operates by making small changes toward the `target_box`, but only
-    when there are no particle overlaps in the current simulation state. In 3D:
+    `QuickCompress` operates by making small changes toward the `target_box`,
+    but only when there are no particle overlaps in the current simulation
+    state. In 3D:
 
     .. math::
 
@@ -847,10 +848,24 @@ class QuickCompress(Updater):
     box move sizes will be uniformly distributed between ``min_scale`` and 1.0
     (with no consideration of ``min_move_size``).
 
+    When using a `BoxVariant` for `target_box`, `complete` returns `True` if the
+    current simulation box is equal to the box corresponding to `target_box`
+    evaluated at the current timestep and there are no overlaps in the system.
+    To ensure the updater has compressed the system to the final target box, use
+    a condition that checks both the `complete` attribute of the updater and the
+    simulation timestep. For example::
+
+        target_box = hoomd.variant.box.InverseVolumeRamp(
+            sim.state.box, sim.state.box.volume / 2, 0, 10000)
+        qc = hoomd.hpmc.update.QuickCompress(10, target_box)
+        while (not qc.complete) and sim.timestep < qc.target_box.t_ramp:
+            sim.run(100)
+
     Tip:
         Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
+
 
     Warning:
         When the smallest MC translational move size is 0, `allow_unsafe_resize`
