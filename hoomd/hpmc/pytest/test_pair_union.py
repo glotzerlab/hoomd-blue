@@ -53,6 +53,8 @@ def _valid_body_dicts():
              charges=[-0.5, 0.5]),
         # orientations and charges should have defaults
         dict(types=["A", "A"], positions=[(0, 0, 1.0), (0, 0, -1.0)]),
+        # No constituents
+        None,
     ]
     return valid_dicts
 

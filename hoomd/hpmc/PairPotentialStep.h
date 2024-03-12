@@ -33,7 +33,7 @@ class PairPotentialStep : public hpmc::PairPotential
     virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const;
 
     /// Set type pair dependent parameters to the potential.
-    void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+    void setParamsPython(pybind11::tuple typ, pybind11::object params);
 
     /// Get type pair dependent parameters.
     pybind11::dict getParamsPython(pybind11::tuple typ);
@@ -45,7 +45,7 @@ class PairPotentialStep : public hpmc::PairPotential
         ParamType() { }
 
         /// Construct a parameter set from a dictionary.
-        ParamType(pybind11::dict v);
+        ParamType(pybind11::object v);
 
         /// Convert a parameter set to a dictionary.
         pybind11::dict asDict();

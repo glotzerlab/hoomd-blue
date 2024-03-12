@@ -80,7 +80,7 @@ LongReal PairPotentialStep::energy(const LongReal r_squared,
         }
     }
 
-void PairPotentialStep::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+void PairPotentialStep::setParamsPython(pybind11::tuple typ, pybind11::object params)
     {
     auto pdata = m_sysdef->getParticleData();
     auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
@@ -102,15 +102,16 @@ pybind11::dict PairPotentialStep::getParamsPython(pybind11::tuple typ)
     return m_params[param_index].asDict();
     }
 
-PairPotentialStep::ParamType::ParamType(pybind11::dict v)
+PairPotentialStep::ParamType::ParamType(pybind11::object params)
     {
-    if (v.is_none())
+    if (params.is_none())
         {
         m_epsilon.clear();
         m_r_squared.clear();
         return;
         }
 
+    pybind11::dict v = params;
     pybind11::list epsilon_list = v["epsilon"];
     pybind11::list r_list = v["r"];
 
@@ -139,11 +140,6 @@ PairPotentialStep::ParamType::ParamType(pybind11::dict v)
 pybind11::dict PairPotentialStep::ParamType::asDict()
     {
     size_t N = m_epsilon.size();
-    if (N == 0)
-        {
-        return pybind11::none();
-        }
-
     pybind11::list epsilon;
     pybind11::list r;
 
