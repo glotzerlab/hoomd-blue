@@ -27,7 +27,6 @@ BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
     : Updater(sysdef, trigger), m_box(box), m_group(group)
     {
     assert(m_pdata);
-    assert(m_variant);
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
     }
 
