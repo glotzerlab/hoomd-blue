@@ -33,12 +33,14 @@ class ParticleSorter(TriggeredOperation):
 
     The optimal frequency for sorting depends on the number of particles, so the
     `trigger` itself should be tuned to give the maximum performance. The
-    trigger's period should be a multiple of `hoomd.mpcd.collide.CollisionMethod.period`
-    to avoid unnecessary cell list builds. Typically, using a small multiple
-    (tens) of the collision period works best.
+    trigger's period should be a multiple of
+    `hoomd.mpcd.collide.CollisionMethod.period` to avoid unnecessary cell list
+    builds. Typically, using a small multiple (tens) of the collision period
+    works best.
 
     For best performance, the `ParticleSorter` should **not** be added to
-    `hoomd.Operations.tuners`. Instead, set it in `hoomd.mpcd.Integrator.solvent_sorter`.
+    `hoomd.Operations.tuners`. Instead, set it in
+    `hoomd.mpcd.Integrator.solvent_sorter`.
 
     Essentially all MPCD systems benefit from sorting, so it is recommended
     to use one for all simulations!

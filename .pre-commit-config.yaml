@@ -93,7 +93,6 @@ repos:
     exclude: |
       (?x)(
         ^hoomd/extern/|
-        ^hoomd/mpcd/|
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format

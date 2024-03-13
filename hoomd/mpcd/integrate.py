@@ -1,6 +1,8 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+"""Implement MPCD Integrator."""
+
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
@@ -48,7 +50,8 @@ class Integrator(_MDIntegrator):
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
             for the MPCD solvent and any embedded particles.
 
-        virtual_particle_fillers (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): Solvent
+        virtual_particle_fillers
+            (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): Solvent
             virtual-particle filler(s).
 
         solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
@@ -86,7 +89,9 @@ class Integrator(_MDIntegrator):
     .. code-block:: python
 
         stream = hoomd.mpcd.stream.Bulk(period=1)
-        collide = hoomd.mpcd.collide.StochasticRotationDynamics(period=1, angle=130)
+        collide = hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=1,
+            angle=130)
         integrator = hoomd.mpcd.Integrator(
             dt=0.1,
             streaming_method=stream,
@@ -214,9 +219,8 @@ class Integrator(_MDIntegrator):
     @property
     def virtual_particle_fillers(self):
         """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: Solvent
-            virtual-particle fillers.
-
-        """
+        virtual-particle fillers.
+        """  # noqa: D205,D415
         return self._virtual_particle_fillers
 
     @virtual_particle_fillers.setter
@@ -261,7 +265,7 @@ class Integrator(_MDIntegrator):
             if value is not None and value._attached:
                 raise ValueError("Cannot attach to multiple integrators.")
 
-            # if already attached, change out which is attached, then set parameter
+            # if already attached, change out and set parameter
             if self._attached:
                 if cur_value is not None:
                     cur_value._detach()

@@ -1,10 +1,10 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import numpy as np
+
 import hoomd
 from hoomd.conftest import pickling_check
-import numpy as np
-import pytest
 
 
 def test_block_force(simulation_factory):

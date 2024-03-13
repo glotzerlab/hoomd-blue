@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD integration methods
+r"""MPCD integration methods.
 
 Extra integration methods for solutes (MD particles) embedded in an MPCD
 solvent. These methods are not restricted to MPCD simulations: they can be used
@@ -31,54 +31,54 @@ class BounceBack(Method):
             apply this method.
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
 
-    A bounce-back method for integrating solutes (MD particles) embedded in
-    an MPCD solvent. The integration scheme is velocity Verlet with bounce-back
+    A bounce-back method for integrating solutes (MD particles) embedded in an
+    MPCD solvent. The integration scheme is velocity Verlet with bounce-back
     performed at the solid boundaries defined by a geometry, as in
     `hoomd.mpcd.stream.BounceBack`. This gives a simple approximation of the
-    interactions required to keep a solute bounded in a geometry, and more complex
-    interactions can be specified, for example, by writing custom external fields.
+    interactions required to keep a solute bounded in a geometry, and more
+    complex interactions can be specified, for example, by writing custom
+    external fields.
 
-    Similar caveats apply to these methods as for `hoomd.mpcd.stream.BounceBack`.
-    In particular:
+    Similar caveats apply to these methods as for
+    `hoomd.mpcd.stream.BounceBack`. In particular:
 
-    1. The simulation box is periodic, but the `geometry` may impose non-periodic
-       boundary conditions. You must ensure that the box is sufficiently large to
-       enclose the `geometry` and that all particles lie inside it, or an error will
-       be raised at runtime.
-    2. You must also ensure that particles do not self-interact through the periodic
-       boundaries. This is usually achieved for simple pair potentials by padding
-       the box size by the largest cutoff radius. Failure to do so may result in
-       unphysical interactions.
+    1. The simulation box is periodic, but the `geometry` may impose
+       non-periodic boundary conditions. You must ensure that the box is
+       sufficiently large to enclose the `geometry` and that all particles lie
+       inside it, or an error will be raised at runtime.
+    2. You must also ensure that particles do not self-interact through the
+       periodic boundaries. This is usually achieved for simple pair potentials
+       by padding the box size by the largest cutoff radius. Failure to do so
+       may result in unphysical interactions.
     3. Bounce-back rules do not always enforce no-slip conditions at surfaces
-       properly. It may still be necessary to add additional "ghost" MD particles in
-       the surface to achieve the right boundary conditions and reduce density
-       fluctuations.
+       properly. It may still be necessary to add additional "ghost" MD
+       particles in the surface to achieve the right boundary conditions and
+       reduce density fluctuations.
 
     Warning:
 
-        This method does not support anisotropic integration because
-        torques are not computed for collisions with the boundary.
-        Rigid bodies will also not be treated correctly because the
-        integrator is not aware of the extent of the particles. The surface
-        reflections are treated as point particles. These conditions are too
-        complicated to validate easily, so it is the user's responsibility to
-        choose the `filter` correctly.
+        This method does not support anisotropic integration because torques are
+        not computed for collisions with the boundary. Rigid bodies will also
+        not be treated correctly because the integrator is not aware of the
+        extent of the particles. The surface reflections are treated as point
+        particles. These conditions are too complicated to validate easily, so
+        it is the user's responsibility to choose the `filter` correctly.
 
     .. rubric:: Example:
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
-        nve = hoomd.mpcd.methods.BounceBack(
-            filter=hoomd.filter.All(),
-            geometry=plates)
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0) nve =
+        hoomd.mpcd.methods.BounceBack(
+            filter=hoomd.filter.All(), geometry=plates)
         simulation.operations.integrator.methods.append(nve)
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method (*read only*).
 
-        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from (*read only*).
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from
+            (*read only*).
 
     """
 

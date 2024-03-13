@@ -1,10 +1,11 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import hoomd
-from hoomd.conftest import pickling_check
 import numpy as np
 import pytest
+
+import hoomd
+from hoomd.conftest import pickling_check
 
 
 @pytest.fixture
@@ -92,7 +93,10 @@ class TestStreamingMethod:
         pickling_check(sm)
 
     def test_forced_step(self, simulation_factory, snap, cls, init_args):
-        """Test a step with particle starting in the middle, constant force in +x and -z.
+        """Test a forced step.
+
+        The particle starts in the middle, and there is a constant force in +x
+        and -z.
 
         This test should be skipped or adapted if geometries are added for which
         this point is / will be out of bounds, but is legal for all the ones we
@@ -153,8 +157,9 @@ class TestBulk:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.position, [[1.3, -4.85, 3.3], [-3.3, 4.95, -1.3]])
 
-        # change streaming method to use a different period, and change integrator step
-        # running again should not move the particles since we haven't hit next period
+        # change streaming method to use a different period, and change
+        # integrator step running again should not move the particles since we
+        # haven't hit next period
         ig.dt = 0.05
         ig.streaming_method = hoomd.mpcd.stream.Bulk(period=4)
         sim.run(1)
@@ -250,7 +255,7 @@ class TestParallelPlates:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]])
 
-        # take another step, reflecting the perpendicular motion of second particle
+        # take another step, reflecting perpendicular motion of second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -369,12 +374,14 @@ class TestPlanarPore:
                                                  [0, -3.95, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[5],
                                                  [0, 1.0, 0])
-            # hits y = -4 after 0.02, then reverses. x is 3.01, so reverses to 3.09
+            # hits y = -4 after 0.02, then reverses.
+            # x is 3.01, so reverses to 3.09
             np.testing.assert_array_almost_equal(snap.mpcd.position[6],
                                                  [3.09, -3.92, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[6],
                                                  [1, 1, 0])
-            # hits x = 3 after 0.02, then reverses. y is -3.99, so reverses to -3.91
+            # hits x = 3 after 0.02, then reverses.
+            # y is -3.99, so reverses to -3.91
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
                                                  [3.08, -3.91, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[7],
@@ -438,12 +445,14 @@ class TestPlanarPore:
                                                  [0, -3.95, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[5],
                                                  [0, 1.0, 0])
-            # hits y = -4 after 0.02, then reverses. x is not touched because slip
+            # hits y = -4 after 0.02, then reverses.
+            # x is not touched because slip
             np.testing.assert_array_almost_equal(snap.mpcd.position[6],
                                                  [2.93, -3.92, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[6],
                                                  [-1, 1, 0])
-            # hits x = 3 after 0.02, then reverses. y is not touched because slip
+            # hits x = 3 after 0.02, then reverses.
+            # y is not touched because slip
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
                                                  [3.08, -4.07, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[7],

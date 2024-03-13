@@ -97,11 +97,12 @@ class CollisionMethod(Operation):
 
     Args:
         period (int): Number of integration steps between collisions.
-        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
+        embedded_particles (hoomd.filter.filter_like): HOOMD particles to
+            include in collision.
 
     Attributes:
-        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include
-            in collision (*read only*).
+        embedded_particles (hoomd.filter.filter_like): HOOMD particles to
+            include in collision (*read only*).
 
             These particles are included in per-cell quantities and have their
             velocities updated along with the MPCD particles.
@@ -118,10 +119,12 @@ class CollisionMethod(Operation):
                 will not be correctly transferred to the body. Support for this
                 is planned in future.
 
-        period (int): Number of integration steps between collisions (*read only*).
+        period (int): Number of integration steps between collisions
+            (*read only*).
 
-            A collision is executed each time the :attr:`~hoomd.Simulation.timestep`
-            is a multiple of `period`. It must be a multiple of `period` for the
+            A collision is executed each time the
+            :attr:`~hoomd.Simulation.timestep` is a multiple of `period`. It
+            must be a multiple of `period` for the
             :class:`~hoomd.mpcd.stream.StreamingMethod` if one is attached to
             the :class:`~hoomd.mpcd.Integrator`.
 
@@ -166,7 +169,9 @@ class AndersenThermostat(CollisionMethod):
 
     .. code-block:: python
 
-        andersen_thermostat = hoomd.mpcd.collide.AndersenThermostat(period=1, kT=1.0)
+        andersen_thermostat = hoomd.mpcd.collide.AndersenThermostat(
+            period=1,
+            kT=1.0)
         simulation.operations.integrator.collision_method = andersen_thermostat
 
     Collision including embedded particles.

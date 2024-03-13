@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD streaming methods.
+r"""MPCD streaming methods.
 
 An MPCD streaming method is required to update the particle positions over time.
 It is meant to be used in conjunction with an :class:`.mpcd.Integrator` and
@@ -133,7 +133,8 @@ class Bulk(StreamingMethod):
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
         class_ = getattr(*class_info, None)
-        assert class_ is not None, "C++ streaming method could not be determined"
+        assert class_ is not None, ("C++ streaming method could not be"
+                                    " determined")
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
@@ -165,19 +166,20 @@ class BounceBack(StreamingMethod):
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
         solvent_force (SolventForce): Force on solvent.
 
-    One of the main strengths of the MPCD algorithm is that it can be coupled
-    to complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
+    One of the main strengths of the MPCD algorithm is that it can be coupled to
+    complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
     the MPCD solvent particles from boundary surfaces using specular reflections
     (bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
-    boundary conditions. The external force is only applied to the particles at the
-    beginning and the end of this process.
+    boundary conditions. The external force is only applied to the particles at
+    the beginning and the end of this process.
 
-    Although a streaming geometry is enforced on the MPCD solvent particles, there
-    are a few important caveats:
+    Although a streaming geometry is enforced on the MPCD solvent particles,
+    there are a few important caveats:
 
     1. Embedded particles are not coupled to the boundary walls. They must be
        confined by an appropriate method, e.g., an external potential, an
-       explicit particle wall, or a bounce-back method (`hoomd.mpcd.methods.BounceBack`).
+       explicit particle wall, or a bounce-back method
+       (`hoomd.mpcd.methods.BounceBack`).
     2. The `geometry` exists inside a fully periodic simulation box.
        Hence, the box must be padded large enough that the MPCD cells do not
        interact through the periodic boundary. Usually, this means adding at
@@ -195,7 +197,8 @@ class BounceBack(StreamingMethod):
 
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.0, V=1.0, no_slip=True))
+            geometry=hoomd.mpcd.geometry.ParallelPlates(
+                H=3.0, V=1.0, no_slip=True))
         simulation.operations.integrator.streaming_method = stream
 
     Pressure driven flow between parallel plates.
@@ -292,8 +295,8 @@ class BounceBack(StreamingMethod):
         super()._detach_hook()
 
     @classmethod
-    def _register_cpp_class(cls, geometry, module, cpp_class_name):
-        # we will allow "None" for the force, but we need its class type not its value
+    def _register_cpp_class(cls, geometry, force, module, cpp_class_name):
+        # we will allow None for the force, but we need its class type not value
         if force is None:
             force = type(None)
         cls._cpp_cpp_class_map[geometry, force] = (module, cpp_class_name)
