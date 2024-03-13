@@ -128,6 +128,10 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
         _hoomd.VectorVariantBoxInterpolate.__init__(self, box1._cpp_obj,
                                                     box2._cpp_obj, variant)
 
+    def __reduce__(self):
+        """Reduce values to picklable format."""
+        return (type(self), (self.initial_box, self.final_box, self.variant))
+
     @property
     def initial_box(self):
         """hoomd.Box: The initial box."""
@@ -190,6 +194,11 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
         box = hoomd.data.typeconverter.box_preprocessing(initial_box)
         _hoomd.VectorVariantBoxInverseVolumeRamp.__init__(
             self, box._cpp_obj, final_volume, t_start, t_ramp)
+
+    def __reduce__(self):
+        """Reduce values to picklable format."""
+        return (type(self), (self.initial_box, self.final_volume, self.t_start,
+                             self.t_ramp))
 
     @property
     def initial_box(self):
