@@ -4,38 +4,34 @@
 """ Multiparticle collision dynamics.
 
 Simulating complex fluids and soft matter using conventional molecular dynamics
-methods (`hoomd.md`) can be computationally demanding due to large
-disparities in the relevant length and time scales between molecular-scale
-solvents and mesoscale solutes such as polymers, colloids, and deformable
-materials like cells. One way to overcome this challenge is to simplify the model
-for the solvent while retaining its most important interactions with the solute.
-MPCD is a particle-based simulation method for resolving solvent-mediated
-fluctuating hydrodynamic interactions with a microscopically detailed solute
-model. This method has been successfully applied to a simulate a broad class
-of problems, including polymer solutions and colloidal suspensions both in and
-out of equilibrium.
+methods (`hoomd.md`) can be computationally demanding due to large disparities
+in the relevant length and time scales between molecular-scale solvents and
+mesoscale solutes such as polymers, colloids, or cells. One way to overcome this
+challenge is to simplify the model for the solvent while retaining its most
+important interactions with the solute. MPCD is a particle-based simulation
+method for resolving solvent-mediated fluctuating hydrodynamic interactions with
+a microscopically detailed solute model.
 
 .. rubric:: Algorithm
 
 In MPCD, the solvent is represented by point particles having continuous
 positions and velocities. The solvent particles propagate in alternating
 streaming and collision steps. During the streaming step, particles evolve
-according to Newton's equations of motion. Typically, no external forces are
-applied to the solvent, and streaming is straightforward with a large time step.
-Particles are then binned into local cells and undergo a stochastic multiparticle
-collision within the cell. Collisions lead to the build up of hydrodynamic
-interactions, and the frequency and nature of the collisions, along with the
-solvent properties, determine the transport coefficients. All standard collision
-rules conserve linear momentum within the cell and can optionally be made to
-enforce angular-momentum conservation. Currently, we have implemented
-the following collision rules with linear-momentum conservation only:
+according to Newton's equations of motion. Particles are then binned into local
+cells and undergo a stochastic collision within the cell. Collisions lead to the
+build up of hydrodynamic interactions, and the frequency and nature of the
+collisions, along with the solvent properties, determine the transport
+coefficients. All standard collision rules conserve linear momentum within the
+cell and can optionally be made to enforce angular-momentum conservation.
+Currently, we have implemented the following collision rules with
+linear-momentum conservation only:
 
 * :class:`~hoomd.mpcd.collide.StochasticRotationDynamics`
 * :class:`~hoomd.mpcd.collide.AndersenThermostat`
 
 Solute particles can be coupled to the solvent during the collision step. This
 is particularly useful for soft materials like polymers. Standard molecular
-dynamics integration can be applied to the solute. Coupling to the MPCD
+dynamics methods can be applied to the solute. Coupling to the MPCD
 solvent introduces both hydrodynamic interactions and a heat bath that acts as
 a thermostat.
 
@@ -62,11 +58,6 @@ MPCD is intended to be used as an add-on to the standard MD methods in
 
 
 """
-
-# these imports are necessary in order to link derived types between modules
-import hoomd
-from hoomd import _hoomd
-from hoomd.md import _md
 
 from hoomd.mpcd import collide
 from hoomd.mpcd import fill

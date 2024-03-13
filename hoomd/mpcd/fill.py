@@ -7,8 +7,14 @@ Virtual particles are MPCD solvent particles that are added to ensure MPCD
 collision cells that are sliced by solid boundaries do not become "underfilled".
 From the perspective of the MPCD algorithm, the number density of particles in
 these sliced cells is lower than the average density, and so the solvent
-properties may differ. In practice, this means that the boundary conditions do
-not appear to be properly enforced.
+properties may differ. In practice, this usually means that the boundary
+conditions do not appear to be properly enforced.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
+
 """
 
 import hoomd
@@ -30,12 +36,46 @@ class VirtualParticleFiller(Operation):
     Their velocities will be drawn from a Maxwell--Boltzmann distribution
     consistent with `kT`.
 
+    .. invisible-code-block: python
+
+        filler = hoomd.mpcd.fill.VirtualParticleFiller(
+            type="A",
+            density=5.0,
+            kT=1.0)
+        simulation.operations.integrator.virtual_particle_fillers = [filler]
+
     Attributes:
         type (str): Type of particles to fill.
 
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                filler.type = "A"
+
         density (float): Particle number density.
 
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                filler.density = 5.0
+
         kT (hoomd.variant.variant_like): Temperature of particles.
+
+            .. rubric:: Examples:
+
+            Constant temperature.
+
+            .. code-block:: python
+
+                filler.kT = 1.0
+
+            Variable temperature.
+
+            .. code-block:: python
+
+                filler.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 
     """
 
@@ -52,7 +92,7 @@ class VirtualParticleFiller(Operation):
 
 
 class GeometryFiller(VirtualParticleFiller):
-    """Virtual-particle filler for known geometry.
+    """Virtual-particle filler for a bounce-back geometry.
 
     Args:
         type (str): Type of particles to fill.
@@ -64,8 +104,22 @@ class GeometryFiller(VirtualParticleFiller):
     specified `geometry`. The algorithm for doing the filling depends on the
     specific `geometry`.
 
+    .. rubric:: Example:
+
+    Filler for parallel plate geometry.
+
+    .. code-block:: python
+
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A",
+            density=5.0,
+            kT=1.0,
+            geometry=plates)
+        simulation.operations.integrator.virtual_particle_fillers = [filler]
+
     Attributes:
-        geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around (*read only*).
 
     """
 

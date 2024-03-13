@@ -290,17 +290,19 @@ class TestParallelPlates:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]])
 
-    def test_test_out_of_bounds(self, simulation_factory, snap):
+    @pytest.mark.parametrize("H,expected_result", [(4.0, True), (3.8, False)])
+    def test_check_solvent_particles(self, simulation_factory, snap, H,
+                                     expected_result):
         if snap.communicator.rank == 0:
             snap.mpcd.position[0] = [0, 3.85, 0]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.8))
+            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=H))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
         sim.run(0)
-        assert not sm.check_solvent_particles()
+        assert sm.check_solvent_particles() is expected_result
 
 
 class TestPlanarPore:
@@ -468,12 +470,17 @@ class TestPlanarPore:
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
                                                  [3.18, -4.17, 0])
 
-    def test_test_out_of_bounds(self, simulation_factory, snap):
+    def test_check_solvent_particles(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
         ig = hoomd.mpcd.Integrator(dt=0.1)
         sim.operations.integrator = ig
+
+        ig.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3))
+        sim.run(0)
+        assert ig.streaming_method.check_solvent_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=3.8, L=3))

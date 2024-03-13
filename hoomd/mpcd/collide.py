@@ -11,6 +11,11 @@ also conserve angular momentum The stochastic collisions lead to a build up of
 hydrodynamic interactions, and the choice of collision rule and solvent
 properties determine the transport coefficients.
 
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
+
 """
 
 import hoomd
@@ -38,10 +43,30 @@ class CellList(Compute):
     penalty from grid shifting is small, so it is recommended to enable it in
     all simulations.
 
+    .. rubric:: Example:
+
+    Access default cell list from integrator.
+
+    .. code-block:: python
+
+        cell_list = simulation.operations.integrator.cell_list
+
     Attributes:
         cell_size (float): Edge length of a collision cell.
 
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                cell_list.cell_size = 1.0
+
         shift (bool): When True, randomly shift underlying collision cells.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                cell_list.shift = True
 
     """
 
@@ -75,7 +100,8 @@ class CollisionMethod(Operation):
         embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
 
     Attributes:
-        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include in collision.
+        embedded_particles (hoomd.filter.filter_like): HOOMD particles to include
+            in collision (*read only*).
 
             These particles are included in per-cell quantities and have their
             velocities updated along with the MPCD particles.
@@ -92,7 +118,7 @@ class CollisionMethod(Operation):
                 will not be correctly transferred to the body. Support for this
                 is planned in future.
 
-        period (int): Number of integration steps between collisions.
+        period (int): Number of integration steps between collisions (*read only*).
 
             A collision is executed each time the :attr:`~hoomd.Simulation.timestep`
             is a multiple of `period`. It must be a multiple of `period` for the
@@ -114,7 +140,7 @@ class CollisionMethod(Operation):
 
 
 class AndersenThermostat(CollisionMethod):
-    r"""Andersen thermostat method.
+    r"""Andersen thermostat collision method.
 
     Args:
         period (int): Number of integration steps between collisions.
@@ -126,12 +152,32 @@ class AndersenThermostat(CollisionMethod):
 
     This class implements the Andersen thermostat collision rule for MPCD, as
     described by `Allahyarov and Gompper
-    <https://doi.org/10.1103/PhysRevE.66.036702>`_. Every ``period`` steps, the
-    particles are binned into cells. New particle velocities are then randomly
-    drawn from a Gaussian distribution relative to the center-of-mass velocity
-    for the cell. The random velocities are given zero-mean so that the cell
-    linear momentum is conserved. This collision rule naturally imparts the
-    constant-temperature ensemble consistent with `kT`.
+    <https://doi.org/10.1103/PhysRevE.66.036702>`_. Every
+    :attr:`~CollisionMethod.period` steps, the particles are binned into cells.
+    New particle velocities are then randomly drawn from a Gaussian distribution
+    relative to the center-of-mass velocity for the cell. The random velocities
+    are given zero mean so that the cell linear momentum is conserved. This
+    collision rule naturally imparts the constant-temperature ensemble
+    consistent with `kT`.
+
+    .. rubric:: Examples:
+
+    Solvent collision.
+
+    .. code-block:: python
+
+        andersen_thermostat = hoomd.mpcd.collide.AndersenThermostat(period=1, kT=1.0)
+        simulation.operations.integrator.collision_method = andersen_thermostat
+
+    Collision including embedded particles.
+
+    .. code-block:: python
+
+        andersen_thermostat = hoomd.mpcd.collide.AndersenThermostat(
+            period=20,
+            kT=1.0,
+            embedded_particles=hoomd.filter.All())
+        simulation.operations.integrator.collision_method = andersen_thermostat
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature of the solvent
@@ -139,6 +185,20 @@ class AndersenThermostat(CollisionMethod):
 
             This temperature determines the distribution used to generate the
             random numbers.
+
+            .. rubric:: Examples:
+
+            Constant temperature.
+
+            .. code-block:: python
+
+                andersen_thermostat.kT = 1.0
+
+            Variable temperature.
+
+            .. code-block:: python
+
+                andersen_thermostat.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 
     """
 
@@ -167,7 +227,7 @@ class AndersenThermostat(CollisionMethod):
 
 
 class StochasticRotationDynamics(CollisionMethod):
-    r"""Stochastic rotation dynamics method.
+    r"""Stochastic rotation dynamics collision method.
 
     Args:
         period (int): Number of integration steps between collisions.
@@ -178,31 +238,80 @@ class StochasticRotationDynamics(CollisionMethod):
         embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to
             include in collision.
 
-    This class implements the classic stochastic rotation dynamics collision
+    This class implements the stochastic rotation dynamics (SRD) collision
     rule for MPCD proposed by `Malevanets and Kapral
-    <http://doi.org/10.1063/1.478857>`_. Every ``period`` steps, the particles
-    are binned into cells. The particle velocities are then rotated by `angle`
-    around an axis randomly drawn from the unit sphere. The rotation is done
-    relative to the average velocity, so this rotation rule conserves linear
-    momentum and kinetic energy within each cell.
+    <http://doi.org/10.1063/1.478857>`_. Every :attr:`~CollisionMethod.period`
+    steps, the particles are binned into cells. The particle velocities are then
+    rotated by `angle` around an axis randomly drawn from the unit sphere. The
+    rotation is done relative to the average velocity, so this rotation rule
+    conserves linear momentum and kinetic energy within each cell.
 
     The SRD method naturally imparts the NVE ensemble to the system comprising
     the MPCD particles and the `embedded_particles`. Accordingly, the system
-    must be properly initialized to the correct temperature. (SRD has an H
-    theorem, and so particles exchange momentum to reach an equilibrium
-    temperature.) A thermostat can be applied in conjunction with the SRD method
-    through the `kT` parameter. SRD employs a `Maxwell-Boltzmann thermostat
+    must be properly initialized to the correct temperature. A thermostat can be
+    applied in conjunction with the SRD method through the `kT` parameter. SRD
+    employs a `Maxwell-Boltzmann thermostat
     <https://doi.org/10.1016/j.jcp.2009.09.024>`_ on the cell level, which
-    generates the (correct) isothermal ensemble. The temperature is defined
+    generates a constant-temperature ensemble. The temperature is defined
     relative to the cell-average velocity, and so can be used to dissipate heat
     in nonequilibrium simulations. Under this thermostat, the SRD algorithm
     still conserves linear momentum, but kinetic energy is no longer conserved.
 
+    .. rubric:: Examples:
+
+    Standard solvent collision.
+
+    .. code-block:: python
+
+        srd = hoomd.mpcd.collide.StochasticRotationDynamics(period=1, angle=130)
+        simulation.operations.integrator.collision_method = srd
+
+    Solvent collision with thermostat.
+
+    .. code-block:: python
+
+        srd = hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=1,
+            angle=130,
+            kT=1.0)
+        simulation.operations.integrator.collision_method = srd
+
+    Collision including embedded particles.
+
+    .. code-block:: python
+
+        srd = hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=20,
+            angle=130,
+            kT=1.0,
+            embedded_particles=hoomd.filter.All())
+        simulation.operations.integrator.collision_method = srd
+
     Attributes:
         angle (float): Rotation angle (in degrees)
 
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                srd.angle = 130
+
         kT (hoomd.variant.variant_like): Temperature for the collision
             thermostat :math:`[\mathrm{energy}]`.
+
+            .. rubric:: Examples:
+
+            Constant temperature.
+
+            .. code-block:: python
+
+                srd.kT = 1.0
+
+            Variable temperature.
+
+            .. code-block:: python
+
+                srd.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 
     """
 

@@ -196,6 +196,7 @@ template<class Geometry> bool BounceBackNVE<Geometry>::checkParticles()
                                       access_mode::read);
     const unsigned int group_size = m_group->getNumMembers();
 
+    bool out_of_bounds = false;
     for (unsigned int idx = 0; idx < group_size; ++idx)
         {
         const unsigned int pid = h_group.data[idx];
@@ -204,11 +205,24 @@ template<class Geometry> bool BounceBackNVE<Geometry>::checkParticles()
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         if (m_geom->isOutside(pos))
             {
-            return false;
+            out_of_bounds = true;
+            break;
             }
         }
 
-    return true;
+#ifdef ENABLE_MPI
+    if (m_exec_conf->getNRanks() > 1)
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &out_of_bounds,
+                      1,
+                      MPI_CXX_BOOL,
+                      MPI_LOR,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif // ENABLE_MPI
+
+    return !out_of_bounds;
     }
 
 namespace detail

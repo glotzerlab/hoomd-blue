@@ -6,12 +6,17 @@ r"""MPCD geometries.
 A geometry defines solid boundaries that cannot be penetrated. These
 geometries are used for various operations in the MPCD algorithm including:
 
-* :class:`~hoomd.mpcd.stream.BounceBack` streaming for the solvent
-* Bounce back integration for MD particles
-* Virtual particle filling
+* Bounce-back streaming for MPCD particles (:class:`hoomd.mpcd.stream.BounceBack`)
+* Bounce-back integration for MD particles (:class:`hoomd.mpcd.methods.BounceBack`)
+* Virtual particle filling (:class:`hoomd.mpcd.fill.GeometryFiller`)
 
 Each geometry may put constraints on the size of the simulation and where
 particles are allowed. These constraints will be documented by each object.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
 
 """
 
@@ -24,15 +29,21 @@ class Geometry(_HOOMDBaseObject):
     r"""Geometry.
 
     Args:
-        no_slip (bool): If True, surfaces have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
+        no_slip (bool): If True, surfaces have a no-slip boundary condition.
+            Otherwise, they have a slip boundary condition.
+
+    .. invisible-code-block: python
+
+        geometry = hoomd.mpcd.geometry.Geometry(no_slip=True)
 
     Attributes:
-        no_slip (bool): If True, plates have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
+        no_slip (bool): If True, plates have a no-slip boundary condition.
+            Otherwise, they have a slip boundary condition (*read only*).
 
-            `V` will have no effect if `no_slip` is False because the slip
-            surface cannot generate shear stress.
+            A no-slip boundary condition means that the average velocity is
+            zero at the surface. A slip boundary condition means that the
+            average *normal* velocity is zero at the surface, but there
+            is no friction against the *tangential* velocity.
 
     """
 
@@ -52,17 +63,46 @@ class ParallelPlates(Geometry):
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
 
-    `ParallelPlates` confines the MPCD particles between two infinite parallel
+    `ParallelPlates` confines particles between two infinite parallel
     plates centered around the origin. The plates are placed at :math:`y=-H`
     and :math:`y=+H`, so the total channel width is :math:`2H`. The plates may
     be put into motion, moving with speeds :math:`-V` and :math:`+V` in the *x*
     direction, respectively. If combined with a no-slip boundary condition,
     this motion can be used to generate simple shear flow.
 
-    Attributes:
-        H (float): Channel half-width.
+    .. rubric:: Examples:
 
-        V (float): Wall speed.
+    Stationary parallel plates with no-slip boundary condition.
+
+    .. code-block:: python
+
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        simulation.operations.integrator.streaming_method = stream
+
+    Stationary parallel plates with slip boundary condition.
+
+    .. code-block:: python
+
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0, no_slip=False)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        simulation.operations.integrator.streaming_method = stream
+
+    Moving parallel plates.
+
+    .. code-block:: python
+
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0, V=1.0, no_slip=True)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        simulation.operations.integrator.streaming_method = stream
+
+    Attributes:
+        H (float): Channel half-width (*read only*).
+
+        V (float): Wall speed (*read only*).
+
+            `V` will have no effect if `no_slip` is False because the slip
+            surface cannot generate shear stress.
 
     """
 
@@ -96,10 +136,18 @@ class PlanarPore(Geometry):
     has full periodic boundaries; it is not confined by any walls. This model
     hence mimics a narrow pore in, e.g., a membrane.
 
-    Attributes:
-        H (float): Pore half-width.
+    .. rubric:: Example:
 
-        L (float): Pore half-length.
+    .. code-block:: python
+
+        pore = hoomd.mpcd.geometry.PlanarPore(H=3.0, L=2.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=pore)
+        simulation.operations.integrator.streaming_method = stream
+
+    Attributes:
+        H (float): Pore half-width (*read only*).
+
+        L (float): Pore half-length (*read only*).
 
     """
 
