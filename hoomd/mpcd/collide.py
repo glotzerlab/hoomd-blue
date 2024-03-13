@@ -166,18 +166,18 @@ class AndersenThermostat(CollisionMethod):
 
     .. code-block:: python
 
-        at = hoomd.mpcd.collide.AndersenThermostat(period=1, kT=1.0)
-        simulation.operations.integrator.collision_method = at
+        andersen_thermostat = hoomd.mpcd.collide.AndersenThermostat(period=1, kT=1.0)
+        simulation.operations.integrator.collision_method = andersen_thermostat
 
     Collision including embedded particles.
 
     .. code-block:: python
 
-        at = hoomd.mpcd.collide.AndersenThermostat(
+        andersen_thermostat = hoomd.mpcd.collide.AndersenThermostat(
             period=20,
             kT=1.0,
             embedded_particles=hoomd.filter.All())
-        simulation.operations.integrator.collision_method = at
+        simulation.operations.integrator.collision_method = andersen_thermostat
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature of the solvent
@@ -192,13 +192,13 @@ class AndersenThermostat(CollisionMethod):
 
             .. code-block:: python
 
-                at.kT = 1.0
+                andersen_thermostat.kT = 1.0
 
             Variable temperature.
 
             .. code-block:: python
 
-                at.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
+                andersen_thermostat.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
 
     """
 
@@ -238,7 +238,7 @@ class StochasticRotationDynamics(CollisionMethod):
         embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to
             include in collision.
 
-    This class implements the stochastic rotation dynamics collision
+    This class implements the stochastic rotation dynamics (SRD) collision
     rule for MPCD proposed by `Malevanets and Kapral
     <http://doi.org/10.1063/1.478857>`_. Every :attr:`~CollisionMethod.period`
     steps, the particles are binned into cells. The particle velocities are then

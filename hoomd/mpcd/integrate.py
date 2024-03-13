@@ -99,8 +99,7 @@ class Integrator(_MDIntegrator):
     .. code-block:: python
 
         dt_md = 0.005
-        dt_mpcd = 0.1
-        md_steps_per_collision = numpy.round(dt_mpcd / dt_md).astype(int)
+        md_steps_per_collision = 20 # collision time = 0.1
 
         stream = hoomd.mpcd.stream.Bulk(period=md_steps_per_collision)
         collide = hoomd.mpcd.collide.StochasticRotationDynamics(
