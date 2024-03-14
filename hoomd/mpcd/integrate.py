@@ -218,9 +218,8 @@ class Integrator(_MDIntegrator):
 
     @property
     def virtual_particle_fillers(self):
-        """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: Solvent
-        virtual-particle fillers.
-        """  # noqa: D205,D415
+        """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: Solvent \
+        virtual-particle fillers."""
         return self._virtual_particle_fillers
 
     @virtual_particle_fillers.setter

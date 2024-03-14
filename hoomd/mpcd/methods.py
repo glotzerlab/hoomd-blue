@@ -68,8 +68,8 @@ class BounceBack(Method):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0) nve =
-        hoomd.mpcd.methods.BounceBack(
+        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        nve = hoomd.mpcd.methods.BounceBack(
             filter=hoomd.filter.All(), geometry=plates)
         simulation.operations.integrator.methods.append(nve)
 
