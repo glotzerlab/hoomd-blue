@@ -60,8 +60,8 @@ void PairPotentialAngularStep::setMask(std::string particle_type, pybind11::obje
                                                           director_python[2].cast<LongReal>());
 
         // normalize the directional vector
-        m_directors[particle_type_id][i] /= fast::sqrt(dot(m_directors[particle_type_id][i], 
-        m_directors[particle_type_id][i]));
+        m_directors[particle_type_id][i]
+            /= fast::sqrt(dot(m_directors[particle_type_id][i], m_directors[particle_type_id][i]));
 
         pybind11::handle delta_python = deltas[i];
         m_cos_deltas[particle_type_id][i] = cos(delta_python.cast<LongReal>());
