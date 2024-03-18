@@ -19,7 +19,7 @@ PairPotentialAngularStep::PairPotentialAngularStep(
 
     if (!m_isotropic_potential)
         {
-        throw std::runtime_error("Could not pass in the isotropic potential.");
+        throw std::runtime_error("no isotropic potential given.");
         }
     }
 
@@ -60,11 +60,8 @@ void PairPotentialAngularStep::setMask(std::string particle_type, pybind11::obje
                                                           director_python[2].cast<LongReal>());
 
         // normalize the directional vector
-        LongReal mag_sq
-            = (m_directors[particle_type_id][i].x * m_directors[particle_type_id][i].x
-               + m_directors[particle_type_id][i].y * m_directors[particle_type_id][i].y
-               + m_directors[particle_type_id][i].z * m_directors[particle_type_id][i].z);
-        m_directors[particle_type_id][i] /= fast::sqrt(mag_sq);
+        m_directors[particle_type_id][i] /= fast::sqrt(dot(m_directors[particle_type_id][i], 
+        m_directors[particle_type_id][i]));
 
         pybind11::handle delta_python = deltas[i];
         m_cos_deltas[particle_type_id][i] = cos(delta_python.cast<LongReal>());
