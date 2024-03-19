@@ -25,7 +25,7 @@ Change Log
   (`#1685 <https://github.com/glotzerlab/hoomd-blue/pull/1685>`__).
 * ``hoomd.variant.box.InverseVolumeRamp`` - Linearly ramp the inverse volume of the system
   (`#1685 <https://github.com/glotzerlab/hoomd-blue/pull/1685>`__).
-* ``hoomd.hpmc.update.QuickCompress`` now accepts a ``hoomd.variant.box.BoxVariant`` object for 
+* ``hoomd.hpmc.update.QuickCompress`` now accepts a ``hoomd.variant.box.BoxVariant`` object for
   `target_box` (`#1736 <https://github.com/glotzerlab/hoomd-blue/pull/1736>`__).
 * ``box`` argument to ``hoomd.update.BoxResize`` that accepts a ``hoomd.variant.box.BoxVariant``
   (`#1740 <https://github.com/glotzerlab/hoomd-blue/pull/1740>`__).
@@ -39,7 +39,7 @@ Change Log
 *Changed*
 
 * Use ``FindPython`` on modern CMake installations. You may need to adjust build scripts
-  in cases where the new behavior does not exactly match the old (i.e. use 
+  in cases where the new behavior does not exactly match the old (i.e. use
   ``-DPython_EXECUTABLE`` in place of ``-DPYTHON_EXECUTABLE``)
   (`#1730 <https://github.com/glotzerlab/hoomd-blue/pull/1730>`__).
 * External components must switch from ``pybind11_add_module`` to ``hoomd_add_module``
