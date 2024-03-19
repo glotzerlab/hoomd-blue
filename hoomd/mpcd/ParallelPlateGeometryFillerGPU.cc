@@ -40,8 +40,6 @@ void mpcd::ParallelPlateGeometryFillerGPU::drawParticles(uint64_t timestep)
                                     access_location::device,
                                     access_mode::readwrite);
 
-    const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
-
     uint16_t seed = m_sysdef->getSeed();
 
     m_tuner->begin();
@@ -57,7 +55,7 @@ void mpcd::ParallelPlateGeometryFillerGPU::drawParticles(uint64_t timestep)
                                    m_N_lo,
                                    m_N_hi,
                                    m_first_tag,
-                                   first_idx,
+                                   m_first_idx,
                                    (*m_T)(timestep),
                                    timestep,
                                    seed,

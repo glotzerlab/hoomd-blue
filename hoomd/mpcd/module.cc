@@ -50,6 +50,7 @@
 #endif
 
 // virtual particle fillers
+#include "ManualVirtualParticleFiller.h"
 #include "ParallelPlateGeometryFiller.h"
 #include "PlanarPoreGeometryFiller.h"
 #include "VirtualParticleFiller.h"
@@ -196,6 +197,7 @@ PYBIND11_MODULE(_mpcd, m)
 #endif // ENABLE_HIP
 
     mpcd::detail::export_VirtualParticleFiller(m);
+    mpcd::detail::export_ManualVirtualParticleFiller(m);
     mpcd::detail::export_ParallelPlateGeometryFiller(m);
     mpcd::detail::export_PlanarPoreGeometryFiller(m);
 #ifdef ENABLE_HIP

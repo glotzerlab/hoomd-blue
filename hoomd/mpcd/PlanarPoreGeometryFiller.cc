@@ -20,7 +20,7 @@ mpcd::PlanarPoreGeometryFiller::PlanarPoreGeometryFiller(
     Scalar density,
     std::shared_ptr<Variant> T,
     std::shared_ptr<const mpcd::PlanarPoreGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdef, type, density, T), m_num_boxes(0),
+    : mpcd::ManualVirtualParticleFiller(sysdef, type, density, T), m_num_boxes(0),
       m_boxes(MAX_BOXES, m_exec_conf), m_ranges(MAX_BOXES, m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD PlanarPoreGeometryFiller" << std::endl;
@@ -167,13 +167,12 @@ void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
     uint16_t seed = m_sysdef->getSeed();
 
     // index to start filling from
-    const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
     for (unsigned int i = 0; i < m_N_fill; ++i)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
             hoomd::Seed(hoomd::RNGIdentifier::PlanarPoreGeometryFiller, timestep, seed),
-            hoomd::Counter(tag));
+            hoomd::Counter(tag, m_filler_id));
 
         // advanced past end of this box range, take the next
         if (i >= boxlast)
@@ -187,7 +186,7 @@ void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
             hi.y = fillbox.w;
             }
 
-        const unsigned int pidx = first_idx + i;
+        const unsigned int pidx = m_first_idx + i;
         h_pos.data[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                         hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                         hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
