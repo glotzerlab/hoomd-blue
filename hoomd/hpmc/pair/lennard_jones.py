@@ -9,11 +9,6 @@
     sphere = hoomd.hpmc.integrate.Sphere()
     sphere.shape['A'] = dict(diameter=0.0)
     simulation.operations.integrator = sphere
-
-    pair =  hoomd.hpmc.pair.LennardJones()
-    pair.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
-
-    logger = hoomd.logging.Logger()
 """
 
 import hoomd
@@ -70,6 +65,12 @@ class LennardJones(Pair):
 
         The energy shifting/smoothing mode: Possible values are:
         ``"none"``, ``"shift"``, and ``"xplor"``.
+
+        .. rubric:: Example
+
+        .. code-block:: python
+
+            lennard_jones.mode = 'shift'
 
         Type: `str`
     """

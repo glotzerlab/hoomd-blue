@@ -11,6 +11,10 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
+#if !defined(HOOMD_LLVMJIT_BUILD)
+#include <array>
+#endif
+
 // Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
 #if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
 #include "HOOMDMPI.h"
@@ -140,6 +144,18 @@ struct
         m_periodic = periodic;
         m_xz = m_xy = m_yz = Scalar(0.0);
         }
+
+#if !defined(HOOMD_LLVMJIT_BUILD)
+    /// Constructs a box from a std::array<Scalar, 6>
+    /** @param array Box parameters
+     */
+    HOSTDEVICE explicit BoxDim(const std::array<Scalar, 6>& array)
+        {
+        setL(make_scalar3(array[0], array[1], array[2]));
+        setTiltFactors(array[3], array[4], array[5]);
+        m_periodic = make_uchar3(1, 1, 1);
+        }
+#endif
 
     //! Get the periodic flags
     /*! \return Periodic flags

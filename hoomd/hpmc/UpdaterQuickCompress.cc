@@ -14,7 +14,7 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
-                                           std::shared_ptr<BoxDim> target_box)
+                                           std::shared_ptr<VectorVariantBox> target_box)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
       m_target_box(target_box)
     {
@@ -47,22 +47,22 @@ void UpdaterQuickCompress::update(uint64_t timestep)
     // count the number of overlaps in the current configuration
     auto n_overlaps = m_mc->countOverlaps(false);
     BoxDim current_box = m_pdata->getGlobalBox();
-
-    if (n_overlaps == 0 && current_box != *m_target_box)
+    BoxDim target_box = BoxDim((*m_target_box)(timestep));
+    if (n_overlaps == 0 && current_box != target_box)
         {
-        performBoxScale(timestep);
+        performBoxScale(timestep, target_box);
         }
 
     // The compression is complete when we have reached the target box and there are no overlaps.
-    if (n_overlaps == 0 && current_box == *m_target_box)
+    if (n_overlaps == 0 && current_box == target_box)
         m_is_complete = true;
     else
         m_is_complete = false;
     }
 
-void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
+void UpdaterQuickCompress::performBoxScale(uint64_t timestep, const BoxDim& target_box)
     {
-    auto new_box = getNewBox(timestep);
+    auto new_box = getNewBox(timestep, target_box);
     auto old_box = m_pdata->getGlobalBox();
 
     Scalar3 old_origin = m_pdata->getOrigin();
@@ -139,7 +139,7 @@ static inline double scaleTilt(double current, double target, double s)
         }
     }
 
-BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
+BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep, const BoxDim& target_box)
     {
     // compute the current MC translate acceptance ratio
     auto current_counters = m_mc->getCounters();
@@ -182,8 +182,6 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     // choose a scale randomly between min_scale and 1.0
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
-
-    const auto& target_box = *m_target_box;
 
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
@@ -228,7 +226,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                             std::shared_ptr<IntegratorHPMC>,
                             double,
                             double,
-                            std::shared_ptr<BoxDim>>())
+                            std::shared_ptr<VectorVariantBox>>())
         .def("isComplete", &UpdaterQuickCompress::isComplete)
         .def_property("max_overlaps_per_particle",
                       &UpdaterQuickCompress::getMaxOverlapsPerParticle,

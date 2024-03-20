@@ -12,21 +12,42 @@ import numpy as np
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
 valid_constructor_args = [
+    # 3d box from constant box variant
     dict(trigger=hoomd.trigger.Periodic(10),
-         target_box=hoomd.Box.from_box([10, 10, 10])),
+         target_box=hoomd.variant.box.Constant(hoomd.Box.from_box([10, 10,
+                                                                   10]))),
+    # 3d box with box object
     dict(trigger=hoomd.trigger.After(100),
          target_box=hoomd.Box.from_box([10, 20, 40]),
          max_overlaps_per_particle=0.2),
+    # 2d box with box object
     dict(trigger=hoomd.trigger.Before(100),
          target_box=hoomd.Box.from_box([50, 50]),
          min_scale=0.75),
+    # 2d box with box variant
+    dict(trigger=hoomd.trigger.Before(100),
+         target_box=hoomd.variant.box.Constant(hoomd.Box.from_box([50, 50])),
+         min_scale=0.75),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         target_box=hoomd.Box.from_box([80, 50, 40, 0.2, 0.4, 0.5]),
+         target_box=hoomd.variant.box.Constant(
+             hoomd.Box.from_box([80, 50, 40, 0.2, 0.4, 0.5])),
          max_overlaps_per_particle=0.2,
          min_scale=0.999,
          allow_unsafe_resize=True),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         target_box=hoomd.Box.from_box([80, 50, 40, -0.2, 0.4, 0.5]),
+         target_box=hoomd.variant.box.Constant(
+             hoomd.Box.from_box([80, 50, 40, -0.2, 0.4, 0.5])),
+         max_overlaps_per_particle=0.2,
+         min_scale=0.999),
+    dict(trigger=hoomd.trigger.Periodic(1000),
+         target_box=hoomd.variant.box.Interpolate(
+             hoomd.Box.from_box([10, 20, 30]), hoomd.Box.from_box([24, 7, 365]),
+             hoomd.variant.Ramp(0, 1, 0, 100)),
+         max_overlaps_per_particle=0.2,
+         min_scale=0.999),
+    dict(trigger=hoomd.trigger.Periodic(1000),
+         target_box=hoomd.variant.box.InverseVolumeRamp(
+             hoomd.Box.from_box([10, 20, 30]), 3000, 10, 100),
          max_overlaps_per_particle=0.2,
          min_scale=0.999),
 ]
@@ -35,8 +56,18 @@ valid_attrs = [
     ('trigger', hoomd.trigger.Periodic(10000)),
     ('trigger', hoomd.trigger.After(100)),
     ('trigger', hoomd.trigger.Before(12345)),
-    ('target_box', hoomd.Box.from_box([10, 20, 30])),
-    ('target_box', hoomd.Box.from_box([50, 50])),
+    ('target_box', hoomd.variant.box.Constant(hoomd.Box.from_box([10, 20,
+                                                                  30]))),
+    ('target_box', hoomd.variant.box.Constant(hoomd.Box.from_box([50, 50]))),
+    ('target_box', hoomd.variant.box.Constant(hoomd.Box.from_box([50, 50]))),
+    ('target_box',
+     hoomd.variant.box.Interpolate(hoomd.Box.from_box([10, 20, 30]),
+                                   hoomd.Box.from_box([24, 7, 365]),
+                                   hoomd.variant.Ramp(0, 1, 0, 100))),
+    ('target_box',
+     hoomd.variant.box.InverseVolumeRamp(hoomd.Box.from_box([10, 20, 30]), 3000,
+                                         10, 100)),
+    ('target_box', hoomd.Box.cube(5)),
     ('max_overlaps_per_particle', 0.2),
     ('max_overlaps_per_particle', 0.5),
     ('max_overlaps_per_particle', 2.5),
@@ -54,7 +85,10 @@ def test_valid_construction(constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert getattr(qc, attr) == value
+        if type(value) is hoomd.Box:
+            assert getattr(qc, attr) == hoomd.variant.box.Constant(value)
+        else:
+            assert getattr(qc, attr) == value
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -76,7 +110,10 @@ def test_valid_construction_and_attach(simulation_factory,
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert getattr(qc, attr) == value
+        if type(value) is hoomd.Box:
+            assert getattr(qc, attr) == hoomd.variant.box.Constant(value)
+        else:
+            assert getattr(qc, attr) == value
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
@@ -87,6 +124,8 @@ def test_valid_setattr(attr, value):
                                              [10, 10, 10]))
 
     setattr(qc, attr, value)
+    if type(value) is hoomd.Box:
+        value = hoomd.variant.box.Constant(value)
     assert getattr(qc, attr) == value
 
 
@@ -95,8 +134,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory):
     """Test that QuickCompress can get and set attributes while attached."""
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-                                         target_box=hoomd.Box.from_box(
-                                             [10, 10, 10]))
+                                         target_box=hoomd.variant.box.Constant(
+                                             hoomd.Box.from_box([10, 10, 10])))
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.updaters.append(qc)
@@ -109,6 +148,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     sim.operations._schedule()
 
     setattr(qc, attr, value)
+    if type(value) is hoomd.Box:
+        value = hoomd.variant.box.Constant(value)
     assert getattr(qc, attr) == value
 
 
@@ -233,6 +274,69 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     assert qc.complete
     assert mc.overlaps == 0
     assert sim.state.box == target_box
+
+
+@pytest.mark.parametrize("ndim", [2, 3])
+@pytest.mark.validate
+def test_inverse_volume_slow_compress(ndim, simulation_factory,
+                                      lattice_snapshot_factory):
+    """Test that InverseVolumeRamp compresses at an appropriate rate.
+
+    Ensure that the density is no greater than the set point determined by the
+    specified t_start and t_ramp.
+    """
+    n = 5
+    snap = lattice_snapshot_factory(dimensions=ndim, n=n, a=5)
+    sim_with_variant = simulation_factory(snap)
+    sim_with_target_box = simulation_factory(snap)
+    fraction_close_packing = 0.5
+    if ndim == 2:
+        close_packing = np.pi / 2 / np.sqrt(3)
+        v_p = np.pi * 0.5**2
+    else:
+        close_packing = np.pi * np.sqrt(2) / 6
+        v_p = 4 / 3 * np.pi * 0.5**3
+    final_packing_fraction = fraction_close_packing * close_packing
+    final_volume = n**ndim * v_p / final_packing_fraction
+    t_ramp = 10000
+    target_box_variant = hoomd.variant.box.InverseVolumeRamp(
+        sim_with_target_box.state.box, final_volume, 0, t_ramp)
+    qc_trigger = 10
+    target_box = hoomd.Box(*target_box_variant(t_ramp))
+    qc_with_variant = hoomd.hpmc.update.QuickCompress(
+        trigger=qc_trigger, target_box=target_box_variant)
+    qc_with_target_box = hoomd.hpmc.update.QuickCompress(trigger=qc_trigger,
+                                                         target_box=target_box)
+    sim_with_variant.operations.updaters.append(qc_with_variant)
+    sim_with_target_box.operations.updaters.append(qc_with_target_box)
+
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.01)
+    mc.shape['A'] = dict(diameter=1)
+    sim_with_variant.operations.integrator = mc
+
+    mc2 = hoomd.hpmc.integrate.Sphere(default_d=0.01)
+    mc2.shape['A'] = dict(diameter=1)
+    sim_with_target_box.operations.integrator = mc2
+
+    sims = (sim_with_variant, sim_with_target_box)
+
+    def stop_loop(sims, target_box):
+        return all((_sim.state.box == target_box for _sim in sims))
+
+    while not stop_loop(sims, target_box):
+        for _sim in [sim_with_variant, sim_with_target_box]:
+            if _sim.state.box != target_box:
+                _sim.run(10)
+            # ensure system with variant compresses no faster than the variant
+            # dictates
+            if _sim is sim_with_variant:
+                current_target_volume = hoomd.Box(
+                    *target_box_variant(_sim.timestep)).volume
+                current_volume = _sim.state.box.volume
+                assert current_volume >= current_target_volume
+    # ensure that the system with the variant took longer to compress than the
+    # system without Box as target_box
+    assert sim_with_variant.timestep > sim_with_target_box.timestep
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):

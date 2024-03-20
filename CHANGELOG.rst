@@ -26,6 +26,49 @@ Removed:
 4.x
 ---
 
+4.6.0 (2024-03-19)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ``create_state_from_gsd`` reads bond/angle/dihedral/improper/pair types when there are no
+  corresponding groups (`#1729 <https://github.com/glotzerlab/hoomd-blue/pull/1729>`__).
+
+*Added*
+
+* ``hoomd.variant.box.BoxVariant`` - Describe boxes that change as a function of timestep
+  (`#1685 <https://github.com/glotzerlab/hoomd-blue/pull/1685>`__).
+* ``hoomd.variant.box.Constant`` - A constant box
+  (`#1685 <https://github.com/glotzerlab/hoomd-blue/pull/1685>`__).
+* ``hoomd.variant.box.Interpolate`` - Linearly interpolate between two boxes
+  (`#1685 <https://github.com/glotzerlab/hoomd-blue/pull/1685>`__).
+* ``hoomd.variant.box.InverseVolumeRamp`` - Linearly ramp the inverse volume of the system
+  (`#1685 <https://github.com/glotzerlab/hoomd-blue/pull/1685>`__).
+* ``hoomd.hpmc.update.QuickCompress`` now accepts a ``hoomd.variant.box.BoxVariant`` object for
+  `target_box` (`#1736 <https://github.com/glotzerlab/hoomd-blue/pull/1736>`__).
+* ``box`` argument to ``hoomd.update.BoxResize`` that accepts a ``hoomd.variant.box.BoxVariant``
+  (`#1740 <https://github.com/glotzerlab/hoomd-blue/pull/1740>`__).
+* ``hoomd.hpmc.pair.Union`` computes pair potentials between unions of points. Replaces
+  ``CPPPotentialUnion`` (`#1725 <https://github.com/glotzerlab/hoomd-blue/pull/1725>`__).
+* ``hoomd.hpmc.pair.Step`` - A step function potential
+  (`#1732 <https://github.com/glotzerlab/hoomd-blue/pull/1732>`__).
+* ``hoomd.hpmc.pair.AngularStep`` - Angular patches on particles with step function interactions
+  (e.g. Kern-Frenkel) (`#1728 <https://github.com/glotzerlab/hoomd-blue/pull/1728>`__).
+
+*Changed*
+
+* Use ``FindPython`` on modern CMake installations. You may need to adjust build scripts
+  in cases where the new behavior does not exactly match the old (i.e. use
+  ``-DPython_EXECUTABLE`` in place of ``-DPYTHON_EXECUTABLE``)
+  (`#1730 <https://github.com/glotzerlab/hoomd-blue/pull/1730>`__).
+* External components must switch from ``pybind11_add_module`` to ``hoomd_add_module``
+  (`#1730 <https://github.com/glotzerlab/hoomd-blue/pull/1730>`__).
+
+*Deprecated*
+
+* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``
+  (`#1740 <https://github.com/glotzerlab/hoomd-blue/pull/1740>`__).
+
 4.5.0 (2024-02-13)
 ^^^^^^^^^^^^^^^^^^
 
@@ -80,6 +123,8 @@ Removed:
   (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
 * ``HPMCIntegrator.pair_potential`` - Use compiled potentials with ``pair_potentials``
   (`#1676 <https://github.com/glotzerlab/hoomd-blue/pull/1676>`__).
+* Single-process multi-gpu code path
+  (`#1706 <https://github.com/glotzerlab/hoomd-blue/pull/1706>`__).
 
 *Changed*
 

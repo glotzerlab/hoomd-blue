@@ -47,3 +47,7 @@ documentation for more information on warning filters.
 * ``GPU.devices`` (since 4.5.0)
 
   * Use ``device``.
+
+* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
+
+  * Use ``box``.
