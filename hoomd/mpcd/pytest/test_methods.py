@@ -1,10 +1,11 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import hoomd
-from hoomd.conftest import pickling_check
 import numpy as np
 import pytest
+
+import hoomd
+from hoomd.conftest import pickling_check
 
 
 @pytest.fixture
@@ -103,7 +104,7 @@ class TestBounceBack:
                 snap.particles.velocity,
                 [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]])
 
-        # take another step, reflecting the perpendicular motion of second particle
+        # take another step, reflecting perpendicular motion of second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:

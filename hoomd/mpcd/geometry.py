@@ -6,8 +6,10 @@ r"""MPCD geometries.
 A geometry defines solid boundaries that cannot be penetrated. These
 geometries are used for various operations in the MPCD algorithm including:
 
-* Bounce-back streaming for MPCD particles (:class:`hoomd.mpcd.stream.BounceBack`)
-* Bounce-back integration for MD particles (:class:`hoomd.mpcd.methods.BounceBack`)
+* Bounce-back streaming for MPCD particles
+  (:class:`hoomd.mpcd.stream.BounceBack`)
+* Bounce-back integration for MD particles
+  (:class:`hoomd.mpcd.methods.BounceBack`)
 * Virtual particle filling (:class:`hoomd.mpcd.fill.GeometryFiller`)
 
 Each geometry may put constraints on the size of the simulation and where

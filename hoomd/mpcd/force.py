@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD solvent forces.
+r"""MPCD solvent forces.
 
 MPCD can apply a body force to each MPCD particle as a function of position.
 The external force should be compatible with the chosen
@@ -46,10 +46,10 @@ class BlockForce(SolventForce):
             blocks.
         half_width (float): Half the width of each block.
 
-    The `force` magnitude *F* is applied in the *x* direction on the solvent particles
-    in blocks defined along the *y* direction by the `half_separation` *H* and
-    the `half_width` *w*. The force in *x* is :math:`+F` in the upper block,
-    :math:`-F` in the lower block, and zero otherwise.
+    The `force` magnitude *F* is applied in the *x* direction on the solvent
+    particles in blocks defined along the *y* direction by the `half_separation`
+    *H* and the `half_width` *w*. The force in *x* is :math:`+F` in the upper
+    block, :math:`-F` in the lower block, and zero otherwise.
 
     .. math::
         :nowrap:
@@ -62,9 +62,9 @@ class BlockForce(SolventForce):
         \end{cases}
         \end{equation}
 
-    The `BlockForce` can be used to implement the double-parabola method for measuring
-    viscosity by setting :math:`H = L_y/4` and :math:`w = L_y/4`, where :math:`L_y` is
-    the size of the simulation box in *y*.
+    The `BlockForce` can be used to implement the double-parabola method for
+    measuring viscosity by setting :math:`H = L_y/4` and :math:`w = L_y/4`,
+    where :math:`L_y` is the size of the simulation box in *y*.
 
     Warning:
         You should define the blocks to lie fully within the simulation box and
@@ -77,7 +77,10 @@ class BlockForce(SolventForce):
     .. code-block:: python
 
         Ly = simulation.state.box.Ly
-        force = hoomd.mpcd.force.BlockForce(force=1.0, half_separation=Ly/4, half_width=Ly/4)
+        force = hoomd.mpcd.force.BlockForce(
+            force=1.0,
+            half_separation=Ly/4,
+            half_width=Ly/4)
         stream = hoomd.mpcd.stream.Bulk(period=1, solvent_force=force)
         simulation.operations.integrator.streaming_method = stream
 
@@ -135,9 +138,9 @@ class ConstantForce(SolventForce):
 
     The same constant force is applied to all solvent particles, independently
     of time and position. This force is useful for simulating pressure-driven
-    flow in conjunction with a confined geometry having no-slip boundary conditions.
-    It is also useful for measuring diffusion coefficients with nonequilibrium
-    methods.
+    flow in conjunction with a confined geometry having no-slip boundary
+    conditions. It is also useful for measuring diffusion coefficients with
+    nonequilibrium methods.
 
     .. rubric:: Example:
 

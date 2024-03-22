@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-""" Multiparticle collision dynamics.
+"""Multiparticle collision dynamics.
 
 Simulating complex fluids and soft matter using conventional molecular dynamics
 methods (`hoomd.md`) can be computationally demanding due to large disparities

@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD virtual-particle fillers.
+r"""MPCD virtual-particle fillers.
 
 Virtual particles are MPCD solvent particles that are added to ensure MPCD
 collision cells that are sliced by solid boundaries do not become "underfilled".
@@ -119,7 +119,8 @@ class GeometryFiller(VirtualParticleFiller):
         simulation.operations.integrator.virtual_particle_fillers = [filler]
 
     Attributes:
-        geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around (*read only*).
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to fill around
+            (*read only*).
 
     """
 
@@ -147,7 +148,8 @@ class GeometryFiller(VirtualParticleFiller):
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
         class_ = getattr(*class_info, None)
-        assert class_ is not None, "Virtual particle filler for geometry not found"
+        assert class_ is not None, ("Virtual particle filler for geometry"
+                                    " not found")
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
