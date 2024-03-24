@@ -76,7 +76,7 @@ class CPPPotentialBase(AutotunedObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.5.0/hoomd/VectorMath.h
+            v4.6.0/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -245,7 +245,7 @@ class CPPPotential(CPPPotentialBase):
         self.code = code
 
         warnings.warn(
-            "CPPPotential is deprecated since 4.5.0. "
+            "CPPPotential is deprecated since 4.6.0. "
             "Use a hpmc.pair.Pair potential.",
             FutureWarning,
             stacklevel=2)
@@ -343,7 +343,7 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
-    .. deprecated:: 4.5.0
+    .. deprecated:: 4.6.0
 
         ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
 
@@ -528,7 +528,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         self.code_isotropic = code_isotropic
 
         warnings.warn(
-            "CPPPotentialUnion is deprecated since 4.5.0. "
+            "CPPPotentialUnion is deprecated since 4.6.0. "
             "Use a hpmc.pair.Pair potential.",
             FutureWarning,
             stacklevel=2)
@@ -543,7 +543,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         if (isinstance(self._simulation.device, hoomd.device.CPU)
                 and self._simulation.device.num_cpu_threads > 1):
             warnings.warn(
-                "num_cpu_threads > 1 is deprecated since 4.5.0. "
+                "num_cpu_threads > 1 is deprecated since 4.6.0. "
                 "Use num_cpu_threads=1.",
                 FutureWarning,
                 stacklevel=1)

@@ -41,6 +41,7 @@ set(_hpmc_sources   module.cc
                     PairPotentialLennardJones.cc
                     PairPotentialStep.cc
                     PairPotentialUnion.cc
+                    PairPotentialAngularStep.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
@@ -82,6 +83,7 @@ set(_hpmc_headers
     PairPotentialLennardJones.h
     PairPotentialStep.h
     PairPotentialUnion.h
+    PairPotentialAngularStep.h
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
