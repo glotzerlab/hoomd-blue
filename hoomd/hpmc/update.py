@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HPMC updaters.
@@ -736,7 +736,8 @@ class QuickCompress(Updater):
         trigger (hoomd.trigger.trigger_like): Update the box dimensions on
             triggered time steps.
 
-        target_box (hoomd.box.box_like): Dimensions of the target box.
+        target_box (`hoomd.box.box_like` or `hoomd.variant.box.BoxVariant`):
+            Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
@@ -745,13 +746,18 @@ class QuickCompress(Updater):
 
         min_scale (float): The minimum scale factor to apply to box dimensions.
 
+        allow_unsafe_resize (bool): When `True`, box moves are proposed
+            independent of particle translational move sizes.
+
     Use `QuickCompress` in conjunction with an HPMC integrator to scale the
     system to a target box size. `QuickCompress` can typically compress dilute
     systems to near random close packing densities in tens of thousands of time
-    steps.
+    steps. For more control over the rate of compression, use a `BoxVariant` for
+    `target_box`.
 
-    It operates by making small changes toward the `target_box`, but only
-    when there are no particle overlaps in the current simulation state. In 3D:
+    `QuickCompress` operates by making small changes toward the `target_box`,
+    but only when there are no particle overlaps in the current simulation
+    state. In 3D:
 
     .. math::
 
@@ -774,21 +780,21 @@ class QuickCompress(Updater):
           & L_{\mathrm{target},z} \ge L_z
           \end{cases} \\
           xy' &= \begin{cases}
-          \max( xy \cdot s, xy_\mathrm{target} )
+          \min( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} < xy \\
-          \min( xy / s, xy_\mathrm{target} )
+          \max( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} \ge xy
           \end{cases} \\
           xz' &= \begin{cases}
-          \max( xz \cdot s, xz_\mathrm{target} )
+          \min( xz + (1-s) \cdot xz_\mathrm{target}, xz_\mathrm{target} )
           & xz_\mathrm{target} < xz \\
-          \min( xz / s, xz_\mathrm{target} )
+          \max( xz + (1-s) \cdot xz_\mathrm{target}, xz_\mathrm{target} )
           & xz_\mathrm{target} \ge xz
           \end{cases} \\
           yz' &= \begin{cases}
-          \max( yz \cdot s, yz_\mathrm{target} )
+          \min( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} < yz \\
-          \min( yz / s, yz_\mathrm{target} )
+          \max( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} \ge yz
           \end{cases} \\
 
@@ -810,9 +816,9 @@ class QuickCompress(Updater):
           \end{cases} \\
           L_z' &= L_z \\
           xy' &= \begin{cases}
-          \max( xy \cdot s, xy_\mathrm{target} )
+          \min( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} < xy \\
-          \min( xy / s, xy_\mathrm{target} )
+          \max( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} \ge xy
           \end{cases} \\
           xz' &= xz \\
@@ -838,16 +844,36 @@ class QuickCompress(Updater):
     distributed between ``max(min_scale, 1.0 - min_move_size / max_diameter)``
     and 1.0 where ``min_move_size`` is the smallest MC translational move size
     adjusted by the acceptance ratio and ``max_diameter`` is the circumsphere
-    diameter of the largest particle type.
+    diameter of the largest particle type. If `allow_unsafe_resize` is `True`,
+    box move sizes will be uniformly distributed between ``min_scale`` and 1.0
+    (with no consideration of ``min_move_size``).
+
+    When using a `BoxVariant` for `target_box`, `complete` returns `True` if the
+    current simulation box is equal to the box corresponding to `target_box`
+    evaluated at the current timestep and there are no overlaps in the system.
+    To ensure the updater has compressed the system to the final target box, use
+    a condition that checks both the `complete` attribute of the updater and the
+    simulation timestep. For example::
+
+        target_box = hoomd.variant.box.InverseVolumeRamp(
+            sim.state.box, sim.state.box.volume / 2, 0, 1_000)
+        qc = hoomd.hpmc.update.QuickCompress(10, target_box)
+        while (
+            sim.timestep < target_box.t_ramp + target_box.t_start or
+            not qc.complete):
+            sim.run(100)
 
     Tip:
         Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
+
     Warning:
-        When the smallest MC translational move size is 0, `QuickCompress`
-        will scale the box by 1.0 and not progress toward the target box.
+        When the smallest MC translational move size is 0, `allow_unsafe_resize`
+        must be set to `True` to progress toward the target box. Decrease
+        `max_overlaps_per_particle` when using this setting to prevent
+        unresolvable overlaps.
 
     Warning:
         Use `QuickCompress` *OR* `BoxMC`. Do not use both at the same time.
@@ -860,7 +886,8 @@ class QuickCompress(Updater):
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
 
-        target_box (Box): Dimensions of the target box.
+        target_box (BoxVariant): The variant for the dimensions of the target
+            box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
@@ -873,22 +900,29 @@ class QuickCompress(Updater):
             When using multiple `QuickCompress` updaters in a single simulation,
             give each a unique value for `instance` so that they generate
             different streams of random numbers.
+
+        allow_unsafe_resize (bool): Flag that determines whether
     """
 
     def __init__(self,
                  trigger,
                  target_box,
                  max_overlaps_per_particle=0.25,
-                 min_scale=0.99):
+                 min_scale=0.99,
+                 allow_unsafe_resize=False):
         super().__init__(trigger)
 
         param_dict = ParameterDict(max_overlaps_per_particle=float,
                                    min_scale=float,
-                                   target_box=hoomd.Box,
-                                   instance=int)
+                                   target_box=hoomd.variant.box.BoxVariant,
+                                   instance=int,
+                                   allow_unsafe_resize=bool)
+        if isinstance(target_box, hoomd.Box):
+            target_box = hoomd.variant.box.Constant(target_box)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
+        param_dict['allow_unsafe_resize'] = allow_unsafe_resize
 
         self._param_dict.update(param_dict)
 
@@ -907,7 +941,7 @@ class QuickCompress(Updater):
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, self.trigger,
             integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
-            self.target_box._cpp_obj)
+            self.target_box)
 
     @property
     def complete(self):

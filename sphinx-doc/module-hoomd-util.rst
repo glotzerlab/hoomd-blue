@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 hoomd.util
@@ -11,12 +11,10 @@ hoomd.util
 .. autosummary::
     :nosignatures:
 
-    GPUNotAvailableError
     make_example_simulation
 
 .. rubric:: Details
 
 .. automodule:: hoomd.util
     :synopsis: Utilities
-    :members: GPUNotAvailableError,
-              make_example_simulation
+    :members: make_example_simulation
