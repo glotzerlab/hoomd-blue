@@ -12,33 +12,30 @@ from hoomd.logging import log
 class Area(MeshConvervationPotential):
     r"""Area conservation potential.
 
-    :py:class:`Area` specifies a area conservation energy of each
-    triangle mesh unit applied to all particles within the mesh.
+    :py:class:`Area` specifies a global area conservation energy for each
+    triangle mesh type.
 
     .. math::
 
         U(r) = k \frac{( A(r) - A_0 )^2}{2 \cdot A_0}
 
     Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
         ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
-              to calculate conservation energy in terms of all triangles in 
+              and calculates the conservation energy considering all triangles in 
               the mesh. Defaults to `False`.
 
     Attributes:
         parameter (TypeParameter[dict]):
-            The parameter of the area conservation for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+            The parameter of the area conservation for each mesh type.
+            The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
-            * ``A0`` (`float`, **required**) - targeted sureface area
-              of the whole mesh
+            * ``A0`` (`float`, **required**) - targeted global surface area
               :math:`[\mathrm{length}]^2]`
 
     Examples::
-        area_conservation_potential =
-        mesh.conservation.Area(mesh)
+        area_conservation_potential = mesh.conservation.Area(mesh)
         tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
     """
     _cpp_class_name = "AreaConservationMeshForceCompute"
@@ -52,14 +49,14 @@ class Area(MeshConvervationPotential):
 
     @log(requires_run=True)
     def area(self):
-        """Area of the mesh."""
+        """Area of the entire mesh."""
         return self._cpp_obj.getArea()
 
 
 class TriangleArea(MeshPotential):
     r"""Triangle Area conservation potential.
 
-    :py:class:`TriangleArea` specifies a area conservation energy by
+    :py:class:`TriangleArea` specifies an area conservation energy by
     applying an area constraint to each triangle of the mesh.
 
     .. math::
@@ -68,18 +65,17 @@ class TriangleArea(MeshPotential):
         {2 \cdot A_0 \cdot N_\mathrm{tri}}
 
     The potential sums over the area :math:`A_{ijk}` of all triplets
-    :math:`i`, :math:`j` and :math:`k` that make up a trinagle in the
+    :math:`i`, :math:`j` and :math:`k` that make up a triangle in the
     mesh. The number of triangles in the mesh are symbolized by
     :math:`N_\mathrm{tri}`.
 
     Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
 
     Attributes:
         parameter (TypeParameter[dict]):
-            The parameter of the area conservation for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+            The parameter of the triangle area conservation for each mesh type.
+            The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
             * ``A0`` (`float`, **required**) - target surface area
@@ -87,8 +83,7 @@ class TriangleArea(MeshPotential):
               :math:`[\mathrm{length}]^2`
 
     Examples::
-        tringle_area_conservation_potential =
-        mesh.conservation.TriangleArea(mesh)
+        tringle_area_conservation_potential = mesh.conservation.TriangleArea(mesh)
         tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
     """
     _cpp_class_name = "TriangleAreaConservationMeshForceCompute"
@@ -102,5 +97,5 @@ class TriangleArea(MeshPotential):
 
     @log(requires_run=True)
     def area(self):
-        """Area of the mesh."""
+        """Area of the entire mesh."""
         return self._cpp_obj.getArea()
