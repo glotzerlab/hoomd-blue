@@ -11,7 +11,7 @@
 #include <memory>
 
 /*! \file TriangleAreaConservationMeshForceComputeGPU.h
-    \brief Declares a class for computing area conservation energy forces on the GPU
+    \brief Declares a class for computing the triangle area conservation energy forces on the GPU
 */
 
 #ifdef __HIPCC__
@@ -26,7 +26,7 @@ namespace hoomd
 namespace md
     {
 
-//! Computes area conservation energy forces on the mesh on the GPU
+//! Computes triangle area conservation energy forces on the mesh on the GPU
 /*! TriangleAreaConservation energy forces are computed on every particle in a mesh.
 
     \ingroup computes
@@ -57,8 +57,8 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
     GPUArray<unsigned int> m_flags;        //!< Flags set during the kernel execution
     GPUArray<Scalar2> m_params;            //!< Parameters stored on the GPU
 
-    GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
-    GPUArray<Scalar> m_sum;         //!< memory space for sum over volume
+    GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over area
+    GPUArray<Scalar> m_sum;         //!< memory space for sum over area
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

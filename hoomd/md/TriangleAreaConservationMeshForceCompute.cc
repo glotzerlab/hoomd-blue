@@ -86,7 +86,7 @@ pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string t
     auto typ = m_mesh_data->getMeshTriangleData()->getTypeByName(type);
     if (typ >= m_mesh_data->getMeshTriangleData()->getNTypes())
         {
-        m_exec_conf->msg->error() << "mesh.area_conservation: Invalid mesh type specified" << endl;
+        m_exec_conf->msg->error() << "mesh.conservation.TriangleArea: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in TriangleAreaConservationMeshForceCompute");
         }
     pybind11::dict params;
@@ -115,7 +115,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         access_location::host,
         access_mode::read);
 
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
@@ -126,7 +125,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
+    // get a local copy of the simulation box
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -141,7 +140,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < n_types; i++)
         global_area[i] = 0;
 
-    // for each of the triangles
+    // loop over triangles triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
@@ -172,11 +171,10 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
-        // apply minimum image conventions to all 3 vectors
+        // apply minimum image conventions to all vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;

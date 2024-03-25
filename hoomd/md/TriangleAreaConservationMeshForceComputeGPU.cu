@@ -14,7 +14,7 @@
 #define SMALL Scalar(0.001)
 
 /*! \file TriangleAreaConservationMeshForceComputeGPU.cu
-    \brief Defines GPU kernel code for calculating the area conservation forces. Used by
+    \brief Defines GPU kernel code for calculating the triangle area conservation forces. Used by
    TriangleAreaConservationMeshForceComputeComputeGPU.
 */
 
@@ -27,7 +27,6 @@ namespace kernel
 
 //! Kernel for calculating area conservation force on the GPU
 /*!
-    \param d_area Device memory to write total surface area
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch
@@ -35,6 +34,7 @@ namespace kernel
     \param d_pos device array of particle positions
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param tlist List of mesh triangles stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
     \param n_triangles_list List of numbers of mesh triangles stored on the GPU
     \param d_params K,A0 params packed as Scalar variables
     \param n_triangle_type number of mesh triangle types
@@ -110,9 +110,6 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
-
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
@@ -194,19 +191,18 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
     }
 
 /*!
-    \param d_area Device memory to write total surface area
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param N number of particles
     \param d_pos device array of particle positions
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param tlist List of mesh triangles stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
     \param n_triangles_list List of numbers of mesh triangles stored on the GPU
     \param d_params K, A0 params packed as Scalar variables
     \param n_triangle_type number of mesh triangle types
     \param block_size Block size to use when performing calculations
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
-    \param compute_capability Device compute capability (200, 300, 350, ...)
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */

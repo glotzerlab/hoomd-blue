@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
@@ -10,8 +10,8 @@
 
 #include <vector>
 
-/*! \file MeshAreaConservationForceCompute.h
-    \brief Declares a class for computing area conservation forces
+/*! \file TriangleAreaConservationMeshForceCompute.h
+    \brief Declares a class for computing triangle area conservation forces
 */
 
 #ifdef __HIPCC__
@@ -55,7 +55,7 @@ struct triangle_area_conservation_params
     __attribute__((aligned(16)));
 #endif
 
-//! Computes area conservation forces on the mesh
+//! Computes triangle area conservation forces on the mesh
 /*! Triangle Area Conservation forces are computed on every triangle in a mesh.
     \ingroup computes
 */
@@ -96,9 +96,9 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
 #endif
 
     protected:
-    Scalar* m_K; //!< K parameter for multiple mesh triangles
-    Scalar* m_A0;
-    Scalar* m_area;
+    Scalar* m_K;    //!< K parameter for multiple mesh types
+    Scalar* m_A0;   //!< A0 parameter for multiple mesh types
+    Scalar* m_area; //!!< total mesh area per mesh type
 
     std::shared_ptr<MeshDefinition>
         m_mesh_data; //!< Mesh data to use in computing area conservation energy
