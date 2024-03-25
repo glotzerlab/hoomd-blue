@@ -25,20 +25,21 @@ namespace md
 namespace kernel
     {
 //! Kernel for calculating area_constraint sigmas on the GPU
-/*! \param d_sigma Device memory to write per paricle sigma
-    \param d_sigma_dash Device memory to write per particle sigma_dash
+/*! \param d_partial_sum_area Device memory to write partial meah area
     \param N number of particles
+    \param tN number of mesh types
+    \param mitd mesh type index
     \param d_pos device array of particle positions
-    \param d_rtag device array of particle reverse tags
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
-    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
+    \param tlist List of mesh triangle indices stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
+    \param ignore_type ignores mesh type if true
+    \param n_triangles_list List of mesh triangles stored on the GPU
 */
 __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_area,
                                                         const unsigned int N,
                                                         const unsigned int tN,
-                                                        const unsigned int cN,
+                                                        const unsigned int mtid,
                                                         const Scalar4* d_pos,
                                                         BoxDim box,
                                                         const group_storage<3>* tlist,
@@ -53,9 +54,6 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar area_transfer = 0;
-    //Scalar* area_transfer = (Scalar*)malloc(tN * sizeof *area_transfer);
-    //for (int i_types = 0; i_types < tN; i_types++)
-    //    area_transfer[i_types] = 0;
 
     if (idx < N)
         {
@@ -70,7 +68,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
             if(ignore_type) cur_triangle_type = 0;
 
-	    if( cur_triangle_type != cN) continue;
+	    if( cur_triangle_type != mitd) continue;
 
             int cur_triangle_b = cur_triangle.idx[0];
             int cur_triangle_c = cur_triangle.idx[1];
@@ -119,12 +117,10 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
 
             Scalar Area = rab * rac * s_baac / 6.0;
-            //area_transfer[cur_triangle_type] += Area;
             area_transfer += Area;
             }
         }
 
-    //for (unsigned int i_types = 0; i_types < tN; i_types++)
         {
         __syncthreads();
         area_sdata[threadIdx.x] = area_transfer;//[i_types];
@@ -142,15 +138,14 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
         // write out our partial sum
         if (threadIdx.x == 0)
-            d_partial_sum_area[blockIdx.x * tN + cN] = area_sdata[0];
-            //d_partial_sum_area[blockIdx.x * tN + i_types] = area_sdata[0];
+            d_partial_sum_area[blockIdx.x * tN + mitd] = area_sdata[0];
         }
-    //free(area_transfer);
     }
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
     \param d_partial_sum Array containing the partial sum
+    \param tN number of mesh types
     \param num_blocks Number of blocks to execute
 */
 __global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
@@ -169,7 +164,7 @@ __global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
             {
             __syncthreads();
             if (start + threadIdx.x < num_blocks)
-                area_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
+                area_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * mtid + i_types];
             else
                 area_sdata[threadIdx.x] = Scalar(0.0);
             __syncthreads();
@@ -193,17 +188,18 @@ __global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
         }
     }
 
-/*! \param d_sigma Device memory to write per paricle sigma
-    \param d_sigma_dash Device memory to write per particle sigma_dash
+/*! \param d_sum Placeholder for the sum
+    \param d_partial_sum Array containing the partial sum
     \param N number of particles
+    \param tN number of mesh types
+    \param mitd mesh type index
     \param d_pos device array of particle positions
-    \param d_rtag device array of particle reverse tags
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
-    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
+    \param tlist List of mesh triangle indices stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
+    \param ignore_type ignores mesh type if true
+    \param n_triangles_list List of mesh triangles stored on the GPU
     \param block_size Block size to use when performing calculations
-    \param compute_capability Device compute capability (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()

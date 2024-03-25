@@ -58,7 +58,7 @@ TriangleAreaConservationMeshForceCompute::~TriangleAreaConservationMeshForceComp
     \param K Stiffness parameter for the force computation
     \param A0 desired surface area to maintain for the force computation
 
-    Sets parameters for the potential of a particular angle type
+    Sets parameters for the potential of a particular mesh type
 */
 void TriangleAreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
@@ -140,7 +140,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < n_types; i++)
         global_area[i] = 0;
 
-    // loop over triangles triangles
+    // loop over mesh triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
@@ -151,7 +151,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
 
         // transform a, b, and c into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[triangle.tag[0]];
         unsigned int idx_b = h_rtag.data[triangle.tag[1]];
         unsigned int idx_c = h_rtag.data[triangle.tag[2]];

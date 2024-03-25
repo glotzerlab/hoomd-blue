@@ -57,8 +57,9 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
 
 /*! \param type Type of the angle to set parameters for
     \param K Stiffness parameter for the force computation
+    \param A0 desired surface area to maintain for the force computation
 
-    Sets parameters for the potential of a particular angle type
+    Sets parameters for the potential of a particular mesh type
 */
 void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
@@ -87,7 +88,7 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
     if (typ >= m_mesh_data->getMeshBondData()->getNTypes())
         {
-        m_exec_conf->msg->error() << "mesh.area: Invalid mesh type specified" << endl;
+        m_exec_conf->msg->error() << "mesh.conservation.Area: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in AreaConservationMeshForceCompute");
         }
     if(m_ignore_type) typ = 0;
@@ -119,7 +120,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         access_location::host,
         access_mode::read);
 
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
@@ -144,25 +144,21 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     
     unsigned int triN = m_mesh_data->getSize();
     
-    // for each of the angles
+    // loop over mesh triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
         const typename Angle::members_t& triangle = h_triangles.data[i];
+        assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
 
-        unsigned int ttag_a = triangle.tag[0];
-        assert(ttag_a < m_pdata->getMaximumTag() + 1);
-        unsigned int ttag_b = triangle.tag[1];
-        assert(ttag_b < m_pdata->getMaximumTag() + 1);
-        unsigned int ttag_c = triangle.tag[2];
-        assert(ttag_c < m_pdata->getMaximumTag() + 1);
-
-        // transform a and b into indices into the particle data arrays
+        // transform a, b, and c into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[ttag_a];
-        unsigned int idx_b = h_rtag.data[ttag_b];
-        unsigned int idx_c = h_rtag.data[ttag_c];
+        unsigned int idx_a = h_rtag.data[triangle.tag[0]];
+        unsigned int idx_b = h_rtag.data[triangle.tag[1]];
+        unsigned int idx_c = h_rtag.data[triangle.tag[2]];
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
@@ -179,13 +175,10 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
-        // apply minimum image conventions to all 3 vectors
+        // apply minimum image conventions to all vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -314,25 +307,20 @@ void AreaConservationMeshForceCompute::precomputeParameter()
     for (unsigned int i = 0; i < n_types; i++)
         global_area[i] = 0;
 
-    // for each of the angles
+    // loop over mesh triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
         const typename Angle::members_t& triangle = h_triangles.data[i];
+        assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
 
-        unsigned int ttag_a = triangle.tag[0];
-        assert(ttag_a < m_pdata->getMaximumTag() + 1);
-        unsigned int ttag_b = triangle.tag[1];
-        assert(ttag_b < m_pdata->getMaximumTag() + 1);
-        unsigned int ttag_c = triangle.tag[2];
-        assert(ttag_c < m_pdata->getMaximumTag() + 1);
-
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[ttag_a];
-        unsigned int idx_b = h_rtag.data[ttag_b];
-        unsigned int idx_c = h_rtag.data[ttag_c];
+        // transform a, b, and c into indices into the particle data arrays
+        unsigned int idx_a = h_rtag.data[triangle.tag[0]];
+        unsigned int idx_b = h_rtag.data[triangle.tag[1]];
+        unsigned int idx_c = h_rtag.data[triangle.tag[2]];
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
@@ -351,7 +339,6 @@ void AreaConservationMeshForceCompute::precomputeParameter()
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;

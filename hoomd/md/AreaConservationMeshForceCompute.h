@@ -96,15 +96,15 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K; //!< K parameter for multiple mesh triangles
+    Scalar* m_K; //!< K parameter for multiple mesh triangle types
 
-    Scalar* m_A0;
+    Scalar* m_A0; //!< A0 parameter for multiple mesh triangle types
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
-    Scalar* m_area; //! sum of the triangle areas within the mesh
+    Scalar* m_area; //! sum of the triangle areas within a mesh type
 
-    bool m_ignore_type; //! do we ignore type to calculate global area
+    bool m_ignore_type; //! ignore type to calculate global area if true
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

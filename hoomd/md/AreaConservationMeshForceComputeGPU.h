@@ -24,7 +24,7 @@ namespace md
     {
 
 //! Computes area energy forces on the mesh on the GPU
-/*! Helfrich energy forces are computed on every particle in a mesh.
+/*! Area conservation energy forces are computed on every particle in a mesh.
 
     \ingroup computes
 */

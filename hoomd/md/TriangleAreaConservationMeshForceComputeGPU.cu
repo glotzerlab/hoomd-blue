@@ -33,7 +33,7 @@ namespace kernel
     \param N number of particles
     \param d_pos device array of particle positions
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param tlist List of mesh triangles stored on the GPU
+    \param tlist List of mesh triangle indices stored on the GPU
     \param tpos_list Position of current index in list of mesh triangles stored on the GPU
     \param n_triangles_list List of numbers of mesh triangles stored on the GPU
     \param d_params K,A0 params packed as Scalar variables
