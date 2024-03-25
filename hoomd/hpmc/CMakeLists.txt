@@ -37,6 +37,11 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     ExternalFieldWall.cc
+                    PairPotential.cc
+                    PairPotentialLennardJones.cc
+                    PairPotentialStep.cc
+                    PairPotentialUnion.cc
+                    PairPotentialAngularStep.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
@@ -74,6 +79,11 @@ set(_hpmc_headers
     Moves.h
     OBB.h
     OBBTree.h
+    PairPotential.h
+    PairPotentialLennardJones.h
+    PairPotentialStep.h
+    PairPotentialUnion.h
+    PairPotentialAngularStep.h
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
@@ -143,7 +153,7 @@ set(_cuda_sources ${_hpmc_cu_sources})
 set_source_files_properties(${_hpmc_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
-pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
+hoomd_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hpmc ALIAS _hpmc)
 if (APPLE)
@@ -242,7 +252,7 @@ if (ENABLE_LLVM)
                                  ClangCompiler.h
        )
 
-    pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} ${_${PACKAGE_NAME}_llvm_sources} NO_EXTRAS)
+    hoomd_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} ${_${PACKAGE_NAME}_llvm_sources} NO_EXTRAS)
     # alias into the HOOMD namespace so that plugins and symlinked components both work
     add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 
