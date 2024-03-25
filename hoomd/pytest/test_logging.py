@@ -1,11 +1,12 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.conftest import pickling_check
 from pytest import raises, fixture, mark
 from hoomd.logging import (_LoggerQuantity, _NamespaceFilter,
-                           _SafeNamespaceDict, Logger, dict_map, Loggable,
+                           _SafeNamespaceDict, Logger, Loggable,
                            LoggerCategories, log)
+from hoomd.util import _dict_map
 
 
 class DummyNamespace:
@@ -169,7 +170,7 @@ def test_dict_map(base_dict, expected_mapped_dict):
     def func(x):
         return 1
 
-    mapped_dict = dict_map(base_dict, func)
+    mapped_dict = _dict_map(base_dict, func)
     assert mapped_dict == expected_mapped_dict
 
 
@@ -234,7 +235,7 @@ class TestSafeNamespaceDict:
         "only_default": False
     },
     {
-        "categories": ("scalar", "string")
+        "categories": LoggerCategories.scalar | LoggerCategories.string
     },
     {
         "only_default": False,

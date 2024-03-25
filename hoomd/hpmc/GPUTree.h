@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "OBB.h"
@@ -7,7 +7,6 @@
 #include "OBBTree.h"
 #endif
 
-#include "HPMCPrecisionSetup.h"
 #include "hoomd/ManagedArray.h"
 
 #ifndef __GPU_TREE_H__
@@ -51,9 +50,9 @@ class GPUTree
         // allocate
         m_num_nodes = tree.getNumNodes();
 
-        m_center = ManagedArray<vec3<OverlapReal>>(m_num_nodes, managed);
-        m_lengths = ManagedArray<vec3<OverlapReal>>(m_num_nodes, managed);
-        m_rotation = ManagedArray<quat<OverlapReal>>(m_num_nodes, managed);
+        m_center = ManagedArray<vec3<ShortReal>>(m_num_nodes, managed);
+        m_lengths = ManagedArray<vec3<ShortReal>>(m_num_nodes, managed);
+        m_rotation = ManagedArray<quat<ShortReal>>(m_num_nodes, managed);
         m_mask = ManagedArray<unsigned int>(m_num_nodes, managed);
         m_is_sphere = ManagedArray<unsigned int>(m_num_nodes, managed);
         m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
@@ -181,15 +180,15 @@ class GPUTree
      * call \param abs_tol an absolute tolerance \returns true if the current node overlaps and is a
      * leaf node
      */
-    DEVICE inline bool queryRay(const vec3<OverlapReal>& p,
-                                const vec3<OverlapReal>& d,
+    DEVICE inline bool queryRay(const vec3<ShortReal>& p,
+                                const vec3<ShortReal>& d,
                                 unsigned int& cur_node,
-                                OverlapReal abs_tol) const
+                                ShortReal abs_tol) const
         {
         OBB node_obb(getOBB(cur_node));
 
-        OverlapReal t;
-        vec3<OverlapReal> q;
+        ShortReal t;
+        vec3<ShortReal> q;
         bool leaf = false;
         if (IntersectRayOBB(p, d, node_obb, t, q, abs_tol))
             {
@@ -345,9 +344,9 @@ class GPUTree
         }
 
     private:
-    ManagedArray<vec3<OverlapReal>> m_center;
-    ManagedArray<vec3<OverlapReal>> m_lengths;
-    ManagedArray<quat<OverlapReal>> m_rotation;
+    ManagedArray<vec3<ShortReal>> m_center;
+    ManagedArray<vec3<ShortReal>> m_lengths;
+    ManagedArray<quat<ShortReal>> m_rotation;
     ManagedArray<unsigned int> m_mask;
     ManagedArray<unsigned int> m_is_sphere;
 
@@ -447,8 +446,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a,
                                        unsigned long int& stack,
                                        OBB& obb_a,
                                        OBB& obb_b,
-                                       const quat<OverlapReal>& q,
-                                       const vec3<OverlapReal>& dr)
+                                       const quat<ShortReal>& q,
+                                       const vec3<ShortReal>& dr)
     {
     bool leaf = false;
     bool ascend = true;
@@ -565,8 +564,8 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a,
                                                    unsigned long int& stack,
                                                    OBB& obb_a,
                                                    OBB& obb_b,
-                                                   const quat<OverlapReal>& q,
-                                                   const vec3<OverlapReal>& dr,
+                                                   const quat<ShortReal>& q,
+                                                   const vec3<ShortReal>& dr,
                                                    const OBB& obb_c)
     {
     bool leaf = false;

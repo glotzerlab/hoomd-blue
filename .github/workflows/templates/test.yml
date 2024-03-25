@@ -21,6 +21,8 @@ env:
   OMPI_MCA_btl: "vader,self"
   # skip running the CPU tests in GPU builds
   _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
+  # Require GPU tests in GPU builds.
+  _HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_: 1
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
 <% endblock %>
@@ -48,11 +50,6 @@ env:
     <% endfor %>
 <% endmacro %>
 <% set build_steps %>
-    - name: Checkout
-      uses: actions/checkout@v3.3.0
-      with:
-        path: code
-        submodules: true
     - name: Configure
       run: |
         mkdir -p build
@@ -110,13 +107,13 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v3.1.2
+      uses: actions/upload-artifact@v4.3.1
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v3.1.2
+      uses: actions/upload-artifact@v4.3.1
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -124,7 +121,7 @@ env:
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.4
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -132,16 +129,16 @@ env:
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.4
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
       run: << tar_command >> -xvf install.tar
 <% endset %>
-<% set pytest_options="--pyargs hoomd -v -ra --durations=0 --durations-min=0.1" %>
+<% set pytest_options="--pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1" %>
 <% set pytest_validate_options="-p hoomd.pytest_plugin_validate -m validate --validate" %>
 <% set invoke_pytest_serial="python3 -m pytest" %>
-<% set invoke_pytest_mpi="mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x" %>
+<% set invoke_pytest_mpi="mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh" %>
 <% set pytest_steps %>
     - name: Run pytest (serial)
       run: << invoke_pytest_serial >> << pytest_options >>
@@ -169,18 +166,27 @@ env:
         --test-output-size-passed 1048576
       working-directory: build
 <% endset %>
-<% set pytest_validate_steps %>
+<% set validate_steps %>
     - name: Run pytest (serial)
       if: ${{ !contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_serial >> << pytest_options >> << pytest_validate_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
+    - name: Run howto guides (serial)
+      if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
+      run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
+      working-directory: code/sphinx-doc/howto
 <% endset %>
 <% set prepare_steps %>
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v4.1.1
+      with:
+        path: code
+        submodules: true
 <% endset %>
 <% set post_cleanup_steps %>
     - name: Clean workspace
@@ -205,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.1
+      uses: glotzerlab/jetstream2-admin/start@v1.2.4
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
@@ -244,7 +250,7 @@ jobs:
     steps:
 << prepare_steps >>
 << download_install_steps >>
-<< pytest_validate_steps >>
+<< validate_steps >>
 << post_cleanup_steps >>
 
   build_release:

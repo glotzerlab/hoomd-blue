@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Wall geometries.
@@ -82,6 +82,12 @@ class Sphere(WallGeometry):
 
     Note:
         `Sphere` objects are immutable.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            sphere = hoomd.wall.Sphere(radius=10.0)
 
     Attributes:
         radius (float):
@@ -173,6 +179,12 @@ class Cylinder(WallGeometry):
     Note:
         `Cylinder` objects are immutable.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            cylinder = hoomd.wall.Cylinder(radius=10.0, axis=(0,0,1))
+
     Attributes:
         radius (float):
             The radius of the circle faces of the cylinder
@@ -263,6 +275,12 @@ class Plane(WallGeometry):
 
     Note:
         `Plane` objects are immutable.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            plane = hoomd.wall.Plane(origin=(-10, 0, 0), normal=(1, 0, 0))
 
     Attributes:
         origin (`tuple` [`float`, `float`, `float`]):

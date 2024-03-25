@@ -1,12 +1,10 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include <stack>
 #include <vector>
-
-#include "HPMCPrecisionSetup.h"
 
 #include "OBB.h"
 
@@ -98,8 +96,8 @@ class OBBTree
 
     //! Build a tree smartly from a list of OBBs and internal coordinates
     inline void buildTree(OBB* obbs,
-                          std::vector<std::vector<vec3<OverlapReal>>>& internal_coordinates,
-                          OverlapReal vertex_radius,
+                          std::vector<std::vector<vec3<ShortReal>>>& internal_coordinates,
+                          ShortReal vertex_radius,
                           unsigned int N,
                           unsigned int leaf_capacity);
 
@@ -190,8 +188,8 @@ class OBBTree
 
     //! Build a node of the tree recursively
     inline unsigned int buildNode(OBB* obbs,
-                                  std::vector<std::vector<vec3<OverlapReal>>>& internal_coordinates,
-                                  std::vector<std::vector<OverlapReal>>& vertex_radii,
+                                  std::vector<std::vector<vec3<ShortReal>>>& internal_coordinates,
+                                  std::vector<std::vector<ShortReal>>& vertex_radii,
                                   std::vector<unsigned int>& idx,
                                   unsigned int start,
                                   unsigned int len,
@@ -227,8 +225,8 @@ inline void OBBTree::init(unsigned int N)
    modified during the construction process.
 */
 inline void OBBTree::buildTree(OBB* obbs,
-                               std::vector<std::vector<vec3<OverlapReal>>>& internal_coordinates,
-                               OverlapReal vertex_radius,
+                               std::vector<std::vector<vec3<ShortReal>>>& internal_coordinates,
+                               ShortReal vertex_radius,
                                unsigned int N,
                                unsigned int leaf_capacity)
     {
@@ -239,9 +237,9 @@ inline void OBBTree::buildTree(OBB* obbs,
     for (unsigned int i = 0; i < N; i++)
         idx.push_back(i);
 
-    std::vector<std::vector<OverlapReal>> vertex_radii(N);
+    std::vector<std::vector<ShortReal>> vertex_radii(N);
     for (unsigned int i = 0; i < N; ++i)
-        vertex_radii[i] = std::vector<OverlapReal>(internal_coordinates[i].size(), vertex_radius);
+        vertex_radii[i] = std::vector<ShortReal>(internal_coordinates[i].size(), vertex_radius);
 
     m_root
         = buildNode(obbs, internal_coordinates, vertex_radii, idx, 0, N, OBB_INVALID_NODE, false);
@@ -265,22 +263,21 @@ OBBTree::buildTree(OBB* obbs, unsigned int N, unsigned int leaf_capacity, bool s
         idx.push_back(i);
 
     // initialize internal coordinates from OBB corners
-    std::vector<std::vector<vec3<OverlapReal>>> internal_coordinates;
-    std::vector<std::vector<OverlapReal>> vertex_radii;
+    std::vector<std::vector<vec3<ShortReal>>> internal_coordinates;
+    std::vector<std::vector<ShortReal>> vertex_radii;
     for (unsigned int i = 0; i < N; ++i)
         {
         if (obbs[i].isSphere())
             {
-            internal_coordinates.push_back(
-                std::vector<vec3<OverlapReal>>(1, obbs[i].getPosition()));
+            internal_coordinates.push_back(std::vector<vec3<ShortReal>>(1, obbs[i].getPosition()));
 
             // all OBB lengths are equal to the radius
-            vertex_radii.push_back(std::vector<OverlapReal>(1, obbs[i].lengths.x));
+            vertex_radii.push_back(std::vector<ShortReal>(1, obbs[i].lengths.x));
             }
         else
             {
             internal_coordinates.push_back(obbs[i].getCorners());
-            vertex_radii.push_back(std::vector<OverlapReal>(8, 0.0));
+            vertex_radii.push_back(std::vector<ShortReal>(8, 0.0));
             }
         }
 
@@ -296,8 +293,8 @@ OBBTree::buildTree(OBB* obbs, unsigned int N, unsigned int leaf_capacity, bool s
     }
 
 //! Define a weak ordering on OBB centroid projections
-inline bool compare_proj(const std::pair<OverlapReal, unsigned int>& lhs,
-                         const std::pair<OverlapReal, unsigned int>& rhs)
+inline bool compare_proj(const std::pair<ShortReal, unsigned int>& lhs,
+                         const std::pair<ShortReal, unsigned int>& rhs)
     {
     return lhs.first < rhs.first;
     }
@@ -319,8 +316,8 @@ inline bool compare_proj(const std::pair<OverlapReal, unsigned int>& lhs,
 */
 inline unsigned int
 OBBTree::buildNode(OBB* obbs,
-                   std::vector<std::vector<vec3<OverlapReal>>>& internal_coordinates,
-                   std::vector<std::vector<OverlapReal>>& vertex_radii,
+                   std::vector<std::vector<vec3<ShortReal>>>& internal_coordinates,
+                   std::vector<std::vector<ShortReal>>& vertex_radii,
                    std::vector<unsigned int>& idx,
                    unsigned int start,
                    unsigned int len,
@@ -332,8 +329,8 @@ OBBTree::buildNode(OBB* obbs,
 
     if (len > 1)
         {
-        std::vector<vec3<OverlapReal>> merge_internal_coordinates;
-        std::vector<OverlapReal> merge_vertex_radii;
+        std::vector<vec3<ShortReal>> merge_internal_coordinates;
+        std::vector<ShortReal> merge_vertex_radii;
 
         for (unsigned int i = start; i < start + len; ++i)
             {
@@ -379,7 +376,7 @@ OBBTree::buildNode(OBB* obbs,
     unsigned int start_left = 0;
     unsigned int start_right = len;
 
-    rotmat3<OverlapReal> my_axes(conj(my_obb.rotation));
+    rotmat3<ShortReal> my_axes(conj(my_obb.rotation));
 
     // if there are only 2 obbs, put one on each side
     if (len == 2)
@@ -391,17 +388,17 @@ OBBTree::buildNode(OBB* obbs,
         // the x-axis has largest covariance by construction, so split along that axis
 
         // Object mean
-        OverlapReal split_proj(0.0);
+        ShortReal split_proj(0.0);
         for (unsigned int i = 0; i < len; ++i)
             {
             split_proj
-                += dot(obbs[start + i].center - my_obb.center, my_axes.row0) / OverlapReal(len);
+                += dot(obbs[start + i].center - my_obb.center, my_axes.row0) / ShortReal(len);
             }
 
         // split on x direction according to object mean
         for (unsigned int i = 0; i < start_right; i++)
             {
-            OverlapReal proj = dot(obbs[start + i].center - my_obb.center, my_axes.row0);
+            ShortReal proj = dot(obbs[start + i].center - my_obb.center, my_axes.row0);
             if (proj < split_proj)
                 {
                 // if on the left side, everything is happy, just continue on

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __CELLLISTGPU_CUH__
@@ -22,7 +22,7 @@ namespace hoomd
 //! Kernel driver for gpu_compute_cell_list_kernel()
 void gpu_compute_cell_list(unsigned int* d_cell_size,
                            Scalar4* d_xyzf,
-                           Scalar4* d_tdb,
+                           uint2* d_type_body,
                            Scalar4* d_cell_orientation,
                            unsigned int* d_cell_idx,
                            uint3* d_conditions,
@@ -50,8 +50,8 @@ hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
                                   unsigned int* d_idx,
                                   const Scalar4* d_xyzf_scratch,
                                   Scalar4* d_xyzf,
-                                  const Scalar4* d_tdb_scratch,
-                                  Scalar4* d_tdb,
+                                  const uint2* d_type_body_scratch,
+                                  uint2* d_type_body,
                                   const Scalar4* d_cell_orientation_scratch,
                                   Scalar4* d_cell_orientation,
                                   const Index2D cli,
@@ -64,8 +64,8 @@ hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
 hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                               Scalar4* d_xyzf,
                               Scalar4* d_xyzf_new,
-                              Scalar4* d_tdb,
-                              Scalar4* d_tdb_new,
+                              uint2* d_type_body,
+                              uint2* d_type_body_new,
                               Scalar4* d_cell_orientation,
                               Scalar4* d_cell_orientation_new,
                               unsigned int* d_cell_idx,

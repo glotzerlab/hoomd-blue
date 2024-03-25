@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
-#include "HPMCPrecisionSetup.h"
 #include "ShapeSphere.h" //< For the base template of test_overlap
 #include "XenoCollide2D.h"
 #include "hoomd/BoxDim.h"
@@ -46,30 +45,29 @@ const unsigned int MAX_POLY2D_VERTS = 64;
 struct PolygonVertices : ShapeParams
     {
     /// X coordinates of the vertices
-    OverlapReal x[MAX_POLY2D_VERTS];
+    ShortReal x[MAX_POLY2D_VERTS];
 
     /// Y coordinates of the vertice
-    OverlapReal y[MAX_POLY2D_VERTS];
+    ShortReal y[MAX_POLY2D_VERTS];
 
     /// Number of vertices
     unsigned int N;
 
     /// Precomputed diameter
-    OverlapReal diameter;
+    ShortReal diameter;
 
     /// Rounding radius
-    OverlapReal sweep_radius;
+    ShortReal sweep_radius;
 
     /// True when move statistics should not be counted
     unsigned int ignore;
 
     /// Default constructor initializes zero values.
-    DEVICE PolygonVertices()
-        : N(0), diameter(OverlapReal(0)), sweep_radius(OverlapReal(0)), ignore(0)
+    DEVICE PolygonVertices() : N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
         {
         for (unsigned int i = 0; i < MAX_POLY2D_VERTS; i++)
             {
-            x[i] = y[i] = OverlapReal(0);
+            x[i] = y[i] = ShortReal(0);
             }
         }
 
@@ -89,18 +87,18 @@ struct PolygonVertices : ShapeParams
 
         N = (unsigned int)len(verts);
         ignore = v["ignore_statistics"].cast<unsigned int>();
-        sweep_radius = v["sweep_radius"].cast<OverlapReal>();
+        sweep_radius = v["sweep_radius"].cast<ShortReal>();
 
         // extract the verts from the python list and compute the radius on the way
-        OverlapReal radius_sq = OverlapReal(0.0);
+        ShortReal radius_sq = ShortReal(0.0);
         for (unsigned int i = 0; i < len(verts); i++)
             {
             pybind11::list verts_i = verts[i];
             if (len(verts_i) != 2)
                 throw std::runtime_error("Each vertex must have 2 elements");
 
-            vec2<OverlapReal> vert = vec2<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]),
-                                                       pybind11::cast<OverlapReal>(verts_i[1]));
+            vec2<ShortReal> vert = vec2<ShortReal>(pybind11::cast<ShortReal>(verts_i[0]),
+                                                   pybind11::cast<ShortReal>(verts_i[1]));
             x[i] = vert.x;
             y[i] = vert.y;
             radius_sq = max(radius_sq, dot(vert, vert));
@@ -163,9 +161,9 @@ class SupportFuncConvexPolygon
         @param n Normal vector input (in the local frame)
         @returns Local coords of the point furthest in the direction of n
     */
-    DEVICE vec2<OverlapReal> operator()(const vec2<OverlapReal>& n) const
+    DEVICE vec2<ShortReal> operator()(const vec2<ShortReal>& n) const
         {
-        OverlapReal max_dot = -(verts.diameter * verts.diameter);
+        ShortReal max_dot = -(verts.diameter * verts.diameter);
         unsigned int max_idx = 0;
 
         if (verts.N > 0)
@@ -265,21 +263,21 @@ class SupportFuncConvexPolygon
 #else
 
             // implementation without vector intrinsics
-            OverlapReal max_dot0 = dot(n, vec2<OverlapReal>(verts.x[0], verts.y[0]));
+            ShortReal max_dot0 = dot(n, vec2<ShortReal>(verts.x[0], verts.y[0]));
             unsigned int max_idx0 = 0;
-            OverlapReal max_dot1 = dot(n, vec2<OverlapReal>(verts.x[1], verts.y[1]));
+            ShortReal max_dot1 = dot(n, vec2<ShortReal>(verts.x[1], verts.y[1]));
             unsigned int max_idx1 = 1;
-            OverlapReal max_dot2 = dot(n, vec2<OverlapReal>(verts.x[2], verts.y[2]));
+            ShortReal max_dot2 = dot(n, vec2<ShortReal>(verts.x[2], verts.y[2]));
             unsigned int max_idx2 = 2;
-            OverlapReal max_dot3 = dot(n, vec2<OverlapReal>(verts.x[3], verts.y[3]));
+            ShortReal max_dot3 = dot(n, vec2<ShortReal>(verts.x[3], verts.y[3]));
             unsigned int max_idx3 = 3;
 
             for (unsigned int i = 4; i < verts.N; i += 4)
                 {
-                OverlapReal d0 = dot(n, vec2<OverlapReal>(verts.x[i], verts.y[i]));
-                OverlapReal d1 = dot(n, vec2<OverlapReal>(verts.x[i + 1], verts.y[i + 1]));
-                OverlapReal d2 = dot(n, vec2<OverlapReal>(verts.x[i + 2], verts.y[i + 2]));
-                OverlapReal d3 = dot(n, vec2<OverlapReal>(verts.x[i + 3], verts.y[i + 3]));
+                ShortReal d0 = dot(n, vec2<ShortReal>(verts.x[i], verts.y[i]));
+                ShortReal d1 = dot(n, vec2<ShortReal>(verts.x[i + 1], verts.y[i + 1]));
+                ShortReal d2 = dot(n, vec2<ShortReal>(verts.x[i + 2], verts.y[i + 2]));
+                ShortReal d3 = dot(n, vec2<ShortReal>(verts.x[i + 3], verts.y[i + 3]));
 
                 if (d0 > max_dot0)
                     {
@@ -324,7 +322,7 @@ class SupportFuncConvexPolygon
 #endif
             }
 
-        return vec2<OverlapReal>(verts.x[max_idx], verts.y[max_idx]);
+        return vec2<ShortReal>(verts.x[max_idx], verts.y[max_idx]);
         }
 
     private:
@@ -367,41 +365,23 @@ struct ShapeConvexPolygon
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     /// Return the bounding box of the shape in world coordinates
     DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        // generate a tight AABB
-        // detail::SupportFuncConvexPolygon sfunc(verts);
-
-        // // // use support function of the to determine the furthest extent in each direction
-        // quat<OverlapReal> o(orientation);
-        // vec2<OverlapReal> e_x(rotate(conj(o), vec2<OverlapReal>(1,0)));
-        // vec2<OverlapReal> e_y(rotate(conj(o), vec2<OverlapReal>(0,1)));
-
-        // vec2<OverlapReal> s_x = rotate(o, sfunc(e_x));
-        // vec2<OverlapReal> s_y = rotate(o, sfunc(e_y));
-        // vec2<OverlapReal> s_neg_x = rotate(o, sfunc(-e_x));
-        // vec2<OverlapReal> s_neg_y = rotate(o, sfunc(-e_y));
-
-        // // translate out from the position by the furthest extents
-        // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, 0.1);
-        // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, -0.1);
-
-        // return hoomd::detail::AABB(lower, upper);
-        // ^^^^^^^^^^ The above method is slow, just use the bounding sphere
+        // Generate the AABB of a bounding sphere, computing tight fitting AABBs is slow.
         return hoomd::detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
@@ -447,18 +427,18 @@ namespace detail
     \todo make overlap check namespace
 */
 DEVICE inline bool
-is_outside(const PolygonVertices& verts, const vec2<OverlapReal>& p, const vec2<OverlapReal>& n)
+is_outside(const PolygonVertices& verts, const vec2<ShortReal>& p, const vec2<ShortReal>& n)
     {
     bool outside = true;
 
     // for each vertex in the polygon
     // check if n dot (v[i]-p) < 0
     // distribute: (n dot v[i] - n dot p) < 0
-    OverlapReal ndotp = dot(n, p);
+    ShortReal ndotp = dot(n, p);
 #pragma unroll 3
     for (unsigned int i = 0; i < verts.N; i++)
         {
-        if ((dot(n, vec2<OverlapReal>(verts.x[i], verts.y[i])) - ndotp) <= OverlapReal(0.0))
+        if ((dot(n, vec2<ShortReal>(verts.x[i], verts.y[i])) - ndotp) <= ShortReal(0.0))
             {
             return false; // runs faster on the cpu with an early return
             }
@@ -501,24 +481,24 @@ is_outside(const PolygonVertices& verts, const vec2<OverlapReal>& p, const vec2<
 */
 DEVICE inline bool find_separating_plane(const PolygonVertices& a,
                                          const PolygonVertices& b,
-                                         const vec2<OverlapReal>& ab_t,
-                                         const quat<OverlapReal>& ab_r)
+                                         const vec2<ShortReal>& ab_t,
+                                         const quat<ShortReal>& ab_r)
     {
     bool separating = false;
 
-    rotmat2<OverlapReal> R(ab_r);
+    rotmat2<ShortReal> R(ab_r);
 
     // loop through all the edges in polygon a and check if they separate it from polygon b
     unsigned int prev = a.N - 1;
     for (unsigned int cur = 0; cur < a.N; cur++)
         {
         // find a point and a vector describing a line
-        vec2<OverlapReal> p = vec2<OverlapReal>(a.x[cur], a.y[cur]);
-        vec2<OverlapReal> line = p - vec2<OverlapReal>(a.x[prev], a.y[prev]);
+        vec2<ShortReal> p = vec2<ShortReal>(a.x[cur], a.y[cur]);
+        vec2<ShortReal> line = p - vec2<ShortReal>(a.x[prev], a.y[prev]);
 
         // construct an outward pointing vector perpendicular to that line (assumes
         // counter-clockwise ordering!)
-        vec2<OverlapReal> n(line.y, -line.x);
+        vec2<ShortReal> n(line.y, -line.x);
 
         // transform into b's coordinate system
         // p = rotate(ab_r, p) - ab_t;
@@ -554,12 +534,12 @@ DEVICE inline bool find_separating_plane(const PolygonVertices& a,
 f*/
 DEVICE inline bool test_overlap_separating_planes(const PolygonVertices& a,
                                                   const PolygonVertices& b,
-                                                  const vec2<OverlapReal>& ab_t,
-                                                  const quat<OverlapReal>& qa,
-                                                  const quat<OverlapReal>& qb)
+                                                  const vec2<ShortReal>& ab_t,
+                                                  const quat<ShortReal>& qa,
+                                                  const quat<ShortReal>& qb)
     {
     // construct a quaternion that rotates from a's coordinate system into b's
-    quat<OverlapReal> ab_r = conj(qb) * qa;
+    quat<ShortReal> ab_r = conj(qb) * qa;
 
     // see if we can find a separating plane from a's edges, or from b's edges, or else the shapes
     // overlap
@@ -589,20 +569,20 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon, ShapeConvexPolygon>(const ve
                                                                         const ShapeConvexPolygon& b,
                                                                         unsigned int& err)
     {
-    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
+    vec2<ShortReal> dr(ShortReal(r_ab.x), ShortReal(r_ab.y));
 #ifdef __HIPCC__
     return detail::xenocollide_2d(detail::SupportFuncConvexPolygon(a.verts),
                                   detail::SupportFuncConvexPolygon(b.verts),
                                   dr,
-                                  quat<OverlapReal>(a.orientation),
-                                  quat<OverlapReal>(b.orientation),
+                                  quat<ShortReal>(a.orientation),
+                                  quat<ShortReal>(b.orientation),
                                   err);
 #else
     return detail::test_overlap_separating_planes(a.verts,
                                                   b.verts,
                                                   dr,
-                                                  quat<OverlapReal>(a.orientation),
-                                                  quat<OverlapReal>(b.orientation));
+                                                  quat<ShortReal>(a.orientation),
+                                                  quat<ShortReal>(b.orientation));
 #endif
     }
 

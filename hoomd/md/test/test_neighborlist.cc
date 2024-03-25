@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -1056,217 +1056,6 @@ void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec
         }
     }
 
-//! Tests the ability of the neighbor list to filter by diameter
-template<class NL>
-void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
-    {
-    /////////////////////////////////////////////////////////
-    // start with the simplest possible test: 3 particles in a huge box
-    std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
-    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-
-        {
-        ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-        ArrayHandle<Scalar> h_diameter(pdata_3->getDiameters(),
-                                       access_location::host,
-                                       access_mode::readwrite);
-
-        h_pos.data[0].x = 0;
-        h_pos.data[0].y = 0;
-        h_pos.data[0].z = 0.0;
-        h_pos.data[0].w = 0.0;
-        h_diameter.data[0] = 3.0;
-        h_pos.data[2].x = 0;
-        h_pos.data[2].y = 0;
-        h_pos.data[2].z = 2.5;
-        h_pos.data[2].w = 0.0;
-        h_diameter.data[2] = 2.0;
-        h_pos.data[1].x = 0;
-        h_pos.data[1].y = 0;
-        h_pos.data[1].z = -3.0;
-        h_pos.data[1].w = 0.0;
-        h_diameter.data[1] = 1.0;
-        h_pos.data[3].x = 0;
-        h_pos.data[3].y = 2.51;
-        h_pos.data[3].z = 0;
-        h_pos.data[3].w = 0.0;
-        h_diameter.data[3] = 0;
-
-        pdata_3->notifyParticleSort();
-        }
-
-    // test construction of the neighborlist
-    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 0.5));
-    auto r_cut
-        = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
-                                                exec_conf);
-        {
-        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-        h_r_cut.data[0] = 1.5;
-        }
-    nlist_2->addRCutMatrix(r_cut);
-
-    nlist_2->compute(1);
-    nlist_2->setStorageMode(NeighborList::full);
-
-        // with the given settings, there should be no neighbors: check that
-        {
-        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(),
-                                            access_location::host,
-                                            access_mode::read);
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
-        CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
-        CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
-        }
-
-    // enable diameter shifting
-    nlist_2->setDiameterShift(true);
-    nlist_2->setMaximumDiameter(3.0);
-    nlist_2->compute(2);
-
-        // the particle 0 should now be neighbors with 1 and 2
-        {
-        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(),
-                                            access_location::host,
-                                            access_mode::read);
-        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(),
-                                          access_location::host,
-                                          access_mode::read);
-        ArrayHandle<size_t> h_head_list(nlist_2->getHeadList(),
-                                        access_location::host,
-                                        access_mode::read);
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[0], 2);
-            {
-            vector<unsigned int> nbrs(2, 0);
-            nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
-            nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
-            sort(nbrs.begin(), nbrs.end());
-            unsigned int check_nbrs[] = {1, 2};
-            for (unsigned int i = 0; i < 2; ++i)
-                {
-                UP_ASSERT_EQUAL(nbrs[i], check_nbrs[i]);
-                }
-            }
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
-        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);
-        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2]], 0);
-        }
-    }
-
-//! Tests the ability of the neighbor list to filter by diameter, wrapping across periodic boundary
-//! conditions
-template<class NL>
-void neighborlist_diameter_shift_periodic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
-    {
-    /////////////////////////////////////////////////////////
-    // 3 particles in a huge box, close to boundaries
-    std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
-    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-
-        {
-        ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-        ArrayHandle<Scalar> h_diameter(pdata_3->getDiameters(),
-                                       access_location::host,
-                                       access_mode::readwrite);
-
-        h_pos.data[0].x = 0;
-        h_pos.data[0].y = 12;
-        h_pos.data[0].z = -10.5;
-        h_pos.data[0].w = 0.0;
-        h_diameter.data[0] = 3.0;
-        h_pos.data[2].x = 0;
-        h_pos.data[2].y = 12;
-        h_pos.data[2].z = -8;
-        h_pos.data[2].w = 0.0;
-        h_diameter.data[2] = 2.0;
-        h_pos.data[1].x = 0;
-        h_pos.data[1].y = 12;
-        h_pos.data[1].z = 11.5;
-        h_pos.data[1].w = 0.0;
-        h_diameter.data[1] = 1.0;
-        h_pos.data[3].x = 0;
-        h_pos.data[3].y = -10.49;
-        h_pos.data[3].z = -10.5;
-        h_pos.data[3].w = 0.0;
-        h_diameter.data[3] = 0;
-
-        pdata_3->notifyParticleSort();
-        }
-
-    // test construction of the neighborlist
-    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 0.5));
-    auto r_cut
-        = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
-                                                exec_conf);
-        {
-        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-        h_r_cut.data[0] = 1.5;
-        }
-    nlist_2->addRCutMatrix(r_cut);
-
-    nlist_2->compute(1);
-    nlist_2->setStorageMode(NeighborList::full);
-
-        // with the given settings, there should be no neighbors: check that
-        {
-        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(),
-                                            access_location::host,
-                                            access_mode::read);
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
-        CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
-        CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
-        }
-
-    // enable diameter shifting
-    nlist_2->setDiameterShift(true);
-    nlist_2->setMaximumDiameter(3.0);
-    nlist_2->compute(2);
-
-        // the particle 0 should now be neighbors with 1 and 2
-        {
-        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(),
-                                            access_location::host,
-                                            access_mode::read);
-        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(),
-                                          access_location::host,
-                                          access_mode::read);
-        ArrayHandle<size_t> h_head_list(nlist_2->getHeadList(),
-                                        access_location::host,
-                                        access_mode::read);
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[0], 2);
-            {
-            vector<unsigned int> nbrs(2, 0);
-            nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
-            nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
-            sort(nbrs.begin(), nbrs.end());
-            unsigned int check_nbrs[] = {1, 2};
-            for (unsigned int i = 0; i < 2; ++i)
-                {
-                UP_ASSERT_EQUAL(nbrs[i], check_nbrs[i]);
-                }
-            }
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
-        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
-
-        CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);
-        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2]], 0);
-        }
-    }
-
 //! Test two implementations of NeighborList and verify that the output is identical
 template<class NLA, class NLB>
 void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -1751,19 +1540,6 @@ UP_TEST(NeighborListBinned_body_filter)
     neighborlist_body_filter_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-//! diameter filter test case for binned class
-UP_TEST(NeighborListBinned_diameter_shift)
-    {
-    neighborlist_diameter_shift_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-//! diameter filter test case for binned class with periodic boundary conditions
-UP_TEST(NeighborListBinned_diameter_shift_periodic)
-    {
-    neighborlist_diameter_shift_periodic_tests<NeighborListBinned>(
-        std::shared_ptr<ExecutionConfiguration>(
-            new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
 //! particle asymmetry test case for binned class
 UP_TEST(NeighborListBinned_particle_asymm)
     {
@@ -1816,19 +1592,6 @@ UP_TEST(NeighborListStencil_body_filter)
     {
     neighborlist_body_filter_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-//! diameter filter test case for stencil class
-UP_TEST(NeighborListStencil_diameter_shift)
-    {
-    neighborlist_diameter_shift_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-//! diameter filter test case for binned class with periodic boundary conditions
-UP_TEST(NeighborListStencil_diameter_shift_periodic)
-    {
-    neighborlist_diameter_shift_periodic_tests<NeighborListStencil>(
-        std::shared_ptr<ExecutionConfiguration>(
-            new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for stencil class
 UP_TEST(NeighborListStencil_particle_asymm)
@@ -1888,19 +1651,6 @@ UP_TEST(NeighborListTree_body_filter)
     {
     neighborlist_body_filter_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-//! diameter filter test case for binned class
-UP_TEST(NeighborListTree_diameter_shift)
-    {
-    neighborlist_diameter_shift_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-//! diameter filter test case for binned class with periodic boundary conditions
-UP_TEST(NeighborListTree_diameter_shift_periodic)
-    {
-    neighborlist_diameter_shift_periodic_tests<NeighborListTree>(
-        std::shared_ptr<ExecutionConfiguration>(
-            new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for tree class
 UP_TEST(NeighborListTree_particle_asymm)
@@ -1962,20 +1712,6 @@ UP_TEST(NeighborListGPUBinned_body_filter)
     neighborlist_body_filter_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! diameter filter test case for GPUBinned class
-UP_TEST(NeighborListGPUBinned_diameter_shift)
-    {
-    neighborlist_diameter_shift_tests<NeighborListGPUBinned>(
-        std::shared_ptr<ExecutionConfiguration>(
-            new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }
-//! diameter filter test case for GPUBinned class with periodic boundary conditions
-UP_TEST(NeighborListGPUBinned_diameter_shift_periodic)
-    {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_diameter_shift_periodic_tests<NeighborListGPUBinned>(exec_conf);
-    }
 //! particle asymmetry test case for GPUBinned class
 UP_TEST(NeighborListGPUBinned_particle_asymm)
     {
@@ -2036,20 +1772,6 @@ UP_TEST(NeighborListGPUStencil_body_filter)
     {
     neighborlist_body_filter_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }
-//! diameter filter test case for GPUStencil class
-UP_TEST(NeighborListGPUStencil_diameter_shift)
-    {
-    neighborlist_diameter_shift_tests<NeighborListGPUStencil>(
-        std::shared_ptr<ExecutionConfiguration>(
-            new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }
-//! diameter filter test case for GPUStencil class with periodic boundary conditions
-UP_TEST(NeighborListGPUStencil_diameter_shift_periodic)
-    {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_diameter_shift_periodic_tests<NeighborListGPUStencil>(exec_conf);
     }
 //! particle asymmetry test case for GPUStencil class
 UP_TEST(NeighborListGPUStencil_particle_asymm)
@@ -2122,20 +1844,6 @@ UP_TEST(NeighborListGPUTree_body_filter)
     std::shared_ptr<ExecutionConfiguration> exec_conf(
         new ExecutionConfiguration(ExecutionConfiguration::GPU));
     neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
-    }
-//! diameter filter test case for GPUTree class
-UP_TEST(NeighborListGPUTree_diameter_shift)
-    {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
-    }
-//! diameter filter test case for GPUTree class with periodic boundary conditions
-UP_TEST(NeighborListGPUTree_diameter_shift_periodic)
-    {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(
-        new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_diameter_shift_periodic_tests<NeighborListGPUTree>(exec_conf);
     }
 //! particle asymmetry test case for GPUTree class
 UP_TEST(NeighborListGPUTree_particle_asymm)

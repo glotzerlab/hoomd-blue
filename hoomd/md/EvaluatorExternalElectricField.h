@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
@@ -10,6 +10,7 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 #include <math.h>
 
 /*! \file EvaluatorExternalElectricField.h
@@ -75,6 +76,7 @@ class EvaluatorExternalElectricField
         \param params per-type parameters of external potential
     */
     DEVICE EvaluatorExternalElectricField(Scalar3 X,
+                                          quat<Scalar> q,
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
@@ -82,16 +84,10 @@ class EvaluatorExternalElectricField
         {
         }
 
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
+    DEVICE static bool isAnisotropic()
         {
         return false;
         }
-
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
 
     //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()
@@ -117,10 +113,12 @@ class EvaluatorExternalElectricField
 
     //! Evaluate the force, energy and virial
     /*! \param F force vector
+        \param T torque vector
         \param energy value of the energy
         \param virial array of six scalars for the upper triangular virial tensor
     */
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
+    DEVICE void
+    evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         F = m_qi * m_E;
         energy = -m_qi * dot(m_E, m_pos);
@@ -131,6 +129,10 @@ class EvaluatorExternalElectricField
         virial[3] = F.y * m_pos.y;
         virial[4] = F.y * m_pos.z;
         virial[5] = F.z * m_pos.z;
+
+        T.x = Scalar(0.0);
+        T.y = Scalar(0.0);
+        T.z = Scalar(0.0);
         }
 
 #ifndef __HIPCC__

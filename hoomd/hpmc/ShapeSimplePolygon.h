@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolygon.h"
@@ -67,14 +67,14 @@ struct ShapeSimplePolygon
         }
 
     //! Get the circumsphere diameter
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
     //! Get the in-circle radius
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
         return Scalar(0.0);
@@ -137,7 +137,7 @@ namespace detail
 
     \ingroup overlap
 */
-DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const PolygonVertices& verts)
+DEVICE inline bool is_inside(const vec2<ShortReal>& p, const PolygonVertices& verts)
     {
     // code for concave test from: http://alienryderflex.com/polygon/
     unsigned int nvert = verts.N;
@@ -166,10 +166,10 @@ DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const PolygonVertices& 
 
 //! Test if 3 points are in ccw order
 DEVICE inline unsigned int
-tri_orientation(const vec2<OverlapReal>& a, const vec2<OverlapReal>& b, const vec2<OverlapReal>& c)
+tri_orientation(const vec2<ShortReal>& a, const vec2<ShortReal>& b, const vec2<ShortReal>& c)
     {
-    const OverlapReal precision_tol = OverlapReal(1e-6);
-    OverlapReal v = ((c.y - a.y) * (b.x - a.x) - (b.y - a.y) * (c.x - a.x));
+    const ShortReal precision_tol = ShortReal(1e-6);
+    ShortReal v = ((c.y - a.y) * (b.x - a.x) - (b.y - a.y) * (c.x - a.x));
 
     if (fabs(v) < precision_tol)
         return 0;
@@ -188,10 +188,10 @@ tri_orientation(const vec2<OverlapReal>& a, const vec2<OverlapReal>& b, const ve
 
     \ingroup overlap
 */
-DEVICE inline bool segment_intersect(const vec2<OverlapReal>& a,
-                                     const vec2<OverlapReal>& b,
-                                     const vec2<OverlapReal>& c,
-                                     const vec2<OverlapReal>& d)
+DEVICE inline bool segment_intersect(const vec2<ShortReal>& a,
+                                     const vec2<ShortReal>& b,
+                                     const vec2<ShortReal>& c,
+                                     const vec2<ShortReal>& d)
     {
     // implemented following the algorithm in:
     // http://www.dcs.gla.ac.uk/~pat/52233/slides/Geometry1x1.pdf
@@ -209,15 +209,15 @@ DEVICE inline bool segment_intersect(const vec2<OverlapReal>& a,
         {
         // all points a,b,c,d are in a line. Project onto that line and see if the intervals overlap
         // or not.
-        vec2<OverlapReal> v = b - a;
+        vec2<ShortReal> v = b - a;
 
-        OverlapReal p1 = dot(a, v);
-        OverlapReal p2 = dot(b, v);
-        OverlapReal min_1 = min(p1, p2);
-        OverlapReal max_1 = max(p1, p2);
+        ShortReal p1 = dot(a, v);
+        ShortReal p2 = dot(b, v);
+        ShortReal min_1 = min(p1, p2);
+        ShortReal max_1 = max(p1, p2);
 
-        OverlapReal p3 = dot(c, v);
-        OverlapReal p4 = dot(d, v);
+        ShortReal p3 = dot(c, v);
+        ShortReal p4 = dot(d, v);
 
         if ((p3 > min_1 && p3 < max_1) || (p4 > min_1 && p4 < max_1))
             return true;
@@ -260,28 +260,28 @@ DEVICE inline bool segment_intersect(const vec2<OverlapReal>& a,
 */
 DEVICE inline bool test_simple_polygon_overlap(const PolygonVertices& a,
                                                const PolygonVertices& b,
-                                               const vec2<OverlapReal>& dr,
-                                               const quat<OverlapReal>& qa,
-                                               const quat<OverlapReal>& qb)
+                                               const vec2<ShortReal>& dr,
+                                               const quat<ShortReal>& qa,
+                                               const quat<ShortReal>& qb)
     {
     // construct a quaternion that rotates from a's coordinate system into b's
-    quat<OverlapReal> ab_r = conj(qb) * qa;
-    vec2<OverlapReal> ab_t = rotate(conj(qb), dr);
+    quat<ShortReal> ab_r = conj(qb) * qa;
+    vec2<ShortReal> ab_t = rotate(conj(qb), dr);
 
     // loop through all edges in a. As we loop through them, transform into b's coordinate system
     // and do the checks there
     unsigned int j = a.N - 1;
-    vec2<OverlapReal> prev_a = rotate(ab_r, vec2<OverlapReal>(a.x[j], a.y[j])) - ab_t;
+    vec2<ShortReal> prev_a = rotate(ab_r, vec2<ShortReal>(a.x[j], a.y[j])) - ab_t;
     for (unsigned int i = 0; i < a.N; i++)
         {
-        vec2<OverlapReal> cur_a = rotate(ab_r, vec2<OverlapReal>(a.x[i], a.y[i])) - ab_t;
+        vec2<ShortReal> cur_a = rotate(ab_r, vec2<ShortReal>(a.x[i], a.y[i])) - ab_t;
 
         // check if this edge in a intersects any edge in b
         unsigned int k = b.N - 1;
-        vec2<OverlapReal> prev_b = vec2<OverlapReal>(b.x[k], b.y[k]);
+        vec2<ShortReal> prev_b = vec2<ShortReal>(b.x[k], b.y[k]);
         for (unsigned int l = 0; l < b.N; l++)
             {
-            vec2<OverlapReal> cur_b = vec2<OverlapReal>(b.x[l], b.y[l]);
+            vec2<ShortReal> cur_b = vec2<ShortReal>(b.x[l], b.y[l]);
 
             if (segment_intersect(prev_a, cur_a, prev_b, cur_b))
                 return true;
@@ -305,7 +305,7 @@ DEVICE inline bool test_simple_polygon_overlap(const PolygonVertices& a,
 
     for (unsigned int i = 0; i < a.N; i++)
         {
-        vec2<OverlapReal> cur = rotate(ab_r, vec2<OverlapReal>(b.x[i], b.y[i])) - ab_t;
+        vec2<ShortReal> cur = rotate(ab_r, vec2<ShortReal>(b.x[i], b.y[i])) - ab_t;
 
         // check if any vertex from b is in inside a
         if (is_inside(cur, a))
@@ -334,13 +334,13 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon, ShapeSimplePolygon>(const ve
                                                                         unsigned int& err)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
-    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
+    vec2<ShortReal> dr(ShortReal(r_ab.x), ShortReal(r_ab.y));
 
     return detail::test_simple_polygon_overlap(a.verts,
                                                b.verts,
                                                dr,
-                                               quat<OverlapReal>(a.orientation),
-                                               quat<OverlapReal>(b.orientation));
+                                               quat<ShortReal>(a.orientation),
+                                               quat<ShortReal>(b.orientation));
     }
 
 #ifndef __HIPCC__

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of molecular dynamics simulations.
@@ -80,11 +80,11 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
-            W_\\mathrm{isotropic} = & \\frac{1}{D} \\left(
+            W_\\mathrm{isotropic} = & \\left(
             W_{\\mathrm{net},\\mathrm{additional}}^{xx}
             + W_{\\mathrm{net},\\mathrm{additional}}^{yy}
             + W_{\\mathrm{net},\\mathrm{additional}}^{zz} \\right) \\\\
-            + & \\frac{1}{D} \\sum_{i \\in \\mathrm{filter}}
+            + & \\sum_{i \\in \\mathrm{filter}}
             \\left( W_\\mathrm{{net},i}^{xx}
             + W_\\mathrm{{net},i}^{yy}
             + W_\\mathrm{{net},i}^{zz}
@@ -106,14 +106,14 @@ class ThermodynamicQuantities(Compute):
         (:math:`P^{xx}`, :math:`P^{xy}`, :math:`P^{xz}`, :math:`P^{yy}`,
         :math:`P^{yz}`, :math:`P^{zz}`):
 
-          .. math::
+        .. math::
 
-              P^{kl} = \\frac{1}{V} \\left(
-              W_{\\mathrm{net},\\mathrm{additional}}^{kl}
-              + \\sum_{i \\in \\mathrm{filter}} m_i
-              \\cdot v_i^k \\cdot v_i^l +
-              W_{\\mathrm{net},i}^{kl}
-              \\right),
+            P^{kl} = \\frac{1}{V} \\left(
+            W_{\\mathrm{net},\\mathrm{additional}}^{kl}
+            + \\sum_{i \\in \\mathrm{filter}} m_i
+            \\cdot v_i^k \\cdot v_i^l +
+            W_{\\mathrm{net},i}^{kl}
+            \\right),
 
         where the net virial terms are computed by `hoomd.md.Integrator` over
         all of the forces in `hoomd.md.Integrator.forces`, :math:`v_i^k` is the

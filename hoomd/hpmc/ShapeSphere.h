@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
-#include "HPMCPrecisionSetup.h"
 #include "Moves.h"
 #include "hoomd/AABB.h"
 #include "hoomd/BoxDim.h"
@@ -122,7 +121,7 @@ struct ShapeParams
 struct SphereParams : ShapeParams
     {
     /// The radius of the sphere
-    OverlapReal radius;
+    ShortReal radius;
 
     /// True when move statistics should not be counted
     bool ignore;
@@ -144,7 +143,7 @@ struct SphereParams : ShapeParams
     SphereParams(pybind11::dict v, bool managed = false)
         {
         ignore = v["ignore_statistics"].cast<bool>();
-        radius = v["diameter"].cast<OverlapReal>() / OverlapReal(2.0);
+        radius = v["diameter"].cast<ShortReal>() / ShortReal(2.0);
         isOriented = v["orientable"].cast<bool>();
         }
 
@@ -152,7 +151,7 @@ struct SphereParams : ShapeParams
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        v["diameter"] = radius * OverlapReal(2.0);
+        v["diameter"] = radius * ShortReal(2.0);
         v["orientable"] = isOriented;
         v["ignore_statistics"] = ignore;
         return v;
@@ -206,13 +205,13 @@ struct ShapeSphere
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
-        return params.radius * OverlapReal(2.0);
+        return params.radius * ShortReal(2.0);
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         return params.radius;
         }
@@ -258,13 +257,11 @@ struct ShapeSphere
 */
 template<class ShapeA, class ShapeB>
 DEVICE inline bool
-check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB& b)
+check_circumsphere_overlap(const vec3<LongReal>& r_ab, const ShapeA& a, const ShapeB& b)
     {
-    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
-
-    OverlapReal rsq = dot(dr, dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq * OverlapReal(4.0) <= DaDb * DaDb);
+    LongReal r_squared = dot(r_ab, r_ab);
+    LongReal diameter_sum = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    return (r_squared * LongReal(4.0) <= diameter_sum * diameter_sum);
     }
 
 //! Define the general overlap function
@@ -298,11 +295,11 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
                                                           const ShapeSphere& b,
                                                           unsigned int& err)
     {
-    vec3<OverlapReal> dr(r_ab);
+    vec3<ShortReal> dr(r_ab);
 
-    OverlapReal rsq = dot(dr, dr);
+    ShortReal rsq = dot(dr, dr);
 
-    OverlapReal RaRb = a.params.radius + b.params.radius;
+    ShortReal RaRb = a.params.radius + b.params.radius;
     if (rsq < RaRb * RaRb)
         {
         return true;
@@ -322,29 +319,29 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
 
     \ingroup shape
 */
-DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
-                                         const ShapeSphere& a,
-                                         const ShapeSphere& b,
-                                         const vec3<Scalar>& direction,
-                                         unsigned int& err,
-                                         vec3<Scalar>& collisionPlaneVector)
+DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
+                                       const ShapeSphere& a,
+                                       const ShapeSphere& b,
+                                       const vec3<Scalar>& direction,
+                                       unsigned int& err,
+                                       vec3<Scalar>& collisionPlaneVector)
     {
-    OverlapReal sumR = a.params.radius + b.params.radius;
-    OverlapReal distSQ = OverlapReal(dot(r_ab, r_ab));
+    ShortReal sumR = a.params.radius + b.params.radius;
+    ShortReal distSQ = ShortReal(dot(r_ab, r_ab));
 
-    OverlapReal d_parallel = OverlapReal(dot(r_ab, direction));
+    ShortReal d_parallel = ShortReal(dot(r_ab, direction));
     if (d_parallel <= 0) // Moving apart
         {
         return -1.0;
         };
 
-    OverlapReal discriminant = sumR * sumR - distSQ + d_parallel * d_parallel;
+    ShortReal discriminant = sumR * sumR - distSQ + d_parallel * d_parallel;
     if (discriminant < 0) // orthogonal distance larger than sum of radii
         {
         return -2.0;
         };
 
-    OverlapReal newDist = d_parallel - fast::sqrt(discriminant);
+    ShortReal newDist = d_parallel - fast::sqrt(discriminant);
 
     if (newDist > 0)
         {
@@ -396,7 +393,7 @@ template<typename Method, class Shape>
 DEVICE inline unsigned int allocateDepletionTemporaryStorage(const Shape& shape_a,
                                                              const Shape& shape_b,
                                                              const vec3<Scalar>& r_ab,
-                                                             OverlapReal r,
+                                                             ShortReal r,
                                                              unsigned int dim,
                                                              const Method)
     {
@@ -423,10 +420,10 @@ DEVICE inline unsigned int
 initializeDepletionTemporaryStorage(const Shape& shape_a,
                                     const Shape& shape_b,
                                     const vec3<Scalar>& r_ab,
-                                    OverlapReal r,
+                                    ShortReal r,
                                     unsigned int dim,
                                     typename Shape::depletion_storage_type* storage,
-                                    const OverlapReal V_sample,
+                                    const ShortReal V_sample,
                                     const Method)
     {
     // default implementation doesn't require temporary storage
@@ -446,14 +443,14 @@ template<typename Method, class Shape>
 DEVICE inline bool excludedVolumeOverlap(const Shape& shape_a,
                                          const Shape& shape_b,
                                          const vec3<Scalar>& r_ab,
-                                         OverlapReal r,
+                                         ShortReal r,
                                          unsigned int dim,
                                          const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
-        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
+        ShortReal Ra = ShortReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        ShortReal Rb = ShortReal(0.5) * shape_b.getCircumsphereDiameter() + r;
 
         return (dot(r_ab, r_ab) <= (Ra + Rb) * (Ra + Rb));
         }
@@ -481,7 +478,7 @@ DEVICE inline bool excludedVolumeOverlap(const Shape& shape_a,
         upper_b.y += r;
         upper_b.z += r;
 
-        return overlap(aabb_a, aabb_b);
+        return aabb_b.overlaps(aabb_a);
         }
     }
 
@@ -506,8 +503,8 @@ sampleInExcludedVolumeIntersection(RNG& rng,
                                    const Shape& shape_a,
                                    const Shape& shape_b,
                                    const vec3<Scalar>& r_ab,
-                                   OverlapReal r,
-                                   vec3<OverlapReal>& p,
+                                   ShortReal r,
+                                   vec3<ShortReal>& p,
                                    unsigned int dim,
                                    unsigned int storage_sz,
                                    const typename Shape::depletion_storage_type* storage,
@@ -515,31 +512,31 @@ sampleInExcludedVolumeIntersection(RNG& rng,
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
-        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
+        ShortReal Ra = ShortReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        ShortReal Rb = ShortReal(0.5) * shape_b.getCircumsphereDiameter() + r;
 
         if (dot(r_ab, r_ab) > (Ra + Rb) * (Ra + Rb))
             return false;
 
-        vec3<OverlapReal> dr(r_ab);
-        OverlapReal d = fast::sqrt(dot(dr, dr));
+        vec3<ShortReal> dr(r_ab);
+        ShortReal d = fast::sqrt(dot(dr, dr));
 
         // whether the intersection is the entire (smaller) sphere
-        bool sphere = (d + Ra - Rb < OverlapReal(0.0)) || (d + Rb - Ra < OverlapReal(0.0));
+        bool sphere = (d + Ra - Rb < ShortReal(0.0)) || (d + Rb - Ra < ShortReal(0.0));
 
         if (!sphere)
             {
             // heights spherical caps that constitute the intersection volume
-            OverlapReal ha = (Rb * Rb - (d - Ra) * (d - Ra)) / (OverlapReal(2.0) * d);
-            OverlapReal hb = (Ra * Ra - (d - Rb) * (d - Rb)) / (OverlapReal(2.0) * d);
+            ShortReal ha = (Rb * Rb - (d - Ra) * (d - Ra)) / (ShortReal(2.0) * d);
+            ShortReal hb = (Ra * Ra - (d - Rb) * (d - Rb)) / (ShortReal(2.0) * d);
 
             // volumes of spherical caps
-            OverlapReal Vcap_a = OverlapReal(M_PI / 3.0) * ha * ha * (OverlapReal(3.0) * Ra - ha);
-            OverlapReal Vcap_b = OverlapReal(M_PI / 3.0) * hb * hb * (OverlapReal(3.0) * Rb - hb);
+            ShortReal Vcap_a = ShortReal(M_PI / 3.0) * ha * ha * (ShortReal(3.0) * Ra - ha);
+            ShortReal Vcap_b = ShortReal(M_PI / 3.0) * hb * hb * (ShortReal(3.0) * Rb - hb);
 
             // choose one of the two caps randomly, with a weight proportional to their volume
-            hoomd::UniformDistribution<OverlapReal> u;
-            OverlapReal s = u(rng);
+            hoomd::UniformDistribution<ShortReal> u;
+            ShortReal s = u(rng);
             bool cap_a = s < Vcap_a / (Vcap_a + Vcap_b);
 
             // generate a depletant position in the spherical cap
@@ -557,7 +554,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
                 }
             else
                 {
-                p = vec3<OverlapReal>(generatePositionInSphere(rng, dr, Rb));
+                p = vec3<ShortReal>(generatePositionInSphere(rng, dr, Rb));
                 }
             }
 
@@ -569,7 +566,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
-        if (!overlap(aabb_a, aabb_b))
+        if (!aabb_b.overlaps(aabb_a))
             return false;
 
         // extend AABBs by the excluded volume radius
@@ -601,7 +598,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         intersect_upper.z = detail::min(upper_a.z, upper_b.z);
 
         hoomd::detail::AABB aabb_intersect(intersect_lower, intersect_upper);
-        p = vec3<OverlapReal>(generatePositionInAABB(rng, aabb_intersect, dim));
+        p = vec3<ShortReal>(generatePositionInAABB(rng, aabb_intersect, dim));
 
         // AABB sampling always succeeds
         return true;
@@ -621,39 +618,39 @@ sampleInExcludedVolumeIntersection(RNG& rng,
     returns the volume of the intersection
  */
 template<typename Method, class Shape>
-DEVICE inline OverlapReal getSamplingVolumeIntersection(const Shape& shape_a,
-                                                        const Shape& shape_b,
-                                                        const vec3<Scalar>& r_ab,
-                                                        OverlapReal r,
-                                                        unsigned int dim,
-                                                        const Method)
+DEVICE inline ShortReal getSamplingVolumeIntersection(const Shape& shape_a,
+                                                      const Shape& shape_b,
+                                                      const vec3<Scalar>& r_ab,
+                                                      ShortReal r,
+                                                      unsigned int dim,
+                                                      const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
-        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
+        ShortReal Ra = ShortReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        ShortReal Rb = ShortReal(0.5) * shape_b.getCircumsphereDiameter() + r;
 
         if (dot(r_ab, r_ab) > (Ra + Rb) * (Ra + Rb))
-            return OverlapReal(0.0);
+            return ShortReal(0.0);
 
-        vec3<OverlapReal> dr(r_ab);
-        OverlapReal d = fast::sqrt(dot(dr, dr));
+        vec3<ShortReal> dr(r_ab);
+        ShortReal d = fast::sqrt(dot(dr, dr));
 
-        if ((d + Ra - Rb < OverlapReal(0.0)) || (d + Rb - Ra < OverlapReal(0.0)))
+        if ((d + Ra - Rb < ShortReal(0.0)) || (d + Rb - Ra < ShortReal(0.0)))
             {
             // the intersection is the entire (smaller) sphere
-            return (Ra < Rb) ? OverlapReal(M_PI * 4.0 / 3.0) * Ra * Ra * Ra
-                             : OverlapReal(M_PI * 4.0 / 3.0) * Rb * Rb * Rb;
+            return (Ra < Rb) ? ShortReal(M_PI * 4.0 / 3.0) * Ra * Ra * Ra
+                             : ShortReal(M_PI * 4.0 / 3.0) * Rb * Rb * Rb;
             }
         else
             {
             // heights spherical caps that constitute the intersection volume
-            OverlapReal ha = (Rb * Rb - (d - Ra) * (d - Ra)) / (OverlapReal(2.0) * d);
-            OverlapReal hb = (Ra * Ra - (d - Rb) * (d - Rb)) / (OverlapReal(2.0) * d);
+            ShortReal ha = (Rb * Rb - (d - Ra) * (d - Ra)) / (ShortReal(2.0) * d);
+            ShortReal hb = (Ra * Ra - (d - Rb) * (d - Rb)) / (ShortReal(2.0) * d);
 
             // volumes of spherical caps
-            OverlapReal Vcap_a = OverlapReal(M_PI / 3.0) * ha * ha * (OverlapReal(3.0) * Ra - ha);
-            OverlapReal Vcap_b = OverlapReal(M_PI / 3.0) * hb * hb * (OverlapReal(3.0) * Rb - hb);
+            ShortReal Vcap_a = ShortReal(M_PI / 3.0) * ha * ha * (ShortReal(3.0) * Ra - ha);
+            ShortReal Vcap_b = ShortReal(M_PI / 3.0) * hb * hb * (ShortReal(3.0) * Rb - hb);
 
             // volume of intersection
             return Vcap_a + Vcap_b;
@@ -664,8 +661,8 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(const Shape& shape_a,
         hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
-        if (!overlap(aabb_a, aabb_b))
-            return OverlapReal(0.0);
+        if (!aabb_b.overlaps(aabb_a))
+            return ShortReal(0.0);
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
@@ -700,7 +697,7 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(const Shape& shape_a,
             = (intersect_upper.x - intersect_lower.x) * (intersect_upper.y - intersect_lower.y);
         if (dim == 3)
             V *= intersect_upper.z - intersect_lower.z;
-        return (OverlapReal)V;
+        return (ShortReal)V;
         }
     }
 
@@ -723,16 +720,16 @@ template<typename Method, class Shape>
 DEVICE inline bool isPointInExcludedVolumeIntersection(const Shape& shape_a,
                                                        const Shape& shape_b,
                                                        const vec3<Scalar>& r_ab,
-                                                       OverlapReal r,
-                                                       const vec3<OverlapReal>& p,
+                                                       ShortReal r,
+                                                       const vec3<ShortReal>& p,
                                                        unsigned int dim,
                                                        const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
-        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
-        vec3<OverlapReal> dr(r_ab);
+        ShortReal Ra = ShortReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        ShortReal Rb = ShortReal(0.5) * shape_b.getCircumsphereDiameter() + r;
+        vec3<ShortReal> dr(r_ab);
 
         bool is_pt_in_sphere_a = dot(p, p) <= Ra * Ra;
         bool is_pt_in_sphere_b = dot(p - dr, p - dr) <= Rb * Rb;
@@ -791,7 +788,7 @@ template<class Shape> std::string getShapeSpec(const Shape& shape)
 template<> inline std::string getShapeSpec(const ShapeSphere& sphere)
     {
     std::ostringstream shapedef;
-    shapedef << "{\"type\": \"Sphere\", \"diameter\": " << sphere.params.radius * OverlapReal(2.0)
+    shapedef << "{\"type\": \"Sphere\", \"diameter\": " << sphere.params.radius * ShortReal(2.0)
              << "}";
     return shapedef.str();
     }

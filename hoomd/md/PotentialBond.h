@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
@@ -171,9 +171,6 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::readwrite);
@@ -186,7 +183,6 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
-    assert(h_diameter.data);
     assert(h_charge.data);
 
     // Zero data for force calculation
@@ -244,15 +240,6 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
 
         Scalar3 dx = posb - posa;
 
-        // access diameter (if needed)
-        Scalar diameter_a = Scalar(0.0);
-        Scalar diameter_b = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            {
-            diameter_a = h_diameter.data[idx_a];
-            diameter_b = h_diameter.data[idx_b];
-            }
-
         // access charge (if needed)
         Scalar charge_a = Scalar(0.0);
         Scalar charge_b = Scalar(0.0);
@@ -272,8 +259,6 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
         evaluator eval(rsq, h_params.data[h_typeval.data[i].type]);
-        if (evaluator::needsDiameter())
-            eval.setDiameter(diameter_a, diameter_b);
         if (evaluator::needsCharge())
             eval.setCharge(charge_a, charge_b);
 
@@ -341,9 +326,6 @@ CommFlags PotentialBond<evaluator, Bonds>::getRequestedCommFlags(uint64_t timest
 
     if (evaluator::needsCharge())
         flags[comm_flag::charge] = 1;
-
-    if (evaluator::needsDiameter())
-        flags[comm_flag::diameter] = 1;
 
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 

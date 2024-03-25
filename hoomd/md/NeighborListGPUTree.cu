@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPUTree.cuh"
@@ -437,12 +437,11 @@ struct PointMapInsertOp
 //! Neighbor list particle query operation.
 /*!
  * \tparam use_body If true, use the body fields during query.
- * \tparam use_diam If true, use the diameter fields during query.
  *
  * This operation specifies the neighbor list traversal scheme. The
  * query is between a SkippableBoundingSphere and the bounding boxes in
  * the LBVH. The template parameters can be activated to engage body-filtering
- * or diameter-shifting, which are defined elsewhere in HOOMD.
+ * which is defined elsewhere in HOOMD.
  *
  * All spheres in the traversal are given the same search radius. This is compatible
  * with a traversal-per-type-per-type scheme. It was found that passing this radius
@@ -452,13 +451,12 @@ struct PointMapInsertOp
  * The particles are traversed using a \a map. Ghost particles can be included
  * in this map, and they will be neglected during traversal.
  */
-template<bool use_body, bool use_diam> struct ParticleQueryOp
+template<bool use_body> struct ParticleQueryOp
     {
     //! Constructor
     /*!
      * \param positions_ Particle positions.
      * \param bodies_ Particle body tags.
-     * \param diams_ Particle diameters.
      * \param map_ Map of the particle indexes to traverse.
      * \param N_ Number of particles (total).
      * \param Nown_ Number of locally owned particles.
@@ -467,35 +465,33 @@ template<bool use_body, bool use_diam> struct ParticleQueryOp
      */
     ParticleQueryOp(const Scalar4* positions_,
                     const unsigned int* bodies_,
-                    const Scalar* diams_,
                     const unsigned int* map_,
                     unsigned int N_,
                     unsigned int Nown_,
                     const Scalar rcut_,
                     const Scalar rlist_,
                     const BoxDim& box_)
-        : positions(positions_), bodies(bodies_), diams(diams_), map(map_), N(N_), Nown(Nown_),
-          rcut(rcut_), rlist(rlist_), box(box_)
+        : positions(positions_), bodies(bodies_), map(map_), N(N_), Nown(Nown_), rcut(rcut_),
+          rlist(rlist_), box(box_)
         {
         }
 
     //! Data stored per thread for traversal
     /*!
-     * The body tag and diameter are only actually set if these are specified
+     * The body tags are only actually set if these are specified
      * by the template parameters. The compiler might be able to optimize them
      * out if they are unused.
      */
     struct ThreadData
         {
-        DEVICE ThreadData(Scalar3 position_, int idx_, unsigned int body_, Scalar diam_)
-            : position(position_), idx(idx_), body(body_), diam(diam_)
+        DEVICE ThreadData(Scalar3 position_, int idx_, unsigned int body_)
+            : position(position_), idx(idx_), body(body_)
             {
             }
 
         Scalar3 position;  //!< Particle position
         int idx;           //!< True particle index
         unsigned int body; //!< Particle body tag (may be invalid)
-        Scalar diam;       //!< Particle diameter (may be invalid)
         };
 
     // specify that the traversal Volume is a bounding sphere
@@ -507,7 +503,7 @@ template<bool use_body, bool use_diam> struct ParticleQueryOp
      * \returns The ThreadData required for traversal.
      *
      * The ThreadData is loaded subject to a mapping. The particle position
-     * is always loaded. The body and diameter are only loaded if the template
+     * is always loaded. The body is only loaded if the template
      * parameter requires it.
      */
     DEVICE ThreadData setup(const unsigned int idx) const
@@ -522,13 +518,8 @@ template<bool use_body, bool use_diam> struct ParticleQueryOp
             {
             body = __ldg(bodies + pidx);
             }
-        Scalar diam(1.0);
-        if (use_diam)
-            {
-            diam = __ldg(diams + pidx);
-            }
 
-        return ThreadData(r, pidx, body, diam);
+        return ThreadData(r, pidx, body);
         }
 
     //! Return the traversal volume subject to a translation
@@ -566,9 +557,7 @@ template<bool use_body, bool use_diam> struct ParticleQueryOp
      *
      * HOOMD's neighbor lists require additional filtering. This first ensures
      * that the overlap is not with itself. If body filtering is enabled,
-     * particles in the same body do not overlap. If diameter shifting is
-     * enabled, the cutoff radius is adjusted based on the diameters of the
-     * particles.
+     * particles in the same body do not overlap.
      */
     DEVICE bool refine(const ThreadData& q, const int primitive) const
         {
@@ -579,26 +568,6 @@ template<bool use_body, bool use_diam> struct ParticleQueryOp
             {
             const unsigned int body = __ldg(bodies + primitive);
             exclude |= (q.body == body);
-            }
-
-        // diameter exclusion
-        if (use_diam && !exclude)
-            {
-            const Scalar4 position = positions[primitive];
-            const Scalar3 r = make_scalar3(position.x, position.y, position.z);
-            const Scalar diam = diams[primitive];
-
-            // compute factor to add to base rc
-            const Scalar delta = (q.diam + diam) * Scalar(0.5) - Scalar(1.0);
-            Scalar rc2 = (rcut + delta);
-            rc2 *= rc2;
-
-            // compute distance and wrap back into box
-            const Scalar3 dr = box.minImage(r - q.position);
-            const Scalar drsq = dot(dr, dr);
-
-            // exclude if outside the sphere
-            exclude |= drsq > rc2;
             }
 
         return !exclude;
@@ -612,7 +581,6 @@ template<bool use_body, bool use_diam> struct ParticleQueryOp
 
     const Scalar4* positions;   //!< Particle positions
     const unsigned int* bodies; //!< Particle bodies
-    const Scalar* diams;        //!< Particle diameters
     const unsigned int* map;    //!< Mapping of particles to read
     unsigned int N;             //!< Total number of particles in map
     unsigned int Nown;          //!< Number of particles owned by the local rank
@@ -922,8 +890,8 @@ void LBVHTraverserWrapper::setup(const unsigned int* map, neighbor::LBVH& lbvh, 
  * Scalar precision.
  *
  * As a microoptimization, the query operation is templated on whether
- * body filtering and/or diameter shifting are enabled. These switches
- * are determined by checking if the body and/or diameter data pointers
+ * body filtering is enabled. These switches
+ * are determined by checking if the body data pointers
  * are NULL. It is the callers job to set rcut and rlist in the TraverserArgs
  * to compatible with those modes.
  */
@@ -944,17 +912,16 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
 
     neighbor::ImageListOp<Scalar3> translate(images, Nimages);
 
-    if (args.bodies == NULL && args.diams == NULL)
+    if (args.bodies == NULL)
         {
-        ParticleQueryOp<false, false> query(args.positions,
-                                            NULL,
-                                            NULL,
-                                            args.order,
-                                            args.N,
-                                            args.Nown,
-                                            args.rcut,
-                                            args.rlist,
-                                            args.box);
+        ParticleQueryOp<false> query(args.positions,
+                                     NULL,
+                                     args.order,
+                                     args.N,
+                                     args.Nown,
+                                     args.rcut,
+                                     args.rlist,
+                                     args.box);
         trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
                         lbvh,
                         query,
@@ -962,53 +929,16 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                         translate,
                         map);
         }
-    else if (args.bodies != NULL && args.diams == NULL)
+    else if (args.bodies != NULL)
         {
-        ParticleQueryOp<true, false> query(args.positions,
-                                           args.bodies,
-                                           NULL,
-                                           args.order,
-                                           args.N,
-                                           args.Nown,
-                                           args.rcut,
-                                           args.rlist,
-                                           args.box);
-        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
-                        lbvh,
-                        query,
-                        nlist_op,
-                        translate,
-                        map);
-        }
-    else if (args.bodies == NULL && args.diams != NULL)
-        {
-        ParticleQueryOp<false, true> query(args.positions,
-                                           NULL,
-                                           args.diams,
-                                           args.order,
-                                           args.N,
-                                           args.Nown,
-                                           args.rcut,
-                                           args.rlist,
-                                           args.box);
-        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
-                        lbvh,
-                        query,
-                        nlist_op,
-                        translate,
-                        map);
-        }
-    else
-        {
-        ParticleQueryOp<true, true> query(args.positions,
-                                          args.bodies,
-                                          args.diams,
-                                          args.order,
-                                          args.N,
-                                          args.Nown,
-                                          args.rcut,
-                                          args.rlist,
-                                          args.box);
+        ParticleQueryOp<true> query(args.positions,
+                                    args.bodies,
+                                    args.order,
+                                    args.N,
+                                    args.Nown,
+                                    args.rcut,
+                                    args.rlist,
+                                    args.box);
         trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
                         lbvh,
                         query,

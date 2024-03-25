@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -40,7 +40,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     # make sure quantities are computable without failure
     for qty, typ in _thermo_qtys:
         calc_qty = getattr(thermo, qty)
-        assert type(calc_qty) == typ
+        assert type(calc_qty) is typ
 
     # detach from simulation and test properties again
     sim.operations.remove(thermo)
@@ -120,7 +120,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.ConstantVolume(filterA, thermostat))
     integrator.methods.append(
-        hoomd.md.methods.Langevin(filterB, kT=1, alpha=0.00001))
+        hoomd.md.methods.Langevin(filterB, kT=1, default_gamma=0.00001))
     sim.operations.integrator = integrator
 
     sim.run(1)

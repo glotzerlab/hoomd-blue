@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -312,7 +312,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
     Index2D cli = cl->getCellListIndexer();
     CHECK_EQUAL_UINT(cli.getNumElements(), 3 * 5 * 7 * cl->getNmax());
     CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 3 * 5 * 7 * cl->getNmax());
-    CHECK_EQUAL_UINT(cl->getTDBArray().getNumElements(), 0);
+    CHECK_EQUAL_UINT(cl->getTypeBodyArray().getNumElements(), 0);
 
         // verify the cell contents
         {
@@ -393,25 +393,28 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
             }
         }
 
-    // enable charge and TDB options and test that they work properly
+    // enable charge and TypeBody options and test that they work properly
     cl->setFlagCharge();
-    cl->setComputeTDB(true);
+    cl->setComputeTypeBody(true);
     cl->compute(0);
 
     // update the indexers
     ci = cl->getCellIndexer();
     cli = cl->getCellListIndexer();
 
-    CHECK_EQUAL_UINT(cl->getTDBArray().getNumElements(), 3 * 5 * 7 * cl->getNmax());
+    CHECK_EQUAL_UINT(cl->getTypeBodyArray().getNumElements(), 3 * 5 * 7 * cl->getNmax());
 
         {
         ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(),
                                               access_location::host,
                                               access_mode::read);
         ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_tdb(cl->getTDBArray(), access_location::host, access_mode::read);
+        ArrayHandle<uint2> h_type_body(cl->getTypeBodyArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
         Scalar4 val;
+        uint2 val_type_body;
 
         // verify cell 2,2,3
         CHECK_EQUAL_UINT(h_cell_size.data[ci(2, 2, 3)], 1);
@@ -420,10 +423,9 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         MY_CHECK_SMALL(val.y, tol_small);
         MY_CHECK_SMALL(val.z, tol_small);
         MY_CHECK_CLOSE(val.w, 2.0f, tol);
-        val = h_tdb.data[cli(0, ci(2, 2, 3))];
-        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 2);
-        MY_CHECK_CLOSE(val.y, 1.0f, tol);
-        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 3);
+        val_type_body = h_type_body.data[cli(0, ci(2, 2, 3))];
+        UP_ASSERT_EQUAL(val_type_body.x, 2);
+        UP_ASSERT_EQUAL(val_type_body.y, 3);
 
         CHECK_EQUAL_UINT(h_cell_size.data[ci(0, 2, 3)], 1);
         val = h_xyzf.data[cli(0, ci(0, 2, 3))];
@@ -431,10 +433,9 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         MY_CHECK_SMALL(val.y, tol_small);
         MY_CHECK_SMALL(val.z, tol_small);
         MY_CHECK_CLOSE(val.w, 3.0f, tol);
-        val = h_tdb.data[cli(0, ci(0, 2, 3))];
-        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 3);
-        MY_CHECK_CLOSE(val.y, 1.5f, tol);
-        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 0);
+        val_type_body = h_type_body.data[cli(0, ci(0, 2, 3))];
+        UP_ASSERT_EQUAL(val_type_body.x, 3);
+        UP_ASSERT_EQUAL(val_type_body.y, 0);
 
         CHECK_EQUAL_UINT(h_cell_size.data[ci(1, 0, 6)], 1);
         val = h_xyzf.data[cli(0, ci(1, 0, 6))];
@@ -442,10 +443,9 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         MY_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_CHECK_CLOSE(val.z, 3.0f, tol_small);
         MY_CHECK_CLOSE(val.w, 7.0f, tol);
-        val = h_tdb.data[cli(0, ci(1, 0, 6))];
-        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 3);
-        MY_CHECK_CLOSE(val.y, 3.5f, tol);
-        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 0);
+        val_type_body = h_type_body.data[cli(0, ci(1, 0, 6))];
+        UP_ASSERT_EQUAL(val_type_body.x, 3);
+        UP_ASSERT_EQUAL(val_type_body.y, 0);
 
         CHECK_EQUAL_UINT(h_cell_size.data[ci(1, 0, 0)], 1);
         val = h_xyzf.data[cli(0, ci(1, 0, 0))];
@@ -453,30 +453,27 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         MY_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_CHECK_CLOSE(val.z, -3.0f, tol_small);
         MY_CHECK_CLOSE(val.w, 8.0f, tol);
-        val = h_tdb.data[cli(0, ci(1, 0, 0))];
-        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 0);
-        MY_CHECK_CLOSE(val.y, 4.0f, tol);
-        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 1);
+        val_type_body = h_type_body.data[cli(0, ci(1, 0, 0))];
+        UP_ASSERT_EQUAL(val_type_body.x, 0);
+        UP_ASSERT_EQUAL(val_type_body.y, 1);
 
         CHECK_EQUAL_UINT(h_cell_size.data[ci(1, 2, 3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(1, 2, 3))];
-            Scalar4 val_tdb = h_tdb.data[cli(i, ci(1, 2, 3))];
+            val_type_body = h_type_body.data[cli(i, ci(1, 2, 3))];
 
             // particles can be in any order in the cell list
             bool ok = false;
             if (fabs(val.w - 1.0f) < tol)
                 {
                 ok = (fabs(val.x - 0.0f) < tol && fabs(val.y - 0.0f) < tol
-                      && fabs(val.z - 0.0f) < tol && __scalar_as_int(val_tdb.x) == 1
-                      && fabs(val_tdb.y - 0.5f) < tol && __scalar_as_int(val_tdb.z) == 2);
+                      && fabs(val.z - 0.0f) < tol && val_type_body.x == 1 && val_type_body.y == 2);
                 }
             else if (fabs(val.w - 5.0f) < tol)
                 {
                 ok = (fabs(val.x - 0.25f) < tol && fabs(val.y - 0.25f) < tol
-                      && fabs(val.z - 0.0f) < tol && __scalar_as_int(val_tdb.x) == 1
-                      && fabs(val_tdb.y - 2.5f) < tol && __scalar_as_int(val_tdb.z) == 2);
+                      && fabs(val.z - 0.0f) < tol && val_type_body.x == 1 && val_type_body.y == 2);
                 }
             UP_ASSERT(ok);
             }
@@ -485,21 +482,19 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(2, 4, 3))];
-            Scalar4 val_tdb = h_tdb.data[cli(i, ci(2, 4, 3))];
+            uint2 val_type_body = h_type_body.data[cli(i, ci(2, 4, 3))];
 
             // particles can be in any order in the cell list
             bool ok = false;
             if (fabs(val.w - 4.0f) < tol)
                 {
                 ok = (fabs(val.x - 1.0f) < tol && fabs(val.y - 2.0f) < tol
-                      && fabs(val.z - 0.0f) < tol && __scalar_as_int(val_tdb.x) == 0
-                      && fabs(val_tdb.y - 2.0f) < tol && __scalar_as_int(val_tdb.z) == 1);
+                      && fabs(val.z - 0.0f) < tol && val_type_body.x == 0 && val_type_body.y == 1);
                 }
             else if (fabs(val.w - 6.0f) < tol)
                 {
                 ok = (fabs(val.x - 1.25f) < tol && fabs(val.y - 2.25f) < tol
-                      && fabs(val.z - 0.0f) < tol && __scalar_as_int(val_tdb.x) == 2
-                      && fabs(val_tdb.y - 3.0f) < tol && __scalar_as_int(val_tdb.z) == 3);
+                      && fabs(val.z - 0.0f) < tol && val_type_body.x == 2 && val_type_body.y == 3);
                 }
             UP_ASSERT(ok);
             }

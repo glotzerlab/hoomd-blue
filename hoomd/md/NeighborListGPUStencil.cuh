@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLOSTGPUSTENCIL_CUH__
@@ -39,11 +39,10 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      const unsigned int* d_pid_map,
                                      const Scalar4* d_pos,
                                      const unsigned int* d_body,
-                                     const Scalar* d_diameter,
                                      const unsigned int N,
                                      const unsigned int* d_cell_size,
                                      const Scalar4* d_cell_xyzf,
-                                     const Scalar4* d_cell_tdb,
+                                     const uint2* d_cell_type_body,
                                      const Index3D& ci,
                                      const Index2D& cli,
                                      const Scalar4* d_stencil,
@@ -55,7 +54,6 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      const unsigned int ntypes,
                                      const Scalar3& ghost_width,
                                      bool filter_body,
-                                     bool diameter_shift,
                                      const unsigned int threads_per_particle,
                                      const unsigned int block_size,
                                      const hipDeviceProp_t& devprop);

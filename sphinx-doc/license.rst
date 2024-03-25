@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 License
@@ -49,9 +49,6 @@ Libraries
 
 Additionally, HOOMD-blue links to or compiles in code from the following
 libraries:
-
-**Sockets code** from `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_, used under the
-UIUC Open Source License.
 
 **Molfile plugin code** from VMD, used under the UIUC Open Source License::
 

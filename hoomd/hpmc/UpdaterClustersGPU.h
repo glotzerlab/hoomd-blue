@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_HPMC_CLUSTERS_GPU_
@@ -133,7 +133,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 
@@ -366,15 +366,15 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), params[i_type]);
-        OverlapReal d_i(shape_i.getCircumsphereDiameter());
+        ShortReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), params[j_type]);
-            OverlapReal d_j(shape_j.getCircumsphereDiameter());
+            ShortReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            OverlapReal range = std::max(d_i, d_j);
+            ShortReal range = std::max(d_i, d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {
@@ -410,9 +410,9 @@ template<class Shape> void UpdaterClustersGPU<Shape>::connectedComponents()
 
     // access edges of adajacency matrix
     ArrayHandle<unsigned int> d_adjacency(m_adjacency, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nneigh_scan(m_nneigh_scan,
-                                            access_location::host,
+                                            access_location::device,
                                             access_mode::overwrite);
 
     // determine total size of adjacency list, and do prefix sum

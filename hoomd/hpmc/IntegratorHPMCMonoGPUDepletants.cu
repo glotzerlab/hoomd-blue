@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUDepletants.cuh"
@@ -164,18 +164,19 @@ __global__ void hpmc_depletants_accept(const uint16_t seed,
 
     } // end namespace kernel
 
-void generate_num_depletants(const uint16_t seed,
-                             const uint64_t timestep,
-                             const unsigned int select,
-                             const unsigned int rank,
-                             const unsigned int depletant_type_a,
-                             const Scalar* d_lambda,
-                             const Scalar4* d_postype,
-                             unsigned int* d_n_depletants,
-                             const unsigned int block_size,
-                             const hipStream_t* streams,
-                             const GPUPartition& gpu_partition,
-                             const unsigned int ntypes)
+void __attribute__((visibility("default")))
+generate_num_depletants(const uint16_t seed,
+                        const uint64_t timestep,
+                        const unsigned int select,
+                        const unsigned int rank,
+                        const unsigned int depletant_type_a,
+                        const Scalar* d_lambda,
+                        const Scalar4* d_postype,
+                        unsigned int* d_n_depletants,
+                        const unsigned int block_size,
+                        const hipStream_t* streams,
+                        const GPUPartition& gpu_partition,
+                        const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -209,20 +210,21 @@ void generate_num_depletants(const uint16_t seed,
         }
     }
 
-void generate_num_depletants_ntrial(const Scalar4* d_vel,
-                                    const Scalar4* d_trial_vel,
-                                    const unsigned int ntrial,
-                                    const unsigned int depletant_type_a,
-                                    const Scalar* d_lambda,
-                                    const Scalar4* d_postype,
-                                    unsigned int* d_n_depletants,
-                                    const unsigned int N_local,
-                                    const bool add_ghosts,
-                                    const unsigned int n_ghosts,
-                                    const GPUPartition& gpu_partition,
-                                    const unsigned int block_size,
-                                    const hipStream_t* streams,
-                                    const unsigned int ntypes)
+void __attribute__((visibility("default")))
+generate_num_depletants_ntrial(const Scalar4* d_vel,
+                               const Scalar4* d_trial_vel,
+                               const unsigned int ntrial,
+                               const unsigned int depletant_type_a,
+                               const Scalar* d_lambda,
+                               const Scalar4* d_postype,
+                               unsigned int* d_n_depletants,
+                               const unsigned int N_local,
+                               const bool add_ghosts,
+                               const unsigned int n_ghosts,
+                               const GPUPartition& gpu_partition,
+                               const unsigned int block_size,
+                               const hipStream_t* streams,
+                               const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -268,11 +270,12 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
         }
     }
 
-void get_max_num_depletants(unsigned int* d_n_depletants,
-                            unsigned int* max_n_depletants,
-                            const hipStream_t* streams,
-                            const GPUPartition& gpu_partition,
-                            CachedAllocator& alloc)
+void __attribute__((visibility("default")))
+get_max_num_depletants(unsigned int* d_n_depletants,
+                       unsigned int* max_n_depletants,
+                       const hipStream_t* streams,
+                       const GPUPartition& gpu_partition,
+                       CachedAllocator& alloc)
     {
     assert(d_n_depletants);
     thrust::device_ptr<unsigned int> n_depletants(d_n_depletants);
@@ -293,14 +296,15 @@ void get_max_num_depletants(unsigned int* d_n_depletants,
     }
 
 //! Compute the max # of depletants per particle, trial insertion, and configuration
-void get_max_num_depletants_ntrial(const unsigned int ntrial,
-                                   unsigned int* d_n_depletants,
-                                   unsigned int* max_n_depletants,
-                                   const bool add_ghosts,
-                                   const unsigned int n_ghosts,
-                                   const hipStream_t* streams,
-                                   const GPUPartition& gpu_partition,
-                                   CachedAllocator& alloc)
+void __attribute__((visibility("default")))
+get_max_num_depletants_ntrial(const unsigned int ntrial,
+                              unsigned int* d_n_depletants,
+                              unsigned int* max_n_depletants,
+                              const bool add_ghosts,
+                              const unsigned int n_ghosts,
+                              const hipStream_t* streams,
+                              const GPUPartition& gpu_partition,
+                              CachedAllocator& alloc)
     {
     assert(d_n_depletants);
     thrust::device_ptr<unsigned int> n_depletants(d_n_depletants);
@@ -326,14 +330,15 @@ void get_max_num_depletants_ntrial(const unsigned int ntrial,
         }
     }
 
-void reduce_counters(const unsigned int ngpu,
-                     const unsigned int pitch,
-                     const hpmc_counters_t* d_per_device_counters,
-                     hpmc_counters_t* d_counters,
-                     const unsigned int implicit_pitch,
-                     const hpmc_implicit_counters_t* d_per_device_implicit_counters,
-                     hpmc_implicit_counters_t* d_implicit_counters,
-                     const unsigned int ntypes)
+void __attribute__((visibility("default")))
+reduce_counters(const unsigned int ngpu,
+                const unsigned int pitch,
+                const hpmc_counters_t* d_per_device_counters,
+                hpmc_counters_t* d_counters,
+                const unsigned int implicit_pitch,
+                const hpmc_implicit_counters_t* d_per_device_implicit_counters,
+                hpmc_implicit_counters_t* d_implicit_counters,
+                const unsigned int ntypes)
     {
     hipLaunchKernelGGL(kernel::hpmc_reduce_counters,
                        1,
@@ -350,18 +355,19 @@ void reduce_counters(const unsigned int ngpu,
                        ntypes);
     }
 
-void hpmc_depletants_accept(const uint16_t seed,
-                            const uint64_t timestep,
-                            const unsigned int select,
-                            const unsigned int rank,
-                            const int* d_deltaF_int,
-                            const unsigned int deltaF_pitch,
-                            const Scalar* d_fugacity,
-                            const unsigned int* d_ntrial,
-                            unsigned int* d_reject_out,
-                            const GPUPartition& gpu_partition,
-                            const unsigned int block_size,
-                            const unsigned int ntypes)
+void __attribute__((visibility("default")))
+hpmc_depletants_accept(const uint16_t seed,
+                       const uint64_t timestep,
+                       const unsigned int select,
+                       const unsigned int rank,
+                       const int* d_deltaF_int,
+                       const unsigned int deltaF_pitch,
+                       const Scalar* d_fugacity,
+                       const unsigned int* d_ntrial,
+                       unsigned int* d_reject_out,
+                       const GPUPartition& gpu_partition,
+                       const unsigned int block_size,
+                       const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;

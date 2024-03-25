@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExternalFieldEvalFactory.h"
@@ -32,6 +32,7 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
     {
     std::ostringstream sstream;
     m_eval = nullptr;
+    m_alpha = nullptr;
 
     // initialize LLVM
     auto clang_compiler = ClangCompiler::getClangCompiler();
@@ -79,6 +80,16 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
         m_error_msg = "Could not find eval function in LLVM module.\n";
         return;
         }
+
+    auto alpha = m_jit->findSymbol("param_array");
+    if (!alpha)
+        {
+        m_error_msg = "Could not find param_array array in LLVM module.";
+        return;
+        }
+    /// this cast is like this because 1) it works correctly like this and
+    /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
+    m_alpha = (float**)(alpha->getAddress());
 
     m_eval = (ExternalFieldEvalFnPtr)(long unsigned int)(eval->getAddress());
     }

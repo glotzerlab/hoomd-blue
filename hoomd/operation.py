@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Operation class types.
@@ -11,12 +11,18 @@ See Also:
     `hoomd.Operations`
 
     `hoomd.Simulation`
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    operation = simulation.operations.tuners[0]
 """
 
 # Operation is a parent class of almost all other HOOMD objects.
 
 from copy import copy
 import itertools
+import weakref
 
 import hoomd
 from hoomd.logging import Loggable
@@ -52,8 +58,9 @@ class _HOOMDGetSetAttrBase:
 
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs:
-            default = self._reserved_default_attrs[attr]
-            value = default() if callable(default) else default
+            value = self._reserved_default_attrs[attr]
+            if callable(value):
+                value = value()
             object.__setattr__(self, attr, value)
             return value
         elif attr in self._param_dict:
@@ -206,7 +213,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs,
         '_cpp_obj': None,
-        '_simulation': None,
+        '_simulation_': None,
         '_dependents': list,
         '_dependencies': list,
         # Keeps track of the number of times _attach is called to avoid
@@ -215,22 +222,29 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation', "_use_count"
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation_', "_use_count"
     }
     # _use_count must be included or attaching and detaching won't work as
     # expected as _use_count may not equal 0.
-    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
+    _remove_for_pickling = ('_simulation_', '_cpp_obj', "_use_count")
 
-    def _detach(self):
+    def _detach(self, force=False):
         """Decrement attach count and destroy C++ object if count == 0.
 
         This method is not designed to be overwritten, but handles the necessary
         detaching procedures for all `_HOOMDBaseObject` subclasses.
 
+        Args:
+            force (`bool`, optional): Whether to ignore ``_use_count`` or not.
+                Defaults to ``False``. When ``True`` the object will remove all
+                C++ connections regardless of usage elsewhere.
+
         Note:
             Use `~._detach_hook` in subclasses to provide custom detaching
             logic.
         """
+        if force:
+            self._use_count = 0
         if self._use_count == 0:
             return self
         self._use_count -= 1
@@ -278,6 +292,10 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         """
         pass
 
+    def _post_attach_hook(self):
+        """Hook called after applying parameter dicts."""
+        pass
+
     def _attach(self, simulation):
         """Attach the object to the added simulation.
 
@@ -298,12 +316,35 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         except hoomd.error.SimulationDefinitionError as err:
             self._use_count -= 1
             raise err
-        self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        try:
+            self._apply_param_dict()
+            self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        except Exception as err:
+            raise type(err)(
+                f"Error applying parameters for object of type {type(self)}."
+            ) from err
+        self._post_attach_hook()
 
     @property
     def _attached(self):
         return self._cpp_obj is not None
+
+    @property
+    def _simulation(self):
+        """Get/set reference to weakly referenced simulation."""
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()  # grab weakref
+            if sim is not None:
+                return sim
+            else:
+                self._detach(force=True)
+
+    @_simulation.setter
+    def _simulation(self, simulation):
+        if simulation is not None:
+            simulation = weakref.ref(simulation)
+        self._simulation_ = simulation
 
     def _apply_param_dict(self):
         self._param_dict._attach(self._cpp_obj)
@@ -404,6 +445,16 @@ class AutotunedObject(_HOOMDBaseObject):
             Provided that you use the same HOOMD-blue binary on the same
             hardware and execute a script with the same parameters, you may save
             the tuned values from one run and load them in the next.
+
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            kernel_parameters = operation.kernel_parameters
+
+        .. code-block:: python
+
+            operation.kernel_parameters = kernel_parameters
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("kernel_parameters")
@@ -421,6 +472,13 @@ class AutotunedObject(_HOOMDBaseObject):
 
         ``True`` when tuning is complete and `kernel_parameters` has locked
         optimal parameters for all active kernels used by this object.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            while (not operation.is_tuning_complete):
+                simulation.run(1000)
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("is_tuning_complete")
@@ -433,6 +491,12 @@ class AutotunedObject(_HOOMDBaseObject):
         kernel parameters in subsequent time steps, check the run time of each,
         and lock to the fastest performing parameters after the scan is
         complete.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            operation.tune_kernel_parameters()
         """
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
@@ -469,6 +533,15 @@ class TriggeredOperation(Operation):
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
+
+    Attributes:
+        trigger (hoomd.trigger.Trigger): The trigger to activate this operation.
+
+            .. rubric:: Example
+
+            .. code-block:: python
+
+                operation.trigger = hoomd.trigger.Periodic(10)
     """
 
     def __init__(self, trigger):

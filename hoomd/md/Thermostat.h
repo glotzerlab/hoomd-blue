@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef HOOMD_THERMOSTAT_H
@@ -337,25 +337,42 @@ class MTTKThermostat : public Thermostat
 class BussiThermostat : public Thermostat
     {
     public:
+    /** Construct the thermostat.
+
+        @param T Temperature set point over time.
+        @param group Group of particles this thermostat is applied to.
+        @param thermo Use to compute the thermodynamic properties of the group.
+        @param sysdef Used to access the simulation seed and MPI communicator.
+        @param tau Thermostat time constant.
+    */
     BussiThermostat(std::shared_ptr<Variant> T,
                     std::shared_ptr<ParticleGroup> group,
                     std::shared_ptr<ComputeThermo> thermo,
-                    std::shared_ptr<SystemDefinition> sysdef)
-        : Thermostat(T, group, thermo, sysdef)
+                    std::shared_ptr<SystemDefinition> sysdef,
+                    Scalar tau)
+        : Thermostat(T, group, thermo, sysdef), m_tau(tau)
         {
         }
 
     std::array<Scalar, 2> getRescalingFactorsOne(uint64_t timestep, Scalar deltaT) override
         {
+        if (deltaT == 0.0)
+            {
+            return {1.0, 1.0};
+            }
+
         m_thermo->compute(timestep);
 
-        const auto ntdof = m_thermo->getTranslationalDOF();
-        const auto nrdof = m_thermo->getRotationalDOF();
-        if ((ntdof != 0 && m_thermo->getTranslationalKineticEnergy() == 0)
-            || (nrdof != 0 && m_thermo->getRotationalKineticEnergy() == 0))
+        const auto translational_dof = m_thermo->getTranslationalDOF();
+        const auto rotational_dof = m_thermo->getRotationalDOF();
+        const auto translational_kinetic_energy = m_thermo->getTranslationalKineticEnergy();
+        const auto rotational_kinetic_energy = m_thermo->getRotationalKineticEnergy();
+        if ((translational_dof != 0 && translational_kinetic_energy == 0)
+            || (rotational_dof != 0 && rotational_kinetic_energy == 0))
             {
-            throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
+            throw std::runtime_error("Bussi thermostat requires non-zero initial momenta.");
             }
+
         unsigned int instance_id = 0;
         if (m_group->getNumMembersGlobal() > 0)
             instance_id = m_group->getMemberTag(0);
@@ -363,11 +380,69 @@ class BussiThermostat : public Thermostat
                             instance_id);
 
         const auto set_T = m_T->operator()(timestep);
-        GammaDistribution<double> gamma_translation(ntdof / 2.0, set_T);
-        GammaDistribution<double> gamma_rotation(nrdof / 2.0, set_T);
 
-        return {std::sqrt(gamma_translation(rng) / m_thermo->getTranslationalKineticEnergy()),
-                std::sqrt(gamma_rotation(rng) / m_thermo->getRotationalKineticEnergy())};
+        return {
+            compute_rescale_factor(translational_kinetic_energy,
+                                   translational_dof,
+                                   deltaT,
+                                   set_T,
+                                   rng),
+            compute_rescale_factor(rotational_kinetic_energy, rotational_dof, deltaT, set_T, rng)};
+        }
+
+    /// Get the thermostat time constant.
+    Scalar getTau()
+        {
+        return m_tau;
+        }
+
+    /// Set the thermostat time constant.
+    void setTau(Scalar tau)
+        {
+        m_tau = tau;
+        }
+
+    protected:
+    Scalar m_tau;
+
+    /** Compute the rescaling factor
+
+        @param K kinetic energy
+        @param degrees_of_freedom Number of degrees of freedom with this energy.
+        @param deltaT Time step size.
+        @param set_T Temperature set point.
+        @param rng Random number generator.
+    **/
+    Scalar compute_rescale_factor(Scalar K,
+                                  double degrees_of_freedom,
+                                  Scalar deltaT,
+                                  Scalar set_T,
+                                  RandomGenerator& rng)
+        {
+        if (degrees_of_freedom == 0)
+            return Scalar(1.0);
+
+        double time_decay_factor = 0.0;
+        if (m_tau != 0.0)
+            {
+            time_decay_factor = exp(-deltaT / m_tau);
+            }
+
+        NormalDistribution<double> normal(1.0);
+        Scalar r_normal_one = normal(rng);
+
+        GammaDistribution<double> gamma((degrees_of_freedom - 1.0) / Scalar(2.0), Scalar(1.0));
+        double r_gamma = 0.0;
+        if (degrees_of_freedom > 1.0)
+            {
+            r_gamma = 2.0 * gamma(rng);
+            }
+
+        double v = set_T / 2.0 / K;
+        double term1 = v * (1.0 - time_decay_factor) * (r_gamma + r_normal_one * r_normal_one);
+        double term2 = 2.0 * r_normal_one * sqrt(v * (1.0 - time_decay_factor) * time_decay_factor);
+
+        return Scalar(sqrt(time_decay_factor + term1 + term2));
         }
     };
 

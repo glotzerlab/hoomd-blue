@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Testing
@@ -32,11 +32,21 @@ Requirements
 The following Python packages are required to execute tests. Some tests will be skipped when
 optional requirements are missing.
 
-- gsd (optional)
-- mpi4py (optional)
-- pytest
-- rowan (optional)
-- CuPy (optional)
+- `CuPy`_ (optional)
+- `gsd`_ (optional)
+- `h5py`_ (optional)
+- `mpi4py`_ (optional)
+- `pytest`_
+- `rowan`_ (optional)
+- `sybil`_ (optional)
+
+.. _CuPy: https://cupy.dev/
+.. _gsd: https://gsd.readthedocs.io/
+.. _h5py: https://www.h5py.org/
+.. _mpi4py: https://mpi4py.readthedocs.io/
+.. _pytest: https://docs.pytest.org/
+.. _rowan: https://rowan.readthedocs.io/
+.. _sybil: https://sybil.readthedocs.io/
 
 Running tests
 -------------

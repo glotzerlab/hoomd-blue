@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -9,9 +9,7 @@
 #include "ComputeSDF.h"
 #include "ShapeFacetedEllipsoid.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -41,10 +39,7 @@ void export_faceted_ellipsoid(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeFacetedEllipsoid>(m, "ExternalFieldFacetedEllipsoid");
     export_HarmonicField<ShapeFacetedEllipsoid>(m, "ExternalFieldHarmonicFacetedEllipsoid");
-    export_ExternalFieldComposite<ShapeFacetedEllipsoid>(m,
-                                                         "ExternalFieldCompositeFacetedEllipsoid");
     export_ExternalFieldWall<ShapeFacetedEllipsoid>(m, "WallFacetedEllipsoid");
-    export_ExternalCallback<ShapeFacetedEllipsoid>(m, "ExternalCallbackFacetedEllipsoid");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeFacetedEllipsoid>(m, "IntegratorHPMCMonoFacetedEllipsoidGPU");

@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 hoomd.data
@@ -41,11 +41,20 @@ hoomd.data
         :inherited-members:
 
     .. autoclass:: hoomd.data.typeparam.TypeParameter
-        :members: default
+        :members: __delitem__,
+                  __eq__,
+                  __getitem__,
+                  __iter__,
+                  __len__,
+                  __setitem__,
+                  default,
+                  get,
+                  setdefault,
+                  to_base
 
 .. rubric:: Modules
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    module-hoomd-array

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EXECUTION_CONFIGURATION__
@@ -210,8 +210,6 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Compute capability of the GPU formatted as a tuple (major, minor)
     std::pair<unsigned int, unsigned int> getComputeCapability(unsigned int igpu = 0) const;
 
-    //! Handle cuda error message
-    void handleCUDAError(hipError_t err, const char* file, unsigned int line) const;
     //! Handle hip error message
     void handleHIPError(hipError_t err, const char* file, unsigned int line) const;
 #endif
@@ -341,9 +339,8 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
                  or falls back to the global rank if no information is available
-        \param found [output] True if a local rank was found, false otherwise
      */
-    int guessLocalRank(bool& found);
+    int guessLocalRank();
 
 #if defined(ENABLE_HIP)
     //! Initialize the GPU with the given id (where gpu_id is an index into s_capable_gpu_ids)
@@ -418,9 +415,9 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #if defined(ENABLE_HIP)
 #define CHECK_CUDA_ERROR()                                                            \
         {                                                                             \
-        hipError_t err_sync = hipGetLastError();                                      \
+        hipError_t err_sync = hipPeekAtLastError();                                   \
         this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);              \
-        auto gpu_map = this->m_exec_conf->getGPUIds();                                \
+        auto gpu_map = this -> m_exec_conf->getGPUIds();                              \
         for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
             {                                                                         \
             hipSetDevice(gpu_map[idev]);                                              \

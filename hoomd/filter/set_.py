@@ -1,7 +1,14 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Define particle filter set operations."""
+"""Define particle filter set operations.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    filter1 = hoomd.filter.All()
+    filter2 = hoomd.filter.Tags([0])
+"""
 
 from hoomd.filter.filter_ import ParticleFilter
 from hoomd import _hoomd
@@ -47,11 +54,11 @@ class _ParticleFilterSetOperations(ParticleFilter):
 
     def __eq__(self, other):
         if self._symmetric:
-            return type(self) == type(other) and \
+            return type(self) is type(other) and \
                 (self._f == other._f or self._f == other._g) and \
                 (self._g == other._g or self._g == other._f)
         else:
-            return type(self) == type(other) and \
+            return type(self) is type(other) and \
                 self._f == other._f and self._g == other._g
 
     def __reduce__(self):
@@ -71,6 +78,12 @@ class SetDifference(_ParticleFilterSetOperations,
     difference :math:`f \setminus g`.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        set_difference = hoomd.filter.SetDifference(filter1, filter2)
     """
     _cpp_cls_name = 'ParticleFilterSetDifference'
     _symmetric = False
@@ -87,6 +100,12 @@ class Union(_ParticleFilterSetOperations, _hoomd.ParticleFilterUnion):
     union :math:`f \cup g`.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        union = hoomd.filter.Union(filter1, filter2)
     """
     _cpp_cls_name = 'ParticleFilterUnion'
     _symmetric = True
@@ -104,6 +123,12 @@ class Intersection(_ParticleFilterSetOperations,
     intersection :math:`f \cap g`.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        intersection = hoomd.filter.Intersection(filter1, filter2)
     """
     _cpp_cls_name = 'ParticleFilterIntersection'
     _symmetric = True

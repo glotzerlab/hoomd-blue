@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -32,18 +32,18 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
     public:
     //! Constructor
     /*!
-     * \param sysdata MPCD system data
+     * \param sysdef System definition
      * \param cur_timestep Current system timestep
      * \param period Number of timesteps between collisions
      * \param phase Phase shift for periodic updates
      * \param geom Streaming geometry
      */
-    ConfinedStreamingMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    ConfinedStreamingMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int cur_timestep,
                                unsigned int period,
                                int phase,
                                std::shared_ptr<const Geometry> geom)
-        : mpcd::ConfinedStreamingMethod<Geometry>(sysdata, cur_timestep, period, phase, geom)
+        : mpcd::ConfinedStreamingMethod<Geometry>(sysdef, cur_timestep, period, phase, geom)
         {
         m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                                        this->m_exec_conf,
@@ -85,7 +85,7 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
                                   this->m_mpcd_pdata->getMass(),
                                   (this->m_field) ? this->m_field->get(access_location::device)
                                                   : nullptr,
-                                  this->m_mpcd_sys->getCellList()->getCoverageBox(),
+                                  this->m_cl->getCoverageBox(),
                                   this->m_mpcd_dt,
                                   this->m_mpcd_pdata->getN(),
                                   m_tuner->getParam()[0]);
@@ -112,7 +112,7 @@ template<class Geometry> void export_ConfinedStreamingMethodGPU(pybind11::module
     pybind11::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>,
                      mpcd::ConfinedStreamingMethod<Geometry>,
                      std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,

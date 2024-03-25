@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cc
@@ -288,7 +288,7 @@ void CommunicatorGPU::initializeCommunicationStages()
     }
 
 //! Select a particle for migration
-struct get_migrate_key : public std::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key
     {
     const uint3 my_pos;               //!< My domain decomposition position
     const Index3D di;                 //!< Domain indexer

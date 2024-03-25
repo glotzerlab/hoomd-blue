@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Bond forces.
@@ -52,15 +52,19 @@ class Bond(Force):
         for `isinstance` or `issubclass` checks.
     """
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def __init__(self):
         super().__init__()
 
     def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = getattr(_md, self._cpp_class_name)
+            cpp_cls = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
+            cpp_cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
 
@@ -262,9 +266,9 @@ class Table(Bond):
     def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = _md.BondTablePotential
+            cpp_cls = self._ext_module.BondTablePotential
         else:
-            cpp_cls = _md.BondTablePotentialGPU
+            cpp_cls = self._ext_module.BondTablePotentialGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
 

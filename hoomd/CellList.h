@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GlobalArray.h"
@@ -47,7 +47,7 @@ namespace hoomd
      - The \c cell_size array lists the number of members in each cell.
      - The \c xyzf array contains Scalar4 elements each of which holds the x,y,z coordinates of the
    particle and a flag. That flag can optionally be the particle index, its charge, or its type.
-     - The \c tdb array contains Scalar4 elements each of which holds the type, diameter, and body
+     - The \c type_body array contains uint2 elements each of which holds the type, and body
    of the particle. It is only computed is requested to reduce the computation time when it is not
    needed.
      - The \c orientation array contains Scalar4 elements listing the orientation of each particle.
@@ -121,17 +121,17 @@ class PYBIND11_EXPORT CellList : public Compute
         m_params_changed = true;
         }
 
-    //! Specify if the TDB cell list is to be computed
+    //! Specify if the XYZ,flag cell list is to be computed
     void setComputeXYZF(bool compute_xyzf)
         {
         m_compute_xyzf = compute_xyzf;
         m_params_changed = true;
         }
 
-    //! Specify if the TDB cell list is to be computed
-    void setComputeTDB(bool compute_tdb)
+    //! Specify if the TypeBody cell list is to be computed
+    void setComputeTypeBody(bool compute_type_body)
         {
-        m_compute_tdb = compute_tdb;
+        m_compute_type_body = compute_type_body;
         m_params_changed = true;
         }
 
@@ -312,10 +312,10 @@ class PYBIND11_EXPORT CellList : public Compute
         return m_xyzf;
         }
 
-    //! Get the cell list containing t,d,b
-    const GlobalArray<Scalar4>& getTDBArray() const
+    //! Get the cell list containing t,b
+    const GlobalArray<uint2>& getTypeBodyArray() const
         {
-        return m_tdb;
+        return m_type_body;
         }
 
     //! Get the cell list containing orientation
@@ -340,9 +340,6 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Compute the cell list given the current particle positions
     void compute(uint64_t timestep);
 
-    //! Benchmark the computation
-    double benchmark(unsigned int num_iters);
-
     // @}
 
     /*! \param func Function to call when the cell width changes
@@ -362,7 +359,7 @@ class PYBIND11_EXPORT CellList : public Compute
     Scalar m_nominal_width;     //!< Minimum width of cell in any direction
     unsigned int m_radius;      //!< Radius of adjacency bins to list
     bool m_compute_xyzf;        //!< true if the xyzf list should be computed
-    bool m_compute_tdb;         //!< true if the tdb list should be computed
+    bool m_compute_type_body;   //!< true if the TypeBody list should be computed
     bool m_compute_orientation; //!< true if the orientation list should be computed
     bool m_compute_idx;         //!< true if the idx list should be computed
     bool m_flag_charge;      //!< true if the flag should be set to the charge, it will be index (or
@@ -386,7 +383,7 @@ class PYBIND11_EXPORT CellList : public Compute
     GlobalArray<unsigned int> m_cell_size; //!< Number of members in each cell
     GlobalArray<unsigned int> m_cell_adj;  //!< Cell adjacency list
     GlobalArray<Scalar4> m_xyzf;           //!< Cell list with position and flags
-    GlobalArray<Scalar4> m_tdb;            //!< Cell list with type,diameter,body
+    GlobalArray<uint2> m_type_body;        //!< Cell list with type,body
     GlobalArray<Scalar4> m_orientation;    //!< Cell list with orientation
     GlobalArray<unsigned int> m_idx;       //!< Cell list with index
     GlobalArray<uint3> m_conditions; //!< Condition flags set during the computeCellList() call

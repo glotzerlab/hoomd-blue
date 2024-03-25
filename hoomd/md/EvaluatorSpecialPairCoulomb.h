@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __BOND_EVALUATOR_COULOMB_H__
@@ -85,18 +85,6 @@ class EvaluatorSpecialPairCoulomb
         : rsq(_rsq), scale(_params.alpha), rcutsq(_params.r_cutsq)
         {
         }
-
-    //! Coulomb doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Coulomb use charge
     DEVICE static bool needsCharge()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GPUArray.h
@@ -975,8 +975,6 @@ template<class T> void GPUArray<T>::allocate()
     int retval = posix_memalign(&host_ptr, 32, m_num_elements * sizeof(T));
     if (retval != 0)
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
         throw std::bad_alloc();
         }
 
@@ -1345,8 +1343,6 @@ template<class T> T* GPUArray<T>::resizeHostArray(size_t num_elements)
     int retval = posix_memalign((void**)&h_tmp, 32, num_elements * sizeof(T));
     if (retval != 0)
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
         throw std::bad_alloc();
         }
 
@@ -1411,8 +1407,6 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
     int retval = posix_memalign((void**)&h_tmp, 32, size);
     if (retval != 0)
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
         throw std::bad_alloc();
         }
 

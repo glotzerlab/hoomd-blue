@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -46,18 +46,18 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
     public:
     //! Constructor
     /*!
-     * \param sysdata MPCD system data
+     * \param sysdef System definition
      * \param cur_timestep Current system timestep
      * \param period Number of timesteps between collisions
      * \param phase Phase shift for periodic updates
      * \param geom Streaming geometry
      */
-    ConfinedStreamingMethod(std::shared_ptr<mpcd::SystemData> sysdata,
+    ConfinedStreamingMethod(std::shared_ptr<SystemDefinition> sysdef,
                             unsigned int cur_timestep,
                             unsigned int period,
                             int phase,
                             std::shared_ptr<const Geometry> geom)
-        : mpcd::StreamingMethod(sysdata, cur_timestep, period, phase), m_geom(geom),
+        : mpcd::StreamingMethod(sysdef, cur_timestep, period, phase), m_geom(geom),
           m_validate_geom(true)
         {
         }
@@ -97,13 +97,18 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
     if (!shouldStream(timestep))
         return;
 
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     if (m_validate_geom)
         {
         validate();
         m_validate_geom = false;
         }
 
-    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_cl->getCoverageBox();
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,
@@ -161,7 +166,7 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
     const BoxDim box = m_pdata->getGlobalBox();
-    const Scalar cell_width = m_mpcd_sys->getCellList()->getCellSize();
+    const Scalar cell_width = m_cl->getCellSize();
     if (!m_geom->validateBox(box, cell_width))
         {
         m_exec_conf->msg->error() << "ConfinedStreamingMethod: box too small for "
@@ -227,7 +232,7 @@ template<class Geometry> void export_ConfinedStreamingMethod(pybind11::module& m
     pybind11::class_<mpcd::ConfinedStreamingMethod<Geometry>,
                      mpcd::StreamingMethod,
                      std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             unsigned int,
                             int,

@@ -1,7 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" Metal pair potentials.
+r""" Metal pair potentials.
 """
 
 from hoomd.md import force
@@ -16,7 +16,7 @@ import sys
 
 
 class eam(force._force):
-    R""" EAM pair potential.
+    r""" EAM pair potential.
 
     Args:
         file (str): File name with potential tables in Alloy or FS format

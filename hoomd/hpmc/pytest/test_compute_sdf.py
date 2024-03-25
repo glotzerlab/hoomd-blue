@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from __future__ import print_function
 from __future__ import division
 import hoomd
 import pytest
-import numpy as np
+import numpy
 import hoomd.hpmc.pytest.conftest
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
@@ -17,18 +17,20 @@ def test_before_attaching():
     xmax = 0.02
     dx = 1e-4
     sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
-    assert np.isclose(sdf.xmax, xmax)
-    assert np.isclose(sdf.dx, dx)
+    assert numpy.isclose(sdf.xmax, xmax)
+    assert numpy.isclose(sdf.dx, dx)
 
     xmax = 0.04
     dx = 2e-4
     sdf.xmax = xmax
     sdf.dx = dx
-    assert np.isclose(sdf.xmax, xmax)
-    assert np.isclose(sdf.dx, dx)
+    assert numpy.isclose(sdf.xmax, xmax)
+    assert numpy.isclose(sdf.dx, dx)
 
     with pytest.raises(hoomd.error.DataAccessError):
-        sdf.sdf
+        sdf.sdf_compression
+    with pytest.raises(hoomd.error.DataAccessError):
+        sdf.sdf_expansion
     with pytest.raises(hoomd.error.DataAccessError):
         sdf.betaP
 
@@ -61,45 +63,65 @@ def test_after_attaching(valid_args, simulation_factory,
     assert len(sim.operations.computes) == 1
     sim.run(0)
 
-    assert np.isclose(sdf.xmax, xmax)
-    assert np.isclose(sdf.dx, dx)
+    assert numpy.isclose(sdf.xmax, xmax)
+    assert numpy.isclose(sdf.dx, dx)
 
     xmax = 0.04
-    dx = 2e-4
+    dx = 4e-4
     sdf.xmax = xmax
     sdf.dx = dx
-    assert np.isclose(sdf.xmax, xmax)
-    assert np.isclose(sdf.dx, dx)
+    assert numpy.isclose(sdf.xmax, xmax)
+    assert numpy.isclose(sdf.dx, dx)
 
     sim.run(1)
-    if not np.isnan(sdf.sdf).all():
+
+    x_compression = sdf.x_compression
+    assert x_compression[0] == pytest.approx(dx / 2)
+    assert x_compression[-1] == pytest.approx(xmax - dx / 2)
+
+    x_expansion = sdf.x_expansion
+    assert x_expansion[0] == pytest.approx(-xmax + dx / 2)
+    assert x_expansion[-1] == pytest.approx(-dx / 2)
+
+    sdf_compression = sdf.sdf_compression
+    betaP = sdf.betaP
+
+    if sdf_compression is not None:
         assert sim.device.communicator.rank == 0
-        assert isinstance(sdf.sdf, np.ndarray)
-        assert len(sdf.sdf) > 0
-        assert isinstance(sdf.betaP, float)
-        assert not np.isclose(sdf.betaP, 0)
+        assert isinstance(sdf_compression, numpy.ndarray)
+        assert len(sdf_compression) > 0
+        assert isinstance(betaP, float)
+        assert not numpy.isclose(betaP, 0)
     else:
         assert sim.device.communicator.rank > 0
-        assert sdf.betaP is None
+        assert betaP is None
 
     # Regression test for array size mismatch bug:
     # https://github.com/glotzerlab/hoomd-blue/issues/1455
+
+    # only test for 1 shape
+    if not isinstance(mc, hoomd.hpmc.integrate.Sphere):
+        return
+
     sdf.xmax = 0.02
     sdf.dx = 1e-5
 
     sim.run(1)
-    if not np.isnan(sdf.sdf).all():
+    sdf_compression = sdf.sdf_compression
+    betaP = sdf.betaP
+
+    if sdf_compression is not None:
         assert sim.device.communicator.rank == 0
-        assert isinstance(sdf.sdf, np.ndarray)
-        assert len(sdf.sdf) > 0
-        assert isinstance(sdf.betaP, float)
-        assert not np.isclose(sdf.betaP, 0)
+        assert isinstance(sdf_compression, numpy.ndarray)
+        assert len(sdf_compression) > 0
+        assert isinstance(betaP, float)
+        assert not numpy.isclose(betaP, 0)
     else:
         assert sim.device.communicator.rank > 0
-        assert sdf.betaP is None
+        assert betaP is None
 
 
-_avg = np.array([
+_avg = numpy.array([
     55.20126953, 54.89853516, 54.77910156, 54.56660156, 54.22255859,
     53.83935547, 53.77617188, 53.42109375, 53.05546875, 52.86376953,
     52.65576172, 52.21240234, 52.07402344, 51.88974609, 51.69990234,
@@ -140,7 +162,7 @@ _avg = np.array([
     19.43525391, 19.38203125
 ])
 
-_err = np.array([
+_err = numpy.array([
     1.21368492, 1.07520243, 1.22496485, 1.07203861, 1.31918198, 1.15482965,
     1.11606943, 1.12342247, 1.1214123, 1.2033176, 1.14923442, 1.11741796,
     1.08633901, 1.10809585, 1.13268611, 1.17159683, 1.12298656, 1.27754418,
@@ -186,7 +208,7 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     poly_A = 1  # assumes squares
     N = n_particles_per_side**2
     area = N * poly_A / phi
-    L = np.sqrt(area)
+    L = numpy.sqrt(area)
     a = L / n_particles_per_side
 
     snap = lattice_snapshot_factory(dimensions=2, n=n_particles_per_side, a=a)
@@ -202,25 +224,25 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
     sim.operations.add(sdf)
 
-    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
+    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf_compression')
     sim.operations.writers.append(
         hoomd.write.CustomWriter(action=sdf_log,
                                  trigger=hoomd.trigger.Periodic(10)))
 
     sim.run(6000)
 
-    sdf_data = np.asarray(sdf_log.data)
+    sdf_data = numpy.asarray(sdf_log.data)
     if sim.device.communicator.rank == 0:
         # skip the first frame in averaging, then check that all values are
         # within 3 error bars of the reference avg. This seems sufficient to get
         # good test results even with different seeds or GPU runs
-        v = np.mean(sdf_data[1:, :], axis=0)
-        invalid = np.abs(_avg - v) > (8 * _err)
-        assert np.sum(invalid) == 0
+        v = numpy.mean(sdf_data[1:, :], axis=0)
+        invalid = numpy.abs(_avg - v) > (8 * _err)
+        assert numpy.sum(invalid) == 0
 
 
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-@pytest.mark.cpu  # SDF runs on the CPU only, no need to test on the GPUn
+@pytest.mark.cpu  # SDF runs on the CPU only, no need to test on the GPU
 def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     """Test that adding patches changes the pressure calculation.
 
@@ -249,31 +271,110 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # potential and that the SDF is zero everywhere else
     sim.run(0)
     norm_factor = 1 / sdf.dx
-    sdf_result = sdf.sdf
+    sdf_result = sdf.sdf_compression
     if sim.device.communicator.rank == 0:
         assert (sdf_result[1] == norm_factor)
-        assert (np.count_nonzero(sdf_result) == 1)
+        assert (numpy.count_nonzero(sdf_result) == 1)
 
     # add pair potential
-    square_well = rf'''float rsq = dot(r_ij, r_ij);
-                    float rcut = {r_patch};
+    square_well = r'''float rsq = dot(r_ij, r_ij);
+                    float rcut = param_array[1];
                     if (rsq > 2*rcut)
                         return 0.0f;
                     else
-                        return -{epsilon};'''
+                        return -param_array[0];'''
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2.5 * r_patch,
                                               code=square_well,
-                                              param_array=[])
+                                              param_array=[epsilon, r_patch])
     mc.pair_potential = patch
 
-    # assert we have an overlap in the first bin with the expected weight and
-    # that the SDF is zero everywhere else
+    # for a soft overlap with a negative change in energy, the weight of the
+    # overlap is zero, so we still expect all zeros in the sdf array
     sim.run(1)
-    neg_mayerF = 1 - np.exp(epsilon)
-    sdf_result = sdf.sdf
+    neg_mayerF = 1 - numpy.exp(epsilon)
+    sdf_result = sdf.sdf_compression
     if sim.device.communicator.rank == 0:
-        assert (np.count_nonzero(sdf_result) == 1)
+        assert (numpy.count_nonzero(sdf_result) == 0)
+
+    # change sign of epsilon, so that now there is a positive energy soft
+    # overlap in bin 0
+    epsilon *= -1
+    patch.param_array[0] = epsilon
+    sim.run(1)
+    neg_mayerF = 1 - numpy.exp(epsilon)
+    sdf_result = sdf.sdf_compression
+    if sim.device.communicator.rank == 0:
+        assert (numpy.count_nonzero(sdf_result) == 1)
         assert (sdf_result[0] == neg_mayerF * norm_factor)
+
+    # extend patches so that there is a soft overlap with positive energy
+    # in the configuration and there will be a change in energy on expansions
+    # the change in energy is < 0 so the weight should be 0 and
+    # sdf_expansion should be all zeros
+    patch.param_array[1] += 2 * dx
+    sim.run(1)
+    sdf_result = sdf.sdf_expansion
+    if sim.device.communicator.rank == 0:
+        assert (numpy.count_nonzero(sdf_result) == 0)
+
+    # change sign of epsilon so now the change in energy on expansion is
+    # positive and the weight is nonzero and one of the sdf_expansion counts
+    # is nonzero
+    epsilon *= -1
+    patch.param_array[0] = epsilon
+    sim.run(1)
+    neg_mayerF = 1 - numpy.exp(-epsilon)
+    sdf_result = sdf.sdf_expansion
+    if sim.device.communicator.rank == 0:
+        assert (numpy.count_nonzero(sdf_result) == 1)
+        assert (sdf_result[-1] == neg_mayerF * norm_factor)
+
+
+@pytest.mark.cpu
+@pytest.mark.serial
+def test_sdf_expansion(simulation_factory, two_particle_snapshot_factory):
+    """Test that sdf_expansion registers counts."""
+    xmax = 0.02
+    dx = 1e-3
+
+    # Place two tetrominoes pieces offset so they interlock and will touch when
+    # moved apart.
+    snapshot = two_particle_snapshot_factory(dimensions=2)
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.position[0] = [0, 0, 0]
+        snapshot.particles.position[1] = [2 - dx / 4, 0.5, 0]
+        snapshot.particles.orientation[1] = [0, 0, 0, -1]
+
+    sim = simulation_factory(snapshot)
+    mc = hoomd.hpmc.integrate.SimplePolygon()
+    mc.shape['A'] = dict(vertices=[
+        (-2, 1),
+        (-2, -1),
+        (2, -1),
+        (2, 1),
+        (1, 1),
+        (1, -0.9),
+        (-1, -0.9),
+        (-1, 1),
+    ])
+    sim.operations.add(mc)
+
+    # sdf compute
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
+    sim.operations.add(sdf)
+
+    sim.run(0)
+
+    # confirm no overlaps
+    assert mc.overlaps == 0
+
+    # confirm that there are no hits in the compression sdf
+    assert numpy.count_nonzero(sdf.sdf_compression) == 0
+
+    # confirm that there is one hit in the expansion sdf
+    sdf_expansion = sdf.sdf_expansion
+    assert numpy.count_nonzero(sdf_expansion) == 1
+    assert sdf_expansion[-1] != 0
 
 
 def test_logging():
@@ -283,8 +384,20 @@ def test_logging():
                 'category': LoggerCategories.scalar,
                 'default': True
             },
-            'sdf': {
+            'sdf_compression': {
                 'category': LoggerCategories.sequence,
                 'default': True
-            }
+            },
+            'sdf_expansion': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'x_compression': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'x_expansion': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
         })

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _SHAPE_MOVES_H
@@ -40,7 +40,8 @@ template<typename Shape> class ShapeMoveBase
     virtual void update_shape(uint64_t,
                               const unsigned int&,
                               typename Shape::param_type&,
-                              hoomd::RandomGenerator&)
+                              hoomd::RandomGenerator&,
+                              bool managed)
         {
         }
 
@@ -141,21 +142,32 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       typename Shape::param_type& shape,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
             Scalar stepsize = this->m_step_size[type_id];
-            Scalar a = fmax(-stepsize, -(m_params[type_id][i]));
-            Scalar b = fmin(stepsize, (1.0 - m_params[type_id][i]));
-            hoomd::UniformDistribution<Scalar> uniform(a, b);
+            hoomd::UniformDistribution<Scalar> uniform(-stepsize, stepsize);
             Scalar r = hoomd::detail::generate_canonical<double>(rng);
             Scalar x = (r < this->m_move_probability) ? uniform(rng) : 0.0;
-            m_params[type_id][i] += x;
+            // Reflect trial moves about boundaries
+            if (m_params[type_id][i] + x > 1)
+                {
+                m_params[type_id][i] = 2 - (m_params[type_id][i] + x);
+                }
+            else if (m_params[type_id][i] + x < 0)
+                {
+                m_params[type_id][i] = -(m_params[type_id][i] + x);
+                }
+            else
+                {
+                m_params[type_id][i] += x;
+                }
             }
         pybind11::object d = m_python_callback(type_id, m_params[type_id]);
         pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
-        shape = typename Shape::param_type(shape_dict);
+        shape = typename Shape::param_type(shape_dict, managed);
         }
 
     void retreat(uint64_t timestep, unsigned int type)
@@ -202,8 +214,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     std::vector<std::vector<Scalar>>
         m_params_backup;                       // tunable shape parameters to perform trial moves on
     std::vector<std::vector<Scalar>> m_params; // tunable shape parameters to perform trial moves on
-    // callback that takes m_params as an argiment and returns a Python dictionary with the shape
-    // params.
+    // callback that takes m_params as an argument and returns a Python dictionary of shape params.
     pybind11::object m_python_callback;
     };
 
@@ -239,26 +250,26 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar current_volume = mp.getVolume();
         vec3<Scalar> dr = this->m_centroids[typid] - mp.getCenterOfMass();
-        OverlapReal scale = (OverlapReal)fast::pow(volume / current_volume, 1.0 / 3.0);
+        ShortReal scale = (ShortReal)fast::pow(volume / current_volume, 1.0 / 3.0);
         this->scaleParticleVolume(shape, dr, scale);
         this->m_mc->setParam(typid, shape);
         }
 
-    void scaleParticleVolume(param_type& shape, vec3<Scalar> dr, OverlapReal scale)
+    void scaleParticleVolume(param_type& shape, vec3<Scalar> dr, ShortReal scale)
         {
         Scalar rsq = 0.0;
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            shape.x[i] += static_cast<OverlapReal>(dr.x);
+            shape.x[i] += static_cast<ShortReal>(dr.x);
             shape.x[i] *= scale;
-            shape.y[i] += static_cast<OverlapReal>(dr.y);
+            shape.y[i] += static_cast<ShortReal>(dr.y);
             shape.y[i] *= scale;
-            shape.z[i] += static_cast<OverlapReal>(dr.z);
+            shape.z[i] += static_cast<ShortReal>(dr.z);
             shape.z[i] *= scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
             }
-        shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
+        shape.diameter = ShortReal(2.0 * fast::sqrt(rsq));
         }
 
     void prepare(uint64_t timestep)
@@ -269,7 +280,8 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& shape,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         // perturb the shape.
         for (unsigned int i = 0; i < shape.N; i++)
@@ -278,16 +290,16 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, this->m_step_size[type_id], 3);
-                shape.x[i] = static_cast<OverlapReal>(vert.x);
-                shape.y[i] = static_cast<OverlapReal>(vert.y);
-                shape.z[i] = static_cast<OverlapReal>(vert.z);
+                shape.x[i] = static_cast<ShortReal>(vert.x);
+                shape.y[i] = static_cast<ShortReal>(vert.y);
+                shape.z[i] = static_cast<ShortReal>(vert.z);
                 }
             }
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = this->m_centroids[type_id] - mp.getCenterOfMass();
-        OverlapReal scale
-            = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
+        ShortReal scale
+            = static_cast<ShortReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
         scaleParticleVolume(shape, dr, scale);
         this->m_step_size[type_id] *= scale;
         }
@@ -365,7 +377,8 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Matrix3S F_curr;
         // perform a scaling move
@@ -385,11 +398,11 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
             F_curr = rot * scale * rot_inv;
             }
         m_F[type_id] = F_curr * m_F[type_id];
-        auto transform = F_curr.cast<OverlapReal>();
+        auto transform = F_curr.cast<ShortReal>();
         Scalar dsq = 0.0;
         for (unsigned int i = 0; i < param.N; i++)
             {
-            vec3<OverlapReal> vert(param.x[i], param.y[i], param.z[i]);
+            vec3<ShortReal> vert(param.x[i], param.y[i], param.z[i]);
             param.x[i]
                 = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
             param.y[i]
@@ -399,7 +412,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
             vert = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
             dsq = fmax(dsq, dot(vert, vert));
             }
-        param.diameter = OverlapReal(2.0 * fast::sqrt(dsq));
+        param.diameter = ShortReal(2.0 * fast::sqrt(dsq));
         }
 
     Matrix3S getEps(unsigned int type_id)
@@ -576,19 +589,20 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
     void update_shape(uint64_t timestep,
                       const unsigned int& type_id,
                       param_type& param,
-                      hoomd::RandomGenerator& rng)
+                      hoomd::RandomGenerator& rng,
+                      bool managed)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar stepsize = this->m_step_size[type_id];
         Scalar dlnx = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
-        param.x = static_cast<OverlapReal>(x) * param.y;
+        param.x = static_cast<ShortReal>(x) * param.y;
         param.y = param.y;
         param.z = param.z;
         detail::MassProperties<ShapeEllipsoid> mp(param);
         Scalar volume = mp.getVolume();
-        OverlapReal scale
-            = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
+        ShortReal scale
+            = static_cast<ShortReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
         param.x *= scale;
         param.y *= scale;
         param.z *= scale;

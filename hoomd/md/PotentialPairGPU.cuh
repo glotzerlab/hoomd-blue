@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -50,7 +50,6 @@ struct pair_args_t
                 const unsigned int _N,
                 const unsigned int _n_max,
                 const Scalar4* _d_pos,
-                const Scalar* _d_diameter,
                 const Scalar* _d_charge,
                 const BoxDim& _box,
                 const unsigned int* _d_n_neigh,
@@ -67,10 +66,10 @@ struct pair_args_t
                 const GPUPartition& _gpu_partition,
                 const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
-          d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), box(_box),
-          d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
-          d_ronsq(_d_ronsq), size_neigh_list(_size_neigh_list), ntypes(_ntypes),
-          block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
+          d_pos(_d_pos), d_charge(_d_charge), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
+          d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), d_ronsq(_d_ronsq),
+          size_neigh_list(_size_neigh_list), ntypes(_ntypes), block_size(_block_size),
+          shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
           devprop(_devprop) {};
 
@@ -80,7 +79,6 @@ struct pair_args_t
     const unsigned int N;      //!< number of particles
     const unsigned int n_max;  //!< Max size of pdata arrays
     const Scalar4* d_pos;      //!< particle positions
-    const Scalar* d_diameter;  //!< particle diameters
     const Scalar* d_charge;    //!< particle charges
     const BoxDim box;          //!< Simulation box in GPU format
     const unsigned int*
@@ -110,7 +108,6 @@ struct pair_args_t
     \param virial_pitch pitch of 2D virial array
     \param N number of particles in system
     \param d_pos particle positions
-    \param d_diameter particle diameters
     \param d_charge particle charges
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -151,7 +148,6 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       const size_t virial_pitch,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
-                                      const Scalar* d_diameter,
                                       const Scalar* d_charge,
                                       const BoxDim box,
                                       const unsigned int* d_n_neigh,
@@ -241,10 +237,6 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         Scalar4 postypei = __ldg(d_pos + idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-        Scalar di = Scalar(0);
-        if (evaluator::needsDiameter())
-            di = __ldg(d_diameter + idx);
-
         Scalar qi = Scalar(0);
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
@@ -268,10 +260,6 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 // get the neighbor's position
                 Scalar4 postypej = __ldg(d_pos + cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-
-                Scalar dj = Scalar(0.0);
-                if (evaluator::needsDiameter())
-                    dj = __ldg(d_diameter + cur_j);
 
                 Scalar qj = Scalar(0.0);
                 if (evaluator::needsCharge())
@@ -327,8 +315,6 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 Scalar pair_eng = Scalar(0.0);
 
                 evaluator eval(rsq, rcutsq, *param);
-                if (evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
 
@@ -521,7 +507,6 @@ struct PairForceComputeKernel
                                    pair_args.virial_pitch,
                                    N,
                                    pair_args.d_pos,
-                                   pair_args.d_diameter,
                                    pair_args.d_charge,
                                    pair_args.box,
                                    pair_args.d_n_neigh,
@@ -550,7 +535,6 @@ struct PairForceComputeKernel
                                    pair_args.virial_pitch,
                                    N,
                                    pair_args.d_pos,
-                                   pair_args.d_diameter,
                                    pair_args.d_charge,
                                    pair_args.box,
                                    pair_args.d_n_neigh,

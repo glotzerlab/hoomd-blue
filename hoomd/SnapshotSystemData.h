@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SnapshotSystemData.h
@@ -15,6 +15,9 @@
 #include "BondedGroupData.h"
 #include "BoxDim.h"
 #include "ParticleData.h"
+#ifdef BUILD_MPCD
+#include "hoomd/mpcd/ParticleDataSnapshot.h"
+#endif
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -44,13 +47,15 @@ template<class Real> struct SnapshotSystemData
     unsigned int dimensions;                  //!< The dimensionality of the system
     std::shared_ptr<BoxDim> global_box;       //!< The dimensions of the simulation box
     SnapshotParticleData<Real> particle_data; //!< The particle data
-    std::map<unsigned int, unsigned int> map; //!< Lookup particle index by tag
     BondData::Snapshot bond_data;             //!< The bond data
     AngleData::Snapshot angle_data;           //!< The angle data
     DihedralData::Snapshot dihedral_data;     //!< The dihedral data
     ImproperData::Snapshot improper_data;     //!< The improper data
     ConstraintData::Snapshot constraint_data; //!< The constraint data
     PairData::Snapshot pair_data;             //!< The pair data
+#ifdef BUILD_MPCD
+    mpcd::ParticleDataSnapshot mpcd_data; //!< The MPCD particle data
+#endif
 
     //! Constructor
     SnapshotSystemData() : dimensions(3), global_box(std::make_shared<BoxDim>()) { }

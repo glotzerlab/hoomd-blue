@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ExecutionConfiguration.h"
@@ -55,14 +55,14 @@ UP_TEST(construction)
     Scalar R_j(0.5);
     Scalar R(x_j + R_j);
     ShapeSphere::param_type par_i;
-    par_i.radius = OverlapReal(R_i);
+    par_i.radius = ShortReal(R_i);
     par_i.ignore = 0;
     ShapeSphere::param_type par_j;
-    par_j.radius = OverlapReal(R_j);
+    par_j.radius = ShortReal(R_j);
     par_i.ignore = 0;
 
     ShapeUnion<ShapeSphere>::param_type params(2);
-    params.diameter = OverlapReal(2 * R);
+    params.diameter = ShortReal(2 * R);
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
     params.morientation[0] = o;
@@ -109,14 +109,14 @@ UP_TEST(non_overlap)
     Scalar R_j(0.25);
     Scalar R(x_j + R_j);
     ShapeSphere::param_type par_i;
-    par_i.radius = OverlapReal(R_i);
+    par_i.radius = ShortReal(R_i);
     par_i.ignore = 0;
     ShapeSphere::param_type par_j;
-    par_j.radius = OverlapReal(R_j);
+    par_j.radius = ShortReal(R_j);
     par_i.ignore = 0;
 
     ShapeUnion<ShapeSphere>::param_type params(2);
-    params.diameter = OverlapReal(2 * R);
+    params.diameter = ShortReal(2 * R);
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
     params.morientation[0] = o;
@@ -183,14 +183,14 @@ UP_TEST(overlapping_dumbbells)
     Scalar R_j(0.25);
     Scalar R(x_j + R_j);
     ShapeSphere::param_type par_i;
-    par_i.radius = OverlapReal(R_i);
+    par_i.radius = ShortReal(R_i);
     par_i.ignore = 0;
     ShapeSphere::param_type par_j;
-    par_j.radius = OverlapReal(R_j);
+    par_j.radius = ShortReal(R_j);
     par_i.ignore = 0;
 
     ShapeUnion<ShapeSphere>::param_type params(2);
-    params.diameter = OverlapReal(2 * R);
+    params.diameter = ShortReal(2 * R);
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
     params.morientation[0] = o;

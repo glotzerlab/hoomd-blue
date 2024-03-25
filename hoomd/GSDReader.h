@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
@@ -102,44 +102,9 @@ class PYBIND11_EXPORT GSDReader
     void readTopology();
     };
 
-/** Read state information from a GSD file
-
-    GSDStateReader provides an interface for ``from_state`` methods to discover and read state data
-    from a GSD file.
-*/
-class PYBIND11_EXPORT GSDStateReader
-    {
-    public:
-    /** Open the file
-
-        @param name File name to open.
-        @frame Index of frame to access. Negative values index from the end.
-    */
-    GSDStateReader(const std::string& name, const int64_t frame);
-
-    /// Destructor
-    ~GSDStateReader();
-
-    /// Get a list of chunk names starting with *base*.
-    std::vector<std::string> getAvailableChunks(const std::string& base);
-
-    /// Read a chunk and return as a numpy array
-    pybind11::array readChunk(const std::string& name);
-
-    private:
-    /// Store the filename
-    std::string m_name;
-
-    /// Frame to read from the file
-    uint64_t m_frame;
-
-    /// Handle to the file
-    gsd_handle m_handle;
-    };
-
 namespace detail
     {
-/// Exports GSDReader and GSDStateReader to python
+/// Exports GSDReader to python
 void export_GSDReader(pybind11::module& m);
 
     } // end namespace detail

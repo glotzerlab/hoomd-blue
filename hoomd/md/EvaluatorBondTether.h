@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __BOND_EVALUATOR_TETHER_H__
@@ -102,18 +102,6 @@ class EvaluatorBondTether
           l_max(_params.l_max)
         {
         }
-
-    //! This evaluator doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
 
     //! Tether doesn't use charge
     DEVICE static bool needsCharge()

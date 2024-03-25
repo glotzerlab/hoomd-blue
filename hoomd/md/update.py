@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD updaters."""
@@ -220,7 +220,7 @@ class ReversePerturbationFlow(Updater):
 
     @log(category="scalar", requires_run=True)
     def summed_exchanged_momentum(self):
-        R"""Returned the summed up exchanged velocity of the full simulation."""
+        """Returns the summed up exchanged velocity of the full simulation."""
         return self._cpp_obj.summed_exchanged_momentum
 
 
@@ -292,9 +292,10 @@ class ActiveRotationalDiffusion(Updater):
             self.rotational_diffusion, self.active_force._cpp_obj)
 
     def _handle_removed_dependency(self, active_force):
-        raise SimulationDefinitionError(
-            "The active force this updater is dependent on is being removed. "
-            "Remove this updater first to avoid error.")
+        sim = self._simulation
+        if sim is not None:
+            sim._operations.updaters.remove(self)
+        super()._handle_removed_dependency(active_force)
 
     def _setattr_param(self, attr, value):
         if attr == "active_force":

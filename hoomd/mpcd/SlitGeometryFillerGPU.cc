@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -12,12 +12,12 @@
 namespace hoomd
     {
 mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(
-    std::shared_ptr<mpcd::SystemData> sysdata,
+    std::shared_ptr<SystemDefinition> sysdef,
     Scalar density,
     unsigned int type,
     std::shared_ptr<Variant> T,
     std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
-    : mpcd::SlitGeometryFiller(sysdata, density, type, T, geom)
+    : mpcd::SlitGeometryFiller(sysdef, density, type, T, geom)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -75,7 +75,7 @@ void mpcd::detail::export_SlitGeometryFillerGPU(pybind11::module& m)
     pybind11::class_<mpcd::SlitGeometryFillerGPU,
                      mpcd::SlitGeometryFiller,
                      std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,

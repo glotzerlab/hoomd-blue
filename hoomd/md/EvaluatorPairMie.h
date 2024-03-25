@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_MIE_H__
@@ -42,18 +42,6 @@ namespace md
     \f[ V_{\mathrm{mie}}(r)  = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
    \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} - \left(
    \frac{\sigma}{r} \right)^{m} \right] \f]
-
-    The Mie potential does not need diameter or charge. Four parameters are specified and stored in
-   a Scalar4. \a mie1 \a mie2 \a mie3 and \a mie4 are stored in \a params.x \a params.y \a params.z
-   and \a params.w respectively.
-
-    These are related to the standard lj parameters sigma and epsilon and the variable exponents n
-   and m by:
-    - \a mie1 = epsilon * pow(sigma,n) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a mie2 = epsilon * pow(sigma,m) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a mie3 = n
-    - \a mie4 = m
-
 */
 class EvaluatorPairMie
     {
@@ -119,23 +107,12 @@ class EvaluatorPairMie
         {
         }
 
-    //! Mie doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Mie doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

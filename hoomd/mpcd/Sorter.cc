@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -11,17 +11,15 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  */
-mpcd::Sorter::Sorter(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::Sorter::Sorter(std::shared_ptr<SystemDefinition> sysdef,
                      unsigned int cur_timestep,
                      unsigned int period)
-    : m_mpcd_sys(sysdata), m_sysdef(m_mpcd_sys->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_pdata(m_mpcd_sys->getParticleData()), m_cl(m_mpcd_sys->getCellList()),
-      m_order(m_exec_conf), m_rorder(m_exec_conf), m_period(period)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_order(m_exec_conf), m_rorder(m_exec_conf),
+      m_period(period)
     {
-    assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Sorter" << std::endl;
 
     setPeriod(cur_timestep, period);
@@ -41,6 +39,11 @@ void mpcd::Sorter::update(uint64_t timestep)
     {
     if (!shouldSort(timestep))
         return;
+
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
 
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
@@ -181,7 +184,7 @@ bool mpcd::Sorter::shouldSort(uint64_t timestep)
 void mpcd::detail::export_Sorter(pybind11::module& m)
     {
     pybind11::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int>())
         .def("setPeriod", &mpcd::Sorter::setPeriod);
     }
 

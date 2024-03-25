@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AnisoPotentialPair.h"
@@ -34,9 +34,6 @@ inline void export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
         .def_property("mode",
                       &AnisoPotentialPair<EvaluatorPairDipole>::getShiftMode,
                       &AnisoPotentialPair<EvaluatorPairDipole>::setShiftModePython)
-        .def("slotWriteGSDShapeSpec",
-             &AnisoPotentialPair<EvaluatorPairDipole>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &AnisoPotentialPair<EvaluatorPairDipole>::connectGSDShapeSpec)
         .def("getTypeShapesPy", &AnisoPotentialPair<EvaluatorPairDipole>::getTypeShapesPy);
     }
 

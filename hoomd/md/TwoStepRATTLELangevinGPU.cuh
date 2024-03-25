@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <hip/hip_runtime.h>
@@ -35,8 +35,6 @@ struct rattle_langevin_step_two_args
     {
     rattle_langevin_step_two_args(Scalar* _d_gamma,
                                   size_t _n_types,
-                                  bool _use_alpha,
-                                  Scalar _alpha,
                                   Scalar _T,
                                   Scalar _tolerance,
                                   uint64_t _timestep,
@@ -49,8 +47,8 @@ struct rattle_langevin_step_two_args
                                   bool _noiseless_r,
                                   bool _tally,
                                   const hipDeviceProp_t& _devprop)
-        : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), T(_T),
-          tolerance(_tolerance), timestep(_timestep), seed(_seed), d_sum_bdenergy(_d_sum_bdenergy),
+        : d_gamma(_d_gamma), n_types(_n_types), T(_T), tolerance(_tolerance), timestep(_timestep),
+          seed(_seed), d_sum_bdenergy(_d_sum_bdenergy),
           d_partial_sum_bdenergy(_d_partial_sum_bdenergy), block_size(_block_size),
           num_blocks(_num_blocks), noiseless_t(_noiseless_t), noiseless_r(_noiseless_r),
           tally(_tally), devprop(_devprop)
@@ -59,8 +57,6 @@ struct rattle_langevin_step_two_args
 
     Scalar* d_gamma; //!< Device array listing per-type gammas
     size_t n_types;  //!< Number of types in \a d_gamma
-    bool use_alpha;  //!< Set to true to scale diameters by alpha to get gamma
-    Scalar alpha;    //!< Scale factor to convert diameter to alpha
     Scalar T;        //!< Current temperature
     Scalar tolerance;
     uint64_t timestep;              //!< Current timestep
@@ -98,7 +94,6 @@ template<class Manifold>
 hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
                                         Scalar4* d_vel,
                                         Scalar3* d_accel,
-                                        const Scalar* d_diameter,
                                         const unsigned int* d_tag,
                                         unsigned int* d_group_members,
                                         unsigned int group_size,
@@ -120,15 +115,12 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
-    \param d_diameter array of particle diameters
     \param d_tag array of particle tags
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param use_alpha If true, gamma = alpha * diameter
-    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
@@ -149,15 +141,12 @@ template<class Manifold>
 __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
                                                     Scalar4* d_vel,
                                                     Scalar3* d_accel,
-                                                    const Scalar* d_diameter,
                                                     const unsigned int* d_tag,
                                                     unsigned int* d_group_members,
                                                     unsigned int group_size,
                                                     Scalar4* d_net_force,
                                                     Scalar* d_gamma,
                                                     size_t n_types,
-                                                    bool use_alpha,
-                                                    Scalar alpha,
                                                     uint64_t timestep,
                                                     uint16_t seed,
                                                     Scalar T,
@@ -172,16 +161,13 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* s_gammas = (Scalar*)s_data;
 
-    if (!use_alpha)
+    // read in the gammas (1 dimensional array)
+    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
-        // read in the gammas (1 dimensional array)
-        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
-            {
-            if (cur_offset + threadIdx.x < n_types)
-                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
-            }
-        __syncthreads();
+        if (cur_offset + threadIdx.x < n_types)
+            s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
         }
+    __syncthreads();
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -201,19 +187,10 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_alpha)
-            {
-            // read in the tag of our particle.
-            // (MEM TRANSFER: 4 bytes)
-            gamma = alpha * d_diameter[idx];
-            }
-        else
-            {
-            // read in the type of our particle. A texture read of only the fourth part of the
-            // position Scalar4 (where type is stored) is used.
-            unsigned int typ = __scalar_as_int(d_pos[idx].w);
-            gamma = s_gammas[typ];
-            }
+        // read in the type of our particle. A texture read of only the fourth part of the
+        // position Scalar4 (where type is stored) is used.
+        unsigned int typ = __scalar_as_int(d_pos[idx].w);
+        gamma = s_gammas[typ];
 
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         Scalar4 net_force = d_net_force[idx];
@@ -359,7 +336,6 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
-    \param d_diameter array of particle diameters
     \param d_tag array of particle tags
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
@@ -374,7 +350,6 @@ template<class Manifold>
 hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
                                         Scalar4* d_vel,
                                         Scalar3* d_accel,
-                                        const Scalar* d_diameter,
                                         const unsigned int* d_tag,
                                         unsigned int* d_group_members,
                                         unsigned int group_size,
@@ -408,15 +383,12 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
                        d_pos,
                        d_vel,
                        d_accel,
-                       d_diameter,
                        d_tag,
                        d_group_members,
                        group_size,
                        d_net_force,
                        rattle_langevin_args.d_gamma,
                        rattle_langevin_args.n_types,
-                       rattle_langevin_args.use_alpha,
-                       rattle_langevin_args.alpha,
                        rattle_langevin_args.timestep,
                        rattle_langevin_args.seed,
                        rattle_langevin_args.T,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_MOLIERE__
@@ -89,17 +89,6 @@ class EvaluatorPairMoliere
         : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.qi * _params.qj), aF(_params.aF)
         {
         }
-
-    //! Moliere potential does not use particle diameters.
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Moliere potential does not use particles charges
     DEVICE static bool needsCharge()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -110,14 +110,16 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         m_rigid_bodies = new_rigid;
         }
 
+    /// Validate method groups.
+    void validateGroups();
+
     protected:
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>
         m_methods; //!< List of all the integration methods
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
 
-    bool m_prepared;     //!< True if preprun has been called
-    bool m_gave_warning; //!< True if a warning has been given about no methods added
+    bool m_prepared; //!< True if preprun has been called
 
     /// True when orientation degrees of freedom should be integrated
     bool m_integrate_rotational_dof = false;

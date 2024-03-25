@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.snapshot import Snapshot
 from hoomd import Box
 import numpy
 import pytest
-from hoomd.pytest.test_simulation import make_gsd_snapshot
+from hoomd.pytest.test_simulation import make_gsd_frame
 try:
     import gsd.hoomd  # noqa: F401 - need to know if the import fails
     skip_gsd = False
@@ -27,7 +27,9 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     if not hoomd_snap.communicator.rank == 0:
         return True
     for attr in dir(hoomd_snap):
-        if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
+        if attr[0] == '_' or attr in [
+                'exists', 'replicate', 'communicator', 'mpcd'
+        ]:
             continue
         for prop in dir(getattr(hoomd_snap, attr)):
             if prop[0] == '_':
@@ -400,14 +402,14 @@ def test_constraints(s):
 
 
 @skip_gsd
-def test_from_gsd_snapshot_empty(s, device):
-    gsd_snap = make_gsd_snapshot(s)
-    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+def test_from_gsd_frame_empty(s, device):
+    gsd_snap = make_gsd_frame(s)
+    hoomd_snap = Snapshot.from_gsd_frame(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
 @skip_gsd
-def test_from_gsd_snapshot_populated(s, device):
+def test_from_gsd_frame_populated(s, device):
     if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         for section in ('particles', 'bonds', 'angles', 'dihedrals',
@@ -437,8 +439,8 @@ def test_from_gsd_snapshot_populated(s, device):
             else:
                 attr[:] = numpy.random.randint(3, size=attr.shape)
 
-    gsd_snap = make_gsd_snapshot(s)
-    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+    gsd_snap = make_gsd_frame(s)
+    hoomd_snap = Snapshot.from_gsd_frame(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 

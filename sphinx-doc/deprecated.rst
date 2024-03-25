@@ -1,82 +1,53 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Deprecated
 ==========
 
-Features deprecated in v3.x may be removed in a future v4.0.0 release.
+Features deprecated in HOOMD 4.x may be removed in a future 5.0.0 release.
 
 HOOMD may issue `FutureWarning` messages to provide warnings for breaking changes in the next major
 release. Use Python's warnings module to silence warnings which may not be correctable until the
 next major release. Use this filter: ``ignore::FutureWarning:hoomd``. See Python's `warnings`
 documentation for more information on warning filters.
 
-.. note::
+4.x
+---
 
-    Where noted, suggested replacements will be first available with v4.0.0 and there  will be no
-    releases with overlapping support for the two APIs.
+* ``hoomd.snapshot.from_gsd_snapshot`` (since 4.0.0).
 
-v3.x
-----
+  * Use `hoomd.Snapshot.from_gsd_frame`.
 
-* Particle diameters (since v3.0.0).
+* ``Device.num_cpu_threads > 1`` (since 4.4.0).
 
-  * Use potentials such as `md.pair.ExpandedLJ`.
+  * Set ``num_cpu_threads = 1``.
+  * All TBB code will be removed in the 5.0 release.
 
-* ``hoomd.md.pair.aniso.ALJ.mode`` parameter (since v3.1.0).
+* ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
+* ``hpmc.pair.user.CPPPotentialBase``, ``hpmc.pair.user.CPPPotential``,
+  ``hpmc.pair.user.CPPPotentialUnion``, ``hpmc.integrate.HPMCIntegrator.pair_potential``
+  (since 4.5.0).
 
-  * ``mode`` has no effect since v3.0.0.
+  * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
 
-* ``hoomd.md.pair.aniso.Dipole.mode`` parameter (since v3.1.0)
 
-  * ``mode`` has no effect since v3.0.0.
+* ``hoomd.util.GPUNotAvailableError`` (since 4.5.0).
 
-* ``hoomd.device.GPU.memory_traceback`` parameter (since v3.4.0)
+  * use ``hoomd.error.GPUNotAvailableError``.
 
-  * ``memory_traceback`` has no effect since v3.0.0.
+* ``_InternalCustomUpdater.update`` (since 4.5.0)
+* ``_InternalCustomTuner.tune`` (since 4.5.0)
+* ``_InternalCustomWriter.write`` (since 4.5.0)
+* ``HDF5Log.write`` (since 4.5.0)
+* Single-process multi-GPU code path (since 4.5.0)
+* ``gpu_ids`` argument to ``GPU`` (since 4.5.0)
 
-* ``hoomd.md.dihedral.Harmonic`` (since v3.7.0).
+  * Use ``gpu_id``.
 
-  * Use `hoomd.md.dihedral.Periodic`.
+* ``GPU.devices`` (since 4.5.0)
 
-* ``ENABLE_MPI_CUDA`` CMake option (since v3.7.0).
-* ``fix_cudart_rpath`` CMake macro (since v3.7.0).
-* ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>` (since v3.7.0).
+  * Use ``device``.
 
-  * Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in system state.
+* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
 
-* ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>` (since v3.7.0).
-
-  * Set diameters in system state.
-
-* ``hoomd.md.methods.NVE`` (since v3.8.0).
-
-  * Use ``hoomd.md.methods.ConstantVolume`` with ``thermostat=None`` (available in >=4.0.0).
-
-* ``hoomd.md.methods.NVT`` (since v3.8.0).
-
-  * Use ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
-
-* ``hoomd.md.methods.Berendsen`` (since v3.8.0).
-
-  * Use ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.Berendsen`` thermostat (available in >=4.0.0).
-
-* ``hoomd.md.methods.NPH`` (since v3.8.0).
-
-  * Use ``hoomd.md.methods.ConstantPressure` with ``thermostat=None`` (available in >=4.0.0).
-
-* ``hoomd.md.methods.NPT`` (since v3.8.0).
-
-  * Use ``hoomd.md.methods.ConstantPressure`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
-
-* ``log`` attribute and constructor parameter in `hoomd.write.GSD`.
-
-  * Use ``logger``.
-
-* ``hoomd.md.pair.Gauss`` (since v3.10.0)
-
-  * Use `hoomd.md.pair.Gaussian`.
-
-* ``msg_file`` property and argument to ``Device`` and subclasses (since v3.10.0)
-
-  * Use `message_filename <hoomd.device.Device.message_filename>`.
+  * Use ``box``.

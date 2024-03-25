@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUTypes.cuh"
@@ -149,17 +149,17 @@ __global__ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
     } // end namespace kernel
 
 //! Driver for kernel::hpmc_excell()
-void hpmc_excell(unsigned int* d_excell_idx,
-                 unsigned int* d_excell_size,
-                 const Index2D& excli,
-                 const unsigned int* d_cell_idx,
-                 const unsigned int* d_cell_size,
-                 const unsigned int* d_cell_adj,
-                 const Index3D& ci,
-                 const Index2D& cli,
-                 const Index2D& cadji,
-                 const unsigned int ngpu,
-                 const unsigned int block_size)
+void __attribute__((visibility("default"))) hpmc_excell(unsigned int* d_excell_idx,
+                                                        unsigned int* d_excell_size,
+                                                        const Index2D& excli,
+                                                        const unsigned int* d_cell_idx,
+                                                        const unsigned int* d_cell_size,
+                                                        const unsigned int* d_cell_adj,
+                                                        const Index3D& ci,
+                                                        const Index2D& cli,
+                                                        const Index2D& cadji,
+                                                        const unsigned int ngpu,
+                                                        const unsigned int block_size)
     {
     assert(d_excell_idx);
     assert(d_excell_size);
@@ -196,12 +196,12 @@ void hpmc_excell(unsigned int* d_excell_idx,
     }
 
 //! Kernel driver for kernel::hpmc_shift()
-void hpmc_shift(Scalar4* d_postype,
-                int3* d_image,
-                const unsigned int N,
-                const BoxDim& box,
-                const Scalar3 shift,
-                const unsigned int block_size)
+void __attribute__((visibility("default"))) hpmc_shift(Scalar4* d_postype,
+                                                       int3* d_image,
+                                                       const unsigned int N,
+                                                       const BoxDim& box,
+                                                       const Scalar3 shift,
+                                                       const unsigned int block_size)
     {
     assert(d_postype);
     assert(d_image);
@@ -225,13 +225,14 @@ void hpmc_shift(Scalar4* d_postype,
     hipDeviceSynchronize();
     }
 
-void hpmc_check_convergence(const unsigned int* d_trial_move_type,
-                            const unsigned int* d_reject_out_of_cell,
-                            unsigned int* d_reject_in,
-                            unsigned int* d_reject_out,
-                            unsigned int* d_condition,
-                            const GPUPartition& gpu_partition,
-                            const unsigned int block_size)
+void __attribute__((visibility("default")))
+hpmc_check_convergence(const unsigned int* d_trial_move_type,
+                       const unsigned int* d_reject_out_of_cell,
+                       unsigned int* d_reject_in,
+                       unsigned int* d_reject_out,
+                       unsigned int* d_condition,
+                       const GPUPartition& gpu_partition,
+                       const unsigned int block_size)
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;

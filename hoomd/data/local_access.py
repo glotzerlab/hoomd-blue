@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Access simulation state data directly."""
@@ -84,6 +84,17 @@ class _LocalAccess(ABC):
 class ParticleLocalAccessBase(_LocalAccess):
     """Class for directly accessing HOOMD-blue particle data.
 
+    Note:
+        Changing some attributes (such as ``velocity`` and ``acceleration``)
+        may not alter the trajectory of the system as you would expect.
+        The `md.Integrator` is responsible for integrating the equations of
+        motion and manages the values in these arrays.
+
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
+
     Attributes:
         typeid ((N_particles) `hoomd.data.array` object of ``float``):
             The integer type of a particle.
@@ -129,19 +140,10 @@ class ParticleLocalAccessBase(_LocalAccess):
         net_torque ((N_particles, 3) `hoomd.data.array` object of ``float``):
             Net torque on particle
             :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`.
-        net_virial ((N_particles, 3) `hoomd.data.array` object of ``float``):
+        net_virial ((N_particles, 6) `hoomd.data.array` object of ``float``):
             Net virial on particle :math:`[\\mathrm{energy}]`.
         net_energy ((N_particles,) `hoomd.data.array` object of ``float``):
             Net energy of a particle :math:`[\\mathrm{energy}]`.
-
-    Note:
-        Changing some attributes (such as ``velocity`` and ``acceleration``)
-        may not alter the trajectory of the system as you would expect.
-        The `md.Integrator` is responsible for integrating the equations of
-        motion and manages the values in these arrays.
-
-    See Also:
-        `hoomd.State`
     """
 
     @property
@@ -203,6 +205,11 @@ class _GroupLocalAccess(_LocalAccess):
 class BondLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue bond data.
 
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
+
     Attributes:
         typeid ((N_bonds) `hoomd.data.array` object of ``int``):
             The integer type of a bond.
@@ -216,15 +223,17 @@ class BondLocalAccessBase(_GroupLocalAccess):
             The bond reverse tags. For a given bond tag ``tag``,
             ``i = bonds.rtag[tag]`` is the array index holding that
             bond.
-
-    See Also:
-        `hoomd.State`
     """
     _cpp_get_data_method_name = "getBondData"
 
 
 class AngleLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue angle data.
+
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
 
     Attributes:
         typeid ((N_angles) `hoomd.data.array` object of ``int``):
@@ -238,15 +247,17 @@ class AngleLocalAccessBase(_GroupLocalAccess):
         rtag ((N_angles_global) `hoomd.data.array` object of ``int``):
             The angle reverse tags. For a given angle tag ``tag``, ``i =
             angles.rtag[tag]`` is the array index holding that angle.
-
-    See Also:
-        `hoomd.State`
     """
     _cpp_get_data_method_name = "getAngleData"
 
 
 class DihedralLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue dihedral data.
+
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
 
     Attributes:
         typeid ((N_dihedrals) `hoomd.data.array` object of ``int``): The integer
@@ -260,15 +271,17 @@ class DihedralLocalAccessBase(_GroupLocalAccess):
         rtag ((N_dihedrals_global) `hoomd.data.array` object of ``int``):
             The dihedral reverse tags. For a given dihedral tag ``tag``, ``i
             = dihedrals.rtag[tag]`` is the array index holding that dihedral.
-
-    See Also:
-        `hoomd.State`
     """
     _cpp_get_data_method_name = "getDihedralData"
 
 
 class ImproperLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue improper data.
+
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
 
     Attributes:
         typeid ((N_impropers) `hoomd.data.array` object of ``int``):
@@ -282,15 +295,17 @@ class ImproperLocalAccessBase(_GroupLocalAccess):
         rtag ((N_impropers_global) `hoomd.data.array` object of ``int``):
             The improper reverse tags. For a given improper tag ``tag``, ``i
             = impropers.rtag[tag]`` is the array index holding that improper.
-
-    See Also:
-        `hoomd.State`
     """
     _cpp_get_data_method_name = "getImproperData"
 
 
 class ConstraintLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue constraint data.
+
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
 
     Attributes:
         value ((N_constraints) `hoomd.data.array` object of ``float``): The
@@ -305,9 +320,6 @@ class ConstraintLocalAccessBase(_GroupLocalAccess):
             The constraint reverse tags. For a given constraint tag ``tag``,
             ``i = constraints.rtag[tag]`` is the array index holding that
             constraint.
-
-    See Also:
-        `hoomd.State`
     """
     _fields = {
         'value': 'getTypeVal',
@@ -320,6 +332,11 @@ class ConstraintLocalAccessBase(_GroupLocalAccess):
 
 class PairLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue special pair data.
+
+    See Also:
+        * `hoomd.State`
+        * `hoomd.data.LocalSnapshot`
+        * `hoomd.data.LocalSnapshotGPU`
 
     Attributes:
         typeid ((N_pairs) `hoomd.data.array` object of ``float``): The type of
@@ -334,9 +351,6 @@ class PairLocalAccessBase(_GroupLocalAccess):
             The special pair reverse tags. For a given special pair tag
             ``tag``, ``i = pairs.rtag[tag]`` is the array index holding that
             special pair.
-
-    See Also:
-        `hoomd.State`
     """
     _cpp_get_data_method_name = "getPairData"
 

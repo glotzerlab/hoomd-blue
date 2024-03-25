@@ -1,7 +1,14 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement TypeParameter."""
+"""Implement TypeParameter.
+
+.. invisible-code-block: python
+
+    # This should not be necessary, but without it, the first
+    # "skip: next if" fails to skip the code block.
+    pass
+"""
 
 from collections.abc import MutableMapping
 
@@ -11,87 +18,39 @@ from collections.abc import MutableMapping
 # documentation. For documentation on the mechanics and internal structure go to
 # the documentation for hoomd.data.parameterdicts.TypeParameterDict.
 class TypeParameter(MutableMapping):
-    """Implement a type based mutable mapping.
+    """Store parameters by type or type pair.
 
-    *Implements the* `collections.abc.MutableMapping` *interface
-    (* ``__delitem__`` *is disallowed).*
+    *Implements the* `collections.abc.MutableMapping` *interface* (excluding
+    ``__delitem__``).
 
-    `TypeParameter` instances extend the base Python mapping interface with
-    smart defaults, value/key validation/processing, and advanced indexing. The
-    class's intended purpose is to store data per type or per unique
-    combinations of type (such as type pairs for `hoomd.md.pair` potentials) of
-    a prescribed length.
+    Many operations in HOOMD-blue utilize parameters that depend on the type or
+    pairs of types. For example, the Langevin drag coefficient
+    (`hoomd.md.methods.Langevin.gamma`) are set by **particle type** and
+    Lennard-Jones pair potential parameters (`hoomd.md.pair.LJ.params`) are set
+    by **pairs** of particle types.
 
-    .. rubric:: Indexing
+    `TypeParameter` holds the values of these type (or type pair) dependent
+    parameters. It also provides convenience methods for setting defaults
+    and multiple parameters on one line.
 
-    For getting and setting values, multiple index formats are supported. The
-    base case is either a string representing the appropriate type or a tuple of
-    such strings if multiple types are required per key. This is the exact same
-    indexing behavior expect from a Python `dict`, and all functions (barring
-    those that delete keys) should function as expected for a Python
-    `collections.defaultdict`.
-
-    Two ways to extend this base indexing are supported. First is using an
-    iterator of the final key types. This will perform the method for all
-    specified types in the iterator.  Likewise, for each item in the final tuple
-    (if the expected key type is a tuple of multiple string types), an iterator
-    can be used instead of a string which will result in all permutations of
-    such iterators in the tuple. Both advanced indexing methods can be combined.
+    Important:
+        Parameters for all types (or unordered pairs of types) in the simulation
+        state must be defined prior to calling `Simulation.run()`.
 
     Note:
-        All methods support advanced indexing as well, and behave as one might
-        expect. Methods that set values will do so for all keys specified, and
-        methods that return values will return values for all keys (within a
-        `dict` instance).
+        `TypeParameter` removes types (or type pairs) not present in the
+        simulation state *after* its operation is added to the simulation and
+        the simulation has been run for 0 or more steps.
 
-    Note:
-        Ordering in tuples does not matter. Values in tuples are sorted before
-        being stored or queried.
+    The examples below use `hoomd.md.methods.Langevin` and `hoomd.md.pair.LJ`
+    to demonstrate.
 
-    Below are some example indexing values for single and multiple key indexing.
+    .. skip: next if(not hoomd.version.md_built)
 
     .. code-block:: python
 
-        # "A", "B", "C"
-        ["A", "B", "C"]
-        # ("A", "B")
-        ("A", "B")
-        # ("A", "B") and ("B", "C")
-        [("A", "B"), ("B", "C")]
-        # ("A", "B"), ("A", "C"), and ("A", "D")
-        ("A", ["B", "C", "D"])
-
-
-    .. rubric:: Defaults and setting values
-
-    `TypeParameter` instances have default values that can be accessed via
-    ``default`` which will be used for all types not defined. In addition, when
-    the type parameter expects a `dict`-like object, the default will be updated
-    with the set value. This means that values that have defaults do not need to
-    be explicitly specified.
-
-    An example of "smart"-setting using the MD LJ potential,
-
-    .. code-block:: python
-
-        lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell())
-        # params is a TypeParameter object.
-        # We set epsilon to have a default but sigma is still required
-        lj.params.default = {"epsilon": 4}
-        print(lj.params.default)
-        # {"epsilon": 4.0, "sigma": hoomd.data.typeconverter.RequiredArg}
-        # We do not need to specify epsilon to use new default value when
-        # setting
-        lj.params[("A", "B")] = {"sigma": 1.0}
-        print(lj.params[("A", "B")])
-        # {"epsilon": 4.0, "sigma": 1.0}
-
-    Note:
-        Before calling `hoomd.Simulation.run` for the `TypeParameter`
-        instance's associated simulation, keys are not checked that their types
-        exist in the `hoomd.State` object. After calling ``run``, however, all
-        such data for non-existent types is removed, and querying or attempting
-        to set those keys will result in a ``KeyError``.
+        lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4))
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.0)
     """
     __slots__ = ("name", "type_kind", "param_dict")
 
@@ -110,33 +69,120 @@ class TypeParameter(MutableMapping):
             raise AttributeError("'{}' object has no attribute "
                                  "'{}'".format(type(self), attr))
 
-    def __getitem__(self, key):
-        """Access parameters by key."""
-        return self.param_dict[key]
-
     def __setitem__(self, key, value):
-        """Set parameters by key."""
+        """Set parameters for a given type (or type pair).
+
+        .. rubric:: Examples:
+
+        Index types by name:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            langevin.gamma['A'] = 2.0
+
+        Set parameters for multiple types:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            langevin.gamma[['B', 'C']] = 3.0
+
+        Set type pair parameters with a tuple of names:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            lj.params[('A', 'A')] = dict(epsilon=1.5, sigma=2.0)
+
+        Set parameters for multiple pairs (e.g. ('A', 'B') and ('A', 'C')):
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            lj.params[('A', ['B', 'C'])] = dict(epsilon=0, sigma=0)
+
+        Set parameters for multiple pairs (e.g. ('B', 'B'), ('B', 'C'), ('C',
+        'B'), and ('C', 'C')):
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            lj.params[(['B', 'C'], ['B', 'C'])] = dict(epsilon=1, sigma=1)
+
+        Note:
+            Setting the value for *(a,b)* automatically sets the symmetric
+            *(b,a)* parameter to the same value.
+        """
         self.param_dict[key] = value
+
+    def __getitem__(self, key):
+        """Access parameters by key or keys.
+
+        .. rubric:: Examples:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            gamma_A = langevin.gamma['A']
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            lj_epsilon_AB = lj.params[('A', 'B')]['epsilon']
+
+        .. rubric:: Multiple keys
+
+        When ``key`` denotes multiple pairs (see `__setitem__`), `__getitem__`
+        returns multiple items in a dictionary:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            gammas = langevin.gamma[['A', 'B']]
+
+        is equivalent to:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            gammas = {key: langevin.gamma[key] for key in ['A', 'B']}
+        """
+        return self.param_dict[key]
 
     def __delitem__(self, key):
         """__delitem__ is not available for `TypeParameter` objects."""
         raise NotImplementedError("__delitem__ is not defined for this type.")
 
     def get(self, key, default):
-        """Get values for keys with undefined keys returning default.
+        """Get the value of the key with undefined keys returning default.
 
         Args:
             key:
                 Valid keys specifications (depends on the expected key length).
-            default (``any``, optional):
+            default:
                 The value to default to if a key is not found in the mapping.
-                If not set, the value defaults to the mapping's default.
 
         Returns:
-            values:
-                Returns a dict of the values for the keys asked for if multiple
-                keys were specified; otherwise, returns the value for the single
-                key.
+            Returns the parameter value for the key when set. Otherwise, returns
+            the provided default.
+
+        .. rubric:: Example:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            gamma_D = langevin.gamma.get('D', default=5.0)
         """
         return self.param_dict.get(key, default)
 
@@ -146,21 +192,60 @@ class TypeParameter(MutableMapping):
         Args:
             key: Valid keys specifications (depends on the expected key
                 length).
-            default (``any``): The value to default to if a key is not found in
-                the mapping.  Must be compatible with the typing specification
-                specified on construction.
+            default: The value to set when the key is not found in
+                the mapping.
+
+        .. rubric:: Example
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            langevin.gamma.setdefault('D', default=5.0)
         """
         self.param_dict.setdefault(key, default)
 
     def __eq__(self, other):
-        """Test for equality."""
+        """Test for equality.
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            langevin.gamma == lj.params
+        """
         return self.name == other.name and \
             self.type_kind == other.type_kind and \
             self.param_dict == other.param_dict
 
     @property
     def default(self):
-        """The default value of the parameter."""
+        """The default value of the parameter.
+
+        `TypeParameter` uses the default value for any type (or type pair) in
+        the simulation state that is not explicitly set by `__setitem__`
+        or `setdefault`.
+
+        .. rubric:: Examples:
+
+        Set a default value:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            langevin.gamma.default = 2.0
+
+        When the parameter is a dictionary, set defaults for zero or more
+        keys in that dictionary:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            lj.params.default = dict(epsilon=0)
+            lj.params.default = dict(epsilon=1, sigma=1)
+        """
         return self.param_dict.default
 
     @default.setter
@@ -177,15 +262,43 @@ class TypeParameter(MutableMapping):
         return self
 
     def to_base(self):
-        """Convert to a Python `dict`."""
+        """Convert to a Python `dict`.
+
+        .. rubric:: Example:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            plain_dict = lj.params.to_base()
+        """
         return self.param_dict.to_base()
 
     def __iter__(self):
-        """Get the keys in the dictionaty."""
+        """Iterate over the keys in the mapping.
+
+        .. rubric:: Example:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            for type_pair in lj.params:
+                pass
+        """
         yield from self.param_dict.keys()
 
     def __len__(self):
-        """Return mapping length."""
+        """Get the number of type parameters in the mapping.
+
+        .. rubric:: Example:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            n_type_pairs = len(lj.params)
+        """
         return len(self.param_dict)
 
     def __getstate__(self):

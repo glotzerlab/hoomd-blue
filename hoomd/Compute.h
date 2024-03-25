@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Action.h"
@@ -67,9 +67,6 @@ class PYBIND11_EXPORT Compute : public Action
         Derived classes will implement this method to calculate their results
     */
     virtual void compute(uint64_t timestep) { }
-
-    //! Abstract method that performs a benchmark
-    virtual double benchmark(unsigned int num_iters);
 
     //! Reset stat counters
     /*! If derived classes provide statistics for the last run, they should resetStats() to

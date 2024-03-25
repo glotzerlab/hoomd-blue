@@ -1,7 +1,13 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""External field forces."""
+"""External field forces.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+"""
 
 import hoomd
 from hoomd.md import _md
@@ -67,12 +73,14 @@ class Periodic(Field):
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
-    Example::
+    .. rubric:: Example:
 
-        # Apply a periodic composition modulation along the first lattice vector
-        periodic = external.field.Periodic()
+    .. code-block:: python
+
+        periodic = hoomd.md.external.field.Periodic()
         periodic.params['A'] = dict(A=1.0, i=0, w=0.02, p=3)
         periodic.params['B'] = dict(A=-1.0, i=0, w=0.02, p=3)
+        simulation.operations.integrator.forces = [periodic]
     """
     _cpp_class_name = "PotentialExternalPeriodic"
 
@@ -86,8 +94,8 @@ class Periodic(Field):
 class Electric(Field):
     """Electric field force.
 
-    `Electric` computes forces, and virials, and energies on all particles in
-    the in the simulation state with consistent with:
+    `Electric` computes forces, virials, and energies on all particles in
+    the simulation state which are consistent with:
 
     .. math::
 
@@ -107,11 +115,13 @@ class Electric(Field):
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
 
-    Example::
+    .. rubric:: Example:
 
-        # Apply an electric field in the x-direction
-        e_field = external.field.Electric()
-        e_field.E['A'] = (1, 0, 0)
+    .. code-block:: python
+
+        electric = hoomd.md.external.field.Electric()
+        electric.E['A'] = (1, 0, 0)
+        simulation.operations.integrator.forces = [electric]
     """
     _cpp_class_name = "PotentialExternalElectricField"
 
@@ -119,4 +129,53 @@ class Electric(Field):
         params = TypeParameter(
             'E', 'particle_types',
             TypeParameterDict((float, float, float), len_keys=1))
+        self._add_typeparam(params)
+
+
+class Magnetic(Field):
+    """Magnetic field torque on a magnetic dipole.
+
+    `Magnetic` computes torques and energies on all particles in the simulation
+    state which are consistent with:
+
+    .. math::
+
+       U_i = -\\vec{\\mu}_i \\cdot \\vec{B}
+
+
+    where :math:`\\vec{\\mu}_i` is the magnetic dipole moment of particle
+    :math:`i` and :math:`\\vec{B}` is the field vector.
+
+    .. py:attribute:: params
+
+        The `Magnetic` external potential parameters. The dictionary has the
+        following keys:
+
+        * ``B`` (`tuple` [`float`, `float`, `float`], **required**) - The
+          magnetic field vector in the global reference frame
+          :math:`[\\mathrm{energy} \\cdot \\mathrm{time} \\cdot
+          \\mathrm{charge}^{-1} \\cdot \\mathrm{length}^{-2} ]`.
+        * ``mu`` (`tuple` [`float`, `float`, `float`], **required**) - The
+          magnetic dipole moment of the particles type in the particle
+          reference frame :math:`[\\mathrm{charge} \\cdot \\mathrm{length}^2
+          \\cdot \\mathrm{time}^{-1}]`.
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        magnetic = hoomd.md.external.field.Magnetic()
+        magnetic.params['A'] = dict(B=(1.0,0.0,0.0), mu=(1.0,0.0,0.0))
+        simulation.operations.integrator.forces = [magnetic]
+    """
+    _cpp_class_name = "PotentialExternalMagneticField"
+
+    def __init__(self):
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(B=(float, float, float),
+                              mu=(float, float, float),
+                              len_keys=1))
         self._add_typeparam(params)

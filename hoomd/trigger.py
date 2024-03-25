@@ -1,28 +1,20 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Triggers determine when `hoomd.operation.Operation` instances activate.
+"""Triggers determine when most `hoomd.operation.Operation` instances activate.
 
 A `Trigger` is a boolean valued function of the timestep. The operation will
 perform its action when Trigger returns `True`. A single trigger object
 may be assigned to multiple operations.
 
-.. rubric:: User defined triggers
+See `Trigger` for details on creating user-defined triggers or use one of the
+provided subclasses.
 
-You can define your own triggers by subclassing `Trigger` in Python. When you do
-so, override the `Trigger.compute` method and explicitly call the base class
-constructor in ``__init__``.
+.. invisible-code-block: python
 
-Example:
-    Define a custom trigger::
-
-        class CustomTrigger(hoomd.trigger.Trigger):
-
-            def __init__(self):
-                hoomd.trigger.Trigger.__init__(self)
-
-            def compute(self, timestep):
-                return (timestep**(1 / 2)).is_integer()
+    other_trigger = hoomd.trigger.Periodic(period=100)
+    other_trigger1 = hoomd.trigger.Periodic(period=100)
+    other_trigger2 = hoomd.trigger.Periodic(period=100)
 """
 
 import typing
@@ -50,11 +42,21 @@ from hoomd import _hoomd
 class Trigger(_hoomd.Trigger):
     """Base class trigger.
 
-    Provides methods common to all triggers.
+    Provides methods common to all triggers and a base class for user-defined
+    triggers.
 
-    Attention:
-        Users should instantiate the subclasses, using `Trigger` directly
-        will result in an error.
+    Subclasses should override the `Trigger.compute` method and must explicitly
+    call the base class constructor in ``__init__``:
+
+    .. code-block:: python
+
+        class CustomTrigger(hoomd.trigger.Trigger):
+
+            def __init__(self):
+                hoomd.trigger.Trigger.__init__(self)
+
+            def compute(self, timestep):
+                return (timestep**(1 / 2)).is_integer()
 
     Methods:
         __call__(timestep):
@@ -102,9 +104,11 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
 
         return (t - phase) % period == 0
 
-    Example::
+    .. rubric:: Example:
 
-            trig = hoomd.trigger.Periodic(100)
+    .. code-block:: python
+
+            trigger = hoomd.trigger.Periodic(period=100)
 
     Attributes:
         period (int): periodicity in time step.
@@ -136,12 +140,11 @@ class Before(_hoomd.BeforeTrigger, Trigger):
 
         return t < timestep
 
-    Example::
+    .. rubric:: Example:
 
-            # trigger every 100 time steps at less than first 5000 steps.
-            trigger = hoomd.trigger.And(
-                [hoomd.trigger.Periodic(100),
-                hoomd.trigger.Before(sim.timestep + 5000)])
+    .. code-block:: python
+
+            trigger = hoomd.trigger.Before(5000)
 
     Attributes:
         timestep (int): The step after the trigger ends.
@@ -173,9 +176,10 @@ class On(_hoomd.OnTrigger, Trigger):
 
         return t == timestep
 
-    Example::
+    .. rubric:: Example:
 
-            # trigger at 1000 time steps
+    .. code-block:: python
+
             trigger = hoomd.trigger.On(1000)
 
     Attributes:
@@ -208,12 +212,11 @@ class After(_hoomd.AfterTrigger, Trigger):
 
         return t > timestep
 
-    Example::
+    .. rubric:: Example:
 
-            # trigger every 100 time steps after 1000 time steps.
-            trigger = hoomd.trigger.And([
-                    hoomd.trigger.After(1000),
-                    hoomd.trigger.Periodic(100)])
+    .. code-block:: python
+
+            trigger = hoomd.trigger.After(1000)
 
     Attributes:
         timestep (int): The step before the trigger will start.
@@ -245,9 +248,11 @@ class Not(_hoomd.NotTrigger, Trigger):
 
         return not trigger(t)
 
-    Example::
+    .. rubric:: Example:
 
-            trigger = hoomd.trigger.Not(hoomd.trigger.After(1000))
+    .. code-block:: python
+
+            trigger = hoomd.trigger.Not(other_trigger)
 
     Attributes:
         trigger (hoomd.trigger.Trigger): The trigger object to negate.
@@ -285,12 +290,11 @@ class And(_hoomd.AndTrigger, Trigger):
 
         return all([f(t) for f in triggers])
 
-    Example::
+    .. rubric:: Example:
 
-            # trigger every 100 time steps after 1000 time steps.
-            trig = hoomd.trigger.And([
-                    hoomd.trigger.After(1000),
-                    hoomd.trigger.Periodic(100)])
+    .. code-block:: python
+
+            trigger = hoomd.trigger.And([other_trigger1, other_trigger2])
 
     Attributes:
         triggers (list[hoomd.trigger.Trigger]): List of triggers.
@@ -334,17 +338,11 @@ class Or(_hoomd.OrTrigger, Trigger):
 
         return any([f(t) for f in triggers])
 
-    Example::
+    .. rubric:: Example:
 
-            # trigger every 100 time steps before at time step of 1000.
-            # or      every 10  time steps after  at time step of 1000.
-            trig = hoomd.trigger.Or([hoomd.trigger.And([
-                                        hoomd.trigger.Before(1000),
-                                        hoomd.trigger.Periodic(100)]),
-                                    [hoomd.trigger.And([
-                                        hoomd.trigger.After(1000),
-                                        hoomd.trigger.Periodic(10)])
-                                    ])
+    .. code-block:: python
+
+            trig = hoomd.trigger.Or([other_trigger1, other_trigger2])
 
     Attributes:
         triggers (`list` [`Trigger`]): List of triggers.

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ExecutionConfiguration.h"
@@ -27,17 +27,17 @@ using namespace hoomd::hpmc::detail;
 unsigned int err_count = 0;
 
 // helper function to compute poly radius
-PolyhedronVertices setup_verts(const vector<vec3<OverlapReal>> vlist, OverlapReal sweep_radius)
+PolyhedronVertices setup_verts(const vector<vec3<ShortReal>> vlist, ShortReal sweep_radius)
     {
     PolyhedronVertices result((unsigned int)vlist.size(), false);
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way
-    OverlapReal radius_sq = OverlapReal(0.0);
+    ShortReal radius_sq = ShortReal(0.0);
     for (unsigned int i = 0; i < vlist.size(); i++)
         {
-        vec3<OverlapReal> vert = vlist[i];
+        vec3<ShortReal> vert = vlist[i];
         result.x[i] = vert.x;
         result.y[i] = vert.y;
         result.z[i] = vert.z;
@@ -56,7 +56,7 @@ PolyhedronVertices setup_verts(const vector<vec3<OverlapReal>> vlist, OverlapRea
     if (vlist.size() >= 3)
         {
         // compute convex hull of vertices
-        typedef quickhull::Vector3<OverlapReal> vec;
+        typedef quickhull::Vector3<ShortReal> vec;
 
         std::vector<vec> qh_pts;
         for (unsigned int i = 0; i < vlist.size(); i++)
@@ -68,7 +68,7 @@ PolyhedronVertices setup_verts(const vector<vec3<OverlapReal>> vlist, OverlapRea
             qh_pts.push_back(vert);
             }
 
-        quickhull::QuickHull<OverlapReal> qh;
+        quickhull::QuickHull<ShortReal> qh;
         auto hull = qh.getConvexHull(qh_pts, false, true);
         auto indexBuffer = hull.getIndexBuffer();
 
@@ -85,7 +85,7 @@ UP_TEST(construction)
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    vector<vec3<OverlapReal>> vlist;
+    vector<vec3<ShortReal>> vlist;
     vlist.push_back(vec3<Scalar>(0, 0, 0));
     vlist.push_back(vec3<Scalar>(1, 0, 0));
     vlist.push_back(vec3<Scalar>(0, 1.25, 0));
@@ -118,70 +118,30 @@ UP_TEST(support)
     // Find the support of a tetrahedron
     quat<Scalar> o;
 
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
     SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron(verts, verts.sweep_radius);
-    vec3<OverlapReal> v1, v2;
+    vec3<ShortReal> v1, v2;
 
-    v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    v2 = vec3<OverlapReal>(-0.5, -0.5, -0.5);
+    v1 = sa(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    v2 = vec3<ShortReal>(-0.5, -0.5, -0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(-OverlapReal(0.1), OverlapReal(0.1), OverlapReal(0.1)));
-    v2 = vec3<OverlapReal>(-0.5, 0.5, 0.5);
+    v1 = sa(vec3<ShortReal>(-ShortReal(0.1), ShortReal(0.1), ShortReal(0.1)));
+    v2 = vec3<ShortReal>(-0.5, 0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(1, -1, 1));
-    v2 = vec3<OverlapReal>(0.5, -0.5, 0.5);
+    v1 = sa(vec3<ShortReal>(1, -1, 1));
+    v2 = vec3<ShortReal>(0.5, -0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(OverlapReal(0.51), OverlapReal(0.49), -OverlapReal(0.1)));
-    v2 = vec3<OverlapReal>(0.5, 0.5, -0.5);
+    v1 = sa(vec3<ShortReal>(ShortReal(0.51), ShortReal(0.49), -ShortReal(0.1)));
+    v2 = vec3<ShortReal>(0.5, 0.5, -0.5);
     UP_ASSERT(v1 == v2);
     }
-
-/*! Not sure how best to test this because not sure what a valid support has to be...
-UP_TEST( composite_support )
-    {
-    // Find the support of the Minkowski difference of two offset cubes
-    quat<Scalar> o;
-
-    vector< vec3<OverlapReal> > vlist;
-    vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, 0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(0.5, 0.5, 0.5));
-    PolyhedronVertices verts = setup_verts(vlist, 0.0);
-
-    ShapeSpheropolyhedron a(o, verts);
-    ShapeSpheropolyhedron b(o, verts);
-    SupportFuncSpheropolyhedron s = SupportFuncSpheropolyhedron(verts);
-    CompositeSupportFunc3D<SupportFuncSpheropolyhedron, SupportFuncSpheropolyhedron>* S;
-    vec3<Scalar> v1;
-
-    S = new CompositeSupportFunc3D<SupportFuncSpheropolyhedron, SupportFuncSpheropolyhedron>(s, s,
-b.pos - a.pos, a.orientation, b.orientation);
-
-    // v1 should always be the half-body-diagonal of a cube with corners at ([-]1,[-]1,[-]1)
-    v1 = (*S)(vec3<Scalar>(0.6,0.4,1));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    v1 = (*S)(vec3<Scalar>(.1,0,0));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    v1 = (*S)(vec3<Scalar>(.1,.1,0));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    cout << flush;
-    }
-*/
 
 UP_TEST(sphere)
     {
@@ -190,7 +150,7 @@ UP_TEST(sphere)
     quat<Scalar> o;
 
     // build a sphere
-    vector<vec3<OverlapReal>> vlist;
+    vector<vec3<ShortReal>> vlist;
     PolyhedronVertices verts = setup_verts(vlist, 0.5);
 
     // test overla
@@ -238,13 +198,13 @@ UP_TEST(overlap_octahedron_no_rot)
     quat<Scalar> o;
 
     // build a square
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(0, 0, OverlapReal(0.707106781186548)));
-    vlist.push_back(vec3<OverlapReal>(0, 0, -OverlapReal(0.707106781186548)));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0));
+    vlist.push_back(vec3<ShortReal>(0, 0, ShortReal(0.707106781186548)));
+    vlist.push_back(vec3<ShortReal>(0, 0, -ShortReal(0.707106781186548)));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
@@ -322,15 +282,15 @@ UP_TEST(overlap_cube_no_rot)
     quat<Scalar> o;
 
     // build a square
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
@@ -428,15 +388,15 @@ UP_TEST(overlap_cube_rot1)
                      (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternion
 
     // build a square
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o_a, verts);
@@ -509,15 +469,15 @@ UP_TEST(overlap_cube_rot2)
                      (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternion
 
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o_b, verts);
@@ -593,15 +553,15 @@ UP_TEST(overlap_cube_rot3)
     quat<Scalar> o_b(q2 * q1);
 
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o_a, verts);
@@ -707,16 +667,16 @@ UP_TEST(overlap_cube_precise)
 
     // build a square
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
-    PolyhedronVertices verts = setup_verts(vlist, OverlapReal(R));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
+    PolyhedronVertices verts = setup_verts(vlist, ShortReal(R));
 
     ShapeSpheropolyhedron a(o, verts);
     ShapeSpheropolyhedron b(o, verts);
@@ -863,17 +823,17 @@ UP_TEST(closest_pt_rounded_cube_no_rot)
     quat<Scalar> o;
 
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
 
-    OverlapReal R = 0.5;
+    ShortReal R = 0.5;
     PolyhedronVertices verts = setup_verts(vlist, R);
 
     ShapeSpheropolyhedron a(o, verts);
@@ -881,43 +841,43 @@ UP_TEST(closest_pt_rounded_cube_no_rot)
     ProjectionFuncConvexPolyhedron P(verts, verts.sweep_radius);
 
     // a point inside
-    vec3<OverlapReal> p = P(vec3<OverlapReal>(0, 0, 0));
+    vec3<ShortReal> p = P(vec3<ShortReal>(0, 0, 0));
     MY_CHECK_CLOSE(p.x, 0, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);
     MY_CHECK_CLOSE(p.z, 0, tol);
 
     // a point out on the x axis
-    p = P(vec3<OverlapReal>(1.25, 0, 0));
+    p = P(vec3<ShortReal>(1.25, 0, 0));
     MY_CHECK_CLOSE(p.x, 1, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);
     MY_CHECK_CLOSE(p.z, 0, tol);
 
     // a point out on the y axis
-    p = P(vec3<OverlapReal>(0, 2, 0));
+    p = P(vec3<ShortReal>(0, 2, 0));
     MY_CHECK_CLOSE(p.x, 0, tol);
     MY_CHECK_CLOSE(p.y, 1, tol);
     MY_CHECK_CLOSE(p.z, 0, tol);
 
     // a point out on the z axis
-    p = P(vec3<OverlapReal>(0, 0, 3));
+    p = P(vec3<ShortReal>(0, 0, 3));
     MY_CHECK_CLOSE(p.x, 0, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);
     MY_CHECK_CLOSE(p.z, 1, tol);
 
     // a point nearest to the +yz face
-    p = P(vec3<OverlapReal>(1.5, .25, .25));
+    p = P(vec3<ShortReal>(1.5, .25, .25));
     MY_CHECK_CLOSE(p.x, 1, tol);
     MY_CHECK_CLOSE(p.y, 0.25, tol);
     MY_CHECK_CLOSE(p.z, 0.25, tol);
 
     // a point nearest to a corner
-    p = P(vec3<OverlapReal>(2, 2, 2));
+    p = P(vec3<ShortReal>(2, 2, 2));
     MY_CHECK_CLOSE(p.x, 0.5 + 0.5 / sqrt(3), tol);
     MY_CHECK_CLOSE(p.y, 0.5 + 0.5 / sqrt(3), tol);
     MY_CHECK_CLOSE(p.z, 0.5 + 0.5 / sqrt(3), tol);
 
     // a point close to, but inside, the surface
-    p = P(vec3<OverlapReal>(0.75, 0, 0));
+    p = P(vec3<ShortReal>(0.75, 0, 0));
     std::cout << p.x << " " << p.y << " " << p.z << std::endl;
     MY_CHECK_CLOSE(p.x, 0.75, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);

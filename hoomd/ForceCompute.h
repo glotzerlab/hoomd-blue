@@ -1,8 +1,9 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Compute.h"
 #include "GlobalArray.h"
+#include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
 #include "PythonLocalDataAccess.h"
@@ -74,9 +75,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
     //! Computes the forces
     virtual void compute(uint64_t timestep);
-
-    //! Benchmark the force compute
-    virtual double benchmark(unsigned int num_iters);
 
     //! Total the potential energy
     Scalar calcEnergySum();
@@ -201,6 +199,20 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Update GPU memory hints
     void updateGPUAdvice();
 
+    //! Sort local tags
+    void sortLocalTags()
+        {
+        m_local_tag.resize(m_pdata->getN());
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
+                                        access_location::host,
+                                        access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                         access_location::host,
+                                         access_mode::read);
+        std::copy(h_tag.data, h_tag.data + m_pdata->getN(), m_local_tag.begin());
+        std::sort(m_local_tag.begin(), m_local_tag.end());
+        }
+
     Scalar m_deltaT; //!< timestep size (required for some types of non-conservative forces)
 
     GlobalArray<Scalar4> m_force; //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the
@@ -224,6 +236,14 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
     // whether the local force buffers exposed by this class should be read-only
     bool m_buffers_writeable;
+
+#ifdef ENABLE_MPI
+    /// Helper class to gather particle forces, energies, and virials
+    GatherTagOrder m_gather_tag_order;
+#endif
+
+    // Store local tags for gathering particle forces, energies, torques, and virials
+    std::vector<uint32_t> m_local_tag;
 
     //! Actually perform the computation of the forces
     /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
@@ -317,6 +337,31 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
 
 namespace detail
     {
+
+template<class Real> struct vec6
+    {
+    //! Construct a vec6
+    vec6(const Real& _xx,
+         const Real& _xy,
+         const Real& _xz,
+         const Real& _yy,
+         const Real& _yz,
+         const Real& _zz)
+        : xx(_xx), xy(_xy), xz(_xz), yy(_yy), yz(_yz), zz(_zz)
+        {
+        }
+
+    //! Default construct a 0 vector
+    vec6() : xx(0), xy(0), xz(0), yy(0), yz(0), zz(0) { }
+
+    Real xx;
+    Real xy;
+    Real xz;
+    Real yy;
+    Real yz;
+    Real zz;
+    };
+
 //! Exports the ForceCompute class to python
 #ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -12,12 +12,12 @@
 
 namespace hoomd
     {
-mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<SystemDefinition> sysdef,
                                              Scalar density,
                                              unsigned int type,
                                              std::shared_ptr<Variant> T,
                                              std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdata, density, type, T), m_geom(geom)
+    : mpcd::VirtualParticleFiller(sysdef, density, type, T), m_geom(geom)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SlitGeometryFiller" << std::endl;
     }
@@ -144,7 +144,7 @@ void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
     pybind11::class_<mpcd::SlitGeometryFiller,
                      mpcd::VirtualParticleFiller,
                      std::shared_ptr<mpcd::SlitGeometryFiller>>(m, "SlitGeometryFiller")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,

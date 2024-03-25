@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Type filter."""
@@ -14,6 +14,12 @@ class Type(ParticleFilter, ParticleFilterType):
         types (list[str]): List of particle type names to select.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        type_A_B = hoomd.filter.Type(['A', 'B'])
     """
 
     def __init__(self, types):
@@ -28,7 +34,7 @@ class Type(ParticleFilter, ParticleFilterType):
 
     def __eq__(self, other):
         """Test for equality between two particle filters."""
-        return type(self) == type(other) and self._types == other._types
+        return type(self) is type(other) and self._types == other._types
 
     @property
     def types(self):

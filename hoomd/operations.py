@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement a storage and management class for HOOMD-blue operations.
@@ -6,11 +6,19 @@
 Defines the `Operations` class which serves as the main class for storing and
 organizing the many parts of a simulation in a way that allows operations to be
 added and removed from a `Simulation`.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    operation = hoomd.write.GSD(trigger=hoomd.trigger.Periodic(1000),
+                                filename=tmp_path / 'operations.gsd',
+                                filter=hoomd.filter.All())
 """
 
 # Operations also automatically handles attaching and detaching (creating and
 # destroying C++ objects) for all hoomd operations.
 
+import weakref
 from collections.abc import Collection
 from copy import copy
 from itertools import chain
@@ -98,6 +106,12 @@ class Operations(Collection):
             with an integrator operation. Also, the ``integrator`` property
             cannot be set to ``None`` using this function. Use
             ``operations.integrator = None`` explicitly for this.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.operations.add(operation)
         """
         # we raise this error here to provide a more clear error message.
         if isinstance(operation, Integrator):
@@ -116,6 +130,12 @@ class Operations(Collection):
         Args:
             operation (hoomd.operation.Operation): A HOOMD-blue tuner,
                 updater, integrator, writer, or compute to add to the object.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.operations += operation
         """
         self.add(operation)
         return self
@@ -134,6 +154,12 @@ class Operations(Collection):
         Raises:
             ValueError: If ``operation`` is not found in this container.
             TypeError: If ``operation`` is not of a valid type.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.operations.remove(operation)
         """
         if isinstance(operation, Integrator):
             self.integrator = None
@@ -152,6 +178,12 @@ class Operations(Collection):
             operation (hoomd.operation.Operation): A HOOMD-blue integrator,
                 tuner, updater, integrator, analyzer, or compute to remove from
                 the collection.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.operations -= operation
         """
         self.remove(operation)
         return self
@@ -179,12 +211,12 @@ class Operations(Collection):
             self.integrator._attach(sim)
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
-        if not self.writers._synced:
-            self.writers._sync(sim, sim._cpp_sys.analyzers)
         if not self.tuners._synced:
             self.tuners._sync(sim, sim._cpp_sys.tuners)
         if not self.computes._synced:
             self.computes._sync(sim, sim._cpp_sys.computes)
+        if not self.writers._synced:
+            self.writers._sync(sim, sim._cpp_sys.analyzers)
         self._scheduled = True
 
     def _unschedule(self):
@@ -203,17 +235,38 @@ class Operations(Collection):
         Args:
             operation: Returns whether this exact operation is
                 contained in the collection.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            operation in simulation.operations
         """
         return any(op is operation for op in self)
 
     def __iter__(self):
-        """Iterates through all contained operations."""
+        """Iterates through all contained operations.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            for operation in simulation.operations:
+                pass
+        """
         integrator = (self._integrator,) if self._integrator else []
         yield from chain(self._tuners, self._updaters, integrator,
                          self._writers, self._computes)
 
     def __len__(self):
-        """Return the number of operations contained in this collection."""
+        """Return the number of operations contained in this collection.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            len(simulation.operations)
+        """
         base_len = len(self._writers) + len(self._updaters) + len(self._tuners)
         return base_len + (1 if self._integrator is not None else 0)
 
@@ -224,6 +277,18 @@ class Operations(Collection):
         `Operations` objects have an initial ``integrator`` property of
         ``None``. Can be set to MD or HPMC integrators. The property can also be
         set to ``None``.
+
+        .. rubric:: Examples:
+
+        .. skip: next if(not hoomd.version.md_built)
+
+        .. code-block:: python
+
+            simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
+
+        .. code-block:: python
+
+            simulation.operations.integrator = None
         """
         return self._integrator
 
@@ -290,6 +355,13 @@ class Operations(Collection):
 
         See Also:
             `hoomd.operation.AutotunedObject.is_tuning_complete`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            while (not simulation.operations.is_tuning_complete):
+                simulation.run(1000)
         """
         if not self._scheduled:
             raise DataAccessError("is_tuning_complete")
@@ -306,6 +378,12 @@ class Operations(Collection):
 
         See Also:
             `hoomd.operation.AutotunedObject.tune_kernel_parameters`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.operations.tune_kernel_parameters()
         """
         if not self._scheduled:
             raise RuntimeError("Call Simulation.run() before "
@@ -321,3 +399,17 @@ class Operations(Collection):
         state['_simulation'] = None
         state['_scheduled'] = False
         return state
+
+    @property
+    def _simulation(self):
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, sim):
+        if sim is not None:
+            sim = weakref.ref(sim)
+        self._simulation_ = sim

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -105,7 +105,7 @@ UP_TEST(GlobalArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -127,7 +127,7 @@ UP_TEST(GlobalArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -146,7 +146,7 @@ UP_TEST(GlobalArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_DPDLJ_H__
@@ -69,15 +69,6 @@ namespace md
     \f}
     where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i
    - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed random number in the range [-1, 1].
-
-    The LJ potential does not need diameter or charge. Three parameters are specified and stored in
-   a Scalar4. \a lj1 is placed in \a params.x, \a lj2 is in \a params.y and \a gamma in \a params.z.
-   The final parameter \a params.w is not used and set to zero.
-
-    lj1 and lj2 are related to the standard lj parameters sigma and epsilon by:
-    - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-    - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
-
 */
 class EvaluatorPairDPDThermoLJ
     {
@@ -165,17 +156,6 @@ class EvaluatorPairDPDThermoLJ
         {
         m_T = Temp;
         }
-
-    //! LJ does not use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! LJ doesn't use charge
     DEVICE static bool needsCharge()

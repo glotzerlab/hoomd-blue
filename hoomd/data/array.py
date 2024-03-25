@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement zero-copy array."""
@@ -334,44 +334,35 @@ def coerce_mock_to_array(val):
 
 
 class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
-    """A NumPy like interface to internal HOOMD-blue data.
+    """A numpy.ndarray-like interface to internal HOOMD-blue data.
 
-    These objects are returned by HOOMD-blue's zero copy local snapshot API
-    (`hoomd.State.cpu_local_snapshot`).
-    This class acts like a `numpy.ndarray` object through NumPy's provided
+    HOOMD-blue's zero copy local snapshot API
+    (`hoomd.State.cpu_local_snapshot`) returns `HOOMDArray` objects.
+    `HOOMDArray` acts like `numpy.ndarray` through NumPy's provided
     `interface <https://numpy.org/doc/stable/reference/arrays.classes.html>`_.
     Some exceptions are the ``view``, ``resize``, ``flat`` and ``flatiter``
-    methods and the ``data`` and ``base`` properties.  For typical use cases,
-    understanding this class is not necessary. Treat it as a ``numpy.ndarray``.
+    methods and the ``data`` and ``base`` properties.
 
-    In general, whenever possible (when an array pointing to a new buffer is
-    returned) we return a `numpy.ndarray`.  However, any array pointing to the
-    same data will be returned as a `HOOMDArray`. To ensure memory safety, a
-    `HOOMDArray` object cannot be accessed outside of the context manager in
-    which it was created.  To have access outside the manager an explicit copy
-    must be made (e.g.  ``numpy.array(obj, copy=True)``).
+    To ensure memory safety, a `HOOMDArray` object cannot be accessed outside of
+    the context manager in which it was created.  Make an explicit copy to use
+    the array elsewhere (e.g. ``numpy.array(obj, copy=True)``).
 
     In general this class should be nearly as fast as a standard NumPy array,
     but there is some overhead. This is mitigated by returning a
-    ``numpy.ndarray`` whenever possible. If every ounce of performance is
-    necessary, ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray``
-    object inside the context manager. **References to a HOOMDArray object's
-    buffer after leaving the context manager is UNSAFE.** It can cause SEGFAULTs
-    and cause your program to crash. Use this function only if absolutely
-    necessary.
+    ``numpy.ndarray`` whenever possible.
 
     .. rubric:: Performance Tips
 
-    *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
+    *Let* ``a`` *represent a* `HOOMDArray`.
 
     * Place the ``HOOMDArray`` to the left of the expression
       (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
       the mechanisms ``HOOMDArray`` has to do to hook into NumPy's
       functionality.
 
-    * If a copy will need to be made, do it as early as possible. In other
-      words, if you will need access outside the context manager, use
-      ``numpy.array(a, copy=True)`` before doing any calculations.
+    * Make copies as early as possible. In other words, if you will need access
+      outside the context manager, use ``numpy.array(a, copy=True)`` before
+      doing any calculations.
 
     * If you know that your access of the internal buffer is safe and we
       cannot detect this (i.e. we return a ``HOOMDArray``), using
@@ -415,7 +406,7 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
         """
         new_inputs = [coerce_mock_to_array(val) for val in args]
         for key, value in kwargs.items():
-            if type(value) == tuple:
+            if type(value) is tuple:
                 kwargs[key] = tuple(
                     [coerce_mock_to_array(val) for val in value])
             else:
@@ -717,7 +708,7 @@ if hoomd.version.gpu_enabled:
                     return "<emph>" + name + "</emph>" \
                         + "(<strong>INVALID</strong>)"
 else:
-    from hoomd.util import _NoGPU
+    from hoomd.error import _NoGPU
 
     class HOOMDGPUArray(_NoGPU):
         """GPU arrays are not available on the CPU."""
@@ -725,41 +716,32 @@ else:
 
 
 _gpu_array_docs = """
-Exposes an internal HOOMD-blue GPU buffer.
+A __cuda_array_interface__ to internal HOOMD-blue data on the GPU.
 
-The HOOMDGPUArray object exposes a GPU data buffer using the
+The HOOMDGPUArray object exposes a GPU data buffer using
 `__cuda_array_interface__
 <https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_.
 This class provides buffer access through a context manager to prevent invalid
-memory accesses (`hoomd.State.gpu_local_snapshot`). To avoid errors, do not use
-references to the data outside the context manager. For example:
+memory accesses (`hoomd.State.gpu_local_snapshot`). To avoid errors, use arrays
+only within the relevant context manager. For example:
 
 .. code-block:: python
 
     with sim.state.gpu_local_snapshot as data:
-        # valid within context manager
         pos = cupy.array(data.particles.position, copy=False)
-        # can use pos within manager
         pos[:, 2] += 1
-    # invalid data access can cause SEGFAULTs and other issues
-    pos[:, 2] -= 1
-
-In general, it is safer to not store any `HOOMDGPUArray` references to a data
-buffer. This can be done when necessary, but care must be taken not to use
-references to the data outside the context manager.
 
 Note:
-    The full functionality of this class depends on whether, HOOMD-blue can
-    import CuPy.  If CuPy can be imported then, we wrap much of the
-    ``cupy.ndarray`` class's functionality. Otherwise, we just expose the buffer
-    and provide a few basic properties.
+    When CuPy can be imported, then this class wraps much of the
+    ``cupy.ndarray`` class's functionality. Otherwise, this class exposes only
+    the buffer.
 
 `HOOMDGPUArray` always supports getting (but not setting) the ``shape``,
 ``strides``, and ``ndim`` properties. `HOOMDGPUArray` never supports standard
 binary operators like (``+``, ``-``, ``*``). This is a current limitation on
 external classes hooking into CuPy.
 
-When CuPy is imported, slice/element assignment (e.g.
+When CuPy can be imported, slice/element assignment (e.g.
 ``array[0] = 1; array[:2] = 4``) and compound assignment operators (e.g. ``+=``,
 ``-=``, ``*=``) are available. In addition, most methods besides ``view``,
 ``resize``, ``flat``, ``flatiter`` are available. The same is true for

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/hpmc/IntegratorHPMC.h"
@@ -26,7 +26,7 @@ using namespace std;
 unsigned int err_count = 0;
 
 // helper function to compute poly radius
-PolygonVertices setup_verts(const vector<vec2<OverlapReal>> vlist)
+PolygonVertices setup_verts(const vector<vec2<ShortReal>> vlist)
     {
     if (vlist.size() > MAX_POLY2D_VERTS)
         throw runtime_error("Too many polygon vertices");
@@ -36,10 +36,10 @@ PolygonVertices setup_verts(const vector<vec2<OverlapReal>> vlist)
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way
-    OverlapReal radius_sq = OverlapReal(0.0);
+    ShortReal radius_sq = ShortReal(0.0);
     for (unsigned int i = 0; i < vlist.size(); i++)
         {
-        vec2<OverlapReal> vert = vlist[i];
+        vec2<ShortReal> vert = vlist[i];
         result.x[i] = vert.x;
         result.y[i] = vert.y;
         radius_sq = std::max(radius_sq, dot(vert, vert));
@@ -56,44 +56,14 @@ PolygonVertices setup_verts(const vector<vec2<OverlapReal>> vlist)
     return result;
     }
 
-// void write_gle_header(ostream& o, Scalar s)
-//     {
-//     o << "size " << s << " " << s << endl;
-//     o << "set hei 0.15" << endl;
-//     o << "set just tc" << endl;
-//     }
-
-// void write_poly_gle(ostream& o, const ShapeConvexPolygon& poly, const vec3<Scalar>& pos)
-//     {
-//     // first transform all verts into screen space (rotation only, translation handled by an
-//     rmove) PolygonVertices ss_verts = poly.verts;
-
-//     for (unsigned int i = 0; i < ss_verts.N; i++)
-//         ss_verts.v[i] = rotate(quat<OverlapReal>(poly.orientation), ss_verts.v[i]);
-
-//     o << "rmove " << pos.x << " " << pos.y << endl;
-//     o << "rmove " << ss_verts.v[0].x << " " << ss_verts.v[0].y << endl;
-
-//     for (unsigned int i = 0; i < ss_verts.N-1; i++)
-//         {
-//         vec2<OverlapReal> line = ss_verts.v[i+1] - ss_verts.v[i];
-//         o << "text " << i << endl;
-//         o << "rline " << line.x << " " << line.y << endl;
-//         }
-
-//     o << "text " << ss_verts.N-1 << endl;
-//     vec2<OverlapReal> line = ss_verts.v[0] - ss_verts.v[ss_verts.N-1];
-//     o << "rline " << line.x << " " << line.y << endl;
-//     }
-
 UP_TEST(construction)
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(0, 0));
-    vlist.push_back(vec2<OverlapReal>(1, 0));
-    vlist.push_back(vec2<OverlapReal>(0, 1.25));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(0, 0));
+    vlist.push_back(vec2<ShortReal>(1, 0));
+    vlist.push_back(vec2<ShortReal>(0, 1.25));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o, verts);
@@ -122,11 +92,11 @@ UP_TEST(overlap_square_no_rot)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o, verts);
@@ -209,11 +179,11 @@ UP_TEST(overlap_square_rot1)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o_a, verts);
@@ -288,11 +258,11 @@ UP_TEST(overlap_square_rot2)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o_b, verts);
@@ -370,17 +340,17 @@ UP_TEST(overlap_square_tri)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist_a;
-    vlist_a.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist_a.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist_a.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist_a.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist_a;
+    vlist_a.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist_a.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist_a.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist_a.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts_a = setup_verts(vlist_a);
 
-    std::vector<vec2<OverlapReal>> vlist_b;
-    vlist_b.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist_b.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist_b.push_back(vec2<OverlapReal>(0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist_b;
+    vlist_b.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist_b.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist_b.push_back(vec2<ShortReal>(0.5, 0.5));
     PolygonVertices verts_b = setup_verts(vlist_b);
 
     ShapeConvexPolygon a(o_a, verts_a);
@@ -425,83 +395,3 @@ UP_TEST(overlap_square_tri)
     UP_ASSERT(test_overlap(r_ij, a, b, err_count));
     UP_ASSERT(test_overlap(-r_ij, b, a, err_count));
     }
-
-/*UP_TEST( visual )
-    {
-    // place these randomly and draw them with GLE colored red if they overlap
-    BoxDim box(100);
-
-    // build a hexagon
-    PolygonVertices verts_a;
-    verts_a.N = 6;
-    verts_a.v[0] = vec2<Scalar>(-0.5,-0.5);
-    verts_a.v[1] = vec2<Scalar>(0.1,-0.4);
-    verts_a.v[2] = vec2<Scalar>(0.6,0.0);
-    verts_a.v[3] = vec2<Scalar>(0,0.5);
-    verts_a.v[4] = vec2<Scalar>(-0.3,0.5);
-    verts_a.v[5] = vec2<Scalar>(-0.6,0);
-    set_radius(verts_a);
-
-    ShapeConvexPolygon a(vec3<Scalar>(0,0,0), quat<Scalar>(), verts_a);
-
-    // build a triangle
-    PolygonVertices verts_b;
-    verts_b.N = 3;
-    verts_b.v[0] = vec2<Scalar>(-0.5,-0.5);
-    verts_b.v[1] = vec2<Scalar>(0.5,-0.5);
-    verts_b.v[2] = vec2<Scalar>(0.5,0.5);
-    set_radius(verts_b);
-
-    ShapeConvexPolygon b(vec3<Scalar>(0,0,0), quat<Scalar>(), verts_b);
-
-    // start up the random number generator
-    Saru rng(123, 456, 789);
-
-    // do 16x16 tests, each drawn in a 4x4cm space
-    unsigned int m = 16;
-    Scalar w = 4;
-    Scalar s = m*w;
-
-    // place the shapes from max_d to min_d spacing apart
-    Scalar max_d = (a.getCircumsphereDiameter() + b.getCircumsphereDiameter()) / 2.0;
-    Scalar min_d = -max_d;
-
-    // write to the GLE file as we go
-    ofstream f("visual.gle");
-    write_gle_header(f, s);
-    f << "set lwidth 0.01" << endl;
-
-    for (unsigned int i = 0; i < m; i++)
-        for (unsigned int j = 0; j < m; j++)
-            {
-            // place the shapes randomly
-            Scalar alpha = rng.s(-M_PI, M_PI);
-            a.orientation = quat<Scalar>(cos(alpha/2.0), (Scalar)sin(alpha/2.0) *
-   vec3<Scalar>(0,0,1)); a.pos = vec3<Scalar>(0,0,0);
-
-            alpha = rng.s(-M_PI, M_PI);
-            b.orientation = quat<Scalar>(cos(alpha/2.0), (Scalar)sin(alpha/2.0) *
-   vec3<Scalar>(0,0,1)); r_ij = vec3<Scalar>(rng.s(min_d, max_d),rng.s(min_d, max_d), 0);
-
-            // translate to the current space on the plot
-            f << "begin translate " << i*w + w/2.0 << " " << j*w + w/2.0 << endl;
-
-            // color the lines red if they overlap, black otherwise
-            if (test_overlap(r_ij,a,b,err_count))
-                f << "set color red" << endl;
-            else
-                f << "set color black" << endl;
-
-            // draw the polygons
-            f << "amove " << 0 << " " << 0 << endl;
-            f << "text " << i << " " << j << endl;
-            f << "amove " << 0 << " " << 0 << endl;
-            write_poly_gle(f, a);
-
-            f << "amove " << 0 << " " << 0 << endl;
-            write_poly_gle(f, b);
-
-            f << "end translate" << endl << endl;
-            }
-
-    }*/

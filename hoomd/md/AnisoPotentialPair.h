@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __ANISO_POTENTIAL_PAIR_H__
@@ -15,7 +15,6 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
-#include "hoomd/GSDShapeSpecWriter.h"
 
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
@@ -97,13 +96,8 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     /// Set the rcut for a single type pair using a tuple of strings
     virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
 
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int slotWriteGSDShapeSpec(gsd_handle&) const;
-
     /// Validate that types are within Ntypes
     virtual void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
-    //! Method that is called to connect to the gsd write state signal
-    void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
     //! Set the shape parameters for a single type
     virtual void setShape(unsigned int typ, const shape_type& shape_param);
@@ -243,27 +237,6 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
-
-template<class aniso_evaluator>
-void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec,
-                          this,
-                          std::placeholders::_1);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template<class aniso_evaluator>
-int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
-    {
-    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: "
-                                 << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params, m_shape_params));
-    return retval;
-    }
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -518,9 +491,6 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                     access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                        access_location::host,
@@ -554,11 +524,8 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
             // sanity check
             assert(typei < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar di = Scalar(0.0);
+            // access charge (if needed)
             Scalar qi = Scalar(0.0);
-            if (aniso_evaluator::needsDiameter())
-                di = h_diameter.data[i];
             if (aniso_evaluator::needsCharge())
                 qi = h_charge.data[i];
 
@@ -595,11 +562,8 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 unsigned int typej = __scalar_as_int(h_pos.data[j].w);
                 assert(typej < m_pdata->getNTypes());
 
-                // access diameter and charge (if needed)
-                Scalar dj = Scalar(0.0);
+                // access charge (if needed)
                 Scalar qj = Scalar(0.0);
-                if (aniso_evaluator::needsDiameter())
-                    dj = h_diameter.data[j];
                 if (aniso_evaluator::needsCharge())
                     qj = h_charge.data[j];
 
@@ -626,8 +590,6 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
 
                 aniso_evaluator eval(dx, quat_i, quat_j, rcutsq, param);
 
-                if (aniso_evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
                 if (aniso_evaluator::needsCharge())
                     eval.setCharge(qi, qj);
                 if (aniso_evaluator::needsShape())
@@ -720,9 +682,6 @@ CommFlags AnisoPotentialPair<aniso_evaluator>::getRequestedCommFlags(uint64_t ti
     if (aniso_evaluator::needsCharge())
         flags[comm_flag::charge] = 1;
 
-    if (aniso_evaluator::needsDiameter())
-        flags[comm_flag::diameter] = 1;
-
     // with rigid bodies, include net torque
     flags[comm_flag::net_torque] = 1;
 
@@ -753,8 +712,6 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def_property("mode",
                       &AnisoPotentialPair<T>::getShiftMode,
                       &AnisoPotentialPair<T>::setShiftModePython)
-        .def("slotWriteGSDShapeSpec", &AnisoPotentialPair<T>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &AnisoPotentialPair<T>::connectGSDShapeSpec)
         .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);
     }
 

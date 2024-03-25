@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -43,10 +43,22 @@ class ExternalFieldEvalFactory
         return m_error_msg;
         }
 
+    //! Retrieve alpha array
+    float* getAlphaArray() const
+        {
+        return *m_alpha;
+        }
+
+    //! Set alpha array
+    void setAlphaArray(float* h_alpha)
+        {
+        *m_alpha = h_alpha;
+        }
+
     private:
     std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
     ExternalFieldEvalFnPtr m_eval;                     //!< Function pointer to evaluator
-
+    float** m_alpha;                                   // Pointer to alpha array
     std::string m_error_msg; //!< The error message if initialization fails
     };
 

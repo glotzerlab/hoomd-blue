@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -13,8 +13,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "SystemData.h"
+#include "CellList.h"
+
 #include "hoomd/Autotuned.h"
+#include "hoomd/SystemDefinition.h"
 #include "hoomd/Variant.h"
 #include <pybind11/pybind11.h>
 
@@ -35,7 +37,7 @@ namespace mpcd
 class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
     {
     public:
-    VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
+    VirtualParticleFiller(std::shared_ptr<SystemDefinition> sysdef,
                           Scalar density,
                           unsigned int type,
                           std::shared_ptr<Variant> T);
@@ -57,8 +59,14 @@ class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
         m_T = T;
         }
 
+    //! Set the cell list used for filling
+    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        }
+
     protected:
-    std::shared_ptr<hoomd::SystemDefinition> m_sysdef;         //!< HOOMD system definition
+    std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data

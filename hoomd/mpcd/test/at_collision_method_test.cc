@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/ATCollisionMethod.h"
@@ -22,43 +22,35 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
+    // 4 particle system
+    snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    // 4 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(4);
-
-        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
-        }
     // Save original momentum for comparison as well
     const Scalar3 orig_mom = make_scalar3(7.0, 0.0, -2.0);
     const Scalar orig_energy = 36.5;
     const Scalar orig_temp = 9.75;
 
     // initialize system and collision method
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    std::shared_ptr<mpcd::ParticleData> pdata_4 = mpcd_sys->getParticleData();
-
-    // thermos and temperature variant
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    AllThermoRequest thermo_req(thermo);
-
-    auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
+    std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
-
-    std::shared_ptr<mpcd::ATCollisionMethod> collide
-        = std::make_shared<CM>(mpcd_sys, 0, 2, 1, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 2, 1, T);
+    collide->setCellList(cl);
     collide->enableGridShifting(false);
+
+    // thermo to test properties
+    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
+    AllThermoRequest thermo_req(thermo);
 
     // nothing should happen on the first step
     UP_ASSERT(!collide->peekCollide(0));
@@ -120,39 +112,30 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
         pdata_snap.vel[0] = vec3<Scalar>(1.0, 2.0, 3.0);
         pdata_snap.mass[0] = 2.0;
         }
+    // 4 particle system
+    snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    // 4 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(4);
-
-        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
-        }
-
     // initialize system and collision method
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    std::shared_ptr<mpcd::ParticleData> pdata_4 = mpcd_sys->getParticleData();
-
-    // thermos and temperature variant
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    AllThermoRequest thermo_req(thermo);
-
-    auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
+    std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
-
-    std::shared_ptr<mpcd::ATCollisionMethod> collide
-        = std::make_shared<CM>(mpcd_sys, 0, 1, -1, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, T);
+    collide->setCellList(cl);
     collide->enableGridShifting(false);
+
+    // thermo to check properties
+    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
+    AllThermoRequest thermo_req(thermo);
 
     // embed the particle group into the mpcd system
     std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterAll());

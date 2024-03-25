@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -64,12 +64,6 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
     /// Gets gamma_r for a given particle type
     pybind11::tuple getGammaR(const std::string& type_name);
 
-    /// Sets alpha
-    void setAlpha(pybind11::object alpha);
-
-    /// Gets alpha
-    pybind11::object getAlpha();
-
     //! Return true if the method is momentum conserving
     virtual bool isMomentumConserving() const
         {
@@ -80,13 +74,7 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
     /// The Temperature of the Stochastic Bath
     std::shared_ptr<Variant> m_T;
 
-    /// flag to enable gamma to be a scaled version of the diameter
-    bool m_use_alpha;
-
-    /// Scale factor to apply to diameter to get gamma
-    Scalar m_alpha;
-
-    /// List of per type gammas to use when m_use_alpha=false
+    /// List of per type gammas
     GlobalVector<Scalar> m_gamma;
 
     /// List of per type gamma_r (for 2D-only rotational noise) to use

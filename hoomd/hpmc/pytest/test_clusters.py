@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.Clusters."""
@@ -133,6 +133,10 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
 @pytest.mark.serial
 def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     """Test that Clusters produces finite size clusters."""
+    if (isinstance(device, hoomd.device.GPU)
+            and hoomd.version.gpu_platform == 'ROCm'):
+        pytest.xfail("Clusters fails on ROCm (#1605)")
+
     sim = simulation_factory(
         lattice_snapshot_factory(particle_types=['A', 'B'],
                                  dimensions=3,

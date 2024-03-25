@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_H__
@@ -12,7 +12,6 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
-#include "hoomd/GSDShapeSpecWriter.h"
 #include "hoomd/GlobalArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -110,12 +109,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
     Scalar getROn(pybind11::tuple types);
     /// Set the r_on for a single type using a tuple of string
     virtual void setROnPython(pybind11::tuple types, Scalar r_on);
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int slotWriteGSDShapeSpec(gsd_handle&) const;
     /// Validate that types are within Ntypes
     void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
-    //! Method that is called to connect to the gsd write state signal
-    void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
     //! Shifting modes that can be applied to the energy
     enum energyShiftMode
@@ -584,26 +579,6 @@ void PotentialPair<evaluator>::setROnPython(pybind11::tuple types, Scalar r_on)
     setRon(typ1, typ2, r_on);
     }
 
-template<class evaluator>
-void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func
-        = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template<class evaluator>
-int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
-    {
-    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: "
-                                 << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping());
-    return retval;
-    }
-
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is
    called to ensure that it is up to date before proceeding.
 
@@ -631,9 +606,6 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
                                     access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     // force arrays
@@ -661,11 +633,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter and charge (if needed)
-        Scalar di = Scalar(0.0);
+        // access charge (if needed)
         Scalar qi = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            di = h_diameter.data[i];
         if (evaluator::needsCharge())
             qi = h_charge.data[i];
 
@@ -696,11 +665,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
+            // access charge (if needed)
             Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
 
@@ -734,8 +700,6 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
@@ -840,9 +804,6 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     if (evaluator::needsCharge())
         flags[comm_flag::charge] = 1;
 
-    if (evaluator::needsDiameter())
-        flags[comm_flag::diameter] = 1;
-
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
@@ -902,9 +863,6 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
     ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     const BoxDim box = m_pdata->getGlobalBox();
@@ -925,11 +883,8 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter and charge (if needed)
-        Scalar di = Scalar(0.0);
+        // access charge (if needed)
         Scalar qi = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            di = h_diameter.data[i];
         if (evaluator::needsCharge())
             qi = h_charge.data[i];
 
@@ -948,11 +903,8 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
+            // access charge (if needed)
             Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
 
@@ -986,8 +938,6 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
@@ -1082,9 +1032,7 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def_property("tail_correction",
                       &PotentialPair<T>::getTailCorrectionEnabled,
                       &PotentialPair<T>::setTailCorrectionEnabled)
-        .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList)
-        .def("slotWriteGSDShapeSpec", &PotentialPair<T>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec);
+        .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList);
     }
 
     } // end namespace detail

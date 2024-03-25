@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Communicator.h"
@@ -7,7 +7,6 @@
 #include "hoomd/mpcd/CellThermoTypes.h"
 #include "hoomd/mpcd/CommunicatorUtilities.h"
 #include "hoomd/mpcd/ReductionOperators.h"
-#include "hoomd/mpcd/SystemData.h"
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -55,9 +54,7 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->computeDimensions();
 
     // Fill in a dummy cell property array, which is just the global index of each cell
@@ -158,9 +155,7 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     cl->computeDimensions();
 
     // Don't really care what's in this array, just want to make sure errors get thrown

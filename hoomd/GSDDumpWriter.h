@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -43,24 +43,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                   std::string mode = "ab",
                   bool truncate = false);
 
-    //! Control attribute writes
-    void setWriteAttribute(bool b)
-        {
-        m_write_attribute = b;
-        }
-
-    //! Control property writes
-    void setWriteProperty(bool b)
-        {
-        m_write_property = b;
-        }
-
-    //! Control momentum writes
-    void setWriteMomentum(bool b)
-        {
-        m_write_momentum = b;
-        }
-
     //! Control topology writes
     void setWriteTopology(bool b)
         {
@@ -87,31 +69,15 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         return m_group;
         }
 
-    pybind11::tuple getDynamic()
-        {
-        pybind11::list result;
-        if (m_write_attribute)
-            result.append("attribute");
-        if (m_write_property)
-            result.append("property");
-        if (m_write_momentum)
-            result.append("momentum");
-        if (m_write_topology)
-            result.append("topology");
+    pybind11::tuple getDynamic();
 
-        return pybind11::tuple(result);
-        }
+    void setDynamic(pybind11::object dynamic);
 
     //! Destructor
-    ~GSDDumpWriter();
+    virtual ~GSDDumpWriter();
 
     //! Write out the data for the current timestep
-    void analyze(uint64_t timestep);
-
-    hoomd::detail::SharedSignal<int(gsd_handle&)>& getWriteSignal()
-        {
-        return m_write_signal;
-        }
+    virtual void analyze(uint64_t timestep);
 
     /// Write a logged quantities
     void writeLogQuantities(pybind11::dict dict);
@@ -141,16 +107,137 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         return flags;
         }
 
+    /// Get the write_diameter flag
+    bool getWriteDiameter()
+        {
+        return m_write_diameter;
+        }
+
+    /// Set the write_diameter flag
+    void setWriteDiameter(bool write_diameter)
+        {
+        m_write_diameter = write_diameter;
+        }
+
+    /// Flush the write buffer
+    void flush();
+
+    /// Set the maximum write buffer size (in bytes)
+    void setMaximumWriteBufferSize(uint64_t size);
+
+    /// Get the maximum write buffer size (in bytes)
+    uint64_t getMaximumWriteBufferSize();
+
+    protected:
+    gsd_handle m_handle; //!< Handle to the file
+
+    /// Flags for dynamic/default bitsets.
+    struct gsd_flag
+        {
+        enum Enum
+            {
+            configuration_box,
+            particles_N,
+            particles_position,
+            particles_orientation,
+            particles_types,
+            particles_type,
+            particles_mass,
+            particles_charge,
+            particles_diameter,
+            particles_body,
+            particles_inertia,
+            particles_velocity,
+            particles_angmom,
+            particles_image,
+            };
+        };
+
+    /// Number of entires in the gsd_flag enum.
+    static const unsigned int n_gsd_flags = 14;
+
+    /// Store a GSD frame for writing.
+    /** Local frames store particles local to the rank, sorted in ascending tag order.
+        Global frames store the entire system, sorted in ascending tag order.
+
+        Entries with 0 sized vectors should not be written to the file. Some ranks may have
+        0 particles while others have N: track which fields are present with
+        `particle_data_present` to enable global communication.
+
+        Note: In the first implementation, only particle data is local/global .
+        The bond/angle/dihedral/etc... data stored in the *local* frame is actually global.
+    */
+    struct GSDFrame
+        {
+        uint64_t timestep;
+        BoxDim global_box;
+
+        std::vector<unsigned int> particle_tags;
+
+        SnapshotParticleData<float> particle_data;
+        BondData::Snapshot bond_data;
+        AngleData::Snapshot angle_data;
+        DihedralData::Snapshot dihedral_data;
+        ImproperData::Snapshot improper_data;
+        ConstraintData::Snapshot constraint_data;
+        PairData::Snapshot pair_data;
+
+        /// Bit flags indicating which particle data fields are present (index by gsd_flag)
+        std::bitset<n_gsd_flags> particle_data_present;
+
+        void clear()
+            {
+            particle_tags.resize(0);
+            particle_data.resize(0);
+            bond_data.resize(0);
+            angle_data.resize(0);
+            dihedral_data.resize(0);
+            improper_data.resize(0);
+            constraint_data.resize(0);
+            pair_data.resize(0);
+
+            particle_data_present.reset();
+            }
+        };
+
+    //! Initializes the output file for writing
+    void initFileIO();
+
+    //! Get the current frame's logged data
+    pybind11::dict getLogData() const;
+
+    //! Write a frame to the GSD file buffer
+    void write(GSDFrame& frame, pybind11::dict log_data);
+
+    //! Check and raise an exception if an error occurs
+    void checkError(int retval);
+
+    //! Populate the non-default map
+    void populateNonDefault();
+
+    /// Populate local frame with data.
+    void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
+
+#ifdef ENABLE_MPI
+    /// Copy of the state properties on all ranks, in ascending tag order globally.
+    GSDFrame m_global_frame;
+    GatherTagOrder m_gather_tag_order;
+
+    void gatherGlobalFrame(const GSDFrame& local_frame);
+#endif
+
     private:
-    std::string m_fname;    //!< The file name we are writing to
-    std::string m_mode;     //!< The file open mode
-    bool m_truncate;        //!< True if we should truncate the file on every analyze()
-    bool m_is_initialized;  //!< True if the file is open
-    bool m_write_attribute; //!< True if attributes should be written
-    bool m_write_property;  //!< True if properties should be written
-    bool m_write_momentum;  //!< True if momenta should be written
-    bool m_write_topology;  //!< True if topology should be written
-    gsd_handle m_handle;    //!< Handle to the file
+    std::string m_fname;           //!< The file name we are writing to
+    std::string m_mode;            //!< The file open mode
+    bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
+    bool m_write_topology = false; //!< True if topology should be written
+    bool m_write_diameter = false; //!< True if the diameter attribute should be written
+
+    /// Flags indicating which particle fields are dynamic.
+    std::bitset<n_gsd_flags> m_dynamic;
+
+    /// Number of frames written to the file.
+    uint64_t m_nframes = 0;
 
     static std::list<std::string> particle_chunks;
 
@@ -158,31 +245,29 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     pybind11::object m_log_writer;
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group to write out to the file
-    std::map<std::string, bool>
+    std::unordered_map<std::string, bool>
         m_nondefault; //!< Map of quantities (true when non-default in frame 0)
 
-    hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
+    /// Copy of the state properties local to this rank, in ascending tag order.
+    GSDFrame m_local_frame;
+
+    /// Working array to sort local particles by tag
+    std::vector<unsigned int> m_index;
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
 
-    //! Initializes the output file for writing
-    void initFileIO();
-
     //! Write frame header
-    void writeFrameHeader(uint64_t timestep);
+    void writeFrameHeader(const GSDFrame& frame);
 
     //! Write particle attributes
-    void writeAttributes(const SnapshotParticleData<float>& snapshot,
-                         const std::map<unsigned int, unsigned int>& map);
+    void writeAttributes(const GSDFrame& frame);
 
     //! Write particle properties
-    void writeProperties(const SnapshotParticleData<float>& snapshot,
-                         const std::map<unsigned int, unsigned int>& map);
+    void writeProperties(const GSDFrame& frame);
 
     //! Write particle momenta
-    void writeMomenta(const SnapshotParticleData<float>& snapshot,
-                      const std::map<unsigned int, unsigned int>& map);
+    void writeMomenta(const GSDFrame& frame);
 
     //! Write bond topology
     void writeTopology(BondData::Snapshot& bond,
@@ -191,15 +276,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                        ImproperData::Snapshot& improper,
                        ConstraintData::Snapshot& constraint,
                        PairData::Snapshot& pair);
-
-    //! Write user defined log data
-    void writeUser(uint64_t timestep, bool root);
-
-    //! Check and raise an exception if an error occurs
-    void checkError(int retval);
-
-    //! Populate the non-default map
-    void populateNonDefault();
 
     friend void export_GSDDumpWriter(pybind11::module& m);
     };

@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HPMCPrecisionSetup.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include <stdio.h>
@@ -56,9 +55,9 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc2D
     */
     DEVICE CompositeSupportFunc2D(const SupportFuncA& _sa,
                                   const SupportFuncB& _sb,
-                                  const vec2<OverlapReal>& _ab_t,
-                                  const quat<OverlapReal>& _qa,
-                                  const quat<OverlapReal>& _qb)
+                                  const vec2<ShortReal>& _ab_t,
+                                  const quat<ShortReal>& _qa,
+                                  const quat<ShortReal>& _qb)
         : sa(_sa), sb(_sb), ab_t(_ab_t), Ra(_qa), Rb(_qb)
         {
         }
@@ -68,21 +67,21 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc2D
         \returns S_B(n) - S_A(n) in world space coords (transformations put n into local coords for
        S_A and S_b)
     */
-    DEVICE vec2<OverlapReal> operator()(const vec2<OverlapReal>& n) const
+    DEVICE vec2<ShortReal> operator()(const vec2<ShortReal>& n) const
         {
         // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
-        vec2<OverlapReal> SB_n = Rb * sb(transpose(Rb) * n) + ab_t;
-        vec2<OverlapReal> SA_n = Ra * sa(transpose(Ra) * (-n));
+        vec2<ShortReal> SB_n = Rb * sb(transpose(Rb) * n) + ab_t;
+        vec2<ShortReal> SA_n = Ra * sa(transpose(Ra) * (-n));
         return SB_n - SA_n;
         }
 
     private:
     const SupportFuncA& sa; //!< Support function for shape A
     const SupportFuncB& sb; //!< Support function for shape B
-    const vec2<OverlapReal>&
+    const vec2<ShortReal>&
         ab_t; //!< Vector pointing from a's center to b's center, in the space frame
-    const rotmat2<OverlapReal> Ra; //!< Orientation of shape A
-    const rotmat2<OverlapReal> Rb; //!< Orientation of shape B
+    const rotmat2<ShortReal> Ra; //!< Orientation of shape A
+    const rotmat2<ShortReal> Rb; //!< Orientation of shape B
     };
 
 //! XenoCollide overlap check in 2D
@@ -131,17 +130,17 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc2D
 template<class SupportFuncA, class SupportFuncB>
 DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
                                   const SupportFuncB& sb,
-                                  const vec2<OverlapReal>& ab_t,
-                                  const quat<OverlapReal>& qa,
-                                  const quat<OverlapReal>& qb,
+                                  const vec2<ShortReal>& ab_t,
+                                  const quat<ShortReal>& qa,
+                                  const quat<ShortReal>& qb,
                                   unsigned int& err_count)
     {
     // This implementation of XenoCollide is hand-written from the description of the algorithm on
     // page 171 of _Games Programming Gems 7_
 
-    vec2<OverlapReal> v0, v1, v2, v3, v10_perp, v21_perp, v30_perp;
-    const OverlapReal tol_multiplier = 10000;
-    const OverlapReal tol = OverlapReal(1e-7) * tol_multiplier;
+    vec2<ShortReal> v0, v1, v2, v3, v10_perp, v21_perp, v30_perp;
+    const ShortReal tol_multiplier = 10000;
+    const ShortReal tol = ShortReal(1e-7) * tol_multiplier;
     CompositeSupportFunc2D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, qa, qb);
 
     // Phase 1: Portal Discovery
@@ -213,7 +212,7 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
         // the difference within floating point precision
 
         // are we within an epsilon of the surface of the shape? If yes, done (overlap)
-        vec2<OverlapReal> d = ((v3 - v1) - project(v3 - v1, v2 - v1)) * tol_multiplier;
+        vec2<ShortReal> d = ((v3 - v1) - project(v3 - v1, v2 - v1)) * tol_multiplier;
 
         if (dot(d, d) < tol * tol * dot(v3, v3))
             return true;

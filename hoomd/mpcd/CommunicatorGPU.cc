@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -20,8 +20,8 @@ namespace hoomd
  * \param sysdef System definition the communicator is associated with
  * \param mpcd_sys MPCD system data
  */
-mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_data)
-    : Communicator(system_data), m_max_stages(1), m_num_stages(0), m_comm_mask(0),
+mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef)
+    : Communicator(sysdef), m_max_stages(1), m_num_stages(0), m_comm_mask(0),
       m_tmp_keys(m_exec_conf)
     {
     // initialize communication stages
@@ -175,7 +175,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     m_offsets.resize(m_n_unique_neigh);
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_cl->getCoverageBox();
     setCommFlags(box);
 
     for (unsigned int stage = 0; stage < m_num_stages; stage++)
@@ -389,7 +389,7 @@ void mpcd::detail::export_CommunicatorGPU(pybind11::module& m)
     pybind11::class_<mpcd::CommunicatorGPU,
                      mpcd::Communicator,
                      std::shared_ptr<mpcd::CommunicatorGPU>>(m, "CommunicatorGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setMaxStages", &mpcd::CommunicatorGPU::setMaxStages);
     }
 

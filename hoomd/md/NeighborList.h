@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Compute.h"
@@ -74,9 +74,6 @@ namespace md
     By default, a neighbor list includes all particles within a single cutoff distance r_cut.
    Various filters can be applied to remove unwanted neighbors from the list.
      - setFilterBody() prevents two particles of the same body from being neighbors
-     - setDiameterShift() enables slj type diameter shifting, where a single minimum cutoff is used
-   and the actual r_cut(i,j) is shifted by the average diameter of the particles (d_i + d_j)/2 -1
-   (such that no shift is applied when d_i = d_j = 1
 
     \b Algorithms:
 
@@ -259,10 +256,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Get the maximum of all the rlist
     Scalar getMaxRList()
         {
-        Scalar max_rlist = getMaxRCut() + m_r_buff;
-        if (m_diameter_shift)
-            max_rlist += m_d_max - Scalar(1.0);
-        return max_rlist;
+        return getMaxRCut() + m_r_buff;
         }
 
     //! Get the minimum of all rcut
@@ -276,10 +270,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Get the minimum of all rlist
     Scalar getMinRList()
         {
-        Scalar min_rlist = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            min_rlist += m_d_max - Scalar(1.0);
-        return min_rlist;
+        return getMinRCut() + m_r_buff;
         }
 
     //! Get the buffering (skin) length
@@ -352,9 +343,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_exclusions_set;
         }
 
-    //! Gives an estimate of the number of nearest neighbors per particle
-    virtual Scalar estimateNNeigh();
-
     //! Exclude a pair of particles from being added to the neighbor list
     void addExclusion(unsigned int tag1, unsigned int tag2);
 
@@ -387,45 +375,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_filter_body;
         }
 
-    //! Enable/disable diameter shifting
-    /*!
-     * If diameter shifting is enabled, a value (d_i + d_j)/2.0 - 1.0 is added to r_cut(i,j) for
-     * inclusion in the neighbor list (where d_i and d_j are the diameters). This is useful in
-     * simulations where there is only a single particle type, but each particle may have a
-     * different diameter, and the potential (and its cutoff) depends on this diameter (i.e. shifted
-     * Lennard-Jones).
-     */
-    virtual void setDiameterShift(bool diameter_shift)
-        {
-        m_diameter_shift = diameter_shift;
-        notifyRCutMatrixChange();
-        forceUpdate();
-        }
-
-    //! Test if diameter shifting is set
-    virtual bool getDiameterShift()
-        {
-        return m_diameter_shift;
-        }
-
-    //! Set the maximum diameter to use in computing neighbor lists
-    /*!
-     * If diameter shifting is enabled, then this sets the maximum query radius for inclusion in the
-     * neighborlist. The shift (d_i + d_j)/2.0 - 1.0 can be no bigger than d_max - 1.0.
-     */
-    virtual void setMaximumDiameter(Scalar d_max)
-        {
-        m_d_max = d_max;
-        notifyRCutMatrixChange();
-        forceUpdate();
-        }
-
-    //! Get the maximum diameter value
-    Scalar getMaximumDiameter()
-        {
-        return m_d_max;
-        }
-
     //! Return the requested ghost layer width
     virtual Scalar getGhostLayerWidth(unsigned int type)
         {
@@ -439,12 +388,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
         if (rcut_max_i > Scalar(0.0)) // ensure communication is required
             {
-            Scalar rmax = rcut_max_i + m_r_buff;
-
-            // diameter shifting requires to communicate a larger rlist
-            if (m_diameter_shift)
-                rmax += m_d_max - Scalar(1.0);
-            return rmax;
+            return rcut_max_i + m_r_buff;
             }
         else
             {
@@ -535,12 +479,10 @@ class PYBIND11_EXPORT NeighborList : public Compute
     /// List of r_cut matrices from neighborlist consumers
     std::vector<std::shared_ptr<GlobalArray<Scalar>>> m_consumer_r_cut;
 
-    Scalar m_rcut_max_max; //!< The maximum cutoff radius of any pair
-    Scalar m_rcut_min;     //!< The smallest cutoff radius of any pair (that is > 0)
-    Scalar m_r_buff;       //!< The buffer around the cutoff
-    Scalar m_d_max;        //!< The maximum diameter of any particle in the system (or greater)
-    bool m_filter_body;    //!< Set to true if particles in the same body are to be filtered
-    bool m_diameter_shift; //!< Set to true if the neighborlist rcut(i,j) should be diameter shifted
+    Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
+    Scalar m_rcut_min;          //!< The smallest cutoff radius of any pair (that is > 0)
+    Scalar m_r_buff;            //!< The buffer around the cutoff
+    bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
     storageMode m_storage_mode; //!< The storage mode
 
     GlobalArray<unsigned int> m_nlist;   //!< Neighbor list data

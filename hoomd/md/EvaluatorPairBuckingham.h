@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_BUCKINGHAM_H__
@@ -49,7 +49,7 @@ namespace md
     \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{Buckingham}}}{\partial r} = \frac{Exp_factor}{\rho
    \cdot r} - \frac{6 \cdot C}{r^{8}} \f]
 
-    The Buckingham potential does not need diameter or charge. Three parameters are specified and
+    The Buckingham potential does not need charge. Three parameters are specified and
    stored in a Scalar4. \a A is placed in \a params.x, \a rho is in \a params.y and \a C is placed
    in \a params.z.
 
@@ -109,23 +109,12 @@ class EvaluatorPairBuckingham
         {
         }
 
-    //! Buckingham doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Buckingham doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

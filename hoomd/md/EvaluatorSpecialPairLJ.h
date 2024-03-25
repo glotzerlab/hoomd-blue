@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __BOND_EVALUATOR_LJ_H__
@@ -93,18 +93,6 @@ class EvaluatorSpecialPairLJ
           lj2(_params.epsilon_x_4 * _params.sigma_6), rcutsq(_params.r_cutsq)
         {
         }
-
-    //! LJ doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle b
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
 
     //! LJ doesn't use charge
     DEVICE static bool needsCharge()

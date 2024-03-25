@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BondTablePotentialGPU.h"
@@ -108,8 +108,7 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
 
         if (h_flags.data[0])
             {
-            m_exec_conf->msg->errorAllRanks() << endl << "Table bond out of bounds" << endl << endl;
-            throw std::runtime_error("Error in bond calculation");
+            throw std::runtime_error("Table bond out of bounds.");
             }
         }
     m_tuner->end();

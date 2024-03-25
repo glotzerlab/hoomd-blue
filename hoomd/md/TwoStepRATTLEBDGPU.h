@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_HIP
@@ -110,9 +110,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(),
                                     access_location::device,
                                     access_mode::read);
@@ -134,8 +131,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
 
     kernel::rattle_bd_step_one_args args(d_gamma.data,
                                          this->m_gamma.getNumElements(),
-                                         this->m_use_alpha,
-                                         this->m_alpha,
                                          (*this->m_T)(timestep),
                                          this->m_tolerance,
                                          timestep,
@@ -169,7 +164,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                          d_image.data,
                                          d_vel.data,
                                          this->m_pdata->getBox(),
-                                         d_diameter.data,
                                          d_tag.data,
                                          d_index_array.data,
                                          group_size,
@@ -213,9 +207,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(),
                                     access_location::device,
                                     access_mode::read);
@@ -224,8 +215,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 
     kernel::rattle_bd_step_one_args args(d_gamma.data,
                                          this->m_gamma.getNumElements(),
-                                         this->m_use_alpha,
-                                         this->m_alpha,
                                          (*this->m_T)(timestep),
                                          this->m_tolerance,
                                          timestep,
@@ -254,7 +243,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
     kernel::gpu_include_rattle_force_bd<Manifold>(d_pos.data,
                                                   d_net_force.data,
                                                   d_net_virial.data,
-                                                  d_diameter.data,
                                                   d_tag.data,
                                                   d_index_array.data,
                                                   group_size,

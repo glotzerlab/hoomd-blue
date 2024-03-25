@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/AABB.h"
@@ -6,7 +6,6 @@
 #include "hoomd/VectorMath.h"
 
 #include "HPMCMiscFunctions.h"
-#include "HPMCPrecisionSetup.h"
 
 #ifndef __OBB_H__
 #define __OBB_H__
@@ -63,7 +62,7 @@ namespace detail
 */
 
 /// Update the bounds of an ABB
-DEVICE inline void update_bounds(OverlapReal& l, OverlapReal& u, OverlapReal e, OverlapReal f)
+DEVICE inline void update_bounds(ShortReal& l, ShortReal& u, ShortReal e, ShortReal f)
     {
     if (e < f)
         {
@@ -93,9 +92,9 @@ DEVICE inline void update_bounds(OverlapReal& l, OverlapReal& u, OverlapReal e, 
 */
 struct OBB
     {
-    vec3<OverlapReal> lengths; // half-axes
-    vec3<OverlapReal> center;
-    quat<OverlapReal> rotation;
+    vec3<ShortReal> lengths; // half-axes
+    vec3<ShortReal> center;
+    quat<ShortReal> rotation;
     unsigned int mask;
     unsigned int is_sphere;
 
@@ -108,18 +107,18 @@ struct OBB
 
         This constructor internally sets the 'is_sphere' flag to accelerate overlap checks
     */
-    DEVICE OBB(const vec3<OverlapReal>& _position, OverlapReal radius)
+    DEVICE OBB(const vec3<ShortReal>& _position, ShortReal radius)
         {
-        lengths = vec3<OverlapReal>(radius, radius, radius);
+        lengths = vec3<ShortReal>(radius, radius, radius);
         center = _position;
         mask = DEFAULT_MASK;
         is_sphere = 1;
         }
 
-    DEVICE OBB(const hoomd::detail::AABB& aabb)
+    DEVICE explicit OBB(const hoomd::detail::AABB& aabb)
         {
-        lengths = OverlapReal(0.5)
-                  * (vec3<OverlapReal>(aabb.getUpper()) - vec3<OverlapReal>(aabb.getLower()));
+        lengths = ShortReal(0.5)
+                  * (vec3<ShortReal>(aabb.getUpper()) - vec3<ShortReal>(aabb.getLower()));
         center = aabb.getPosition();
         mask = DEFAULT_MASK;
         is_sphere = 0;
@@ -127,7 +126,7 @@ struct OBB
 
     //! Construct an OBB from an AABB
     //! Get the OBB's position
-    DEVICE vec3<OverlapReal> getPosition() const
+    DEVICE vec3<ShortReal> getPosition() const
         {
         return center;
         }
@@ -140,11 +139,11 @@ struct OBB
 
 #ifndef __HIPCC__
     //! Get list of OBB corners
-    std::vector<vec3<OverlapReal>> getCorners() const
+    std::vector<vec3<ShortReal>> getCorners() const
         {
-        std::vector<vec3<OverlapReal>> corners(8);
+        std::vector<vec3<ShortReal>> corners(8);
 
-        rotmat3<OverlapReal> r(conj(rotation));
+        rotmat3<ShortReal> r(conj(rotation));
         corners[0] = center + r.row0 * lengths.x + r.row1 * lengths.y + r.row2 * lengths.z;
         corners[1] = center - r.row0 * lengths.x + r.row1 * lengths.y + r.row2 * lengths.z;
         corners[2] = center + r.row0 * lengths.x - r.row1 * lengths.y + r.row2 * lengths.z;
@@ -158,35 +157,35 @@ struct OBB
 #endif
 
     //! Rotate OBB, then translate the given vector
-    DEVICE void affineTransform(const quat<OverlapReal>& q, const vec3<OverlapReal>& v)
+    DEVICE void affineTransform(const quat<ShortReal>& q, const vec3<ShortReal>& v)
         {
         center = rotate(q, center) + v;
         rotation = q * rotation;
         }
 
-    DEVICE OverlapReal getVolume(unsigned int dim = 3) const
+    DEVICE ShortReal getVolume(unsigned int dim = 3) const
         {
         if (dim == 3)
             {
-            return is_sphere ? OverlapReal(4. / 3. * M_PI) * lengths.x * lengths.x * lengths.x
-                             : OverlapReal(8.0) * lengths.x * lengths.y * lengths.z;
+            return is_sphere ? ShortReal(4. / 3. * M_PI) * lengths.x * lengths.x * lengths.x
+                             : ShortReal(8.0) * lengths.x * lengths.y * lengths.z;
             }
         else
             {
-            return is_sphere ? OverlapReal(M_PI) * lengths.x * lengths.x
-                             : OverlapReal(8.0) * lengths.x * lengths.y;
+            return is_sphere ? ShortReal(M_PI) * lengths.x * lengths.x
+                             : ShortReal(8.0) * lengths.x * lengths.y;
             }
         }
 
     //! tightly fit an AABB to the OBB
     DEVICE hoomd::detail::AABB getAABB()
         {
-        rotmat3<OverlapReal> M(rotation);
+        rotmat3<ShortReal> M(rotation);
 
-        vec3<OverlapReal> lower_a = -lengths;
-        vec3<OverlapReal> upper_a = lengths;
-        vec3<OverlapReal> lower_b = center;
-        vec3<OverlapReal> upper_b = center;
+        vec3<ShortReal> lower_a = -lengths;
+        vec3<ShortReal> upper_a = lengths;
+        vec3<ShortReal> lower_b = center;
+        vec3<ShortReal> upper_b = center;
 
         update_bounds(lower_b.x, upper_b.x, M.row0.x * lower_a.x, M.row0.x * upper_a.x);
         update_bounds(lower_b.x, upper_b.x, M.row0.y * lower_a.y, M.row0.y * upper_a.y);
@@ -207,16 +206,16 @@ struct OBB
 // from Christer Ericsen, Real-time collision detection
 // https://doi.org/10.1201/b14581
 DEVICE inline bool
-SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& obb, const OverlapReal max_sq)
+SqDistPointOBBSmallerThan(const vec3<ShortReal>& p, const OBB& obb, const ShortReal max_sq)
     {
-    OverlapReal sqDist(0.0);
-    const vec3<OverlapReal> u = rotate(conj(obb.rotation), p - obb.center);
+    ShortReal sqDist(0.0);
+    const vec3<ShortReal> u = rotate(conj(obb.rotation), p - obb.center);
 
     // Project vector from box center to p on each axis, getting the distance
     // of p along that axis, and count any excess distance outside box extents
 
-    OverlapReal d = dot(u, vec3<OverlapReal>(1.0, 0, 0));
-    OverlapReal excess(0.0);
+    ShortReal d = dot(u, vec3<ShortReal>(1.0, 0, 0));
+    ShortReal excess(0.0);
 
     if (d < -obb.lengths.x)
         excess = d + obb.lengths.x;
@@ -227,8 +226,8 @@ SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& obb, const Over
     if (sqDist > max_sq)
         return false;
 
-    d = dot(u, vec3<OverlapReal>(0, 1.0, 0));
-    excess = OverlapReal(0.0);
+    d = dot(u, vec3<ShortReal>(0, 1.0, 0));
+    excess = ShortReal(0.0);
     if (d < -obb.lengths.y)
         excess = d + obb.lengths.y;
     else if (d > obb.lengths.y)
@@ -238,8 +237,8 @@ SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& obb, const Over
     if (sqDist > max_sq)
         return false;
 
-    d = dot(u, vec3<OverlapReal>(0, 0, 1.0));
-    excess = OverlapReal(0.0);
+    d = dot(u, vec3<ShortReal>(0, 0, 1.0));
+    excess = ShortReal(0.0);
     if (d < -obb.lengths.z)
         excess = d + obb.lengths.z;
     else if (d > obb.lengths.z)
@@ -268,13 +267,13 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact = true)
         return false;
 
     // translation vector
-    vec3<OverlapReal> t = b.center - a.center;
+    vec3<ShortReal> t = b.center - a.center;
 
     // if one or both of the OBB are spheres, simplify overlap check
     if (a.isSphere() && b.isSphere())
         {
-        OverlapReal rsq = dot(t, t);
-        OverlapReal RaRb = a.lengths.x + b.lengths.x;
+        ShortReal rsq = dot(t, t);
+        ShortReal RaRb = a.lengths.x + b.lengths.x;
         return rsq <= RaRb * RaRb;
         }
     else if (a.isSphere() && !b.isSphere())
@@ -285,22 +284,22 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact = true)
     // check two OBBs
 
     // rotate B in A's coordinate frame
-    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
+    rotmat3<ShortReal> r(conj(a.rotation) * b.rotation);
 
     // rotate translation into A's frame
     t = rotate(conj(a.rotation), t);
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(OverlapReal(1e-6)); // can be large, because false positives don't harm
+    const ShortReal eps(ShortReal(1e-6)); // can be large, because false positives don't harm
 
-    OverlapReal rabs[3][3];
+    ShortReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
     rabs[0][1] = fabs(r.row0.y) + eps;
     rabs[0][2] = fabs(r.row0.z) + eps;
 
     // test axes L = a0, a1, a2
-    OverlapReal ra, rb;
+    ShortReal ra, rb;
     ra = a.lengths.x;
     rb = b.lengths.x * rabs[0][0] + b.lengths.y * rabs[0][1] + b.lengths.z * rabs[0][2];
 
@@ -406,20 +405,20 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact = true)
 // return intersection distance tmin and point q of intersection
 // Ericson, Christer, Real-Time Collision Detection (Page 180)
 // https://doi.org/10.1201/b14581
-DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p,
-                                   const vec3<OverlapReal>& d,
+DEVICE inline bool IntersectRayOBB(const vec3<ShortReal>& p,
+                                   const vec3<ShortReal>& d,
                                    OBB a,
-                                   OverlapReal& tmin,
-                                   vec3<OverlapReal>& q,
-                                   OverlapReal abs_tol)
+                                   ShortReal& tmin,
+                                   vec3<ShortReal>& q,
+                                   ShortReal abs_tol)
     {
-    tmin = 0.0f;                // set to -FLT_MAX to get first hit on line
-    OverlapReal tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+    tmin = 0.0f;              // set to -FLT_MAX to get first hit on line
+    ShortReal tmax = FLT_MAX; // set to max distance ray can travel (for segment)
 
     // rotate ray in local coordinate system
-    quat<OverlapReal> a_transp(conj(a.rotation));
-    vec3<OverlapReal> p_local(rotate(a_transp, p - a.center));
-    vec3<OverlapReal> d_local(rotate(a_transp, d));
+    quat<ShortReal> a_transp(conj(a.rotation));
+    vec3<ShortReal> p_local(rotate(a_transp, p - a.center));
+    vec3<ShortReal> d_local(rotate(a_transp, d));
 
     // For all three slabs
     if (CHECK_ZERO(d_local.x, abs_tol))
@@ -431,9 +430,9 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p,
     else
         {
         // Compute intersection t value of ray with near and far plane of slab
-        OverlapReal ood = OverlapReal(1.0) / d_local.x;
-        OverlapReal t1 = (-a.lengths.x - p_local.x) * ood;
-        OverlapReal t2 = (a.lengths.x - p_local.x) * ood;
+        ShortReal ood = ShortReal(1.0) / d_local.x;
+        ShortReal t1 = (-a.lengths.x - p_local.x) * ood;
+        ShortReal t2 = (a.lengths.x - p_local.x) * ood;
 
         // Make t1 be intersection with near plane, t2 with far plane
         if (t1 > t2)
@@ -457,9 +456,9 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p,
     else
         {
         // Compute intersection t value of ray with near and far plane of slab
-        OverlapReal ood = OverlapReal(1.0) / d_local.y;
-        OverlapReal t1 = (-a.lengths.y - p_local.y) * ood;
-        OverlapReal t2 = (a.lengths.y - p_local.y) * ood;
+        ShortReal ood = ShortReal(1.0) / d_local.y;
+        ShortReal t1 = (-a.lengths.y - p_local.y) * ood;
+        ShortReal t2 = (a.lengths.y - p_local.y) * ood;
 
         // Make t1 be intersection with near plane, t2 with far plane
         if (t1 > t2)
@@ -483,9 +482,9 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p,
     else
         {
         // Compute intersection t value of ray with near and far plane of slab
-        OverlapReal ood = OverlapReal(1.0) / d_local.z;
-        OverlapReal t1 = (-a.lengths.z - p_local.z) * ood;
-        OverlapReal t2 = (a.lengths.z - p_local.z) * ood;
+        ShortReal ood = ShortReal(1.0) / d_local.z;
+        ShortReal t1 = (-a.lengths.z - p_local.z) * ood;
+        ShortReal t2 = (a.lengths.z - p_local.z) * ood;
 
         // Make t1 be intersection with near plane, t2 with far plane
         if (t1 > t2)
@@ -568,11 +567,11 @@ inline double MinAreaRect(vec2<double> pt[], int numPts, vec2<double>& c, vec2<d
     }
 
 // https://stackoverflow.com/questions/33532860/merge-two-spheres-to-get-a-new-one
-inline OverlapReal
-merge_two_spheres(vec3<OverlapReal>& c, OverlapReal r, vec3<OverlapReal> p, OverlapReal r_pt)
+inline ShortReal
+merge_two_spheres(vec3<ShortReal>& c, ShortReal r, vec3<ShortReal> p, ShortReal r_pt)
     {
-    vec3<OverlapReal> d = p - c;
-    OverlapReal dist = sqrt(dot(d, d));
+    vec3<ShortReal> d = p - c;
+    ShortReal dist = sqrt(dot(d, d));
 
     if (dist + r <= r_pt)
         {
@@ -584,7 +583,7 @@ merge_two_spheres(vec3<OverlapReal>& c, OverlapReal r, vec3<OverlapReal> p, Over
         return r;
         }
 
-    OverlapReal r_new = OverlapReal(0.5) * (r + r_pt + dist);
+    ShortReal r_new = ShortReal(0.5) * (r + r_pt + dist);
 
     if (dist > 0)
         c += d * (r_new - r) / dist;
@@ -592,17 +591,17 @@ merge_two_spheres(vec3<OverlapReal>& c, OverlapReal r, vec3<OverlapReal> p, Over
     return r_new;
     }
 
-inline OverlapReal eigen_sphere(const std::vector<vec3<OverlapReal>>& verts,
-                                vec3<OverlapReal>& center,
-                                const std::vector<OverlapReal>& vertex_radii)
+inline ShortReal eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
+                              vec3<ShortReal>& center,
+                              const std::vector<ShortReal>& vertex_radii)
     {
     // compute covariance matrix
     Eigen::MatrixXd m(3, 3);
     m(0, 0) = m(0, 1) = m(0, 2) = m(1, 0) = m(1, 1) = m(1, 2) = m(2, 0) = m(2, 1) = m(2, 2) = 0.0;
 
-    vec3<OverlapReal> mean(0, 0, 0);
+    vec3<ShortReal> mean(0, 0, 0);
     for (unsigned int i = 0; i < verts.size(); ++i)
-        mean += verts[i] / (OverlapReal)verts.size();
+        mean += verts[i] / (ShortReal)verts.size();
 
     for (unsigned int i = 0; i < verts.size(); i++)
         {
@@ -621,15 +620,15 @@ inline OverlapReal eigen_sphere(const std::vector<vec3<OverlapReal>>& verts,
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
     es.compute(m);
 
-    rotmat3<OverlapReal> r;
+    rotmat3<ShortReal> r;
 
     Eigen::VectorXd eigen_val;
     if (es.info() != Eigen::Success)
         {
         // numerical issue, set r to identity matrix
-        r.row0 = vec3<OverlapReal>(1, 0, 0);
-        r.row1 = vec3<OverlapReal>(0, 1, 0);
-        r.row2 = vec3<OverlapReal>(0, 0, 1);
+        r.row0 = vec3<ShortReal>(1, 0, 0);
+        r.row1 = vec3<ShortReal>(0, 1, 0);
+        r.row2 = vec3<ShortReal>(0, 0, 1);
         eigen_val(0) = eigen_val(1) = eigen_val(2) = 0;
         }
     else
@@ -637,40 +636,40 @@ inline OverlapReal eigen_sphere(const std::vector<vec3<OverlapReal>>& verts,
         // get the orthonormal basis
         Eigen::MatrixXd eigenvec = es.eigenvectors();
 
-        r.row0 = vec3<OverlapReal>(OverlapReal(eigenvec(0, 0)),
-                                   OverlapReal(eigenvec(0, 1)),
-                                   OverlapReal(eigenvec(0, 2)));
-        r.row1 = vec3<OverlapReal>(OverlapReal(eigenvec(1, 0)),
-                                   OverlapReal(eigenvec(1, 1)),
-                                   OverlapReal(eigenvec(1, 2)));
-        r.row2 = vec3<OverlapReal>(OverlapReal(eigenvec(2, 0)),
-                                   OverlapReal(eigenvec(2, 1)),
-                                   OverlapReal(eigenvec(2, 2)));
+        r.row0 = vec3<ShortReal>(ShortReal(eigenvec(0, 0)),
+                                 ShortReal(eigenvec(0, 1)),
+                                 ShortReal(eigenvec(0, 2)));
+        r.row1 = vec3<ShortReal>(ShortReal(eigenvec(1, 0)),
+                                 ShortReal(eigenvec(1, 1)),
+                                 ShortReal(eigenvec(1, 2)));
+        r.row2 = vec3<ShortReal>(ShortReal(eigenvec(2, 0)),
+                                 ShortReal(eigenvec(2, 1)),
+                                 ShortReal(eigenvec(2, 2)));
         eigen_val = es.eigenvalues();
         }
 
     // maximum eigenvalue
-    vec3<OverlapReal> max_evec(r.row0.x, r.row1.x, r.row2.x);
-    OverlapReal max_eval = OverlapReal(eigen_val(0));
+    vec3<ShortReal> max_evec(r.row0.x, r.row1.x, r.row2.x);
+    ShortReal max_eval = ShortReal(eigen_val(0));
     if (eigen_val(1) > max_eval)
         {
-        max_evec = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        max_eval = OverlapReal(eigen_val(1));
+        max_evec = vec3<ShortReal>(r.row0.y, r.row1.y, r.row2.y);
+        max_eval = ShortReal(eigen_val(1));
         }
     if (eigen_val(2) > max_eval)
         {
-        max_evec = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
-        max_eval = OverlapReal(eigen_val(2));
+        max_evec = vec3<ShortReal>(r.row0.z, r.row1.z, r.row2.z);
+        max_eval = ShortReal(eigen_val(2));
         }
 
-    max_evec /= (OverlapReal)sqrt(dot(max_evec, max_evec));
+    max_evec /= (ShortReal)sqrt(dot(max_evec, max_evec));
 
-    vec3<OverlapReal> min_pt;
-    vec3<OverlapReal> max_pt;
-    OverlapReal min_extent = FLT_MAX;
-    OverlapReal max_extent = -FLT_MAX;
-    OverlapReal max_vertex_radius = 0.0;
-    OverlapReal min_vertex_radius = 0.0;
+    vec3<ShortReal> min_pt;
+    vec3<ShortReal> max_pt;
+    ShortReal min_extent = FLT_MAX;
+    ShortReal max_extent = -FLT_MAX;
+    ShortReal max_vertex_radius = 0.0;
+    ShortReal min_vertex_radius = 0.0;
     for (unsigned int i = 0; i < verts.size(); ++i)
         {
         if (dot(max_evec, verts[i]) - vertex_radii[i] < min_extent)
@@ -691,11 +690,11 @@ inline OverlapReal eigen_sphere(const std::vector<vec3<OverlapReal>>& verts,
     return merge_two_spheres(center, min_vertex_radius, max_pt, max_vertex_radius);
     }
 
-inline OverlapReal ritter_eigen_sphere(const std::vector<vec3<OverlapReal>>& verts,
-                                       vec3<OverlapReal>& c,
-                                       const std::vector<OverlapReal>& vertex_radii)
+inline ShortReal ritter_eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
+                                     vec3<ShortReal>& c,
+                                     const std::vector<ShortReal>& vertex_radii)
     {
-    OverlapReal r = eigen_sphere(verts, c, vertex_radii);
+    ShortReal r = eigen_sphere(verts, c, vertex_radii);
     for (unsigned int i = 0; i < verts.size(); ++i)
         {
         assert(i < vertex_radii.size());
@@ -704,22 +703,22 @@ inline OverlapReal ritter_eigen_sphere(const std::vector<vec3<OverlapReal>>& ver
     return r;
     }
 
-inline OverlapReal ritter_iterative(std::vector<vec3<OverlapReal>> verts,
-                                    vec3<OverlapReal>& c,
-                                    std::vector<OverlapReal> vertex_radii)
+inline ShortReal ritter_iterative(std::vector<vec3<ShortReal>> verts,
+                                  vec3<ShortReal>& c,
+                                  std::vector<ShortReal> vertex_radii)
     {
     const unsigned int MAX_IT = 16;
 
-    OverlapReal r = ritter_eigen_sphere(verts, c, vertex_radii);
+    ShortReal r = ritter_eigen_sphere(verts, c, vertex_radii);
 
-    vec3<OverlapReal> c2 = c;
-    OverlapReal r2 = r;
+    vec3<ShortReal> c2 = c;
+    ShortReal r2 = r;
 
     std::mt19937 g(123);
 
     for (unsigned int k = 0; k < MAX_IT; ++k)
         {
-        r2 *= OverlapReal(0.95);
+        r2 *= ShortReal(0.95);
 
         for (unsigned int i = 0; i < verts.size(); ++i)
             {
@@ -743,8 +742,8 @@ inline OverlapReal ritter_iterative(std::vector<vec3<OverlapReal>> verts,
     return r;
     }
 
-DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
-                              const std::vector<OverlapReal>& vertex_radii,
+DEVICE inline OBB compute_obb(const std::vector<vec3<ShortReal>>& pts,
+                              const std::vector<ShortReal>& vertex_radii,
                               bool make_sphere)
     {
     OBB res;
@@ -752,12 +751,12 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
     if (!make_sphere)
         {
         // compute mean
-        vec3<OverlapReal> mean = vec3<OverlapReal>(0, 0, 0);
+        vec3<ShortReal> mean = vec3<ShortReal>(0, 0, 0);
 
         unsigned int n = (unsigned int)pts.size();
         for (unsigned int i = 0; i < n; ++i)
             {
-            mean += pts[i] / (OverlapReal)n;
+            mean += pts[i] / (ShortReal)n;
             }
 
         // compute covariance matrix
@@ -770,9 +769,9 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
         if (pts.size() >= 3)
             {
             // compute convex hull
-            typedef quickhull::Vector3<OverlapReal> vec;
+            typedef quickhull::Vector3<ShortReal> vec;
 
-            quickhull::QuickHull<OverlapReal> qh;
+            quickhull::QuickHull<ShortReal> qh;
             std::vector<vec> qh_pts;
             for (auto it = pts.begin(); it != pts.end(); ++it)
                 qh_pts.push_back(vec(it->x, it->y, it->z));
@@ -780,7 +779,7 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
             auto indexBuffer = hull.getIndexBuffer();
             auto vertexBuffer = hull.getVertexBuffer();
 
-            OverlapReal hull_area(0.0);
+            ShortReal hull_area(0.0);
             vec hull_centroid(0.0, 0.0, 0.0);
 
             for (unsigned int i = 0; i < vertexBuffer.size(); ++i)
@@ -794,13 +793,13 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
                 vec q = vertexBuffer[indexBuffer[i + 1]];
                 vec r = vertexBuffer[indexBuffer[i + 2]];
 
-                vec centroid = OverlapReal(1. / 3.) * (p + q + r);
+                vec centroid = ShortReal(1. / 3.) * (p + q + r);
                 vec cross = (q - p).crossProduct(r - p);
-                OverlapReal area = OverlapReal(0.5) * sqrt(cross.dotProduct(cross));
+                ShortReal area = ShortReal(0.5) * sqrt(cross.dotProduct(cross));
                 hull_area += area;
                 hull_centroid += area * centroid;
 
-                OverlapReal fac = area / OverlapReal(12.0);
+                ShortReal fac = area / ShortReal(12.0);
                 m(0, 0)
                     += fac * (9.0 * centroid.x * centroid.x + p.x * p.x + q.x * q.x + r.x * r.x);
                 m(0, 1)
@@ -837,7 +836,7 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
             // degenerate case
             for (unsigned int i = 0; i < n; ++i)
                 {
-                vec3<OverlapReal> dr = pts[i] - mean;
+                vec3<ShortReal> dr = pts[i] - mean;
 
                 m(0, 0) += dr.x * dr.x / (double)n;
                 m(1, 0) += dr.y * dr.x / (double)n;
@@ -858,14 +857,14 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
 
         es.compute(m);
 
-        rotmat3<OverlapReal> r;
+        rotmat3<ShortReal> r;
 
         if (es.info() != Eigen::Success)
             {
             // numerical issue, set r to identity matrix
-            r.row0 = vec3<OverlapReal>(1, 0, 0);
-            r.row1 = vec3<OverlapReal>(0, 1, 0);
-            r.row2 = vec3<OverlapReal>(0, 0, 1);
+            r.row0 = vec3<ShortReal>(1, 0, 0);
+            r.row1 = vec3<ShortReal>(0, 1, 0);
+            r.row2 = vec3<ShortReal>(0, 0, 1);
             }
         else
             {
@@ -873,15 +872,15 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
             Eigen::HouseholderQR<Eigen::MatrixXd> qr(es.eigenvectors());
             Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
 
-            r.row0 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(0, 0)),
-                                       OverlapReal(eigenvec_ortho(0, 1)),
-                                       OverlapReal(eigenvec_ortho(0, 2)));
-            r.row1 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(1, 0)),
-                                       OverlapReal(eigenvec_ortho(1, 1)),
-                                       OverlapReal(eigenvec_ortho(1, 2)));
-            r.row2 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(2, 0)),
-                                       OverlapReal(eigenvec_ortho(2, 1)),
-                                       OverlapReal(eigenvec_ortho(2, 2)));
+            r.row0 = vec3<ShortReal>(ShortReal(eigenvec_ortho(0, 0)),
+                                     ShortReal(eigenvec_ortho(0, 1)),
+                                     ShortReal(eigenvec_ortho(0, 2)));
+            r.row1 = vec3<ShortReal>(ShortReal(eigenvec_ortho(1, 0)),
+                                     ShortReal(eigenvec_ortho(1, 1)),
+                                     ShortReal(eigenvec_ortho(1, 2)));
+            r.row2 = vec3<ShortReal>(ShortReal(eigenvec_ortho(2, 0)),
+                                     ShortReal(eigenvec_ortho(2, 1)),
+                                     ShortReal(eigenvec_ortho(2, 2)));
             }
 
         if (pts.size() >= 3)
@@ -997,18 +996,18 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
             }
 
         // final axes
-        vec3<OverlapReal> axis[3];
-        axis[0] = vec3<OverlapReal>(r.row0.x, r.row1.x, r.row2.x);
-        axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
+        vec3<ShortReal> axis[3];
+        axis[0] = vec3<ShortReal>(r.row0.x, r.row1.x, r.row2.x);
+        axis[1] = vec3<ShortReal>(r.row0.y, r.row1.y, r.row2.y);
+        axis[2] = vec3<ShortReal>(r.row0.z, r.row1.z, r.row2.z);
 
-        vec3<OverlapReal> proj_min = vec3<OverlapReal>(FLT_MAX, FLT_MAX, FLT_MAX);
-        vec3<OverlapReal> proj_max = vec3<OverlapReal>(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        vec3<ShortReal> proj_min = vec3<ShortReal>(FLT_MAX, FLT_MAX, FLT_MAX);
+        vec3<ShortReal> proj_max = vec3<ShortReal>(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
         // project points onto axes
         for (unsigned int i = 0; i < n; ++i)
             {
-            vec3<OverlapReal> proj;
+            vec3<ShortReal> proj;
             proj.x = dot(pts[i] - mean, axis[0]);
             proj.y = dot(pts[i] - mean, axis[1]);
             proj.z = dot(pts[i] - mean, axis[2]);
@@ -1030,11 +1029,11 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
 
         res.center = mean;
 
-        res.center += OverlapReal(0.5) * (proj_max.x + proj_min.x) * axis[0];
-        res.center += OverlapReal(0.5) * (proj_max.y + proj_min.y) * axis[1];
-        res.center += OverlapReal(0.5) * (proj_max.z + proj_min.z) * axis[2];
+        res.center += ShortReal(0.5) * (proj_max.x + proj_min.x) * axis[0];
+        res.center += ShortReal(0.5) * (proj_max.y + proj_min.y) * axis[1];
+        res.center += ShortReal(0.5) * (proj_max.z + proj_min.z) * axis[2];
 
-        res.lengths = OverlapReal(0.5) * (proj_max - proj_min);
+        res.lengths = ShortReal(0.5) * (proj_max - proj_min);
 
         // sort by decreasing length, so split can occur along longest axis
         if (res.lengths.x < res.lengths.y)
@@ -1062,7 +1061,7 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
             }
 
         // make sure coordinate system is proper
-        if (r.det() < OverlapReal(0.0))
+        if (r.det() < ShortReal(0.0))
             {
             // swap column two and three
             std::swap(r.row0.y, r.row0.z);
@@ -1071,13 +1070,13 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
             std::swap(res.lengths.y, res.lengths.z);
             }
 
-        res.rotation = quat<OverlapReal>(r);
+        res.rotation = quat<ShortReal>(r);
         }
     else
         {
         res.lengths.x = res.lengths.y = res.lengths.z
             = ritter_iterative(pts, res.center, vertex_radii);
-        res.rotation = quat<OverlapReal>();
+        res.rotation = quat<ShortReal>();
         res.is_sphere = 1;
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SystemDefinition.cc
@@ -134,6 +134,13 @@ SystemDefinition::SystemDefinition(std::shared_ptr<SnapshotSystemData<Real>> sna
     m_constraint_data = std::shared_ptr<ConstraintData>(
         new ConstraintData(m_particle_data, snapshot->constraint_data));
     m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, snapshot->pair_data));
+
+#ifdef BUILD_MPCD
+    m_mpcd_data = std::make_shared<mpcd::ParticleData>(snapshot->mpcd_data,
+                                                       snapshot->global_box,
+                                                       exec_conf,
+                                                       decomposition);
+#endif
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of
@@ -169,13 +176,19 @@ template<class Real> std::shared_ptr<SnapshotSystemData<Real>> SystemDefinition:
     snap->dimensions = m_n_dimensions;
     snap->global_box = std::make_shared<BoxDim>(m_particle_data->getGlobalBox());
 
-    snap->map = m_particle_data->takeSnapshot(snap->particle_data);
+    m_particle_data->takeSnapshot(snap->particle_data);
     m_bond_data->takeSnapshot(snap->bond_data);
     m_angle_data->takeSnapshot(snap->angle_data);
     m_dihedral_data->takeSnapshot(snap->dihedral_data);
     m_improper_data->takeSnapshot(snap->improper_data);
     m_constraint_data->takeSnapshot(snap->constraint_data);
     m_pair_data->takeSnapshot(snap->pair_data);
+#ifdef BUILD_MPCD
+    if (m_mpcd_data)
+        {
+        m_mpcd_data->takeSnapshot(snap->mpcd_data, snap->global_box);
+        }
+#endif
 
     return snap;
     }
@@ -202,6 +215,24 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData
     m_improper_data->initializeFromSnapshot(snapshot->improper_data);
     m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
     m_pair_data->initializeFromSnapshot(snapshot->pair_data);
+#ifdef BUILD_MPCD
+    if (!m_mpcd_data)
+        {
+#ifdef ENABLE_MPI
+        auto decomp = m_particle_data->getDomainDecomposition();
+#else
+        auto decomp = std::shared_ptr<DomainDecomposition>();
+#endif
+        m_mpcd_data = std::make_shared<mpcd::ParticleData>(snapshot->mpcd_data,
+                                                           snapshot->global_box,
+                                                           m_particle_data->getExecConf(),
+                                                           decomp);
+        }
+    else
+        {
+        m_mpcd_data->initializeFromSnapshot(snapshot->mpcd_data, snapshot->global_box);
+        }
+#endif
     }
 
 // instantiate both float and double methods
@@ -261,6 +292,9 @@ void export_SystemDefinition(pybind11::module& m)
         .def("getImproperData", &SystemDefinition::getImproperData)
         .def("getConstraintData", &SystemDefinition::getConstraintData)
         .def("getPairData", &SystemDefinition::getPairData)
+#ifdef BUILD_MPCD
+        .def("getMPCDParticleData", &SystemDefinition::getMPCDParticleData)
+#endif
         .def("takeSnapshot_float", &SystemDefinition::takeSnapshot<float>)
         .def("takeSnapshot_double", &SystemDefinition::takeSnapshot<double>)
         .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<float>)

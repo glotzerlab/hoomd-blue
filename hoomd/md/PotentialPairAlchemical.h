@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -309,9 +309,6 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
                                     access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     // force arrays
@@ -341,11 +338,8 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter and charge (if needed)
-        Scalar di = Scalar(0.0);
+        // access charge (if needed)
         Scalar qi = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            di = h_diameter.data[i];
         if (evaluator::needsCharge())
             qi = h_charge.data[i];
 
@@ -376,11 +370,8 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
+            // access charge (if needed)
             Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
 
@@ -414,8 +405,6 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 

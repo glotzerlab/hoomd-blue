@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
@@ -215,9 +215,6 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
                                  access_mode::readwrite);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
@@ -265,13 +262,8 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         Scalar rz = uniform(rng);
 
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
 
         // compute the bd force
         Scalar coeff = fast::sqrt(Scalar(6.0) * gamma * currentTemp / m_deltaT);

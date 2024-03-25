@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
@@ -20,7 +20,7 @@ namespace md
 TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
                                          std::shared_ptr<ParticleGroup> group,
                                          std::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_use_alpha(false), m_alpha(0.0)
+    : IntegrationMethodTwoStep(sysdef, group), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
 
@@ -117,33 +117,6 @@ pybind11::tuple TwoStepLangevinBase::getGammaR(const std::string& type_name)
     return pybind11::tuple(v);
     }
 
-void TwoStepLangevinBase::setAlpha(pybind11::object alpha)
-    {
-    if (alpha.is_none())
-        {
-        m_use_alpha = false;
-        }
-    else
-        {
-        m_use_alpha = true;
-        m_alpha = pybind11::cast<Scalar>(alpha);
-        }
-    }
-
-pybind11::object TwoStepLangevinBase::getAlpha()
-    {
-    pybind11::object result;
-    if (m_use_alpha)
-        {
-        result = pybind11::cast(m_alpha);
-        }
-    else
-        {
-        result = pybind11::none();
-        }
-    return result;
-    }
-
 namespace detail
     {
 void export_TwoStepLangevinBase(pybind11::module& m)
@@ -158,8 +131,7 @@ void export_TwoStepLangevinBase(pybind11::module& m)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
         .def("getGamma", &TwoStepLangevinBase::getGamma)
         .def("setGammaR", &TwoStepLangevinBase::setGammaR)
-        .def("getGammaR", &TwoStepLangevinBase::getGammaR)
-        .def_property("alpha", &TwoStepLangevinBase::getAlpha, &TwoStepLangevinBase::setAlpha);
+        .def("getGammaR", &TwoStepLangevinBase::getGammaR);
     }
     } // end namespace detail
     } // end namespace md

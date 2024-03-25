@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_FOURIER_H__
@@ -49,12 +49,6 @@ namespace md
     \f[ b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}}) \f]
 
     is calculated to enforce close to zero value at r_cut
-
-    The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both
-   list of size 3) are specified and stored in a param_type struct.
-    - \a a is placed in params.a,
-    - \a b is placed in params.b.
-
 */
 class EvaluatorPairFourier
     {
@@ -117,23 +111,12 @@ class EvaluatorPairFourier
         {
         }
 
-    //! Fourier doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Fourier doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

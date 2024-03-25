@@ -1,7 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD integration methods
+r""" MPCD integration methods
 
 Defines bounce-back methods for integrating solutes (MD particles) embedded in an MPCD
 solvent. The integration scheme is velocity Verlet (NVE) with bounce-back performed at

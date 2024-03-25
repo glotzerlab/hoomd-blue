@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceCompositeGPU.h"
@@ -218,10 +218,10 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
 
     if (flag.x)
         {
-        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
-                                          << flag.x - 1 << " incomplete" << std::endl
-                                          << std::endl;
-        throw std::runtime_error("Error computing composite particle forces.\n");
+        std::ostringstream s;
+        s << "Composite particle with body tag " << flag.x - 1 << " incomplete" << std::endl
+          << std::endl;
+        throw std::runtime_error(s.str());
         }
 
     m_tuner_force->end();
@@ -394,11 +394,11 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         unsigned int body_id = h_body.data[idx];
         unsigned int tag = h_tag.data[idx];
 
-        m_exec_conf->msg->errorAllRanks()
-            << "constrain.rigid(): Particle " << tag << " part of composite body " << body_id
-            << " is missing central particle" << std::endl
-            << std::endl;
-        throw std::runtime_error("Error while updating constituent particles");
+        std::ostringstream s;
+        s << "Particle " << tag << " part of composite body " << body_id
+          << " is missing central particle" << std::endl
+          << std::endl;
+        throw std::runtime_error(s.str());
         }
 
     if (flag.y)
@@ -410,10 +410,10 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         unsigned int idx = flag.y - 1;
         unsigned int body_id = h_body.data[idx];
 
-        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body id "
-                                          << body_id << " incomplete" << std::endl
-                                          << std::endl;
-        throw std::runtime_error("Error while updating constituent particles");
+        std::ostringstream s;
+        s << "Composite particle with body id " << body_id << " incomplete" << std::endl
+          << std::endl;
+        throw std::runtime_error(s.str());
         }
     }
 

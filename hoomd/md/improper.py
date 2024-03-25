@@ -1,7 +1,15 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Improper forces.
+
+.. skip: next if(not hoomd.version.md_built)
+
+.. invisible-code-block: python
+
+    if hoomd.version.md_built:
+        simulation = hoomd.util.make_example_simulation()
+        simulation.operations.integrator = hoomd.md.Integrator(dt=0.001)
 
 Improper force classes apply a force and virial on every particle in the
 simulation state commensurate with the potential energy:
@@ -37,7 +45,8 @@ and similarly for virials.
 """
 
 import hoomd
-from hoomd import md  # required because hoomd.md is not yet available
+from hoomd import md
+from hoomd.md import _md
 
 
 class Improper(md.force.Force):
@@ -49,6 +58,10 @@ class Improper(md.force.Force):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
 
     def __init__(self):
         super().__init__()
@@ -62,9 +75,9 @@ class Improper(md.force.Force):
 
         # Instantiate the c++ implementation.
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_class = getattr(hoomd.md._md, self._cpp_class_name)
+            cpp_class = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cpp_class = getattr(hoomd.md._md, self._cpp_class_name + "GPU")
+            cpp_class = getattr(self._ext_module, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
 
@@ -102,6 +115,53 @@ class Harmonic(Improper):
             'params', 'improper_types',
             hoomd.data.parameterdicts.TypeParameterDict(
                 k=float,
+                chi0=hoomd.data.typeconverter.nonnegative_real,
+                len_keys=1))
+        self._add_typeparam(params)
+
+
+class Periodic(Improper):
+    """Periodic improper force.
+
+    `Periodic` computes forces, virials, and energies on all impropers in the
+    simulation state with:
+
+    .. math::
+
+        U(\\chi) = k \\left( 1 + d \\cos(n \\chi - \\chi_{0})  \\right )
+
+    Attributes:
+        params(`TypeParameter` [``improper type``, `dict`]):
+            The parameter of the harmonic impropers for each improper type. The
+            dictionary has the following keys:
+
+            * ``k`` (`float`, **required**), potential constant :math:`k`
+              :math:`[\\mathrm{energy}]`.
+            * ``chi0`` (`float`, **required**), equilibrium angle
+              :math:`\\chi_0` :math:`[\\mathrm{radian}]`.
+            * ``n`` (`int`, **required**), periodic number
+              :math:`n` :math:`[\\mathrm{dimensionless}]`.
+            * ``d`` (`float`, **required**), sign factor
+              :math:`d` :math:`[\\mathrm{dimensionless}]`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        periodic = hoomd.md.improper.Periodic()
+        periodic.params['A-B-C-D'] = dict(k=1.0, n = 1, chi0=0, d=1.0)
+
+    """
+    _cpp_class_name = "PeriodicImproperForceCompute"
+
+    def __init__(self):
+        super().__init__()
+        params = hoomd.data.typeparam.TypeParameter(
+            'params', 'improper_types',
+            hoomd.data.parameterdicts.TypeParameterDict(
+                k=float,
+                n=int,
+                d=int,
                 chi0=hoomd.data.typeconverter.nonnegative_real,
                 len_keys=1))
         self._add_typeparam(params)

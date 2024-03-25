@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/AABBTree.h"
@@ -29,7 +29,7 @@ unsigned int err_count;
 // helper function to compute poly radius
 void set_radius(TriangleMesh& data)
     {
-    OverlapReal radius_sq = OverlapReal(0.0);
+    ShortReal radius_sq = ShortReal(0.0);
     for (unsigned int i = 0; i < data.n_verts; i++)
         {
         radius_sq = std::max(radius_sq, dot(data.verts[i], data.verts[i]));
@@ -49,21 +49,21 @@ GPUTree build_tree(TriangleMesh& data)
         throw std::runtime_error("Error allocating aligned OBB memory.");
         }
 
-    std::vector<std::vector<vec3<OverlapReal>>> internal_coordinates;
+    std::vector<std::vector<vec3<ShortReal>>> internal_coordinates;
     // construct bounding box tree
     for (unsigned int i = 0; i < data.n_faces; ++i)
         {
-        std::vector<vec3<OverlapReal>> face_vec;
+        std::vector<vec3<ShortReal>> face_vec;
 
         unsigned int n_vert = 0;
         for (unsigned int j = data.face_offs[i]; j < data.face_offs[i + 1]; ++j)
             {
-            vec3<OverlapReal> v = data.verts[data.face_verts[j]];
+            vec3<ShortReal> v = data.verts[data.face_verts[j]];
             face_vec.push_back(v);
             n_vert++;
             }
 
-        std::vector<OverlapReal> vertex_radii(n_vert, data.sweep_radius);
+        std::vector<ShortReal> vertex_radii(n_vert, data.sweep_radius);
         obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
         internal_coordinates.push_back(face_vec);
         }
@@ -80,10 +80,10 @@ UP_TEST(construction)
 
     TriangleMesh data(4, 1, 4, false);
     data.sweep_radius = 0.0f;
-    data.verts[0] = vec3<OverlapReal>(0, 0, 0);
-    data.verts[1] = vec3<OverlapReal>(1, 0, 0);
-    data.verts[2] = vec3<OverlapReal>(0, 1.25, 0);
-    data.verts[3] = vec3<OverlapReal>(0, 0, OverlapReal(1.1));
+    data.verts[0] = vec3<ShortReal>(0, 0, 0);
+    data.verts[1] = vec3<ShortReal>(1, 0, 0);
+    data.verts[2] = vec3<ShortReal>(0, 1.25, 0);
+    data.verts[3] = vec3<ShortReal>(0, 0, ShortReal(1.1));
     data.face_verts[0] = 0;
     data.face_verts[1] = 1;
     data.face_verts[2] = 2;
@@ -136,12 +136,12 @@ UP_TEST(overlap_octahedron_no_rot)
     TriangleMesh data(6, 8, 24, false);
     data.sweep_radius = 0.0f;
 
-    data.verts[0] = vec3<OverlapReal>(-0.5, -0.5, 0);
-    data.verts[1] = vec3<OverlapReal>(0.5, -0.5, 0);
-    data.verts[2] = vec3<OverlapReal>(0.5, 0.5, 0);
-    data.verts[3] = vec3<OverlapReal>(-0.5, 0.5, 0);
-    data.verts[4] = vec3<OverlapReal>(0, 0, OverlapReal(0.707106781186548));
-    data.verts[5] = vec3<OverlapReal>(0, 0, -OverlapReal(0.707106781186548));
+    data.verts[0] = vec3<ShortReal>(-0.5, -0.5, 0);
+    data.verts[1] = vec3<ShortReal>(0.5, -0.5, 0);
+    data.verts[2] = vec3<ShortReal>(0.5, 0.5, 0);
+    data.verts[3] = vec3<ShortReal>(-0.5, 0.5, 0);
+    data.verts[4] = vec3<ShortReal>(0, 0, ShortReal(0.707106781186548));
+    data.verts[5] = vec3<ShortReal>(0, 0, -ShortReal(0.707106781186548));
     data.face_offs[0] = 0;
     data.face_verts[0] = 0;
     data.face_verts[1] = 4;
@@ -263,12 +263,12 @@ UP_TEST(overlap_sphero_octahedron_no_rot)
     TriangleMesh data(6, 8, 24, false);
     data.sweep_radius = 0.1f;
 
-    data.verts[0] = vec3<OverlapReal>(-0.5, -0.5, 0);
-    data.verts[1] = vec3<OverlapReal>(0.5, -0.5, 0);
-    data.verts[2] = vec3<OverlapReal>(0.5, 0.5, 0);
-    data.verts[3] = vec3<OverlapReal>(-0.5, 0.5, 0);
-    data.verts[4] = vec3<OverlapReal>(0, 0, OverlapReal(0.707106781186548));
-    data.verts[5] = vec3<OverlapReal>(0, 0, -OverlapReal(0.707106781186548));
+    data.verts[0] = vec3<ShortReal>(-0.5, -0.5, 0);
+    data.verts[1] = vec3<ShortReal>(0.5, -0.5, 0);
+    data.verts[2] = vec3<ShortReal>(0.5, 0.5, 0);
+    data.verts[3] = vec3<ShortReal>(-0.5, 0.5, 0);
+    data.verts[4] = vec3<ShortReal>(0, 0, ShortReal(0.707106781186548));
+    data.verts[5] = vec3<ShortReal>(0, 0, -ShortReal(0.707106781186548));
     data.face_offs[0] = 0;
     data.face_verts[0] = 0;
     data.face_verts[1] = 4;
@@ -394,18 +394,18 @@ UP_TEST(overlap_octahedron_sphere)
     // build an octahedron
     TriangleMesh data_a(6, 8, 24, false);
 
-    memset((void*)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>) * 6);
+    memset((void*)&data_a.verts[0], 0, sizeof(vec3<ShortReal>) * 6);
     memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int) * 9);
     memset((void*)&data_a.face_verts[0], 0, sizeof(unsigned int) * 24);
 
     data_a.sweep_radius = 0.0f;
 
-    data_a.verts[0] = vec3<OverlapReal>(-0.5, -0.5, 0);
-    data_a.verts[1] = vec3<OverlapReal>(0.5, -0.5, 0);
-    data_a.verts[2] = vec3<OverlapReal>(0.5, 0.5, 0);
-    data_a.verts[3] = vec3<OverlapReal>(-0.5, 0.5, 0);
-    data_a.verts[4] = vec3<OverlapReal>(0, 0, OverlapReal(0.707106781186548));
-    data_a.verts[5] = vec3<OverlapReal>(0, 0, -OverlapReal(0.707106781186548));
+    data_a.verts[0] = vec3<ShortReal>(-0.5, -0.5, 0);
+    data_a.verts[1] = vec3<ShortReal>(0.5, -0.5, 0);
+    data_a.verts[2] = vec3<ShortReal>(0.5, 0.5, 0);
+    data_a.verts[3] = vec3<ShortReal>(-0.5, 0.5, 0);
+    data_a.verts[4] = vec3<ShortReal>(0, 0, ShortReal(0.707106781186548));
+    data_a.verts[5] = vec3<ShortReal>(0, 0, -ShortReal(0.707106781186548));
     data_a.face_offs[0] = 0;
     data_a.face_verts[0] = 0;
     data_a.face_verts[1] = 4;
@@ -444,12 +444,12 @@ UP_TEST(overlap_octahedron_sphere)
 
     TriangleMesh data_b(1, 1, 1, false);
 
-    memset((void*)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>) * 1);
+    memset((void*)&data_a.verts[0], 0, sizeof(vec3<ShortReal>) * 1);
     memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int) * 1);
     memset((void*)&data_a.face_verts[0], 0, sizeof(unsigned int) * 1);
 
     data_b.sweep_radius = 0.5f;
-    data_b.verts[0] = vec3<OverlapReal>(0, 0, 0);
+    data_b.verts[0] = vec3<ShortReal>(0, 0, 0);
     data_b.face_offs[0] = 0;
     data_b.face_verts[0] = 0;
     data_b.face_offs[1] = 1;

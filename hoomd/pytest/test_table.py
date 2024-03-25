@@ -1,9 +1,11 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from io import StringIO
 from math import isclose
 import pytest
+import itertools
+import re
 
 from hoomd.conftest import operation_pickling_check
 import hoomd
@@ -35,6 +37,10 @@ def logger():
     logger = hoomd.logging.Logger(categories=['scalar', "string"])
     logger[('dummy', 'loggable', 'int')] = (Identity(42000000), 'scalar')
     logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
+    logger[('dummy', 'loggable', 'small_float')] = (Identity(0.0000001),
+                                                    'scalar')
+    logger[('dummy', 'loggable', 'zero_float')] = (Identity(0.0), 'scalar')
+    logger[('dummy', 'loggable', 'zero_int')] = (Identity(0), 'scalar')
     logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')
     return logger
 
@@ -44,7 +50,10 @@ def expected_values():
     return {
         'dummy.loggable.int': 42000000,
         'dummy.loggable.float': 3.1415,
-        'dummy.loggable.string': "foobarbaz"
+        'dummy.loggable.string': "foobarbaz",
+        'dummy.loggable.small_float': 0.0000001,
+        'dummy.loggable.zero_float': 0.0,
+        'dummy.loggable.zero_int': 0,
     }
 
 
@@ -70,7 +79,8 @@ def test_header_generation(device, logger):
     lines = output_str.split('\n')
     headers = lines[0].split()
     expected_headers = [
-        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
+        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string',
+        'dummy.loggable.small_float'
     ]
     assert all(hdr in headers for hdr in expected_headers)
     for i in range(1, 10):
@@ -110,9 +120,8 @@ def test_values(device, logger, expected_values):
 
     for row in lines[1:]:
         values = row.split()
-        assert all(
-            test_equality(expected_values[hdr], v)
-            for hdr, v in zip(headers, values))
+        for hdr, v in zip(headers, values):
+            assert test_equality(expected_values[hdr], v)
 
 
 @skip_mpi
@@ -152,7 +161,7 @@ def test_delimiter(device, logger):
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
-    assert all(len(row.split(',')) == 3 for row in lines[:-1])
+    assert all(len(row.split(',')) == len(logger) for row in lines[:-1])
 
 
 @pytest.mark.serial
@@ -205,3 +214,36 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     sim = simulation_factory(two_particle_snapshot_factory())
     table = hoomd.write.Table(1, logger)
     operation_pickling_check(table, sim)
+
+
+test_categories = re.split(r'[.|]', str(hoomd.logging.LoggerCategories.ALL))[1:]
+# Generate a set for each invalid permutation of the input logger categories
+# Sets that don't fail are covered by test_only_string_and_scalar_quantities
+combinations = [
+    set(combo)
+    for i in range(1,
+                   len(test_categories) + 1)
+    for combo in itertools.combinations(test_categories, i)
+    if set(combo) - {"string", "scalar"} != set()
+]
+
+# reduce number of tests to perform
+combinations = combinations[::50]
+
+
+@pytest.mark.parametrize(
+    argnames="combination",
+    argvalues=combinations,
+)
+def test_invalid_permutations(device, combination):
+    # Test every combination raises the correct ValueError
+    logger = hoomd.logging.Logger(categories=combination)
+    output = StringIO("")
+    with pytest.raises(ValueError) as ve:
+        hoomd.write.Table(1, logger, output)
+    # Ensure that correct error message is sent
+    assert "Table Logger may only have scalar or string categories set." in str(
+        ve.value)
+    # Now ensure category formatting operates correctly
+    for category in combination - {"string", "scalar"}:
+        assert category in str(ve.value)

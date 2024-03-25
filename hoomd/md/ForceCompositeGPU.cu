@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -822,7 +822,7 @@ struct is_center
     {
     __host__ __device__ bool operator()(const thrust::tuple<unsigned int, unsigned int>& t)
         {
-        return t.get<0>() == t.get<1>();
+        return thrust::get<0>(t) == thrust::get<1>(t);
         }
     };
 

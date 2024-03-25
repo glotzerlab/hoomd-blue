@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Code to support unit and validation tests.
@@ -14,6 +14,12 @@ import hoomd
 import atexit
 import os
 import numpy
+try:
+    import sybil
+    import sybil.parsers.rest
+except ImportError:
+    sybil = None
+
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
@@ -24,13 +30,47 @@ pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
 devices = [hoomd.device.CPU]
 _n_available_gpu = len(hoomd.device.GPU.get_available_devices())
-_github_actions = os.environ.get('GITHUB_ACTIONS') is not None
-if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
+_require_gpu_tests = (os.environ.get('_HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_')
+                      is not None)
+if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _require_gpu_tests):
 
     if os.environ.get('_HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_') is not None:
         devices.pop(0)
 
     devices.append(hoomd.device.GPU)
+
+
+def setup_sybil_tests(namespace):
+    """Sybil setup function."""
+    # Common imports.
+    namespace['numpy'] = numpy
+    namespace['hoomd'] = hoomd
+
+    namespace['gpu_not_available'] = _n_available_gpu == 0
+
+    try:
+        import cupy
+    except ImportError:
+        cupy = None
+
+    namespace['cupy_not_available'] = cupy is None
+
+    namespace['llvm_not_available'] = not hoomd.version.llvm_enabled
+
+
+if sybil is not None:
+    pytest_collect_file = sybil.Sybil(
+        parsers=[
+            sybil.parsers.rest.PythonCodeBlockParser(),
+            sybil.parsers.rest.SkipParser(),
+        ],
+        pattern='*.py',
+        # exclude files not yet tested with sybil
+        excludes=[
+            'hpmc/pair/user.py',
+        ],
+        setup=setup_sybil_tests,
+        fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
@@ -195,7 +235,7 @@ def lattice_snapshot_factory(device):
                 box[2] = 0
             s.configuration.box = box
 
-            s.particles.N = numpy.product(n)
+            s.particles.N = numpy.prod(n)
             s.particles.types = particle_types
 
             if any(nx == 0 for nx in n):
@@ -426,7 +466,9 @@ def _check_obj_attr_compatibility(a, b):
     filtered_differences = set(different_keys)
     for key in different_keys:
         if key in a._reserved_default_attrs:
-            default = a._reserved_default_attrs[key]()
+            default = a._reserved_default_attrs[key]
+            if callable(default):
+                default = default()
             if getattr(a, key, default) == getattr(b, key, default):
                 filtered_differences.remove(key)
                 continue
@@ -465,7 +507,7 @@ def equality_check(a, b):
 
     if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
         return a == b
-    assert type(a) == type(b)
+    assert type(a) is type(b)
 
     _check_obj_attr_compatibility(a, b)
 
@@ -715,7 +757,7 @@ class Generator:
         A value of None in shape means any length.
         """
         shape = tuple(i if i is not None else self.int(20) for i in shape)
-        return (100 * self.rng.random(numpy.product(shape))
+        return (100 * self.rng.random(numpy.prod(shape))
                 - 50).reshape(shape).astype(dtype)
 
     def variant(self):

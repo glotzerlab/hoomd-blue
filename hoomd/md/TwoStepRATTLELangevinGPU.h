@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //
@@ -236,9 +236,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(),
                                      access_location::device,
                                      access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                       access_location::device,
-                                       access_mode::read);
         ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(),
                                         access_location::device,
                                         access_mode::read);
@@ -249,8 +246,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         // perform the update on the GPU
         kernel::rattle_langevin_step_two_args args(d_gamma.data,
                                                    this->m_gamma.getNumElements(),
-                                                   this->m_use_alpha,
-                                                   this->m_alpha,
                                                    (*this->m_T)(timestep),
                                                    this->m_tolerance,
                                                    timestep,
@@ -267,7 +262,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         kernel::gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
                                                        d_vel.data,
                                                        d_accel.data,
-                                                       d_diameter.data,
                                                        d_tag.data,
                                                        d_index_array.data,
                                                        group_size,

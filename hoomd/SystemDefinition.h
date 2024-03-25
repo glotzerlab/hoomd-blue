@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SystemDefinition.h
@@ -11,6 +11,9 @@
 
 #include "BondedGroupData.h"
 #include "ParticleData.h"
+#ifdef BUILD_MPCD
+#include "hoomd/mpcd/ParticleData.h"
+#endif
 
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -199,6 +202,20 @@ class PYBIND11_EXPORT SystemDefinition
         return m_pair_data;
         }
 
+#ifdef BUILD_MPCD
+    //! Get the MPCD particle data
+    std::shared_ptr<mpcd::ParticleData> getMPCDParticleData() const
+        {
+        return m_mpcd_data;
+        }
+
+    //! Set the MPCD particle data
+    void setMPCDParticleData(std::shared_ptr<mpcd::ParticleData> mpcd_data)
+        {
+        m_mpcd_data = mpcd_data;
+        }
+#endif
+
     //! Return a snapshot of the current system data
     template<class Real> std::shared_ptr<SnapshotSystemData<Real>> takeSnapshot();
 
@@ -216,6 +233,9 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ImproperData> m_improper_data;     //!< Improper data for the system
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
+#ifdef BUILD_MPCD
+    std::shared_ptr<mpcd::ParticleData> m_mpcd_data; //!< MPCD particle data
+#endif
 
 #ifdef ENABLE_MPI
     /// The system communicator

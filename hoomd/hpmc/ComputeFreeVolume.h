@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME__H__
@@ -8,7 +8,6 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Compute.h"
 
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
 
@@ -97,7 +96,7 @@ ComputeFreeVolume<Shape>::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sy
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
 
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 
@@ -204,7 +203,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
                 for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
                      cur_node_idx++)
                     {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
                         {
                         if (aabb_tree.isNodeLeaf(cur_node_idx))
                             {

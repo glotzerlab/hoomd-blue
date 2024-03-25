@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -27,15 +27,12 @@ namespace kernel
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
-    \param d_diameter array of particle diameters
     \param d_tag array of particle tags
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param use_alpha If true, gamma = alpha * diameter
-    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
@@ -54,15 +51,12 @@ namespace kernel
 __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
                                              Scalar4* d_vel,
                                              Scalar3* d_accel,
-                                             const Scalar* d_diameter,
                                              const unsigned int* d_tag,
                                              unsigned int* d_group_members,
                                              unsigned int group_size,
                                              Scalar4* d_net_force,
                                              Scalar* d_gamma,
                                              unsigned int n_types,
-                                             bool use_alpha,
-                                             Scalar alpha,
                                              uint64_t timestep,
                                              uint16_t seed,
                                              Scalar T,
@@ -78,16 +72,13 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
 
     if (enable_shared_cache)
         {
-        if (!use_alpha)
+        // read in the gammas (1 dimensional array)
+        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
             {
-            // read in the gammas (1 dimensional array)
-            for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
-                {
-                if (cur_offset + threadIdx.x < n_types)
-                    s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
-                }
-            __syncthreads();
+            if (cur_offset + threadIdx.x < n_types)
+                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
             }
+        __syncthreads();
         }
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
@@ -108,25 +99,16 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_alpha)
+        // read in the type of our particle. A texture read of only the fourth part of the
+        // position Scalar4 (where type is stored) is used.
+        unsigned int typ = __scalar_as_int(d_pos[idx].w);
+        if (enable_shared_cache)
             {
-            // read in the tag of our particle.
-            // (MEM TRANSFER: 4 bytes)
-            gamma = alpha * d_diameter[idx];
+            gamma = s_gammas[typ];
             }
         else
             {
-            // read in the type of our particle. A texture read of only the fourth part of the
-            // position Scalar4 (where type is stored) is used.
-            unsigned int typ = __scalar_as_int(d_pos[idx].w);
-            if (enable_shared_cache)
-                {
-                gamma = s_gammas[typ];
-                }
-            else
-                {
-                gamma = d_gamma[typ];
-                }
+            gamma = d_gamma[typ];
             }
 
         Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
@@ -481,7 +463,6 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
-    \param d_diameter array of particle diameters
     \param d_tag array of particle tags
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
@@ -495,7 +476,6 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
 hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  Scalar3* d_accel,
-                                 const Scalar* d_diameter,
                                  const unsigned int* d_tag,
                                  unsigned int* d_group_members,
                                  unsigned int group_size,
@@ -530,15 +510,12 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
                        d_pos,
                        d_vel,
                        d_accel,
-                       d_diameter,
                        d_tag,
                        d_group_members,
                        group_size,
                        d_net_force,
                        langevin_args.d_gamma,
                        langevin_args.n_types,
-                       langevin_args.use_alpha,
-                       langevin_args.alpha,
                        langevin_args.timestep,
                        langevin_args.seed,
                        langevin_args.T,

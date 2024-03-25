@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file TwoStepBDGPU.cuh
@@ -24,7 +24,6 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  int3* d_image,
                                  const BoxDim& box,
-                                 const Scalar* d_diameter,
                                  const unsigned int* d_tag,
                                  const unsigned int* d_group_members,
                                  const unsigned int group_size,

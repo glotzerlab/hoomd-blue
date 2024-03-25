@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GPUFlags.h
@@ -226,8 +226,7 @@ template<class T> void GPUFlags<T>::allocate()
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
-                m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-                throw std::runtime_error("Error allocating GPUArray.");
+                throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
             hipHostRegister(h_data, sizeof(T), hipHostRegisterMapped);
@@ -245,8 +244,7 @@ template<class T> void GPUFlags<T>::allocate()
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
-                m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-                throw std::runtime_error("Error allocating GPUArray.");
+                throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
             hipHostRegister(h_data, sizeof(T), hipHostRegisterDefault);

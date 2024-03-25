@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.h
@@ -42,7 +42,6 @@
 #include "DomainDecomposition.h"
 
 #include <bitset>
-#include <map>
 #include <stack>
 #include <stdlib.h>
 #include <string>
@@ -107,29 +106,6 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 const unsigned int NOT_LOCAL = 0xffffffff;
 
     } // end namespace hoomd
-
-#ifdef ENABLE_MPI
-namespace cereal
-    {
-//! Serialization of vec3<Real>
-template<class Archive, class Real>
-void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
-    {
-    ar& v.x;
-    ar& v.y;
-    ar& v.z;
-    }
-
-//! Serialization of quat<Real>
-template<class Archive, class Real>
-void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
-    {
-    // serialize both members
-    ar& q.s;
-    ar& q.v;
-    }
-    } // namespace cereal
-#endif
 
 namespace hoomd
     {
@@ -908,6 +884,12 @@ class PYBIND11_EXPORT ParticleData
     //! Gets the name of a given particle type index
     std::string getNameByType(unsigned int type) const;
 
+    /// Get the complete type mapping
+    const std::vector<std::string>& getTypeMapping() const
+        {
+        return m_type_mapping;
+        }
+
     //! Get the types for python
     pybind11::list getTypesPy()
         {
@@ -1149,8 +1131,7 @@ class PYBIND11_EXPORT ParticleData
                                 bool ignore_bodies = false);
 
     //! Take a snapshot
-    template<class Real>
-    std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real>& snapshot);
+    template<class Real> void takeSnapshot(SnapshotParticleData<Real>& snapshot);
 
     //! Add ghost particles at the end of the local particle data
     void addGhostParticles(const unsigned int nghosts);
@@ -1564,6 +1545,9 @@ class PYBIND11_EXPORT LocalParticleData : public GhostLocalDataAccess<Output, Pa
 
     Output getNetVirial(GhostDataFlag flag)
         {
+        // Need pitch not particle numbers since GPUArrays can be padded for
+        // faster data access.
+        size_t size = this->m_data.getNetVirial().getPitch();
         return this->template getLocalBuffer<Scalar, Scalar>(
             m_net_virial_handle,
             &ParticleData::getNetVirial,
@@ -1571,7 +1555,7 @@ class PYBIND11_EXPORT LocalParticleData : public GhostLocalDataAccess<Output, Pa
             true,
             6,
             0,
-            std::vector<size_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
+            std::vector<size_t>({sizeof(Scalar), size * sizeof(Scalar)}));
         }
 
     Output getNetEnergy(GhostDataFlag flag)

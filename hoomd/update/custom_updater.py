@@ -1,10 +1,21 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement CustomUpdater."""
+"""Implement CustomUpdater.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    class ExampleAction(hoomd.custom.Action):
+        def act(self, timestep):
+            pass
+
+    custom_action = ExampleAction()
+"""
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Updater
+import warnings
 
 
 class _UpdaterProperty:
@@ -36,6 +47,15 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
 
     Updaters modify the system state.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            custom_updater = hoomd.update.CustomUpdater(
+                action=custom_action,
+                trigger=hoomd.trigger.Periodic(1000))
+            simulation.operations.updaters.append(custom_updater)
+
     See Also:
         The base class `hoomd.custom.CustomOperation`.
 
@@ -54,3 +74,11 @@ class _InternalCustomUpdater(_InternalCustomOperation, Updater):
 
     def update(self, timestep):
         return self._action.act(timestep)
+        """
+        .. deprecated:: 4.5.0
+
+            Use `Simulation` to call the operation.
+        """
+        warnings.warn(
+            "`_InternalCustomUpdater.update` is deprecated,"
+            "use `Simulation` to call the operation.", FutureWarning)

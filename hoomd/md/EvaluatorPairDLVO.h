@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_DLVO_H__
@@ -30,24 +30,8 @@ namespace hoomd
 namespace md
     {
 //! Class for evaluating the DLVO pair potential
-/*! <b>General Overview</b>
-
-    <b>DLVO specifics</b>
-
-    EvaluatorPairDLVO evaluates the function:
-    \f{eqnarray*}
-    V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[ \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} +
-   \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
-                            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right)
-   \right] + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
-   \\
-                         = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
-    \f}
-    where \f$ a_i \f$ is the radius of particle \f$ i \f$, \f$ d_j \f$ is the diameter of particle
-   \f$ j \f$, and \f$ \Delta = (d_i + d_j)/2  \f$.
-
-    See Israelachvili 2011, pp. 317.
-*/
+/** See Israelachvili 2011, pp. 317.
+ */
 class EvaluatorPairDLVO
     {
     public:
@@ -113,24 +97,12 @@ class EvaluatorPairDLVO
         delta = radsum - Scalar(1.0);
         }
 
-    //! DLVO uses diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! DLVO doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GSDReader.h"
@@ -248,41 +248,41 @@ void GSDReader::readParticles()
 void GSDReader::readTopology()
     {
     unsigned int N = 0;
+    m_snapshot->bond_data.type_mapping = readTypes(m_frame, "bonds/types");
     readChunk(&N, m_frame, "bonds/N", 4);
     if (N > 0)
         {
         m_snapshot->bond_data.resize(N);
-        m_snapshot->bond_data.type_mapping = readTypes(m_frame, "bonds/types");
         readChunk(&m_snapshot->bond_data.type_id[0], m_frame, "bonds/typeid", N * 4, N);
         readChunk(&m_snapshot->bond_data.groups[0], m_frame, "bonds/group", N * 8, N);
         }
 
     N = 0;
+    m_snapshot->angle_data.type_mapping = readTypes(m_frame, "angles/types");
     readChunk(&N, m_frame, "angles/N", 4);
     if (N > 0)
         {
         m_snapshot->angle_data.resize(N);
-        m_snapshot->angle_data.type_mapping = readTypes(m_frame, "angles/types");
         readChunk(&m_snapshot->angle_data.type_id[0], m_frame, "angles/typeid", N * 4, N);
         readChunk(&m_snapshot->angle_data.groups[0], m_frame, "angles/group", N * 12, N);
         }
 
     N = 0;
+    m_snapshot->dihedral_data.type_mapping = readTypes(m_frame, "dihedrals/types");
     readChunk(&N, m_frame, "dihedrals/N", 4);
     if (N > 0)
         {
         m_snapshot->dihedral_data.resize(N);
-        m_snapshot->dihedral_data.type_mapping = readTypes(m_frame, "dihedrals/types");
         readChunk(&m_snapshot->dihedral_data.type_id[0], m_frame, "dihedrals/typeid", N * 4, N);
         readChunk(&m_snapshot->dihedral_data.groups[0], m_frame, "dihedrals/group", N * 16, N);
         }
 
     N = 0;
+    m_snapshot->improper_data.type_mapping = readTypes(m_frame, "impropers/types");
     readChunk(&N, m_frame, "impropers/N", 4);
     if (N > 0)
         {
         m_snapshot->improper_data.resize(N);
-        m_snapshot->improper_data.type_mapping = readTypes(m_frame, "impropers/types");
         readChunk(&m_snapshot->improper_data.type_id[0], m_frame, "impropers/typeid", N * 4, N);
         readChunk(&m_snapshot->improper_data.groups[0], m_frame, "impropers/group", N * 16, N);
         }
@@ -303,11 +303,11 @@ void GSDReader::readTopology()
     if (m_handle.header.schema_version >= gsd_make_version(1, 1))
         {
         N = 0;
+        m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
         readChunk(&N, m_frame, "pairs/N", 4);
         if (N > 0)
             {
             m_snapshot->pair_data.resize(N);
-            m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
             readChunk(&m_snapshot->pair_data.type_id[0], m_frame, "pairs/typeid", N * 4, N);
             readChunk(&m_snapshot->pair_data.groups[0], m_frame, "pairs/group", N * 8, N);
             }
@@ -323,149 +323,6 @@ pybind11::list GSDReader::readTypeShapesPy(uint64_t frame)
     return type_shapes;
     }
 
-GSDStateReader::GSDStateReader(const std::string& name, const int64_t frame) : m_name(name)
-    {
-    int retval = gsd_open(&m_handle, name.c_str(), GSD_OPEN_READONLY);
-    GSDUtils::checkError(retval, m_name);
-
-    // validate schema
-    if (string(m_handle.header.schema) != string("hoomd"))
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Invalid schema.";
-        throw runtime_error(s.str());
-        }
-    if (m_handle.header.schema_version >= gsd_make_version(2, 1))
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Invalid schema version.";
-        throw runtime_error(s.str());
-        }
-
-    // set frame from the end of the file if requested
-    uint64_t nframes = gsd_get_nframes(&m_handle);
-    if (frame < 0)
-        {
-        if (uint64_t(-frame) > nframes)
-            {
-            ostringstream s;
-            s << "Error opening GSD file " << m_name << " - Frame " << m_frame
-              << " is not in the file.";
-            throw runtime_error(s.str());
-            }
-
-        m_frame = nframes + frame;
-        }
-    else
-        {
-        m_frame = frame;
-        }
-
-    // validate number of frames
-    if (m_frame >= nframes)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << " - Frame " << m_frame
-          << " is not in the file.";
-        throw runtime_error(s.str());
-        }
-    }
-
-GSDStateReader::~GSDStateReader()
-    {
-    gsd_close(&m_handle);
-    }
-
-std::vector<std::string> GSDStateReader::getAvailableChunks(const std::string& base)
-    {
-    const char* match = base.c_str();
-    const char* cur = gsd_find_matching_chunk_name(&m_handle, match, NULL);
-    std::vector<std::string> result;
-
-    while (cur != NULL)
-        {
-        // add the chunk to the list if it is present in the given frame or in frame 0
-        if (gsd_find_chunk(&m_handle, m_frame, cur) != NULL
-            || gsd_find_chunk(&m_handle, 0, cur) != NULL)
-            {
-            result.push_back(std::string(cur));
-            }
-        cur = gsd_find_matching_chunk_name(&m_handle, match, cur);
-        }
-    return result;
-    }
-
-pybind11::array GSDStateReader::readChunk(const std::string& name)
-    {
-    pybind11::array result;
-    const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, m_frame, name.c_str());
-    if (entry == NULL && m_frame != 0)
-        {
-        entry = gsd_find_chunk(&m_handle, 0, name.c_str());
-        }
-    if (entry == NULL)
-        {
-        throw runtime_error("Could not find GSD chunk: " + name);
-        }
-
-    std::vector<size_t> dims;
-    dims.push_back(entry->N);
-    if (entry->M > 1)
-        {
-        dims.push_back(entry->M);
-        }
-
-    if (entry->type == GSD_TYPE_UINT8)
-        {
-        result = pybind11::array(pybind11::dtype::of<uint8_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_UINT16)
-        {
-        result = pybind11::array(pybind11::dtype::of<uint16_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_UINT32)
-        {
-        result = pybind11::array(pybind11::dtype::of<uint32_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_UINT64)
-        {
-        result = pybind11::array(pybind11::dtype::of<uint64_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_INT8)
-        {
-        result = pybind11::array(pybind11::dtype::of<int8_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_INT16)
-        {
-        result = pybind11::array(pybind11::dtype::of<int16_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_INT32)
-        {
-        result = pybind11::array(pybind11::dtype::of<int32_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_INT64)
-        {
-        result = pybind11::array(pybind11::dtype::of<int64_t>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_FLOAT)
-        {
-        result = pybind11::array(pybind11::dtype::of<float>(), dims);
-        }
-    else if (entry->type == GSD_TYPE_DOUBLE)
-        {
-        result = pybind11::array(pybind11::dtype::of<double>(), dims);
-        }
-    else
-        {
-        throw runtime_error("Invalid GSD type");
-        }
-
-    int retval = gsd_read_chunk(&m_handle, result.mutable_data(), entry);
-    GSDUtils::checkError(retval, m_name);
-
-    return result;
-    }
-
 namespace detail
     {
 void export_GSDReader(pybind11::module& m)
@@ -479,11 +336,6 @@ void export_GSDReader(pybind11::module& m)
         .def("getSnapshot", &GSDReader::getSnapshot)
         .def("clearSnapshot", &GSDReader::clearSnapshot)
         .def("readTypeShapesPy", &GSDReader::readTypeShapesPy);
-
-    pybind11::class_<GSDStateReader, std::shared_ptr<GSDStateReader>>(m, "GSDStateReader")
-        .def(pybind11::init<const std::string&, int64_t>())
-        .def("getAvailableChunks", &GSDStateReader::getAvailableChunks)
-        .def("readChunk", &GSDStateReader::readChunk);
     }
 
     } // end namespace detail

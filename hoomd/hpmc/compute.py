@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of hard particle configurations.
@@ -138,30 +138,49 @@ class FreeVolume(Compute):
 
 
 class SDF(Compute):
-    r"""Compute the scale distribution function.
+    r"""Compute the scale distribution function via volume perturbations.
 
     Args:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
             bin :math:`[\mathrm{length}]`.
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
-    `SDF` computes the proability distribution :math:`s(x)` of particles
-    overlapping as a function of separation. It estimates :math:`s(x)`
-    numerically by computing a histogram with
-    :math:`\lfloor x_\mathrm{max}/ \delta x \rfloor` bins of width `dx`
-    (:math:`\delta x`).
+    `SDF` computes the probability distributions :math:`s_{\mathrm{comp}}(x)`
+    and :math:`s_{\mathrm{exp}}(x)` of particles overlapping as a function of
+    separation for compressive and expansive perturbations, respectively. It
+    estimates :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{exp}}(x)`
+    numerically by computing histograms with :math:`\lfloor x_\mathrm{max}/
+    \delta x \rfloor` bins of width `dx` (:math:`\delta x`).
 
     See Also:
          `Anderson 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_
-         describes the theory relating `SDF` to the system pressure.
+         describes the theory relating `SDF` to the system pressure and its
+         implementation in HOOMD-blue. `Eppenga and Frenkel 1984
+         <https://doi.org/10.1080/00268978400101951>`_ present a derivation
+         relating the scale distribution function to the system pressure for
+         hard, convex particles. `Allen 2006
+         <https://doi.org/10.1063/1.2202352>`_ describes the theory for
+         calculating the pressure in systems with discontinuous potential energy
+         functions. The expansive perturbations are based on theory described in
+         `de Miguel and Jackson <https://doi.org/10.1063/1.2363381>`_.
 
     .. rubric:: Implementation
 
+    `SDF` constructs two histograms, one for compressive volume perturbations
+    and one for expansive volume perturbations. These histograms represent
+    :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{exp}}(x)`. The
+    following discussion applies to compressive volume perturbations and the
+    computation of :math:`s_{\mathrm{comp}}(x)`; the computation of
+    :math:`s_{\mathrm{exp}}(x)` proceeds similarly as noted throughout the
+    description.
+
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
-    separation vector by the factor :math:`(1-x)` and finds the smallest
-    positive value of :math:`x` leading to either an overlap of the particle
-    shapes (a "hard overlap") or a discontinuous change in the pair energy
-    :math:`U_{\mathrm{pair},ij}` (a "soft overlap"):
+    separation vector by the factor :math:`(1 \pm x)` (:math:`+` for expansive
+    perturbations, :math:`-` for compressive perturbations) and finds the
+    smallest positive value of :math:`x` leading to either an overlap of the
+    particle shapes (a "hard overlap") or a discontinuous change in the pair
+    energy :math:`U_{\mathrm{pair},ij}` (a "soft overlap"). For compressive
+    perturbations:
 
     .. math::
 
@@ -182,11 +201,31 @@ class SDF(Compute):
             \} &
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
-    `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle
-    :math:`i`, and :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a
-    vector that translates by periodic box images.
+    `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle :math:`i`, and
+    :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
+    translates by periodic box images. For expansive perturbations,
 
-    :math:`x_i` is the minimum value of :math:`x_{ij}` for a single particle:
+    .. math::
+
+        x_{ij}(\vec{A}) = \max \{ & x \in \mathbb{R}_{< 0} : \\
+           & \mathrm{overlap}\left(
+                S_i(\mathbf{q}_i),
+                S_j(\mathbf{q}_j, (1+x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
+            \right) \ne \emptyset
+            \\
+            &\lor \\
+            & U_{\mathrm{pair},ij}((1+x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+                \ne
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \\
+            \} &
+
+
+    For particle :math:`i`, `SDF` finds the the minimum (maximum for expansive
+    perturbations) value :math:`x_i`. For compressive perturbations:
 
     .. math::
 
@@ -195,56 +234,72 @@ class SDF(Compute):
 
     where the set of box images includes all image vectors necessary to find
     overlaps between particles in the primary image with particles in periodic
-    images.
-
-    `SDF` adds a single count to the histogram for each particle :math:`i`,
-    weighted by a factor that is a function of the change in energy upon
-    overlap:
+    images. For expansive perturbations:
 
     .. math::
 
-        s(x + \delta x/2) = \frac{1}{N_\mathrm{particles} \cdot \delta x}
-            \sum_{i=0}^{N_\mathrm{particles}-1}
+        x_i = \max \{ x_{ij} : \vec{A} \in B_\mathrm{images},
+                     j \in [0,N_\mathrm{particles}) \}
+
+    `SDF` adds a single count to each histogram for each particle :math:`i`,
+    weighted by a factor that is a function of the change in energy upon
+    overlap. For compressive perturbations:
+
+    .. math::
+
+        s_{\mathrm{comp}}(x + \delta x/2) = \frac{1}{N_\mathrm{particles}
+            \cdot \delta x} \sum_{i=0}^{N_\mathrm{particles}-1}
             [x \le x_i < x + \delta x] \cdot (1 - \exp(-\beta \Delta U_{i}))
 
     where :math:`\Delta U_{i}` is the change in energy associated with the first
     overlap involving particle :math:`i` (:math:`\infty` for hard overlaps), the
-    square brackets denote the Iverson bracket, and :math:`s(x + \delta x/2)`
-    is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x < x_\mathrm{max}, x = k
-    \cdot \delta x, k \in \mathbb{Z}^* \}`.
+    square brackets denote the Iverson bracket, and :math:`s_{\mathrm{comp}}(x +
+    \delta x/2)` is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x <
+    x_\mathrm{max}, x = k \cdot \delta x, k \in \mathbb{Z}^* \}` for compressive
+    perturbations. For expansive perturbations,
+
+    .. math::
+
+        s_{\mathrm{exp}}(x - \delta x/2) = \frac{1}{N_\mathrm{particles}
+            \cdot \delta x}
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            [x - \delta x \le x_i < x] \cdot (1 - \exp(-\beta \Delta U_{i}))
+
+    where :math:`s_{\mathrm{exp}}(x - \delta x/2)` is evaluated for :math:`\{ x
+    \in \mathbb{R}, -|x_\mathrm{max}| < x \le 0, x = (k - \lfloor
+    x_\mathrm{max} / \delta x \rfloor + 1) \cdot \delta x, k \in
+    \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
 
-    The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
-    to the pressure :math:`P`:
+    The pressure :math:`P` is related to the one-sided limits
+    :math:`s_{\mathrm{comp}}(0+)` and :math:`s_{\mathrm{exp}}(0-)`, computed by
+    fitting and extrapolating :math:`s_{\mathrm{comp}}` and
+    :math:`s_{\mathrm{exp}}` to :math:`x = 0`.
 
     .. math::
-        \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
+        \beta P = \rho \left(
+            1 + \frac{s_{\mathrm{comp}}(0+) - s_{\mathrm{exp}}(0-)}{2d} \right)
 
     where :math:`d` is the dimensionality of the system, :math:`\rho` is the
     number density, and :math:`\beta = \frac{1}{kT}`. This measurement of the
     pressure is inherently noisy due to the nature of the sampling. Average
     `betaP` over many timesteps to obtain accurate results.
 
-    Assuming particle diameters are ~1, these paramater values typically
+    Assuming particle diameters are ~1, these parameter values typically
     achieve good results:
 
-      * ``xmax = 0.02``
-      * ``dx = 1e-4``
+    * ``xmax = 0.02``
+    * ``dx = 1e-4``
 
     In systems near densest packings, ``dx=1e-5`` may be needed along with
-    smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
+    smaller ``xmax``. Check that :math:`\sum_k s_\mathrm{comp}(x_k) \cdot dx
+    \approx 0.5`.
 
-    Warning:
-        `SDF` only considers negative volume perturbations, and therefore does
-        not compute the correct pressure in simulations where positive volume
-        perturbations may change the system's potential energy, e.g., systems of
-        concave particles or with non-monotonic enthalpic interactions.
-
-    Warning:
-        Because SDF samples pair configurations at discrete separations, the
-        computed pressure is correct only for potentials with constant values
-        and step discontinuities, e.g., square well potentials.
+    Important:
+        `SDF` samples pair configurations at discrete separations. Therefore,
+        the computed pressure is correct only for potentials with constant
+        values and step discontinuities.
 
     Note:
         `SDF` always runs on the CPU.
@@ -293,30 +348,79 @@ class SDF(Compute):
         )
 
     @log(category='sequence', requires_run=True)
-    def sdf(self):
-        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
-        distribution function :math:`[\\mathrm{probability\\ density}]`.
+    def sdf_compression(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s_\\mathrm{comp}[k]`\
+        - The scale distribution function for compression moves \
+        :math:`[\\mathrm{probability\\ density}]`.
 
-        The :math:`x` at the center of bin :math:`k` is:
-        :math:`x = k \\cdot \\delta x + \\delta x/2`.
+        See Also:
+            `x_compression` defines the bin center locations.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
-            `sdf` is `None` on ranks >= 1.
+            `sdf_compression` is `None` on ranks >= 1.
         """
         self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.sdf
+        return self._cpp_obj.sdf_compression
+
+    @log(category='sequence', requires_run=True)
+    def sdf_expansion(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s_\\mathrm{exp}[k]` \
+        - The scale distribution function for the expansion moves \
+        :math:`[\\mathrm{probability\\ density}]`.
+
+        See Also:
+            `x_expansion`  defines the bin center locations..
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `sdf_expansion` is `None` on ranks >= 1.
+        """
+        self._cpp_obj.compute(self._simulation.timestep)
+        cpp_expansion = self._cpp_obj.sdf_expansion
+
+        if cpp_expansion is not None:
+            return numpy.array(cpp_expansion[::-1])
+        else:
+            return None
+
+    @log(category='sequence', requires_run=True)
+    def x_compression(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): The x \
+        values at the center of each bin corresponding to the scale \
+        distribution function for the compressive perturbations \
+        :math:`[\\mathrm{length}]`."""
+        # Ensure that num_bins is up to date.
+        self._cpp_obj.compute(self._simulation.timestep)
+
+        x = numpy.arange(0, self._cpp_obj.num_bins, 1) * self.dx + self.dx / 2
+        return x
+
+    @log(category='sequence', requires_run=True)
+    def x_expansion(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): The x \
+        values at the center of each bin corresponding to the scale \
+        distribution function for the expansion moves \
+        :math:`[\\mathrm{length}]`."""
+        # Ensure that num_bins is up to date.
+        self._cpp_obj.compute(self._simulation.timestep)
+
+        x = numpy.arange(-self._cpp_obj.num_bins, 0, 1) * self.dx + self.dx / 2
+        return x
 
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name
         """float: Beta times pressure in NVT simulations \
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
-        Uses a polynomial curve fit of degree 5 to estimate :math:`s(0+)` and
-        computes the pressure via:
+        Uses a polynomial curve fit of degree 5 to estimate
+        :math:`s_\\mathrm{comp}(0+)` (and :math:`s_\\mathrm{exp}(0-)` if
+        required) and computes the pressure via:
 
         .. math::
-            \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} \\right)
+            \\beta P = \\rho \\left(1 + \\frac{s_\\mathrm{comp}(0+)}{2d} +
+            \\frac{s_\\mathrm{exp}(0-)}{2d} \
+            \\right)
 
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
         the number density, and :math:`\\beta = \\frac{1}{kT}`.
@@ -325,18 +429,32 @@ class SDF(Compute):
             In MPI parallel execution, `betaP` is available on rank 0 only.
             `betaP` is `None` on ranks >= 1.
         """
-        if not numpy.isnan(self.sdf).all():
-            # get the values to fit
-            sdf_fit = numpy.array(self.sdf)
-            # construct the x coordinates
-            x_fit = numpy.arange(0, len(sdf_fit), 1) * self.dx
-            x_fit += self.dx / 2
-            # perform the fit and extrapolation
-            p = numpy.polyfit(x_fit, sdf_fit, 5)
+        sdf_fit_compression = self.sdf_compression
+        x_fit_compression = self.x_compression
 
+        sdf_fit_expansion = self.sdf_expansion
+        x_fit_expansion = self.x_expansion
+
+        if self.sdf_compression is not None and self.sdf_expansion is not None:
+            compression_contribution = 0
+            expansion_contribution = 0
             box = self._simulation.state.box
             N = self._simulation.state.N_particles
             rho = N / box.volume
-            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
+
+            # compressive contribution
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit_compression, sdf_fit_compression, 5)
+            p0_compression = numpy.polyval(p, 0.0)
+            compression_contribution = rho * p0_compression / (2
+                                                               * box.dimensions)
+
+            # expansive contribution
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit_expansion, sdf_fit_expansion, 5)
+            p0_expansion = numpy.polyval(p, 0.0)
+            expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
+
+            return rho + compression_contribution + expansion_contribution
         else:
             return None

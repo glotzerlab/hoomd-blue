@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ClockSource.h"
@@ -245,14 +245,36 @@ UP_TEST(normal_float_test)
     check_moments(gen, 500000, mean, var, exkurtosis, skew, 0.01);
     }
 
-//! Test case for GammaDistribution -- double
-UP_TEST(gamma_double_test)
+//! Test case for GammaDistribution -- double (alpha=1/2)
+UP_TEST(gamma_double_half_alpha)
+    {
+    double alpha = 0.5, b = 2.0;
+    double mean = alpha * b, var = alpha * b * b, skew = 2.0 / sqrt(alpha),
+           exkurtosis = 6.0 / alpha;
+    hoomd::GammaDistribution<double> gen(alpha, b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
+    }
+
+//! Test case for GammaDistribution -- double (small alpha)
+UP_TEST(gamma_double_small_alpha_test)
     {
     double alpha = 2.5, b = 2.0;
     double mean = alpha * b, var = alpha * b * b, skew = 2.0 / sqrt(alpha),
            exkurtosis = 6.0 / alpha;
     hoomd::GammaDistribution<double> gen(alpha, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
+    }
+//! Test case for GammaDistribution -- double (large N)
+UP_TEST(gamma_double_large_alpha_test)
+    {
+    double alpha = 1000.0, b = 2.0;
+    double mean = alpha * b, var = alpha * b * b, skew = 2.0 / sqrt(alpha),
+           exkurtosis = 6.0 / alpha;
+    hoomd::GammaDistribution<double> gen(alpha, b);
+
+    // Test with reduced tolerance. The skew and kurtosis computations suffer from round-off
+    // errors for large alpha. Can lower tolerance when check_moments implements kahan summation.
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.05, false);
     }
 //! Test case for GammaDistribution -- float
 UP_TEST(gamma_float_test)

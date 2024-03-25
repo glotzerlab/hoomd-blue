@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Implement many body potentials.
@@ -285,7 +285,7 @@ class RevCross(Triplet):
 
     .. math::
 
-        v^{\left( 3b \right)}_{ijk} = \lambda \epsilon
+        v^{\left( 3b \right)}_{ijk} = \lambda_3 \epsilon
         \hat{v}^{ \left( 2b \right)}_{ij}
         \left(\vec{r}_{ij}\right)
         \cdot \hat{v}^{ \left( 2b \right)}_{ik}
@@ -320,15 +320,15 @@ class RevCross(Triplet):
 
 
     This three-body term also tunes the energy required for a bond swap through
-    the coefficient:- :math:`\lambda` - *lambda3* (unitless)
-    in `S. Ciarella and W.G. Ellenbroek 2019
+    the unitless coefficient :math:`\lambda_3` .
+    In `S. Ciarella and W.G. Ellenbroek 2019
     <https://arxiv.org/abs/1912.08569>`__
-    is explained that setting :math:`\lambda=1` corresponds to no energy
+    is explained that setting :math:`\lambda_3=1` corresponds to no energy
     requirement to initiate bond swap, while this energy barrier scales roughly
-    as :math:`\beta \Delta E_\text{sw} =\beta \varepsilon(\lambda-1)`.
+    as :math:`\beta \Delta E_\text{sw} =\beta \varepsilon(\lambda_3-1)`.
 
     Note:
-        Choosing :math:`\lambda=1` pushes the system to cluster because the
+        Choosing :math:`\lambda<1` pushes the system to cluster because the
         three-body term is not enough to compensate the energy of multiple
         bonds, so it may cause nonphysical situations.
 

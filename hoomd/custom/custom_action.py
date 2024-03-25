@@ -1,7 +1,13 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement Action."""
+"""Implement Action.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    logger = hoomd.logging.Logger()
+"""
 
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
@@ -20,31 +26,29 @@ class _AbstractLoggable(Loggable, ABCMeta):
 class Action(metaclass=_AbstractLoggable):
     """Base class for user-defined actions.
 
-    To implement a custom operation in Python, subclass `Action` and
-    implement the :meth:`~.act` method to perform the desired action. To
+    To implement a custom operation in Python, subclass `hoomd.custom.Action`
+    and implement the :meth:`~.act` method to perform the desired action. To
     include the action in the simulation run loop, pass an instance of the
     action to `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
     `hoomd.tune.CustomTuner`.
 
+    .. rubric:: Examples:
+
     .. code-block:: python
 
-        from hoomd.custom import Action
-
-
-        class ExampleAction(Action):
+        class ExampleAction(hoomd.custom.Action):
             def act(self, timestep):
-                self.com = self._state.snapshot.particles.position.mean(axis=0)
+                snapshot = self._state.get_snapshot()
+                if snapshot.communicator.rank == 0:
+                    self.com = snapshot.particles.position.mean(axis=0)
 
     To request that HOOMD-blue compute virials, pressure, the rotational kinetic
     energy, or the external field virial, set the flags attribute with the
-    appropriate flags from the internal `Action.Flags` enumeration.
+    appropriate flags from the internal `Action.Flags` enumeration:
 
     .. code-block:: python
 
-        from hoomd.custom import Action
-
-
-        class ExampleActionWithFlag(Action):
+        class ExampleAction(hoomd.custom.Action):
             flags = [Action.Flags.ROTATIONAL_KINETIC_ENERGY,
                      Action.Flags.PRESSURE_TENSOR,
                      Action.Flags.EXTERNAL_FIELD_VIRIAL]
@@ -52,22 +56,21 @@ class Action(metaclass=_AbstractLoggable):
             def act(self, timestep):
                 pass
 
-    Use the `hoomd.logging.log` decorator to define loggable properties.
+    Use the `hoomd.logging.log` decorator to define loggable properties:
 
     .. code-block:: python
 
-        from hoomd.python_action import Action
-        from hoomd.logging import log
+        class ExampleAction(hoomd.custom.Action):
 
-
-        class ExampleActionWithFlag(Action):
-
-            @log
+            @hoomd.logging.log
             def answer(self):
                 return 42
 
             def act(self, timestep):
                 pass
+
+        example_action = ExampleAction()
+        logger.add(example_action, quantities=['answer'])
 
     Attributes:
         flags (list[Action.Flags]): List of flags from the

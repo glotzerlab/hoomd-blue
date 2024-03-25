@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_LJGAUSS_H__
@@ -97,18 +97,6 @@ class EvaluatorPairLJGauss
         {
         }
 
-    //! LJGauss doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! LJGauss doesn't use charge
     DEVICE static bool needsCharge()
         {
@@ -140,6 +128,7 @@ class EvaluatorPairLJGauss
             {
             return false;
             }
+
         Scalar r = fast::sqrt(rsq);
         Scalar sigma2 = sigma * sigma;
         Scalar rdiff = r - r0;
@@ -156,9 +145,11 @@ class EvaluatorPairLJGauss
             {
             Scalar rcut2inv = Scalar(1.0) / rcutsq;
             Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+            Scalar r_cut_minus_r0 = fast::sqrt(rcutsq) - r0;
+
             pair_eng
                 -= rcut6inv * (rcut6inv - Scalar(2.0))
-                   - (epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * (rcutsq - r0) / sigma2));
+                   - (epsilon * fast::exp(-Scalar(0.5) * r_cut_minus_r0 * r_cut_minus_r0 / sigma2));
             }
 
         return true;

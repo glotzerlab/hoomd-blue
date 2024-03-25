@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_MORSE_H__
@@ -40,11 +40,6 @@ namespace md
     \f[ V_{\mathrm{Morse}}(r) = D_0 \left[ \exp \left(-2\alpha \left(r - r_0\right) \right)
                                            -2\exp \left(-\alpha \left(r-r_0\right) \right)  \right]
    \f]
-
-    Morse potential does not need diameter or charge. Three parameters are specified and stored in a
-   Scalar4, for speed. \a \f[ D_0 \f] is placed in \a params.x, \a \f[ \alpha \f] is in \a params.y,
-   and \f[ r_0 \f] is in \a params.z. \a param.w is always set to zero, and is ignored.
-
 */
 class EvaluatorPairMorse
     {
@@ -103,23 +98,12 @@ class EvaluatorPairMorse
         {
         }
 
-    //! Morse doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Morse doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

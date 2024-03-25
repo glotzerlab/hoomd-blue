@@ -89,6 +89,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
+		EvaluatorExternalMagneticField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
@@ -99,6 +100,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
+                EvaluatorPairExpandedGaussian.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
                 EvaluatorPairLJ1208.h
@@ -171,6 +173,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
+                PeriodicImproper.h
+                PeriodicImproperForceCompute.h
+                PeriodicImproperForceComputeGPU.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
 		SurfaceTensionMeshForceComputeGPU.h
@@ -227,6 +232,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            NeighborListGPUStencil.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
+                           PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
                            SurfaceTensionMeshForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
@@ -262,6 +268,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUStencil.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
+                      PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
                       SurfaceTensionMeshForceComputeGPU.cu
                       TableAngleForceGPU.cu
@@ -433,7 +440,7 @@ foreach(_evaluator ${_triplets})
     endif()
 endforeach()
 
-set(_external_evaluators Periodic ElectricField)
+set(_external_evaluators Periodic ElectricField MagneticField)
 
 foreach(_evaluator ${_external_evaluators})
     configure_file(export_PotentialExternal.cc.inc
@@ -523,7 +530,9 @@ set(_pair_evaluators Buckingham
                      TWF
                      LJGauss
                      ForceShiftedLJ
-                     Table)
+                     Table
+                     ExpandedGaussian)
+
 
 foreach(_evaluator ${_pair_evaluators})
     set(_evaluator_cpp ${_evaluator})
@@ -560,7 +569,7 @@ foreach(_evaluator ${_alchemical_pair_evaluators})
     set(_md_sources ${_md_sources} export_PotentialPairAlchemical${_evaluator}.cc)
 endforeach()
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
+hoomd_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_md ALIAS _md)
 

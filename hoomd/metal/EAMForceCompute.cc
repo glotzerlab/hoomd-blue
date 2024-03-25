@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "EAMForceCompute.h"
@@ -355,9 +355,6 @@ void EAMForceCompute::computeForces(uint64_t timestep)
     // create a temporary copy of r_cut squared
     Scalar r_cut_sq = m_r_cut * m_r_cut;
 
-    // sum up the number of forces calculated
-    int64_t n_calc = 0;
-
     // parameters for each particle
     vector<Scalar> atomElectronDensity;
     atomElectronDensity.resize(m_pdata->getN());
@@ -382,9 +379,6 @@ void EAMForceCompute::computeForces(uint64_t timestep)
 
         for (unsigned int j = 0; j < size; j++)
             {
-            // increment our calculation counter
-            n_calc++;
-
             // access the index of this neighbor
             unsigned int k = h_nlist.data[head_i + j];
             // sanity check
@@ -472,9 +466,6 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int j = 0; j < size; j++)
             {
-            // increment our calculation counter
-            n_calc++;
-
             // access the index of this neighbor
             unsigned int k = h_nlist.data[head_i + j];
             // sanity check

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file EvaluatorWalls.h
@@ -134,23 +134,18 @@ template<class evaluator> class EvaluatorWalls
     typedef wall_type field_type;
 
     //! Constructs the external wall potential evaluator
-    DEVICE EvaluatorWalls(Scalar3 pos, const BoxDim& box, const param_type& p, const field_type& f)
+    DEVICE EvaluatorWalls(Scalar3 pos,
+                          quat<Scalar> q,
+                          const BoxDim& box,
+                          const param_type& p,
+                          const field_type& f)
         : m_pos(pos), m_field(f), m_params(p)
         {
         }
 
-    //! Test if evaluator needs Diameter
-    DEVICE static bool needsDiameter()
+    DEVICE static bool isAnisotropic()
         {
-        return evaluator::needsDiameter();
-        }
-
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar diameter)
-        {
-        di = diameter;
+        return false;
         }
 
     //! Charges not supported by walls evals
@@ -183,8 +178,6 @@ template<class evaluator> class EvaluatorWalls
         Scalar force_divr = Scalar(0.0);
         Scalar pair_eng = Scalar(0.0);
         evaluator eval(rsq, m_params.rcutsq, m_params.params);
-        if (evaluator::needsDiameter())
-            eval.setDiameter(di, Scalar(0.0));
         if (evaluator::needsCharge())
             eval.setCharge(qi, Scalar(0.0));
 
@@ -220,8 +213,6 @@ template<class evaluator> class EvaluatorWalls
         Scalar pair_eng = Scalar(0.0);
 
         evaluator eval(rextrapsq, m_params.rcutsq, m_params.params);
-        if (evaluator::needsDiameter())
-            eval.setDiameter(di, Scalar(0.0));
         if (evaluator::needsCharge())
             eval.setCharge(qi, Scalar(0.0));
 
@@ -247,11 +238,17 @@ template<class evaluator> class EvaluatorWalls
         }
 
     //! Generates force and energy from standard evaluators using wall geometry functions
-    DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
+    DEVICE void
+    evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
         F.x = Scalar(0.0);
         F.y = Scalar(0.0);
         F.z = Scalar(0.0);
+
+        T.x = Scalar(0.0);
+        T.y = Scalar(0.0);
+        T.z = Scalar(0.0);
+
         energy = Scalar(0.0);
         // initialize virial
         for (unsigned int i = 0; i < 6; i++)
@@ -396,7 +393,6 @@ template<class evaluator> class EvaluatorWalls
     Scalar3 m_pos;             //!< particle position
     const field_type& m_field; //!< contains all information about the walls.
     param_type m_params;
-    Scalar di;
     Scalar qi;
     };
 

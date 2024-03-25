@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_GPU_H__
@@ -114,9 +114,6 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -146,7 +143,6 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
                             this->m_pdata->getN(),
                             this->m_pdata->getMaxN(),
                             d_pos.data,
-                            d_diameter.data,
                             d_charge.data,
                             box,
                             d_n_neigh.data,

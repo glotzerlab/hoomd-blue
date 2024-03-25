@@ -1,7 +1,12 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement RemoveDrift."""
+"""Implement RemoveDrift.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+"""
 
 import hoomd
 from hoomd.operation import Updater
@@ -40,10 +45,23 @@ class RemoveDrift(Updater):
         Use `RemoveDrift` with `hoomd.hpmc.external.field.Harmonic` to
         improve the accuracy of Frenkel-Ladd calculations.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        remove_drift = hoomd.update.RemoveDrift(
+            reference_positions=[(0,0,0), (1,0,0)])
+        simulation.operations.updaters.append(remove_drift)
+
     Attributes:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             the reference positions :math:`[\mathrm{length}]`.
-        trigger (hoomd.trigger.Trigger): The timesteps to remove drift.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                remove_drift.reference_positions = [(0,0,0), (1,0,0)]
     """
 
     def __init__(self, reference_positions, trigger=1):

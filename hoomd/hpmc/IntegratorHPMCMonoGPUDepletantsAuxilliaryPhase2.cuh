@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -234,7 +234,7 @@ __launch_bounds__(max_threads)
         // extend by depletant radius
         Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
 
-        OverlapReal r = 0.5 * shape_test_a.getCircumsphereDiameter();
+        ShortReal r = 0.5 * shape_test_a.getCircumsphereDiameter();
         obb_i.lengths.x += r;
         obb_i.lengths.y += r;
         obb_i.lengths.z += r;

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Rigid filter."""
@@ -21,6 +21,16 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
             is ``("center",)``
 
     Base: `ParticleFilter`
+
+    .. rubric:: Examples:
+
+    .. code-block:: python
+
+        rigid_center_and_free = hoomd.filter.Rigid(flags=('center', 'free'))
+
+    .. code-block:: python
+
+        rigid_center = hoomd.filter.Rigid(flags=('center',))
     """
 
     def __init__(self, flags=("center",)):
@@ -37,7 +47,7 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
 
     def __eq__(self, other):
         """Test for equality between two particle filters."""
-        return type(self) == type(other) and self._flags == other._flags
+        return type(self) is type(other) and self._flags == other._flags
 
     def __reduce__(self):
         """Enable (deep)copying and pickling of `Rigid` particle filters."""

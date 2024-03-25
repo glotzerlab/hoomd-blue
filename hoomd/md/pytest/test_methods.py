@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -65,17 +65,14 @@ _method_definitions = (
                      generator=generator),
     MethodDefinition(hoomd.md.methods.Langevin, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None),
         "tally_reservoir_energy": bool
     },
                      generator=generator),
     MethodDefinition(hoomd.md.methods.Brownian, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None)
     },
                      generator=generator),
-    MethodDefinition(hoomd.md.methods.OverdampedViscous,
-                     {"alpha": Either(float, None)},
+    MethodDefinition(hoomd.md.methods.OverdampedViscous, {},
                      generator=generator),
 )
 
@@ -95,8 +92,10 @@ _thermostat_definition = (
         "tau": float
     },
                     generator=generator),
-    ClassDefinition(hoomd.md.methods.thermostats.Bussi,
-                    {"kT": hoomd.variant.Variant},
+    ClassDefinition(hoomd.md.methods.thermostats.Bussi, {
+        "kT": hoomd.variant.Variant,
+        "tau": float
+    },
                     generator=generator),
     ClassDefinition(hoomd.md.methods.thermostats.Berendsen, {
         "kT": hoomd.variant.Variant,
@@ -331,6 +330,17 @@ class TestMethods:
             'kT': 1.5
         }),
         (hoomd.md.methods.OverdampedViscous, {}),
+        (hoomd.md.methods.rattle.Brownian, {
+            'kT': 1.5,
+            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
+        }),
+        (hoomd.md.methods.rattle.Langevin, {
+            'kT': 1.5,
+            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
+        }),
+        (hoomd.md.methods.rattle.OverdampedViscous, {
+            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
+        }),
     ])
     def test_default_gamma(self, cls, init_args):
         c = cls(filter=hoomd.filter.All(), **init_args)
@@ -451,21 +461,17 @@ _rattle_definitions = (
                      generator=generator),
     RattleDefinition(hoomd.md.methods.rattle.Langevin, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None),
         "tally_reservoir_energy": bool,
         "tolerance": float
     },
                      generator=generator),
     RattleDefinition(hoomd.md.methods.rattle.Brownian, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None),
         "tolerance": float
     },
                      generator=generator),
-    RattleDefinition(hoomd.md.methods.rattle.OverdampedViscous, {
-        "alpha": Either(float, None),
-        "tolerance": float
-    },
+    RattleDefinition(hoomd.md.methods.rattle.OverdampedViscous,
+                     {"tolerance": float},
                      generator=generator),
 )
 

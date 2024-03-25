@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.conftest import pickling_check
@@ -8,38 +8,33 @@ from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from pytest import fixture, raises
 
 
+@fixture()
+def default_value():
+    return {"foo": 1, "bar": 4}
+
+
+@fixture()
+def typedict(default_value):
+    return TypeParameterDict(**default_value, len_keys=1)
+
+
 @fixture(scope='function')
-def typedict():
-    return TypeParameterDict(foo=1, bar=4, len_keys=1)
-
-
-def test_instantiation(typedict):
+def typeparam(typedict):
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
                          param_dict=typedict)
 
 
-@fixture(scope='function')
-def typeparam(typedict):
-    return test_instantiation(typedict)
-
-
-def test_attach(typeparam):
-    return typeparam._attach(DummyCppObj(), DummySimulation().state)
-
-
-@fixture(scope='function')
+@fixture()
 def attached(typeparam):
-    return test_attach(typeparam)
+    typeparam._attach(DummyCppObj(), DummySimulation().state)
+    return typeparam
 
 
-def test_detaching(attached):
-    return attached._detach()
-
-
-@fixture(scope='function')
+@fixture()
 def detached(attached):
-    return test_detaching(attached)
+    attached._detach()
+    return attached
 
 
 @fixture(scope='function', params=['typeparam', 'attached', 'detached'])
@@ -52,13 +47,19 @@ def all_(request, typeparam, attached, detached):
         return detached
 
 
-def test_set_get_item(all_):
-    all_['A'] = dict(bar=2)
-    all_['B'] = dict(bar=5)
-    assert all_['A'] == all_.param_dict['A']
-    assert all_['B'] == all_.param_dict['B']
+def test_set_get_item(all_, default_value):
+    all_['A'] = {"bar": 2}
+    all_['B'] = {"bar": 5}
+    assert all_['A'] == {**default_value, "bar": 2}
+    assert all_['B'] == {**default_value, "bar": 5}
     assert all_['A']['bar'] == 2
     assert all_['B']['bar'] == 5
+
+
+def test_setitem_attached(attached, default_value):
+    new_value = {"bar": 2}
+    attached['A'] = new_value
+    assert attached._cpp_obj.getTypeParam("A") == {**default_value, **new_value}
 
 
 def test_default(all_):
@@ -83,6 +84,5 @@ def test_attached_type_checking(attached):
         attached['D'] = dict(bar=2)
 
 
-def test_pickling(all_, attached):
+def test_pickling(all_):
     pickling_check(all_)
-    pickling_check(attached)

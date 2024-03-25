@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -15,8 +15,9 @@ namespace hoomd
  * \param sysdef System definition
  * \param cl MPCD cell list
  */
-mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata)
-    : mpcd::CellThermoCompute(sysdata), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
+mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                 std::shared_ptr<mpcd::CellList> cl)
+    : mpcd::CellThermoCompute(sysdef, cl), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
     {
     m_begin_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
                                           AutotunerBase::getTppListPow2(this->m_exec_conf)},
@@ -362,7 +363,7 @@ void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     pybind11::class_<mpcd::CellThermoComputeGPU,
                      mpcd::CellThermoCompute,
                      std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::CellList>>());
     }
 
     } // end namespace hoomd

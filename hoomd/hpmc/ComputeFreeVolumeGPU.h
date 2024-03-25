@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
@@ -12,7 +12,6 @@
 
 #include "ComputeFreeVolume.h"
 #include "ComputeFreeVolumeGPU.cuh"
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoGPU.cuh"
 

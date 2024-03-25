@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // See md/CMakeLists.txt for the source of these variables to be processed by CMake's
@@ -25,7 +25,6 @@ gpu_rattle_brownian_step_one<MANIFOLD_CLASS>(Scalar4* d_pos,
                                              int3* d_image,
                                              Scalar4* d_vel,
                                              const BoxDim& box,
-                                             const Scalar* d_diameter,
                                              const unsigned int* d_tag,
                                              const unsigned int* d_group_members,
                                              const unsigned int group_size,
@@ -48,7 +47,6 @@ template hipError_t
 gpu_include_rattle_force_bd<MANIFOLD_CLASS>(const Scalar4* d_pos,
                                             Scalar4* d_net_force,
                                             Scalar* d_net_virial,
-                                            const Scalar* d_diameter,
                                             const unsigned int* d_tag,
                                             const unsigned int* d_group_members,
                                             const unsigned int group_size,
@@ -63,7 +61,6 @@ template hipError_t gpu_rattle_langevin_step_two<MANIFOLD_CLASS>(
     const Scalar4* d_pos,
     Scalar4* d_vel,
     Scalar3* d_accel,
-    const Scalar* d_diameter,
     const unsigned int* d_tag,
     unsigned int* d_group_members,
     unsigned int group_size,

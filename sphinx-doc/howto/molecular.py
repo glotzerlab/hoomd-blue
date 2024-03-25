@@ -1,27 +1,24 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
-# Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 import hoomd
 import gsd.hoomd
 
-snapshot = gsd.hoomd.Snapshot()
+frame = gsd.hoomd.Frame()
 
 # Place a polymer in the box.
-snapshot.particles.N = 5
-snapshot.particles.position = [[-2, 0, 0], [-1, 0, 0], [0, 0, 0], [1, 0, 0],
-                               [2, 0, 0]]
-snapshot.particles.types = ['A']
-snapshot.particles.typeid = [0] * 5
-snapshot.configuration.box = [20, 20, 20, 0, 0, 0]
+frame.particles.N = 5
+frame.particles.position = [[-2, 0, 0], [-1, 0, 0], [0, 0, 0], [1, 0, 0],
+                            [2, 0, 0]]
+frame.particles.types = ['A']
+frame.particles.typeid = [0] * 5
+frame.configuration.box = [20, 20, 20, 0, 0, 0]
 
 # Connect particles with bonds.
-snapshot.bonds.N = 4
-snapshot.bonds.types = ['A-A']
-snapshot.bonds.typeid = [0] * 4
-snapshot.bonds.group = [[0, 1], [1, 2], [2, 3], [3, 4]]
+frame.bonds.N = 4
+frame.bonds.types = ['A-A']
+frame.bonds.typeid = [0] * 4
+frame.bonds.group = [[0, 1], [1, 2], [2, 3], [3, 4]]
 
-with gsd.hoomd.open(name='molecular.gsd', mode='xb') as f:
-    f.append(snapshot)
+with gsd.hoomd.open(name='molecular.gsd', mode='x') as f:
+    f.append(frame)
 
 # Apply the harmonic potential on the bonds.
 harmonic = hoomd.md.bond.Harmonic()

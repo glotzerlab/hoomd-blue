@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Tuners.
@@ -12,10 +12,10 @@ order of particles in memory to improve cache-coherency.
 This package also defines the `CustomTuner` class and a number of helper
 classes. Use these to implement custom tuner operations in Python code.
 
-..rubric:: Solver
+.. rubric:: Solver
 
 Most tuners explicitly involve solving some sort of mathematical problem (e.g.
-root-finding or optimizationr). HOOMD provides infrastructure for solving these
+root-finding or optimization). HOOMD provides infrastructure for solving these
 problems as they appear in our provided `hoomd.operation.Tuner` subclasses. All
 tuners that involve iteratively solving a problem compose a `SolverStep`
 subclass instance. The `SolverStep` class implements the boilerplate to do

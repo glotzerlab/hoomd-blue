@@ -1,10 +1,11 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Synced list utility classes."""
 
 from collections.abc import MutableSequence
 from copy import copy
+import weakref
 
 from hoomd.data.typeconverter import _BaseConverter, TypeConverter
 
@@ -70,6 +71,7 @@ class SyncedList(MutableSequence):
                  callable_class=False,
                  attach_members=True):
         self._attach_members = attach_members
+        self._simulation_ = None
         if to_synced_list is None:
             to_synced_list = identity
 
@@ -212,6 +214,22 @@ class SyncedList(MutableSequence):
             raise ValueError(f"Validation failed: {verr.args[0]}") from verr
         return processed_value
 
+    @property
+    def _simulation(self):
+        sim = self._simulation_
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+            else:
+                self._unsync()
+
+    @_simulation.setter
+    def _simulation(self, simulation):
+        if simulation is not None:
+            simulation = weakref.ref(simulation)
+        self._simulation_ = simulation
+
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
         self._simulation = simulation
@@ -245,7 +263,7 @@ class SyncedList(MutableSequence):
     def __getstate__(self):
         """Get state for pickling."""
         state = copy(self.__dict__)
-        state['_simulation'] = None
+        state['_simulation_'] = None
         state.pop('_synced_list', None)
         return state
 

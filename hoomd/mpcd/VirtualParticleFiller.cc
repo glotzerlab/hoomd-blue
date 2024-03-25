@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -10,19 +10,23 @@
 
 namespace hoomd
     {
-mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
+mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<SystemDefinition> sysdef,
                                                    Scalar density,
                                                    unsigned int type,
                                                    std::shared_ptr<Variant> T)
-    : m_sysdef(sysdata->getSystemDefinition()), m_pdata(m_sysdef->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()), m_mpcd_pdata(sysdata->getParticleData()),
-      m_cl(sysdata->getCellList()), m_density(density), m_type(type), m_T(T), m_N_fill(0),
-      m_first_tag(0)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_density(density), m_type(type), m_T(T),
+      m_N_fill(0), m_first_tag(0)
     {
     }
 
 void mpcd::VirtualParticleFiller::fill(uint64_t timestep)
     {
+    if (!m_cl)
+        {
+        throw std::runtime_error("Cell list has not been set");
+        }
+
     // update the fill volume
     computeNumFill();
 
@@ -82,7 +86,7 @@ void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
     pybind11::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
         m,
         "VirtualParticleFiller")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>>())

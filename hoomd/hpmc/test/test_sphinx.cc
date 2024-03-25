@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BoxDim.h"
@@ -31,8 +31,8 @@ UP_TEST(construction)
     SphinxParams data;
     data.N = 3;
     data.diameter[0] = 2.0;
-    data.diameter[1] = -OverlapReal(2.2);
-    data.diameter[2] = -OverlapReal(2.2);
+    data.diameter[1] = -ShortReal(2.2);
+    data.diameter[2] = -ShortReal(2.2);
     data.diameter[3] = 0;
     data.diameter[4] = 0;
     data.diameter[5] = 0;
@@ -87,8 +87,8 @@ UP_TEST(overlap_P2N_no_rot)
     UP_ASSERT(MAX_SPHINX_SPHERE_CENTERS >= 3);
     data.N = 3;
     data.diameter[0] = 2.0;
-    data.diameter[1] = -OverlapReal(2.2);
-    data.diameter[2] = -OverlapReal(2.2);
+    data.diameter[1] = -ShortReal(2.2);
+    data.diameter[2] = -ShortReal(2.2);
     data.center[0] = vec3<Scalar>(0.0, 0.0, 0.0);
     data.center[1] = vec3<Scalar>(0.0, 0.0, 1.15);
     data.center[2] = vec3<Scalar>(0.0, 0.0, -1.15);
@@ -356,8 +356,8 @@ UP_TEST(overlap_P4Nth_P2N)
     UP_ASSERT(MAX_SPHINX_SPHERE_CENTERS >= 3);
     data_P2N.N = 3;
     data_P2N.diameter[0] = 2.0;
-    data_P2N.diameter[1] = -OverlapReal(2.2);
-    data_P2N.diameter[2] = -OverlapReal(2.2);
+    data_P2N.diameter[1] = -ShortReal(2.2);
+    data_P2N.diameter[2] = -ShortReal(2.2);
     data_P2N.center[0] = vec3<Scalar>(0.0, 0.0, 0.0);
     data_P2N.center[1] = vec3<Scalar>(0.0, 0.0, 1.15);
     data_P2N.center[2] = vec3<Scalar>(0.0, 0.0, -1.15);

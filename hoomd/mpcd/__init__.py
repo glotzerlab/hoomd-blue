@@ -1,7 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" Multiparticle collision dynamics.
+r""" Multiparticle collision dynamics.
 
 Simulating complex fluids and soft matter using conventional molecular dynamics
 methods (:py:mod:`hoomd.md`) can be computationally demanding due to large
@@ -97,9 +97,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 
 from hoomd.mpcd import collide
-from hoomd.mpcd import data
 from hoomd.mpcd import force
-from hoomd.mpcd import init
 from hoomd.mpcd import integrate
 from hoomd.mpcd import stream
 from hoomd.mpcd import update
@@ -170,11 +168,7 @@ class integrator():
         if self.aniso is not None:
             self.set_params(aniso=aniso)
 
-    _aniso_modes = {
-        None: _md.IntegratorAnisotropicMode.Automatic,
-        True: _md.IntegratorAnisotropicMode.Anisotropic,
-        False: _md.IntegratorAnisotropicMode.Isotropic
-    }
+    _aniso_modes = {}
 
     def set_params(self, dt=None, aniso=None):
         """ Changes parameters of an existing integration mode.

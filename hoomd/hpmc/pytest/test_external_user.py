@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.external.user.CPPExternalPotential."""
@@ -10,17 +10,16 @@ import numpy as np
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
 
-valid_constructor_args = [dict(code='return -1;')]
+valid_constructor_args = [
+    dict(code='return -1;'),
+    dict(code='return -1;', param_array=[1]),
+]
 
 # setable attributes before attach for CPPExternalPotential objects
-valid_attrs = [
-    ('code', 'return -1;'),
-]
+valid_attrs = [('code', 'return -1;'), ('param_array', [1])]
 
 # attributes that cannot be set after object is attached
-attr_error = [
-    ('code', 'return -1.0;'),
-]
+attr_error = [('code', 'return -1.0;'), ('param_array', [1])]
 
 # list of tuples with (
 # orientation of p1,
@@ -57,8 +56,10 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory,
+                   constructor_args):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -70,15 +71,17 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # make sure objecst are attached
+    # make sure objects are attached
     assert mc._attached
     assert ext._attached
 
 
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory,
+                   constructor_args):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.external_potential = ext
@@ -90,7 +93,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # make sure objecst are attached
+    # make sure objects are attached
     sim.operations.remove(mc)
     assert not mc._attached
     assert not ext._attached
@@ -155,12 +158,35 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 
 
 @pytest.mark.cpu
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_change_param_array_values(device, simulation_factory,
+                                   two_particle_snapshot_factory):
+    """Test that changing param_array values behaves correctly."""
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(
+        code='return param_array[0];', param_array=[1])
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1)
+    mc.shape['A'] = dict(diameter=0.1)
+    mc.d['A'] = 0.1
+    mc.external_potential = ext
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    N = sim.state.N_particles
+    sim.operations.integrator = mc
+    sim.run(0)
+    for _n in range(3):
+        ext.param_array[0] = _n
+        sim.run(1)
+        assert ext.energy / N == _n
+
+
+@pytest.mark.cpu
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
                         simulation_factory, two_particle_snapshot_factory):
     """Test that CPPExternalPotential computes the correct energies for static \
-            point-like electric dipoles inmersed in an uniform electric field.
+            point-like electric dipoles immersed in an uniform electric field.
 
     Here, we test the potential energy of a point dipole in an electric field
     oriented along the z-direction. Note that we 1) use charge as a proxy for
@@ -197,41 +223,43 @@ def test_electric_field(device, orientations, charge, result,
 @pytest.mark.cpu
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_gravity(device, simulation_factory, lattice_snapshot_factory):
-    """Test that particles "fall" in a gravitaional field.
+def test_z_bias(device, simulation_factory, lattice_snapshot_factory):
+    """Test that a biasing potential restrains particles to a specified region.
 
-    This test simulates a sedimentation experiment by using an elongated box in
-    the z-dimension and adding an effective gravitational potential with a wall.
-    Note that it is technically probabilistic in nature, but we use enough
-    particles and a strong enough gravitational potential that the probability
-    of particles rising in the simulation is vanishingly small.
+    This test simulates a system of particles with a harmonic potential that
+    biases their z-coordinates to 0.  Note that the test is probabilistic in
+    nature, but we use enough particles and a strong enough potential that the
+    probability of particles moving away from z=0 in the simulation is
+    vanishingly small.
 
     """
     sim = simulation_factory(lattice_snapshot_factory(a=1.1, n=5))
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.01)
     mc.shape['A'] = dict(diameter=1)
+    mc.nselect = 1
 
-    # expand box and add gravity field
+    # expand box and add external field
     old_box = sim.state.box
-    new_box = hoomd.Box(Lx=1.5 * old_box.Lx,
-                        Ly=1.5 * old_box.Ly,
-                        Lz=20 * old_box.Lz)
+    new_box = hoomd.Box(Lx=3 * old_box.Lx, Ly=3 * old_box.Ly, Lz=3 * old_box.Lz)
     sim.state.set_box(new_box)
     ext = hoomd.hpmc.external.user.CPPExternalPotential(
-        code="return 1000*r_i.z;")
+        code="return 1000*r_i.z*r_i.z;")
     mc.external_potential = ext
     sim.operations.integrator = mc
 
     snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
-        old_avg_z = np.mean(snapshot.particles.position[:, 2])
+        old_z_range = np.ptp(snapshot.particles.position[:, 2])
     sim.run(0)
     old_energy = ext.energy
 
-    sim.run(6e3)
-
-    snapshot = sim.state.get_snapshot()
-    if snapshot.communicator.rank == 0:
-        new_avg_z = np.mean(snapshot.particles.position[:, 2])
-        assert new_avg_z < old_avg_z
-    assert ext.energy < old_energy
+    for n in range(10):
+        sim.run(1e3)
+        snapshot = sim.state.get_snapshot()
+        if snapshot.communicator.rank == 0:
+            new_z_range = np.ptp(snapshot.particles.position[:, 2])
+            assert (new_z_range < old_z_range)
+            old_z_range = new_z_range
+        new_energy = ext.energy
+        assert new_energy < old_energy
+        old_energy = new_energy

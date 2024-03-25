@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/SlitPoreGeometryFiller.h"
@@ -18,19 +18,15 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(1, -2, 3);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
-
-        mpcd_snap->position[0] = vec3<Scalar>(1, -2, 3);
-        mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    auto pdata = mpcd_sys->getParticleData();
-    mpcd_sys->getCellList()->setCellSize(2.0);
+    auto pdata = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    cl->setCellSize(2.0);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit pore channel with half width 5, half length 8
@@ -41,7 +37,8 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     // fill density 2, temperature 1.5
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
-        = std::make_shared<F>(mpcd_sys, 2.0, 1, kT, 42, slit);
+        = std::make_shared<F>(sysdef, 2.0, 1, kT, 42, slit);
+    filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list
@@ -130,7 +127,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
      * Now, all sides of the U have thickness 0.5.
      */
     pdata->removeVirtualParticles();
-    mpcd_sys->getCellList()->setCellSize(1.0);
+    cl->setCellSize(1.0);
     filler->fill(2);
     UP_ASSERT_EQUAL(pdata->getNVirtual(),
                     (unsigned int)(4 * 2 * (0.5 * 4.5 + 0.5 * 16 + 0.5 * 4.5) * 20));
@@ -157,7 +154,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
      * Test the average fill properties of the virtual particles.
      */
     filler->setDensity(2.0);
-    mpcd_sys->getCellList()->setCellSize(2.0);
+    cl->setCellSize(2.0);
     unsigned int N_avg(0);
     Scalar3 v_avg = make_scalar3(0, 0, 0);
     Scalar T_avg(0);

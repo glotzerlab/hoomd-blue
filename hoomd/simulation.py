@@ -1,7 +1,22 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Define the Simulation class."""
+"""Define the Simulation class.
+
+.. invisible-code-block: python
+
+    # prepare snapshot and gsd file for later examples
+    path = tmp_path
+    simulation = hoomd.util.make_example_simulation()
+
+    snapshot = simulation.state.get_snapshot()
+    gsd_filename = path / 'file.gsd'
+    hoomd.write.GSD.write(state=simulation.state,
+                          filename = gsd_filename,
+                          filter=hoomd.filter.All())
+
+    logger = hoomd.logging.Logger()
+"""
 import inspect
 
 import hoomd._hoomd as _hoomd
@@ -32,6 +47,12 @@ class Simulation(metaclass=Loggable):
     Newly initialized `Simulation` objects have no state. Call
     `create_state_from_gsd` or `create_state_from_snapshot` to initialize the
     simulation's `state`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        simulation = hoomd.Simulation(device=hoomd.device.CPU(), seed=1)
     """
 
     def __init__(self, device, seed=None):
@@ -57,6 +78,8 @@ class Simulation(metaclass=Loggable):
     @log
     def timestep(self):
         """int: The current simulation time step.
+
+        `timestep` is read only after creating the simulation state.
 
         Note:
             Methods like `create_state_from_gsd` will set the initial timestep
@@ -94,6 +117,12 @@ class Simulation(metaclass=Loggable):
         `timestep` (lower 40 bits), particle identifiers, MPI ranks, and other
         unique identifying values as needed to sample uncorrelated values:
         ``random_value = f(seed, timestep, ...)``
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.seed = 2
         """
         if self._state is None or self._seed is None:
             return self._seed
@@ -187,6 +216,12 @@ class Simulation(metaclass=Loggable):
             automatically selected direction. The default value of ``(None,
             None, None)`` will automatically select the number of domains in all
             directions.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.create_state_from_gsd(filename=gsd_filename)
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
@@ -210,8 +245,8 @@ class Simulation(metaclass=Loggable):
         """Create the simulation state from a `Snapshot`.
 
         Args:
-            snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
-                the state from. A `gsd.hoomd.Snapshot` will first be
+            snapshot (Snapshot or gsd.hoomd.Frame): Snapshot to initialize
+                the state from. A `gsd.hoomd.Frame` will first be
                 converted to a `hoomd.Snapshot`.
 
             domain_decomposition (tuple): Choose how to distribute the state
@@ -238,6 +273,16 @@ class Simulation(metaclass=Loggable):
             `State.get_snapshot`
 
             `State.set_snapshot`
+
+        .. rubric:: Example:
+
+        .. invisible-code-block: python
+
+            simulation = hoomd.Simulation(device=hoomd.device.CPU(), seed=1)
+
+        .. code-block:: python
+
+            simulation.create_state_from_snapshot(snapshot=snapshot)
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
@@ -245,14 +290,20 @@ class Simulation(metaclass=Loggable):
         if isinstance(snapshot, Snapshot):
             # snapshot is hoomd.Snapshot
             self._state = State(self, snapshot, domain_decomposition)
+        elif _match_class_path(snapshot, 'gsd.hoomd.Frame'):
+            # snapshot is gsd.hoomd.Frame (gsd 2.8+, 3.x)
+            snapshot = Snapshot.from_gsd_frame(snapshot,
+                                               self._device.communicator)
+            self._state = State(self, snapshot, domain_decomposition)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
-            # snapshot is gsd.hoomd.Snapshot
+            # snapshot is gsd.hoomd.Snapshot (gsd 2.x)
             snapshot = Snapshot.from_gsd_snapshot(snapshot,
                                                   self._device.communicator)
             self._state = State(self, snapshot, domain_decomposition)
         else:
             raise TypeError(
-                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot.")
+                "Snapshot must be a hoomd.Snapshot, gsd.hoomd.Snapshot, "
+                "or gsd.hoomd.Frame")
 
         step = 0
         if self.timestep is not None:
@@ -310,9 +361,21 @@ class Simulation(metaclass=Loggable):
         walltime in seconds. It is updated during the `run` loop and remains
         fixed after `run` completes.
 
-        Note:
-            The start walltime and timestep are reset at the beginning of each
-            call to `run`.
+        Warning:
+            The elapsed walltime and timestep are reset at the beginning of each
+            call to `run`. Thus, `tps` will provide noisy estimates of
+            performance at the start and stable long term averages after
+            many timesteps.
+
+        Tip:
+            Use the total elapsed wall time and timestep to average the
+            timesteps executed per second at desired intervals.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            logger.add(obj=simulation, quantities=['tps'])
         """
         if self._state is None:
             return None
@@ -329,6 +392,15 @@ class Simulation(metaclass=Loggable):
 
         Note:
             `walltime` resets to 0 at the beginning of each call to `run`.
+
+        See Also:
+            `hoomd.communicator.Communicator.walltime`.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            logger.add(obj=simulation, quantities=['walltime'])
         """
         if self._state is None:
             return 0.0
@@ -341,6 +413,12 @@ class Simulation(metaclass=Loggable):
 
         `final_timestep` is the timestep on which the currently executing `run`
         will complete.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            logger.add(obj=simulation, quantities=['final_timestep'])
         """
         if self._state is None:
             return self.timestep
@@ -353,6 +431,12 @@ class Simulation(metaclass=Loggable):
 
         `initial_timestep` is the timestep on which the currently executing
         `run` started.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            logger.add(obj=simulation, quantities=['initial_timestep'])
         """
         if self._state is None:
             return self.timestep
@@ -373,6 +457,12 @@ class Simulation(metaclass=Loggable):
         Note:
             Enabling this flag will result in a moderate performance penalty
             when using MD pair potentials.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            simulation.always_compute_pressure = True
         """
         if not hasattr(self, '_cpp_sys'):
             return False
@@ -444,6 +534,16 @@ class Simulation(metaclass=Loggable):
         Warning:
             Using ``write_at_start=True`` in subsequent
             calls to `run` will result in duplicate output frames.
+
+        .. rubric:: Example:
+
+        .. invisible-code-block: python
+
+            simulation = hoomd.util.make_example_simulation()
+
+        .. code-block:: python
+
+            simulation.run(1_000)
         """
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
@@ -460,6 +560,12 @@ class Simulation(metaclass=Loggable):
                              f"{TIMESTEP_MAX-1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
+
+    def __del__(self):
+        """Clean up dangling references to simulation."""
+        # _operations may not be set, check before unscheduling
+        if hasattr(self, "_operations"):
+            self._operations._unschedule()
 
 
 def _match_class_path(obj, *matches):

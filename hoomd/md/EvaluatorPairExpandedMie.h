@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_ExpandedMie_H__
@@ -29,39 +29,6 @@ namespace hoomd
 namespace md
     {
 //! Class for evaluating the Expanded Mie pair potential
-/*! <b>General Overview</b>
-
-    See EvaluatorPairMie
-
-    <b>ExpandedMie specifics</b>
-
-    EvaluatorPairExpandedMie evaluates the function:
-    \f{eqnarray*}
-    V_{\mathrm{ExpMie}}(r)  = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
-   \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r-\Delta} \right)^{n} -
-                \left( \frac{\sigma}{r-\Delta} \right)^{m} \right] r \l (r_{\mathrm{cut}} +
-   \Delta)\\
-                = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
-    \f}
-    where  \f$ \Delta is specified by the user, conventionally calcualted as, \f$ \Delta = (d_i +
-   d_j)/2 - \sigma \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
-
-   The ExpandedMie potential needs neither charge nor diameter. Five parameters are specified and
-   stored in a Scalar5. \a repulsive \a attractive \a n_pow \a m_pow \a delta are stored in \a
-   params
-
-
-    These are related to the standard lj parameters sigma and epsilon and the variable exponents n
-   and m by:
-    - \a repulsive = epsilon * pow(sigma,n) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a attractive = epsilon * pow(sigma,m) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a n_pow = n
-    - \a m_pow = m
-    - \a delta = delta
-
-    Due to the way that ExpandedMie modifies the cutoff condition, it will not function properly
-   with the xplor shifting mode.
-*/
 class EvaluatorPairExpandedMie
     {
     public:
@@ -137,23 +104,12 @@ class EvaluatorPairExpandedMie
         {
         }
 
-    //! ExpandedMie doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) const { }
-
     //! ExpandedMie doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
@@ -171,8 +127,8 @@ class EvaluatorPairExpandedMie
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift) const
         {
         // precompute some quantities
-        const Scalar r = fast::sqrt(rsq);
-        const Scalar rinv = fast::rsqrt(rsq);
+        Scalar rinv = fast::rsqrt(rsq);
+        Scalar r = Scalar(1.0) / rinv;
 
         // compute the force divided by r in force_divr
         if (rsq < rcutsq && repulsive != 0)
@@ -189,9 +145,12 @@ class EvaluatorPairExpandedMie
 
             if (energy_shift)
                 {
-                Scalar rcutninv = fast::pow(rcutsq, -n_pow / Scalar(2.0));
-                Scalar rcutminv = fast::pow(rcutsq, -m_pow / Scalar(2.0));
-                pair_eng -= repulsive * rcutninv - attractive * rcutminv;
+                Scalar r_cut = fast::sqrt(rcutsq);
+                Scalar r_cut_shifted = r_cut - delta;
+
+                Scalar r_cut_n_inv = fast::pow(r_cut_shifted, -n_pow);
+                Scalar r_cut_m_inv = fast::pow(r_cut_shifted, -m_pow);
+                pair_eng -= repulsive * r_cut_n_inv - attractive * r_cut_m_inv;
                 }
             return true;
             }

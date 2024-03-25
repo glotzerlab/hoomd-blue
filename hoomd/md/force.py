@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
@@ -56,7 +56,7 @@ class Force(Compute):
 
     .. math::
 
-        W^{kl}_i = \sum_j F^k_{ij} \cdot
+        W^{kl}_i = \frac{1}{2} \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
 
     Tip:

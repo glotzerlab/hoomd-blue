@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -11,9 +11,7 @@
 #include "ShapeSphere.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -44,9 +42,7 @@ void export_sphere(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
-    export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
-    export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeSphere>(m, "IntegratorHPMCMonoSphereGPU");

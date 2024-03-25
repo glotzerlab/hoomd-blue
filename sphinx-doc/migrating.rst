@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Migrating to the latest version
@@ -66,6 +66,28 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use `message_filename <hoomd.device.Device.message_filename>`.
 
+* ``sdf`` property of `hoomd.hpmc.compute.SDF`.
+
+  * Use `sdf_compression <hoomd.hpmc.compute.SDF.sdf_compression>`.
+
+* `hoomd.write.GSD` no longer writes ``particles/diameter`` by default.
+
+  * Set `write_diameter <hoomd.write.GSD.write_diameter>` as needed.
+
+* ``alpha`` property of `hoomd.md.methods.Langevin`, `hoomd.md.methods.Brownian`,
+  `hoomd.md.methods.OverdampedViscous`, `hoomd.md.methods.rattle.Langevin`,
+  `hoomd.md.methods.rattle.Brownian`, and `hoomd.md.methods.rattle.OverdampedViscous`.
+
+  * Use the ``gamma`` property.
+
+* The ``dynamic`` property and argument of `hoomd.write.GSD` no longer enforces ``'property'`` as
+  an always dynamic quantity. Users must include ``'property'``, ``'particles/position'`` and/or
+  ``'particles/orientation'`` as needed in ``dynamic`` lists that contain other fields.
+
+* `hoomd.write.GSD` aggressively buffers output. Call `hoomd.write.GSD.flush` to write the buffer
+  to disk when opening a file for reading that is still open for writing. There is **no need** to
+  call ``flush`` in normal workflows when files are closed and then opened later for reading.
+
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -89,6 +111,8 @@ Components
 * Remove ``fix_cudart_rpath(_${COMPONENT_NAME})`` from your components ``CMakeLists.txt``
 * Use ``LongReal`` and ``ShortReal`` types in new code. ``Scalar`` will be removed in a future
   release (v5 or later).
+* Replace any use of ``hpmc::OverlapReal`` with ``ShortReal``.
+* Remove ``needsDiameter`` and ``setDiameter`` methods in potential evaluator classes.
 
 Migrating to HOOMD v3
 ---------------------
@@ -246,7 +270,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
      - Per-type ``active_force`` and ``active_torque``
    * - ``md.pair.SLJ``
-     - `md.pair.ExpandedLJ`
+     - `md.pair.ExpandedLJ` with `hoomd.md.pair.Pair.r_cut` set to ``r_cut(for delta=0) + delta``
 
 ``hoomd.cgcmm``:
 

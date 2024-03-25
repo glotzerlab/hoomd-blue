@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
@@ -104,17 +104,33 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         {
-        bool found_local_rank = false;
-        int local_rank = guessLocalRank(found_local_rank);
-        if (!gpu_id.size() && found_local_rank)
+        bool using_mpi = false;
+#ifdef ENABLE_MPI
+        // single rank simulations emulate the ENABLE_MPI=off behavior
+        int size;
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        if (size > 1)
             {
+            using_mpi = true;
+            }
+#endif
+
+        if (!gpu_id.size() && using_mpi)
+            {
+            int local_rank = guessLocalRank();
             // if we found a local rank, use that to select the GPU
             gpu_id.push_back((local_rank % dev_count));
+
+            ostringstream s;
+            s << "Selected GPU " << gpu_id[0] << " by MPI rank (" << dev_count << " available)."
+              << endl;
+            msg->collectiveNoticeStr(4, s.str());
             }
 
         if (!gpu_id.size())
             {
             // auto-detect a single GPU
+            msg->collectiveNoticeStr(4, "Asking the driver to choose a GPU.\n");
             initializeGPU(-1);
             }
         else
@@ -136,15 +152,22 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     setupStats();
 
+    s.clear();
+    s << "Device is running on ";
+    for (const auto& device_description : m_active_device_descriptions)
+        {
+        s << device_description << " ";
+        }
+    s << endl;
+    msg->collectiveNoticeStr(3, s.str());
+
 #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
         if (!m_concurrent && gpu_id.size() > 1)
             {
-            msg->errorAllRanks() << "Multi-GPU execution requested, but not all GPUs support "
-                                    "concurrent managed access"
-                                 << endl;
-            throw runtime_error("Error initializing execution configuration");
+            throw runtime_error("Multi-GPU execution requested, but not all GPUs support "
+                                "concurrent managed access");
             }
 
 #ifndef ALWAYS_USE_MANAGED_MEMORY
@@ -177,7 +200,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         // select first device by default
         hipSetDevice(m_gpu_id[0]);
 
-        hipError_t err_sync = hipGetLastError();
+        hipError_t err_sync = hipPeekAtLastError();
         handleHIPError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
@@ -278,12 +301,17 @@ void ExecutionConfiguration::handleHIPError(hipError_t err,
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
             file += strlen(HOOMD_SOURCE_DIR);
 
-        // print an error message
-        msg->errorAllRanks() << string(hipGetErrorString(err)) << " before " << file << ":" << line
-                             << endl;
+        std::ostringstream s;
+#ifdef __HIP_PLATFORM_NVCC__
+        cudaError_t cuda_error = cudaPeekAtLastError();
+        s << "CUDA Error: " << string(cudaGetErrorString(cuda_error));
+#else
+        s << "HIP Error: " << string(hipGetErrorString(err));
+#endif
+        s << " before " << file << ":" << line;
 
         // throw an error exception
-        throw(runtime_error("HIP Error"));
+        throw(runtime_error(s.str()));
         }
     }
 
@@ -347,7 +375,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     // add to list of active GPUs
     m_gpu_id.push_back(hip_gpu_id);
 
-    hipError_t err_sync = hipGetLastError();
+    hipError_t err_sync = hipPeekAtLastError();
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
@@ -483,7 +511,6 @@ void ExecutionConfiguration::setupStats()
             cudaError_t error = cudaGetDeviceProperties(&cuda_prop, m_gpu_id[idev]);
             if (error != cudaSuccess)
                 {
-                msg->errorAllRanks() << "" << endl;
                 throw runtime_error("Failed to get device properties: "
                                     + string(cudaGetErrorString(error)));
                 }
@@ -561,7 +588,7 @@ void ExecutionConfiguration::beginMultiGPU() const
 
         if (isCUDAErrorCheckingEnabled())
             {
-            hipError_t err_sync = hipGetLastError();
+            hipError_t err_sync = hipPeekAtLastError();
             handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
@@ -592,75 +619,34 @@ void ExecutionConfiguration::endMultiGPU() const
 
         if (isCUDAErrorCheckingEnabled())
             {
-            hipError_t err_sync = hipGetLastError();
+            hipError_t err_sync = hipPeekAtLastError();
             handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
 #endif
     }
 
-int ExecutionConfiguration::guessLocalRank(bool& found)
+int ExecutionConfiguration::guessLocalRank()
     {
-    found = false;
-
 #ifdef ENABLE_MPI
-    // single rank simulations emulate the ENABLE_MPI=off behavior
-
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    if (size == 1)
-        {
-        found = false;
-        return 0;
-        }
-
     std::vector<std::string> env_vars;
-    char* env;
+    char* env_value;
 
     // setup common environment variables containing local rank information
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
 
-    std::vector<std::string>::iterator it;
+    // Always check SLURM_LOCALID last to allow other mpi launchers to override.
+    env_vars.push_back("SLURM_LOCALID");
 
-    for (it = env_vars.begin(); it != env_vars.end(); it++)
+    for (const auto& env_var : env_vars)
         {
-        if ((env = getenv(it->c_str())) != NULL)
+        if ((env_value = getenv(env_var.c_str())) != NULL)
             {
-            msg->notice(3) << "Found local rank in: " << *it << std::endl;
-            found = true;
-            return atoi(env);
-            }
-        }
-
-    // try SLURM_LOCALID
-    if (((env = getenv("SLURM_LOCALID"))) != NULL)
-        {
-        int num_total_ranks = 0;
-        int errors = 0;
-        int slurm_localid = atoi(env);
-
-        if (slurm_localid == 0)
-            errors = 1;
-
-        // some SLURMs set LOCALID to 0 on all ranks, check for this
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &errors,
-                      1,
-                      MPI_INT,
-                      MPI_SUM,
-                      m_mpi_config->getHOOMDWorldCommunicator());
-        MPI_Comm_size(m_mpi_config->getHOOMDWorldCommunicator(), &num_total_ranks);
-        if (errors == num_total_ranks)
-            {
-            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks, it cannot be used" << std::endl;
-            }
-        else
-            {
-            msg->notice(3) << "Found local rank in: SLURM_LOCALID" << std::endl;
-            found = true;
-            return slurm_localid;
+            int rank = atoi(env_value);
+            msg->notice(3) << "Found local rank " << rank << " in: " << env_var << std::endl;
+            return rank;
             }
         }
 
@@ -668,7 +654,6 @@ int ExecutionConfiguration::guessLocalRank(bool& found)
     msg->notice(3) << "Using global rank to select GPUs" << std::endl;
     int global_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
-    found = true;
     return global_rank;
 #else
     return 0;

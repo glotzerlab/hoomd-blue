@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -198,11 +198,11 @@ def test_kernel_parameters(dihedral_snapshot_factory, simulation_factory,
 
 
 # Test Logging
-@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip((md.dihedral.Dihedral, md.dihedral.Periodic,
-                              md.dihedral.Table, md.dihedral.OPLS),
-                             itertools.repeat(('md', 'dihedral')),
-                             itertools.repeat(expected_loggable_params)))
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.dihedral.Dihedral, md.dihedral.Periodic, md.dihedral.Table,
+         md.dihedral.OPLS), itertools.repeat(('md', 'dihedral')),
+        itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

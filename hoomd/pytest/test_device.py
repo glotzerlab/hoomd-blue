@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -26,7 +26,7 @@ def _assert_common_properties(dev,
             assert dev.num_cpu_threads == num_cpu_threads
         else:
             assert dev.num_cpu_threads == 1
-    assert type(dev.communicator) == hoomd.communicator.Communicator
+    assert type(dev.communicator) is hoomd.communicator.Communicator
 
 
 def test_common_properties(device, tmp_path):
@@ -62,6 +62,7 @@ def test_gpu_specific_properties(device):
 
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
+    hoomd.device.GPU(gpu_id=0)
 
     c = device.compute_capability
     assert type(c) is tuple
@@ -82,9 +83,9 @@ def test_other_gpu_specifics(device):
 
 def _assert_list_str(values):
     """Asserts the input is a list of strings."""
-    assert type(values) == list
+    assert type(values) is list
     if len(values) > 0:
-        assert type(values[0]) == str
+        assert type(values[0]) is str
 
 
 @pytest.mark.gpu
@@ -127,6 +128,36 @@ def test_device_notice(device, tmp_path):
     device.message_filename = str(tmp_path / "empty_notice")
     msg = "This message should not output."
     device.notice(msg, level=5)
+
+    if device.communicator.rank == 0:
+        with open(device.message_filename) as fh:
+            assert fh.read() == ""
+
+
+def test_noticefile(device, tmp_path):
+
+    # Message file declared. Should output in specified file.
+    device.message_filename = str(tmp_path / "str_message")
+    msg = "This message should output.\n"
+    device.notice_level = 4
+    notice_file = hoomd.device.NoticeFile(device)
+    notice_file.write(msg)
+
+    if device.communicator.rank == 0:
+        with open(device.message_filename) as fh:
+            assert fh.read() == str(msg)
+
+    # Test notice with a message that is not a string.
+    msg = 123456
+    device.message_filename = str(tmp_path / "int_message")
+    with pytest.raises(TypeError):
+        notice_file.write(msg)
+
+    # Test the level argument
+    msg = "This message should not output.\n"
+    device.message_filename = str(tmp_path / "empty_notice")
+    notice_file = hoomd.device.NoticeFile(device, level=5)
+    notice_file.write(msg)
 
     if device.communicator.rank == 0:
         with open(device.message_filename) as fh:

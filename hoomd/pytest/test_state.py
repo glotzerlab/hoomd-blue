@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.snapshot import Snapshot
@@ -221,6 +221,31 @@ def test_thermalize_angular_momentum(simulation_factory,
         # too large for an allclose check.
         expected_K = (3 * snap.particles.N) / 2 * 1.5
         assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3
+
+
+def test_zero_particle_velocity_angmom():
+    snapshot = hoomd.Snapshot()
+    snapshot.configuration.box = (10, 10, 10, 0, 0, 0)
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.N = 4
+        snapshot.particles.types = ['A']
+        snapshot.particles.body[:] = [0, 0, 2, 2]
+        snapshot.particles.moment_inertia[:] = [[1, 1, 1]] * 4
+
+    sim = hoomd.Simulation(device=hoomd.device.CPU())
+    sim.create_state_from_snapshot(snapshot)
+    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.0)
+    thermalized_snapshot = sim.state.get_snapshot()
+
+    if snapshot.communicator.rank == 0:
+        numpy.testing.assert_allclose(
+            thermalized_snapshot.particles.velocity[1], [0, 0, 0])
+        numpy.testing.assert_allclose(
+            thermalized_snapshot.particles.velocity[3], [0, 0, 0])
+        numpy.testing.assert_allclose(thermalized_snapshot.particles.angmom[1],
+                                      [0, 0, 0, 0])
+        numpy.testing.assert_allclose(thermalized_snapshot.particles.angmom[3],
+                                      [0, 0, 0, 0])
 
 
 def test_replicate(simulation_factory, lattice_snapshot_factory):

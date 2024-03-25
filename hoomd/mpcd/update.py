@@ -1,7 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-R""" MPCD particle updaters
+r""" MPCD particle updaters
 
 Updates properties of MPCD particles.
 
@@ -14,7 +14,7 @@ from . import _mpcd
 
 
 class sort():
-    R""" Sorts MPCD particles in memory to improve cache coherency.
+    r""" Sorts MPCD particles in memory to improve cache coherency.
 
     Args:
         system (:py:class:`hoomd.mpcd.data.system`): MPCD system to create sorter for

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Moves.h"
@@ -75,11 +75,11 @@ struct pair_less : public thrust::binary_function<uint2, uint2, bool>
         }
     };
 
-void get_num_neighbors(const unsigned int* d_nneigh,
-                       unsigned int* d_nneigh_scan,
-                       unsigned int& nneigh_total,
-                       const GPUPartition& gpu_partition,
-                       CachedAllocator& alloc)
+void __attribute__((visibility("default"))) get_num_neighbors(const unsigned int* d_nneigh,
+                                                              unsigned int* d_nneigh_scan,
+                                                              unsigned int& nneigh_total,
+                                                              const GPUPartition& gpu_partition,
+                                                              CachedAllocator& alloc)
     {
     assert(d_nneigh);
     thrust::device_ptr<const unsigned int> nneigh(d_nneigh);
@@ -187,14 +187,15 @@ __global__ void flip_clusters(Scalar4* d_postype,
 
     } // end namespace kernel
 
-void concatenate_adjacency_list(const unsigned int* d_adjacency,
-                                const unsigned int* d_nneigh,
-                                const unsigned int* d_nneigh_scan,
-                                const unsigned int maxn,
-                                uint2* d_adjacency_out,
-                                const GPUPartition& gpu_partition,
-                                const unsigned int block_size,
-                                const unsigned int group_size)
+void __attribute__((visibility("default")))
+concatenate_adjacency_list(const unsigned int* d_adjacency,
+                           const unsigned int* d_nneigh,
+                           const unsigned int* d_nneigh_scan,
+                           const unsigned int maxn,
+                           uint2* d_adjacency_out,
+                           const GPUPartition& gpu_partition,
+                           const unsigned int block_size,
+                           const unsigned int group_size)
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
@@ -236,18 +237,18 @@ void concatenate_adjacency_list(const unsigned int* d_adjacency,
         }
     }
 
-void flip_clusters(Scalar4* d_postype,
-                   Scalar4* d_orientation,
-                   int3* d_image,
-                   const Scalar4* d_postype_backup,
-                   const Scalar4* d_orientation_backup,
-                   const int3* d_image_backup,
-                   const int* d_components,
-                   float flip_probability,
-                   uint16_t seed,
-                   uint64_t timestep,
-                   const GPUPartition& gpu_partition,
-                   const unsigned int block_size)
+void __attribute__((visibility("default"))) flip_clusters(Scalar4* d_postype,
+                                                          Scalar4* d_orientation,
+                                                          int3* d_image,
+                                                          const Scalar4* d_postype_backup,
+                                                          const Scalar4* d_orientation_backup,
+                                                          const int3* d_image_backup,
+                                                          const int* d_components,
+                                                          float flip_probability,
+                                                          uint16_t seed,
+                                                          uint64_t timestep,
+                                                          const GPUPartition& gpu_partition,
+                                                          const unsigned int block_size)
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;

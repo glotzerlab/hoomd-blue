@@ -1,7 +1,14 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement Python interface for a ParticleFilter updater."""
+"""Implement Python interface for a ParticleFilter updater.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    filter1 = hoomd.filter.All()
+    filter2 = hoomd.filter.All()
+"""
 
 import copy
 
@@ -36,6 +43,12 @@ class _GroupConverter:
 class FilterUpdater(hoomd.operation.Updater):
     """Update sets of particles associated with a filter.
 
+    Args:
+        trigger (hoomd.trigger.trigger_like): A trigger to use for determining
+            when to update particles associated with a filter.
+        filters (list[hoomd.filter.filter_like]): A list of
+            `hoomd.filter.filter_like` objects to update.
+
     `hoomd.Simulation` caches the particles selected by
     `hoomd.filter.filter_like` objects to avoid the cost of re-running the
     filter on every time step. The particles selected by a filter will remain
@@ -53,15 +66,13 @@ class FilterUpdater(hoomd.operation.Updater):
         Some actions automatically recompute all filter particles such as adding
         or removing particles to the `hoomd.Simulation.state`.
 
-    Args:
-        trigger (hoomd.trigger.trigger_like): A trigger to use for determining
-            when to update particles associated with a filter.
-        filters (list[hoomd.filter.filter_like]): A list of
-            `hoomd.filter.filter_like` objects to update.
+    .. rubric:: Example:
 
-    Attributes:
-        trigger (hoomd.trigger.Trigger):
-            The trigger associated with the updater.
+    .. code-block:: python
+
+        filter_updater = hoomd.update.FilterUpdater(
+            trigger=hoomd.trigger.Periodic(1_000),
+            filters=[filter1, filter2])
     """
 
     def __init__(self, trigger, filters):
@@ -75,7 +86,14 @@ class FilterUpdater(hoomd.operation.Updater):
     @property
     def filters(self):
         """list[hoomd.filter.filter_like]: filters to update select \
-                particles."""
+                particles.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            filter_updater.filters = [filter1, filter2]
+        """
         return self._filters
 
     @filters.setter

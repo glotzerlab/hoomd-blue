@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -24,12 +24,13 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     {
     public:
     //! Constructor
-    SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+    SRDCollisionMethodGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int cur_timestep,
                           unsigned int period,
                           int phase,
-                          uint16_t seed,
-                          std::shared_ptr<mpcd::CellThermoCompute> thermo);
+                          uint16_t seed);
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
     protected:
     //! Randomly draw cell rotation vectors

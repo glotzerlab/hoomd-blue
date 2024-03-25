@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellListGPU.cc
@@ -60,7 +60,9 @@ void CellListGPU::computeCellList()
                                               access_location::device,
                                               access_mode::overwrite);
         ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
+        ArrayHandle<uint2> d_type_body(m_type_body,
+                                       access_location::device,
+                                       access_mode::overwrite);
         ArrayHandle<Scalar4> d_cell_orientation(m_orientation,
                                                 access_location::device,
                                                 access_mode::overwrite);
@@ -75,9 +77,9 @@ void CellListGPU::computeCellList()
         ArrayHandle<Scalar4> d_xyzf_scratch(m_xyzf_scratch,
                                             access_location::device,
                                             access_mode::overwrite);
-        ArrayHandle<Scalar4> d_tdb_scratch(m_tdb_scratch,
-                                           access_location::device,
-                                           access_mode::overwrite);
+        ArrayHandle<uint2> d_type_body_scratch(m_type_body_scratch,
+                                               access_location::device,
+                                               access_mode::overwrite);
         ArrayHandle<Scalar4> d_cell_orientation_scratch(m_orientation_scratch,
                                                         access_location::device,
                                                         access_mode::overwrite);
@@ -118,7 +120,7 @@ void CellListGPU::computeCellList()
         gpu_compute_cell_list(
             (ngpu == 1 && !m_per_device) ? d_cell_size.data : d_cell_size_scratch.data,
             (ngpu == 1 && !m_per_device) ? d_xyzf.data : d_xyzf_scratch.data,
-            (ngpu == 1 && !m_per_device) ? d_tdb.data : d_tdb_scratch.data,
+            (ngpu == 1 && !m_per_device) ? d_type_body.data : d_type_body_scratch.data,
             (ngpu == 1 && !m_per_device) ? d_cell_orientation.data
                                          : d_cell_orientation_scratch.data,
             (ngpu == 1 && !m_per_device) ? d_cell_idx.data : d_cell_idx_scratch.data,
@@ -152,7 +154,9 @@ void CellListGPU::computeCellList()
                                               access_location::device,
                                               access_mode::overwrite);
         ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
+        ArrayHandle<uint2> d_type_body(m_type_body,
+                                       access_location::device,
+                                       access_mode::overwrite);
         ArrayHandle<Scalar4> d_cell_orientation(m_orientation,
                                                 access_location::device,
                                                 access_mode::overwrite);
@@ -167,9 +171,9 @@ void CellListGPU::computeCellList()
         ArrayHandle<Scalar4> d_xyzf_scratch(m_xyzf_scratch,
                                             access_location::device,
                                             access_mode::overwrite);
-        ArrayHandle<Scalar4> d_tdb_scratch(m_tdb_scratch,
-                                           access_location::device,
-                                           access_mode::overwrite);
+        ArrayHandle<uint2> d_type_body_scratch(m_type_body_scratch,
+                                               access_location::device,
+                                               access_mode::overwrite);
         ArrayHandle<Scalar4> d_cell_orientation_scratch(m_orientation_scratch,
                                                         access_location::device,
                                                         access_mode::overwrite);
@@ -190,8 +194,8 @@ void CellListGPU::computeCellList()
                                                  m_xyzf.getNumElements());
             ScopedAllocation<Scalar4> d_cell_orientation_new(m_exec_conf->getCachedAllocator(),
                                                              m_orientation.getNumElements());
-            ScopedAllocation<Scalar4> d_tdb_new(m_exec_conf->getCachedAllocator(),
-                                                m_tdb.getNumElements());
+            ScopedAllocation<uint2> d_type_body_new(m_exec_conf->getCachedAllocator(),
+                                                    m_type_body.getNumElements());
 
             gpu_sort_cell_list(
                 (ngpu == 1 && !m_per_device)
@@ -201,10 +205,10 @@ void CellListGPU::computeCellList()
                     ? d_xyzf.data
                     : d_xyzf_scratch.data + i * m_cell_list_indexer.getNumElements(),
                 d_xyzf_new.data,
-                ((ngpu == 1 && !m_per_device) || !d_tdb.data)
-                    ? d_tdb.data
-                    : d_tdb_scratch.data + i * m_cell_list_indexer.getNumElements(),
-                d_tdb_new.data,
+                ((ngpu == 1 && !m_per_device) || !d_type_body.data)
+                    ? d_type_body.data
+                    : d_type_body_scratch.data + i * m_cell_list_indexer.getNumElements(),
+                d_type_body_new.data,
                 ((ngpu == 1 && !m_per_device) || !d_cell_orientation.data)
                     ? d_cell_orientation.data
                     : d_cell_orientation_scratch.data + i * m_cell_list_indexer.getNumElements(),
@@ -234,7 +238,7 @@ void CellListGPU::combineCellLists()
                                           access_location::device,
                                           access_mode::overwrite);
     ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
+    ArrayHandle<uint2> d_type_body(m_type_body, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_cell_orientation(m_orientation,
                                             access_location::device,
                                             access_mode::overwrite);
@@ -247,9 +251,9 @@ void CellListGPU::combineCellLists()
     ArrayHandle<Scalar4> d_xyzf_scratch(m_xyzf_scratch,
                                         access_location::device,
                                         access_mode::overwrite);
-    ArrayHandle<Scalar4> d_tdb_scratch(m_tdb_scratch,
-                                       access_location::device,
-                                       access_mode::overwrite);
+    ArrayHandle<uint2> d_type_body_scratch(m_type_body_scratch,
+                                           access_location::device,
+                                           access_mode::overwrite);
     ArrayHandle<Scalar4> d_cell_orientation_scratch(m_orientation_scratch,
                                                     access_location::device,
                                                     access_mode::overwrite);
@@ -272,8 +276,8 @@ void CellListGPU::combineCellLists()
                            d_cell_idx.data,
                            d_xyzf_scratch.data,
                            d_xyzf.data,
-                           d_tdb_scratch.data,
-                           d_tdb.data,
+                           d_type_body_scratch.data,
+                           d_type_body.data,
                            d_cell_orientation_scratch.data,
                            d_cell_orientation.data,
                            m_cell_list_indexer,
@@ -329,17 +333,18 @@ void CellListGPU::initializeMemory()
         m_xyzf_scratch.swap(xyzf_scratch);
         }
 
-    if (m_compute_tdb)
+    if (m_compute_type_body)
         {
-        GlobalArray<Scalar4> tdb_scratch(m_cell_list_indexer.getNumElements() * ngpu, m_exec_conf);
-        m_tdb_scratch.swap(tdb_scratch);
-        TAG_ALLOCATION(m_tdb_scratch);
+        GlobalArray<uint2> type_body_scratch(m_cell_list_indexer.getNumElements() * ngpu,
+                                             m_exec_conf);
+        m_type_body_scratch.swap(type_body_scratch);
+        TAG_ALLOCATION(m_type_body_scratch);
         }
     else
         {
         // array is no longer needed, discard it
-        GlobalArray<Scalar4> tdb_scratch;
-        m_tdb_scratch.swap(tdb_scratch);
+        GlobalArray<uint2> type_body_scratch;
+        m_type_body_scratch.swap(type_body_scratch);
         }
 
     if (m_compute_orientation)
@@ -403,9 +408,10 @@ void CellListGPU::initializeMemory()
                               cudaMemAdviseSetPreferredLocation,
                               gpu_map[idev]);
 
-            if (!m_tdb_scratch.isNull())
-                cudaMemAdvise(m_tdb_scratch.get() + idev * m_cell_list_indexer.getNumElements(),
-                              m_cell_list_indexer.getNumElements() * sizeof(Scalar4),
+            if (!m_type_body_scratch.isNull())
+                cudaMemAdvise(m_type_body_scratch.get()
+                                  + idev * m_cell_list_indexer.getNumElements(),
+                              m_cell_list_indexer.getNumElements() * sizeof(uint2),
                               cudaMemAdviseSetPreferredLocation,
                               gpu_map[idev]);
 
@@ -433,10 +439,10 @@ void CellListGPU::initializeMemory()
                                      m_cell_list_indexer.getNumElements() * sizeof(Scalar4),
                                      gpu_map[idev]);
 
-            if (!m_tdb_scratch.isNull())
-                cudaMemPrefetchAsync(m_tdb_scratch.get()
+            if (!m_type_body_scratch.isNull())
+                cudaMemPrefetchAsync(m_type_body_scratch.get()
                                          + idev * m_cell_list_indexer.getNumElements(),
-                                     m_cell_list_indexer.getNumElements() * sizeof(Scalar4),
+                                     m_cell_list_indexer.getNumElements() * sizeof(uint2),
                                      gpu_map[idev]);
 
             if (!m_orientation_scratch.isNull())

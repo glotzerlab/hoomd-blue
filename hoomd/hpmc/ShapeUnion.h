@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -36,7 +36,7 @@ namespace detail
 struct union_depletion_storage
     {
     //! The inclusive prefix sum over previous weights of overlapping node pairs
-    OverlapReal accumulated_weight;
+    ShortReal accumulated_weight;
 
     //! The node in tree a
     unsigned int cur_node_a;
@@ -149,8 +149,8 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
         N = (unsigned int)pybind11::len(shapes);
-        mpos = ManagedArray<vec3<OverlapReal>>(N, managed);
-        morientation = ManagedArray<quat<OverlapReal>>(N, managed);
+        mpos = ManagedArray<vec3<ShortReal>>(N, managed);
+        morientation = ManagedArray<quat<ShortReal>>(N, managed);
         mparams = ManagedArray<typename Shape::param_type>(N, managed);
         moverlap = ManagedArray<unsigned int>(N, managed);
 
@@ -190,14 +190,14 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
 
         hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
 
-        std::vector<std::vector<vec3<OverlapReal>>> internal_coordinates;
+        std::vector<std::vector<vec3<ShortReal>>> internal_coordinates;
 
         // extract member parameters, positions, and orientations and compute the radius along the
         // way
-        diameter = OverlapReal(0.0);
+        diameter = ShortReal(0.0);
 
         // compute a tight fitting AABB in the body frame
-        hoomd::detail::AABB local_aabb(vec3<OverlapReal>(0, 0, 0), OverlapReal(0.0));
+        hoomd::detail::AABB local_aabb(vec3<ShortReal>(0, 0, 0), ShortReal(0.0));
 
         for (unsigned int i = 0; i < N; i++)
             {
@@ -209,9 +209,9 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
                                          + pybind11::str(position).cast<std::string>() + " in "
                                          + pybind11::str(positions).cast<std::string>());
 
-            vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(position[0]),
-                                                      pybind11::cast<OverlapReal>(position[1]),
-                                                      pybind11::cast<OverlapReal>(position[2]));
+            vec3<ShortReal> pos = vec3<ShortReal>(pybind11::cast<ShortReal>(position[0]),
+                                                  pybind11::cast<ShortReal>(position[1]),
+                                                  pybind11::cast<ShortReal>(position[2]));
 
             mparams[i] = param;
             mpos[i] = pos;
@@ -219,16 +219,16 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
             // set default orientation of (1,0,0,0) when orienations is None
             if (orientations.is_none())
                 {
-                morientation[i] = quat<OverlapReal>(1, vec3<OverlapReal>(0, 0, 0));
+                morientation[i] = quat<ShortReal>(1, vec3<ShortReal>(0, 0, 0));
                 }
             else
                 {
                 pybind11::list orientation_l = orientation_list[i];
-                OverlapReal s = pybind11::cast<OverlapReal>(orientation_l[0]);
-                OverlapReal x = pybind11::cast<OverlapReal>(orientation_l[1]);
-                OverlapReal y = pybind11::cast<OverlapReal>(orientation_l[2]);
-                OverlapReal z = pybind11::cast<OverlapReal>(orientation_l[3]);
-                morientation[i] = quat<OverlapReal>(s, vec3<OverlapReal>(x, y, z));
+                ShortReal s = pybind11::cast<ShortReal>(orientation_l[0]);
+                ShortReal x = pybind11::cast<ShortReal>(orientation_l[1]);
+                ShortReal y = pybind11::cast<ShortReal>(orientation_l[2]);
+                ShortReal z = pybind11::cast<ShortReal>(orientation_l[3]);
+                morientation[i] = quat<ShortReal>(s, vec3<ShortReal>(x, y, z));
                 }
 
             // set default overlap of 1 when overlaps is None
@@ -243,7 +243,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
 
             Shape dummy(morientation[i], param);
             Scalar d = sqrt(dot(pos, pos));
-            diameter = max(diameter, OverlapReal(2 * d + dummy.getCircumsphereDiameter()));
+            diameter = max(diameter, ShortReal(2 * d + dummy.getCircumsphereDiameter()));
 
             if (dummy.hasOrientation())
                 {
@@ -253,7 +253,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
             else
                 {
                 // construct bounding sphere
-                obbs[i] = detail::OBB(pos, OverlapReal(0.5) * dummy.getCircumsphereDiameter());
+                obbs[i] = detail::OBB(pos, ShortReal(0.5) * dummy.getCircumsphereDiameter());
                 }
 
             obbs[i].mask = moverlap[i];
@@ -318,10 +318,10 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
     GPUTree tree;
 
     /// Position vectors of member shapes
-    ManagedArray<vec3<OverlapReal>> mpos;
+    ManagedArray<vec3<ShortReal>> mpos;
 
     /// Orientation of member shapes
-    ManagedArray<quat<OverlapReal>> morientation;
+    ManagedArray<quat<ShortReal>> morientation;
 
     /// Parameters of member shapes
     ManagedArray<typename Shape::param_type> mparams;
@@ -330,7 +330,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
     ManagedArray<unsigned int> moverlap;
 
     /// Precalculated overall circumsphere diameter
-    OverlapReal diameter;
+    ShortReal diameter;
 
     /// Number of member shapes
     unsigned int N;
@@ -339,10 +339,10 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
     unsigned int ignore;
 
     /// Lower corner of local AABB
-    vec3<OverlapReal> lower;
+    vec3<ShortReal> lower;
 
     /// Upper corner of local AABB
-    vec3<OverlapReal> upper;
+    vec3<ShortReal> upper;
     } __attribute__((aligned(32)));
 
     } // end namespace detail
@@ -396,17 +396,17 @@ template<class Shape> struct ShapeUnion
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return members.diameter;
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     /// Return the bounding box of the shape in world coordinates
@@ -430,7 +430,7 @@ template<class Shape> struct ShapeUnion
             }
         else
             {
-            return detail::OBB(pos, OverlapReal(0.5) * members.diameter);
+            return detail::OBB(pos, ShortReal(0.5) * members.diameter);
             }
         }
 
@@ -450,7 +450,7 @@ template<class Shape> struct ShapeUnion
     };
 
 template<class Shape>
-DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
+DEVICE inline bool test_narrow_phase_overlap(vec3<ShortReal> dr,
                                              const ShapeUnion<Shape>& a,
                                              const ShapeUnion<Shape>& b,
                                              unsigned int cur_node_a,
@@ -460,7 +460,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
 
-    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)), vec3<OverlapReal>(dr));
+    vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(b.orientation)), vec3<ShortReal>(dr));
 
     // loop through leaf particles of cur_node_a
     // parallel loop over N^2 interacting particle pairs
@@ -495,12 +495,12 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             const mparam_type& params_i = a.members.mparams[ishape];
             Shape shape_i(quat<Scalar>(), params_i);
             if (shape_i.hasOrientation())
-                shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                      * quat<OverlapReal>(a.orientation)
+                shape_i.orientation = conj(quat<ShortReal>(b.orientation))
+                                      * quat<ShortReal>(a.orientation)
                                       * a.members.morientation[ishape];
 
-            vec3<OverlapReal> pos_i(
-                rotate(conj(quat<OverlapReal>(b.orientation)) * quat<OverlapReal>(a.orientation),
+            vec3<ShortReal> pos_i(
+                rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
                        a.members.mpos[ishape])
                 - r_ab);
             unsigned int overlap_i = a.members.moverlap[ishape];
@@ -514,7 +514,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
             if (overlap_i & overlap_j)
                 {
-                vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+                vec3<ShortReal> r_ij = b.members.mpos[jshape] - pos_i;
                 if (test_overlap(r_ij, shape_i, shape_j, err))
                     {
                     return true;
@@ -540,8 +540,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
@@ -573,15 +573,15 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     }
 
 template<class Shape>
-DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> dr,
+DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<ShortReal> dr,
                                                              const ShapeUnion<Shape>& a,
                                                              const ShapeUnion<Shape>& b,
                                                              unsigned int cur_node_a,
                                                              unsigned int cur_node_b,
-                                                             OverlapReal r,
+                                                             ShortReal r,
                                                              unsigned int dim)
     {
-    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)), vec3<OverlapReal>(dr));
+    vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(b.orientation)), vec3<ShortReal>(dr));
 
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
@@ -597,12 +597,11 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> d
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                  * quat<OverlapReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+            shape_i.orientation = conj(quat<ShortReal>(b.orientation))
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
-        vec3<OverlapReal> pos_i(
-            rotate(conj(quat<OverlapReal>(b.orientation)) * quat<OverlapReal>(a.orientation),
+        vec3<ShortReal> pos_i(
+            rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
                    a.members.mpos[ishape])
             - r_ab);
 
@@ -616,7 +615,7 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> d
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
 
-            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+            vec3<ShortReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i,
                                       shape_j,
                                       r_ij,
@@ -644,7 +643,7 @@ template<class Shape>
 DEVICE inline bool excludedVolumeOverlap(const ShapeUnion<Shape>& a,
                                          const ShapeUnion<Shape>& b,
                                          const vec3<Scalar>& r_ab,
-                                         OverlapReal r,
+                                         ShortReal r,
                                          unsigned int dim,
                                          const detail::SamplingMethod::enumAccurate)
     {
@@ -656,8 +655,8 @@ DEVICE inline bool excludedVolumeOverlap(const ShapeUnion<Shape>& a,
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
@@ -723,7 +722,7 @@ DEVICE inline unsigned int
 allocateDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
                                   const ShapeUnion<Shape>& b,
                                   const vec3<Scalar>& r_ab,
-                                  OverlapReal r,
+                                  ShortReal r,
                                   unsigned int dim,
                                   const detail::SamplingMethod::enumAccurate)
     {
@@ -734,8 +733,8 @@ allocateDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
@@ -792,21 +791,21 @@ allocateDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
     }
 
 template<class Shape>
-DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
-                                                       const ShapeUnion<Shape>& a,
-                                                       const ShapeUnion<Shape>& b,
-                                                       unsigned int cur_node_a,
-                                                       unsigned int cur_node_b,
-                                                       OverlapReal r,
-                                                       unsigned int dim)
+DEVICE inline ShortReal sampling_volume_narrow_phase(vec3<ShortReal> dr,
+                                                     const ShapeUnion<Shape>& a,
+                                                     const ShapeUnion<Shape>& b,
+                                                     unsigned int cur_node_a,
+                                                     unsigned int cur_node_b,
+                                                     ShortReal r,
+                                                     unsigned int dim)
     {
-    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)), vec3<OverlapReal>(dr));
+    vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(b.orientation)), vec3<ShortReal>(dr));
 
     // loop through shape of cur_node_a
     unsigned int na = a.members.tree.getNumParticles(cur_node_a);
     unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
 
-    OverlapReal V(0.0);
+    ShortReal V(0.0);
 
     for (unsigned int i = 0; i < na; i++)
         {
@@ -815,12 +814,11 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
         const auto& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                  * quat<OverlapReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+            shape_i.orientation = conj(quat<ShortReal>(b.orientation))
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
-        vec3<OverlapReal> pos_i(
-            rotate(conj(quat<OverlapReal>(b.orientation)) * quat<OverlapReal>(a.orientation),
+        vec3<ShortReal> pos_i(
+            rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
                    a.members.mpos[ishape])
             - r_ab);
 
@@ -834,7 +832,7 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
 
-            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+            vec3<ShortReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i,
                                       shape_j,
                                       r_ij,
@@ -873,10 +871,10 @@ DEVICE inline unsigned int
 initializeDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
                                     const ShapeUnion<Shape>& b,
                                     const vec3<Scalar>& r_ab,
-                                    OverlapReal r,
+                                    ShortReal r,
                                     unsigned int dim,
                                     detail::union_depletion_storage* storage,
-                                    const OverlapReal V_sample,
+                                    const ShortReal V_sample,
                                     const detail::SamplingMethod::enumAccurate)
     {
     const detail::GPUTree& tree_a = a.members.tree;
@@ -886,8 +884,8 @@ initializeDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
@@ -898,7 +896,7 @@ initializeDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
     unsigned int query_node_b = UINT_MAX;
 
     unsigned int nelem = 0;
-    OverlapReal V_sum(0.0);
+    ShortReal V_sum(0.0);
 
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
@@ -961,12 +959,12 @@ initializeDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
     returns the volume of the intersection
  */
 template<class Shape>
-DEVICE inline OverlapReal getSamplingVolumeIntersection(const ShapeUnion<Shape>& a,
-                                                        const ShapeUnion<Shape>& b,
-                                                        const vec3<Scalar>& r_ab,
-                                                        OverlapReal r,
-                                                        unsigned int dim,
-                                                        const detail::SamplingMethod::enumAccurate)
+DEVICE inline ShortReal getSamplingVolumeIntersection(const ShapeUnion<Shape>& a,
+                                                      const ShapeUnion<Shape>& b,
+                                                      const vec3<Scalar>& r_ab,
+                                                      ShortReal r,
+                                                      unsigned int dim,
+                                                      const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
@@ -976,8 +974,8 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(const ShapeUnion<Shape>&
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
@@ -987,7 +985,7 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(const ShapeUnion<Shape>&
     unsigned int query_node_a = UINT_MAX;
     unsigned int query_node_b = UINT_MAX;
 
-    OverlapReal V_sample(0.0);
+    ShortReal V_sample(0.0);
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs
@@ -1026,19 +1024,19 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(const ShapeUnion<Shape>&
 
 template<class RNG, class Shape>
 DEVICE inline bool sample_narrow_phase(RNG& rng,
-                                       vec3<OverlapReal> dr,
+                                       vec3<ShortReal> dr,
                                        const ShapeUnion<Shape>& a,
                                        const ShapeUnion<Shape>& b,
                                        unsigned int cur_node_a,
                                        unsigned int cur_node_b,
-                                       OverlapReal r,
-                                       vec3<OverlapReal>& p,
+                                       ShortReal r,
+                                       vec3<ShortReal>& p,
                                        unsigned int dim)
     {
-    OverlapReal V_sample = sampling_volume_narrow_phase(dr, a, b, cur_node_a, cur_node_b, r, dim);
-    OverlapReal u = hoomd::UniformDistribution<OverlapReal>(OverlapReal(0.0), V_sample)(rng);
+    ShortReal V_sample = sampling_volume_narrow_phase(dr, a, b, cur_node_a, cur_node_b, r, dim);
+    ShortReal u = hoomd::UniformDistribution<ShortReal>(ShortReal(0.0), V_sample)(rng);
 
-    OverlapReal V_sum(0.0);
+    ShortReal V_sum(0.0);
 
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
@@ -1052,9 +1050,9 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
     bool done = false;
     unsigned int i, j;
 
-    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)), vec3<OverlapReal>(dr));
+    vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(b.orientation)), vec3<ShortReal>(dr));
 
-    OverlapReal V;
+    ShortReal V;
     for (i = 0; i < na; i++)
         {
         ishape = a.members.tree.getParticleByNode(cur_node_a, i);
@@ -1062,12 +1060,11 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                  * quat<OverlapReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+            shape_i.orientation = conj(quat<ShortReal>(b.orientation))
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
-        vec3<OverlapReal> pos_i(
-            rotate(conj(quat<OverlapReal>(b.orientation)) * quat<OverlapReal>(a.orientation),
+        vec3<ShortReal> pos_i(
+            rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
                    a.members.mpos[ishape])
             - r_ab);
 
@@ -1081,7 +1078,7 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
 
-            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+            vec3<ShortReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i,
                                       shape_j,
                                       r_ij,
@@ -1117,9 +1114,8 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
                   a.members.mparams[ishape]);
     Shape shape_j(b.orientation * quat<Scalar>(b.members.morientation[jshape]),
                   b.members.mparams[jshape]);
-    vec3<OverlapReal> pos_i = rotate(quat<OverlapReal>(a.orientation), a.members.mpos[ishape]);
-    vec3<Scalar> r_ij
-        = rotate(quat<OverlapReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
+    vec3<ShortReal> pos_i = rotate(quat<ShortReal>(a.orientation), a.members.mpos[ishape]);
+    vec3<Scalar> r_ij = rotate(quat<ShortReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
 
     // set up temp storage on stack / in local memory
     unsigned int ntemp = allocateDepletionTemporaryStorage(shape_i,
@@ -1164,12 +1160,11 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                  * quat<OverlapReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+            shape_i.orientation = conj(quat<ShortReal>(b.orientation))
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
-        vec3<OverlapReal> pos_i(
-            rotate(conj(quat<OverlapReal>(b.orientation)) * quat<OverlapReal>(a.orientation),
+        vec3<ShortReal> pos_i(
+            rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
                    a.members.mpos[ishape])
             - r_ab);
 
@@ -1183,7 +1178,7 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
 
-            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+            vec3<ShortReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i,
                                       shape_j,
                                       r_ij,
@@ -1197,11 +1192,11 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
                 Shape shape_j_world(b.orientation * quat<Scalar>(b.members.morientation[jshape]),
                                     params_j);
 
-                vec3<OverlapReal> pos_i
-                    = rotate(quat<OverlapReal>(a.orientation), a.members.mpos[ishape]);
-                vec3<OverlapReal> r_ij_world
-                    = rotate(quat<OverlapReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
-                vec3<OverlapReal> q = p - pos_i;
+                vec3<ShortReal> pos_i
+                    = rotate(quat<ShortReal>(a.orientation), a.members.mpos[ishape]);
+                vec3<ShortReal> r_ij_world
+                    = rotate(quat<ShortReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
+                vec3<ShortReal> q = p - pos_i;
 
                 if (isPointInExcludedVolumeIntersection(shape_i_world,
                                                         shape_j_world,
@@ -1218,16 +1213,16 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
     }
 
 template<class Shape>
-DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
+DEVICE inline bool pt_in_intersection_narrow_phase(vec3<ShortReal> dr,
                                                    const ShapeUnion<Shape>& a,
                                                    const ShapeUnion<Shape>& b,
                                                    unsigned int cur_node_a,
                                                    unsigned int cur_node_b,
-                                                   OverlapReal r,
-                                                   const vec3<OverlapReal>& p,
+                                                   ShortReal r,
+                                                   const vec3<ShortReal>& p,
                                                    unsigned int dim)
     {
-    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)), vec3<OverlapReal>(dr));
+    vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(b.orientation)), vec3<ShortReal>(dr));
 
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
@@ -1243,12 +1238,11 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                  * quat<OverlapReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+            shape_i.orientation = conj(quat<ShortReal>(b.orientation))
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
-        vec3<OverlapReal> pos_i(
-            rotate(conj(quat<OverlapReal>(b.orientation)) * quat<OverlapReal>(a.orientation),
+        vec3<ShortReal> pos_i(
+            rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
                    a.members.mpos[ishape])
             - r_ab);
 
@@ -1262,7 +1256,7 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
 
-            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+            vec3<ShortReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i,
                                       shape_j,
                                       r_ij,
@@ -1276,11 +1270,11 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
                 Shape shape_j_world(b.orientation * quat<Scalar>(b.members.morientation[jshape]),
                                     params_j);
 
-                vec3<OverlapReal> pos_i
-                    = rotate(quat<OverlapReal>(a.orientation), a.members.mpos[ishape]);
-                vec3<OverlapReal> r_ij_world
-                    = rotate(quat<OverlapReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
-                vec3<OverlapReal> q = p - pos_i;
+                vec3<ShortReal> pos_i
+                    = rotate(quat<ShortReal>(a.orientation), a.members.mpos[ishape]);
+                vec3<ShortReal> r_ij_world
+                    = rotate(quat<ShortReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
+                vec3<ShortReal> q = p - pos_i;
 
                 if (isPointInExcludedVolumeIntersection(shape_i_world,
                                                         shape_j_world,
@@ -1318,8 +1312,8 @@ sampleInExcludedVolumeIntersection(RNG& rng,
                                    const ShapeUnion<Shape>& a,
                                    const ShapeUnion<Shape>& b,
                                    const vec3<Scalar>& r_ab,
-                                   OverlapReal r,
-                                   vec3<OverlapReal>& p,
+                                   ShortReal r,
+                                   vec3<ShortReal>& p,
                                    unsigned int dim,
                                    unsigned int storage_sz,
                                    const detail::union_depletion_storage* storage,
@@ -1329,7 +1323,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
 
-    OverlapReal u = hoomd::UniformDistribution<OverlapReal>()(rng);
+    ShortReal u = hoomd::UniformDistribution<ShortReal>()(rng);
     bool found = false;
     unsigned int query_node_a;
     unsigned int query_node_b;
@@ -1366,8 +1360,8 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         return false;
 
     // test if point is in other volumes lying 'below' the current one
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
@@ -1436,8 +1430,8 @@ template<class Shape>
 DEVICE inline bool isPointInExcludedVolumeIntersection(const ShapeUnion<Shape>& a,
                                                        const ShapeUnion<Shape>& b,
                                                        const vec3<Scalar>& r_ab,
-                                                       OverlapReal r,
-                                                       const vec3<OverlapReal>& p,
+                                                       ShortReal r,
+                                                       const vec3<ShortReal>& p,
                                                        unsigned int dim,
                                                        const detail::SamplingMethod::enumAccurate)
     {
@@ -1449,8 +1443,8 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(const ShapeUnion<Shape>& 
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);

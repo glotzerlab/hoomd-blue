@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Communicator.h"
@@ -21,22 +21,19 @@ template<class F> void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(1, 1, 1);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(123, 456, 789);
+
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
-
-        mpcd_snap->position[0] = vec3<Scalar>(1, 1, 1);
-        mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    auto pdata = mpcd_sys->getParticleData();
+    auto pdata = sysdef->getMPCDParticleData();
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 
@@ -46,7 +43,8 @@ template<class F> void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration
                                                                    mpcd::detail::boundary::no_slip);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::SlitGeometryFiller> filler
-        = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, slit);
+        = std::make_shared<F>(sysdef, 2.0, 0, kT, slit);
+    filler->setCellList(cl);
 
     /*
      * Test basic filling up for this cell list

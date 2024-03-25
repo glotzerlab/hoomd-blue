@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Devices.
@@ -12,17 +12,89 @@ User scripts may instantiate multiple `Device` objects and use each with a
 different `hoomd.Simulation` object. One `Device` object may also be shared
 with many `hoomd.Simulation` objects.
 
+.. rubric:: Examples:
+
+.. code-block:: python
+
+    device = hoomd.device.CPU()
+
+.. skip: next if(gpu_not_available)
+
+.. code-block:: python
+
+    device = hoomd.device.GPU()
+
 Tip:
     Reuse `Device` objects when possible. There is a non-negligible overhead
     to creating each `Device`, especially on the GPU.
 
 See Also:
     `hoomd.Simulation`
+
+.. invisible-code-block: python
+
+    # Rename pytest's tmp_path fixture for clarity in the documentation.
+    path = tmp_path
 """
 
 import contextlib
 import hoomd
 from hoomd import _hoomd
+import warnings
+
+
+class NoticeFile:
+    """A file-like object that writes to a `Device` notice stream.
+
+    Args:
+        device (`Device`): The `Device` object.
+        level (int): Message notice level. Default value is 1.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        notice_file = hoomd.device.NoticeFile(device=device)
+
+    Note:
+        Use this in combination with `Device.message_filename` to combine notice
+        messages with output from code that expects file-like objects (such as
+        `hoomd.write.Table`).
+    """
+
+    def __init__(self, device, level=1):
+        self._msg = device._cpp_msg
+        self._buff = ""
+        self._level = level
+
+    def write(self, message):
+        """Writes data to the associated devices notice stream.
+
+        Args:
+            message (str): Message to write.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            notice_file.write('Message\\n')
+        """
+        self._buff += message
+
+        lines = self._buff.split("\n")
+
+        for line in lines[:-1]:
+            self._msg.notice(self._level, line + "\n")
+
+        self._buff = lines[-1]
+
+    def writable(self):
+        """Provide file-like API call writable."""
+        return True
+
+    def flush(self):
+        """Flush the output."""
+        pass
 
 
 class Device:
@@ -78,6 +150,12 @@ class Device:
         default level of 2 shows messages that the developers expect most users
         will want to see. Set the level lower to reduce verbosity or as high as
         10 to get extremely verbose debugging messages.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            device.notice_level = 4
         """
         return self._cpp_msg.getNoticeLevel()
 
@@ -99,18 +177,30 @@ class Device:
         Set `message_filename` to `None` to use the system's ``stdout`` and
         ``stderr``.
 
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            device.message_filename = str(path / 'messages.log')
+
+        .. code-block:: python
+
+            device.message_filename = None
+
         Note:
             All MPI ranks within a given partition must open the same file.
             To ensure this, the given file name on rank 0 is broadcast to the
             other ranks. Different partitions may open separate files. For
             example:
 
-            .. code::
+            .. skip: next if(device.communicator.num_ranks != 2)
+
+            .. code-block:: python
 
                 communicator = hoomd.communicator.Communicator(
                     ranks_per_partition=2)
                 filename = f'messages.{communicator.partition}'
-                device = hoomd.device.GPU(communicator=communicator,
+                device = hoomd.device.CPU(communicator=communicator,
                                           message_filename=filename)
         """
         return self._message_filename
@@ -125,8 +215,22 @@ class Device:
 
     @property
     def devices(self):
-        """list[str]: Descriptions of the active hardware devices."""
+        """list[str]: Descriptions of the active hardware devices.
+
+        .. deprecated:: 4.5.0
+
+            Use `device`.
+        """
+        warnings.warn("devices is deprecated, use device.",
+                      FutureWarning,
+                      stacklevel=2)
+
         return self._cpp_exec_conf.getActiveDevices()
+
+    @property
+    def device(self):
+        """str: Descriptions of the active hardware device."""
+        return self._cpp_exec_conf.getActiveDevices()[0]
 
     @property
     def num_cpu_threads(self):
@@ -154,6 +258,12 @@ class Device:
 
         Write the given message string to the output defined by
         `message_filename` on MPI rank 0 when `notice_level` >= ``level``.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            device.notice('Message')
 
         Hint:
             Use `notice` instead of `print` to write status messages and your
@@ -190,6 +300,10 @@ class GPU(Device):
         gpu_ids (list[int]): List of GPU ids to use. Set to `None` to let the
             driver auto-select a GPU.
 
+            .. deprecated:: 4.5.0
+
+                Use ``gpu_id``.
+
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
@@ -202,23 +316,26 @@ class GPU(Device):
 
         notice_level (int): Minimum level of messages to print.
 
+        gpu_id (int): GPU id to use. Set to `None` to let the driver auto-select
+            a GPU.
+
     Tip:
         Call `GPU.get_available_devices` to get a human readable list of
-        devices. ``gpu_ids = [0]`` will select the first device in this list,
-        ``[1]`` will select the second, and so on.
+        devices. ``gpu_id = 0`` will select the first device in this list,
+        ``1`` will select the second, and so on.
 
         The ordering of the devices is determined by the GPU driver and runtime.
 
     .. rubric:: Device auto-selection
 
-    When ``gpu_ids`` is `None`, HOOMD will ask the GPU driver to auto-select a
+    When ``gpu_id`` is `None`, HOOMD will ask the GPU driver to auto-select a
     GPU. In most cases, this will select device 0. When all devices are set to a
     compute exclusive mode, the driver will choose a free GPU.
 
     .. rubric:: MPI
 
     In MPI execution environments, create a `GPU` device on every rank. When
-    ``gpu_ids`` is left `None`, HOOMD will attempt to detect the MPI local rank
+    ``gpu_id`` is left `None`, HOOMD will attempt to detect the MPI local rank
     environment and choose an appropriate GPU with ``id = local_rank %
     num_capable_gpus``. Set `notice_level` to 3 to see status messages from this
     process. Override this auto-selection by providing appropriate device ids on
@@ -229,10 +346,22 @@ class GPU(Device):
     Specify a list of GPUs to ``gpu_ids`` to activate a single-process multi-GPU
     code path.
 
+    .. deprecated:: 4.5.0
+
+        Use MPI.
+
     Note:
         Not all features are optimized to use this code path, and it requires
         that all GPUs support concurrent managed memory access and have high
         bandwidth interconnects.
+
+    .. rubric:: Example:
+
+    .. skip: next if(gpu_not_available)
+
+    .. code-block:: python
+
+        gpu = hoomd.device.GPU()
 
     """
 
@@ -243,12 +372,23 @@ class GPU(Device):
         communicator=None,
         message_filename=None,
         notice_level=2,
+        gpu_id=None,
     ):
 
         super().__init__(communicator, notice_level, message_filename)
 
-        if gpu_ids is None:
+        if gpu_ids is not None:
+            warnings.warn("gpu_ids is deprecated, use gpu_id.",
+                          FutureWarning,
+                          stacklevel=2)
+
+        if gpu_ids is not None and gpu_id is not None:
+            raise ValueError("Set either gpu_id or gpu_ids, not both.")
+
+        if gpu_id is None:
             gpu_ids = []
+        else:
+            gpu_ids = [gpu_id]
 
         # convert None options to defaults
         self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
@@ -265,6 +405,14 @@ class GPU(Device):
         When `False` (the default), error messages from the GPU may not be
         noticed immediately. Set to `True` to increase the accuracy of the GPU
         error messages at the cost of significantly reduced performance.
+
+        .. rubric:: Example:
+
+        .. skip: next if(gpu_not_available)
+
+        .. code-block:: python
+
+            gpu.gpu_error_checking = True
         """
         return self._cpp_exec_conf.isCUDAErrorCheckingEnabled()
 
@@ -319,10 +467,15 @@ class GPU(Device):
         context manager and continue the simulation for a time. Profiling stops
         when the context manager closes.
 
-        Example::
+        .. rubric:: Example:
 
-            with device.enable_profiling():
-                sim.run(1000)
+        .. skip: next if(gpu_not_available)
+
+        .. code-block:: python
+
+            simulation = hoomd.util.make_example_simulation(device=gpu)
+            with gpu.enable_profiling():
+                simulation.run(1000)
         """
         try:
             self._cpp_exec_conf.hipProfileStart()
@@ -350,6 +503,12 @@ class CPU(Device):
     .. rubric:: MPI
 
     In MPI execution environments, create a `CPU` device on every rank.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        cpu = hoomd.device.CPU()
     """
 
     def __init__(
@@ -390,6 +549,12 @@ def auto_select(
 
     Returns:
         Instance of `GPU` if availabile, otherwise `CPU`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        device = hoomd.device.auto_select()
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -10,9 +10,7 @@
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -42,9 +40,7 @@ void export_sphinx(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
     export_HarmonicField<ShapeSphinx>(m, "ExternalFieldHarmonicSphinx");
-    export_ExternalFieldComposite<ShapeSphinx>(m, "ExternalFieldCompositeSphinx");
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
-    export_ExternalCallback<ShapeSphinx>(m, "ExternalCallbackSphinx");
 
 #ifdef ENABLE_HIP
 #ifdef ENABLE_SPHINX_GPU

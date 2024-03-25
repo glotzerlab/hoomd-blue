@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CellListGPU.cuh"
@@ -18,7 +18,7 @@ namespace hoomd
 //! Kernel that computes the cell list on the GPU
 /*! \param d_cell_size Number of particles in each cell
     \param d_xyzf Cell XYZF data array
-    \param d_tdb Cell TDB data array
+    \param d_type_body Cell TypeBody data array
     \param d_cell_orientation Particle orientation in cell list
     \param d_cell_idx Particle index in cell list
     \param d_conditions Conditions flags for detecting overflow and other error conditions
@@ -34,14 +34,14 @@ namespace hoomd
     \param flag_type Set to true to store type in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
-    \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    \param cli Indexer to index into \a d_xyzf and \a d_type_body
     \param ghost_width Width of ghost layer
 
     \note Optimized for Fermi
 */
 __global__ void gpu_compute_cell_list_kernel(unsigned int* d_cell_size,
                                              Scalar4* d_xyzf,
-                                             Scalar4* d_tdb,
+                                             uint2* d_type_body,
                                              Scalar4* d_cell_orientation,
                                              unsigned int* d_cell_idx,
                                              uint3* d_conditions,
@@ -73,14 +73,12 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int* d_cell_size,
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     Scalar flag = 0;
-    Scalar diameter = 0;
-    Scalar body = 0;
+    unsigned int body = 0;
     Scalar type = postype.w;
     Scalar4 orientation = make_scalar4(0, 0, 0, 0);
-    if (d_tdb != NULL)
+    if (d_type_body != NULL)
         {
-        diameter = d_diameter[idx];
-        body = __int_as_scalar(d_body[idx]);
+        body = d_body[idx];
         }
     if (d_cell_orientation != NULL)
         {
@@ -154,8 +152,8 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int* d_cell_size,
         unsigned int write_pos = cli(size, bin);
         if (d_xyzf != NULL)
             d_xyzf[write_pos] = make_scalar4(pos.x, pos.y, pos.z, flag);
-        if (d_tdb != NULL)
-            d_tdb[write_pos] = make_scalar4(type, diameter, body, 0);
+        if (d_type_body != NULL)
+            d_type_body[write_pos] = make_uint2(__scalar_as_int(type), body);
         if (d_cell_orientation != NULL)
             d_cell_orientation[write_pos] = orientation;
         if (d_cell_idx != NULL)
@@ -174,7 +172,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int* d_cell_size,
 
 void gpu_compute_cell_list(unsigned int* d_cell_size,
                            Scalar4* d_xyzf,
-                           Scalar4* d_tdb,
+                           uint2* d_type_body,
                            Scalar4* d_cell_orientation,
                            unsigned int* d_cell_idx,
                            uint3* d_conditions,
@@ -221,7 +219,7 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
                            0,
                            d_cell_size + idev * ci.getNumElements(),
                            d_xyzf ? d_xyzf + idev * cli.getNumElements() : 0,
-                           d_tdb ? d_tdb + idev * cli.getNumElements() : 0,
+                           d_type_body ? d_type_body + idev * cli.getNumElements() : 0,
                            d_cell_orientation ? d_cell_orientation + idev * cli.getNumElements()
                                               : 0,
                            d_cell_idx ? d_cell_idx + idev * cli.getNumElements() : 0,
@@ -299,8 +297,8 @@ __global__ void gpu_combine_cell_lists_kernel(const unsigned int* d_cell_size_sc
                                               unsigned int* d_idx,
                                               const Scalar4* d_xyzf_scratch,
                                               Scalar4* d_xyzf,
-                                              const Scalar4* d_tdb_scratch,
-                                              Scalar4* d_tdb,
+                                              const uint2* d_type_body_scratch,
+                                              uint2* d_type_body,
                                               const Scalar4* d_cell_orientation_scratch,
                                               Scalar4* d_cell_orientation,
                                               const Index2D cli,
@@ -366,8 +364,8 @@ __global__ void gpu_combine_cell_lists_kernel(const unsigned int* d_cell_size_sc
     if (d_xyzf)
         d_xyzf[write_pos] = d_xyzf_scratch[idx + igpu * cli.getNumElements()];
 
-    if (d_tdb)
-        d_tdb[write_pos] = d_tdb_scratch[idx + igpu * cli.getNumElements()];
+    if (d_type_body)
+        d_type_body[write_pos] = d_type_body_scratch[idx + igpu * cli.getNumElements()];
 
     if (d_cell_orientation)
         d_cell_orientation[write_pos]
@@ -394,8 +392,8 @@ hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
                                   unsigned int* d_idx,
                                   const Scalar4* d_xyzf_scratch,
                                   Scalar4* d_xyzf,
-                                  const Scalar4* d_tdb_scratch,
-                                  Scalar4* d_tdb,
+                                  const uint2* d_type_body_scratch,
+                                  uint2* d_type_body,
                                   const Scalar4* d_cell_orientation_scratch,
                                   Scalar4* d_cell_orientation,
                                   const Index2D cli,
@@ -424,8 +422,8 @@ hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
                            d_idx,
                            d_xyzf_scratch,
                            d_xyzf,
-                           d_tdb_scratch,
-                           d_tdb,
+                           d_type_body_scratch,
+                           d_type_body,
                            d_cell_orientation_scratch,
                            d_cell_orientation,
                            cli,
@@ -443,8 +441,8 @@ __global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
                                                  unsigned int* d_cell_idx_new,
                                                  Scalar4* d_xyzf,
                                                  Scalar4* d_xyzf_new,
-                                                 Scalar4* d_tdb,
-                                                 Scalar4* d_tdb_new,
+                                                 uint2* d_type_body,
+                                                 uint2* d_type_body_new,
                                                  Scalar4* d_cell_orientation,
                                                  Scalar4* d_cell_orientation_new,
                                                  unsigned int* d_sort_permutation,
@@ -460,8 +458,8 @@ __global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
         d_xyzf_new[cell_idx] = d_xyzf[perm_idx];
     if (d_cell_idx)
         d_cell_idx_new[cell_idx] = d_cell_idx[perm_idx];
-    if (d_tdb)
-        d_tdb_new[cell_idx] = d_tdb[perm_idx];
+    if (d_type_body)
+        d_type_body_new[cell_idx] = d_type_body[perm_idx];
     if (d_cell_orientation)
         d_cell_orientation_new[cell_idx] = d_cell_orientation[perm_idx];
     }
@@ -471,7 +469,7 @@ __global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
    This applies lexicographical order to cell idx, particle idx pairs
    \param d_cell_size List of cell sizes
    \param d_xyzf List of coordinates and flag
-   \param d_tdb List type diameter and body index
+   \param d_type_body List type and body index
    \param d_sort_idx Temporary array for storing the cell/particle indices to be sorted
    \param d_sort_permutation Temporary array for storing the permuted cell list indices
    \param ci Cell indexer
@@ -480,8 +478,8 @@ __global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
 hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                               Scalar4* d_xyzf,
                               Scalar4* d_xyzf_new,
-                              Scalar4* d_tdb,
-                              Scalar4* d_tdb_new,
+                              uint2* d_type_body,
+                              uint2* d_type_body_new,
                               Scalar4* d_cell_orientation,
                               Scalar4* d_cell_orientation_new,
                               unsigned int* d_cell_idx,
@@ -529,8 +527,8 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                        d_cell_idx_new,
                        d_xyzf,
                        d_xyzf_new,
-                       d_tdb,
-                       d_tdb_new,
+                       d_type_body,
+                       d_type_body_new,
                        d_cell_orientation,
                        d_cell_orientation_new,
                        d_sort_permutation,
@@ -548,11 +546,11 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
               sizeof(unsigned int) * cli.getNumElements(),
               hipMemcpyDeviceToDevice);
 
-    if (d_tdb)
+    if (d_type_body)
         {
-        hipMemcpy(d_tdb,
-                  d_tdb_new,
-                  sizeof(Scalar4) * cli.getNumElements(),
+        hipMemcpy(d_type_body,
+                  d_type_body_new,
+                  sizeof(uint2) * cli.getNumElements(),
                   hipMemcpyDeviceToDevice);
         }
     if (d_cell_orientation)

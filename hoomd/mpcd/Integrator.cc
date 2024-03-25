@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -15,13 +15,12 @@
 namespace hoomd
     {
 /*!
- * \param sysdata MPCD system data
+ * \param sysdef System definition
  * \param deltaT Fundamental integration timestep
  */
-mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar deltaT)
-    : IntegratorTwoStep(sysdata->getSystemDefinition(), deltaT), m_mpcd_sys(sysdata)
+mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+    : IntegratorTwoStep(sysdef, deltaT)
     {
-    assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
     }
 
@@ -44,18 +43,11 @@ mpcd::Integrator::~Integrator()
 void mpcd::Integrator::update(uint64_t timestep)
     {
     IntegratorTwoStep::update(timestep);
-    // issue a warning if no integration methods are set
-    if (!m_gave_warning && m_methods.size() == 0 && !m_stream)
-        {
-        m_exec_conf->msg->warning()
-            << "mpcd.integrate: No integration methods are set." << std::endl;
-        m_gave_warning = true;
-        }
 
     // remove any leftover virtual particles
     if (checkCollide(timestep))
         {
-        m_mpcd_sys->getParticleData()->removeVirtualParticles();
+        m_sysdef->getMPCDParticleData()->removeVirtualParticles();
         m_collide->drawGridShift(timestep);
         }
 
@@ -190,7 +182,7 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
     pybind11::class_<mpcd::Integrator,
                      hoomd::md::IntegratorTwoStep,
                      std::shared_ptr<mpcd::Integrator>>(m, "Integrator")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)

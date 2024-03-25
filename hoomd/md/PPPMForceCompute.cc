@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -1347,13 +1347,6 @@ void PPPMForceCompute::computeForces(uint64_t timestep)
             m_exec_conf->msg->notice(2)
                 << "PPPM: calculating rigid body correction (N^2)" << std::endl;
             computeBodyCorrection();
-            }
-
-        if (m_nlist->getDiameterShift())
-            {
-            m_exec_conf->msg->warning() << "Neighbor diameter shifting is enabled, "
-                                           "PPPM may not correct for all excluded interactions"
-                                        << std::endl;
             }
 
         m_need_initialize = false;

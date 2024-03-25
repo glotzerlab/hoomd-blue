@@ -1,8 +1,9 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/mpcd/SystemData.h"
+#include "hoomd/SystemDefinition.h"
+#include "hoomd/mpcd/ParticleData.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -61,20 +62,15 @@ UP_TEST(virtual_add_remove_test)
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
-    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // 1 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
+    snap->mpcd_data.resize(1);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(1.0, 2.0, 3.0);
 
-        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->velocity[0] = vec3<Scalar>(1.0, 2.0, 3.0);
-        }
-
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
-    std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
 
     // one particle at first, no virtual particles
     UP_ASSERT_EQUAL(pdata->getN(), 1);

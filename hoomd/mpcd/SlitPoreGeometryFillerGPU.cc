@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -12,13 +12,13 @@
 namespace hoomd
     {
 mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(
-    std::shared_ptr<mpcd::SystemData> sysdata,
+    std::shared_ptr<SystemDefinition> sysdef,
     Scalar density,
     unsigned int type,
     std::shared_ptr<Variant> T,
     uint16_t seed,
     std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
-    : mpcd::SlitPoreGeometryFiller(sysdata, density, type, T, seed, geom)
+    : mpcd::SlitPoreGeometryFiller(sysdef, density, type, T, seed, geom)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
@@ -80,7 +80,7 @@ void mpcd::detail::export_SlitPoreGeometryFillerGPU(pybind11::module& m)
                      mpcd::SlitPoreGeometryFiller,
                      std::shared_ptr<mpcd::SlitPoreGeometryFillerGPU>>(m,
                                                                        "SlitPoreGeometryFillerGPU")
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             Scalar,
                             unsigned int,
                             std::shared_ptr<Variant>,

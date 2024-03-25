@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement local access classes for the CPU."""
@@ -80,6 +80,10 @@ class LocalSnapshot(_LocalSnapshot):
         For the ``LocalAccess`` classes the affixed attributes mentioned above
         are not shown. Also of interest, ghost data always come immediately
         after the regular data.
+
+    See Also:
+        Access the local snapshot of a state via
+        `hoomd.State.cpu_local_snapshot`.
     """
 
     def __init__(self, state):

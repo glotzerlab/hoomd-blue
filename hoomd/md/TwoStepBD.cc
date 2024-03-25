@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
@@ -64,9 +64,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -106,13 +103,8 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         Scalar rz = uniform(rng);
 
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
 
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1
         // distribution it is not the dimensionality of the system

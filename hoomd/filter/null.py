@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Null filter."""
@@ -11,6 +11,12 @@ class Null(ParticleFilter, ParticleFilterNull):
     """Select no particles.
 
     Base: `ParticleFilter`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        null = hoomd.filter.Null()
     """
 
     def __init__(self):
@@ -23,4 +29,4 @@ class Null(ParticleFilter, ParticleFilterNull):
 
     def __eq__(self, other):
         """Test for equality between two particle filters."""
-        return type(self) == type(other)
+        return type(self) is type(other)

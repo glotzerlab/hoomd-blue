@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_HPMC_CLUSTERS_
@@ -381,12 +381,12 @@ class UpdaterClusters : public Updater
 
         #ifndef ENABLE_TBB_TASK
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local vector of particle pairs due to overlap
-        std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
-        std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
+        std::map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_old_old;    //!< Energy of interaction old-old
+        std::map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_new_old;    //!< Energy of interaction old-old
         #else
         tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;
-        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;
-        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_old_old;
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,LongReal > m_energy_new_old;
         #endif
 
         hpmc_clusters_counters_t m_count_total;                 //!< Total count since initialization
@@ -533,15 +533,15 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
             Shape tmp_a(quat<Scalar>(), params[type_a]);
             Shape tmp_b(quat<Scalar>(), params[type_b]);
-            OverlapReal d_dep_a = tmp_a.getCircumsphereDiameter();
-            OverlapReal d_dep_b = tmp_b.getCircumsphereDiameter();
+            ShortReal d_dep_a = tmp_a.getCircumsphereDiameter();
+            ShortReal d_dep_b = tmp_b.getCircumsphereDiameter();
 
             // the relevant search radius is the one for the larger depletant
-            OverlapReal d_dep_search = std::max(d_dep_a, d_dep_b);
+            ShortReal d_dep_search = std::max(d_dep_a, d_dep_b);
 
             // we're sampling in the larger volume, so that it strictly covers the insertion volume of
             // the smaller depletant
-            OverlapReal r_dep_sample = 0.5f*d_dep_search;
+            ShortReal r_dep_sample = 0.5f*d_dep_search;
 
             // get AABB and extend
             vec3<Scalar> lower = aabb_i_local.getLower();
@@ -560,7 +560,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb))
+                    if (aabb.overlaps(this->m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                         {
                         if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
@@ -648,7 +648,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // initialize
                 unsigned int sz = initializeDepletionTemporaryStorage(shape_i,
                     shape_j, pos_j[k] - pos_i, r_dep_sample,
-                    ndim, &storage.front(), (OverlapReal) V_all[k], detail::SamplingMethod::accurate);
+                    ndim, &storage.front(), (ShortReal) V_all[k], detail::SamplingMethod::accurate);
 
                 temp_storage.push_back(storage);
                 storage_sz.push_back(sz);
@@ -688,7 +688,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // rejection sampling
                 Shape shape_j(orientation_j[k], params[type_j[k]]);
 
-                vec3<OverlapReal> dr_test;
+                vec3<ShortReal> dr_test;
                 if (!sampleInExcludedVolumeIntersection(my_rng, shape_i, shape_j,
                     pos_j[k] - pos_i, r_dep_sample,
                     dr_test, ndim, storage_sz[k], &temp_storage[k].front(),
@@ -735,9 +735,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 bool overlap_i_b = false;
 
                     {
-                    OverlapReal rsq = dot(dr_test,dr_test);
-                    OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = dot(dr_test,dr_test);
+                    ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     if (h_overlaps[overlap_idx(type_a, typ_i)])
                         {
@@ -756,9 +756,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     }
                 else
                     {
-                    OverlapReal rsq = dot(dr_test,dr_test);
-                    OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = dot(dr_test,dr_test);
+                    ShortReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     if (h_overlaps[overlap_idx(type_b, typ_i)])
                         {
@@ -793,7 +793,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                 // wrap back into into i's image (after transformation)
                 pos_test_transf = box.shift(pos_test_transf,-img_i);
-                vec3<OverlapReal> dr_test_transf = pos_test_transf - pos_i;
+                vec3<ShortReal> dr_test_transf = pos_test_transf - pos_i;
 
                 Shape shape_test_transf_a(shape_test_a.orientation, params[type_a]);
                 if (shape_test_a.hasOrientation())
@@ -802,9 +802,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 if (shape_test_b.hasOrientation())
                     shape_test_transf_b.orientation = q*shape_test_transf_b.orientation;
 
-                OverlapReal rsq = dot(dr_test_transf,dr_test_transf);
-                OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                ShortReal rsq = dot(dr_test_transf,dr_test_transf);
+                ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                 if (h_overlaps[overlap_idx(type_a, typ_i)])
                     {
@@ -822,9 +822,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     }
                 else
                     {
-                    OverlapReal rsq = dot(dr_test_transf,dr_test_transf);
-                    OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = dot(dr_test_transf,dr_test_transf);
+                    ShortReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     if (h_overlaps[overlap_idx(type_b, typ_i)])
                         {
@@ -854,9 +854,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     unsigned int err = 0;
 
                     // check circumsphere overlap
-                    OverlapReal rsq = (OverlapReal) dot(r_mk,r_mk);
-                    OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                    ShortReal rsq = (ShortReal) dot(r_mk,r_mk);
+                    ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                     bool overlap_j_a = h_overlaps[overlap_idx(type_a,type_m)]
                         && circumsphere_overlap
@@ -870,7 +870,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     else
                         {
                         DaDb = shape_test_b.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                        circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                        circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                         overlap_j_b = h_overlaps[overlap_idx(type_b,type_m)]
                             && circumsphere_overlap
@@ -906,7 +906,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         // stackless search
                         for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                             {
-                            if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb))
+                            if (aabb.overlaps(this->m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                                 {
                                 if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                                     {
@@ -922,11 +922,11 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                                         // check excluded volume overlap
                                         vec3<Scalar> r_jk(pos_test_image - pj);
-                                        OverlapReal rsq = (OverlapReal) dot(r_jk,r_jk);
-                                        OverlapReal DaDb = shape_test_transf_a.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                                        ShortReal rsq = (ShortReal) dot(r_jk,r_jk);
+                                        ShortReal DaDb = shape_test_transf_a.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                         unsigned int err = 0;
                                         if (h_overlaps[overlap_idx(type_a, typ_j)] &&
-                                            (rsq*OverlapReal(4.0) <= DaDb * DaDb) &&
+                                            (rsq*ShortReal(4.0) <= DaDb * DaDb) &&
                                             test_overlap(r_jk, shape_j, shape_test_transf_a, err) &&
                                             ((type_a == type_b) || (h_overlaps[overlap_idx(type_b, typ_j)] &&
                                             test_overlap(r_jk, shape_j, shape_test_transf_b, err))))
@@ -959,7 +959,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                             // stackless search
                             for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                                 {
-                                if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb))
+                                if (aabb.overlaps(this->m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                                     {
                                     if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                                         {
@@ -975,11 +975,11 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                                             // check excluded volume overlap
                                             vec3<Scalar> r_jk(pos_test_image - pj);
-                                            OverlapReal rsq = (OverlapReal) dot(r_jk,r_jk);
-                                            OverlapReal DaDb = shape_test_transf_b.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                                            ShortReal rsq = (ShortReal) dot(r_jk,r_jk);
+                                            ShortReal DaDb = shape_test_transf_b.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                             unsigned int err = 0;
                                             if (h_overlaps[overlap_idx(type_b, typ_j)] &&
-                                                (rsq*OverlapReal(4.0) <= DaDb * DaDb) &&
+                                                (rsq*ShortReal(4.0) <= DaDb * DaDb) &&
                                                 test_overlap(r_jk, shape_j, shape_test_transf_b, err) &&
                                                 h_overlaps[overlap_idx(type_b, typ_j)] &&
                                                 test_overlap(r_jk, shape_j, shape_test_transf_b, err))
@@ -1016,9 +1016,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         unsigned int err = 0;
 
                         // check circumsphere overlap
-                        OverlapReal rsq = (OverlapReal) dot(r_mk,r_mk);
-                        OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                        ShortReal rsq = (ShortReal) dot(r_mk,r_mk);
+                        ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                        bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                         bool overlap_j_a = h_overlaps[overlap_idx(type_a,type_m)]
                             && circumsphere_overlap
@@ -1032,7 +1032,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         else
                             {
                             DaDb = shape_test_b.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                            circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                            circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                             overlap_j_b = h_overlaps[overlap_idx(type_b,type_m)]
                                 && circumsphere_overlap
@@ -1131,7 +1131,7 @@ void UpdaterClusters<Shape>::flip(uint64_t timestep)
             hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters2, timestep, seed),
                                          hoomd::Counter(m_clusters[icluster][0]));
 
-            bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= m_flip_probability;
+            bool flip = hoomd::detail::generate_canonical<LongReal>(rng_i) <= m_flip_probability;
 
             if (!flip)
                 {
@@ -1168,14 +1168,12 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
     // clear the local bond and rejection lists
     m_overlap.clear();
 
-    auto patch = m_mc->getPatchEnergy();
-
     Scalar r_cut_patch(0.0);
-    if (patch)
+    if (m_mc->hasPairInteractions())
         {
         m_energy_old_old.clear();
         m_energy_new_old.clear();
-        r_cut_patch = patch->getRCut();
+        r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive();
         }
 
     // cluster according to overlap of excluded volume shells
@@ -1191,7 +1189,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
     ArrayHandle<Scalar4> h_postype_backup(m_postype_backup, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::read);
 
-    if (patch)
+    if (m_mc->hasPairInteractions())
         {
         // test old configuration against itself
         #ifdef ENABLE_TBB_TASK
@@ -1210,8 +1208,8 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             Scalar charge_i(h_charge.data[i]);
 
             // subtract minimum AABB extent from search radius
-            Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.5*m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(ShortReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             const unsigned int n_images = (unsigned int) image_list.size();
@@ -1226,7 +1224,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                    if (aabb_i_image.overlaps(m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                         {
                         if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
@@ -1245,7 +1243,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                 vec3<Scalar> r_ij = pos_j - pos_i_image;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*m_mc->getMaxPairInteractionAdditiveRCut(typ_j);
 
                                 if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
@@ -1253,21 +1251,22 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                     auto p = std::make_pair(i,j);
 
                                     // if particle interacts in different image already, add to that energy
-                                    float U = 0.0;
+                                    LongReal U = 0.0;
                                         {
                                         auto it_energy = m_energy_old_old.find(p);
                                         if (it_energy != m_energy_old_old.end())
                                             U = it_energy->second;
                                         }
 
-                                    U += patch->energy(r_ij, typ_i,
-                                                        quat<float>(orientation_i),
-                                                        (float) d_i,
-                                                        (float) charge_i,
+                                    U += m_mc->computeOnePairEnergy(rsq_ij,
+                                                        r_ij, typ_i,
+                                                        orientation_i,
+                                                        d_i,
+                                                        charge_i,
                                                         typ_j,
-                                                        quat<float>(h_orientation_backup.data[j]),
-                                                        (float) h_diameter.data[j],
-                                                        (float) h_charge.data[j]);
+                                                        quat<LongReal>(h_orientation_backup.data[j]),
+                                                        h_diameter.data[j],
+                                                        h_charge.data[j]);
 
                                     // update map
                                     m_energy_old_old[p] = U;
@@ -1326,7 +1325,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                 {
-                if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                if (aabb_i_image.overlaps(m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                     {
                     if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                         {
@@ -1373,11 +1372,11 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                 } // end loop over nodes
             } // end loop over images
 
-        if (patch)
+        if (m_mc->hasPairInteractions())
             {
             // subtract minimum AABB extent from search radius
-            Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.5*m_mc->getMaxPairInteractionAdditiveRCut(typ_i);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(LongReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             // compute V(r'-r)
@@ -1391,7 +1390,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                    if (aabb_i_image.overlaps(m_aabb_tree_old.getNodeAABB(cur_node_idx)))
                         {
                         if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
@@ -1411,29 +1410,30 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                                 // check for excluded volume sphere overlap
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*m_mc->getMaxPairInteractionAdditiveRCut(typ_j);
 
                                 if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
                                     auto p = std::make_pair(i, j);
 
                                     // if particle interacts in different image already, add to that energy
-                                    float U = 0.0;
+                                    LongReal U = 0.0;
                                         {
                                         auto it_energy = m_energy_new_old.find(p);
                                         if (it_energy != m_energy_new_old.end())
                                             U = it_energy->second;
                                         }
 
-                                    U += patch->energy(r_ij,
+                                    U += m_mc->computeOnePairEnergy(rsq_ij,
+                                                        r_ij,
                                                         typ_i,
-                                                        quat<float>(shape_i.orientation),
-                                                        (float) h_diameter.data[i],
-                                                        (float) h_charge.data[i],
+                                                        shape_i.orientation,
+                                                        h_diameter.data[i],
+                                                        h_charge.data[i],
                                                         typ_j,
-                                                        quat<float>(h_orientation_backup.data[j]),
-                                                        (float) h_diameter.data[j],
-                                                        (float) h_charge.data[j]);
+                                                        quat<LongReal>(h_orientation_backup.data[j]),
+                                                        h_diameter.data[j],
+                                                        h_charge.data[j]);
 
                                     // update map
                                     m_energy_new_old[p] = U;
@@ -1651,18 +1651,18 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
     }); // end task arena execute()
     #endif
 
-    if (m_mc->getPatchEnergy())
+    if (m_mc->hasPairInteractions())
         {
         // sum up interaction energies
         #ifdef ENABLE_TBB_TASK
-        tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, float> delta_U;
+        tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, LongReal> delta_U;
         #else
-        std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
+        std::map< std::pair<unsigned int, unsigned int>, LongReal> delta_U;
         #endif
 
         for (auto it = m_energy_old_old.begin(); it != m_energy_old_old.end(); ++it)
             {
-            float delU = -it->second;
+            LongReal delU = -it->second;
             unsigned int i = it->first.first;
             unsigned int j = it->first.second;
 
@@ -1679,7 +1679,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
 
         for (auto it = m_energy_new_old.begin(); it != m_energy_new_old.end(); ++it)
             {
-            float delU = it->second;
+            LongReal delU = it->second;
             unsigned int i = it->first.first;
             unsigned int j = it->first.second;
 
@@ -1703,7 +1703,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             {
             for (auto it = r.begin(); it != r.end(); ++it)
                 {
-                float delU = it->second;
+                LongReal delU = it->second;
                 unsigned int i = it->first.first;
                 unsigned int j = it->first.second;
 
@@ -1711,8 +1711,8 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
                 hoomd::RandomGenerator rng_ij(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClustersPairwise, timestep, seed),
                                               hoomd::Counter(std::min(i,j), std::max(i,j)));
 
-                float pij = 1.0f-exp(-delU);
-                if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA
+                LongReal pij = 1.0f-exp(-delU);
+                if (hoomd::detail::generate_canonical<LongReal>(rng_ij) <= pij) // GCA
                     {
                     // add bond
                     m_G.addEdge(i,j);
@@ -1723,7 +1723,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             );
         }); // end task arena execute()
         #endif
-        } // end if (patch)
+        } // end if (m_mc->hasPairInteractions)
 
     // compute connected components
     connectedComponents();

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <pybind11/pybind11.h>
@@ -26,6 +26,7 @@ void export_HarmonicAngleForceCompute(pybind11::module& m);
 void export_CosineSqAngleForceCompute(pybind11::module& m);
 void export_TableAngleForceCompute(pybind11::module& m);
 void export_HarmonicDihedralForceCompute(pybind11::module& m);
+void export_PeriodicImproperForceCompute(pybind11::module& m);
 void export_OPLSDihedralForceCompute(pybind11::module& m);
 void export_TableDihedralForceCompute(pybind11::module& m);
 void export_HarmonicImproperForceCompute(pybind11::module& m);
@@ -51,6 +52,7 @@ void export_PotentialPairLJ1208(pybind11::module& m);
 void export_PotentialPairLJ0804(pybind11::module& m);
 void export_PotentialPairGauss(pybind11::module& m);
 void export_PotentialPairExpandedLJ(pybind11::module& m);
+void export_PotentialPairExpandedGaussian(pybind11::module& m);
 void export_PotentialPairExpandedMie(pybind11::module& m);
 void export_PotentialPairYukawa(pybind11::module& m);
 void export_PotentialPairEwald(pybind11::module& m);
@@ -89,6 +91,7 @@ void export_PotentialRevCross(pybind11::module& m);
 
 void export_PotentialExternalPeriodic(pybind11::module& m);
 void export_PotentialExternalElectricField(pybind11::module& m);
+void export_PotentialExternalMagneticField(pybind11::module& m);
 
 void export_PotentialExternalWallLJ(pybind11::module& m);
 void export_PotentialExternalWallYukawa(pybind11::module& m);
@@ -182,6 +185,7 @@ void export_NeighborListGPUStencil(pybind11::module& m);
 void export_NeighborListGPUTree(pybind11::module& m);
 void export_ForceDistanceConstraintGPU(pybind11::module& m);
 void export_ForceCompositeGPU(pybind11::module& m);
+void export_PeriodicImproperForceComputeGPU(pybind11::module& m);
 void export_PPPMForceComputeGPU(pybind11::module& m);
 void export_SurfaceTensionMeshForceComputeGPU(pybind11::module& m);
 void export_LocalNeighborListDataGPU(pybind11::module& m);
@@ -192,6 +196,7 @@ void export_PotentialPairLJ1208GPU(pybind11::module& m);
 void export_PotentialPairLJ0804GPU(pybind11::module& m);
 void export_PotentialPairGaussGPU(pybind11::module& m);
 void export_PotentialPairExpandedLJGPU(pybind11::module& m);
+void export_PotentialPairExpandedGaussianGPU(pybind11::module& m);
 void export_PotentialPairExpandedMieGPU(pybind11::module& m);
 void export_PotentialPairYukawaGPU(pybind11::module& m);
 void export_PotentialPairEwaldGPU(pybind11::module& m);
@@ -231,6 +236,7 @@ void export_PotentialRevCrossGPU(pybind11::module& m);
 
 void export_PotentialExternalPeriodicGPU(pybind11::module& m);
 void export_PotentialExternalElectricFieldGPU(pybind11::module& m);
+void export_PotentialExternalMagneticFieldGPU(pybind11::module& m);
 
 void export_PotentialExternalWallLJGPU(pybind11::module& m);
 void export_PotentialExternalWallYukawaGPU(pybind11::module& m);
@@ -303,6 +309,7 @@ PYBIND11_MODULE(_md, m)
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
     export_HarmonicDihedralForceCompute(m);
+    export_PeriodicImproperForceCompute(m);
     export_OPLSDihedralForceCompute(m);
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
@@ -314,6 +321,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJ0804(m);
     export_PotentialPairGauss(m);
     export_PotentialPairExpandedLJ(m);
+    export_PotentialPairExpandedGaussian(m);
     export_PotentialPairExpandedMie(m);
     export_PotentialPairYukawa(m);
     export_PotentialPairEwald(m);
@@ -371,6 +379,7 @@ PYBIND11_MODULE(_md, m)
 
     export_PotentialExternalPeriodic(m);
     export_PotentialExternalElectricField(m);
+    export_PotentialExternalMagneticField(m);
 
     export_wall_data(m);
     export_wall_field(m);
@@ -396,6 +405,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJ0804GPU(m);
     export_PotentialPairGaussGPU(m);
     export_PotentialPairExpandedLJGPU(m);
+    export_PotentialPairExpandedGaussianGPU(m);
     export_PotentialPairExpandedMieGPU(m);
     export_PotentialPairYukawaGPU(m);
     export_PotentialPairEwaldGPU(m);
@@ -446,6 +456,7 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraintGPU(m);
     export_ComputeThermoGPU(m);
     export_ComputeThermoHMAGPU(m);
+    export_PeriodicImproperForceComputeGPU(m);
     export_PPPMForceComputeGPU(m);
     export_SurfaceTensionMeshForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
@@ -459,6 +470,7 @@ PYBIND11_MODULE(_md, m)
     export_ConstantForceComputeGPU(m);
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
+    export_PotentialExternalMagneticFieldGPU(m);
 
     export_PotentialExternalWallLJGPU(m);
     export_PotentialExternalWallYukawaGPU(m);

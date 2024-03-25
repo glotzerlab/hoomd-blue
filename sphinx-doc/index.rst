@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 ==========
@@ -45,8 +45,8 @@ Resources
   Instructions for installing **HOOMD-blue** binaries.
 - :doc:`Compilation guide </building>`:
   Instructions for compiling **HOOMD-blue**.
-- `hoomd-users mailing list <https://groups.google.com/d/forum/hoomd-users>`_:
-  Send messages to the **HOOMD-blue** user community.
+- `HOOMD-blue discussion board <https://github.com/glotzerlab/hoomd-blue/discussions/>`_:
+  Ask the **HOOMD-blue** user community for help.
 - `HOOMD-blue website <https://glotzerlab.engin.umich.edu/hoomd-blue/>`_:
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
@@ -105,7 +105,7 @@ Molecular dynamics:
 
     import hoomd
 
-    cell = hoomd.md.nlist.Cell()
+    cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.r_cut[('A', 'A')] = 2.5
@@ -125,34 +125,16 @@ Molecular dynamics:
 
     sim.run(1e5)
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Getting started
-
-    features
-    installation
-    building
-    migrating
-    changelog
-    citing
+.. rubric::
+    Contents
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Tutorials
+    :maxdepth: 2
+    :caption: Guides
 
-    tutorial/00-Introducing-HOOMD-blue/00-index
-    tutorial/01-Introducing-Molecular-Dynamics/00-index
-    tutorial/02-Logging/00-index
-    tutorial/03-Parallel-Simulations-With-MPI/00-index
-    tutorial/04-Custom-Actions-In-Python/00-index
-    tutorial/05-Organizing-and-Executing-Simulations/00-index
-    tutorial/06-Modelling-Rigid-Bodies/00-index
-
-.. toctree::
-    :maxdepth: 1
-    :caption: How to guides
-
-    howto/molecular
+    getting-started
+    tutorials
+    how-to
 
 .. toctree::
    :maxdepth: 1
@@ -163,22 +145,13 @@ Molecular dynamics:
    package-md
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Developer guide
-
-    contributing
-    style
-    testing
-    components
-
-.. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Reference
 
-   notation
-   units
-   deprecated
-   logo
-   license
-   credits
+   documentation
+   changes
+   developers
+
+   open-source
+
    indices

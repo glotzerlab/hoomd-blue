@@ -30,6 +30,6 @@ Resolves #???
 
 ## Checklist:
 
-- [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/CONTRIBUTING.md).
+- [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/CONTRIBUTING.rst).
 - [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ContributorAgreement.md).
 - [ ] My name is on the list of contributors (`sphinx-doc/credits.rst`) in the pull request source branch.

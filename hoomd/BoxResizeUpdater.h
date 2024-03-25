@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxResizeUpdater.h
@@ -13,14 +13,14 @@
 #include "ParticleGroup.h"
 #include "Updater.h"
 #include "Variant.h"
+#include "VectorVariant.h"
 
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <stdexcept>
 #include <string>
 
-#ifndef __BOXRESIZEUPDATER_H__
-#define __BOXRESIZEUPDATER_H__
+#pragma once
 
 namespace hoomd
     {
@@ -37,42 +37,28 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     /// Constructor
     BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<Trigger> trigger,
-                     std::shared_ptr<BoxDim> box1,
-                     std::shared_ptr<BoxDim> box2,
-                     std::shared_ptr<Variant> variant,
+                     std::shared_ptr<VectorVariantBox> box,
                      std::shared_ptr<ParticleGroup> m_group);
 
     /// Destructor
     virtual ~BoxResizeUpdater();
 
-    /// Get the current m_box2
-    std::shared_ptr<BoxDim> getBox1();
+    /// Set the box variant
+    void setBox(std::shared_ptr<VectorVariantBox> box)
+        {
+        m_box = box;
+        }
 
-    /// Set a new m_box_1
-    void setBox1(std::shared_ptr<BoxDim> box1);
-
-    /// Get the current m_box2
-    std::shared_ptr<BoxDim> getBox2();
-
-    /// Set a new m_box_2
-    void setBox2(std::shared_ptr<BoxDim> box2);
+    /// Get the box variant
+    std::shared_ptr<VectorVariantBox> getBox()
+        {
+        return m_box;
+        }
 
     /// Gets particle scaling filter
     std::shared_ptr<ParticleGroup> getGroup()
         {
         return m_group;
-        }
-
-    /// Set the variant for interpolation
-    void setVariant(std::shared_ptr<Variant> variant)
-        {
-        m_variant = variant;
-        }
-
-    /// Get the variant for interpolation
-    std::shared_ptr<Variant> getVariant()
-        {
-        return m_variant;
         }
 
     /// Get the current box for the given timestep
@@ -85,10 +71,11 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     virtual void scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box);
 
     protected:
-    std::shared_ptr<BoxDim> m_box1;         ///< C++ box assoc with min
-    std::shared_ptr<BoxDim> m_box2;         ///< C++ box assoc with max
-    std::shared_ptr<Variant> m_variant;     //!< Variant that interpolates between boxes
-    std::shared_ptr<ParticleGroup> m_group; //!< Selected particles to scale when resizing the box.
+    /// Box as a function of time.
+    std::shared_ptr<VectorVariantBox> m_box;
+
+    /// Selected particles to scale when resizing the box.
+    std::shared_ptr<ParticleGroup> m_group;
     };
 
 namespace detail
@@ -97,4 +84,3 @@ namespace detail
 void export_BoxResizeUpdater(pybind11::module& m);
     } // end namespace detail
     } // end namespace hoomd
-#endif

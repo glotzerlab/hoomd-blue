@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -10,9 +10,7 @@
 #include "ShapePolyhedron.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
@@ -42,9 +40,7 @@ void export_polyhedron(pybind11::module& m)
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
     export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");
-    export_ExternalFieldComposite<ShapePolyhedron>(m, "ExternalFieldCompositePolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
-    export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedronGPU");

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import copy as cp
@@ -35,7 +35,10 @@ def _evaluate_periodic(snapshot, params):
     forces *= 1 - (np.tanh(
         np.cos(p * np.dot(positions, b)) / (2 * np.pi * p * w)))**2
     forces = np.outer(forces, b)
-    return forces, energies
+    torques = [
+        [0, 0, 0],
+    ] * len(positions)
+    return forces, torques, energies
 
 
 def _evaluate_electric(snapshot, params):
@@ -45,7 +48,24 @@ def _evaluate_electric(snapshot, params):
     E_field = params
     energies = -charges * np.dot(positions, E_field)
     forces = np.outer(charges, E_field)
-    return forces, energies
+    torques = [
+        [0, 0, 0],
+    ] * len(positions)
+    return forces, torques, energies
+
+
+def _evaluate_magnetic(snapshot, params):
+    """Evaluate force and energy in python for MagneticField."""
+    positions = snapshot.particles.position
+    N = len(positions)
+    B_field = params['B']
+    b_moment = params['mu']
+    energies = np.repeat(-np.dot(b_moment, B_field), N)
+    torques = np.tile(np.cross(b_moment, B_field), (N, 1))
+    forces = [
+        [0, 0, 0],
+    ] * N
+    return forces, torques, energies
 
 
 def _external_params():
@@ -60,6 +80,11 @@ def _external_params():
             (1, 0, 0),
             (0, 2, 0),
         ]), _evaluate_electric))
+    list_ext_params.append((hoomd.md.external.field.Magnetic, "params",
+                            list([
+                                dict(B=(0, 2, -11.5), mu=(1, 2, 3)),
+                                dict(B=(1, 0, 1), mu=(1, 1, 1))
+                            ]), _evaluate_magnetic))
     return list_ext_params
 
 
@@ -72,11 +97,11 @@ def external_params(request):
 
 def _assert_correct_params(external_obj, param_attr, params):
     """Assert the params of the external object match whats in the dict."""
-    if type(params) == dict:
+    if type(params) is dict:
         for param in params.keys():
             npt.assert_allclose(
                 getattr(external_obj, param_attr)['A'][param], params[param])
-    if type(params) == tuple:
+    if type(params) is tuple:
         npt.assert_allclose(getattr(external_obj, param_attr)['A'], params)
 
 
@@ -131,25 +156,28 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
         # test energies
         new_snap = sim.state.get_snapshot()
         forces = sim.operations.integrator.forces[0].forces
+        torques = sim.operations.integrator.forces[0].torques
         energies = sim.operations.integrator.forces[0].energies
         if new_snap.communicator.rank == 0:
-            expected_forces, expected_energies = evaluator(new_snap, param)
+            expected_forces, expected_torques, expected_energies = evaluator(
+                new_snap, param)
             # Set atol as the energies and forces very close to 0.
             # It would be better to run a test that applies appreciable forces
             # and energies.
             np.testing.assert_allclose(expected_forces, forces, atol=1e-5)
+            np.testing.assert_allclose(expected_torques, torques, atol=1e-5)
             np.testing.assert_allclose(expected_energies, energies, atol=1e-5)
 
 
 # Test Logging
 _potential_cls = (md.external.field.Field, md.external.field.Periodic,
-                  md.external.field.Electric)
+                  md.external.field.Electric, md.external.field.Magnetic)
 
 
-@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip(_potential_cls,
-                             itertools.repeat(('md', 'external', 'field')),
-                             itertools.repeat(expected_loggable_params)))
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip(_potential_cls, itertools.repeat(('md', 'external', 'field')),
+        itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_NEC__H__
@@ -670,7 +670,7 @@ bool IntegratorHPMCMonoNEC<Shape>::checkForOverlap(unsigned int i,
         for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes();
              cur_node_idx++)
             {
-            if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+            if (aabb.overlaps(this->m_aabb_tree.getNodeAABB(cur_node_idx)))
                 {
                 if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                     {
@@ -781,7 +781,7 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
         for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes();
              cur_node_idx++)
             {
-            if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+            if (aabb.overlaps(this->m_aabb_tree.getNodeAABB(cur_node_idx)))
                 {
                 if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                     {

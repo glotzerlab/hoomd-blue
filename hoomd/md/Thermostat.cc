@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Thermostat.h"
@@ -42,7 +42,9 @@ void export_BussiThermostat(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<Variant>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
-                            std::shared_ptr<SystemDefinition>>());
+                            std::shared_ptr<SystemDefinition>,
+                            Scalar>())
+        .def_property("tau", &BussiThermostat::getTau, &BussiThermostat::setTau);
     }
 
 void export_BerendsenThermostat(pybind11::module& m)

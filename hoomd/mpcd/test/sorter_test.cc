@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/Sorter.h"
@@ -26,64 +26,62 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
         snap->particle_data.resize(1);
         snap->particle_data.pos[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
         }
-    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // place eight mpcd particles, one per cell
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->type_mapping.push_back("M");
-        mpcd_snap->type_mapping.push_back("P");
-        mpcd_snap->type_mapping.push_back("H");
-        mpcd_snap->type_mapping.push_back("R");
-        mpcd_snap->type_mapping.push_back("L");
-        mpcd_snap->type_mapping.push_back("G");
-        mpcd_snap->type_mapping.push_back("PSU");
-        mpcd_snap->type_mapping.push_back("PU");
+    snap->mpcd_data.resize(8);
+    snap->mpcd_data.type_mapping.push_back("M");
+    snap->mpcd_data.type_mapping.push_back("P");
+    snap->mpcd_data.type_mapping.push_back("H");
+    snap->mpcd_data.type_mapping.push_back("R");
+    snap->mpcd_data.type_mapping.push_back("L");
+    snap->mpcd_data.type_mapping.push_back("G");
+    snap->mpcd_data.type_mapping.push_back("PSU");
+    snap->mpcd_data.type_mapping.push_back("PU");
 
-        mpcd_snap->resize(8);
-        mpcd_snap->position[7] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[6] = vec3<Scalar>(0.5, -0.5, -0.5);
-        mpcd_snap->position[5] = vec3<Scalar>(-0.5, 0.5, -0.5);
-        mpcd_snap->position[4] = vec3<Scalar>(0.5, 0.5, -0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(-0.5, -0.5, 0.5);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.5, 0.5, 0.5);
-        mpcd_snap->position[0] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[7] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[6] = vec3<Scalar>(0.5, -0.5, -0.5);
+    snap->mpcd_data.position[5] = vec3<Scalar>(-0.5, 0.5, -0.5);
+    snap->mpcd_data.position[4] = vec3<Scalar>(0.5, 0.5, -0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(-0.5, -0.5, 0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, 0.5, 0.5);
+    snap->mpcd_data.position[0] = vec3<Scalar>(0.5, 0.5, 0.5);
 
-        mpcd_snap->velocity[7] = vec3<Scalar>(0., -0.5, 0.5);
-        mpcd_snap->velocity[6] = vec3<Scalar>(1., -1.5, 1.5);
-        mpcd_snap->velocity[5] = vec3<Scalar>(2., -2.5, 2.5);
-        mpcd_snap->velocity[4] = vec3<Scalar>(3., -3.5, 3.5);
-        mpcd_snap->velocity[3] = vec3<Scalar>(4., -4.5, 4.5);
-        mpcd_snap->velocity[2] = vec3<Scalar>(5., -5.5, 5.5);
-        mpcd_snap->velocity[1] = vec3<Scalar>(6., -6.5, 6.5);
-        mpcd_snap->velocity[0] = vec3<Scalar>(7., -7.5, 7.5);
+    snap->mpcd_data.velocity[7] = vec3<Scalar>(0., -0.5, 0.5);
+    snap->mpcd_data.velocity[6] = vec3<Scalar>(1., -1.5, 1.5);
+    snap->mpcd_data.velocity[5] = vec3<Scalar>(2., -2.5, 2.5);
+    snap->mpcd_data.velocity[4] = vec3<Scalar>(3., -3.5, 3.5);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(4., -4.5, 4.5);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(5., -5.5, 5.5);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(6., -6.5, 6.5);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(7., -7.5, 7.5);
 
-        mpcd_snap->type[7] = 0;
-        mpcd_snap->type[6] = 1;
-        mpcd_snap->type[5] = 2;
-        mpcd_snap->type[4] = 3;
-        mpcd_snap->type[3] = 4;
-        mpcd_snap->type[2] = 5;
-        mpcd_snap->type[1] = 6;
-        mpcd_snap->type[0] = 7;
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    snap->mpcd_data.type[7] = 0;
+    snap->mpcd_data.type[6] = 1;
+    snap->mpcd_data.type[5] = 2;
+    snap->mpcd_data.type[4] = 3;
+    snap->mpcd_data.type[3] = 4;
+    snap->mpcd_data.type[2] = 5;
+    snap->mpcd_data.type[1] = 6;
+    snap->mpcd_data.type[0] = 7;
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
 
     // add an embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
     std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
-    mpcd_sys->getCellList()->setEmbeddedGroup(group);
+    cl->setEmbeddedGroup(group);
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys, 0, 1);
+    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    sorter->setCellList(cl);
     sorter->update(0);
 
         // check that all particles are properly ordered
         {
-        std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
+        std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
 
         // tag order should be reversed
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
@@ -173,7 +171,6 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
 
         // check that the cell list has been updated as well
         {
-        auto cl = mpcd_sys->getCellList();
         ArrayHandle<unsigned int> h_cl(cl->getCellList(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_np(cl->getCellSizeArray(),
                                        access_location::host,
@@ -214,47 +211,44 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
+
+    // place 6 mpcd particles, one per cell
+    snap->mpcd_data.resize(6);
+    snap->mpcd_data.type_mapping.push_back("M");
+    snap->mpcd_data.type_mapping.push_back("P");
+    snap->mpcd_data.type_mapping.push_back("H");
+    snap->mpcd_data.type_mapping.push_back("R");
+    snap->mpcd_data.type_mapping.push_back("L");
+    snap->mpcd_data.type_mapping.push_back("G");
+    snap->mpcd_data.type_mapping.push_back("PSU");
+    snap->mpcd_data.type_mapping.push_back("PU");
+
+    snap->mpcd_data.position[5] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-0.5, 0.5, -0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(-0.5, -0.5, 0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, 0.5, 0.5);
+    snap->mpcd_data.position[0] = vec3<Scalar>(0.5, 0.5, 0.5);
+
+    snap->mpcd_data.velocity[5] = vec3<Scalar>(0., -0.5, 0.5);
+    snap->mpcd_data.velocity[4] = vec3<Scalar>(2., -2.5, 2.5);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(4., -4.5, 4.5);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(5., -5.5, 5.5);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(6., -6.5, 6.5);
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(7., -7.5, 7.5);
+
+    snap->mpcd_data.type[5] = 0;
+    snap->mpcd_data.type[4] = 2;
+    snap->mpcd_data.type[3] = 4;
+    snap->mpcd_data.type[2] = 5;
+    snap->mpcd_data.type[1] = 6;
+    snap->mpcd_data.type[0] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    // place eight mpcd particles, one per cell
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->type_mapping.push_back("M");
-        mpcd_snap->type_mapping.push_back("P");
-        mpcd_snap->type_mapping.push_back("H");
-        mpcd_snap->type_mapping.push_back("R");
-        mpcd_snap->type_mapping.push_back("L");
-        mpcd_snap->type_mapping.push_back("G");
-        mpcd_snap->type_mapping.push_back("PSU");
-        mpcd_snap->type_mapping.push_back("PU");
-
-        mpcd_snap->resize(6);
-        mpcd_snap->position[5] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap->position[4] = vec3<Scalar>(-0.5, 0.5, -0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(-0.5, -0.5, 0.5);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.5, 0.5, 0.5);
-        mpcd_snap->position[0] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        mpcd_snap->velocity[5] = vec3<Scalar>(0., -0.5, 0.5);
-        mpcd_snap->velocity[4] = vec3<Scalar>(2., -2.5, 2.5);
-        mpcd_snap->velocity[3] = vec3<Scalar>(4., -4.5, 4.5);
-        mpcd_snap->velocity[2] = vec3<Scalar>(5., -5.5, 5.5);
-        mpcd_snap->velocity[1] = vec3<Scalar>(6., -6.5, 6.5);
-        mpcd_snap->velocity[0] = vec3<Scalar>(7., -7.5, 7.5);
-
-        mpcd_snap->type[5] = 0;
-        mpcd_snap->type[4] = 2;
-        mpcd_snap->type[3] = 4;
-        mpcd_snap->type[2] = 5;
-        mpcd_snap->type[1] = 6;
-        mpcd_snap->type[0] = 7;
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef);
 
     // add 2 virtual particles to fill in the rest of the cells
-    auto pdata = mpcd_sys->getParticleData();
+    auto pdata = sysdef->getMPCDParticleData();
     pdata->addVirtualParticles(2);
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
@@ -279,7 +273,8 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
         }
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys, 0, 1);
+    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    sorter->setCellList(cl);
     sorter->update(0);
 
         // check that all particles are properly ordered
@@ -378,7 +373,6 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
 
         // check that the cell list has been updated as well
         {
-        auto cl = mpcd_sys->getCellList();
         ArrayHandle<unsigned int> h_cl(cl->getCellList(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_np(cl->getCellSizeArray(),
                                        access_location::host,

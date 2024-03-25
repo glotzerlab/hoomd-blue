@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Constraints.
@@ -192,6 +192,13 @@ class Rigid(Constraint):
     `Rigid` also computes the corrected virial accounting for the effective
     constraint force (see `Glaser 2020
     <https://dx.doi.org/10.1016/j.commatsci.2019.109430>`_).
+
+    Note:
+        Include ``'body'`` in the `Neighborlist exclusions
+        <hoomd.md.nlist.NeighborList.exclusions>` to avoid calculating
+        inter-body forces that will sum to 0. This is *required* in many cases
+        where nearby particles lead to numerical errors from extremely large
+        forces.
 
     .. rubric:: Integrating bodies
 

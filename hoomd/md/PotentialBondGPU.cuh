@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -35,7 +35,6 @@ template<int group_size> struct bond_args_t
                 const unsigned int _n_max,
                 const Scalar4* _d_pos,
                 const Scalar* _d_charge,
-                const Scalar* _d_diameter,
                 const BoxDim& _box,
                 const group_storage<group_size>* _d_gpu_bondlist,
                 const Index2D& _gpu_table_indexer,
@@ -45,10 +44,10 @@ template<int group_size> struct bond_args_t
                 const unsigned int _block_size,
                 const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
-          d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
-          d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
-          d_gpu_bond_pos(_d_gpu_bond_pos), d_gpu_n_bonds(_d_gpu_n_bonds),
-          n_bond_types(_n_bond_types), block_size(_block_size), devprop(_devprop) {};
+          d_pos(_d_pos), d_charge(_d_charge), box(_box), d_gpu_bondlist(_d_gpu_bondlist),
+          gpu_table_indexer(_gpu_table_indexer), d_gpu_bond_pos(_d_gpu_bond_pos),
+          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size),
+          devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -57,7 +56,6 @@ template<int group_size> struct bond_args_t
     unsigned int n_max;        //!< Size of local pdata arrays
     const Scalar4* d_pos;      //!< particle positions
     const Scalar* d_charge;    //!< particle charges
-    const Scalar* d_diameter;  //!< particle diameters
     const BoxDim box;          //!< Simulation box in GPU format
     const group_storage<group_size>* d_gpu_bondlist; //!< List of bonds stored on the GPU
     const Index2D& gpu_table_indexer;                //!< Indexer of 2D bond list
@@ -81,7 +79,6 @@ template<int group_size> struct bond_args_t
     \param N Number of particles in the system
     \param d_pos particle positions on the GPU
     \param d_charge particle charges
-    \param d_diameter particle diameters
     \param box Box dimensions used to implement periodic boundary conditions
     \param blist List of bonds stored on the GPU
     \param pitch Pitch of 2D bond list
@@ -104,7 +101,6 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                const unsigned int N,
                                                const Scalar4* d_pos,
                                                const Scalar* d_charge,
-                                               const Scalar* d_diameter,
                                                const BoxDim box,
                                                const group_storage<group_size>* blist,
                                                const Index2D blist_idx,
@@ -145,22 +141,13 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
-    // read in the diameter of our particle if needed
-    Scalar diam(0);
-    if (evaluator::needsDiameter())
-        {
-        diam = __ldg(d_diameter + idx);
-        }
-    else
-        diam += 0; // shut up compiler warning
-
     Scalar q(0);
     if (evaluator::needsCharge())
         {
         q = __ldg(d_charge + idx);
         }
     else
-        q += 0; // shut up compiler warning
+        q += 0; // Silence compiler warning.
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(0, 0, 0, 0);
@@ -211,12 +198,6 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
 
         evaluator eval(rsq, *param);
 
-        // get the bonded particle's diameter if needed
-        if (evaluator::needsDiameter())
-            {
-            Scalar neigh_diam = __ldg(d_diameter + cur_bond_idx);
-            eval.setDiameter(diam, neigh_diam);
-            }
         if (evaluator::needsCharge())
             {
             Scalar neigh_q = __ldg(d_charge + cur_bond_idx);
@@ -314,7 +295,6 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                            bond_args.N,
                            bond_args.d_pos,
                            bond_args.d_charge,
-                           bond_args.d_diameter,
                            bond_args.box,
                            bond_args.d_gpu_bondlist,
                            bond_args.gpu_table_indexer,
@@ -337,7 +317,6 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                            bond_args.N,
                            bond_args.d_pos,
                            bond_args.d_charge,
-                           bond_args.d_diameter,
                            bond_args.box,
                            bond_args.d_gpu_bondlist,
                            bond_args.gpu_table_indexer,

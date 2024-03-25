@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MPI communicator.
@@ -18,6 +18,10 @@ See Also:
     :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
 
     :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
 """
 
 from hoomd import _hoomd
@@ -49,6 +53,16 @@ class Communicator(object):
     own `partition` index. Use this to perform many simulations in parallel, for
     example by using `partition` as an index into an array of state points to
     execute.
+
+    .. rubric:: Examples:
+
+    .. code-block:: python
+
+        communicator = hoomd.communicator.Communicator()
+
+    .. code-block:: python
+
+        communicator = simulation.device.communicator
     """
 
     def __init__(self, mpi_comm=None, ranks_per_partition=None):
@@ -115,6 +129,12 @@ class Communicator(object):
 
         Note:
             Returns 1 in builds with ENABLE_MPI=off.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            num_ranks = communicator.num_ranks
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getNRanks()
@@ -127,6 +147,12 @@ class Communicator(object):
 
         Note:
             Returns 0 in builds with ENABLE_MPI=off.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            rank = communicator.rank
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getRank()
@@ -143,6 +169,12 @@ class Communicator(object):
 
         Note:
             Returns 1 in builds with ENABLE_MPI=off.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            num_partitions = communicator.num_partitions
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getNPartitions()
@@ -155,6 +187,12 @@ class Communicator(object):
 
         Note:
             Returns 0 in builds with ENABLE_MPI=off.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            partition = communicator.partition
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getPartition()
@@ -166,6 +204,12 @@ class Communicator(object):
 
         Note:
             Does nothing in builds with ENABLE_MPI=off.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            communicator.barrier_all()
         """
         if hoomd.version.mpi_enabled:
             _hoomd.mpi_barrier_world()
@@ -175,6 +219,12 @@ class Communicator(object):
 
         Note:
             Does nothing in builds with ENABLE_MPI=off.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            communicator.barrier()
         """
         if hoomd.version.mpi_enabled:
             self.cpp_mpi_conf.barrier()
@@ -192,6 +242,13 @@ class Communicator(object):
         to tell HOOMD that all operations within the context will use only
         that MPI communicator so that an uncaught exception in one partition
         will only abort that partition and leave the others running.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            with communicator.localize_abort():
+                simulation.run(1_000)
         """
         global _current_communicator
         prev = _current_communicator
@@ -205,6 +262,12 @@ class Communicator(object):
         """Wall clock time since creating the `Communicator` [seconds].
 
         `walltime` returns the same value on each rank in the current partition.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            walltime = communicator.walltime
         """
         return self.cpp_mpi_conf.getWalltime()
 

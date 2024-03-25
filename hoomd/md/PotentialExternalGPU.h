@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PotentialExternal.h"
@@ -61,9 +61,9 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
+                                       access_location::device,
+                                       access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -71,6 +71,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     const BoxDim box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_torque(this->m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
                                                          access_location::device,
@@ -79,11 +80,12 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     m_tuner->begin();
     kernel::gpu_compute_potential_external_forces<evaluator>(
         kernel::external_potential_args_t(d_force.data,
+                                          d_torque.data,
                                           d_virial.data,
                                           this->m_virial.getPitch(),
                                           this->m_pdata->getN(),
                                           d_pos.data,
-                                          d_diameter.data,
+                                          d_orientation.data,
                                           d_charge.data,
                                           box,
                                           m_tuner->getParam()[0],

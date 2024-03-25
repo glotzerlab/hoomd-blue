@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement MD Integrator."""
-
-import itertools
 
 import hoomd
 from hoomd.md import _md
@@ -52,12 +50,24 @@ class _DynamicIntegrator(BaseIntegrator):
             self.rigid._attach(self._simulation)
         super()._attach_hook()
 
+    def _post_attach_hook(self):
+        self.validate_groups()
+
     def _detach_hook(self):
         self._forces._unsync()
         self._methods._unsync()
         self._constraints._unsync()
         if self.rigid is not None:
             self.rigid._detach()
+
+    def validate_groups(self):
+        """Verify groups.
+
+        Groups may change after attaching.
+        Users can call `validate_groups` to verify the groups after changing
+        them.
+        """
+        self._cpp_obj.validate_groups()
 
     @property
     def forces(self):
@@ -82,18 +92,6 @@ class _DynamicIntegrator(BaseIntegrator):
     @methods.setter
     def methods(self, value):
         _set_synced_list(self._methods, value)
-
-    @property
-    def _children(self):
-        children = list(self.forces)
-        children.extend(self.constraints)
-        children.extend(self.methods)
-
-        for child in itertools.chain(self.forces, self.constraints,
-                                     self.methods):
-            children.extend(child._children)
-
-        return children
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":

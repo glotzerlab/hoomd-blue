@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshGroupData.h
@@ -61,11 +61,13 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
 
     virtual ~MeshGroupData();
 
-// mask the base class initializeFromSnapshot(const Snapshot& snapshot)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-    void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
-#pragma clang diagnostic pop
+    virtual void initializeFromSnapshot(
+        const typename BondedGroupData<group_size, Group, name, true>::Snapshot& snapshot)
+        {
+        throw std::runtime_error("Not implemented");
+        }
+
+    void initializeFromTriangleSnapshot(const TriangleData::Snapshot& snapshot);
 
     //! Take a snapshot
     std::map<unsigned int, unsigned int> takeSnapshot(snap& snapshot) const;

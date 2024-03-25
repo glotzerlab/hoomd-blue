@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListGPUStencil.cc
@@ -34,7 +34,7 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 
     m_cl->setRadius(1);
     // types are always required now
-    m_cl->setComputeTDB(true);
+    m_cl->setComputeTypeBody(true);
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
 
@@ -85,8 +85,6 @@ void NeighborListGPUStencil::updateRStencil()
         if (rcut > Scalar(0.0))
             {
             Scalar rlist = rcut + m_r_buff;
-            if (m_diameter_shift)
-                rlist += m_d_max - Scalar(1.0);
             rstencil[cur_type] = rlist;
             }
         }
@@ -164,9 +162,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
         if (!m_override_cell_width)
             {
             Scalar rmin = getMinRCut() + m_r_buff;
-            if (m_diameter_shift)
-                rmin += m_d_max - Scalar(1.0);
-
             m_cl->setNominalWidth(rmin);
             }
         m_update_cell_size = false;
@@ -192,9 +187,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     // acquire the particle data
     ArrayHandle<unsigned int> d_pid_map(m_pid_map, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(),
                                      access_location::device,
                                      access_mode::read);
@@ -209,9 +201,9 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(),
                                      access_location::device,
                                      access_mode::read);
-    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(),
-                                    access_location::device,
-                                    access_mode::read);
+    ArrayHandle<uint2> d_cell_type_body(m_cl->getTypeBodyArray(),
+                                        access_location::device,
+                                        access_mode::read);
     ArrayHandle<Scalar4> d_stencil(m_cls->getStencils(),
                                    access_location::device,
                                    access_mode::read);
@@ -231,8 +223,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
 
     // the maximum cutoff that any particle can participate in
     Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
 
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
@@ -276,11 +266,10 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
                                       d_pid_map.data,
                                       d_pos.data,
                                       d_body.data,
-                                      d_diameter.data,
                                       m_pdata->getN(),
                                       d_cell_size.data,
                                       d_cell_xyzf.data,
-                                      d_cell_tdb.data,
+                                      d_cell_type_body.data,
                                       m_cl->getCellIndexer(),
                                       m_cl->getCellListIndexer(),
                                       d_stencil.data,
@@ -292,7 +281,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
                                       m_pdata->getNTypes(),
                                       m_cl->getGhostWidth(),
                                       m_filter_body,
-                                      m_diameter_shift,
                                       threads_per_particle,
                                       block_size,
                                       m_exec_conf->dev_prop);

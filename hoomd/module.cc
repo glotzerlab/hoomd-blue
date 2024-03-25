@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Action.h"
@@ -13,6 +13,7 @@
 #include "ExecutionConfiguration.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
+#include "GSDDequeWriter.h"
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
 #include "HOOMDMath.h"
@@ -37,9 +38,16 @@
 #include "Updater.h"
 #include "UpdaterRemoveDrift.h"
 #include "Variant.h"
+#include "VectorVariant.h"
 
 // ParticleFilter objects
 #include "filter/export_filters.h"
+
+// optional MPCD classes
+#ifdef BUILD_MPCD
+#include "hoomd/mpcd/ParticleData.h"
+#include "hoomd/mpcd/ParticleDataSnapshot.h"
+#endif
 
 // include GPU classes
 #ifdef ENABLE_HIP
@@ -95,6 +103,10 @@ char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Initialize the MPI environment
 int initialize_mpi()
     {
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_HCC__)
+    hipInit(0);
+#endif
+
     // initialize MPI if it has not been initialized by another program
     int external_init = 0;
     MPI_Initialized(&external_init);
@@ -268,6 +280,10 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
 #endif
+#ifdef BUILD_MPCD
+    mpcd::detail::export_ParticleData(m);
+    mpcd::detail::export_ParticleDataSnapshot(m);
+#endif
 
     // initializers
     export_GSDReader(m);
@@ -294,6 +310,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonAnalyzer(m);
     export_DCDDumpWriter(m);
     export_GSDDumpWriter(m);
+    export_GSDDequeWriter(m);
 
     // updaters
     export_Updater(m);
@@ -336,6 +353,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // variant
     export_Variant(m);
+
+    // vector variant
+    export_VectorVariantBoxClasses(m);
 
     // messenger
     export_Messenger(m);

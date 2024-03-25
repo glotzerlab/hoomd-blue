@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Code style
@@ -49,7 +49,8 @@ Documentation
 
 Python code should be documented with docstrings and added to the Sphinx
 documentation index in ``doc/``. Docstrings should follow `Google style`_
-formatting for use in `Napoleon`_.
+formatting for use in `Napoleon`_, with explicit Sphinx directives where necessary to obtain the
+proper formatting in the final HTML output.
 
 .. _Google Style: https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html#example-google
 .. _Napoleon: https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
@@ -63,6 +64,19 @@ When referencing classes, methods, and properties in documentation, use ``name``
 in the local scope (class method or property, or classes in the same module). For classes outside
 the module, use the fully qualified name (e.g. ``numpy.ndarray`` or
 ``hoomd.md.compute.ThermodynamicQuantities``).
+
+Provide code examples for all classes, methods, properties, etc... as appropriate. To the best
+extent possible, structure the example so that a majority of users can copy and paste the example
+into their script and set parameters to values reasonable for a wide range of simulations.
+Add files with your examples in the Sybil configuration in ``conftest.py`` and Sybil will test
+them. Document examples in this format so Sybil will parse them::
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        obj = MyObject(parameters ...)
+        ... more example code ...
 
 C++/CUDA
 --------
