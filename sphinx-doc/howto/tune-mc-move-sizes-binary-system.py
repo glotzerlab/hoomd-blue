@@ -15,11 +15,10 @@ for ignored_type in simulation.state.particle_types:
 # loop over particle types to tune move sizes for
 for tuned_type in simulation.state.particle_types:
     move_size_tuner = hoomd.hpmc.tune.MoveSize.scale_solver(
-        10, ['a', 'd'], 0.2, [tuned_type])
+        100, ['a', 'd'], 0.2, [tuned_type])
     simulation.operations.add(move_size_tuner)
     mc.shape[tuned_type]['ignore_statistics'] = False
-    for _ in range(10):
-        simulation.run(100)
+    simulation.run(1000)
     mc.shape[tuned_type]['ignore_statistics'] = True
     simulation.operations.remove(move_size_tuner)
 
