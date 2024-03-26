@@ -1,54 +1,53 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-Components
-==========
+Extending HOOMD-blue
+====================
 
-Extend **HOOMD-blue** with a **component** implemented in C++ for performance-critical tasks, such
-as pair potential evaluation. A component provides a number of related functionalities. For example,
-the :py:mod:`hoomd.hpmc` component enables hard particle Monte Carlo methods with **HOOMD-blue**.
+Extend **HOOMD-blue** with a **component** implemented in C++ for performance-critical
+tasks, such as pair potential evaluation.
 
-Compile and install components **built-in** or as **external** components. The **HOOMD-blue** build
-process compiles all core and built-in components together, requiring one only one set of configure,
-make, and install commands. External components compile and link against a **HOOMD-blue**
-installation from a separate build directory with their own set of configure, make, and install
-commands. You may compile a component either way. When the end user is compiling **HOOMD-blue** and
-components from source, built-in components compile and install everything at once which minimizes
-chances for errors (e.g. building **HOOMD-blue** against python 3.6, but the component against
-python 3.7). External components provide more flexibility for packaging purposes.
+Creating a component
+--------------------
 
-The **HOOMD-Blue** source provides example component templates in the `example plugins`_
-subdirectory.
+The `hoomd-component-template`_ repository provides a starting point for your
+component. It includes template C++ and Python modules, an example unit test, CMake
+scripts to build the component, and GitHub Actions workflows.
 
-.. _example plugins: https://github.com/glotzerlab/hoomd-blue/tree/trunk-patch/example_plugins
+.. _hoomd-component-template: https://github.com/glotzerlab/hoomd-component-template
 
-Built-in components
--------------------
+The **HOOMD-Blue** source provides example component templates in the
+`example_plugins`_ subdirectory.
 
-You can fork **HOOMD-blue** and add your component directly, or you can create a separate source
-repository for your component. Create a symbolic link to the component in the ``hoomd`` source
-directory to compile it as a built-in component::
+.. _example_plugins: https://github.com/glotzerlab/hoomd-blue/tree/trunk-patch/example_plugins
 
-  $ ln -s <path-to-component>/<component> hoomd-blue/hoomd/<component>
+Building an external component
+------------------------------
 
-.. note::
+To build an external component:
 
-    Built-in components may be used directly from the build directory or installed.
+1. Build and install **HOOMD-blue** from source.
+2. Obtain the component's source::
 
-External components
--------------------
+    $ git clone https://github.com/<organization>/<component>
 
-To compile an external component, you must first install **HOOMD-blue**. Then, configure your component
-with CMake and install it into the hoomd python library. Point ``CMAKE_PREFIX_PATH`` at your virtual
-environment (if needed) so that cmake can find **HOOMD-blue**::
+3. Configure::
 
-  $ cmake -B build/<component> -S <path-to-component>
-  $ cmake --build build/<component>
-  $ cmake --install build/<component>
+    $ cmake -B build/<component> -S <component>
 
-The component build environment, including the compiler, CUDA, MPI, python, and other libraries,
-must match exactly with those used to build **HOOMD-blue**.
+4. Build the component::
+
+    $ cmake --build build/<component>
+
+5. Install the component::
+
+    $ cmake --install build/<component>
+
+Once installed, the component is available for import via::
+
+    import hoomd.<component>
 
 .. note::
 
-    External components must be installed before use.
+    Replace ``<organization>`` and ``<component>`` with the names of the organization
+    and repository of the component you would like to build.

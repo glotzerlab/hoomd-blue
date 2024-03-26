@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDMath.h"
@@ -242,6 +242,15 @@ class PYBIND11_EXPORT AABBTree
     unsigned int m_root;                 //!< Index to the root node of the tree
     std::vector<unsigned int> m_mapping; //!< Reverse mapping to find node given a particle index
 
+    /// Temporary index list used to build the AABB tree.
+    std::vector<unsigned int> m_idx;
+
+    /// Temporary index list used when partitioning nodes.
+    std::vector<unsigned int> m_idx_right;
+
+    /// Temporary index list used when partitioning nodes.
+    std::vector<AABB> m_aabb_right;
+
     //! Initialize the tree to hold N particles
     inline void init(unsigned int N);
 
@@ -298,7 +307,7 @@ inline unsigned int AABBTree::query(std::vector<unsigned int>& hits, const AABB&
         const AABBNode& current_node = nodes[current_node_idx];
 
         box_overlap_counts++;
-        if (overlap(current_node.aabb, aabb))
+        if (aabb.overlaps(current_node.aabb))
             {
             if (current_node.left == INVALID_NODE)
                 {
@@ -385,11 +394,12 @@ inline void AABBTree::buildTree(AABB* aabbs, unsigned int N)
     {
     init(N);
 
-    std::vector<unsigned int> idx;
+    m_idx.clear();
+    m_idx.reserve(N);
     for (unsigned int i = 0; i < N; i++)
-        idx.push_back(i);
+        m_idx.push_back(i);
 
-    m_root = buildNode(aabbs, idx, 0, N, INVALID_NODE);
+    m_root = buildNode(aabbs, m_idx, 0, N, INVALID_NODE);
     updateSkip(m_root);
     }
 
@@ -447,8 +457,9 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
     unsigned int my_idx = allocateNode();
 
     // need to split the list of aabbs into two sets for left and right
-    unsigned int start_left = 0;
-    unsigned int start_right = len;
+    unsigned int left_insert_point = 0;
+    m_idx_right.clear();
+    m_aabb_right.clear();
 
     // if there are only 2 aabbs, put one on each side
     if (len == 2)
@@ -457,81 +468,57 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
         }
     else
         {
-        // otherwise, we need to split them based on a heuristic. split the longest dimension in
-        // half
-        if (my_radius.x > my_radius.y && my_radius.x > my_radius.z)
+        // Otherwise, we need to split them based on a heuristic. Split the longest dimension in
+        // half. Use a stable partition to keep particles in index order.
+
+        for (unsigned int i = 0; i < len; i++)
             {
-            // split on x direction
-            for (unsigned int i = 0; i < start_right; i++)
+            bool on_left = false;
+            if (my_radius.x > my_radius.y && my_radius.x > my_radius.z)
                 {
-                if (aabbs[start + i].getPosition().x < my_aabb.getPosition().x)
+                // split on x direction
+                on_left = aabbs[start + i].getPosition().x < my_aabb.getPosition().x;
+                }
+            else if (my_radius.y > my_radius.z)
+                {
+                // split on y direction
+                on_left = aabbs[start + i].getPosition().y < my_aabb.getPosition().y;
+                }
+            else
+                {
+                // split on z direction
+                on_left = aabbs[start + i].getPosition().z < my_aabb.getPosition().z;
+                }
+
+            if (on_left)
+                {
+                if (left_insert_point != i)
                     {
-                    // if on the left side, everything is happy, just continue on
+                    // Set the AABB and index at the insert point.
+                    aabbs[start + left_insert_point] = aabbs[start + i];
+                    idx[start + left_insert_point] = idx[start + i];
                     }
-                else
-                    {
-                    // if on the right side, need to swap the current aabb with the one at
-                    // start_right-1, subtract one off of start_right to indicate the addition of
-                    // one to the right side and subtract 1 from i to look at the current index (new
-                    // aabb). This is quick and easy to write, but will randomize indices - might
-                    // need to look into a stable partitioning algorithm!
-                    std::swap(aabbs[start + i], aabbs[start + start_right - 1]);
-                    std::swap(idx[start + i], idx[start + start_right - 1]);
-                    start_right--;
-                    i--;
-                    }
+                left_insert_point++;
+                }
+            else
+                {
+                // Add the right side AABBs to a temporary list.
+                m_aabb_right.push_back(aabbs[start + i]);
+                m_idx_right.push_back(idx[start + i]);
                 }
             }
-        else if (my_radius.y > my_radius.z)
-            {
-            // split on y direction
-            for (unsigned int i = 0; i < start_right; i++)
-                {
-                if (aabbs[start + i].getPosition().y < my_aabb.getPosition().y)
-                    {
-                    // if on the left side, everything is happy, just continue on
-                    }
-                else
-                    {
-                    // if on the right side, need to swap the current aabb with the one at
-                    // start_right-1, subtract one off of start_right to indicate the addition of
-                    // one to the right side and subtract 1 from i to look at the current index (new
-                    // aabb). This is quick and easy to write, but will randomize indices - might
-                    // need to look into a stable partitioning algorithm!
-                    std::swap(aabbs[start + i], aabbs[start + start_right - 1]);
-                    std::swap(idx[start + i], idx[start + start_right - 1]);
-                    start_right--;
-                    i--;
-                    }
-                }
-            }
-        else
-            {
-            // split on z direction
-            for (unsigned int i = 0; i < start_right; i++)
-                {
-                if (aabbs[start + i].getPosition().z < my_aabb.getPosition().z)
-                    {
-                    // if on the left side, everything is happy, just continue on
-                    }
-                else
-                    {
-                    // if on the right side, need to swap the current aabb with the one at
-                    // start_right-1, subtract one off of start_right to indicate the addition of
-                    // one to the right side and subtract 1 from i to look at the current index (new
-                    // aabb). This is quick and easy to write, but will randomize indices - might
-                    // need to look into a stable partitioning algorithm!
-                    std::swap(aabbs[start + i], aabbs[start + start_right - 1]);
-                    std::swap(idx[start + i], idx[start + start_right - 1]);
-                    start_right--;
-                    i--;
-                    }
-                }
-            }
+
+        assert(m_aabb_right.size() == m_idx_right.size());
+        assert(left_insert_point + m_aabb_right.size() == len);
+
+        // Copy the right AABBs back into the list.
+        std::copy(m_aabb_right.begin(), m_aabb_right.end(), aabbs + start + left_insert_point);
+        std::copy(m_idx_right.begin(), m_idx_right.end(), idx.begin() + start + left_insert_point);
         }
 
     // sanity check. The left or right tree may have ended up empty. If so, just borrow one particle
     // from it
+    unsigned int start_right = left_insert_point;
     if (start_right == len)
         start_right = len - 1;
     if (start_right == 0)
@@ -540,8 +527,7 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
     // note: calling buildNode has side effects, the m_nodes array may be reallocated. So we need to
     // determine the left and right children, then build our node (can't say m_nodes[my_idx].left =
     // buildNode(...))
-    unsigned int new_left
-        = buildNode(aabbs, idx, start + start_left, start_right - start_left, my_idx);
+    unsigned int new_left = buildNode(aabbs, idx, start, start_right, my_idx);
     unsigned int new_right = buildNode(aabbs, idx, start + start_right, len - start_right, my_idx);
 
     // now, create the children and connect them up
