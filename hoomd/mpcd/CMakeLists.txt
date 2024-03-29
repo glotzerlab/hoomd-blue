@@ -169,7 +169,7 @@ if(ENABLE_HIP)
     set_source_files_properties(${_mpcd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
-hoomd_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_mpcd_cu_sources} ${_mpcd_headers} NO_EXTRAS)
+hoomd_add_module(_mpcd SHARED ${_mpcd_cc_sources} ${_mpcd_cu_sources} ${_mpcd_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_mpcd ALIAS _mpcd)
 
