@@ -385,7 +385,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 }
 
             } // end loop over particle types
-        }     // end loop over n_sweeps
+        } // end loop over n_sweeps
     m_exec_conf->msg->notice(4) << "UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 

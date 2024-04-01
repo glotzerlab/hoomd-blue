@@ -157,7 +157,7 @@ template<class Geometry> void export_BounceBackNVEGPU(pybind11::module& m)
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<const Geometry>>());
     }
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_BOUNCE_BACK_NVE_GPU_H_

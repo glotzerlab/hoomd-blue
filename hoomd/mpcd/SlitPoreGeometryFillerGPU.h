@@ -45,7 +45,7 @@ namespace detail
     {
 //! Export SlitPoreGeometryFillerGPU to python
 void export_SlitPoreGeometryFillerGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_H_

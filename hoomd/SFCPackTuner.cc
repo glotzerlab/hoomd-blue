@@ -671,8 +671,7 @@ void SFCPackTuner::writeTraversalOrder(const std::string& fname,
         unsigned int jb = (idx - ib * m_grid * m_grid) / m_grid;
         unsigned int kb = (idx - ib * m_grid * m_grid - jb * m_grid);
 
-        f << i + 1 << " B " << ib << " " << jb << " " << kb << " "
-          << "B" << endl;
+        f << i + 1 << " B " << ib << " " << jb << " " << kb << " " << "B" << endl;
         idx++;
         }
 

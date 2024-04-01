@@ -259,8 +259,7 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
             {
             std::ostringstream s;
             s << "Error setting autotuner parameter " << m_name << ". Got " << n_params
-              << " parameters, "
-              << "expected " << n_dimensions << ".";
+              << " parameters, " << "expected " << n_dimensions << ".";
             throw std::runtime_error(s.str());
             }
 

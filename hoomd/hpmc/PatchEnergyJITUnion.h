@@ -351,7 +351,7 @@ namespace detail
 //! Exports the PatchEnergyJITUnion class to python
 void export_PatchEnergyJITUnion(pybind11::module& m);
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif // _PATCH_ENERGY_JIT_UNION_H_

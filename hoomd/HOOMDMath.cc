@@ -59,10 +59,7 @@ void export_hoomd_math_functions(pybind11::module& m)
             "y",
             [](const int3& s) { return (int)s.y; },
             [](int3& s, int v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const int3& s) { return (int)s.z; },
-            [](int3& s, int v) { s.z = v; });
+        .def_property("z", [](const int3& s) { return (int)s.z; }, [](int3& s, int v) { s.z = v; });
 
     pybind11::class_<uint3, std::shared_ptr<uint3>>(m, "uint3")
         .def(pybind11::init<>())

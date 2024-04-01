@@ -114,12 +114,12 @@ struct CylinderWall
 #ifndef __HIPCC__
     CylinderWall(Scalar r, pybind11::tuple origin, pybind11::tuple axis, bool inside = true)
         : CylinderWall(
-            r,
-            vec3<Scalar>(origin[0].cast<Scalar>(),
-                         origin[1].cast<Scalar>(),
-                         origin[2].cast<Scalar>()),
-            vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
-            inside)
+              r,
+              vec3<Scalar>(origin[0].cast<Scalar>(),
+                           origin[1].cast<Scalar>(),
+                           origin[2].cast<Scalar>()),
+              vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
+              inside)
         {
         }
 
