@@ -6,6 +6,7 @@ set(_md_sources module-md.cc
                    AlchemostatTwoStep.cc
                    AnisoPotentialPairALJ2.cc
                    AnisoPotentialPairALJ3.cc
+                   AnisoPotentialPairChain.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
                    AlchemyData.cc
@@ -92,6 +93,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
+                EvaluatorPairChain.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
@@ -208,6 +210,7 @@ if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AnisoPotentialPairALJ2GPU.cc
                            AnisoPotentialPairALJ3GPU.cc
+                           AnisoPotentialPairChainGPU.cc
                            AnisoPotentialPairDipoleGPU.cc
                            AnisoPotentialPairGBGPU.cc
                            BondTablePotentialGPU.cc
@@ -243,6 +246,7 @@ endif()
 set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
+                      AnisoPotentialPairChainGPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
                       ComputeThermoGPU.cu
