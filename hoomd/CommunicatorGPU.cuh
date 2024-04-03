@@ -336,5 +336,5 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                                             const Scalar* d_netvirial_recvbuf,
                                             Scalar* d_netvirial,
                                             unsigned int pitch_out);
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI
