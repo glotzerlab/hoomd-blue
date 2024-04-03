@@ -229,17 +229,22 @@ class EvaluatorPairChain
             Scalar pidotr = dot(p_i, rvec);
             Scalar pjdotr = dot(p_j, rvec);
 
-            Scalar pre1 = A*pidotr*pjdotr;
-            Scalar pre2 = -4*pre1*r6inv;
-            Scalar pre3 = A*pjdotr*r4inv;
-            Scalar pre4 = A*pidotr*r4inv;
+	    if(pidotr < 0 || pjdotr > 0)
+	    	{
+		Scalar pre1 = A*pidotr*pjdotr;
+		Scalar pre2 = -4*pre1*r6inv;
+		Scalar pre3 = A*pjdotr*r4inv;
+		Scalar pre4 = A*pidotr*r4inv;
 
-            f -= pre2 * rvec + pre3 * p_i + pre4 * p_j;
+		f -= pre2 * rvec;
+		f -= pre3 * p_i;
+		f -= pre4 * p_j;
 
-            t_i += pre3 * cross(p_i, rvec);
-            t_j += pre4 * cross(p_j, rvec);
+		t_i += pre3 * cross(rvec, p_i);
+		t_j += pre4 * cross(rvec, p_j);
 
-            e += pre1 * r4inv;
+		e += pre1 * r4inv;
+	        }
             }
 
         force = vec_to_scalar3(f);

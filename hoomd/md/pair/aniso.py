@@ -57,6 +57,59 @@ class AnisotropicPair(Pair):
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
+class Chain(AnisotropicPair):
+    r"""Chain pair forces.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+
+    `Chain` computes a chain alignment interaction between pairs of
+    particles with orientations:
+
+    .. math::
+
+        U = \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})
+                  (\vec{\mu_j}\cdot \vec{r_{ji}})}{r^4}
+
+    Example::
+
+        nl = nlist.Cell()
+        chain = md.pair.ansio.Chain(nl, default_r_cut=3.0)
+        chain.params[('A', 'B')] = dict(A=1.0)
+        chain.mu['A'] = (4.0, 1.0, 0.0)
+
+    .. py:attribute:: params
+
+        The chain potential parameters. The dictionary has the following
+        keys:
+
+        * ``A`` (`float`, **required**) - :math:`A` - energy
+          scale (*default*: 1.0)
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^{2}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: mu
+
+        :math:`\mu` - the orientation of the particle local reference
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`)
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float` ]]
+    """
+    _cpp_class_name = "AnisoPotentialPairChain"
+
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut, 'none')
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(A=float, len_keys=2))
+        mu = TypeParameter('mu', 'particle_types',
+                           TypeParameterDict((float, float, float), len_keys=1))
+        self._extend_typeparam((params, mu))
+
 
 class Dipole(AnisotropicPair):
     r"""Screened dipole-dipole pair forces.
