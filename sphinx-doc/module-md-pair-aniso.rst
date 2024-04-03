@@ -13,6 +13,7 @@ md.pair.aniso
 
     ALJ
     AnisotropicPair
+    Chain
     Dipole
     GayBerne
 
@@ -23,6 +24,7 @@ md.pair.aniso
     :members:
         ALJ,
         AnisotropicPair,
+        Chain,
         Dipole,
         GayBerne,
     :show-inheritance:
