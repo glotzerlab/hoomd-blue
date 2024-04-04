@@ -3,6 +3,7 @@
 
 #include "AnisoPotentialPairGPU.h"
 #include "EvaluatorPairLJ.h"
+#include "EvaluatorPairYukawa.h"
 #include "GeneralEnvelope.h"
 #include "PairModulator.h"
 
@@ -14,12 +15,12 @@ namespace detail
     {
 void export_AnisoPotentialPairJanusLJGPU(pybind11::module& m)
     {
-    export_AnisoPotentialPairGPU<PairModulator<EvaluatorPairLJ, GeneralEnvelope<JanusFactor>>>(
+        export_AnisoPotentialPairGPU<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(
         m,
         "AnisoPotentialPairJanusLJGPU");
     }
 void export_AnisoPotentialPairJanusYukawaGPU(pybind11::module& m) {
-    export_AnisoPotentialPairGPU<PairModulator<EvaluatorPairYukawa, GeneralEnvelope<JanusFactor>>>(
+    export_AnisoPotentialPairGPU<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(
         m,
         "AnisoPotentialPairJanusYukawaGPU");
 }

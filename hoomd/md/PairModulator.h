@@ -14,6 +14,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/ManagedArray.h"
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 //! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
@@ -48,7 +49,7 @@ public:
                 pairP = _pairP;
                 envelP = _envelP;
             }
-
+#ifndef __HIPCC__
         param_type(pybind11::dict params, bool managed)
             {
                 pairP = typename PairEvaluator::param_type(params["pair_params"], managed);
@@ -64,6 +65,7 @@ public:
 
                 return v;
             }
+#endif
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
             {
                 pairP.load_shared(ptr, available_bytes);

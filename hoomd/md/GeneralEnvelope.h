@@ -31,7 +31,7 @@ namespace md
   The GeneralEnvelope creates the pair potential modulator.
 */
 
-        std::string vecString(vec3<Scalar> a) {
+        static inline std::string vecString(vec3<Scalar> a) {
             return std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + '\n';
         }
 
@@ -44,7 +44,7 @@ public:
         param_type()
             {
             }
-
+#ifndef __HIPCC__
         param_type(pybind11::dict params) // param dict can take any python type
             {
                 cosalpha = fast::cos(params["alpha"].cast<Scalar>());
@@ -58,7 +58,7 @@ public:
                 v["omega"] = omega;
                 return v;
             }
-
+#endif
         Scalar cosalpha;
         Scalar omega;
     }__attribute__((aligned(16)));
@@ -101,6 +101,7 @@ public:
         const shape_type& shape_i,
         const shape_type& shape_j)
 // #ifdef __HIPCC__
+        // decide which is faster on GPU and CPU. // use 250_000 particles to saturate GPU // benchmark on brett
         // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
 // #else
         : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)

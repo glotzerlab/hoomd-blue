@@ -13,10 +13,10 @@ namespace md
 namespace kernel
     {
 template hipError_t __attribute__((visibility("default")))
-gpu_compute_pair_aniso_forces<PairModulator<EvaluatorPairLJ, GeneralEnvelope<JanusFactor>>>(
+gpu_compute_pair_aniso_forces<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(
     const a_pair_args_t& pair_args,
-    const EvaluatorPairLJ::param_type* d_param,
-    const EvaluatorPairLJ::shape_type* d_shape_param);
+    const PairModulator<EvaluatorPairLJ, GeneralEnvelope>::param_type* d_param,
+    const PairModulator<EvaluatorPairLJ, GeneralEnvelope>::shape_type* d_shape_param);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd
