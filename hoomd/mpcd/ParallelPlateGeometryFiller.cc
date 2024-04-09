@@ -121,7 +121,7 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
         vel.z = gen(rng);
         // TODO: should these be given zero net-momentum contribution (relative to the frame of
         // reference?)
-        h_vel.data[pidx] = make_scalar4(vel.x + sign * m_geom->getVelocity(),
+        h_vel.data[pidx] = make_scalar4(vel.x + sign * m_geom->getSpeed(),
                                         vel.y,
                                         vel.z,
                                         __int_as_scalar(mpcd::detail::NO_CELL));

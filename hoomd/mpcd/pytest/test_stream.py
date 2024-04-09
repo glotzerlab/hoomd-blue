@@ -29,7 +29,7 @@ def snap():
             {
                 "geometry":
                     hoomd.mpcd.geometry.ParallelPlates(
-                        H=4.0, V=0.0, no_slip=True),
+                        separation=8.0, speed=0.0, no_slip=True),
             },
         ),
         (
@@ -192,7 +192,8 @@ class TestParallelPlates:
             snap.mpcd.velocity[:] = [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -232,7 +233,8 @@ class TestParallelPlates:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4, no_slip=False))
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0,
+                                                        no_slip=False))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -280,7 +282,9 @@ class TestParallelPlates:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4, V=1, no_slip=True),
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0,
+                                                        speed=1,
+                                                        no_slip=True),
         )
         ig = hoomd.mpcd.Integrator(dt=0.3, streaming_method=sm)
         sim.operations.integrator = ig
@@ -301,7 +305,8 @@ class TestParallelPlates:
             snap.mpcd.position[0] = [0, 3.85, 0]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=H))
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=2 * H))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 

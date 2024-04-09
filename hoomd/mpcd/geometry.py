@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""MPCD geometries.
@@ -60,17 +60,17 @@ class ParallelPlates(Geometry):
     r"""Parallel-plate channel.
 
     Args:
-        H (float): Channel half-width.
-        V (float): Wall speed.
+        separation (float): Distance between plates.
+        speed (float): Wall speed.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
 
-    `ParallelPlates` confines particles between two infinite parallel
-    plates centered around the origin. The plates are placed at :math:`y=-H`
-    and :math:`y=+H`, so the total channel width is :math:`2H`. The plates may
-    be put into motion, moving with speeds :math:`-V` and :math:`+V` in the *x*
-    direction, respectively. If combined with a no-slip boundary condition,
-    this motion can be used to generate simple shear flow.
+    `ParallelPlates` confines particles between two infinite parallel plates
+    centered around the origin. The plates are placed at :math:`y=-H` and
+    :math:`y=+H`, where the total `separation` is :math:`2H`. The plates may be
+    put into motion with `speed` *V*, having velocity :math:`-V` and :math:`+V`
+    in the *x* direction, respectively. If combined with a no-slip boundary
+    condition, this motion can be used to generate simple shear flow.
 
     .. rubric:: Examples:
 
@@ -78,7 +78,7 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         simulation.operations.integrator.streaming_method = stream
 
@@ -86,7 +86,8 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0, no_slip=False)
+        plates = hoomd.mpcd.geometry.ParallelPlates(
+            separation=6.0, no_slip=False)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         simulation.operations.integrator.streaming_method = stream
 
@@ -94,30 +95,32 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0, V=1.0, no_slip=True)
+        plates = hoomd.mpcd.geometry.ParallelPlates(
+            separation=6.0, speed=1.0, no_slip=True)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
-        H (float): Channel half-width (*read only*).
+        separation (float): Distance between plates (*read only*).
 
-        V (float): Wall speed (*read only*).
+        speed (float): Wall speed (*read only*).
 
-            `V` will have no effect if `no_slip` is False because the slip
+            `speed` will have no effect if `no_slip` is False because the slip
             surface cannot generate shear stress.
 
     """
 
-    def __init__(self, H, V=0.0, no_slip=True):
+    def __init__(self, separation, speed=0.0, no_slip=True):
         super().__init__(no_slip)
         param_dict = ParameterDict(
-            H=float(H),
-            V=float(V),
+            separation=float(separation),
+            speed=float(speed),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.ParallelPlates(self.H, self.V, self.no_slip)
+        self._cpp_obj = _mpcd.ParallelPlates(self.separation, self.speed,
+                                             self.no_slip)
         super()._attach_hook()
 
 

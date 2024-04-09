@@ -98,7 +98,7 @@ __global__ void slit_draw_particles(Scalar4* d_pos,
     vel.z = gen(rng);
     // TODO: should these be given zero net-momentum contribution (relative to the frame of
     // reference?)
-    d_vel[pidx] = make_scalar4(vel.x + sign * geom.getVelocity(),
+    d_vel[pidx] = make_scalar4(vel.x + sign * geom.getSpeed(),
                                vel.y,
                                vel.z,
                                __int_as_scalar(mpcd::detail::NO_CELL));

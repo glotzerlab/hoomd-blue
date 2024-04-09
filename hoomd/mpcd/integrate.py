@@ -126,7 +126,7 @@ class Integrator(_MDIntegrator):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         collide = hoomd.mpcd.collide.StochasticRotationDynamics(
             period=1,

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -85,7 +85,7 @@ def test_streaming_method(make_simulation):
 
 def test_virtual_particle_fillers(make_simulation):
     sim = make_simulation()
-    geom = hoomd.mpcd.geometry.ParallelPlates(H=4.0)
+    geom = hoomd.mpcd.geometry.ParallelPlates(separation=8.0)
     filler = hoomd.mpcd.fill.GeometryFiller(
         type="A",
         density=5.0,

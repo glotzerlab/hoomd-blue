@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -22,31 +22,33 @@ def snap():
 class TestParallelPlates:
 
     def test_default_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.ParallelPlates(H=4.0)
-        assert geom.H == 4.0
-        assert geom.V == 0.0
+        geom = hoomd.mpcd.geometry.ParallelPlates(separation=8.0)
+        assert geom.separation == 8.0
+        assert geom.speed == 0.0
         assert geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
-        assert geom.H == 4.0
-        assert geom.V == 0.0
+        assert geom.separation == 8.0
+        assert geom.speed == 0.0
         assert geom.no_slip
 
     def test_nondefault_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.ParallelPlates(H=5.0, V=1.0, no_slip=False)
-        assert geom.H == 5.0
-        assert geom.V == 1.0
+        geom = hoomd.mpcd.geometry.ParallelPlates(separation=10.0,
+                                                  speed=1.0,
+                                                  no_slip=False)
+        assert geom.separation == 10.0
+        assert geom.speed == 1.0
         assert not geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
-        assert geom.H == 5.0
-        assert geom.V == 1.0
+        assert geom.separation == 10.0
+        assert geom.speed == 1.0
         assert not geom.no_slip
 
     def test_pickling(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.ParallelPlates(H=4.0)
+        geom = hoomd.mpcd.geometry.ParallelPlates(separation=8.0)
         pickling_check(geom)
 
         sim = simulation_factory(snap)

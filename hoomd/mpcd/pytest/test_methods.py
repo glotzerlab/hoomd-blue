@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -25,7 +25,7 @@ def snap():
 def integrator():
     bb = hoomd.mpcd.methods.BounceBack(
         filter=hoomd.filter.All(),
-        geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
+        geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0))
     ig = hoomd.mpcd.Integrator(dt=0.1, methods=[bb])
     return ig
 
@@ -116,7 +116,7 @@ class TestBounceBack:
 
     def test_step_moving_wall(self, simulation_factory, snap, integrator):
         integrator.dt = 0.3
-        integrator.methods[0].geometry.V = 1.0
+        integrator.methods[0].geometry.speed = 1.0
 
         if snap.communicator.rank == 0:
             snap.particles.velocity[1] = [-2.0, -1.0, -1.0]
@@ -156,7 +156,7 @@ class TestBounceBack:
     def test_check_particles(self, simulation_factory, snap, integrator, H,
                              expected_result):
         """Test box validation raises an error on run."""
-        integrator.methods[0].geometry.H = H
+        integrator.methods[0].geometry.separation = 2 * H
 
         sim = simulation_factory(snap)
         sim.operations.integrator = integrator
@@ -168,7 +168,7 @@ class TestBounceBack:
         """Test we can also attach to a normal MD integrator."""
         bb = hoomd.mpcd.methods.BounceBack(
             filter=hoomd.filter.All(),
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0))
         integrator = hoomd.md.Integrator(dt=0.1, methods=[bb])
 
         sim = simulation_factory(snap)

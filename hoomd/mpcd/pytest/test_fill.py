@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -23,7 +23,7 @@ def snap():
     "cls, init_args",
     [
         (hoomd.mpcd.geometry.ParallelPlates, {
-            "H": 4.0
+            "separation": 8.0
         }),
         (hoomd.mpcd.geometry.PlanarPore, {
             "H": 4.0,

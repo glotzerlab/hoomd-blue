@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""MPCD integration methods.
@@ -68,7 +68,7 @@ class BounceBack(Method):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         nve = hoomd.mpcd.methods.BounceBack(
             filter=hoomd.filter.All(), geometry=plates)
         simulation.operations.integrator.methods.append(nve)

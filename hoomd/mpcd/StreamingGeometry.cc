@@ -21,8 +21,8 @@ void export_ParallelPlateGeometry(pybind11::module& m)
         m,
         ParallelPlateGeometry::getName().c_str())
         .def(pybind11::init<Scalar, Scalar, bool>())
-        .def_property_readonly("H", &ParallelPlateGeometry::getH)
-        .def_property_readonly("V", &ParallelPlateGeometry::getVelocity)
+        .def_property_readonly("separation", &ParallelPlateGeometry::getSeparation)
+        .def_property_readonly("speed", &ParallelPlateGeometry::getSpeed)
         .def_property_readonly("no_slip", &ParallelPlateGeometry::getNoSlip);
     }
 

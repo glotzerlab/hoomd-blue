@@ -198,7 +198,7 @@ class BounceBack(StreamingMethod):
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.ParallelPlates(
-                H=3.0, V=1.0, no_slip=True))
+                separation=6.0, speed=1.0, no_slip=True))
         simulation.operations.integrator.streaming_method = stream
 
     Pressure driven flow between parallel plates.
@@ -207,7 +207,8 @@ class BounceBack(StreamingMethod):
 
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.0, no_slip=True),
+            geometry=hoomd.mpcd.geometry.ParallelPlates(
+                separation=6.0, no_slip=True),
             solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
         simulation.operations.integrator.streaming_method = stream
 
