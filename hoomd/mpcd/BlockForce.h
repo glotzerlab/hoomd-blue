@@ -57,8 +57,8 @@ class __attribute__((visibility("default"))) BlockForce
      */
     HOSTDEVICE BlockForce(Scalar F, Scalar separation, Scalar width) : m_F(F)
         {
-        m_H_plus_w = 0.5 * (separation + width);
-        m_H_minus_w = 0.5 * (separation - width);
+        m_H_plus_w = Scalar(0.5) * (separation + width);
+        m_H_minus_w = Scalar(0.5) * (separation - width);
         }
 
     //! Force evaluation method
@@ -96,8 +96,8 @@ class __attribute__((visibility("default"))) BlockForce
     void setSeparation(Scalar H)
         {
         const Scalar w = getWidth();
-        m_H_plus_w = 0.5 * (H + w);
-        m_H_minus_w = 0.5 * (H - w);
+        m_H_plus_w = Scalar(0.5) * (H + w);
+        m_H_minus_w = Scalar(0.5) * (H - w);
         }
 
     //! Get the block width
@@ -110,8 +110,8 @@ class __attribute__((visibility("default"))) BlockForce
     void setWidth(Scalar w)
         {
         const Scalar H = getSeparation();
-        m_H_plus_w = 0.5 * (H + w);
-        m_H_minus_w = 0.5 * (H - w);
+        m_H_plus_w = Scalar(0.5) * (H + w);
+        m_H_minus_w = Scalar(0.5) * (H - w);
         }
 
 #ifndef __HIPCC__
