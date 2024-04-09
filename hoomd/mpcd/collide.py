@@ -81,6 +81,8 @@ class CellList(Compute):
 
     def _attach_hook(self):
         sim = self._simulation
+        sim._warn_if_seed_unset()
+
         if isinstance(sim.device, hoomd.device.GPU):
             cpp_class = _mpcd.CellListGPU
         else:
@@ -216,6 +218,8 @@ class AndersenThermostat(CollisionMethod):
 
     def _attach_hook(self):
         sim = self._simulation
+        sim._warn_if_seed_unset()
+
         if isinstance(sim.device, hoomd.device.GPU):
             cpp_class = _mpcd.ATCollisionMethodGPU
         else:
@@ -334,6 +338,8 @@ class StochasticRotationDynamics(CollisionMethod):
 
     def _attach_hook(self):
         sim = self._simulation
+        sim._warn_if_seed_unset()
+
         if isinstance(sim.device, hoomd.device.GPU):
             cpp_class = _mpcd.SRDCollisionMethodGPU
         else:

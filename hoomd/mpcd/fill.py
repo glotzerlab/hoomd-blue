@@ -135,6 +135,7 @@ class GeometryFiller(VirtualParticleFiller):
 
     def _attach_hook(self):
         sim = self._simulation
+        sim._warn_if_seed_unset()
 
         self.geometry._attach(sim)
 
