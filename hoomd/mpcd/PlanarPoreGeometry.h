@@ -45,12 +45,12 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
     public:
     //! Constructor
     /*!
-     * \param H Channel half-width
-     * \param L Pore half-length
+     * \param separation Distance between pore walls
+     * \param length Pore length
      * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE PlanarPoreGeometry(Scalar H, Scalar L, bool no_slip)
-        : m_H(H), m_L(L), m_no_slip(no_slip)
+    HOSTDEVICE PlanarPoreGeometry(Scalar separation, Scalar length, bool no_slip)
+        : m_H(Scalar(0.5) * separation), m_L(Scalar(0.5) * length), m_no_slip(no_slip)
         {
         }
 
@@ -177,6 +177,15 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
         return m_H;
         }
 
+    //! Get distance between pore walls
+    /*!
+     * \returns Distance between pore walls
+     */
+    HOSTDEVICE Scalar getSeparation() const
+        {
+        return Scalar(2.0) * m_H;
+        }
+
     //! Get pore half length
     /*!
      * \returns Pore half length
@@ -184,6 +193,15 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
     HOSTDEVICE Scalar getL() const
         {
         return m_L;
+        }
+
+    //! Get pore length
+    /*!
+     * \returns Pore length
+     */
+    HOSTDEVICE Scalar getLength() const
+        {
+        return Scalar(2.0) * m_L;
         }
 
     //! Get the wall boundary condition

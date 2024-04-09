@@ -59,31 +59,33 @@ class TestParallelPlates:
 class TestPlanarPore:
 
     def test_default_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.PlanarPore(H=4.0, L=5.0)
-        assert geom.H == 4.0
-        assert geom.L == 5.0
+        geom = hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=10.0)
+        assert geom.separation == 8.0
+        assert geom.length == 10.0
         assert geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
-        assert geom.H == 4.0
-        assert geom.L == 5.0
+        assert geom.separation == 8.0
+        assert geom.length == 10.0
         assert geom.no_slip
 
     def test_nondefault_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.PlanarPore(H=5.0, L=4.0, no_slip=False)
-        assert geom.H == 5.0
-        assert geom.L == 4.0
+        geom = hoomd.mpcd.geometry.PlanarPore(separation=10.0,
+                                              length=8.0,
+                                              no_slip=False)
+        assert geom.separation == 10.0
+        assert geom.length == 8.0
         assert not geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
-        assert geom.H == 5.0
-        assert geom.L == 4.0
+        assert geom.separation == 10.0
+        assert geom.length == 8.0
         assert not geom.no_slip
 
     def test_pickling(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.PlanarPore(H=4.0, L=5.0)
+        geom = hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=10.0)
         pickling_check(geom)
 
         sim = simulation_factory(snap)

@@ -26,8 +26,8 @@ def snap():
             "separation": 8.0
         }),
         (hoomd.mpcd.geometry.PlanarPore, {
-            "H": 4.0,
-            "L": 5.0
+            "separation": 8.0,
+            "length": 10.0
         }),
     ],
     ids=["ParallelPlates", "PlanarPore"],

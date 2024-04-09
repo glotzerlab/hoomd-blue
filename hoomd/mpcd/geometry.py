@@ -128,14 +128,14 @@ class PlanarPore(Geometry):
     r"""Pore with parallel plate opening.
 
     Args:
-        H (float): Pore half-width.
-        L (float): Pore half-length.
+        separation (float): Distance between pore walls.
+        length (float): Pore length.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
 
     `PlanarPore` is a finite-length version of `ParallelPlates`. The
     geometry is similar, except that the plates extend from :math:`x=-L` to
-    :math:`x=+L` (total length *2L*). Additional solid walls
+    :math:`x=+L` (total `length` *2L*). Additional solid walls
     with normals in *x* prevent penetration into the regions above / below the
     plates. The plates are infinite in *z*. Outside the pore, the simulation box
     has full periodic boundaries; it is not confined by any walls. This model
@@ -145,26 +145,27 @@ class PlanarPore(Geometry):
 
     .. code-block:: python
 
-        pore = hoomd.mpcd.geometry.PlanarPore(H=3.0, L=2.0)
+        pore = hoomd.mpcd.geometry.PlanarPore(separation=6.0, length=4.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=pore)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
-        H (float): Pore half-width (*read only*).
+        separation (float): Distance between pore walls (*read only*).
 
-        L (float): Pore half-length (*read only*).
+        length (float): Pore length (*read only*).
 
     """
 
-    def __init__(self, H, L, no_slip=True):
+    def __init__(self, separation, length, no_slip=True):
         super().__init__(no_slip)
 
         param_dict = ParameterDict(
-            H=float(H),
-            L=float(L),
+            separation=float(separation),
+            length=float(length),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.PlanarPore(self.H, self.L, self.no_slip)
+        self._cpp_obj = _mpcd.PlanarPore(self.separation, self.length,
+                                         self.no_slip)
         super()._attach_hook()

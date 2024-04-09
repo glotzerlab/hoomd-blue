@@ -32,8 +32,8 @@ void export_PlanarPoreGeometry(pybind11::module& m)
         m,
         PlanarPoreGeometry::getName().c_str())
         .def(pybind11::init<Scalar, Scalar, bool>())
-        .def_property_readonly("H", &PlanarPoreGeometry::getH)
-        .def_property_readonly("L", &PlanarPoreGeometry::getL)
+        .def_property_readonly("separation", &PlanarPoreGeometry::getSeparation)
+        .def_property_readonly("length", &PlanarPoreGeometry::getLength)
         .def_property_readonly("no_slip", &PlanarPoreGeometry::getNoSlip);
     }
 

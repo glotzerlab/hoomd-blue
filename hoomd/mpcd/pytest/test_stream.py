@@ -36,7 +36,8 @@ def snap():
             hoomd.mpcd.stream.BounceBack,
             {
                 "geometry":
-                    hoomd.mpcd.geometry.PlanarPore(H=4.0, L=3.0, no_slip=True)
+                    hoomd.mpcd.geometry.PlanarPore(
+                        separation=8.0, length=6.0, no_slip=True)
             },
         ),
     ],
@@ -346,7 +347,9 @@ class TestPlanarPore:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3, no_slip=True))
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0,
+                                                    length=6.0,
+                                                    no_slip=True))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -417,7 +420,9 @@ class TestPlanarPore:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3, no_slip=False))
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0,
+                                                    length=6.0,
+                                                    no_slip=False))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -491,15 +496,18 @@ class TestPlanarPore:
         sim.operations.integrator = ig
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3))
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=6.0))
         sim.run(0)
         assert ig.streaming_method.check_solvent_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=3.8, L=3))
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=7.6, length=6.0))
         sim.run(0)
         assert not ig.streaming_method.check_solvent_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3.5))
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=7.0))
         assert not ig.streaming_method.check_solvent_particles()
