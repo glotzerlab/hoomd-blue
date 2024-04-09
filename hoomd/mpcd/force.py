@@ -42,14 +42,13 @@ class BlockForce(SolventForce):
 
     Args:
         force (float): Magnitude of the force in *x* per particle.
-        half_separation (float): Half the distance between the centers of the
-            blocks.
-        half_width (float): Half the width of each block.
+        separation (float): Distance between the centers of the blocks.
+        width (float): Width of each block.
 
     The `force` magnitude *F* is applied in the *x* direction on the solvent
-    particles in blocks defined along the *y* direction by the `half_separation`
-    *H* and the `half_width` *w*. The force in *x* is :math:`+F` in the upper
-    block, :math:`-F` in the lower block, and zero otherwise.
+    particles in blocks defined along the *y* direction by the `separation`
+    :math:`2H` and the `width` :math:`2w`. The force in *x* is :math:`+F` in the
+    upper block, :math:`-F` in the lower block, and zero otherwise.
 
     .. math::
         :nowrap:
@@ -63,7 +62,7 @@ class BlockForce(SolventForce):
         \end{equation}
 
     The `BlockForce` can be used to implement the double-parabola method for
-    measuring viscosity by setting :math:`H = L_y/4` and :math:`w = L_y/4`,
+    measuring viscosity using separation :math:`L_y/2` and width :math:`L_y/2`,
     where :math:`L_y` is the size of the simulation box in *y*.
 
     Warning:
@@ -78,9 +77,7 @@ class BlockForce(SolventForce):
 
         Ly = simulation.state.box.Ly
         force = hoomd.mpcd.force.BlockForce(
-            force=1.0,
-            half_separation=Ly/4,
-            half_width=Ly/4)
+            force=1.0, separation=Ly/2, width=Ly/2)
         stream = hoomd.mpcd.stream.Bulk(period=1, solvent_force=force)
         simulation.operations.integrator.streaming_method = stream
 
@@ -93,40 +90,39 @@ class BlockForce(SolventForce):
 
                 force.force = 1.0
 
-        half_separation (float): Half the distance between the centers of the
-            blocks.
+        separation (float): Ddistance between the centers of the blocks.
 
             .. rubric:: Example:
 
             .. code-block:: python
 
                 Ly = simulation.state.box.Ly
-                force.half_separation = Ly / 4
+                force.separation = Ly / 2
 
-        half_width (float): Half the width of each block.
+        width (float): Width of each block.
 
             .. rubric:: Example:
 
             .. code-block:: python
 
                 Ly = simulation.state.box.Ly
-                force.half_width = Ly / 4
+                force.width = Ly / 2
 
     """
 
-    def __init__(self, force, half_separation=None, half_width=None):
+    def __init__(self, force, separation=None, width=None):
         super().__init__()
 
         param_dict = ParameterDict(
             force=float(force),
-            half_separation=float(half_separation),
-            half_width=float(half_width),
+            separation=float(separation),
+            width=float(width),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.BlockForce(self.force, self.half_separation,
-                                         self.half_width)
+        self._cpp_obj = _mpcd.BlockForce(self.force, self.separation,
+                                         self.width)
         super()._attach_hook()
 
 

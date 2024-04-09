@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -70,8 +70,7 @@ class TestStreamingMethod:
         "force",
         [
             None,
-            hoomd.mpcd.force.BlockForce(
-                force=2.0, half_separation=3.0, half_width=0.5),
+            hoomd.mpcd.force.BlockForce(force=2.0, separation=3.0, width=0.5),
             hoomd.mpcd.force.ConstantForce(force=(1, -2, 3)),
             hoomd.mpcd.force.SineForce(amplitude=2.0, wavenumber=1),
         ],
