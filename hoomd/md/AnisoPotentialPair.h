@@ -548,6 +548,10 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                   access_location::host,
                                   access_mode::read);
 
+    ArrayHandle<Scalar4> h_velocity(m_pdata->getVelocities(),
+                                  access_location::host,
+                                  access_mode::read);
+
     // force arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
@@ -588,6 +592,10 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 quat<Scalar> p(h_angmom.data[i]);
                 quat<Scalar> q(quat_i);
                 ai = (Scalar(1. / 2.) * conj(q) * p).v;
+                }
+            if (aniso_evaluator::needsVelocity())
+                {
+                vi = h_velocity.data[i];
                 }
 
             // initialize current particle force, torque, potential energy, and virial to 0
@@ -637,6 +645,10 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     quat<Scalar> q(quat_j);
                     aj = (Scalar(1. / 2.) * conj(q) * p).v;
                     }
+            	if (aniso_evaluator::needsVelocity())
+            	    {
+            	    vj = h_velocity.data[j];
+            	    }
 
                 // apply periodic boundary conditions
                 dx = box.minImage(dx);
@@ -673,6 +685,13 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     {
                     if (m_reciprocal)
                         eval.setAngularMomentum(ai + aj);
+                    else
+                        eval.setAngularMomentum(ai);
+                    }
+                if (aniso_evaluator::needsVelocity())
+                    {
+                    if (m_reciprocal)
+                        eval.setVelocity(vi + vj);
                     else
                         eval.setAngularMomentum(ai);
                     }

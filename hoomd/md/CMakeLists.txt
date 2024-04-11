@@ -113,6 +113,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairLubricationCoupling.h
+                EvaluatorPairVelocityLubricationCoupling.h
                 EvaluatorPairRotationalCoupling.h
                 EvaluatorPairExpandedLJ.h
                 EvaluatorPairTable.h

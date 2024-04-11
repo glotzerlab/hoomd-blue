@@ -166,6 +166,12 @@ class EvaluatorPairLubricationCoupling
         return true;
         }
 
+    //! Whether the pair potential needs particle velocity 
+    HOSTDEVICE static bool needsVelocity()
+        {
+        return false;
+        }
+
     /// Whether the potential implements the energy_shift parameter
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
