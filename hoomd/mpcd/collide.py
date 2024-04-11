@@ -8,8 +8,8 @@ time. Particles are binned into cells based on their positions, and all
 particles in a cell undergo a stochastic collision that updates their velocities
 while conserving linear momentum. Collision rules can optionally be extended to
 also conserve angular momentum The stochastic collisions lead to a build up of
-hydrodynamic interactions, and the choice of collision rule and solvent
-properties determine the transport coefficients.
+hydrodynamic interactions, and the choice of collision rule determines the
+transport coefficients.
 
 .. invisible-code-block: python
 
@@ -149,7 +149,7 @@ class AndersenThermostat(CollisionMethod):
 
     Args:
         period (int): Number of integration steps between collisions.
-        kT (hoomd.variant.variant_like): Temperature of the solvent
+        kT (hoomd.variant.variant_like): Temperature of the thermostat
             :math:`[\mathrm{energy}]`.
         embedded_particles (hoomd.filter.ParticleFilter): HOOMD particles to
             include in collision.
@@ -167,7 +167,7 @@ class AndersenThermostat(CollisionMethod):
 
     .. rubric:: Examples:
 
-    Solvent collision.
+    Collision for only MPCD particles.
 
     .. code-block:: python
 
@@ -187,7 +187,7 @@ class AndersenThermostat(CollisionMethod):
         simulation.operations.integrator.collision_method = andersen_thermostat
 
     Attributes:
-        kT (hoomd.variant.variant_like): Temperature of the solvent
+        kT (hoomd.variant.variant_like): Temperature of the thermostat
             :math:`[\mathrm{energy}]`.
 
             This temperature determines the distribution used to generate the
@@ -268,14 +268,14 @@ class StochasticRotationDynamics(CollisionMethod):
 
     .. rubric:: Examples:
 
-    Standard solvent collision.
+    Collision of MPCD particles.
 
     .. code-block:: python
 
         srd = hoomd.mpcd.collide.StochasticRotationDynamics(period=1, angle=130)
         simulation.operations.integrator.collision_method = srd
 
-    Solvent collision with thermostat.
+    Collision of MPCD particles with thermostat.
 
     .. code-block:: python
 

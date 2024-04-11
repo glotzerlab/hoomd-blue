@@ -1,17 +1,17 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""MPCD solvent forces.
+r"""MPCD particle body forces.
 
 MPCD can apply a body force to each MPCD particle as a function of position.
 The external force should be compatible with the chosen
 :class:`~hoomd.mpcd.geometry.Geometry`. Global momentum conservation can be
-broken by adding a solvent force, so care should be chosen that the entire model
+broken by adding a body force, so care should be chosen that the entire model
 is designed so that the system does not have net acceleration. For example,
 solid boundaries can be used to dissipate momentum, or a balancing force can be
-applied to particles that are embedded in the solvent through the collision
-step. Additionally, a thermostat will likely be required to maintain temperature
-control in the driven system.
+applied to particles that are embedded in the MPCD particles through the
+collision step. Additionally, a thermostat will likely be required to maintain
+temperature control in the driven system.
 
 .. invisible-code-block: python
 
@@ -26,10 +26,10 @@ from hoomd.mpcd import _mpcd
 from hoomd.operation import _HOOMDBaseObject
 
 
-class SolventForce(_HOOMDBaseObject):
-    """Solvent force.
+class BodyForce(_HOOMDBaseObject):
+    """Body force.
 
-    The `SolventForce` is a body force applied to each solvent particle. This
+    The `BodyForce` is a body force applied to each MPCD particle. This
     class should not be instantiated directly. It exists for type checking.
 
     """
@@ -37,7 +37,7 @@ class SolventForce(_HOOMDBaseObject):
     pass
 
 
-class BlockForce(SolventForce):
+class BlockForce(BodyForce):
     r"""Block force.
 
     Args:
@@ -45,7 +45,7 @@ class BlockForce(SolventForce):
         separation (float): Distance between the centers of the blocks.
         width (float): Width of each block.
 
-    The `force` magnitude *F* is applied in the *x* direction on the solvent
+    The `force` magnitude *F* is applied in the *x* direction on the MPCD
     particles in blocks defined along the *y* direction by the `separation`
     :math:`2H` and the `width` :math:`2w`. The force in *x* is :math:`+F` in the
     upper block, :math:`-F` in the lower block, and zero otherwise.
@@ -78,7 +78,7 @@ class BlockForce(SolventForce):
         Ly = simulation.state.box.Ly
         force = hoomd.mpcd.force.BlockForce(
             force=1.0, separation=Ly/2, width=Ly/2)
-        stream = hoomd.mpcd.stream.Bulk(period=1, solvent_force=force)
+        stream = hoomd.mpcd.stream.Bulk(period=1, mpcd_particle_force=force)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
@@ -126,13 +126,13 @@ class BlockForce(SolventForce):
         super()._attach_hook()
 
 
-class ConstantForce(SolventForce):
+class ConstantForce(BodyForce):
     r"""Constant force.
 
     Args:
         force (`tuple` [`float`, `float`, `float`]): Force vector per particle.
 
-    The same constant force is applied to all solvent particles, independently
+    The same constant force is applied to all MPCD particles, independently
     of time and position. This force is useful for simulating pressure-driven
     flow in conjunction with a confined geometry having no-slip boundary
     conditions. It is also useful for measuring diffusion coefficients with
@@ -143,7 +143,7 @@ class ConstantForce(SolventForce):
     .. code-block:: python
 
         force = hoomd.mpcd.force.ConstantForce((1.0, 0, 0))
-        stream = hoomd.mpcd.stream.Bulk(period=1, solvent_force=force)
+        stream = hoomd.mpcd.stream.Bulk(period=1, mpcd_particle_force=force)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
@@ -170,7 +170,7 @@ class ConstantForce(SolventForce):
         super()._attach_hook()
 
 
-class SineForce(SolventForce):
+class SineForce(BodyForce):
     r"""Sine force.
 
     Args:
@@ -178,7 +178,7 @@ class SineForce(SolventForce):
         wavenumber (float): Wavenumber for the sinusoid.
 
     `SineForce` applies a force with amplitude *F* in *x* that is sinusoidally
-    varying in *y* with wavenumber *k* to all solvent particles:
+    varying in *y* with wavenumber *k* to all MPCD particles:
 
     .. math::
 
@@ -198,7 +198,7 @@ class SineForce(SolventForce):
         force = hoomd.mpcd.force.SineForce(
             amplitude=1.0,
             wavenumber=2 * numpy.pi / Ly)
-        stream = hoomd.mpcd.stream.Bulk(period=1, solvent_force=force)
+        stream = hoomd.mpcd.stream.Bulk(period=1, mpcd_particle_force=force)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:

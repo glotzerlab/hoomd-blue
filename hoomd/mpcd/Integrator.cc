@@ -183,7 +183,9 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def_property("streaming_method",
                       &mpcd::Integrator::getStreamingMethod,
                       &mpcd::Integrator::setStreamingMethod)
-        .def_property("solvent_sorter", &mpcd::Integrator::getSorter, &mpcd::Integrator::setSorter)
+        .def_property("mpcd_particle_sorter",
+                      &mpcd::Integrator::getSorter,
+                      &mpcd::Integrator::setSorter)
         .def_property_readonly("fillers", &mpcd::Integrator::getFillers);
     }
     } // end namespace hoomd
