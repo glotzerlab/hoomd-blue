@@ -90,7 +90,7 @@ class BlockForce(BodyForce):
 
                 force.force = 1.0
 
-        separation (float): Ddistance between the centers of the blocks.
+        separation (float): Distance between the centers of the blocks.
 
             .. rubric:: Example:
 

@@ -11,7 +11,7 @@ mpcd.force
 .. autosummary::
     :nosignatures:
 
-    SolventForce
+    BodyForce
     BlockForce
     ConstantForce
     SineForce
@@ -19,8 +19,8 @@ mpcd.force
 .. rubric:: Details
 
 .. automodule:: hoomd.mpcd.force
-    :synopsis: Solvent forces.
-    :members: SolventForce,
+    :synopsis: Body forces on MPCD particles.
+    :members: BodyForce,
               BlockForce,
               ConstantForce,
               SineForce
