@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -60,7 +60,7 @@ template<class Force> void export_BulkStreamingMethod(pybind11::module& m)
                             unsigned int,
                             int,
                             std::shared_ptr<Force>>())
-        .def_property_readonly("solvent_force", &mpcd::BulkStreamingMethod<Force>::getForce);
+        .def_property_readonly("mpcd_particle_force", &mpcd::BulkStreamingMethod<Force>::getForce);
     }
 
     } // end namespace detail

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -31,7 +31,7 @@ class TestParticleSorter:
         sorter.trigger = trigger
         assert sorter.trigger is trigger
 
-        ig = hoomd.mpcd.Integrator(dt=0.02, solvent_sorter=sorter)
+        ig = hoomd.mpcd.Integrator(dt=0.02, mpcd_particle_sorter=sorter)
         sim.operations.integrator = ig
         sim.run(0)
         assert sorter.trigger is trigger
@@ -44,7 +44,7 @@ class TestParticleSorter:
         pickling_check(sorter)
 
         sim = simulation_factory(snap)
-        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
-                                                          solvent_sorter=sorter)
+        sim.operations.integrator = hoomd.mpcd.Integrator(
+            dt=0.02, mpcd_particle_sorter=sorter)
         sim.run(0)
         pickling_check(sorter)

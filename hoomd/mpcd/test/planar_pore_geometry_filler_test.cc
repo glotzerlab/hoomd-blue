@@ -31,7 +31,7 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit pore channel with half width 5, half length 8
-    auto slit = std::make_shared<const mpcd::PlanarPoreGeometry>(5.0, 8.0, true);
+    auto slit = std::make_shared<const mpcd::PlanarPoreGeometry>(10.0, 16.0, true);
     // fill density 2, temperature 1.5
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::PlanarPoreGeometryFiller> filler

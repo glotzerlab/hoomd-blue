@@ -39,7 +39,7 @@ template<class F> void planar_pore_fill_mpi_test(std::shared_ptr<ExecutionConfig
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 
     // create slit channel with half width 5 and half length 8
-    auto slit = std::make_shared<const mpcd::PlanarPoreGeometry>(5.0, 8.0, true);
+    auto slit = std::make_shared<const mpcd::PlanarPoreGeometry>(10.0, 16.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::PlanarPoreGeometryFiller> filler
         = std::make_shared<F>(sysdef, "A", 2.0, kT, slit);

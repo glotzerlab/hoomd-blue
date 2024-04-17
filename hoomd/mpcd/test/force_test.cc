@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <vector>
@@ -33,7 +33,7 @@ void test_force(std::shared_ptr<Force> force,
 //! Test block force
 UP_TEST(block_force)
     {
-    auto force = std::make_shared<mpcd::BlockForce>(2, 3, 0.2);
+    auto force = std::make_shared<mpcd::BlockForce>(2, 6, 0.4);
     std::vector<Scalar3> ref_pos = {make_scalar3(0, 2.7, 0),
                                     make_scalar3(1, 2.9, 2),
                                     make_scalar3(2, 3.3, 1),

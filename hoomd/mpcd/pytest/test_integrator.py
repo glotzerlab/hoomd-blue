@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -85,7 +85,7 @@ def test_streaming_method(make_simulation):
 
 def test_virtual_particle_fillers(make_simulation):
     sim = make_simulation()
-    geom = hoomd.mpcd.geometry.ParallelPlates(H=4.0)
+    geom = hoomd.mpcd.geometry.ParallelPlates(separation=8.0)
     filler = hoomd.mpcd.fill.GeometryFiller(
         type="A",
         density=5.0,
@@ -129,28 +129,28 @@ def test_virtual_particle_fillers(make_simulation):
     assert len(ig.virtual_particle_fillers) == 0
 
 
-def test_solvent_sorter(make_simulation):
+def test_mpcd_particle_sorter(make_simulation):
     sim = make_simulation()
     sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
 
     # check that constructor assigns right
-    ig = hoomd.mpcd.Integrator(dt=0.1, solvent_sorter=sorter)
+    ig = hoomd.mpcd.Integrator(dt=0.1, mpcd_particle_sorter=sorter)
     sim.operations.integrator = ig
-    assert ig.solvent_sorter is sorter
+    assert ig.mpcd_particle_sorter is sorter
     sim.run(0)
-    assert ig.solvent_sorter is sorter
+    assert ig.mpcd_particle_sorter is sorter
 
     # clear out by setter
-    ig.solvent_sorter = None
-    assert ig.solvent_sorter is None
+    ig.mpcd_particle_sorter = None
+    assert ig.mpcd_particle_sorter is None
     sim.run(0)
-    assert ig.solvent_sorter is None
+    assert ig.mpcd_particle_sorter is None
 
     # assign by setter
-    ig.solvent_sorter = sorter
-    assert ig.solvent_sorter is sorter
+    ig.mpcd_particle_sorter = sorter
+    assert ig.mpcd_particle_sorter is sorter
     sim.run(0)
-    assert ig.solvent_sorter is sorter
+    assert ig.mpcd_particle_sorter is sorter
 
 
 def test_attach_and_detach(make_simulation):
@@ -165,17 +165,17 @@ def test_attach_and_detach(make_simulation):
     assert ig.streaming_method is None
     assert ig.collision_method is None
     assert len(ig.virtual_particle_fillers) == 0
-    assert ig.solvent_sorter is None
+    assert ig.mpcd_particle_sorter is None
 
     # attach with both methods
     ig.streaming_method = hoomd.mpcd.stream.Bulk(period=1)
     ig.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(
         period=1, angle=130)
-    ig.solvent_sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
+    ig.mpcd_particle_sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
     sim.run(0)
     assert ig.streaming_method._attached
     assert ig.collision_method._attached
-    assert ig.solvent_sorter._attached
+    assert ig.mpcd_particle_sorter._attached
 
     # detach with everything
     sim.operations._unschedule()
@@ -183,7 +183,7 @@ def test_attach_and_detach(make_simulation):
     assert not ig.cell_list._attached
     assert not ig.streaming_method._attached
     assert not ig.collision_method._attached
-    assert not ig.solvent_sorter._attached
+    assert not ig.mpcd_particle_sorter._attached
 
 
 def test_pickling(make_simulation):

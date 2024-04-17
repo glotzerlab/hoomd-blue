@@ -1,10 +1,10 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""MPCD integration methods.
 
 Extra integration methods for solutes (MD particles) embedded in an MPCD
-solvent. These methods are not restricted to MPCD simulations: they can be used
+fluid. These methods are not restricted to MPCD simulations: they can be used
 as methods of `hoomd.md.Integrator`. For example, `BounceBack` might be used to
 run DPD simulations with surfaces.
 
@@ -32,7 +32,7 @@ class BounceBack(Method):
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
 
     A bounce-back method for integrating solutes (MD particles) embedded in an
-    MPCD solvent. The integration scheme is velocity Verlet with bounce-back
+    MPCD fluid. The integration scheme is velocity Verlet with bounce-back
     performed at the solid boundaries defined by a geometry, as in
     `hoomd.mpcd.stream.BounceBack`. This gives a simple approximation of the
     interactions required to keep a solute bounded in a geometry, and more
@@ -45,7 +45,7 @@ class BounceBack(Method):
     1. The simulation box is periodic, but the `geometry` may impose
        non-periodic boundary conditions. You must ensure that the box is
        sufficiently large to enclose the `geometry` and that all particles lie
-       inside it, or an error will be raised at runtime.
+       inside it
     2. You must also ensure that particles do not self-interact through the
        periodic boundaries. This is usually achieved for simple pair potentials
        by padding the box size by the largest cutoff radius. Failure to do so
@@ -68,7 +68,7 @@ class BounceBack(Method):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         nve = hoomd.mpcd.methods.BounceBack(
             filter=hoomd.filter.All(), geometry=plates)
         simulation.operations.integrator.methods.append(nve)

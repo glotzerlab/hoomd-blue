@@ -54,12 +54,12 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
     public:
     //! Constructor
     /*!
-     * \param H Channel half-width
-     * \param V Velocity of the wall
+     * \param separation Distance between plates
+     * \param speed Speed of the wall
      * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE ParallelPlateGeometry(Scalar H, Scalar V, bool no_slip)
-        : m_H(H), m_V(V), m_no_slip(no_slip)
+    HOSTDEVICE ParallelPlateGeometry(Scalar separation, Scalar speed, bool no_slip)
+        : m_H(Scalar(0.5) * separation), m_V(speed), m_no_slip(no_slip)
         {
         }
 
@@ -143,11 +143,20 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
         return m_H;
         }
 
-    //! Get the wall velocity
+    //! Get distance between plates
     /*!
-     * \returns Wall velocity
+     * \returns Distance between plates
      */
-    HOSTDEVICE Scalar getVelocity() const
+    HOSTDEVICE Scalar getSeparation() const
+        {
+        return 2 * m_H;
+        }
+
+    //! Get the wall speed
+    /*!
+     * \returns Wall speed
+     */
+    HOSTDEVICE Scalar getSpeed() const
         {
         return m_V;
         }

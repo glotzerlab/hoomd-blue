@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -29,14 +29,15 @@ def snap():
             {
                 "geometry":
                     hoomd.mpcd.geometry.ParallelPlates(
-                        H=4.0, V=0.0, no_slip=True),
+                        separation=8.0, speed=0.0, no_slip=True),
             },
         ),
         (
             hoomd.mpcd.stream.BounceBack,
             {
                 "geometry":
-                    hoomd.mpcd.geometry.PlanarPore(H=4.0, L=3.0, no_slip=True)
+                    hoomd.mpcd.geometry.PlanarPore(
+                        separation=8.0, length=6.0, no_slip=True)
             },
         ),
     ],
@@ -70,8 +71,7 @@ class TestStreamingMethod:
         "force",
         [
             None,
-            hoomd.mpcd.force.BlockForce(
-                force=2.0, half_separation=3.0, half_width=0.5),
+            hoomd.mpcd.force.BlockForce(force=2.0, separation=3.0, width=0.5),
             hoomd.mpcd.force.ConstantForce(force=(1, -2, 3)),
             hoomd.mpcd.force.SineForce(amplitude=2.0, wavenumber=1),
         ],
@@ -80,8 +80,8 @@ class TestStreamingMethod:
     def test_force_attach(self, simulation_factory, snap, cls, init_args,
                           force):
         """Test that force can be attached with various forces."""
-        sm = cls(period=5, **init_args, solvent_force=force)
-        assert sm.solvent_force is force
+        sm = cls(period=5, **init_args, mpcd_particle_force=force)
+        assert sm.mpcd_particle_force is force
         pickling_check(sm)
 
         sim = simulation_factory(snap)
@@ -89,7 +89,7 @@ class TestStreamingMethod:
                                                           streaming_method=sm)
         sim.run(0)
 
-        assert sm.solvent_force is force
+        assert sm.mpcd_particle_force is force
         pickling_check(sm)
 
     def test_forced_step(self, simulation_factory, snap, cls, init_args):
@@ -109,7 +109,7 @@ class TestStreamingMethod:
         sim = simulation_factory(snap)
         sm = cls(period=1,
                  **init_args,
-                 solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, -1)))
+                 mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, -1)))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -193,7 +193,8 @@ class TestParallelPlates:
             snap.mpcd.velocity[:] = [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=4))
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -233,7 +234,9 @@ class TestParallelPlates:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4, no_slip=False))
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0,
+                                                        no_slip=False),
+        )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -281,7 +284,9 @@ class TestParallelPlates:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=4, V=1, no_slip=True),
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0,
+                                                        speed=1,
+                                                        no_slip=True),
         )
         ig = hoomd.mpcd.Integrator(dt=0.3, streaming_method=sm)
         sim.operations.integrator = ig
@@ -296,18 +301,19 @@ class TestParallelPlates:
                 snap.mpcd.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]])
 
     @pytest.mark.parametrize("H,expected_result", [(4.0, True), (3.8, False)])
-    def test_check_solvent_particles(self, simulation_factory, snap, H,
-                                     expected_result):
+    def test_check_mpcd_particles(self, simulation_factory, snap, H,
+                                  expected_result):
         if snap.communicator.rank == 0:
             snap.mpcd.position[0] = [0, 3.85, 0]
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.ParallelPlates(H=H))
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=2 * H))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
         sim.run(0)
-        assert sm.check_solvent_particles() is expected_result
+        assert sm.check_mpcd_particles() is expected_result
 
 
 class TestPlanarPore:
@@ -342,7 +348,10 @@ class TestPlanarPore:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3, no_slip=True))
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0,
+                                                    length=6.0,
+                                                    no_slip=True),
+        )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -413,7 +422,10 @@ class TestPlanarPore:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3, no_slip=False))
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0,
+                                                    length=6.0,
+                                                    no_slip=False),
+        )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -479,7 +491,7 @@ class TestPlanarPore:
             np.testing.assert_array_almost_equal(snap.mpcd.position[7],
                                                  [3.18, -4.17, 0])
 
-    def test_check_solvent_particles(self, simulation_factory, snap):
+    def test_check_mpcd_particles(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
@@ -487,15 +499,21 @@ class TestPlanarPore:
         sim.operations.integrator = ig
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3))
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=6.0),
+        )
         sim.run(0)
-        assert ig.streaming_method.check_solvent_particles()
+        assert ig.streaming_method.check_mpcd_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=3.8, L=3))
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=7.6, length=6.0),
+        )
         sim.run(0)
-        assert not ig.streaming_method.check_solvent_particles()
+        assert not ig.streaming_method.check_mpcd_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=hoomd.mpcd.geometry.PlanarPore(H=4, L=3.5))
-        assert not ig.streaming_method.check_solvent_particles()
+            period=1,
+            geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=7.0),
+        )
+        assert not ig.streaming_method.check_mpcd_particles()

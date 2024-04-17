@@ -33,7 +33,7 @@ import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.mpcd import _mpcd
-from hoomd.mpcd.force import SolventForce
+from hoomd.mpcd.force import BodyForce
 from hoomd.mpcd.geometry import Geometry
 from hoomd.operation import Operation
 
@@ -43,7 +43,7 @@ class StreamingMethod(Operation):
 
     Args:
         period (int): Number of integration steps covered by streaming step.
-        solvent_force (SolventForce): Force on solvent.
+        mpcd_particle_force (BodyForce): Force on MPCD particles.
 
     Attributes:
         period (int): Number of integration steps covered by streaming step
@@ -58,20 +58,22 @@ class StreamingMethod(Operation):
             used if an external force is applied, and more faithful numerical
             integration is needed.
 
-        solvent_force (SolventForce): Force on solvent.
+        mpcd_particle_force (BodyForce): Body force on MPCD particles.
 
-            The `solvent_force` cannot be changed after the `StreamingMethod` is
-            constructed, but its attributes can be modified.
+            The `mpcd_particle_force` cannot be changed after the
+            `StreamingMethod` is constructed, but its attributes can be
+            modified.
 
     """
 
-    def __init__(self, period, solvent_force=None):
+    def __init__(self, period, mpcd_particle_force=None):
         super().__init__()
 
-        param_dict = ParameterDict(period=int(period),
-                                   solvent_force=OnlyTypes(SolventForce,
-                                                           allow_none=True))
-        param_dict["solvent_force"] = solvent_force
+        param_dict = ParameterDict(
+            period=int(period),
+            mpcd_particle_force=OnlyTypes(BodyForce, allow_none=True),
+        )
+        param_dict["mpcd_particle_force"] = mpcd_particle_force
         self._param_dict.update(param_dict)
 
 
@@ -80,7 +82,7 @@ class Bulk(StreamingMethod):
 
     Args:
         period (int): Number of integration steps covered by streaming step.
-        solvent_force (SolventForce): Force on solvent.
+        mpcd_particle_force (BodyForce): Body force on MPCD particles.
 
     `Bulk` streams the MPCD particles in a fully periodic geometry (2D or 3D).
     This geometry is appropriate for modeling bulk fluids, i.e., those that
@@ -101,7 +103,7 @@ class Bulk(StreamingMethod):
 
         stream = hoomd.mpcd.stream.Bulk(
             period=1,
-            solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
         simulation.operations.integrator.streaming_method = stream
 
     """
@@ -109,19 +111,19 @@ class Bulk(StreamingMethod):
     def _attach_hook(self):
         sim = self._simulation
 
-        # attach and use solvent force if present
-        if self.solvent_force is not None:
-            self.solvent_force._attach(sim)
-            solvent_force = self.solvent_force._cpp_obj
+        # attach and use body force if present
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._attach(sim)
+            mpcd_particle_force = self.mpcd_particle_force._cpp_obj
         else:
-            solvent_force = None
+            mpcd_particle_force = None
 
         # try to find force in map, otherwise use default
-        force_type = type(self.solvent_force)
+        force_type = type(self.mpcd_particle_force)
         try:
             class_info = self._cpp_class_map[force_type]
         except KeyError:
-            if self.solvent_force is not None:
+            if self.mpcd_particle_force is not None:
                 force_name = force_type.__name__
             else:
                 force_name = "NoForce"
@@ -133,22 +135,22 @@ class Bulk(StreamingMethod):
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
         class_ = getattr(*class_info, None)
-        assert class_ is not None, ("C++ streaming method could not be"
-                                    " determined")
+        assert class_ is not None, ("C++ streaming method could not be "
+                                    "determined")
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
             sim.timestep,
             self.period,
             0,
-            solvent_force,
+            mpcd_particle_force,
         )
 
         super()._attach_hook()
 
     def _detach_hook(self):
-        if self.solvent_force is not None:
-            self.solvent_force._detach()
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._detach()
         super()._detach_hook()
 
     _cpp_class_map = {}
@@ -164,16 +166,16 @@ class BounceBack(StreamingMethod):
     Args:
         period (int): Number of integration steps covered by streaming step.
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
-        solvent_force (SolventForce): Force on solvent.
+        mpcd_particle_force (BodyForce): Body force on MPCD particles.
 
     One of the main strengths of the MPCD algorithm is that it can be coupled to
     complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
-    the MPCD solvent particles from boundary surfaces using specular reflections
+    the MPCD particles from boundary surfaces using specular reflections
     (bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
     boundary conditions. The external force is only applied to the particles at
     the beginning and the end of this process.
 
-    Although a streaming geometry is enforced on the MPCD solvent particles,
+    Although a streaming geometry is enforced on the MPCD particles,
     there are a few important caveats:
 
     1. Embedded particles are not coupled to the boundary walls. They must be
@@ -187,7 +189,7 @@ class BounceBack(StreamingMethod):
        simulation box will be validated by the `geometry`.
     3. It is an error for MPCD particles to lie "outside" the `geometry`.
        You must initialize your system carefully to ensure all particles are
-       "inside" the geometry. An error will be raised otherwise.
+       "inside" the geometry.
 
     .. rubric:: Examples:
 
@@ -198,7 +200,7 @@ class BounceBack(StreamingMethod):
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.ParallelPlates(
-                H=3.0, V=1.0, no_slip=True))
+                separation=6.0, speed=1.0, no_slip=True))
         simulation.operations.integrator.streaming_method = stream
 
     Pressure driven flow between parallel plates.
@@ -207,8 +209,9 @@ class BounceBack(StreamingMethod):
 
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ParallelPlates(H=3.0, no_slip=True),
-            solvent_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+            geometry=hoomd.mpcd.geometry.ParallelPlates(
+                separation=6.0, no_slip=True),
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
@@ -219,50 +222,50 @@ class BounceBack(StreamingMethod):
 
     _cpp_class_map = {}
 
-    def __init__(self, period, geometry, solvent_force=None):
-        super().__init__(period, solvent_force)
+    def __init__(self, period, geometry, mpcd_particle_force=None):
+        super().__init__(period, mpcd_particle_force)
 
         param_dict = ParameterDict(geometry=Geometry)
         param_dict["geometry"] = geometry
         self._param_dict.update(param_dict)
 
-    def check_solvent_particles(self):
-        """Check if solvent particles are inside `geometry`.
+    def check_mpcd_particles(self):
+        """Check if MPCD particles are inside `geometry`.
 
         This method can only be called after this object is attached to a
         simulation.
 
         Returns:
-            True if all solvent particles are inside `geometry`.
+            True if all MPCD particles are inside `geometry`.
 
         .. rubric:: Examples:
 
         .. code-block:: python
 
-            assert stream.check_solvent_particles()
+            assert stream.check_mpcd_particles()
 
         """
-        return self._cpp_obj.check_solvent_particles()
+        return self._cpp_obj.check_mpcd_particles()
 
     def _attach_hook(self):
         sim = self._simulation
 
         self.geometry._attach(sim)
 
-        # attach and use solvent force if present
-        if self.solvent_force is not None:
-            self.solvent_force._attach(sim)
-            solvent_force = self.solvent_force._cpp_obj
+        # attach and use body force if present
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._attach(sim)
+            mpcd_particle_force = self.mpcd_particle_force._cpp_obj
         else:
-            solvent_force = None
+            mpcd_particle_force = None
 
         # try to find force in map, otherwise use default
         geom_type = type(self.geometry)
-        force_type = type(self.solvent_force)
+        force_type = type(self.mpcd_particle_force)
         try:
             class_info = self._cpp_class_map[geom_type, force_type]
         except KeyError:
-            if self.solvent_force is not None:
+            if self.mpcd_particle_force is not None:
                 force_name = force_type.__name__
             else:
                 force_name = "NoForce"
@@ -283,15 +286,15 @@ class BounceBack(StreamingMethod):
             self.period,
             0,
             self.geometry._cpp_obj,
-            solvent_force,
+            mpcd_particle_force,
         )
 
         super()._attach_hook()
 
     def _detach_hook(self):
         self.geometry._detach()
-        if self.solvent_force is not None:
-            self.solvent_force._detach()
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._detach()
         super()._detach_hook()
 
     @classmethod

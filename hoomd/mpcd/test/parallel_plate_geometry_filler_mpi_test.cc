@@ -40,7 +40,7 @@ void parallel_plate_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_c
     UP_ASSERT_EQUAL(pdata->getNVirtualGlobal(), 0);
 
     // create slit channel with half width 5
-    auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(5.0, 0.0, true);
+    auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(10.0, 0.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::ParallelPlateGeometryFiller> filler
         = std::make_shared<F>(sysdef, "B", 2.0, kT, slit);

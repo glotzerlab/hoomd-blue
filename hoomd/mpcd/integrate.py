@@ -45,17 +45,17 @@ class Integrator(_MDIntegrator):
             arbitrary computations during the half-step of the integration.
 
         streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
-            for the MPCD solvent.
+            for the MPCD particles.
 
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
-            for the MPCD solvent and any embedded particles.
+            for the MPCD particles and any embedded particles.
 
         virtual_particle_fillers
-            (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): Solvent
+            (Sequence[hoomd.mpcd.fill.VirtualParticleFiller]): MPCD
             virtual-particle filler(s).
 
-        solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
-            MPCD particles.
+        mpcd_particle_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner that sorts
+            the MPCD particles.
 
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.
@@ -84,7 +84,7 @@ class Integrator(_MDIntegrator):
 
         simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
 
-    MPCD integrator for pure solvent.
+    Integrator for only MPCD particles.
 
     .. code-block:: python
 
@@ -96,7 +96,7 @@ class Integrator(_MDIntegrator):
             dt=0.1,
             streaming_method=stream,
             collision_method=collide,
-            solvent_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
+            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
         simulation.operations.integrator = integrator
 
     MPCD integrator with solutes.
@@ -119,14 +119,16 @@ class Integrator(_MDIntegrator):
             methods=[solute_method],
             streaming_method=stream,
             collision_method=collide,
-            solvent_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20*md_steps_per_collision))
+            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(
+                trigger=20*md_steps_per_collision)
+            )
         simulation.operations.integrator = integrator
 
     MPCD integrator with virtual particle filler.
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(H=3.0)
+        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         collide = hoomd.mpcd.collide.StochasticRotationDynamics(
             period=1,
@@ -143,18 +145,18 @@ class Integrator(_MDIntegrator):
             streaming_method=stream,
             collision_method=collide,
             virtual_particle_fillers=[filler],
-            solvent_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
+            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
         simulation.operations.integrator = integrator
 
     Attributes:
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
-            for the MPCD solvent and any embedded particles.
+            for the MPCD particles and any embedded particles.
 
-        solvent_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner for sorting the
-            MPCD particles (recommended).
+        mpcd_particle_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner that sorts
+            the MPCD particles (recommended).
 
         streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
-            for the MPCD solvent.
+            for the MPCD particles.
 
     """
 
@@ -170,7 +172,7 @@ class Integrator(_MDIntegrator):
         streaming_method=None,
         collision_method=None,
         virtual_particle_fillers=None,
-        solvent_sorter=None,
+        mpcd_particle_sorter=None,
     ):
         super().__init__(
             dt,
@@ -195,13 +197,13 @@ class Integrator(_MDIntegrator):
         param_dict = ParameterDict(
             streaming_method=OnlyTypes(StreamingMethod, allow_none=True),
             collision_method=OnlyTypes(CollisionMethod, allow_none=True),
-            solvent_sorter=OnlyTypes(ParticleSorter, allow_none=True),
+            mpcd_particle_sorter=OnlyTypes(ParticleSorter, allow_none=True),
         )
         param_dict.update(
             dict(
                 streaming_method=streaming_method,
                 collision_method=collision_method,
-                solvent_sorter=solvent_sorter,
+                mpcd_particle_sorter=mpcd_particle_sorter,
             ))
         self._param_dict.update(param_dict)
 
@@ -218,7 +220,7 @@ class Integrator(_MDIntegrator):
 
     @property
     def virtual_particle_fillers(self):
-        """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: Solvent \
+        """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: MPCD \
         virtual-particle fillers."""
         return self._virtual_particle_fillers
 
@@ -232,8 +234,8 @@ class Integrator(_MDIntegrator):
             self.streaming_method._attach(self._simulation)
         if self.collision_method is not None:
             self.collision_method._attach(self._simulation)
-        if self.solvent_sorter is not None:
-            self.solvent_sorter._attach(self._simulation)
+        if self.mpcd_particle_sorter is not None:
+            self.mpcd_particle_sorter._attach(self._simulation)
 
         self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def,
                                          self.dt)
@@ -250,13 +252,14 @@ class Integrator(_MDIntegrator):
             self.streaming_method._detach()
         if self.collision_method is not None:
             self.collision_method._detach()
-        if self.solvent_sorter is not None:
-            self.solvent_sorter._detach()
+        if self.mpcd_particle_sorter is not None:
+            self.mpcd_particle_sorter._detach()
 
         super()._detach_hook()
 
     def _setattr_param(self, attr, value):
-        if attr in ("streaming_method", "collision_method", "solvent_sorter"):
+        if attr in ("streaming_method", "collision_method",
+                    "mpcd_particle_sorter"):
             cur_value = getattr(self, attr)
             if value is cur_value:
                 return

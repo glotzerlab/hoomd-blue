@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 mpcd.force
@@ -11,7 +11,7 @@ mpcd.force
 .. autosummary::
     :nosignatures:
 
-    SolventForce
+    BodyForce
     BlockForce
     ConstantForce
     SineForce
@@ -19,8 +19,8 @@ mpcd.force
 .. rubric:: Details
 
 .. automodule:: hoomd.mpcd.force
-    :synopsis: Solvent forces.
-    :members: SolventForce,
+    :synopsis: Body forces on MPCD particles.
+    :members: BodyForce,
               BlockForce,
               ConstantForce,
               SineForce

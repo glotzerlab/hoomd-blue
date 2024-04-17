@@ -31,7 +31,7 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit channel with half width 5
-    auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(5.0, 1.0, true);
+    auto slit = std::make_shared<const mpcd::ParallelPlateGeometry>(10.0, 1.0, true);
     std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::ParallelPlateGeometryFiller> filler
         = std::make_shared<F>(sysdef, "B", 2.0, kT, slit);
@@ -69,9 +69,9 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
             UP_ASSERT_EQUAL(__scalar_as_int(h_pos.data[i].w), 1);
 
             const Scalar y = h_pos.data[i].y;
-            if (y < Scalar(-5.0))
+            if (y >= Scalar(-7.0) && y < Scalar(-5.0))
                 ++N_lo;
-            else if (y >= Scalar(5.0))
+            else if (y >= Scalar(5.0) && y < Scalar(7.0))
                 ++N_hi;
             }
         UP_ASSERT_EQUAL(N_lo, 2 * (2 * 20 * 20));
@@ -98,9 +98,9 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
             UP_ASSERT_EQUAL(h_tag.data[i], i);
 
             const Scalar y = h_pos.data[i].y;
-            if (y < Scalar(-5.0))
+            if (y >= Scalar(-7.0) && y < Scalar(-5.0))
                 ++N_lo;
-            else if (y >= Scalar(5.0))
+            else if (y >= Scalar(5.0) && y < Scalar(7.0))
                 ++N_hi;
             }
         UP_ASSERT_EQUAL(N_lo, 2 * 2 * (2 * 20 * 20));
@@ -122,9 +122,9 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
         for (unsigned int i = pdata->getN(); i < pdata->getN() + pdata->getNVirtual(); ++i)
             {
             const Scalar y = h_pos.data[i].y;
-            if (y < Scalar(-5.0))
+            if (y >= Scalar(-5.5) && y < Scalar(-5.0))
                 ++N_lo;
-            else if (y >= Scalar(5.0))
+            else if (y >= Scalar(5.0) && y < Scalar(5.5))
                 ++N_hi;
             }
         UP_ASSERT_EQUAL(N_lo, 2 * (20 * 20 / 2));
@@ -154,13 +154,13 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
             const Scalar y = h_pos.data[i].y;
             const Scalar4 vel_cell = h_vel.data[i];
             const Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
-            if (y < Scalar(-5.0))
+            if (y >= Scalar(-7.0) && y < Scalar(-5.0))
                 {
                 v_lo += vel;
                 T_avg += dot(vel - make_scalar3(-1.0, 0, 0), vel - make_scalar3(-1.0, 0, 0));
                 ++N_lo;
                 }
-            else if (y >= Scalar(5.0))
+            else if (y >= Scalar(5.0) && y < Scalar(7.0))
                 {
                 v_hi += vel;
                 T_avg += dot(vel - make_scalar3(1.0, 0, 0), vel - make_scalar3(1.0, 0, 0));

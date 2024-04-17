@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""MPCD tuning operations.
@@ -38,9 +38,9 @@ class ParticleSorter(TriggeredOperation):
     builds. Typically, using a small multiple (tens) of the collision period
     works best.
 
-    For best performance, the `ParticleSorter` should **not** be added to
+    To achieve the best performance, the `ParticleSorter` is not added to
     `hoomd.Operations.tuners`. Instead, set it in
-    `hoomd.mpcd.Integrator.solvent_sorter`.
+    `hoomd.mpcd.Integrator.mpcd_particle_sorter`.
 
     Essentially all MPCD systems benefit from sorting, so it is recommended
     to use one for all simulations!
@@ -50,7 +50,7 @@ class ParticleSorter(TriggeredOperation):
     .. code-block:: python
 
         sorter = hoomd.mpcd.tune.ParticleSorter(trigger=20)
-        simulation.operations.integrator.solvent_sorter = sorter
+        simulation.operations.integrator.mpcd_particle_sorter = sorter
 
     Attributes:
         trigger (hoomd.trigger.Trigger): Number of integration steps

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -52,13 +52,13 @@ class __attribute__((visibility("default"))) BlockForce
     //! Constructor
     /*!
      * \param F Force on all particles.
-     * \param H Half-width between block regions.
-     * \param w Half-width of blocks.
+     * \param separation Separation between centers of blocks.
+     * \param width Width of each block.
      */
-    HOSTDEVICE BlockForce(Scalar F, Scalar H, Scalar w) : m_F(F)
+    HOSTDEVICE BlockForce(Scalar F, Scalar separation, Scalar width) : m_F(F)
         {
-        m_H_plus_w = H + w;
-        m_H_minus_w = H - w;
+        m_H_plus_w = Scalar(0.5) * (separation + width);
+        m_H_minus_w = Scalar(0.5) * (separation - width);
         }
 
     //! Force evaluation method
@@ -86,32 +86,32 @@ class __attribute__((visibility("default"))) BlockForce
         m_F = F;
         }
 
-    //! Get the half separation distance between blocks
-    Scalar getHalfSeparation() const
+    //! Get the separation distance between block centers
+    Scalar getSeparation() const
         {
-        return 0.5 * (m_H_plus_w + m_H_minus_w);
+        return (m_H_plus_w + m_H_minus_w);
         }
 
-    //! Set the half separation distance between blocks
-    void setHalfSeparation(Scalar H)
+    //! Set the separation distance between block centers
+    void setSeparation(Scalar H)
         {
-        const Scalar w = getHalfWidth();
-        m_H_plus_w = H + w;
-        m_H_minus_w = H - w;
+        const Scalar w = getWidth();
+        m_H_plus_w = Scalar(0.5) * (H + w);
+        m_H_minus_w = Scalar(0.5) * (H - w);
         }
 
-    //! Get the block half width
-    Scalar getHalfWidth() const
+    //! Get the block width
+    Scalar getWidth() const
         {
-        return 0.5 * (m_H_plus_w - m_H_minus_w);
+        return (m_H_plus_w - m_H_minus_w);
         }
 
-    //! Set the block half width
-    void setHalfWidth(Scalar w)
+    //! Set the block width
+    void setWidth(Scalar w)
         {
-        const Scalar H = getHalfSeparation();
-        m_H_plus_w = H + w;
-        m_H_minus_w = H - w;
+        const Scalar H = getSeparation();
+        m_H_plus_w = Scalar(0.5) * (H + w);
+        m_H_minus_w = Scalar(0.5) * (H - w);
         }
 
 #ifndef __HIPCC__
@@ -124,8 +124,8 @@ class __attribute__((visibility("default"))) BlockForce
 
     private:
     Scalar m_F;         //!< Constant force
-    Scalar m_H_plus_w;  //!< Upper bound on upper block, H + w
-    Scalar m_H_minus_w; //!< Lower bound on upper block, H - w
+    Scalar m_H_plus_w;  //!< Upper bound on upper block
+    Scalar m_H_minus_w; //!< Lower bound on upper block
     };
 
 #ifndef __HIPCC__
