@@ -292,9 +292,9 @@ class EvaluatorPairLubricationCoupling
     Scalar4 quat_i, quat_j; //!< Stored quaternion of ith and jth particle from constructor
     vec3<Scalar> ang_mom;   /// Sum of angular momentum for ith and jth particle
     bool am;
-    Scalar diameter; /// average diameter of the particle pair
     Scalar kappa;
     Scalar tau;
+    Scalar diameter; /// average diameter of the particle pair
     bool take_momentum;
     // const param_type &params;   //!< The pair potential parameters
     };

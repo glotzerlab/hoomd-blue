@@ -248,7 +248,7 @@ class EvaluatorPairRotationalCoupling
 	    if(to_zero == 2)
 		d -= 1.0/rcutsq;
 
-            vec3<Scalar> f = epsilon * d * rinv * cross(ang_mom, rvec);
+            vec3<Scalar> f = epsilon * exp_val * d * rinv * cross(ang_mom, rvec);
 	    
             force = vec_to_scalar3(f);
             }
