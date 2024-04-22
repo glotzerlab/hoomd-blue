@@ -252,7 +252,7 @@ class LubricationCoupling(AnisotropicPair):
         nl = nlist.Cell()
         rotational_coupling = md.pair.aniso.LubricationCoupling(nlist=nl,
                               default_r_cut=2.5)
-        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45, tau=0.5)
+        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45, tau=0.5, diameter=1.0)
         rotational_coupling.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
     .. py:attribute:: params
@@ -264,6 +264,8 @@ class LubricationCoupling(AnisotropicPair):
           :math:`[\mathrm{energy}]`
         * ``tau`` (`float`, **required**) - :math:`\ell_\perp`
           :math:`[\mathrm{length}]`
+        * ``diameter`` (`float`, **required**) - :math:`\ell_\perp`
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -274,7 +276,7 @@ class LubricationCoupling(AnisotropicPair):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(kappa=float, tau=float, take_momentum=bool, len_keys=2))
+            TypeParameterDict(kappa=float, tau=float, diameter=float, take_momentum=bool, len_keys=2))
         self._add_typeparam(params)
         self.third_law = third_law
 
@@ -340,7 +342,7 @@ class RotationalCoupling(AnisotropicPair):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(kappa=float, take_momentum=bool, to_zero=int, len_keys=2))
+            TypeParameterDict(epsilon=float, kappa=float, take_momentum=bool, to_zero=int, len_keys=2))
         self._add_typeparam(params)
         self.third_law = third_law
 

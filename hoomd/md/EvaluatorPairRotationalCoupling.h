@@ -38,6 +38,7 @@ class EvaluatorPairRotationalCoupling
     public:
     struct param_type
         {
+	Scalar epsilon; //! force coefficient.
         Scalar kappa; //! force coefficient.
 	bool take_momentum;
 	int to_zero;
@@ -59,12 +60,13 @@ class EvaluatorPairRotationalCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0), take_momentum(true), to_zero(0) { }
+        HOSTDEVICE param_type() : epsilon(0), kappa(0), take_momentum(true), to_zero(0) { }
 
 #ifndef __HIPCC__
 
         param_type(pybind11::dict v, bool managed)
             {
+            epsilon = v["epsilon"].cast<Scalar>();
             kappa = v["kappa"].cast<Scalar>();
             take_momentum = v["take_momentum"].cast<bool>();
             to_zero = v["to_zero"].cast<int>();
@@ -73,6 +75,7 @@ class EvaluatorPairRotationalCoupling
         pybind11::object toPython()
             {
             pybind11::dict v;
+            v["epsilon"] = epsilon;
             v["kappa"] = kappa;
             v["take_momentum"] = take_momentum;
             v["to_zero"] = to_zero;
@@ -131,14 +134,9 @@ class EvaluatorPairRotationalCoupling
                                                Scalar _rcutsq,
                                                const param_type& _params)
         : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
-          kappa(_params.kappa), take_momentum(_params.take_momentum), to_zero(_params.to_zero)
+          epsilon(_params.epsilon), kappa(_params.kappa), take_momentum(_params.take_momentum),
+	  to_zero(_params.to_zero)
         {
-        }
-
-    //! uses diameter
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return false;
         }
 
     //! Whether the pair potential uses shape.
@@ -170,12 +168,6 @@ class EvaluatorPairRotationalCoupling
         {
         return false;
         }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
@@ -244,6 +236,8 @@ class EvaluatorPairRotationalCoupling
 
             Scalar rinv = fast::rsqrt(rsq);
 
+            Scalar exp_val = fast::exp(-kappa/rinv);
+
 	    Scalar d = rinv;
 
 	    if(to_zero == 1)
@@ -254,7 +248,7 @@ class EvaluatorPairRotationalCoupling
 	    if(to_zero == 2)
 		d -= 1.0/rcutsq;
 
-            vec3<Scalar> f = kappa * d * rinv * cross(ang_mom, rvec);
+            vec3<Scalar> f = epsilon * d * rinv * cross(ang_mom, rvec);
 	    
             force = vec_to_scalar3(f);
             }
@@ -300,6 +294,7 @@ class EvaluatorPairRotationalCoupling
     Scalar4 quat_i, quat_j; //!< Stored quaternion of ith and jth particle from constructor
     vec3<Scalar> ang_mom;   /// Sum of angular momentum for ith and jth particle
     bool am;
+    Scalar epsilon;
     Scalar kappa;
     bool take_momentum;
     int to_zero;

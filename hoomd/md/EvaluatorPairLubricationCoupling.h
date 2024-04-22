@@ -40,6 +40,7 @@ class EvaluatorPairLubricationCoupling
         {
         Scalar kappa; //! force coefficient.
         Scalar tau;   //! torque coefficient.
+	Scalar diameter;
 	bool take_momentum;
 
 
@@ -60,7 +61,7 @@ class EvaluatorPairLubricationCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0), tau(0), take_momentum(true) { }
+        HOSTDEVICE param_type() : kappa(0), tau(0), diameter(0), take_momentum(true) { }
 
 #ifndef __HIPCC__
 
@@ -68,6 +69,7 @@ class EvaluatorPairLubricationCoupling
             {
             kappa = v["kappa"].cast<Scalar>();
             tau = v["tau"].cast<Scalar>();
+            diameter = v["diameter"].cast<Scalar>();
             take_momentum = v["take_momentum"].cast<bool>();
             }
 
@@ -76,6 +78,7 @@ class EvaluatorPairLubricationCoupling
             pybind11::dict v;
             v["kappa"] = kappa;
             v["tau"] = tau;
+            v["diameter"] = diameter;
             v["take_momentum"] = take_momentum;
             return std::move(v);
             }
@@ -132,14 +135,8 @@ class EvaluatorPairLubricationCoupling
                                                 Scalar _rcutsq,
                                                 const param_type& _params)
         : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
-          diameter(0), kappa(_params.kappa), tau(_params.tau), take_momentum(_params.take_momentum)
+          kappa(_params.kappa), tau(_params.tau), diameter(_params.diameter), take_momentum(_params.take_momentum)
         {
-        }
-
-    //! uses diameter
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return true;
         }
 
     //! Whether the pair potential uses shape.
@@ -170,15 +167,6 @@ class EvaluatorPairLubricationCoupling
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
         return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj)
-        {
-        diameter = 0.5 * (di + dj);
         }
 
     //! Accept the optional shape values
