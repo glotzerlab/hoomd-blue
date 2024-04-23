@@ -177,10 +177,11 @@ def test_from_matrix_non_triangular():
                            [-1 / np.sqrt(2), 1 / np.sqrt(2), 0], [0, 0, 1]])
     box = Box.from_matrix(box_matrix)
     assert np.allclose([box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz],
-                       [1, 1, 1, 0, 0, 0], atol=1e-6)
+                       [1, 1, 1, 0, 0, 0],
+                       atol=1e-6)
 
 
-def test_from_matrix_2D():
+def test_from_matrix_2D():  # noqa: N802 - allow function name
     box_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
     box = Box.from_matrix(box_matrix)
     assert box.is2D and box.dimensions == 2
