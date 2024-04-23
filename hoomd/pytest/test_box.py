@@ -174,8 +174,10 @@ def test_from_matrix(new_box_matrix_dict):
 
 def test_from_matrix_non_triangular():
     # write box for hexagonal lattice
-    box_matrix = np.array([[1, 0, 0], [0.5, np.sqrt(3)/2, 0], [0, 0, 1]])
-    box_matrix = np.array([[1/np.sqrt(3), 1/np.sqrt(3), np.sqrt(3)], [0.5, np.sqrt(3)/2, 0], [1/np.sqrt(3), 0, 1]])
+    box_matrix = np.array([[1, 0, 0], [0.5, np.sqrt(3) / 2, 0], [0, 0, 1]])
+    box_matrix = np.array([[1 / np.sqrt(3), 1 / np.sqrt(3),
+                            np.sqrt(3)], [0.5, np.sqrt(3) / 2, 0],
+                           [1 / np.sqrt(3), 0, 1]])
     box = Box.from_matrix(box_matrix)
     assert box.Lx == 1
     assert box.Ly == 1
