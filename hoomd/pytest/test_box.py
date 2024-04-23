@@ -172,6 +172,25 @@ def test_from_matrix(new_box_matrix_dict):
     ])
 
 
+def test_set_dimensions(self):
+    b = np.asarray([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    box = Box.from_box(b, dimensions=2)
+    assert box.dimensions == 2
+
+
+def test_from_matrix_non_triangular():
+    # write box for hexagonal lattice
+    box_matrix = np.array([[1, 0, 0], [0.5, np.sqrt(3)/2, 0], [0, 0, 1]])
+    box_matrix = np.array([[1/np.sqrt(3), 1/np.sqrt(3), np.sqrt(3)], [0.5, np.sqrt(3)/2, 0], [1/np.sqrt(3), 0, 1]])
+    box = Box.from_matrix(box_matrix)
+    assert box.Lx == 1
+    assert box.Ly == 1
+    assert box.Lz == 1
+    assert box.xy == 0.5
+    assert box.xz == 0
+    assert box.yz == 0
+
+
 def test_eq(base_box, box_dict):
     box2 = Box(**box_dict)
     assert base_box == box2
