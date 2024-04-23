@@ -215,25 +215,16 @@ class Box:
             box = hoomd.Box.square(L=128)
         """
         return cls(L, L, 0, 0, 0, 0)
-
+    
     @classmethod
-    def from_matrix(cls, box_matrix):
-        r"""Create a box from an upper triangular matrix.
+    def from_matrix(cls, box_matrix, dimensions=None):
+        r"""Initialize a Box instance from a box matrix.
 
         Args:
-            box_matrix ((3, 3) `numpy.ndarray` of `float`): An upper
-                triangular matrix representing a box. The values for ``Lx``,
-                ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` are related to the
-                matrix:
-
-
-                .. math::
-
-                    \begin{bmatrix}
-                    L_x & L_y \cdot xy & L_z \cdot xz \\
-                    0 & L_y & L_z \cdot yz \\
-                    0 & 0 & L_z
-                    \end{bmatrix}
+            box_matrix ((3, 3) `numpy.ndarray` of `float`): An 3x3 matrix
+                or list of lists representing a box. 
+            dimensions (int):
+                Number of dimensions (Default value = :code:`None`)
 
         Returns:
             hoomd.Box: The created box.
@@ -247,14 +238,30 @@ class Box:
                               [0, 8, 16],
                               [0, 0, 18]])
         """
-        box_matrix = np.asarray(box_matrix)
+        box_matrix = np.asarray(box_matrix, dtype=np.float32)
         if box_matrix.shape != (3, 3):
             raise ValueError("Box matrix must be a 3x3 matrix.")
-        if not np.allclose(box_matrix, np.triu(box_matrix)):
-            raise ValueError("Box matrix must be upper triangular.")
-        L = np.diag(box_matrix)
-        return cls(*L, box_matrix[0, 1] / L[1], box_matrix[0, 2] / L[2],
-                   box_matrix[1, 2] / L[2])
+        v0 = box_matrix[:, 0]
+        v1 = box_matrix[:, 1]
+        v2 = box_matrix[:, 2]
+        Lx = np.sqrt(np.dot(v0, v0))
+        a2x = np.dot(v0, v1) / Lx
+        Ly = np.sqrt(np.dot(v1, v1) - a2x * a2x)
+        xy = a2x / Ly
+        v0xv1 = np.cross(v0, v1)
+        v0xv1mag = np.sqrt(np.dot(v0xv1, v0xv1))
+        Lz = np.dot(v2, v0xv1) / v0xv1mag
+        if Lz != 0:
+            a3x = np.dot(v0, v2) / Lx
+            xz = a3x / Lz
+            yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
+        else:
+            xz = yz = 0
+        if dimensions is None:
+            dimensions = 2 if Lz == 0 else 3
+        is2D = (dimensions == 2)
+        return cls(Lx=Lx, Ly=Ly, Lz=Lz,
+                   xy=xy, xz=xz, yz=yz, is2D=is2D)
 
     @classmethod
     def _from_cpp(cls, cpp_obj):
