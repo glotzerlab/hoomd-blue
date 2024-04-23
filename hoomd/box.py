@@ -217,14 +217,12 @@ class Box:
         return cls(L, L, 0, 0, 0, 0)
     
     @classmethod
-    def from_matrix(cls, box_matrix, dimensions=None):
+    def from_matrix(cls, box_matrix):
         r"""Initialize a Box instance from a box matrix.
 
         Args:
             box_matrix ((3, 3) `numpy.ndarray` of `float`): An 3x3 matrix
                 or list of lists representing a box. 
-            dimensions (int):
-                Number of dimensions (Default value = :code:`None`)
 
         Returns:
             hoomd.Box: The created box.
@@ -257,11 +255,8 @@ class Box:
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
         else:
             xz = yz = 0
-        if dimensions is None:
-            dimensions = 2 if Lz == 0 else 3
-        is2D = (dimensions == 2)
         return cls(Lx=Lx, Ly=Ly, Lz=Lz,
-                   xy=xy, xz=xz, yz=yz, is2D=is2D)
+                   xy=xy, xz=xz, yz=yz)
 
     @classmethod
     def _from_cpp(cls, cpp_obj):
