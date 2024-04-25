@@ -181,7 +181,7 @@ def test_from_matrix_non_triangular():
                        atol=1e-6)
 
 
-def test_from_matrix_2D():  # noqa: N802 - allow function name
+def test_from_matrix_two_dimensional():
     box_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
     box = Box.from_matrix(box_matrix)
     assert box.is2D and box.dimensions == 2
