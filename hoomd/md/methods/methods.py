@@ -691,7 +691,7 @@ class Langevin(Method):
     where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
     :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
     (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
-    the torque, :math:`\vec{L}` is the particle's angular velocity and :math:`I`
+    torque, :math:`\vec{L}` is the particle's angular velocity and :math:`I`
     is the the particle's moment of inertia. The magnitude of the random torque
     is chosen via the fluctuation-dissipation theorem to be consistent with the
     specified drag and temperature, :math:`kT`.
