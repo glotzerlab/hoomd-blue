@@ -652,7 +652,7 @@ class Langevin(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
-            coefficient tensor for all particles :math:`[\mathrm{mass} \cdot 
+            coefficient tensor for all particles :math:`[\mathrm{mass} \cdot
             \mathrm{length}^{2} \cdot \mathrm{time}^{-1}]`.
 
     `Langevin` integrates particles forward in time according to the
