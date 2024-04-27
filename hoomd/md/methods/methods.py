@@ -692,9 +692,9 @@ class Langevin(Method):
     where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
     :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
     (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
-    torque, :math:`\vec{\omega}` is the particle's angular velocity and 
-    :math:`I` is the the particle's moment of inertia. The magnitude of the 
-    random torque is chosen via the fluctuation-dissipation theorem to be 
+    torque, :math:`\vec{\omega}` is the particle's angular velocity and
+    :math:`I` is the the particle's moment of inertia. The magnitude of the
+    random torque is chosen via the fluctuation-dissipation theorem to be
     consistent with the specified drag and temperature, :math:`kT`.
 
     `Langevin` numerically integrates the translational degrees of freedom
@@ -754,7 +754,7 @@ class Langevin(Method):
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
-            :math:`[\mathrm{mass} \cdot \mathrm{length}^{2} \cdot 
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{2} \cdot
             \mathrm{time}^{-1}]`.
 
             .. rubric:: Example:
