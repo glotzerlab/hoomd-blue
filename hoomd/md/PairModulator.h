@@ -141,20 +141,20 @@ public:
     /*!
       \param _dr Displacement vector pointing from particle rj to ri
       \param _rcutsq Squared distance at which the potential is set to 0
-      \param _quat_eye Quaternion of the ith particle
-      \param _quat_jay Quaternion of the jth particle
+      \param _quat_i Quaternion of the ith particle
+      \param _quat_j Quaternion of the jth particle
       \param _params Per type pair parameters of the potential
     */
     DEVICE PairModulator( const Scalar3& _dr,
-                          const Scalar4& _quat_eye,
-                          const Scalar4& _quat_jay,
+                          const Scalar4& _quat_i,
+                          const Scalar4& _quat_j,
                           const Scalar _rcutsq,
                           const param_type& _params)
         : dr(_dr),
           rsq(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z),
           rcutsq(_rcutsq),
-          quat_i(_quat_eye),
-          quat_j(_quat_jay),
+          quat_i(_quat_i),
+          quat_j(_quat_j),
           params(_params)
         { }
 
@@ -251,44 +251,40 @@ public:
                     for (unsigned int patchj = patchi; patchj < shape_j->envelope.size(); patchj++)
                         {
                             Scalar3 this_force = make_scalar3(0,0,0);
+                            Scalar3 grad_mods = make_scalar3(0,0,0);
                             Scalar this_pair_eng = Scalar(0);
                             Scalar3 this_torque_i = make_scalar3(0,0,0);
                             Scalar3 this_torque_j = make_scalar3(0,0,0);
+                            Scalar force_divr(Scalar(0));
+                            Scalar envelope(Scalar(0));
 
                             PairEvaluator pair_eval(rsq, rcutsq, params.pairP);
+
                             // compute pair potential
-                            Scalar force_divr(Scalar(0));
                             if (!pair_eval.evalForceAndEnergy(force_divr, this_pair_eng, energy_shift))
                                 {
                                     return false;
                                 }
 
                             DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP, shape_i->envelope[patchi], shape_j->envelope[patchj]);
+
                             // compute envelope
-                            Scalar envelope(Scalar(0));
-                            // here, this_torque_i and this_torque_j get populated with the
-                            // torque envelopes and are missing the factor of pair energy
-                            envel_eval.evaluate(this_force, envelope, this_torque_i, this_torque_j);
+                            // this_torque_i and this_torque_j get populated with the
+                            //   torque envelopes and are missing the factor of pair energy
+                            envel_eval.evaluate(grad_mods, envelope, this_torque_i, this_torque_j);
 
                             // modulate forces
-                            // TODO check this math. yes.
 
                             // second term has the negative sign for force calculation in force_divr
 
                             // term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
 
-
-
-                            //        [term2         ]   [term1                 ]
-                            // TODO call this grad of modulators
-                            this_force.x = this_pair_eng*this_force.x + dr.x*force_divr*envelope;
-                            this_force.y = this_pair_eng*this_force.y + dr.y*force_divr*envelope;
-                            this_force.z = this_pair_eng*this_force.z + dr.z*force_divr*envelope;
-
-
+                            //                        [term2         ]   [term1                 ]
+                            this_force.x = this_pair_eng*grad_mods.x + dr.x*force_divr*envelope;
+                            this_force.y = this_pair_eng*grad_mods.y + dr.y*force_divr*envelope;
+                            this_force.z = this_pair_eng*grad_mods.z + dr.z*force_divr*envelope;
 
                             // modulate torques
-                            // TODO check this math. Finished checking Jan 4 2023
                             // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
                             this_torque_i.x *= this_pair_eng; // here, the "anisotropic" part can't have distance dependence
                             this_torque_i.y *= this_pair_eng;

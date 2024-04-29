@@ -151,8 +151,8 @@ public:
             Scalar costhetai = -dot(vec3<Scalar>(rhat), ni_world); // negative because dr = dx = pi - pj
             Scalar costhetaj = dot(vec3<Scalar>(rhat), nj_world);
 
-            exp_negOmega_times_CosThetaI_minus_CosAlpha = fast::exp(-params.omega*(costhetai-params.cosalpha));
-            exp_negOmega_times_CosThetaJ_minus_CosAlpha = fast::exp(-params.omega*(costhetaj-params.cosalpha));
+            exp_negOmega_times_CosThetaI_minus_CosAlpha = fast::exp(-params.omega*(costhetai - params.cosalpha));
+            exp_negOmega_times_CosThetaJ_minus_CosAlpha = fast::exp(-params.omega*(costhetaj - params.cosalpha));
         }
 
     //! uses diameter
@@ -202,29 +202,13 @@ public:
     DEVICE Scalar dfi_du(Scalar fi)
         {
             //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
-            // Scalar fact = fi();
             return -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha  * fi * fi;
         }
 
     DEVICE Scalar dfj_du(Scalar fj)
         {
-            // Scalar fact = fj();
             //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
             return params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha  * fj * fj;
-        }
-
-    DEVICE Scalar ModulatorPrimei() // TODO call it derivative with respect to costhetai
-        {
-            Scalar fact = fi(); // TODO only calculate Modulatori once per instantiation
-            // the -1 comes from doing the derivative with respect to ni
-            // return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
-            return params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * fact * fact;
-        }
-
-    DEVICE Scalar ModulatorPrimej() // TODO name after derivative
-        {
-            Scalar fact = fj();
-            return params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha * fact * fact;
         }
 
 
@@ -300,53 +284,6 @@ public:
             vec3<Scalar> duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
 
             force = -vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
-
-            // std::cout << " my force " << vecString(vec3<Scalar>(force));
-
-            // std::cout << "Old force " << vecString(-(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat)));
-
-            // is     their      [1/magdr * (-ni_world - costhetai*rhat)] the same as my dui_dr?
-            // is     their      [-ni_world/magdr - costhetai*rhat/magdr] the same as my dui_dr?
-            //   Expand costhetai to dot product definition
-            // is     their      [-ni_world/magdr - -dot(vec3<Scalar>(rhat), ni_world) *rhat/magdr] the same as my dui_dr?
-            //   Expand rhat to dr/magdr
-
-            // is     their      [-ni_world/magdr - -dot(dr, ni_world)/magdr * rhat/magdr] the same as my dui_dr?
-
-            //         ... yes but I also needed to add a negative sign to dfi_du()
-
-            // Problems
-            // 1. Extra factor of rhat on the whole term in mine, taken out April 25
-
-            //          dui_dr = rhat * ( (-ni_world)/ (magdr)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat/ (magdr*magdr) )
-            //                 ^
-            //                / \
-            //                 |
-            // copy from above |
-            //          dui_dr = rhat * ( magdr* (-ni_world)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
-
-
-            // Josh is ok with this:
-            // force = -(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat))
-
-            // rewrite with my notation:
-            // iPj = modPi*modj/magdr
-            // iPj = ModulatorPrimei() * Modulatorj() / magdr
-            // iPj = -dfi_du() * fj() / magdr
-
-            // jPi = modPj*modi/magdr
-            // jPi = ModulatorPrimej() * Modulatori() / magdr
-            // jPi = dfj_du() * fi() / magdr
-            // force_my_variables = -( -dfi_du() * fj() / magdr * (-ni_world - costhetai*rhat)
-            //                        + dfj_du() * fi() / magdr * (nj_world - costhetaj *rhat) )
-
-
-
-            // //negative here bc forcedivr has the implicit negative in PairModulator
-            // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
-            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) + jPi*(nj_world.x - costhetaj*dr.x/magdr));
-            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr) + jPi*(nj_world.y - costhetaj*dr.y/magdr));
-            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr) + jPi*(nj_world.z - costhetaj*dr.z/magdr));
 
             return true;
         }
