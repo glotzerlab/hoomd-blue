@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GSDReader.h"
@@ -248,41 +248,41 @@ void GSDReader::readParticles()
 void GSDReader::readTopology()
     {
     unsigned int N = 0;
+    m_snapshot->bond_data.type_mapping = readTypes(m_frame, "bonds/types");
     readChunk(&N, m_frame, "bonds/N", 4);
     if (N > 0)
         {
         m_snapshot->bond_data.resize(N);
-        m_snapshot->bond_data.type_mapping = readTypes(m_frame, "bonds/types");
         readChunk(&m_snapshot->bond_data.type_id[0], m_frame, "bonds/typeid", N * 4, N);
         readChunk(&m_snapshot->bond_data.groups[0], m_frame, "bonds/group", N * 8, N);
         }
 
     N = 0;
+    m_snapshot->angle_data.type_mapping = readTypes(m_frame, "angles/types");
     readChunk(&N, m_frame, "angles/N", 4);
     if (N > 0)
         {
         m_snapshot->angle_data.resize(N);
-        m_snapshot->angle_data.type_mapping = readTypes(m_frame, "angles/types");
         readChunk(&m_snapshot->angle_data.type_id[0], m_frame, "angles/typeid", N * 4, N);
         readChunk(&m_snapshot->angle_data.groups[0], m_frame, "angles/group", N * 12, N);
         }
 
     N = 0;
+    m_snapshot->dihedral_data.type_mapping = readTypes(m_frame, "dihedrals/types");
     readChunk(&N, m_frame, "dihedrals/N", 4);
     if (N > 0)
         {
         m_snapshot->dihedral_data.resize(N);
-        m_snapshot->dihedral_data.type_mapping = readTypes(m_frame, "dihedrals/types");
         readChunk(&m_snapshot->dihedral_data.type_id[0], m_frame, "dihedrals/typeid", N * 4, N);
         readChunk(&m_snapshot->dihedral_data.groups[0], m_frame, "dihedrals/group", N * 16, N);
         }
 
     N = 0;
+    m_snapshot->improper_data.type_mapping = readTypes(m_frame, "impropers/types");
     readChunk(&N, m_frame, "impropers/N", 4);
     if (N > 0)
         {
         m_snapshot->improper_data.resize(N);
-        m_snapshot->improper_data.type_mapping = readTypes(m_frame, "impropers/types");
         readChunk(&m_snapshot->improper_data.type_id[0], m_frame, "impropers/typeid", N * 4, N);
         readChunk(&m_snapshot->improper_data.groups[0], m_frame, "impropers/group", N * 16, N);
         }
@@ -303,11 +303,11 @@ void GSDReader::readTopology()
     if (m_handle.header.schema_version >= gsd_make_version(1, 1))
         {
         N = 0;
+        m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
         readChunk(&N, m_frame, "pairs/N", 4);
         if (N > 0)
             {
             m_snapshot->pair_data.resize(N);
-            m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
             readChunk(&m_snapshot->pair_data.type_id[0], m_frame, "pairs/typeid", N * 4, N);
             readChunk(&m_snapshot->pair_data.groups[0], m_frame, "pairs/group", N * 8, N);
             }

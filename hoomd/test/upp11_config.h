@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file upp11_config.h
@@ -37,7 +37,7 @@
 #define UP_ASSERT_CLOSE(a, b, eps)                                                \
     upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_CLOSE"), \
         upp11::TestAssert(LOCATION).assertTrue(                                   \
-            std::abs((a) - (b)) <= (eps)*std::min(std::abs(a), std::abs(b)),      \
+            std::abs((a) - (b)) <= (eps) * std::min(std::abs(a), std::abs(b)),    \
             #a " (" + std::to_string(a) + ") close to " #b " (" + std::to_string(b) + ")")
 
 //! Macro to test if a floating-point value is close to zero
@@ -105,14 +105,14 @@
                                                    + std::to_string(b) + ")")
 
 // ******** helper macros
-#define CHECK_CLOSE(a, b, c)                             \
-    UP_ASSERT((std::abs((a) - (b)) <= ((c)*std::abs(a))) \
-              && (std::abs((a) - (b)) <= ((c)*std::abs(b))))
+#define CHECK_CLOSE(a, b, c)                               \
+    UP_ASSERT((std::abs((a) - (b)) <= ((c) * std::abs(a))) \
+              && (std::abs((a) - (b)) <= ((c) * std::abs(b))))
 #define CHECK_SMALL(a, c) UP_ASSERT(std::abs(a) < c)
 //! Helper macro for checking if two numbers are close
-#define MY_CHECK_CLOSE(a, b, c)                          \
-    UP_ASSERT((std::abs((a) - (b)) <= ((c)*std::abs(a))) \
-              && (std::abs((a) - (b)) <= ((c)*std::abs(b))))
+#define MY_CHECK_CLOSE(a, b, c)                            \
+    UP_ASSERT((std::abs((a) - (b)) <= ((c) * std::abs(a))) \
+              && (std::abs((a) - (b)) <= ((c) * std::abs(b))))
 //! Helper macro for checking if a number is small
 #define MY_CHECK_SMALL(a, c) CHECK_SMALL(a, hoomd::Scalar(c))
 //! Need a simple define for checking two values which are unsigned

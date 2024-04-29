@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/AABB.h"
@@ -115,7 +115,7 @@ struct OBB
         is_sphere = 1;
         }
 
-    DEVICE OBB(const hoomd::detail::AABB& aabb)
+    DEVICE explicit OBB(const hoomd::detail::AABB& aabb)
         {
         lengths = ShortReal(0.5)
                   * (vec3<ShortReal>(aabb.getUpper()) - vec3<ShortReal>(aabb.getLower()));

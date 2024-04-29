@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.pair.aniso
@@ -13,6 +13,7 @@ md.pair.aniso
 
     ALJ
     AnisotropicPair
+    Chain
     Dipole
     GayBerne
     JanusLJ
@@ -24,6 +25,7 @@ md.pair.aniso
     :members:
         ALJ,
         AnisotropicPair,
+        Chain,
         Dipole,
         GayBerne,
         JanusLJ

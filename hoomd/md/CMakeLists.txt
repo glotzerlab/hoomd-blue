@@ -6,6 +6,7 @@ set(_md_sources module-md.cc
                    AlchemostatTwoStep.cc
                    AnisoPotentialPairALJ2.cc
                    AnisoPotentialPairALJ3.cc
+                   AnisoPotentialPairChain.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
                    AnisoPotentialPairJanus.cc
@@ -43,6 +44,7 @@ set(_md_sources module-md.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
+                   PeriodicImproperForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TwoStepBD.cc
@@ -93,6 +95,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
+                EvaluatorPairChain.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
@@ -174,6 +177,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
+                PeriodicImproper.h
+                PeriodicImproperForceCompute.h
+                PeriodicImproperForceComputeGPU.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
                 TableAngleForceComputeGPU.h
@@ -207,6 +213,7 @@ if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AnisoPotentialPairALJ2GPU.cc
                            AnisoPotentialPairALJ3GPU.cc
+                           AnisoPotentialPairChainGPU.cc
                            AnisoPotentialPairDipoleGPU.cc
                            AnisoPotentialPairGBGPU.cc
                            BondTablePotentialGPU.cc
@@ -228,6 +235,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            NeighborListGPUStencil.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
+                           PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
@@ -245,6 +253,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
 		      AnisoPotentialPairSingleJanusGPUKernel.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
+                      AnisoPotentialPairChainGPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
                       ComputeThermoGPU.cu
@@ -264,6 +273,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUStencil.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
+                      PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
@@ -563,7 +573,7 @@ foreach(_evaluator ${_alchemical_pair_evaluators})
     set(_md_sources ${_md_sources} export_PotentialPairAlchemical${_evaluator}.cc)
 endforeach()
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
+hoomd_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_md ALIAS _md)
 

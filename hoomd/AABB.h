@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDMath.h"
@@ -147,6 +147,29 @@ struct
 #endif
         }
 
+    /** Check if two AABBs overlap
+        @param other Second AABB
+        @returns true when the two AABBs overlap, false otherwise
+    */
+    DEVICE inline bool overlaps(const AABB& other) const
+        {
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+        int r0 = _mm256_movemask_pd(_mm256_cmp_pd(other.upper_v, lower_v, 0x11)); // 0x11=lt
+        int r1 = _mm256_movemask_pd(_mm256_cmp_pd(other.lower_v, upper_v, 0x1e)); // 0x1e=gt
+        return !(r0 || r1);
+
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+        int r0 = _mm_movemask_ps(_mm_cmplt_ps(other.upper_v, lower_v));
+        int r1 = _mm_movemask_ps(_mm_cmpgt_ps(other.lower_v, upper_v));
+        return !(r0 || r1);
+
+#else
+        return !(other.upper.x < lower.x || other.lower.x > upper.x || other.upper.y < lower.y
+                 || other.lower.y > upper.y || other.upper.z < lower.z || other.lower.z > upper.z);
+
+#endif
+        }
+
     //! Construct an AABB from a sphere
     /*! \param _position Position of the sphere
         \param radius Radius of the sphere
@@ -273,30 +296,6 @@ struct
 #else
     ;
 #endif
-
-//! Check if two AABBs overlap
-/*! \param a First AABB
-    \param b Second AABB
-    \returns true when the two AABBs overlap, false otherwise
-*/
-DEVICE inline bool overlap(const AABB& a, const AABB& b)
-    {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
-    int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v, a.lower_v, 0x11)); // 0x11=lt
-    int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v, a.upper_v, 0x1e)); // 0x1e=gt
-    return !(r0 || r1);
-
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
-    int r0 = _mm_movemask_ps(_mm_cmplt_ps(b.upper_v, a.lower_v));
-    int r1 = _mm_movemask_ps(_mm_cmpgt_ps(b.lower_v, a.upper_v));
-    return !(r0 || r1);
-
-#else
-    return !(b.upper.x < a.lower.x || b.lower.x > a.upper.x || b.upper.y < a.lower.y
-             || b.lower.y > a.upper.y || b.upper.z < a.lower.z || b.lower.z > a.upper.z);
-
-#endif
-    }
 
 //! Check if one AABB contains another
 /*! \param a First AABB

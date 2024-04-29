@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxResizeUpdater.cc
@@ -15,24 +15,18 @@ using namespace std;
 
 namespace hoomd
     {
-/*! \param sysdef System definition containing the particle data to set the box size on
-    \param Lx length of the x dimension over time
-    \param Ly length of the y dimension over time
-    \param Lz length of the z dimension over time
-
-    The default setting is to scale particle positions along with the box.
+/** @param sysdef System definition containing the particle data to set the box size on
+    @param trigger Steps on which to execute.
+    @param box Box as a function of time.
+    @param group Particles to scale.
 */
-
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<Trigger> trigger,
-                                   std::shared_ptr<BoxDim> box1,
-                                   std::shared_ptr<BoxDim> box2,
-                                   std::shared_ptr<Variant> variant,
+                                   std::shared_ptr<VectorVariantBox> box,
                                    std::shared_ptr<ParticleGroup> group)
-    : Updater(sysdef, trigger), m_box1(box1), m_box2(box2), m_variant(variant), m_group(group)
+    : Updater(sysdef, trigger), m_box(box), m_group(group)
     {
     assert(m_pdata);
-    assert(m_variant);
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
     }
 
@@ -41,60 +35,13 @@ BoxResizeUpdater::~BoxResizeUpdater()
     m_exec_conf->msg->notice(5) << "Destroying BoxResizeUpdater" << endl;
     }
 
-/// Get box1
-std::shared_ptr<BoxDim> BoxResizeUpdater::getBox1()
-    {
-    return m_box1;
-    }
-
-/// Set a new box1
-void BoxResizeUpdater::setBox1(std::shared_ptr<BoxDim> box1)
-    {
-    m_box1 = box1;
-    }
-
-/// Get box2
-std::shared_ptr<BoxDim> BoxResizeUpdater::getBox2()
-    {
-    return m_box2;
-    }
-
-void BoxResizeUpdater::setBox2(std::shared_ptr<BoxDim> box2)
-    {
-    m_box2 = box2;
-    }
-
-/// Get the current box based on the timestep
 BoxDim BoxResizeUpdater::getCurrentBox(uint64_t timestep)
     {
-    Scalar min = m_variant->min();
-    Scalar max = m_variant->max();
-    Scalar cur_value = (*m_variant)(timestep);
-    Scalar scale = 0;
-    if (cur_value == max)
-        {
-        scale = 1;
-        }
-    else if (cur_value > min)
-        {
-        scale = (cur_value - min) / (max - min);
-        }
-
-    const auto& box1 = *m_box1;
-    const auto& box2 = *m_box2;
-    Scalar3 new_L = box2.getL() * scale + box1.getL() * (1.0 - scale);
-    Scalar xy = box2.getTiltFactorXY() * scale + (1.0 - scale) * box1.getTiltFactorXY();
-    Scalar xz = box2.getTiltFactorXZ() * scale + (1.0 - scale) * box1.getTiltFactorXZ();
-    Scalar yz = box2.getTiltFactorYZ() * scale + (1.0 - scale) * box1.getTiltFactorYZ();
-
-    BoxDim new_box = BoxDim(new_L);
-    new_box.setTiltFactors(xy, xz, yz);
-    return new_box;
+    return BoxDim((*m_box)(timestep));
     }
 
-/** Perform the needed calculations to scale the box size
-    \param timestep Current time step of the simulation
-*/
+/** @param timestep Current time step of the simulation
+ */
 void BoxResizeUpdater::update(uint64_t timestep)
     {
     Updater::update(timestep);
@@ -124,7 +71,6 @@ void BoxResizeUpdater::update(uint64_t timestep)
         }
     }
 
-/// Scale particles to the new box and wrap any others back into the box
 void BoxResizeUpdater::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -171,13 +117,9 @@ void export_BoxResizeUpdater(pybind11::module& m)
         "BoxResizeUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Trigger>,
-                            std::shared_ptr<BoxDim>,
-                            std::shared_ptr<BoxDim>,
-                            std::shared_ptr<Variant>,
+                            std::shared_ptr<VectorVariantBox>,
                             std::shared_ptr<ParticleGroup>>())
-        .def_property("box1", &BoxResizeUpdater::getBox1, &BoxResizeUpdater::setBox1)
-        .def_property("box2", &BoxResizeUpdater::getBox2, &BoxResizeUpdater::setBox2)
-        .def_property("variant", &BoxResizeUpdater::getVariant, &BoxResizeUpdater::setVariant)
+        .def_property("box", &BoxResizeUpdater::getBox, &BoxResizeUpdater::setBox)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<BoxResizeUpdater> method)
                                { return method->getGroup()->getFilter(); })
