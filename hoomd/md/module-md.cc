@@ -72,6 +72,8 @@ void export_AnisoPotentialPairDipole(pybind11::module& m);
 void export_AnisoPotentialPairGB(pybind11::module& m);
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m);
 void export_AnisoPotentialPairJanusYukawa(pybind11::module& m);
+void export_AnisoPotentialPairJanusSingleLJ(pybind11::module& m);
+void export_AnisoPotentialPairJanusSingleYukawa(pybind11::module& m);
 void export_AnisoPotentialPairPatchyExpandedGaussian(pybind11::module& m);
 
 void export_PotentialBondHarmonic(pybind11::module& m);
@@ -219,6 +221,8 @@ void export_AnisoPotentialPairGBGPU(pybind11::module& m);
 
 void export_AnisoPotentialPairJanusLJGPU(pybind11::module& m);
 void export_AnisoPotentialPairJanusYukawaGPU(pybind11::module& m);
+void export_AnisoPotentialPairJanusSingleLJGPU(pybind11::module& m);
+void export_AnisoPotentialPairJanusSingleYukawaGPU(pybind11::module& m);
         
 void export_PotentialBondHarmonicGPU(pybind11::module& m);
 void export_PotentialBondFENEGPU(pybind11::module& m);
@@ -351,6 +355,8 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairGB(m);
     export_AnisoPotentialPairJanusLJ(m);
     export_AnisoPotentialPairJanusYukawa(m);
+    export_AnisoPotentialPairJanusSingleLJ(m);
+    export_AnisoPotentialPairJanusSingleYukawa(m);
     export_AnisoPotentialPairPatchyExpandedGaussian(m);
 
     export_PotentialPairDPDThermoDPD(m);

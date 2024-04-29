@@ -9,6 +9,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
                    AnisoPotentialPairJanus.cc
+		   AnisoPotentialPairSingleJanus.cc
                    AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
@@ -211,6 +212,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            AnisoPotentialPairJanusGPU.cc
+			   AnisoPotentialPairSingleJanusGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
                            ConstantForceComputeGPU.cc
@@ -240,6 +242,7 @@ endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairJanusGPUKernel.cu
+		      AnisoPotentialPairSingleJanusGPUKernel.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
