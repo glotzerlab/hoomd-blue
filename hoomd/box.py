@@ -276,7 +276,7 @@ class Box:
             ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
                                   [0, 0, Lz]])
 
-        rotation = np.linalg.solve(box_matrix, ut_box_matrix)
+        rotation = np.linalg.solve(ut_box_matrix, box_matrix)
 
         if Lz == 0:
             rotation = np.pad(rotation, ((0, 1), (0, 1)), mode='constant')
