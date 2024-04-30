@@ -204,7 +204,8 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolygon& spoly)
         }
     if (nverts == 1)
         {
-        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
+        shapedef << "{\"type\": \"Sphere\", "
+                 << "\"diameter\": " << verts.diameter << "}";
         }
     else if (nverts == 2)
         {

@@ -294,13 +294,15 @@ void GSDDumpWriter::initFileIO()
             if (string(m_handle.header.schema) != string("hoomd"))
                 {
                 std::ostringstream s;
-                s << "GSD: " << "Invalid schema in " << m_fname;
+                s << "GSD: "
+                  << "Invalid schema in " << m_fname;
                 throw runtime_error("Error opening GSD file");
                 }
             if (m_handle.header.schema_version >= gsd_make_version(2, 0))
                 {
                 std::ostringstream s;
-                s << "GSD: " << "Invalid schema version in " << m_fname;
+                s << "GSD: "
+                  << "Invalid schema version in " << m_fname;
                 throw runtime_error("Error opening GSD file");
                 }
             }
@@ -1034,13 +1036,15 @@ void GSDDumpWriter::populateNonDefault()
     if (string(m_handle.header.schema) != string("hoomd"))
         {
         std::ostringstream s;
-        s << "GSD: " << "Invalid schema in " << m_fname;
+        s << "GSD: "
+          << "Invalid schema in " << m_fname;
         throw runtime_error("Error opening GSD file");
         }
     if (m_handle.header.schema_version >= gsd_make_version(2, 0))
         {
         std::ostringstream s;
-        s << "GSD: " << "Invalid schema version in " << m_fname;
+        s << "GSD: "
+          << "Invalid schema version in " << m_fname;
         throw runtime_error("Error opening GSD file");
         }
 
