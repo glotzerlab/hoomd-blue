@@ -262,6 +262,47 @@ class Box:
             xz = yz = 0
         return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
 
+
+    @classmethod
+    def from_matrix(cls, box_matrix):
+        r"""Create a box from an upper triangular matrix.
+
+        Args:
+            box_matrix ((3, 3) `numpy.ndarray` of `float`): An upper
+                triangular matrix representing a box. The values for ``Lx``,
+                ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` are related to the
+                matrix:
+
+
+                .. math::
+
+                    \begin{bmatrix}
+                    L_x & L_y \cdot xy & L_z \cdot xz \\
+                    0 & L_y & L_z \cdot yz \\
+                    0 & 0 & L_z
+                    \end{bmatrix}
+
+        Returns:
+            hoomd.Box: The created box.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            box = hoomd.Box.from_matrix(
+                box_matrix = [[10, 12, 14],
+                              [0, 8, 16],
+                              [0, 0, 18]])
+        """
+        box_matrix = np.asarray(box_matrix)
+        if box_matrix.shape != (3, 3):
+            raise ValueError("Box matrix must be a 3x3 matrix.")
+        if not np.allclose(box_matrix, np.triu(box_matrix)):
+            raise ValueError("Box matrix must be upper triangular.")
+        L = np.diag(box_matrix)
+        return cls(*L, box_matrix[0, 1] / L[1], box_matrix[0, 2] / L[2],
+                   box_matrix[1, 2] / L[2])
+
     @classmethod
     def _from_cpp(cls, cpp_obj):
         """Wrap a C++ BoxDim.
