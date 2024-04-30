@@ -230,7 +230,7 @@ class Box:
            provided to this function. This is useful so that the points assigned to the
            original box can be rotated into the new box by applying the same rotation to
            the points.
-                
+
         Returns:
             hoomd.Box: The created box.
             `numpy.ndarray` of `float`: The quaternion that rotates the provided basis
@@ -264,10 +264,9 @@ class Box:
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
         else:
             xz = yz = 0
-        
-        ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz],
-                                    [0, Ly, Lz * yz],
-                                    [0, 0, Lz]])
+
+        ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
+                                  [0, 0, Lz]])
 
         rotation = np.linalg.solve(box_matrix, ut_box_matrix)
 
