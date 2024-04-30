@@ -290,11 +290,11 @@ private:
 // #ifdef __HIPCC__
     quat<Scalar> qi;
     quat<Scalar> qj;
+    vec3<Scalar> dr;
 // #else
     rotmat3<ShortReal> R_i;
     rotmat3<ShortReal> R_j;
 // #endif
-    vec3<Scalar> dr;
     vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;

@@ -301,53 +301,6 @@ public:
 
             force = -vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
 
-            // std::cout << " my force " << vecString(vec3<Scalar>(force));
-
-            // std::cout << "Old force " << vecString(-(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat)));
-
-            // is     their      [1/magdr * (-ni_world - costhetai*rhat)] the same as my dui_dr?
-            // is     their      [-ni_world/magdr - costhetai*rhat/magdr] the same as my dui_dr?
-            //   Expand costhetai to dot product definition
-            // is     their      [-ni_world/magdr - -dot(vec3<Scalar>(rhat), ni_world) *rhat/magdr] the same as my dui_dr?
-            //   Expand rhat to dr/magdr
-
-            // is     their      [-ni_world/magdr - -dot(dr, ni_world)/magdr * rhat/magdr] the same as my dui_dr?
-
-            //         ... yes but I also needed to add a negative sign to dfi_du()
-
-            // Problems
-            // 1. Extra factor of rhat on the whole term in mine, taken out April 25
-
-            //          dui_dr = rhat * ( (-ni_world)/ (magdr)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat/ (magdr*magdr) )
-            //                 ^
-            //                / \
-            //                 |
-            // copy from above |
-            //          dui_dr = rhat * ( magdr* (-ni_world)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
-
-
-            // Josh is ok with this:
-            // force = -(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat))
-
-            // rewrite with my notation:
-            // iPj = modPi*modj/magdr
-            // iPj = ModulatorPrimei() * Modulatorj() / magdr
-            // iPj = -dfi_du() * fj() / magdr
-
-            // jPi = modPj*modi/magdr
-            // jPi = ModulatorPrimej() * Modulatori() / magdr
-            // jPi = dfj_du() * fi() / magdr
-            // force_my_variables = -( -dfi_du() * fj() / magdr * (-ni_world - costhetai*rhat)
-            //                        + dfj_du() * fi() / magdr * (nj_world - costhetaj *rhat) )
-
-
-
-            // //negative here bc forcedivr has the implicit negative in PairModulator
-            // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
-            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) + jPi*(nj_world.x - costhetaj*dr.x/magdr));
-            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr) + jPi*(nj_world.y - costhetaj*dr.y/magdr));
-            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr) + jPi*(nj_world.z - costhetaj*dr.z/magdr));
-
             return true;
         }
 
@@ -363,11 +316,12 @@ private:
 // #ifdef __HIPCC__
     quat<Scalar> qi;
     quat<Scalar> qj;
+
+    vec3<Scalar> dr;
 // #else
     rotmat3<ShortReal> R_i;
     rotmat3<ShortReal> R_j;
 // #endif
-    vec3<Scalar> dr;
     vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;
