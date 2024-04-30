@@ -267,19 +267,21 @@ class Box:
             a3x = np.dot(v0, v2) / Lx
             xz = a3x / Lz
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
-        else:
-            xz = yz = 0
-        if Lz == 0:
-            ut_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
-            box_matrix = box_matrix[:2, :2]
-        else:
             ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
                                   [0, 0, Lz]])
+        else:
+            xz = yz = 0
+            if np.allclose(v2, [0,0,0]) and np.close(v0[2],0) and np.close(v1[2],0):
+                raise ValueError("A 2D box matrix must have a third vector and third component of first two vectors set to zero.")
+            ut_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
+            box_matrix = box_matrix[:2, :2]
 
         rotation = np.linalg.solve(ut_box_matrix, box_matrix)
 
         if Lz == 0:
-            rotation = np.pad(rotation, ((0, 1), (0, 1)), mode='constant')
+            rotation = np.zeros((3, 3))
+            rotation[:2, :2] = box_matrix
+            rotation[2, 2] = 1
 
         def from_rotation_matrix_to_quat(mat):
             mat = np.asarray(mat)
