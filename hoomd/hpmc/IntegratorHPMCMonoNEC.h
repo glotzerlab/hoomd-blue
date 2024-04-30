@@ -611,8 +611,8 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                         }
                     }
                 } // end loop over totalDist.
-            }     // end loop over all particles
-        }         // end loop over nselect
+            } // end loop over all particles
+        } // end loop over nselect
 
         {
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
@@ -877,7 +877,7 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
                 cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
                 }
             } // end loop over AABB nodes
-        }     // end loop over images
+        } // end loop over images
 
     return sweepableDistance;
     }

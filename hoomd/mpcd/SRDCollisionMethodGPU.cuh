@@ -45,7 +45,7 @@ cudaError_t srd_rotate(Scalar4* d_vel,
                        const unsigned int N_tot,
                        const unsigned int block_size);
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_GPU_CUH_

@@ -134,9 +134,9 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
                     type[k] = type[i];
                     ++j;
                     } // n
-                }     // m
-            }         // l
-        }             // i
+                } // m
+            } // l
+        } // i
     }
 
 /*!
