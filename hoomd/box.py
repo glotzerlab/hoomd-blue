@@ -230,6 +230,11 @@ class Box:
            input provided to this function. This is useful so that the points
            assigned to the original box can be rotated into the new box by
            applying the same rotation to the points.
+        
+        Note:
+           When passing a 2D basis vectors, the third vector should be set to
+           all zeros, while first two vectors should have the last element set
+           to zero.
 
         Returns:
             hoomd.Box: The created box.
@@ -264,11 +269,17 @@ class Box:
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
         else:
             xz = yz = 0
-
-        ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
+        if Lz == 0:
+            ut_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
+            box_matrix = box_matrix[:2, :2]
+        else:
+            ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
                                   [0, 0, Lz]])
 
         rotation = np.linalg.solve(box_matrix, ut_box_matrix)
+
+        if Lz == 0:
+            rotation = np.pad(rotation, ((0, 1), (0, 1)), mode='constant')
 
         def from_rotation_matrix_to_quat(mat):
             mat = np.asarray(mat)
