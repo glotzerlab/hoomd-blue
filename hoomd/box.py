@@ -160,8 +160,8 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, `from_matrix`, `from_basis_vectors`, and `from_box`. See each method's documentation for
-    more details.
+    `square`, `from_matrix`, `from_basis_vectors`, and `from_box`. See each
+    method's documentation for more details.
 
     .. rubric:: Example:
 
@@ -279,9 +279,10 @@ class Box:
             xz = yz = 0
             if np.allclose(v2, [0, 0, 0]) and np.close(v0[2], 0) and np.close(
                     v1[2], 0):
-                raise ValueError(
-                    "A 2D box matrix must have a third vector and third component of first two vectors set to zero."
-                )
+                error_string = ("A 2D box matrix must have a third vector and"
+                                "third component of first two vectors set to"
+                                "zero.")
+                raise ValueError(error_string)
             ut_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
             box_matrix = box_matrix[:2, :2]
 
