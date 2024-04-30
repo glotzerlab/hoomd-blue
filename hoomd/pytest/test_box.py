@@ -172,13 +172,16 @@ def test_from_matrix(new_box_matrix_dict):
     ])
 
 
-def test_from_matrix_non_triangular():
+def test_from_basis_vectors_non_triangular():
     box_matrix = np.array([[1 / np.sqrt(2), 1 / np.sqrt(2), 0],
                            [-1 / np.sqrt(2), 1 / np.sqrt(2), 0], [0, 0, 1]])
-    box, _ = Box.from_basis_vectors(box_matrix)
+    box, rotation = Box.from_basis_vectors(box_matrix.T)
     assert np.allclose([box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz],
                        [1, 1, 1, 0, 0, 0],
                        atol=1e-6)
+    rotated_matrix = box.to_matrix()
+    rotated_points = rotation @ box_matrix
+    assert np.allclose(rotated_matrix, rotated_points)
 
 
 def test_from_matrix_two_dimensional():
@@ -186,6 +189,20 @@ def test_from_matrix_two_dimensional():
     box, _ = Box.from_basis_vectors(box_matrix)
     assert box.is2D and box.dimensions == 2
 
+def test_rotation_matrix_from_basis_vectors_two_dimensional():
+    box_matrix = np.array([[1 / np.sqrt(2), 1 / np.sqrt(2), 0],
+                           [-1 / np.sqrt(2), 1 / np.sqrt(2), 0], [0, 0, 0]])
+    box,rotation = Box.from_basis_vectors(box_matrix.T)
+    rotated_matrix = box.to_matrix()
+    rotated_points = rotation @ box_matrix
+    assert np.allclose(rotated_matrix, rotated_points)
+    assert box.is2D and box.dimensions == 2
+
+def test_invalid_from_basis_vectors_two_dimensional():
+    box_matrix = np.array([[1, 0, 0], [0, 1, 1], [0, 0, 0]])
+    import pytest
+    with pytest.raises(ValueError):
+        Box.from_basis_vectors(box_matrix)
 
 def test_eq(base_box, box_dict):
     box2 = Box(**box_dict)
