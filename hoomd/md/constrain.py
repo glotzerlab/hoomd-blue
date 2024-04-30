@@ -333,13 +333,14 @@ class WallWithFriction(Constraint):
 
     """
 
-    def __init__(self,filter,manifold_constraint):
+    def __init__(self,filter,manifold_constraint, brownian=True):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
             manifold_constraint=OnlyTypes(Manifold, allow_none=False))
         param_dict["filter"] = filter
         param_dict["manifold_constraint"] = manifold_constraint
+        param_dict["brownian"] = brownian
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -371,4 +372,5 @@ class WallWithFriction(Constraint):
         self._cpp_obj = getattr(
             _md, base_class_str)(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
-                                 self.manifold_constraint._cpp_obj)
+                                 self.manifold_constraint._cpp_obj,
+                                 self.brownian)

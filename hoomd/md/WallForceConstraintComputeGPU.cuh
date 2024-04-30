@@ -37,6 +37,7 @@ hipError_t gpu_compute_wall_friction(const unsigned int group_size,
 					    const Scalar4* d_pos,
 					    const Scalar4* d_net_force,
 					    Manifold manifold,
+					    bool brownian,
 					    unsigned int block_size);
 
 #ifdef __HIPCC__
@@ -118,7 +119,8 @@ gpu_compute_wall_friction_kernel(const unsigned int group_size,
 				    Scalar* d_virial,
 				    const Scalar4* d_pos,
 				    const Scalar4* d_net_force,
-				    Manifold manifold)
+				    Manifold manifold,
+				    bool brownian)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
@@ -183,6 +185,7 @@ hipError_t gpu_compute_wall_friction(const unsigned int group_size,
 					    const Scalar4* d_pos,
 					    const Scalar4* d_net_force,
 					    Manifold manifold,
+					    bool brownian,
 					    unsigned int block_size)
     {
     // setup the grid to run the kernel
@@ -201,7 +204,8 @@ hipError_t gpu_compute_wall_friction(const unsigned int group_size,
 		       d_virial,
 		       d_pos,
 		       d_net_force,
-		       manifold);
+		       manifold,
+		       brownian);
 
     return hipSuccess;
     }

@@ -25,6 +25,7 @@ gpu_compute_wall_friction<MANIFOLD_CLASS>(const unsigned int group_size,
 					 const Scalar4* d_pos,
 					 const Scalar4* d_net_force,
 					 MANIFOLD_CLASS manifold,
+					 bool brownian,
 					 unsigned int block_size);
 
 template hipError_t

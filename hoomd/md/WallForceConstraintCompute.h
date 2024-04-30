@@ -66,7 +66,8 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     //! Constructs the compute
     WallForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
-                                 Manifold manifold);
+                                 Manifold manifold,
+				 bool brownian);
     //
     //! Destructor
     ~WallForceConstraintCompute();
@@ -96,6 +97,7 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
     Manifold m_manifold; //!< Constraining Manifold
+    bool m_brownian;
     Scalar* m_k;   //!< k harmonic spring constant
     Scalar* m_mus; //!< mus stick friction coefficient
     Scalar* m_muk; //!< mus kinetic friction coefficient
@@ -108,8 +110,9 @@ template<class Manifold>
 WallForceConstraintCompute<Manifold>::WallForceConstraintCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
-    Manifold manifold)
-    : ForceConstraint(sysdef), m_group(group), m_manifold(manifold), m_k(NULL), m_mus(NULL), m_muk(NULL)
+    Manifold manifold,
+    bool brownian)
+    : ForceConstraint(sysdef), m_group(group), m_manifold(manifold), m_brownian(brownian), m_k(NULL), m_mus(NULL), m_muk(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing WallForceConstraintCompute" << std::endl;
     m_k = new Scalar[m_pdata->getNTypes()];
@@ -208,8 +211,11 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
     ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+
     // sanity check
     assert(h_pos.data != NULL);
+    assert(h_vel.data != NULL);
     assert(h_net_force.data != NULL);
 
     // zero forces so we don't leave any forces set for indices that are no longer part of our group
@@ -239,11 +245,29 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	if(normal_magnitude < 0)
 		continue;
 
-	vec3<Scalar> perp_force =  -net_force + normal_magnitude*norm;
-	Scalar perp_magnitude = fast::sqrt(dot(perp_force,perp_force));
+	 vec3<Scalar> perp_vel, perp_force;
+	 Scalar norm_perp_vel = -1;
 
-	if( perp_magnitude > m_mus[typei]*normal_magnitude)
-		perp_force *= (normal_magnitude*m_muk[typei]/perp_magnitude);
+	 if(!m_brownian)
+	 	{
+		vec3<Scalar> net_vel(h_vel.data[idx].x,h_vel.data[idx].y,h_vel.data[idx].z);
+		Scalar normal_vel = dot(norm,net_vel);
+		perp_vel = -net_vel + normal_vel*norm;
+		norm_perp_vel = fast::sqrt(dot(perp_vel,perp_vel));
+		}
+
+	if( norm_perp_vel > 1e-8)
+		{
+		perp_force = perp_vel*normal_magnitude*m_muk[typei]/norm_perp_vel;
+	   	}
+	else
+		{
+		perp_force =  -net_force + normal_magnitude*norm;
+		Scalar perp_magnitude = fast::sqrt(dot(perp_force,perp_force));
+
+		if( perp_magnitude > m_mus[typei]*normal_magnitude)
+			perp_force *= (normal_magnitude*m_muk[typei]/perp_magnitude);
+		}
 
 
         h_force.data[idx].x = perp_force.x;
@@ -314,7 +338,7 @@ void export_WallForceConstraintCompute(pybind11::module& m, const std::string& n
                      std::shared_ptr<WallForceConstraintCompute<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            Manifold>())
+                            Manifold, bool>())
         .def("setParams", &WallForceConstraintCompute<Manifold>::setParamsPython)
         .def("getParams", &WallForceConstraintCompute<Manifold>::getParams);
     }

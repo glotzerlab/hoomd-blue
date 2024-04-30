@@ -68,8 +68,9 @@ template<class Manifold>
 WallForceConstraintComputeGPU<Manifold>::WallForceConstraintComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
-    Manifold manifold)
-    : WallForceConstraintCompute<Manifold>(sysdef, group, manifold)
+    Manifold manifold,
+    bool brownian)
+    : WallForceConstraintCompute<Manifold>(sysdef, group, manifold, brownian)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -122,6 +123,7 @@ template<class Manifold> void WallForceConstraintComputeGPU<Manifold>::computeFr
 				      d_pos.data,
 				      d_net_force.data,
         			      this->m_manifold,
+				      this->m_brownian,
 				      this->m_tuner_friction->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
