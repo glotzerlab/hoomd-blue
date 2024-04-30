@@ -227,10 +227,14 @@ class Box:
         Note:
            The created box will be rotated with respect to the lattice basis. As a
            consequence the output of `to_matrix` will not be the same as the input
-           provided to this function.
+           provided to this function. This is useful so that the points assigned to the
+           original box can be rotated into the new box by applying the same rotation to
+           the points.
                 
         Returns:
             hoomd.Box: The created box.
+            `numpy.ndarray` of `float`: The quaternion that rotates the provided basis
+            vectors to the box basis vectors.
 
         .. rubric:: Example:
 
@@ -260,8 +264,44 @@ class Box:
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
         else:
             xz = yz = 0
-        return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
+        
+        ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz],
+                                    [0, Ly, Lz * yz],
+                                    [0, 0, Lz]])
 
+        rotation = np.linalg.solve(box_matrix, ut_box_matrix)
+
+        def from_rotation_matrix_to_quat(mat):
+            mat = np.asarray(mat)
+            # Construct matrix K
+            K = np.zeros((4, 4))
+            K[0, 0] = mat[0, 0] - mat[1, 1] - mat[2, 2]
+            K[0, 1] = mat[1, 0] + mat[0, 1]
+            K[0, 2] = mat[2, 0] + mat[0, 2]
+            K[0, 3] = mat[1, 2] - mat[2, 1]
+            K[1, 0] = mat[1, 0] + mat[0, 1]
+            K[1, 1] = mat[1, 1] - mat[0, 0] - mat[2, 2]
+            K[1, 2] = mat[2, 1] + mat[1, 2]
+            K[1, 3] = mat[2, 0] - mat[0, 2]
+            K[2, 0] = mat[2, 0] + mat[0, 2]
+            K[2, 1] = mat[2, 1] + mat[1, 2]
+            K[2, 2] = mat[2, 2] - mat[0, 0] - mat[1, 1]
+            K[2, 3] = mat[0, 1] - mat[1, 0]
+            K[3, 0] = mat[1, 2] - mat[2, 1]
+            K[3, 1] = mat[2, 0] - mat[0, 2]
+            K[3, 2] = mat[0, 1] - mat[1, 0]
+            K[3, 3] = mat[0, 0] + mat[1, 1] + mat[2, 2]
+            K /= 3.0
+
+            # Find the eigenvectors and eigenvalues, and select the principal eigenvector
+            _, eigenvectors = np.linalg.eigh(K)
+            quaternion = eigenvectors[:, -1]
+            # Ensure quaternion is properly ordered as [w, x, y, z]
+            return np.concatenate(([quaternion[-1]], -quaternion[:-1]))
+
+        quat = from_rotation_matrix_to_quat(rotation)
+
+        return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz), quat
 
     @classmethod
     def from_matrix(cls, box_matrix):
