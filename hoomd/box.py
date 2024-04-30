@@ -238,7 +238,7 @@ class Box:
            to zero.
 
         Returns:
-            tuple: A tuple containing:
+            tuple[hoomd.Box, numpy.ndarray]: A tuple containing:
                 - hoomd.Box: The created box configured according to the given
                   basis vectors.
                 - numpy.ndarray: A 3x3 floating-point rotation matrix that can
