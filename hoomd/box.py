@@ -231,7 +231,7 @@ class Box:
            rotation matrix comensurate with this transformation. Using this
            rotation matrix users can rotate the original points into the new box
            by applying the rotation to the points.
-        
+
         Note:
            When passing a 2D basis vectors, the third vector should be set to
            all zeros, while first two vectors should have the last element set
@@ -274,11 +274,14 @@ class Box:
             xz = a3x / Lz
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
             ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
-                                  [0, 0, Lz]])
+                                      [0, 0, Lz]])
         else:
             xz = yz = 0
-            if np.allclose(v2, [0,0,0]) and np.close(v0[2],0) and np.close(v1[2],0):
-                raise ValueError("A 2D box matrix must have a third vector and third component of first two vectors set to zero.")
+            if np.allclose(v2, [0, 0, 0]) and np.close(v0[2], 0) and np.close(
+                    v1[2], 0):
+                raise ValueError(
+                    "A 2D box matrix must have a third vector and third component of first two vectors set to zero."
+                )
             ut_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
             box_matrix = box_matrix[:2, :2]
 
