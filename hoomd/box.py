@@ -226,7 +226,7 @@ class Box:
 
         Note:
            The created box will be rotated with respect to the lattice basis. As
-           a consequence the output of `to_matrix` will not be the same as the 
+           a consequence the output of `to_matrix` will not be the same as the
            input provided to this function. This is useful so that the points
            assigned to the original box can be rotated into the new box by
            applying the same rotation to the points.
