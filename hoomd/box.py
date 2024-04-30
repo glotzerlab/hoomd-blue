@@ -160,7 +160,7 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, `from_matrix`, and `from_box`. See each method's documentation for
+    `square`, `from_matrix`, `from_basis_vectors`, and `from_box`. See each method's documentation for
     more details.
 
     .. rubric:: Example:
@@ -238,9 +238,12 @@ class Box:
            to zero.
 
         Returns:
-            hoomd.Box: The created box.
-            `numpy.ndarray` of `float`: The rotation matrix that rotates the
-            provided basis vectors to the box basis vectors.
+            tuple: A tuple containing:
+                - hoomd.Box: The created box configured according to the given
+                  basis vectors.
+                - numpy.ndarray: A 3x3 floating-point rotation matrix that can
+                  be used to transform the original basis vectors to align with
+                  the new box basis vectors.
 
         .. rubric:: Example:
 
