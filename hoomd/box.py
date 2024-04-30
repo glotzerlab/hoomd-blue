@@ -217,13 +217,18 @@ class Box:
         return cls(L, L, 0, 0, 0, 0)
 
     @classmethod
-    def from_matrix(cls, box_matrix):
+    def from_basis_vectors(cls, box_matrix):
         r"""Initialize a Box instance from a box matrix.
 
         Args:
             box_matrix ((3, 3) `numpy.ndarray` of `float`): An 3x3 matrix
-                or list of lists representing a box.
+                or list of lists representing a set of lattice basis vectors.
 
+        Note:
+           The created box will be rotated with respect to the lattice basis. As a
+           consequence the output of `to_matrix` will not be the same as the input
+           provided to this function.
+                
         Returns:
             hoomd.Box: The created box.
 
@@ -231,10 +236,10 @@ class Box:
 
         .. code-block:: python
 
-            box = hoomd.Box.from_matrix(
-                box_matrix = [[10, 12, 14],
-                              [0, 8, 16],
-                              [0, 0, 18]])
+            box = hoomd.Box.from_basis_vectors(
+                box_matrix = [[ 1,  1,  0],
+                              [ 1, -1,  0],
+                              [ 0,  0,  1]])
         """
         box_matrix = np.asarray(box_matrix, dtype=np.float32)
         if box_matrix.shape != (3, 3):
