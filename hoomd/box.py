@@ -225,16 +225,16 @@ class Box:
                 or list of lists representing a set of lattice basis vectors.
 
         Note:
-           The created box will be rotated with respect to the lattice basis. As a
-           consequence the output of `to_matrix` will not be the same as the input
-           provided to this function. This is useful so that the points assigned to the
-           original box can be rotated into the new box by applying the same rotation to
-           the points.
+           The created box will be rotated with respect to the lattice basis. As
+           a consequence the output of `to_matrix` will not be the same as the 
+           input provided to this function. This is useful so that the points
+           assigned to the original box can be rotated into the new box by
+           applying the same rotation to the points.
 
         Returns:
             hoomd.Box: The created box.
-            `numpy.ndarray` of `float`: The quaternion that rotates the provided basis
-            vectors to the box basis vectors.
+            `numpy.ndarray` of `float`: The quaternion that rotates the provided
+            basis vectors to the box basis vectors.
 
         .. rubric:: Example:
 
@@ -292,7 +292,8 @@ class Box:
             K[3, 3] = mat[0, 0] + mat[1, 1] + mat[2, 2]
             K /= 3.0
 
-            # Find the eigenvectors and eigenvalues, and select the principal eigenvector
+            # Find the eigenvectors and eigenvalues, and select the
+            # principal eigenvector
             _, eigenvectors = np.linalg.eigh(K)
             quaternion = eigenvectors[:, -1]
             # Ensure quaternion is properly ordered as [w, x, y, z]
