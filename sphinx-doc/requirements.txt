@@ -36,7 +36,7 @@ executing==2.0.1
     # via stack-data
 fastjsonschema==2.19.1
     # via nbformat
-furo==2024.1.29
+furo==2024.4.27
     # via -r sphinx-doc/requirements.in
 idna==3.7
     # via requests
@@ -75,7 +75,7 @@ mistune==3.0.2
     # via nbconvert
 nbclient==0.10.0
     # via nbconvert
-nbconvert==7.16.3
+nbconvert==7.16.4
     # via
     #   -r sphinx-doc/requirements.in
     #   nbsphinx
