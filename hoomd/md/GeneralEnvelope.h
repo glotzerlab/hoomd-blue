@@ -75,8 +75,8 @@ public:
             if (len(n_py) != 3)
                 throw std::runtime_error("Each patch position must have 3 elements");
             vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
-                                            pybind11::cast<Scalar>(n_py[1]),
-                                            pybind11::cast<Scalar>(n_py[2]));
+                                          pybind11::cast<Scalar>(n_py[1]),
+                                          pybind11::cast<Scalar>(n_py[2]));
 
             // normalize
             n = n * fast::rsqrt(dot(n, n));
@@ -92,7 +92,7 @@ public:
         Scalar3 m_n;
     };
 
-    DEVICE GeneralEnvelope( // TODO: Change name to PatchModulator. It is not general. It assumes a single off-center patch
+    DEVICE GeneralEnvelope( // TODO replace GeneralEnvelope with PatchesEnvelope
         const Scalar3& _dr,
         const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
         const Scalar4& _quat_j,
@@ -101,13 +101,13 @@ public:
         const shape_type& shape_i,
         const shape_type& shape_j)
 // #ifdef __HIPCC__
-        // decide which is faster on GPU and CPU. // use 250_000 particles to saturate GPU // benchmark on brett
-        // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
+        // TODO decide which is faster on GPU and CPU. // use 250_000 particles to saturate GPU // benchmark on brett
+        // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), p_i(shape_i.m_n), p_j(shape_j.m_n)
 // #else
-        : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), n_i(shape_i.m_n), n_j(shape_j.m_n)
+        : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), p_i(shape_i.m_n), p_j(shape_j.m_n)
 // #endif
         {
-            // compute current janus direction vectors
+            // compute current particle direction vectors
 
             // rotate from particle to world frame
             vec3<ShortReal> ex(1,0,0);
@@ -116,29 +116,29 @@ public:
 
             //TODO Real --> ShortReal could help
 
-            // TODO try converting to rotation matrices
+            // DONE try converting to rotation matrices
 
             // a1, a2, a3 are orientation vectors of particle a in world frame
             // b1, b2, b3 are orientation vectors of particle b in world frame
-            // ni_world is patch direction of particle a in world frame
+            // ni_world is patch direction of particle i in world frame
 // #ifdef __HIPCC__
             a1 = R_i * ex;
             a2 = R_i * ey;
             a3 = R_i * ez;
-            ni_world = R_i * (vec3<ShortReal>)n_i;
+            ni_world = R_i * (vec3<ShortReal>)p_i;
             b1 = R_j * ex;
             b2 = R_j * ey;
             b3 = R_j * ez;
-            nj_world = R_j * (vec3<ShortReal>)n_j; 
+            nj_world = R_j * (vec3<ShortReal>)p_j;
 // #else
 //             a1 = rotate(qi, ex);
 //             a2 = rotate(qi, ey);
 //             a3 = rotate(qi, ez);
-//             ni_world = rotate(qi, n_i);
+//             ni_world = rotate(qi, p_i);
 //             b1 = rotate(qj, ex);
 //             b2 = rotate(qj, ey);
 //             b3 = rotate(qj, ez);
-//             nj_world = rotate(qj, n_j);
+//             nj_world = rotate(qj, p_j);
 // #endif
             
             // compute distance
@@ -184,34 +184,6 @@ public:
     */
     HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
 
-
-    DEVICE Scalar fi() // called f(dr, ni) in the derivation
-    //fi in python
-        {
-            return Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaI_minus_CosAlpha );
-        }
-
-
-    DEVICE inline Scalar fj() // called f(dr, nj) in the derivation
-    // fj in python
-        {
-            return Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaJ_minus_CosAlpha );
-        }
-
-
-    DEVICE Scalar dfi_du(Scalar fi)
-        {
-            //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
-            return -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha  * fi * fi;
-        }
-
-    DEVICE Scalar dfj_du(Scalar fj)
-        {
-            //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
-            return params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha  * fj * fj;
-        }
-
-
     //! Evaluate the force and energy
     /*
       // TODO update this
@@ -228,48 +200,61 @@ public:
                          Scalar3& torque_div_energy_j) //torque_modulator
         {
             // common calculations
-            Scalar modi = fi();
-            Scalar modj = fj();
+
+            Scalar f_min, f_max, f_max_min_inv;
+
+            f_min = Scalar(1.0) / ( Scalar(1.0 + fast::exp(-params.omega*(-1 - params.cosalpha))) );
+            f_max = Scalar(1.0) / ( Scalar(1.0 + fast::exp(-params.omega*(1 - params.cosalpha))) );
+
+            f_max_min_inv = 1 / (f_max - f_min);
+
+
+            Scalar fi = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaI_minus_CosAlpha );
+            dfi_du = -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * f_max_min_inv * fi * fi;
+            // normalize the modulator function
+            fi = (fi - f_min) * f_max_min_inv;
+
+            Scalar fj = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaJ_minus_CosAlpha );
+            dfj_du = params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha * f_max_min_inv * fj * fj;
+            fj = (fj - f_min) * f_max_min_inv;
 
             // the overall modulation
-            envelope = modi*modj;
+            envelope = fi * fj;
 
-            vec3<Scalar> dfi_dni = dfi_du(modi) * rhat; // TODO add -rhat here and take out above (afuyeaad)
+            vec3<Scalar> dfi_dni = dfi_du * rhat; // TODO add -rhat here and take out above (afuyeaad)
 
             torque_div_energy_i =
-                vec_to_scalar3( n_i.x * cross( vec3<Scalar>(a1), dfi_dni)) +
-                vec_to_scalar3( n_i.y * cross( vec3<Scalar>(a2), dfi_dni)) +
-                vec_to_scalar3( n_i.z * cross( vec3<Scalar>(a3), dfi_dni));
+                vec_to_scalar3( ni_world.x * cross( vec3<Scalar>(a1), dfi_dni)) +
+                vec_to_scalar3( ni_world.y * cross( vec3<Scalar>(a2), dfi_dni)) +
+                vec_to_scalar3( ni_world.z * cross( vec3<Scalar>(a3), dfi_dni));
 
-            torque_div_energy_i *= Scalar(-1) * modj;
+            torque_div_energy_i *= Scalar(-1) * fj;
 
-            vec3<Scalar> dfj_dnj = dfj_du(modj) * rhat; // still positive
+            vec3<Scalar> dfj_dnj = dfj_du * rhat; // still positive
 
             torque_div_energy_j =
-                vec_to_scalar3( n_j.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
-                vec_to_scalar3( n_j.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
-                vec_to_scalar3( n_j.z * cross( vec3<Scalar>(b3), dfj_dnj));
+                vec_to_scalar3( nj_world.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
+                vec_to_scalar3( nj_world.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
+                vec_to_scalar3( nj_world.z * cross( vec3<Scalar>(b3), dfj_dnj));
 
             // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dr)));
 
-            torque_div_energy_j *= Scalar(-1) * modi;
+            torque_div_energy_j *= Scalar(-1) * fi;
 
             // term2 = self.iso.energy(magdr) * (
 
             // THIS PART in here:
             //     dfj_duj * duj_dr * self.patch.fi(dr, self.ni_world) + dfi_dui * dui_dr * self.patch.fj(dr, self.nj_world)
 
-
+            
             // find df/dr = df/du * du/dr
-
             // find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
-
             Scalar lo = magdr;
             vec3<Scalar> dlo = rhat;
 
             // //something wrong: this has to be a scalar
             // Scalar3 dfi_dui = dfi_dni();
-            Scalar dfi_dui = -dfi_du(modi); // TODO: remove this negative when I take out the one at afuyeaad
+            Scalar dfi_dui = -dfi_du; // TODO: remove this negative when I take out the one at afuyeaad
 
             Scalar hi = -dot(dr, vec3<Scalar>(ni_world));
             vec3<Scalar> dhi = -ni_world;
@@ -277,13 +262,13 @@ public:
             vec3<Scalar> dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
             //           dui_dr = removedrhat * ( magdr* -ni_world - -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
 
-            Scalar dfj_duj = dfj_du(modj);
+            Scalar dfj_duj = dfj_du;
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
             dhi = nj_world;
-            // // lo and dlo are the same
+            // // lo and dlo are the same as above
             vec3<Scalar> duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
 
-            force = -vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
+            force = -vec_to_scalar3(dfj_duj*duj_dr * fi + dfi_dui*dui_dr * fj);
 
             return true;
         }
@@ -308,14 +293,12 @@ private:
     vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;
-    vec3<Scalar> n_i, n_j;
     vec3<Scalar> a1, a2, a3;
     vec3<Scalar> b1, b2, b3;
     Scalar drsq;
     Scalar magdr;
     vec3<Scalar> rhat;
 
-    vec3<Scalar> ei, ej;
     Scalar exp_negOmega_times_CosThetaI_minus_CosAlpha;
     Scalar exp_negOmega_times_CosThetaJ_minus_CosAlpha;
 };
