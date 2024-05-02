@@ -169,3 +169,140 @@ class PlanarPore(Geometry):
         self._cpp_obj = _mpcd.PlanarPore(self.separation, self.length,
                                          self.no_slip)
         super()._attach_hook()
+
+class CosineExpansionContraction(Geometry):
+
+    r"""Symmetric Cosine streaming geometry, i.e a constriction expansion channel.
+
+    Args:
+
+        channel_length (float): channel length
+        hw_wide (float): channel half-width at its widest point.
+        hw_narrow (float): channel half-width at its narrowest point.
+        repetitions (int): channel periodicity.
+        no_slip (bool):  If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+
+    The symmetric cosine geometry represents a fluid confined between two walls
+    described by a sinusoidal profile with equations
+    :math:`+/-(A cos(2*pi*p*x/Lx) + A + hw_narrow)`,
+    where A = 0.5*(hw_wide-hw_narrow) is the amplitude, :math:`Lx` is the BoxDim in *x*
+    direction, and :math: `p` is the
+    period of the wall cosine. The channel is axis-symmetric around the origin in
+    *z* direction. The two symmetric cosine walls create a periodic series of
+    :math: `p` constrictions and expansions. The parameter :math: `hw_wide` gives the
+    channel half-width at its widest and :math: `hw_narrow` is the channel half-width at
+    its narrowest point.
+
+    The "inside" of the :py:class:`CosineExpansionContraction` is the space where
+    :math:`|z| < (A cos(2pi*p*x/Lx) + A + hw_narrow)`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        channel = hoomd.mpcd.geometry.CosineExpansionContraction(channel_length=Lx,
+                                                                  hw_wide=H,
+                                                                  hw_narrow=h,
+                                                                  repetitions=1,
+                                                                  no_slip=True)
+
+        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=channel,
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce(force=(fx, 0, 0))
+        )
+
+    Attributes:
+        channel_length (float): channel length (*read only*).
+        hw_wide (float): channel half-width at its widest point (*read only*).
+        hw_narrow (float): channel half-width at its narrowest point (*read only*).
+        repetitions (int): channel periodicity (*read only*).
+        no_slip (bool):  If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition. (*read only*).
+
+    """
+
+    def __init__(self, channel_length, hw_wide, hw_narrow,repetitions, no_slip=True):
+        super().__init__(no_slip)
+
+        param_dict = ParameterDict(
+            channel_length=float(channel_length),
+            hw_wide=float(hw_wide),
+            hw_narrow=float(hw_narrow),
+            repetitions=int(repetitions),
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.CosineExpansionContraction(self.channel_length, self.hw_wide,
+                                        self.hw_narrow,int(self.repetitions), self.no_slip)
+        super()._attach_hook()
+
+class CosineChannel(Geometry):
+    r"""Anti-symmetric Sinusoidal channel streaming geometry.
+
+    Args:
+        channel_length (float): channel length
+        amplitude (float): Amplitude of Cosine wall
+        hw_narrow (float): channel half-width
+        repetitions (int):   channel periodicity
+        no_slip (bool): If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+    The anti-symmetric cosine geometry represents a fluid confined between two
+    walls described by a sinusoidal profile with equations
+    :math: `(amplitude*cos(2*pi*repetitions*x/Lx) +/- 2hw_narrow)`, where 'amplitude' is
+    the amplitude, :math: `hw_narrow` is
+    the channel half-width, :math:`Lx` is the BoxDim in *x* direction,
+    and :math: `repetitions` is the period of the wall cosine. The channel is
+    anti-symmetric around the origin in *z* direction. The cosines of top and
+    bottom are running in parallel and create a "wavy" cannel with :math: `repetitions`
+    repetitions.
+
+    The "inside" of the :py:class:`sinusoidal_channel` is the space where
+    :math:`|z- cos(2*pi*repetitions*x/Lx)| < hw_narrow`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        channel = hoomd.mpcd.geometry.CosineExpansionContraction(channel_length=Lx,
+                                                                  amplitude=A,
+                                                                  hw_narrow=h,
+                                                                  repetitions=1,
+                                                                  no_slip=True)
+
+        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=channel,
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce(force=(fx, 0, 0))
+        )
+
+    Attributes:
+        channel_length (float): channel length
+        amplitude (float): Amplitude of Cosine wall (*read only*).
+        hw_narrow (float): channel half-width at its narrowest point (*read only*).
+        repetitions (int): channel periodicity (*read only*).
+        no_slip (bool):  If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition. (*read only*).
+
+    """
+
+
+    def __init__(self, channel_length, amplitude, hw_narrow,repetitions, no_slip=True):
+        super().__init__(no_slip)
+
+        param_dict = ParameterDict(
+            channel_length=float(channel_length),
+            amplitude=float(amplitude),
+            hw_narrow=float(hw_narrow),
+            repetitions=int(repetitions),
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.CosineChannel(self.channel_length, self.amplitude,
+                                    self.hw_narrow,int(self.repetitions), self.no_slip)
+        super()._attach_hook()

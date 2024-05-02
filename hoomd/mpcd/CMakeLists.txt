@@ -11,6 +11,8 @@ set(_mpcd_cc_sources
     CellList.cc
     CollisionMethod.cc
     Communicator.cc
+    CosineChannelGeometry.cc
+    CosineExpansionContractionGeometry.cc
     Integrator.cc
     ManualVirtualParticleFiller.cc
     ParallelPlateGeometry.cc
@@ -35,6 +37,8 @@ set(_mpcd_headers
     BounceBackStreamingMethod.h
     Communicator.h
     CommunicatorUtilities.h
+    CosineChannelGeometry.h
+    CosineExpansionContractionGeometry.h
     Integrator.h
     ManualVirtualParticleFiller.h
     ParticleData.h
@@ -110,6 +114,8 @@ set(_forces
     NoForce
     )
 set(_geometries
+    CosineChannelGeometry
+    CosineExpansionContractionGeometry
     ParallelPlateGeometry
     PlanarPoreGeometry
     )
