@@ -38,8 +38,7 @@ class EvaluatorPairVelocityLubricationCoupling
     public:
     struct param_type
         {
-        Scalar kappa; //! force coefficient.
-        Scalar tau;   //! torque coefficient.
+        Scalar mu;   //! viscocity 
 	bool take_momentum;
 	bool take_velocity;
 
@@ -61,14 +60,13 @@ class EvaluatorPairVelocityLubricationCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0), tau(0), take_momentum(true), take_velocity(true) { }
+        HOSTDEVICE param_type() : mu(0), take_momentum(true), take_velocity(true) { }
 
 #ifndef __HIPCC__
 
         param_type(pybind11::dict v, bool managed)
             {
-            kappa = v["kappa"].cast<Scalar>();
-            tau = v["tau"].cast<Scalar>();
+            mu = v["mu"].cast<Scalar>();
             take_momentum = v["take_momentum"].cast<bool>();
             take_velocity = v["take_velocity"].cast<bool>();
             }
@@ -76,8 +74,7 @@ class EvaluatorPairVelocityLubricationCoupling
         pybind11::object toPython()
             {
             pybind11::dict v;
-            v["kappa"] = kappa;
-            v["tau"] = tau;
+            v["mu"] = mu;
             v["take_momentum"] = take_momentum;
             v["take_velocity"] = take_velocity;
             return std::move(v);
@@ -125,8 +122,7 @@ class EvaluatorPairVelocityLubricationCoupling
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _quat_i Quaternion of i^{th} particle
         \param _quat_j Quaternion of j^{th} particle
-        \param _A Electrostatic energy scale
-        \param _kappa Inverse screening length
+        \param _mu effective viscocity 
         \param _params Per type pair parameters of this potential
     */
     HOSTDEVICE EvaluatorPairVelocityLubricationCoupling(Scalar3& _dr,
@@ -134,13 +130,18 @@ class EvaluatorPairVelocityLubricationCoupling
                                                 Scalar4& _quat_j,
                                                 Scalar _rcutsq,
                                                 const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},velocity {0, 0, 0},vel {true}, diameter(0), kappa(_params.kappa), tau(_params.tau), take_momentum(_params.take_momentum), take_velocity(_params.take_velocity)
+        : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_i {0, 0, 0},ang_j {0, 0, 0},ang_mom {0, 0, 0}, am {true},velocity {0, 0, 0},vel {true}, diameter_i(0),diameter_j(0),massi(0),massj(0), mu(_params.mu), take_momentum(_params.take_momentum), take_velocity(_params.take_velocity)
 
         {
         }
 
     //! uses diameter
     HOSTDEVICE static bool needsDiameter()
+        {
+        return true;
+        }
+
+    HOSTDEVICE static bool needsMass()
         {
         return true;
         }
@@ -187,7 +188,14 @@ class EvaluatorPairVelocityLubricationCoupling
     */
     HOSTDEVICE void setDiameter(Scalar di, Scalar dj)
         {
-        diameter = 0.5 * (di + dj);
+        diameter_i = di;
+        diameter_j = dj;
+        }
+
+    HOSTDEVICE void setMass(Scalar mass_i, Scalar mass_j)
+        {
+        massi = mass_i;
+        massj = mass_j;
         }
 
     //! Accept the optional shape values
@@ -212,21 +220,25 @@ class EvaluatorPairVelocityLubricationCoupling
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai)
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, vec3<Scalar> aj)
         {
 	am = true;
 	if(take_momentum)
 		{
-		ang_mom = ai;
+		ang_i = ai;
+		ang_j = ai;
+		ang_mom = ai+aj;
 
 		if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
 		    am = false;
 		}
 	else 
-		ang_mom = vec3<Scalar>(0,0,1);
+		ang_i = vec3<Scalar>(0,0,0);
+		ang_j = vec3<Scalar>(0,0,0);
+		ang_mom = vec3<Scalar>(0,0,0);
 	}
 
-    HOSTDEVICE void setVelocity(vec3<Scalar> vi)
+    HOSTDEVICE void setVelocities(vec3<Scalar> vi)
         {
 	vel = true;
 	if(take_velocity)
@@ -237,7 +249,7 @@ class EvaluatorPairVelocityLubricationCoupling
 		    vel = false;
 		}
 	else 
-		velocity = vec3<Scalar>(0,0,1);
+		velocity = vec3<Scalar>(0,0,0);
 	}
 
 
@@ -257,28 +269,60 @@ class EvaluatorPairVelocityLubricationCoupling
                              Scalar3& torque_i,
                              Scalar3& torque_j)
         {
-        if (am)
+        if (am || vel)
             {
-            vec3<Scalar> rvec(dr);
-            Scalar rsq = dot(rvec, rvec);
+            vec3<Scalar> rvec(dr); /// Turn distance between particles into a vector
+            Scalar rsq = dot(rvec, rvec); /// get square distance 
 
             if (rsq > rcutsq)
                 return false;
+            Scalar diameter = 0.5 * (diameter_i + diameter_j);
+	    Scalar beta = diameter_j / diameter_i;
+	    Scalar betainv = diameter_i / diameter_j;
+	    Scalar r_a = diameter_i/2.0;
+	    Scalar r_b = diameter_j/2.0;
+	    Scalar pi = acos(0.0);
 
             Scalar rinv = fast::rsqrt(rsq);
+	    vec3<Scalar> n_v = rvec / (1.0/rinv); // Normal vector connecting the two particles
+	    
+	    Scalar sphere_inertia_i = 0.4 * massi * r_a*r_a;
+	    Scalar sphere_inertia_j = 0.4 * massj * r_b*r_b;
+	    vec3<Scalar> ang_vel_i =  ang_i / sphere_inertia_i; 
+	    vec3<Scalar> ang_vel_j =  ang_j / sphere_inertia_j; 
+	    vec3<Scalar> sum_avel =  ang_vel_i + ang_vel_j;	    
+	    vec3<Scalar> diff_avel =  ang_vel_i - ang_vel_j;	    
+	    vec3<Scalar> delta_U =  -1.0 * velocity;    
+
 
             Scalar d = 1.0 / rinv - diameter;
-            Scalar dcut = fast::sqrt(rcutsq) - diameter;
-
-            dcut = Scalar(1.0) / dcut;
-            Scalar prefactor = fast::log(dcut * d);
-
-            vec3<Scalar> f = kappa * prefactor * cross(rvec, ang_mom) * rinv;
-            vec3<Scalar> t = tau * prefactor * ang_mom;
-
+	    Scalar laminv = ((r_a+r_b)/2)/d;
+	    Scalar dot_vel = dot(n_v,delta_U);
+	    vec3<Scalar> cross_vel = cross(delta_U,n_v);
+	    Scalar dot_angvel_sum = dot(n_v,sum_avel);
+	    Scalar dot_angvel_diff = dot(n_v,diff_avel);
+	    vec3<Scalar> cross_angvel_diff = cross(diff_avel,n_v);
+	    vec3<Scalar> cross_angvel_sum = cross(sum_avel,n_v);
+	    Scalar YA11 = 6.0*pi*r_a*((8.0*beta+4.0*beta*beta+8.0*beta*beta)/
+			  (15.0*(1.0+beta)*(1.0+beta)*(1.0+beta))*fast::log(laminv)); 
+	    Scalar YB11 = -4.0 * pi * r_a*r_a * (beta*(4.0+beta)/
+		    	(5.0*(1.0+beta)*(1.0+beta))*fast::log(laminv));
+	    Scalar YC12 = 8.0*pi*r_a*r_a*r_a * (beta*beta/(10.0+10.0*beta))*fast::log(laminv);
+	    Scalar XA11 = 6.0 * pi * r_a * (2.0*beta*beta/((1.0+beta)*(1.0+beta)*(1.0+beta))*laminv+
+		    	(beta+7.0*beta*beta+beta*beta*beta)/(5.0*(1.0+beta)*
+			(1.0+beta)*(1.0+beta))*fast::log(laminv));
+	    vec3<Scalar> f_vel = XA11 * dot_vel * n_v + YA11 * (delta_U - vec3<Scalar>(1.,1.,1.)*dot_vel);  
+	    vec3<Scalar> f_rot = -(r_a+r_b)/2*YA11*cross_angvel_sum + 
+	    			(1-(r_b*r_a+4*r_b*r_b)/(4*r_a*r_a+r_a*r_b))*YB11/2*cross_angvel_diff;  
+            vec3<Scalar> f = mu * (f_vel + f_rot);
+            vec3<Scalar> t_i = mu * (YB11*cross_vel+(r_a+r_b)*YB11/2*(sum_avel-dot_angvel_sum* n_v)+
+		   	      (1-4*r_a/r_b)/2*YC12*(diff_avel-dot_angvel_diff* n_v));
+            vec3<Scalar> t_j = mu * ((r_a*r_b+4*r_b*r_b)/(4*r_a*r_a+r_a*r_b)*YB11*cross_vel+
+		    	(r_b*(r_a+r_b)*(r_a+4*r_b))/(2*r_a*r_b+8*r_a*r_a)*YB11*(sum_avel-dot_angvel_sum* n_v)
+			-(1-4*r_b/r_a)*YC12*(diff_avel-dot_angvel_diff* n_v));
             force = vec_to_scalar3(f);
-            torque_i = vec_to_scalar3(t);
-            torque_j = vec_to_scalar3(t);
+            torque_i = vec_to_scalar3(t_i);
+            torque_j = vec_to_scalar3(t_j);
             }
         else
             {
@@ -321,12 +365,16 @@ class EvaluatorPairVelocityLubricationCoupling
     Scalar rcutsq;          //!< Stored rcutsq from the constructor
     Scalar4 quat_i, quat_j; //!< Stored quaternion of ith and jth particle from constructor
     vec3<Scalar> ang_mom;   /// Sum of angular momentum for ith and jth particle
+    vec3<Scalar> ang_i;   /// angular momentum for ith particle
+    vec3<Scalar> ang_j;   /// angular momentum for jth particle
     vec3<Scalar> velocity;   /// difference of velocity for ith and jth particle
     bool am;
     bool vel;
-    Scalar diameter; /// average diameter of the particle pair
-    Scalar kappa;
-    Scalar tau;
+    Scalar diameter_i; /// diameter of particle i 
+    Scalar diameter_j; /// diameter of particle j 
+    Scalar mu;
+    Scalar massi;
+    Scalar massj;
     bool take_momentum;
     bool take_velocity;
     // const param_type &params;   //!< The pair potential parameters

@@ -10,6 +10,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairGB.cc
                    AnisoPotentialPairLubricationCoupling.cc
                    AnisoPotentialPairRotationalCoupling.cc
+                   AnisoPotentialPairVelocityLubricationCoupling.cc
                    AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc

@@ -456,6 +456,12 @@ template<unsigned int ndim> class EvaluatorPairALJ
         return false;
         }
 
+    //! Whether the pair potential needs particle masses.
+    HOSTDEVICE static bool needsMass()
+        {
+        return false;
+        }
+
     //! Whether the pair potential uses shape.
     HOSTDEVICE static bool needsShape()
         {
@@ -498,6 +504,12 @@ template<unsigned int ndim> class EvaluatorPairALJ
     */
     HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
 
+    //! Accept the optional diameter values
+    /*! \param mass_i of particle i
+        \param mass_j of particle j
+    */
+    HOSTDEVICE void setMass(Scalar mass_i, Scalar mass_j) { }
+
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
         \param shape_j Shape of particle j
@@ -528,7 +540,12 @@ template<unsigned int ndim> class EvaluatorPairALJ
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai) { }
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai,vec3<Scalar> aj) { }
+
+    /*! \param vi velocity of particle i
+        \param vj velocity of particle j
+    */
+    HOSTDEVICE void setVelocities(vec3<Scalar> vi) { }
 
     //! Evaluate the force and energy.
     /*! \param force Output parameter to write the computed force.

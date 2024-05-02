@@ -309,6 +309,71 @@ class LubricationCoupling(AnisotropicPair):
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
                             self.nlist._cpp_obj, self.third_law)
 
+class VelocityLubricationCoupling(AnisotropicPair):
+    r"""Lubrication coupling anisotropic pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        third_law (bool): Decides if forces are reciprocal.
+
+    `VelocityLubricationCoupling` computes an hydrodynamic anisotropic pair force on
+    every particle in the simulation state that couples to the angular momenta
+    and velocity of the pair. This version of the force is based on near field.
+
+    Example::
+
+        nl = nlist.Cell()
+        rotational_coupling = md.pair.aniso.LubricationCoupling(nlist=nl,
+                              default_r_cut=2.5)
+        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45, tau=0.5)
+        rotational_coupling.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
+
+    .. py:attribute:: params
+
+        The lubrication coupling potential parameters. The dictionary has the
+        following keys:
+
+        * ``mu`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    _cpp_class_name = "AnisoPotentialPairVelocityLubricationCoupling"
+
+    def __init__(self, nlist, default_r_cut=None, mode='none', third_law=True):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(mu=float, take_momentum=bool, take_velocity=bool, len_keys=2))
+            #TypeParameterDict(mu, take_momentum=bool, len_keys=2))
+        self._add_typeparam(params)
+        self.third_law = third_law
+
+    def _attach_hook(self):
+        if self.nlist._attached and self._simulation != self.nlist._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. Set a new nlist to suppress this warning.",
+                RuntimeWarning)
+            self.nlist = copy.deepcopy(self.nlist)
+        self.nlist._attach(self._simulation)
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cls = getattr(self._ext_module, self._cpp_class_name)
+            if self.third_law:
+                self.nlist._cpp_obj.setStorageMode(
+                    _md.NeighborList.storageMode.half)
+            else:
+                self.nlist._cpp_obj.setStorageMode(
+                    _md.NeighborList.storageMode.full)
+        else:
+            cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
+            self.nlist._cpp_obj.setStorageMode(
+                _md.NeighborList.storageMode.full)
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
+                            self.nlist._cpp_obj, self.third_law)
 
 class RotationalCoupling(AnisotropicPair):
     r"""Rotational coupling anisotropic pair force.

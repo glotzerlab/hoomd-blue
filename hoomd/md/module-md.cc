@@ -72,6 +72,7 @@ void export_AnisoPotentialPairDipole(pybind11::module& m);
 void export_AnisoPotentialPairGB(pybind11::module& m);
 void export_AnisoPotentialPairLubricationCoupling(pybind11::module& m);
 void export_AnisoPotentialPairRotationalCoupling(pybind11::module& m);
+void export_AnisoPotentialPairVelocityLubricationCoupling(pybind11::module& m);
 
 void export_PotentialBondHarmonic(pybind11::module& m);
 void export_PotentialBondFENE(pybind11::module& m);
@@ -345,6 +346,7 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairGB(m);
     export_AnisoPotentialPairLubricationCoupling(m);
     export_AnisoPotentialPairRotationalCoupling(m);
+    export_AnisoPotentialPairVelocityLubricationCoupling(m);
 
     export_PotentialPairDPDThermoDPD(m);
     export_PotentialPairDPDThermoLJ(m);
@@ -429,6 +431,7 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairGBGPU(m);
     export_AnisoPotentialPairLubricationCouplingGPU(m);
     export_AnisoPotentialPairRotationalCouplingGPU(m);
+    export_AnisoPotentialPairVelocityLubricationCouplingGPU(m);
 
     export_PotentialBondHarmonicGPU(m);
     export_PotentialBondFENEGPU(m);

@@ -142,6 +142,11 @@ class EvaluatorPairLubricationCoupling
         return true;
         }
 
+    HOSTDEVICE static bool needsMass()
+        {
+        return false;
+        }
+
     //! Whether the pair potential uses shape.
     HOSTDEVICE static bool needsShape()
         {
@@ -187,6 +192,11 @@ class EvaluatorPairLubricationCoupling
         diameter = 0.5 * (di + dj);
         }
 
+    /*! \param mass_i mass of particle i
+        \param mass_j mass of particle j
+    */
+    HOSTDEVICE void setMass(Scalar mass_i, Scalar mass_j) { }
+
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
         \param shape_j Shape of particle j
@@ -205,16 +215,20 @@ class EvaluatorPairLubricationCoupling
     */
     HOSTDEVICE void setCharge(Scalar qi, Scalar qj) { }
 
-    //! Accept the optional charge values
+    /*! \param vi velocity of particle i
+        \param vj velocity of particle j
+    */
+    HOSTDEVICE void setVelocities(vec3<Scalar> vi) { }
+
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai)
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, vec3<Scalar> aj)
         {
 	am = true;
 	if(take_momentum)
 		{
-		ang_mom = ai;
+		ang_mom = ai+aj;
 
 		if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
 		    am = false;

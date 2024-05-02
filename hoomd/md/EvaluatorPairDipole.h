@@ -147,6 +147,11 @@ class EvaluatorPairDipole
         return false;
         }
 
+    HOSTDEVICE static bool needsMass()
+        {
+        return false;
+        }
+
     //! Whether the pair potential uses shape.
     HOSTDEVICE static bool needsShape()
         {
@@ -192,6 +197,14 @@ class EvaluatorPairDipole
     /*! \param shape_i Shape of particle i
         \param shape_j Shape of particle j
     */
+
+    HOSTDEVICE void setMass(Scalar mass_i, Scalar mass_j) { }
+
+    //! Accept the optional shape values
+    /*! \param shape_i Shape of particle i
+        \param shape_j Shape of particle j
+    */
+
     HOSTDEVICE void setShape(const shape_type* shapei, const shape_type* shapej)
         {
         mu_i = shapei->mu;
@@ -218,7 +231,12 @@ class EvaluatorPairDipole
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai) { }
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai,vec3<Scalar> aj) { }
+
+    /*! \param vi velocity of particle i
+        \param vj velocity of particle j
+    */
+    HOSTDEVICE void setVelocities(vec3<Scalar> vi) { }
 
     //! Evaluate the force and energy
     /*! \param force Output parameter to write the computed force.

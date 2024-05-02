@@ -552,6 +552,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                   access_location::host,
                                   access_mode::read);
 
+
     // force arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
@@ -582,7 +583,9 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
             // access diameter and charge (if needed)
             Scalar di = Scalar(0.0);
             Scalar qi = Scalar(0.0);
+            Scalar mass_i = Scalar(0.0);
             vec3<Scalar> ai;
+            vec3<Scalar> vi;
             if (aniso_evaluator::needsDiameter())
                 di = h_diameter.data[i];
             if (aniso_evaluator::needsCharge())
@@ -595,7 +598,11 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 }
             if (aniso_evaluator::needsVelocity())
                 {
-                vi = h_velocity.data[i];
+                vi = vec3<Scalar>(h_velocity.data[i].x,h_velocity.data[i].y,h_velocity.data[i].z);
+                }
+            if (aniso_evaluator::needsMass())
+                {
+                mass_i = Scalar(h_velocity.data[i].w);
                 }
 
             // initialize current particle force, torque, potential energy, and virial to 0
@@ -633,8 +640,10 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
 
                 // access diameter and charge (if needed)
                 Scalar dj = Scalar(0.0);
+                Scalar mass_j = Scalar(0.0);
                 Scalar qj = Scalar(0.0);
                 vec3<Scalar> aj;
+                vec3<Scalar> vj;
                 if (aniso_evaluator::needsDiameter())
                     dj = h_diameter.data[j];
                 if (aniso_evaluator::needsCharge())
@@ -647,7 +656,12 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     }
             	if (aniso_evaluator::needsVelocity())
             	    {
-            	    vj = h_velocity.data[j];
+            	    vj = vec3<Scalar>(h_velocity.data[j].x,h_velocity.data[j].y,h_velocity.data[j].z);
+
+            	    }
+            	if (aniso_evaluator::needsMass())
+            	    {
+            	    mass_j = Scalar(h_velocity.data[j].w);
             	    }
 
                 // apply periodic boundary conditions
@@ -675,6 +689,8 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
 
                 if (aniso_evaluator::needsDiameter())
                     eval.setDiameter(di, dj);
+                if (aniso_evaluator::needsMass())
+                    eval.setMass(mass_i, mass_j);
                 if (aniso_evaluator::needsCharge())
                     eval.setCharge(qi, qj);
                 if (aniso_evaluator::needsShape())
@@ -684,16 +700,16 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 if (aniso_evaluator::needsAngularMomentum())
                     {
                     if (m_reciprocal)
-                        eval.setAngularMomentum(ai + aj);
+                        eval.setAngularMomentum(ai , aj);
                     else
-                        eval.setAngularMomentum(ai);
+                        eval.setAngularMomentum(ai-aj,aj);
                     }
                 if (aniso_evaluator::needsVelocity())
                     {
                     if (m_reciprocal)
-                        eval.setVelocity(vi + vj);
+                        eval.setVelocities(vi - vj);
                     else
-                        eval.setAngularMomentum(ai);
+                        eval.setVelocities(vi);
                     }
 
                 bool evaluated = eval.evaluate(force, pair_eng, energy_shift, torque_i, torque_j);
@@ -782,6 +798,9 @@ CommFlags AnisoPotentialPair<aniso_evaluator>::getRequestedCommFlags(uint64_t ti
         flags[comm_flag::charge] = 1;
 
     if (aniso_evaluator::needsDiameter())
+        flags[comm_flag::diameter] = 1;
+
+    if (aniso_evaluator::needsMass())
         flags[comm_flag::diameter] = 1;
 
     // with rigid bodies, include net torque
