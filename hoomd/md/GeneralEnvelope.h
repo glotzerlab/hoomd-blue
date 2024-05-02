@@ -71,25 +71,25 @@ public:
 
         shape_type(pybind11::object patch_location)
             {
-            pybind11::tuple n_py = patch_location;
-            if (len(n_py) != 3)
+            pybind11::tuple p_py = patch_location;
+            if (len(p_py) != 3)
                 throw std::runtime_error("Each patch position must have 3 elements");
-            vec3<Scalar> n = vec3<Scalar>(pybind11::cast<Scalar>(n_py[0]),
-                                          pybind11::cast<Scalar>(n_py[1]),
-                                          pybind11::cast<Scalar>(n_py[2]));
+            vec3<Scalar> p = vec3<Scalar>(pybind11::cast<Scalar>(p_py[0]),
+                                          pybind11::cast<Scalar>(p_py[1]),
+                                          pybind11::cast<Scalar>(p_py[2]));
 
             // normalize
-            n = n * fast::rsqrt(dot(n, n));
-            m_n = vec_to_scalar3(n);
+            p = p * fast::rsqrt(dot(p, p));
+            m_norm_patch_local_dir = vec_to_scalar3(p);
             }
 
         pybind11::object toPython()
             {
-            return pybind11::make_tuple(m_n.x, m_n.y, m_n.z);
+            return pybind11::make_tuple(m_norm_patch_local_dir.x, m_norm_patch_local_dir.y, m_norm_patch_local_dir.z);
             }
 #endif
 
-        Scalar3 m_n;
+        Scalar3 m_norm_patch_local_dir;
     };
 
     DEVICE GeneralEnvelope( // TODO replace GeneralEnvelope with PatchesEnvelope
@@ -102,9 +102,9 @@ public:
         const shape_type& shape_j)
 // #ifdef __HIPCC__
         // TODO decide which is faster on GPU and CPU. // use 250_000 particles to saturate GPU // benchmark on brett
-        // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), p_i(shape_i.m_n), p_j(shape_j.m_n)
+        // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
 // #else
-        : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), p_i(shape_i.m_n), p_j(shape_j.m_n)
+        : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
 // #endif
         {
             // compute current particle direction vectors
@@ -210,12 +210,12 @@ public:
 
 
             Scalar fi = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaI_minus_CosAlpha );
-            dfi_du = -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * f_max_min_inv * fi * fi;
+            Scalar dfi_du = -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * f_max_min_inv * fi * fi;
             // normalize the modulator function
             fi = (fi - f_min) * f_max_min_inv;
 
             Scalar fj = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaJ_minus_CosAlpha );
-            dfj_du = params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha * f_max_min_inv * fj * fj;
+            Scalar dfj_du = params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha * f_max_min_inv * fj * fj;
             fj = (fj - f_min) * f_max_min_inv;
 
             // the overall modulation
@@ -224,20 +224,20 @@ public:
             vec3<Scalar> dfi_dni = dfi_du * rhat; // TODO add -rhat here and take out above (afuyeaad)
 
             torque_div_energy_i =
-                vec_to_scalar3( ni_world.x * cross( vec3<Scalar>(a1), dfi_dni)) +
-                vec_to_scalar3( ni_world.y * cross( vec3<Scalar>(a2), dfi_dni)) +
-                vec_to_scalar3( ni_world.z * cross( vec3<Scalar>(a3), dfi_dni));
+                vec_to_scalar3( p_i.x * cross( vec3<Scalar>(a1), dfi_dni)) +
+                vec_to_scalar3( p_i.y * cross( vec3<Scalar>(a2), dfi_dni)) +
+                vec_to_scalar3( p_i.z * cross( vec3<Scalar>(a3), dfi_dni));
 
             torque_div_energy_i *= Scalar(-1) * fj;
 
             vec3<Scalar> dfj_dnj = dfj_du * rhat; // still positive
 
             torque_div_energy_j =
-                vec_to_scalar3( nj_world.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
-                vec_to_scalar3( nj_world.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
-                vec_to_scalar3( nj_world.z * cross( vec3<Scalar>(b3), dfj_dnj));
+                vec_to_scalar3( p_j.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
+                vec_to_scalar3( p_j.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
+                vec_to_scalar3( p_j.z * cross( vec3<Scalar>(b3), dfj_dnj));
 
-            // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_n.z * cross( vec3<Scalar>(b3), dr)));
+            // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_norm_patch_local_dir.z * cross( vec3<Scalar>(b3), dr)));
 
             torque_div_energy_j *= Scalar(-1) * fi;
 
@@ -291,6 +291,7 @@ private:
 // #endif
     vec3<Scalar> dr;
     vec3<Scalar> ni_world, nj_world;
+    vec3<Scalar> p_i, p_j;
 
     const param_type& params;
     vec3<Scalar> a1, a2, a3;
