@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 How-to
@@ -16,3 +16,4 @@ How-to
     howto/prevent-particles-from-moving
     howto/compute-the-free-energy-of-solids
     howto/cpppotential
+    howto/tune-mc-move-sizes-binary-system
