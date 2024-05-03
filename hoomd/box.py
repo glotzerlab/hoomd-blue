@@ -277,8 +277,8 @@ class Box:
                                       [0, 0, Lz]])
         else:
             xz = yz = 0
-            if np.allclose(v2, [0, 0, 0]) and np.allclose(v0[2], 0) and np.allclose(
-                    v1[2], 0):
+            if not(np.allclose(v2, [0, 0, 0]) and np.allclose(v0[2], 0) and
+                   np.allclose(v1[2], 0)):
                 error_string = ("A 2D box matrix must have a third vector and"
                                 "third component of first two vectors set to"
                                 "zero.")
