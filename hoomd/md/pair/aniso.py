@@ -639,7 +639,7 @@ class PatchyLJ(Patchy):
                                           envelope_params = janus_params)
 
     """
-    _cpp_class_name = "AnisoPotentialPairJanusLJ"
+    _cpp_class_name = "AnisoPotentialPairPatchyLJ"
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
         super().__init__(nlist, default_r_cut, mode)
@@ -677,7 +677,7 @@ class PatchyYukawa(Patchy):
     r"""
     TODO: document this
     """
-    _cpp_class_name = "AnisoPotentialPairJanusYukawa"
+    _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
         super().__init__(nlist, default_r_cut, mode)
