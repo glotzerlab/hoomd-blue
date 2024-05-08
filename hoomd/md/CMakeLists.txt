@@ -570,7 +570,19 @@ foreach(_evaluator ${_patchy_evaluators})
     configure_file(export_AnisoPotentialPairPatchy.cc.inc
                    export_AnisoPotentialPairPatchy${_evaluator}.cc
                    @ONLY)
-    set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}.cc)
+    set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}.cc)
+    if(ENABLE_HIP)
+        configure_file(export_AnisoPotentialPairPatchyGPU.cc.inc
+                       export_AnisoPotentialPairPatchy${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(AnisoPotentialPairPatchyGPUKernel.cu.inc
+                       AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}.cc)
+        set(_cuda_sources ${_md_sources}
+            AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
 endforeach()
 
 set(_alchemical_pair_evaluators LJGauss)

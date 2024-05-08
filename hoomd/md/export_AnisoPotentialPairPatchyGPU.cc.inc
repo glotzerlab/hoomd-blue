@@ -5,13 +5,13 @@
 // configure_file().
 
 // clang-format off
-#include "hoomd/md/AnisoPotentialPair.h"
-#include "hoomd/md/PairModulator.h"
-#include "hoomd/md/GeneralEnvelope.h"
+#include "AnisoPotentialPairGPU.h"
+#include "PairModulator.h"
+#include "GeneralEnvelope.h"
 
-#include "hoomd/md/EvaluatorPair@_evaluator@.h"
+#include "EvaluatorPair@_evaluator@.h"
 #define EVALUATOR_CLASS EvaluatorPair@_evaluator@
-#define EXPORT_FUNCTION export_AnisoPotentialPairPatchy@_evaluator@
+#define EVALUATOR_FUNCTION export_AnisoPotentialPairPatchy@_evaluator@GPU
 // clang-format on
 
 namespace hoomd
@@ -23,7 +23,7 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_AnisoPotentialPair<PairModulator<EVALUATOR_CLASS, GeneralEnvelope>>(m, "AnisoPotentialPairPatchy@_evaluator@");
+    export_AnisoPotentialPair<PairModulator<EVALUATOR_CLASS, GeneralEnvelope>>(m, "AnisoPotentialPairPatchy@_evaluator@GPU");
     }
 
     } // end namespace detail
