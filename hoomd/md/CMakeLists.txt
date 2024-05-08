@@ -8,7 +8,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
-                   AnisoPotentialPairJanus.cc
+                   # AnisoPotentialPairJanus.cc
                    AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
@@ -555,6 +555,22 @@ foreach(_evaluator ${_pair_evaluators})
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
+endforeach()
+
+set(_patchy_evaluators ExpandedGaussian
+                       ExpandedLJ
+                       ExpandedMie
+                       Gauss
+                       LJ
+                       Mie
+                       Yukawa
+                       Table)
+
+foreach(_evaluator ${_patchy_evaluators})
+    configure_file(export_AnisoPotentialPairPatchy.cc.inc
+                   export_AnisoPotentialPairPatchy${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}.cc)
 endforeach()
 
 set(_alchemical_pair_evaluators LJGauss)
