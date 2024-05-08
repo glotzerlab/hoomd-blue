@@ -220,6 +220,10 @@ public:
         {
         }
 
+    HOSTDEVICE static bool constexpr implementsEnergyShift()
+        {
+            return true;
+        }
 
     //! Evaluate the force and energy
     /*!

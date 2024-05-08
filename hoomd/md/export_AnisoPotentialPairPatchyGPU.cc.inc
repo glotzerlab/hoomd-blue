@@ -5,13 +5,13 @@
 // configure_file().
 
 // clang-format off
-#include "AnisoPotentialPairGPU.h"
-#include "PairModulator.h"
-#include "GeneralEnvelope.h"
+#include "hoomd/md/AnisoPotentialPairGPU.h"
+#include "hoomd/md/PairModulator.h"
+#include "hoomd/md/GeneralEnvelope.h"
 
-#include "EvaluatorPair@_evaluator@.h"
+#include "hoomd/md/EvaluatorPair@_evaluator@.h"
 #define EVALUATOR_CLASS EvaluatorPair@_evaluator@
-#define EVALUATOR_FUNCTION export_AnisoPotentialPairPatchy@_evaluator@GPU
+#define EXPORT_FUNCTION export_AnisoPotentialPairPatchy@_evaluator@GPU
 // clang-format on
 
 namespace hoomd

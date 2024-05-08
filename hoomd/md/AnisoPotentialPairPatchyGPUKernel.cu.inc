@@ -1,9 +1,9 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "AnisoPotentialPairGPU.cuh"
-#include "GeneralEnvelope.h"
-#include "PairModulator.h"
+#include "hoomd/md/AnisoPotentialPairGPU.cuh"
+#include "hoomd/md/GeneralEnvelope.h"
+#include "hoomd/md/PairModulator.h"
 
 // clang-format off
 #include "hoomd/md/EvaluatorPair@_evaluator@.h"

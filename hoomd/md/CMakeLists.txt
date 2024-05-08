@@ -214,7 +214,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AnisoPotentialPairGBGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
-                           AnisoPotentialPairJanusGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
                            ConstantForceComputeGPU.cc
@@ -244,7 +243,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
-                      AnisoPotentialPairJanusGPUKernel.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
@@ -578,8 +576,8 @@ foreach(_evaluator ${_patchy_evaluators})
         configure_file(AnisoPotentialPairPatchyGPUKernel.cu.inc
                        AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu
                        @ONLY)
-        set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}.cc)
-        set(_cuda_sources ${_md_sources}
+        set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
             AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu)
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
