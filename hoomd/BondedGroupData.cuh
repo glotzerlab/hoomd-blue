@@ -69,5 +69,5 @@ void gpu_update_group_table(const unsigned int n_groups,
                             bool has_type_mapping,
                             CachedAllocator& alloc);
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // __BONDED_GROUP_DATA_CUH__

@@ -101,8 +101,8 @@ namespace detail
 void export_CommunicatorGPU(pybind11::module& m);
     } // end namespace detail
 
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
 #endif // MPCD_COMMUNICATOR_GPU_H_

@@ -36,8 +36,8 @@ enum struct send_mask : unsigned int
     down = 32
     };
 
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_COMMUNICATOR_UTILITIES_H_
 #endif // ENABLE_MPI

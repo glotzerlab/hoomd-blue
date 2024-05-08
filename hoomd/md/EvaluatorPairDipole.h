@@ -233,7 +233,7 @@ class EvaluatorPairDipole
 
         bool dipole_i_interactions = (mu_i != vec3<Scalar>(0, 0, 0));
         bool dipole_j_interactions = (mu_j != vec3<Scalar>(0, 0, 0));
-        bool dipole_interactions = dipole_j_interactions && dipole_j_interactions;
+        bool dipole_interactions = dipole_i_interactions && dipole_j_interactions;
         // dipole-dipole
         if (dipole_interactions)
             {

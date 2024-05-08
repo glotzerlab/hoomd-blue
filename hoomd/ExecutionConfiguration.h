@@ -417,7 +417,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         {                                                                             \
         hipError_t err_sync = hipPeekAtLastError();                                   \
         this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);              \
-        auto gpu_map = this -> m_exec_conf->getGPUIds();                              \
+        auto gpu_map = this->m_exec_conf->getGPUIds();                                \
         for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
             {                                                                         \
             hipSetDevice(gpu_map[idev]);                                              \

@@ -297,8 +297,8 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
             if (N != N_backup)
                 {
                 this->m_exec_conf->msg->error()
-                    << "update.boxmc"
-                    << ": Number of particles mismatch when rejecting box resize" << std::endl;
+                    << "update.boxmc" << ": Number of particles mismatch when rejecting box resize"
+                    << std::endl;
                 throw std::runtime_error("Error resizing box");
                 // note, this error should never appear (because particles are not migrated after a
                 // box resize), but is left here as a sanity check

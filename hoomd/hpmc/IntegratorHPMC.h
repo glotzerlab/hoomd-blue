@@ -183,7 +183,7 @@ class PatchEnergy : public Autotuned
 
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
-    };                                          // end class PatchEnergy
+    }; // end class PatchEnergy
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
@@ -605,5 +605,5 @@ void export_IntegratorHPMC(pybind11::module& m);
 
     } // end namespace hpmc
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_
