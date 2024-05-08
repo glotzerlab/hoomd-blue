@@ -27,7 +27,7 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, OnlyIf, NDArrayValidator, to_type_converter
 import numpy as np
 
 
@@ -571,6 +571,22 @@ class Patchy(AnisotropicPair):
     # pair.lj get rcut from base class
 
     # don't call         self._add_typeparam(params) in base class but store it
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+            super().__init__(nlist, default_r_cut, mode)
+            params = TypeParameter(
+                'params', 'particle_types',
+                TypeParameterDict({
+                    "pair_params": self._pair_params,
+                    "envelope_params": {"alpha": OnlyTypes(float,
+                                                           postprocess = self._check_0_pi),
+                                        "omega": float,
+                                        }},
+                                  len_keys=2))
+            envelope = TypeParameter('patches', 'particle_types',
+                                     TypeParameterDict([(float, float, float)], len_keys=1))
+            self._extend_typeparam((params,envelope))
+
     @staticmethod
     def _check_0_pi(input):
         if 0 <= input <= np.pi:
@@ -579,6 +595,19 @@ class Patchy(AnisotropicPair):
             raise ValueError(f"Value {input} is not between 0 and pi")
         # can we get the keys here to check for A A being ni=nj
 
+
+    @log(category="object")
+    def type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> TODO
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super()._return_type_shapes()
 
 class PatchyLJ(Patchy):
     r"""Patchy Lennard-Jones pair force.
@@ -640,113 +669,37 @@ class PatchyLJ(Patchy):
 
     """
     _cpp_class_name = "AnisoPotentialPairPatchyLJ"
+    _pair_params = {"epsilon": float, "sigma": float}
 
-    def __init__(self, nlist, default_r_cut=None, mode='none'):
-        super().__init__(nlist, default_r_cut, mode)
-        params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict({
-                "pair_params": {"epsilon": float,
-                                "sigma": float},
-                "envelope_params": {"alpha": OnlyTypes(float,
-                                                       postprocess = self._check_0_pi),
-                                    "omega": float,
-                                    }},
-                              len_keys=2))
-        envelope = TypeParameter('patches', 'particle_types',
-                                 TypeParameterDict([(float, float, float)], len_keys=1))
-        #Brandon: for future changes would need to use a dictionary.
-        self._extend_typeparam((params, envelope))
+# class PatchyExpandedGaussian(Patchy):
+#     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
+#     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
+class PatchyExpandedLJ(Patchy):
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
+    _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
-    @log(category="object")
-    def type_shapes(self):
-        """Get all the types of shapes in the current simulation.
+class PatchyExpandedMie(Patchy):
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
+    _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float, "delta": float}
 
-        Example:
+class PatchyGaussian(Patchy):
+    _cpp_class_name = "AnisoPotentialPairPatchyGaussian"
+    _pair_params = {"epsilon": float, "sigma": float}
 
-            >>> TODO
-
-        Returns:
-            A list of dictionaries, one for each particle type in the system.
-        """
-        return super()._return_type_shapes()
-
+class PatchyMie(Patchy):
+    _cpp_class_name = "AnisoPotentialPairPatchyMie"
+    _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
 
 class PatchyYukawa(Patchy):
     r"""
     TODO: document this
     """
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
+    _pair_params = {"epsilon": float, "kappa": float}
 
-    def __init__(self, nlist, default_r_cut=None, mode='none'):
-        super().__init__(nlist, default_r_cut, mode)
-        params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict({
-                "pair_params": {"epsilon": float,
-                                 "kappa": float},
-                "envelope_params": {"alpha": OnlyTypes(float,
-                                                       postprocess = self._check_0_pi),
-                                    "omega": float,
-                                    }},
-                              len_keys=2))
-        envelope = TypeParameter('patches', 'particle_types',
-                                 TypeParameterDict([(float, float, float)], len_keys=1))
-        self._extend_typeparam((params,envelope))
-
-
-    @log(category="object")
-    def type_shapes(self):
-        """Get all the types of shapes in the current simulation.
-
-        Example:
-
-            >>> TODO
-
-        Returns:
-            A list of dictionaries, one for each particle type in the system.
-        """
-        return super()._return_type_shapes()
-
-
-# class PatchyExpandedGaussian(AnisotropicPair):
-#     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
-
-#     @staticmethod
-#     def _check_0_pi(input):
-#         if 0 <= input <= np.pi:
-#             return input
-#         else:
-#             raise ValueError(f"Value {input} is not between 0 and pi")
-#         # can we get the keys here to check for A A being ni=nj
-
-#     def __init__(self, nlist, default_r_cut=None, mode='none'):
-#         super().__init__(nlist, default_r_cut, mode)
-#         params = TypeParameter(
-#             'params', 'particle_types',
-#             TypeParameterDict({
-#                 "pair_params": {"epsilon": float,
-#                                 "sigma": float,
-#                                 "delta": float},
-#                 "envelope_params": {"alpha": OnlyTypes(float,
-#                                                        postprocess = self._check_0_pi),
-#                                     "omega": float,
-#                                     "ni": (float, float, float),
-#                                     "nj": (float, float, float)}},
-#                               len_keys=2))
-#         self._add_typeparam(params)
-
-
-    # @log(category="object")
-    # def type_shapes(self):
-    #     """Get all the types of shapes in the current simulation.
-
-    #     Example:
-
-    #         >>> TODO
-
-    #     Returns:
-    #         A list of dictionaries, one for each particle type in the system.
-    #     """
-    #     return super()._return_type_shapes()
+class PatchyTable(Patchy):
+    _cpp_class_name = "AnisoPotentialPairPatchyTable"
+    _pair_params = {"r_min": float,
+                  "U": NDArrayValidator(np.float64),
+                  "F": NDArrayValidator(np.float64)}

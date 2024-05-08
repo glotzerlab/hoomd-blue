@@ -455,6 +455,15 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairDipoleGPU(m);
     export_AnisoPotentialPairGBGPU(m);
 
+    export_AnisoPotentialPairPatchyExpandedGaussianGPU(m);;
+    export_AnisoPotentialPairPatchyExpandedLJGPU(m);
+    export_AnisoPotentialPairPatchyExpandedMieGPU(m);
+    export_AnisoPotentialPairPatchyGaussGPU(m);
+    export_AnisoPotentialPairPatchyLJGPU(m);
+    export_AnisoPotentialPairPatchyMieGPU(m);
+    export_AnisoPotentialPairPatchyYukawaGPU(m);
+    export_AnisoPotentialPairPatchyTableGPU(m);
+
     export_PotentialBondHarmonicGPU(m);
     export_PotentialBondFENEGPU(m);
     export_PotentialBondTetherGPU(m);
