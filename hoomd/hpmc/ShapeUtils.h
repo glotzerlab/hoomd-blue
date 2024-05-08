@@ -70,7 +70,7 @@ class MassPropertiesBase
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
     std::vector<Scalar> m_inertia; // xx, yy, zz, xy, yz, xz
-    };                             // end class MassPropertiesBase
+    }; // end class MassPropertiesBase
 
 template<class Shape> class MassProperties : public MassPropertiesBase
     {
@@ -326,6 +326,6 @@ void export_MassPropertiesBase(pybind11::module& m);
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name);
 
-    }  // end namespace hpmc
-    }  // namespace hoomd
+    } // end namespace hpmc
+    } // namespace hoomd
 #endif // end inclusion guard

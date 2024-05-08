@@ -48,7 +48,7 @@ cudaError_t at_apply_velocity(Scalar4* d_vel,
                               const unsigned int N_tot,
                               const unsigned int block_size);
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_GPU_CUH_

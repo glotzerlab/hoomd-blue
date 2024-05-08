@@ -39,7 +39,7 @@ cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
                                      const uint16_t seed,
                                      const unsigned int block_size);
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_CUH_

@@ -243,7 +243,7 @@ template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
                       &BounceBackNVE<Geometry>::setGeometry)
         .def("check_particles", &BounceBackNVE<Geometry>::checkParticles);
     }
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // #ifndef MPCD_BOUNCE_BACK_NVE_H_

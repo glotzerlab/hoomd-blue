@@ -40,7 +40,7 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                                     Scalar rescale_factor,
                                     const GPUPartition& gpu_partition);
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 #endif // HOOMD_TWOSTEPNVTBASEGPU_CUH

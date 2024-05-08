@@ -129,7 +129,7 @@ template<class Geometry, class Force> void export_BounceBackStreamingMethodGPU(p
                             std::shared_ptr<Geometry>,
                             std::shared_ptr<Force>>());
     }
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_GPU_H_

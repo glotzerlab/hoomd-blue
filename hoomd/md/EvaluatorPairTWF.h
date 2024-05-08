@@ -189,6 +189,6 @@ class EvaluatorPairTWF
     param_type params; //!< parameters passed to the constructor
     };
 
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 #endif // __PAIR_EVALUATOR_TWF_H__

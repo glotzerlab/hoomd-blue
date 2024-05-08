@@ -4843,7 +4843,7 @@ DEVICE inline ShortReal yol4(ShortReal ar,
                  / (4 * ShortReal(M_PI));
     }
 
-    }  // namespace detail
-    }  // namespace hpmc
-    }  // end namespace hoomd
+    } // namespace detail
+    } // namespace hpmc
+    } // end namespace hoomd
 #endif // __SPHINXOVERLAP__H__

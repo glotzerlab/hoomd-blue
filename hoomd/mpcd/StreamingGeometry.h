@@ -28,8 +28,8 @@ void export_ParallelPlateGeometry(pybind11::module& m);
 //! Export PlanarPoreGeometry to python
 void export_PlanarPoreGeometry(pybind11::module& m);
 
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // __HIPCC__
 #endif // MPCD_STREAMING_GEOMETRY_H_

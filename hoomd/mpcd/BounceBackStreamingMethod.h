@@ -226,7 +226,7 @@ template<class Geometry, class Force> void export_BounceBackStreamingMethod(pybi
                                &mpcd::BounceBackStreamingMethod<Geometry, Force>::getForce)
         .def("check_mpcd_particles", &BounceBackStreamingMethod<Geometry, Force>::checkParticles);
     }
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_H_
