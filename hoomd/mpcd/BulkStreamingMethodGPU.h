@@ -33,12 +33,12 @@ class PYBIND11_EXPORT BulkStreamingMethodGPU
                            int phase,
                            std::shared_ptr<Force> force)
         : mpcd::BounceBackStreamingMethodGPU<mpcd::detail::BulkGeometry, Force>(
-            sysdef,
-            cur_timestep,
-            period,
-            phase,
-            std::make_shared<mpcd::detail::BulkGeometry>(),
-            force)
+              sysdef,
+              cur_timestep,
+              period,
+              phase,
+              std::make_shared<mpcd::detail::BulkGeometry>(),
+              force)
         {
         }
     };

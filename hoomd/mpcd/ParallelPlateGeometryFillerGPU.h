@@ -44,7 +44,7 @@ namespace detail
     {
 //! Export ParallelPlateGeometryFillerGPU to python
 void export_ParallelPlateGeometryFillerGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_PARALLEL_PLATE_GEOMETRY_FILLER_GPU_H_
