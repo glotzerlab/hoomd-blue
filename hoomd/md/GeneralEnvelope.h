@@ -282,6 +282,8 @@ public:
 #endif
 
 private:
+    vec3<Scalar> dr;
+
 // #ifdef __HIPCC__
     quat<Scalar> qi;
     quat<Scalar> qj;
@@ -289,13 +291,14 @@ private:
     rotmat3<ShortReal> R_i;
     rotmat3<ShortReal> R_j;
 // #endif
-    vec3<Scalar> dr;
-    vec3<Scalar> ni_world, nj_world;
-    vec3<Scalar> p_i, p_j;
 
     const param_type& params;
+    vec3<Scalar> ni_world, nj_world;
+    vec3<Scalar> p_i, p_j;
     vec3<Scalar> a1, a2, a3;
     vec3<Scalar> b1, b2, b3;
+
+
     Scalar drsq;
     Scalar magdr;
     vec3<Scalar> rhat;
