@@ -47,7 +47,7 @@ class EvaluatorPairExpandedMie
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifndef ENABLE_HIP
+#ifdef ENABLE_HIP
         //! set CUDA memory hints
         void set_memory_hint() const { }
 #endif
