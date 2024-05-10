@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
@@ -398,8 +398,8 @@ void ForceComposite::validateRigidBodies()
                 {
                 std::ostringstream error_msg;
                 error_msg << "Error validating rigid bodies: Incomplete rigid body with only "
-                          << molecule_size << " constituent particles "
-                          << "instead of " << h_body_len.data[central_particle_type] << " for body "
+                          << molecule_size << " constituent particles " << "instead of "
+                          << h_body_len.data[central_particle_type] << " for body "
                           << central_particle_tag;
                 throw std::runtime_error(error_msg.str());
                 }
@@ -947,8 +947,8 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
                 // if the molecule is incomplete and has local members, this is an error
                 std::ostringstream error_msg;
                 error_msg << "Error while updating constituent particles:"
-                          << "Composite particle with body tag " << central_tag << " incomplete: "
-                          << "body_len=" << body_len
+                          << "Composite particle with body tag " << central_tag
+                          << " incomplete: " << "body_len=" << body_len
                           << ", molecule_len=" << h_molecule_len.data[mol_idx] - 1;
                 throw std::runtime_error(error_msg.str());
                 }

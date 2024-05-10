@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_SHAPE_H
@@ -288,7 +288,11 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                          hoomd::Counter(typ_i, 0, i_sweep));
 
             // perform an in-place shape update on shape_param_new
-            m_move_function->update_shape(timestep, typ_i, shape_param_new, rng_i);
+            m_move_function->update_shape(timestep,
+                                          typ_i,
+                                          shape_param_new,
+                                          rng_i,
+                                          m_exec_conf->isCUDAEnabled());
 
             // update det(I)
             detail::MassProperties<Shape> mp(shape_param_new);
@@ -322,6 +326,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 m_exec_conf->msg->notice(5)
                     << "UpdaterShape move rejected -- overlaps found" << std::endl;
                 // revert shape parameter changes
+                m_move_function->retreat(timestep, typ_i);
                 h_det.data[typ_i] = h_det_old.data[typ_i];
                 m_mc->setParam(typ_i, shape_param_old);
                 }
@@ -380,7 +385,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 }
 
             } // end loop over particle types
-        }     // end loop over n_sweeps
+        } // end loop over n_sweeps
     m_exec_conf->msg->notice(4) << "UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 

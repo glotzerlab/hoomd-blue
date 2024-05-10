@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.cuh
@@ -69,5 +69,5 @@ void gpu_update_group_table(const unsigned int n_groups,
                             bool has_type_mapping,
                             CachedAllocator& alloc);
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // __BONDED_GROUP_DATA_CUH__

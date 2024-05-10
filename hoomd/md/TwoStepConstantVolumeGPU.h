@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef HOOMD_TWOSTEPCONSTANTVOLUMEGPU_H
@@ -38,5 +38,5 @@ class PYBIND11_EXPORT TwoStepConstantVolumeGPU : public TwoStepConstantVolume
     /// Autotuner_angular for block size (angular step two kernel).
     std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
-    }  // namespace hoomd::md
+    } // namespace hoomd::md
 #endif // HOOMD_TWOSTEPCONSTANTVOLUMEGPU_H

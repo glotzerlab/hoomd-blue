@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -129,7 +129,7 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element* d_reduced,
                                    const mpcd::detail::cell_thermo_element* d_tmp_thermo,
                                    const size_t Ncell);
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_CELL_THERMO_COMPUTE_GPU_CUH_

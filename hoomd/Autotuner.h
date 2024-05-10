@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -259,8 +259,7 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
             {
             std::ostringstream s;
             s << "Error setting autotuner parameter " << m_name << ". Got " << n_params
-              << " parameters, "
-              << "expected " << n_dimensions << ".";
+              << " parameters, " << "expected " << n_dimensions << ".";
             throw std::runtime_error(s.str());
             }
 

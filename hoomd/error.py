@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD-blue specific error classes.
@@ -35,6 +35,19 @@ class DataAccessError(RuntimeError):
 class TypeConversionError(ValueError):
     """Error when converting a parameter."""
     pass
+
+
+class GPUNotAvailableError(NotImplementedError):
+    """Error for when a GPU specific feature was requested without a GPU."""
+    pass
+
+
+class _NoGPU:
+    """Used in nonGPU builds of hoomd to raise errors for attempted use."""
+
+    def __init__(self, *args, **kwargs):
+        raise GPUNotAvailableError(
+            "This build of HOOMD-blue does not support GPUs.")
 
 
 class IncompleteSpecificationError(ValueError):

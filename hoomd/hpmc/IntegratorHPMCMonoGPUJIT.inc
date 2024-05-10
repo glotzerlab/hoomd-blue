@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //! This file is only included once in JIT compilation
@@ -282,7 +282,7 @@ __launch_bounds__(max_threads) __global__
                         }
                     }
                 } // end while (s_queue_size < max_queue_size && (k>>1) < excell_size)
-            }     // end if active
+            } // end if active
 
         // sync to make sure all threads in the block are caught up
         __syncthreads();

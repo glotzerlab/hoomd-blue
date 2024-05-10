@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 ==========
@@ -45,8 +45,8 @@ Resources
   Instructions for installing **HOOMD-blue** binaries.
 - :doc:`Compilation guide </building>`:
   Instructions for compiling **HOOMD-blue**.
-- `hoomd-users mailing list <https://groups.google.com/d/forum/hoomd-users>`_:
-  Send messages to the **HOOMD-blue** user community.
+- `HOOMD-blue discussion board <https://github.com/glotzerlab/hoomd-blue/discussions/>`_:
+  Ask the **HOOMD-blue** user community for help.
 - `HOOMD-blue website <https://glotzerlab.engin.umich.edu/hoomd-blue/>`_:
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -297,7 +297,7 @@ template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
                       &BounceBackNVE<Geometry>::getGeometry,
                       &BounceBackNVE<Geometry>::setGeometry);
     }
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // #ifndef MPCD_BOUNCE_BACK_NVE_H_

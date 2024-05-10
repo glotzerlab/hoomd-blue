@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_PARTICLE_DATA_H_
@@ -472,6 +472,6 @@ namespace detail
 void export_ParticleData(pybind11::module& m);
     } // end namespace detail
 
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_H_

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -171,7 +171,7 @@ cudaError_t nve_bounce_step_one(const bounce_args_t& args, const Geometry& geom)
     }
 #endif // __HIPCC__
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_BOUNCE_BACK_NVE_GPU_CUH_

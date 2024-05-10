@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Simulation class.
@@ -557,7 +557,7 @@ class Simulation(metaclass=Loggable):
         steps_int = int(steps)
         if steps_int < 0 or steps_int > TIMESTEP_MAX - 1:
             raise ValueError(f"steps must be in the range [0, "
-                             f"{TIMESTEP_MAX-1}]")
+                             f"{TIMESTEP_MAX - 1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
 

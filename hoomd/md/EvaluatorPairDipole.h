@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // $Id$
@@ -75,7 +75,7 @@ class EvaluatorPairDipole
             pybind11::dict v;
             v["A"] = A;
             v["kappa"] = kappa;
-            return std::move(v);
+            return v;
             }
 
 #endif
@@ -233,7 +233,7 @@ class EvaluatorPairDipole
 
         bool dipole_i_interactions = (mu_i != vec3<Scalar>(0, 0, 0));
         bool dipole_j_interactions = (mu_j != vec3<Scalar>(0, 0, 0));
-        bool dipole_interactions = dipole_j_interactions && dipole_j_interactions;
+        bool dipole_interactions = dipole_i_interactions && dipole_j_interactions;
         // dipole-dipole
         if (dipole_interactions)
             {

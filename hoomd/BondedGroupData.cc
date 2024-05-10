@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
@@ -453,8 +453,8 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getNthT
     if (n >= getNGlobal())
         {
         std::ostringstream s;
-        s << name << " index " << n << " out of bounds!"
-          << "The number of " << name << "s is " << getNGlobal();
+        s << name << " index " << n << " out of bounds!" << "The number of " << name << "s is "
+          << getNGlobal();
         throw std::runtime_error(s.str());
         }
 

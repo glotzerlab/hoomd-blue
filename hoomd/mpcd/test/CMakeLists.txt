@@ -37,13 +37,12 @@ macro(compile_test TEST_EXE TEST_SRC)
 
     # add and link the unit test executable
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC} ${_cuda_sources})
-    target_include_directories(${TEST_EXE} PRIVATE ${PYTHON_INCLUDE_DIR})
     add_dependencies(test_all ${TEST_EXE})
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT APPLE)
         # these options are needed to avoid linker errors with GCC
         set(additional_link_options "-Wl,--allow-shlib-undefined -Wl,--no-as-needed")
     endif()
-    target_link_libraries(${TEST_EXE} _mpcd ${additional_link_options} ${PYTHON_LIBRARIES})
+    target_link_libraries(${TEST_EXE} _mpcd ${additional_link_options} pybind11::embed)
 endmacro(compile_test)
 
 # add non-MPI tests to test list first

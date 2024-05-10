@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -35,8 +35,8 @@ void export_SlitGeometry(pybind11::module& m);
 //! Export SlitPoreGeometry to python
 void export_SlitPoreGeometry(pybind11::module& m);
 
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // __HIPCC__
 #endif // MPCD_STREAMING_GEOMETRY_H_

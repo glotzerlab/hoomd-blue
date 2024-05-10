@@ -1,4 +1,17 @@
-set(PYBIND11_PYTHON_VERSION 3)
+set(Python_FIND_UNVERSIONED_NAMES "FIRST")
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
+
+if (Python_FOUND)
+    execute_process(COMMAND ${Python_EXECUTABLE} "-c" "import sys; print(sys.prefix, end='')"
+                    RESULT_VARIABLE _success
+                    OUTPUT_VARIABLE _python_prefix
+                    ERROR_VARIABLE _error)
+
+    if(NOT _success MATCHES 0)
+        message(FATAL_ERROR "Unable to determine python prefix: \n${_error}")
+    endif()
+endif()
+
 find_package(pybind11 2.2 CONFIG REQUIRED)
 
 if (pybind11_FOUND)
@@ -10,18 +23,18 @@ set(PYTHON_SITE_INSTALL_DIR "hoomd" CACHE PATH
     "Python site-packages directory (relative to CMAKE_INSTALL_PREFIX)")
 
 # when no CMAKE_INSTALL_PREFIX is set, default to python's install prefix
-if((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR "${PYTHON_PREFIX}" STREQUAL "${CMAKE_INSTALL_PREFIX}") AND PYTHON_SITE_PACKAGES)
-    string(LENGTH "${PYTHON_PREFIX}" _python_prefix_len)
-    string(SUBSTRING "${PYTHON_SITE_PACKAGES}" 0 ${_python_prefix_len} _python_site_package_prefix)
-    math(EXPR _shart_char "${_python_prefix_len}+1")
-    string(SUBSTRING "${PYTHON_SITE_PACKAGES}" ${_shart_char} -1 _python_site_package_rel)
-    string(COMPARE EQUAL "${_python_site_package_prefix}" "${PYTHON_PREFIX}" _prefix_equal)
+if((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR "${_python_prefix}" STREQUAL "${CMAKE_INSTALL_PREFIX}") AND Python_SITEARCH)
+    string(LENGTH "${_python_prefix}" __python_prefix_len)
+    string(SUBSTRING "${Python_SITEARCH}" 0 ${__python_prefix_len} _python_site_package_prefix)
+    math(EXPR _shart_char "${__python_prefix_len}+1")
+    string(SUBSTRING "${Python_SITEARCH}" ${_shart_char} -1 _python_site_package_rel)
+    string(COMPARE EQUAL "${_python_site_package_prefix}" "${_python_prefix}" _prefix_equal)
     if (NOT _prefix_equal)
-        message(STATUS "Python site packages (${PYTHON_SITE_PACKAGES}) does not start with python prefix (${PYTHON_PREFIX})")
+        message(STATUS "Python site packages (${Python_SITEARCH}) does not start with python prefix (${_python_prefix})")
         message(STATUS "HOOMD may not install to the correct location")
     endif()
 
-    set(CMAKE_INSTALL_PREFIX "${PYTHON_PREFIX}" CACHE PATH "HOOMD installation path" FORCE)
+    set(CMAKE_INSTALL_PREFIX "${_python_prefix}" CACHE PATH "HOOMD installation path" FORCE)
     set(PYTHON_SITE_INSTALL_DIR "${_python_site_package_rel}/hoomd" CACHE PATH
         "Python site-packages directory (relative to CMAKE_INSTALL_PREFIX)" FORCE)
 endif()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxResizeUpdater.h
@@ -29,9 +29,7 @@ class PYBIND11_EXPORT BoxResizeUpdaterGPU : public BoxResizeUpdater
     /// Constructor
     BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<Trigger> trigger,
-                        std::shared_ptr<BoxDim> box1,
-                        std::shared_ptr<BoxDim> box2,
-                        std::shared_ptr<Variant> variant,
+                        std::shared_ptr<VectorVariantBox> box,
                         std::shared_ptr<ParticleGroup> m_group);
 
     /// Destructor
@@ -51,6 +49,6 @@ namespace detail
     {
 /// Export the BoxResizeUpdaterGPU to python
 void export_BoxResizeUpdaterGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hoomd
 #endif // __BOX_RESIZE_UPDATER_GPU_H__

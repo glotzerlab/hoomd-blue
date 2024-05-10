@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxDim.h
@@ -10,6 +10,10 @@
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
+
+#if !defined(HOOMD_LLVMJIT_BUILD)
+#include <array>
+#endif
 
 // Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
 #if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
@@ -140,6 +144,18 @@ struct
         m_periodic = periodic;
         m_xz = m_xy = m_yz = Scalar(0.0);
         }
+
+#if !defined(HOOMD_LLVMJIT_BUILD)
+    /// Constructs a box from a std::array<Scalar, 6>
+    /** @param array Box parameters
+     */
+    explicit BoxDim(const std::array<Scalar, 6>& array)
+        {
+        setL(make_scalar3(array[0], array[1], array[2]));
+        setTiltFactors(array[3], array[4], array[5]);
+        m_periodic = make_uchar3(1, 1, 1);
+        }
+#endif
 
     //! Get the periodic flags
     /*! \return Periodic flags
@@ -609,24 +625,24 @@ struct
     //! Serialization method
     template<class Archive> void serialize(Archive& ar, const unsigned int version)
         {
-        ar& m_lo.x;
-        ar& m_lo.y;
-        ar& m_lo.z;
-        ar& m_hi.x;
-        ar& m_hi.y;
-        ar& m_hi.z;
-        ar& m_L.x;
-        ar& m_L.y;
-        ar& m_L.z;
-        ar& m_Linv.x;
-        ar& m_Linv.y;
-        ar& m_Linv.z;
-        ar& m_xy;
-        ar& m_xz;
-        ar& m_yz;
-        ar& m_periodic.x;
-        ar& m_periodic.y;
-        ar& m_periodic.z;
+        ar & m_lo.x;
+        ar & m_lo.y;
+        ar & m_lo.z;
+        ar & m_hi.x;
+        ar & m_hi.y;
+        ar & m_hi.z;
+        ar & m_L.x;
+        ar & m_L.y;
+        ar & m_L.z;
+        ar & m_Linv.x;
+        ar & m_Linv.y;
+        ar & m_Linv.z;
+        ar & m_xy;
+        ar & m_xz;
+        ar & m_yz;
+        ar & m_periodic.x;
+        ar & m_periodic.y;
+        ar & m_periodic.z;
         }
 #endif
 

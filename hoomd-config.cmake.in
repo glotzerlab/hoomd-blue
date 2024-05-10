@@ -37,7 +37,8 @@ set(HOOMD_INSTALL_PREFIX "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 set(PYTHON_SITE_INSTALL_DIR "@PYTHON_SITE_INSTALL_DIR@")
 
 # configure python
-set(PYBIND11_PYTHON_VERSION 3)
+set(Python_FIND_UNVERSIONED_NAMES "FIRST")
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 2.2 CONFIG REQUIRED)
 find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
 

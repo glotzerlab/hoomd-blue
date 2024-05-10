@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_ENERGY_JIT_H_
@@ -66,6 +66,16 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
 
+    float energy_no_wrap(const BoxDim& box,
+                         unsigned int type,
+                         const vec3<Scalar>& r_i,
+                         const quat<Scalar>& q_i,
+                         Scalar diameter,
+                         Scalar charge)
+        {
+        return m_eval(box, type, r_i, q_i, diameter, charge);
+        }
+
     //! Evaluate the energy of the force.
     /*! \param box The system box.
         \param type Particle type.
@@ -82,7 +92,10 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                          Scalar diameter,
                          Scalar charge)
         {
-        return m_eval(box, type, r_i, q_i, diameter, charge);
+        vec3<Scalar> r_i_wrapped = r_i - vec3<Scalar>(this->m_pdata->getOrigin());
+        int3 image = make_int3(0, 0, 0);
+        box.wrap(r_i_wrapped, image);
+        return energy_no_wrap(box, type, r_i_wrapped, q_i, diameter, charge);
         }
 
     //! Computes the total field energy of the system at the current state
@@ -109,13 +122,10 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
             unsigned int typ_i = __scalar_as_int(postype_i.w);
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i) - vec3<Scalar>(this->m_pdata->getOrigin());
-            int3 image = make_int3(0, 0, 0);
-            box.wrap(pos_i, image);
 
             total_energy += energy(box,
                                    typ_i,
-                                   pos_i,
+                                   vec3<Scalar>(postype_i),
                                    quat<Scalar>(h_orientation.data[i]),
                                    h_diameter.data[i],
                                    h_charge.data[i]);
@@ -171,23 +181,20 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             Scalar4 postype_i = h_postype.data[i];
             unsigned int typ_i = __scalar_as_int(postype_i.w);
             int3 image = make_int3(0, 0, 0);
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i) - vec3<Scalar>(this->m_pdata->getOrigin());
-            box_new.wrap(pos_i, image);
-            image = make_int3(0, 0, 0);
             vec3<Scalar> old_pos_i = vec3<Scalar>(*(position_old + i)) - vec3<Scalar>(origin_old);
             box_old.wrap(old_pos_i, image);
             dE += energy(box_new,
                          typ_i,
-                         pos_i,
+                         vec3<Scalar>(postype_i),
                          quat<Scalar>(h_orientation.data[i]),
                          h_diameter.data[i],
                          h_charge.data[i]);
-            dE -= energy(box_old,
-                         typ_i,
-                         old_pos_i,
-                         quat<Scalar>(*(orientation_old + i)),
-                         h_diameter.data[i],
-                         h_charge.data[i]);
+            dE -= energy_no_wrap(box_old,
+                                 typ_i,
+                                 old_pos_i,
+                                 quat<Scalar>(*(orientation_old + i)),
+                                 h_diameter.data[i],
+                                 h_charge.data[i]);
             }
 #ifdef ENABLE_MPI
         if (this->m_sysdef->isDomainDecomposed())
@@ -223,24 +230,17 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
                                      access_location::host,
                                      access_mode::read);
-        const BoxDim box = this->m_pdata->getGlobalBox();
-        int3 image = make_int3(0, 0, 0);
-        vec3<Scalar> pos_new_shifted = position_new - vec3<Scalar>(this->m_pdata->getOrigin());
-        vec3<Scalar> pos_old_shifted = position_old - vec3<Scalar>(this->m_pdata->getOrigin());
-        box.wrap(pos_new_shifted, image);
-        image = make_int3(0, 0, 0);
-        box.wrap(pos_old_shifted, image);
 
         double dE = 0.0;
         dE += energy(this->m_pdata->getGlobalBox(),
                      typ_i,
-                     pos_new_shifted,
+                     position_new,
                      shape_new.orientation,
                      h_diameter.data[index],
                      h_charge.data[index]);
         dE -= energy(this->m_pdata->getGlobalBox(),
                      typ_i,
-                     pos_old_shifted,
+                     position_old,
                      shape_old.orientation,
                      h_diameter.data[index],
                      h_charge.data[index]);
@@ -286,6 +286,6 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
         .def_property_readonly("param_array", &ExternalFieldJIT<Shape>::getParamArray);
     }
 
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_
