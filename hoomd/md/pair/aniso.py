@@ -566,12 +566,59 @@ class ALJ(AnisotropicPair):
         return self._return_type_shapes()
 
 
+REPLACE_PAIR_PARAM_DOC = "        * ``pair_params`` (`dict`, **required**) - passed to isotropic potential."
+
 class Patchy(AnisotropicPair):
-    """"""
-    # pair.lj get rcut from base class
+    r"""Pair potential made directional by an envelope.
 
-    # don't call         self._add_typeparam(params) in base class but store it
+    Patchy potentials compute the  potential between particles with
+    angular patches with an implementation based on
+    `Beltran-Villegas et. al.`_. With particle displacement vector
+    :math:`r_{ij}` and positive angles between respective particle direction and
+    the displacement vector :math:`\theta_i`, :math:`\theta_j` this potential
+    computes:
 
+    .. _Beltran-Villegas et. al.: http://dx.doi.org/10.1039/C3SM53136H
+
+    .. math::
+
+        U(r, \theta_i, \theta_j) = f(\theta_i) f(\theta_j) U_{LJ}(r)
+
+    where :math:`f` is an orientation-dependent factor of the patchy spherical
+    cap half-angle :math:`\alpha` and patch steepness :math:`\omega`.
+
+    .. math::
+
+        f(\theta, \alpha, \omega) = \frac{1}{1 + \exp{\big ( -\omega (
+        \cos{\theta} - \cos{\alpha}) }\big ) }
+    
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. py:attribute:: params
+
+        The Patchy potential params are a dictionary of dictionaries that
+        are passed to the pair evaluator and to the envelope.
+
+        The dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * ``alpha`` (`float`) - the patch half-angle :math:`\alpha`
+          * ``omega`` (`float`) - the patch steepness :math:`\omega`
+
+    
+        * ``pair_params`` (`dict`, **required**) - passed to isotropic potential.
+
+    .. py:attribute:: patches 
+
+        The patches are specified as a vector.If any particle types
+        do not have patches, set the parameter to an empty list.
+
+    """
+    
     def __init__(self, nlist, default_r_cut=None, mode='none'):
             super().__init__(nlist, default_r_cut, mode)
             params = TypeParameter(
@@ -609,85 +656,99 @@ class Patchy(AnisotropicPair):
         """
         return super()._return_type_shapes()
 
+
 class PatchyLJ(Patchy):
-    r"""Patchy Lennard-Jones pair force.
-
-    Args:
-        nlist (hoomd.md.nlist.NeighborList): Neighbor list
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        mode (str): energy shifting/smoothing mode.
-
-    .. py:attribute:: params
-
-        The JanusLJ potential params are a dictionary of dictionaries that
-        are passed to the `LJ evaluator <pair.LJ.params>` and to the
-        JanusEnvelope. The dictionary has the following keys:
-
-        * ``pair_params`` (`dict`, **required**) - passed to
-          `md.pair.LJ.params`.
-
-            * ``epsilon`` (`float`) -
-              energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
-            * ``sigma`` (`float`) -
-              particle size :math:`\sigma` :math:`[\mathrm{length}]`
-        * ``envelope_params`` (`dict`, **required**)
-
-            * ``alpha`` (`float`) - the patch half-angle :math:`\alpha`
-            * ``omega`` (`float`) - the patch steepness :math:`\omega`
-
-    # todo rename
-    `JanusLJ` computes the Lennard-Jones potential between particles with
-    spherical cap patches with an implementation based on
-    `Beltran-Villegas et. al.`_. With particle displacement vector
-    :math:`r_{ij}` and positive angles between respective particle direction and
-    the displacement vector :math:`\theta_i`, :math:`\theta_j` this potential
-    computes:
-
-    .. _Beltran-Villegas et. al.: http://dx.doi.org/10.1039/C3SM53136H
-
-    .. math::
-
-        U(r, \theta_i, \theta_j) = f(\theta_i) f(\theta_j) U_{LJ}(r)
-
-    where :math:`f` is an orientation-dependent factor of the patchy spherical
-    cap half-angle :math:`\alpha` and patch steepness :math:`\omega`.
-
-    .. math::
-
-        f(\theta, \alpha, \omega) = \frac{1}{1 + \exp{\big ( -\omega (
-        \cos{\theta} - \cos{\alpha}) }\big ) }
-
+    r"""
     Example::
 
         nl = hoomd.md.nlist.Cell()
         lj_params = dict(epsilon = 1, sigma = 1)
-        janus_params = dict(alpha = np.pi/2, omega = 40)
+        envelope_params = dict(alpha = np.pi/2, omega = 40)
 
-        januslj = hoomd.md.pair.aniso.JanusLJ(nlist = nl, default_r_cut = 3.0)
-        januslj.params[('A', 'A')] = dict(pair_params = lj_params,
-                                          envelope_params = janus_params)
+        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist = nl, default_r_cut = 3.0)
+        patchylj.params[('A', 'A')] = dict(pair_params = lj_params,
+                                           envelope_params = janus_params)
+        patchylj.patches['A'] = [(1,0,0)]
+    """
+
+    local_doc = r"""
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
+
+          * ``epsilon`` (`float`) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
 
     """
+    
+    __doc__ = Patchy.__doc__.replace(REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyLJ"
     _pair_params = {"epsilon": float, "sigma": float}
 
-# class PatchyExpandedGaussian(Patchy):
-#     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
-#     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
+class PatchyExpandedGaussian(Patchy):
+    r"""
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        gauss_params = dict(epsilon = 1, sigma = 1, delta = 0.5)
+        envelope_params = dict(alpha = np.pi/2, omega = 40)
+
+        patchy_expanded_gaussian = ...
+    """
+    local_doc = r"""
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedGaussian.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+          * ``delta`` (`float`, **required**) - shift distance
+            :math:`\delta` :math:`[\mathrm{length}]`
+
+    """
+    __doc__ = Patchy.__doc__.replace(REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    print(__doc__)
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
+    _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
 class PatchyExpandedLJ(Patchy):
+    __doc__ = Patchy.__doc__ + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
+    
 class PatchyExpandedMie(Patchy):
+    r"""
+    Example::
+
+        TODO example
+    """
+    local_doc = r"""
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedMie.params`.
+
+          * ``epsilon`` (`float`, **required**) -
+            :math:`\epsilon` :math:`[\mathrm{energy}]`.
+          * ``sigma`` (`float`, **required**) -
+            :math:`\sigma` :math:`[\mathrm{length}]`.
+          * ``n`` (`float`, **required**) -
+            :math:`n` :math:`[\mathrm{dimensionless}]`.
+          * ``m`` (`float`, **required**) -
+            :math:`m` :math:`[\mathrm{dimensionless}]`.
+          * ``delta`` (`float`, **required**) -
+            :math:`\Delta` :math:`[\mathrm{length}]`.
+
+    """
+    __doc__ = Patchy.__doc__.replace(REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float, "delta": float}
-
+    
 class PatchyGaussian(Patchy):
+    __doc__ = Patchy.__doc__ + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyGaussian"
     _pair_params = {"epsilon": float, "sigma": float}
 
 class PatchyMie(Patchy):
+    __doc__ = Patchy.__doc__ + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
 
@@ -695,10 +756,12 @@ class PatchyYukawa(Patchy):
     r"""
     TODO: document this
     """
+    __doc__ = Patchy.__doc__ + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
 
 class PatchyTable(Patchy):
+    __doc__ = Patchy.__doc__ + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyTable"
     _pair_params = {"r_min": float,
                   "U": NDArrayValidator(np.float64),
