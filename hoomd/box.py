@@ -221,7 +221,7 @@ class Box:
         r"""Initialize a Box instance from a box matrix.
 
         Args:
-            box_matrix ((3, 3) `numpy.ndarray` of `float`): An 3x3 matrix
+            box_matrix ((3, 3) `numpy.ndarray` of `float`): A 3x3 matrix
                 or list of lists representing a set of lattice basis vectors.
 
         Note:
