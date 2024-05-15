@@ -97,6 +97,70 @@ HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
 * ``hoomd.md.pair.aniso.Dipole.mode`` parameter
 * ``hoomd.device.GPU.memory_traceback`` parameter
 
+Reintroducing `hoomd.mpcd`
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`hoomd.mpcd` was previously available in HOOMD 2, but it was not available in HOOMD 3 because its
+API needed to be significantly rewritten. It is reintroduced in HOOMD 4 with all classes and methods
+renamed to be consistent with the rest of HOOMD's API. The most significant changes for users are:
+
+* The way MPCD particle data is stored and initialized has changed. MPCD particles are now part of
+  `hoomd.State`, so HOOMD and MPCD particles need to be initialized together rather than separately.
+* After initialization, most objects now need to be attached to the :class:`hoomd.mpcd.Integrator`,
+  similarly to other features migrated from HOOMD 2 to HOOMD 3.
+* The `hoomd.mpcd.geometry.ParallelPlates` and `hoomd.mpcd.geometry.PlanarPore` streaming geometries
+  have been rotated to the *xy* plane from the *xz* plane.
+* MPCD particle sorting is not enabled by default but is still highly recommended for performance.
+  Users should explicitly create a `hoomd.mpcd.tune.ParticleSorter` and attach it to the
+  :class:`hoomd.mpcd.Integrator`.
+
+Please refer to the module-level documentation and examples for full details of the new API. Some
+common changes that you may need to make to your HOOMD 2 scripts are:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Feature
+      - Change
+    * - Create snapshots using ``mpcd.data``
+      - Use `hoomd.Snapshot.mpcd`
+    * - Specify cell size using ``mpcd.data``
+      - Set through `hoomd.mpcd.Integrator.cell_list`
+    * - Initialize MPCD particles with ``mpcd.init.read_snapshot``
+      - Use `hoomd.Simulation.create_state_from_snapshot`
+    * - Initialize MPCD particles randomly with ``mpcd.init.make_random``
+      - Not currently supported
+    * - Initialize HOOMD particles from a file, then add MPCD particles through ``mpcd.init``.
+      - Use `hoomd.Snapshot.from_gsd_frame`, add the MPCD particles, then initialize as above
+    * - Bounce-back integration of HOOMD particles using ``mpcd.integrate``
+      - Use `hoomd.mpcd.methods.BounceBack` with a geometry from `hoomd.mpcd.geometry`
+    * - Bounce-back streaming of MPCD particles using ``mpcd.stream``
+      - Use `hoomd.mpcd.stream.BounceBack` with a geometry from `hoomd.mpcd.geometry`
+    * - Fill geometry with virtual particles using ``mpcd.fill``
+      - Use `hoomd.mpcd.fill.GeometryFiller` with a geometry from `hoomd.mpcd.geometry`
+    * - Change sorting period of automatically created ``system.sorter``
+      - Explicitly create a `hoomd.mpcd.tune.ParticleSorter` with desired period
+    * - Have HOOMD automatically validate my streaming geometry fits inside my box
+      - No longer performed. Users should make sure their geometries make sense
+    * - Have HOOMD automatically validate my particles are inside my streaming geometry
+      - Call `hoomd.mpcd.stream.BounceBack.check_mpcd_particles` directly
+
+For developers, the following are the most significant changes to be aware of:
+
+* The MPCD namespace is ``hoomd::mpcd``.
+* ``hoomd::mpcd::SystemData`` has been removed. Classes should accept ``hoomd::SystemDefinition``
+  instead and use ``SystemDefinition::getMPCDParticleData()``.
+* Force and geometry files have been renamed.
+* Bounce-back streaming methods are now templated on both geometries and forces, rather than using
+  polymorphism for the forces. This means that combinations of geometries and forces need to be
+  compiled when new classes are added. CMake can automatically generate the necessary files if new
+  geometries and forces are added to the appropriate lists. Python will automatically deduce the
+  right C++ class names if standard naming conventions are followed; otherwise, explicit
+  registration is required.
+* The virtual particle filler design has been refactored to enable other methods for virtual
+  particle filling. Fillers that derived from the previous ``hoomd::mpcd::VirtualParticleFiller``
+  should inherit from ``hoomd::mpcd::ManualVirtualParticleFiller`` instead.
+
 Compiling
 ^^^^^^^^^
 

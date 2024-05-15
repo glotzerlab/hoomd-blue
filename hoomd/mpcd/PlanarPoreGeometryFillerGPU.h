@@ -42,8 +42,8 @@ class PYBIND11_EXPORT PlanarPoreGeometryFillerGPU : public mpcd::PlanarPoreGeome
 
 namespace detail
     {
-//! Export SlitPoreGeometryFillerGPU to python
-void export_SlitPoreGeometryFillerGPU(pybind11::module& m);
+//! Export PlanarPoreGeometryFillerGPU to python
+void export_PlanarPoreGeometryFillerGPU(pybind11::module& m);
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

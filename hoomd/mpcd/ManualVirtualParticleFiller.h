@@ -61,7 +61,7 @@ namespace detail
     {
 //! Export the ManualVirtualParticleFiller to python
 void export_ManualVirtualParticleFiller(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_MANUAL_VIRTUAL_PARTICLE_FILLER_H_

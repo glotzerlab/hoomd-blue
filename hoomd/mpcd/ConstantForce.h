@@ -77,7 +77,7 @@ class __attribute__((visibility("default"))) ConstantForce
 namespace detail
     {
 void export_ConstantForce(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 #endif // __HIPCC__
 
     } // end namespace mpcd
