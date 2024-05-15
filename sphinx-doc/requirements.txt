@@ -12,7 +12,7 @@ attrs==23.2.0
     # via
     #   jsonschema
     #   referencing
-babel==2.15.0
+babel==2.14.0
     # via sphinx
 beautifulsoup4==4.12.3
     # via
@@ -51,7 +51,7 @@ jinja2==3.1.4
     #   nbconvert
     #   nbsphinx
     #   sphinx
-jsonschema==4.22.0
+jsonschema==4.21.1
     # via nbformat
 jsonschema-specifications==2023.12.1
     # via jsonschema
@@ -100,9 +100,9 @@ parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.2.2
+platformdirs==4.2.1
     # via jupyter-core
-plumbum==1.8.3
+plumbum==1.8.2
     # via pandoc
 ply==3.11
     # via pandoc
@@ -112,7 +112,7 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-pygments==2.18.0
+pygments==2.17.2
     # via
     #   furo
     #   ipython
@@ -120,15 +120,15 @@ pygments==2.18.0
     #   sphinx
 python-dateutil==2.9.0.post0
     # via jupyter-client
-pyzmq==26.0.3
+pyzmq==26.0.2
     # via jupyter-client
-referencing==0.35.1
+referencing==0.35.0
     # via
     #   jsonschema
     #   jsonschema-specifications
 requests==2.31.0
     # via sphinx
-rpds-py==0.18.1
+rpds-py==0.18.0
     # via
     #   jsonschema
     #   referencing
