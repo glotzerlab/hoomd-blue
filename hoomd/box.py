@@ -273,8 +273,9 @@ class Box:
             a3x = np.dot(v0, v2) / Lx
             xz = a3x / Lz
             yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
-            ut_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
-                                      [0, 0, Lz]])
+            upper_triangular_box_matrix = np.array([[Lx, Ly * xy, Lz * xz],
+                                                    [0, Ly, Lz * yz],
+                                                    [0, 0, Lz]])
         else:
             xz = yz = 0
             if not (np.allclose(v2, [0, 0, 0]) and np.allclose(v0[2], 0)
@@ -283,10 +284,10 @@ class Box:
                                 "third component of first two vectors set to"
                                 "zero.")
                 raise ValueError(error_string)
-            ut_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
+            upper_triangular_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
             box_matrix = box_matrix[:2, :2]
 
-        rotation = np.linalg.solve(ut_box_matrix, box_matrix)
+        rotation = np.linalg.solve(upper_triangular_box_matrix, box_matrix)
 
         if Lz == 0:
             rotation = np.zeros((3, 3))
