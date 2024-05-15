@@ -453,8 +453,8 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getNthT
     if (n >= getNGlobal())
         {
         std::ostringstream s;
-        s << name << " index " << n << " out of bounds!"
-          << "The number of " << name << "s is " << getNGlobal();
+        s << name << " index " << n << " out of bounds!" << "The number of " << name << "s is "
+          << getNGlobal();
         throw std::runtime_error(s.str());
         }
 
