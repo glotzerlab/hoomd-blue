@@ -256,7 +256,7 @@ class Box:
                               [ 0,  0,  1]])
             rotated_points = rotation @ points
         """
-        box_matrix = np.asarray(box_matrix, dtype=np.float32)
+        box_matrix = np.asarray(box_matrix, dtype=np.float64)
         if box_matrix.shape != (3, 3):
             raise ValueError("Box matrix must be a 3x3 matrix.")
         v0 = box_matrix[:, 0]
@@ -326,7 +326,7 @@ class Box:
                               [0, 8, 16],
                               [0, 0, 18]])
         """
-        box_matrix = np.asarray(box_matrix)
+        box_matrix = np.asarray(box_matrix, dtype=np.float64)
         if box_matrix.shape != (3, 3):
             raise ValueError("Box matrix must be a 3x3 matrix.")
         if not np.allclose(box_matrix, np.triu(box_matrix)):
