@@ -40,6 +40,7 @@ set(files __init__.py
     test_gsd.py
     test_special_pair.py
     test_update_group_dof.py
+    test_velocity_lubrication.py
     test_wall_data.py
     test_wall_potential.py
     )

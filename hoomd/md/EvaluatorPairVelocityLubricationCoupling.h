@@ -130,7 +130,7 @@ class EvaluatorPairVelocityLubricationCoupling
                                                 Scalar4& _quat_j,
                                                 Scalar _rcutsq,
                                                 const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_i {0, 0, 0},ang_j {0, 0, 0},ang_mom {0, 0, 0}, am {true},velocity {0, 0, 0},vel {true}, diameter_i(0),diameter_j(0),massi(0),massj(0), mu(_params.mu), take_momentum(_params.take_momentum), take_velocity(_params.take_velocity)
+        : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_i {0, 0, 0},ang_j {0, 0, 0},ang_mom {0, 0, 0},velocity {0, 0, 0}, diameter_i(0),diameter_j(0),massi(0),massj(0), mu(_params.mu), take_momentum(_params.take_momentum), take_velocity(_params.take_velocity)
 
         {
         }
@@ -222,15 +222,11 @@ class EvaluatorPairVelocityLubricationCoupling
     */
     HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, vec3<Scalar> aj)
         {
-	am = true;
 	if(take_momentum)
 		{
 		ang_i = ai;
 		ang_j = ai;
 		ang_mom = ai+aj;
-
-		if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
-		    am = false;
 		}
 	else 
 		ang_i = vec3<Scalar>(0,0,0);
@@ -240,13 +236,9 @@ class EvaluatorPairVelocityLubricationCoupling
 
     HOSTDEVICE void setVelocities(vec3<Scalar> vi)
         {
-	vel = true;
 	if(take_velocity)
 		{
 		velocity = vi;
-
-		if (velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z < 1e-5)
-		    vel = false;
 		}
 	else 
 		velocity = vec3<Scalar>(0,0,0);
@@ -269,68 +261,63 @@ class EvaluatorPairVelocityLubricationCoupling
                              Scalar3& torque_i,
                              Scalar3& torque_j)
         {
-        if (am || vel)
-            {
             vec3<Scalar> rvec(dr); /// Turn distance between particles into a vector
             Scalar rsq = dot(rvec, rvec); /// get square distance 
 
             if (rsq > rcutsq)
                 return false;
-            Scalar diameter = 0.5 * (diameter_i + diameter_j);
-	    Scalar beta = diameter_j / diameter_i;
-	    Scalar betainv = diameter_i / diameter_j;
-	    Scalar r_a = diameter_i/2.0;
-	    Scalar r_b = diameter_j/2.0;
-	    Scalar pi = acos(0.0);
 
-            Scalar rinv = fast::rsqrt(rsq);
-	    vec3<Scalar> n_v = rvec / (1.0/rinv); // Normal vector connecting the two particles
-	    
-	    Scalar sphere_inertia_i = 0.4 * massi * r_a*r_a;
-	    Scalar sphere_inertia_j = 0.4 * massj * r_b*r_b;
-	    vec3<Scalar> ang_vel_i =  ang_i / sphere_inertia_i; 
-	    vec3<Scalar> ang_vel_j =  ang_j / sphere_inertia_j; 
-	    vec3<Scalar> sum_avel =  ang_vel_i + ang_vel_j;	    
-	    vec3<Scalar> diff_avel =  ang_vel_i - ang_vel_j;	    
-	    vec3<Scalar> delta_U =  -1.0 * velocity;    
+            else
+                {
+                Scalar diameter = 0.5 * (diameter_i + diameter_j);
+	            Scalar beta = diameter_j / diameter_i;
+	            Scalar betainv = diameter_i / diameter_j;
+	            Scalar r_a = diameter_i/2.0;
+	            Scalar r_b = diameter_j/2.0;
+	            Scalar pi = 2.0 * acos(0.0);
 
+                Scalar rinv = fast::rsqrt(rsq);
+	            vec3<Scalar> n_v = -1.0 * rvec * rinv; // Normal vector connecting the two particles
+	            
+	            Scalar sphere_inertia_i = 0.4 * massi * r_a*r_a; // Sphere moment of inertia assuming a uniform density
+	            Scalar sphere_inertia_j = 0.4 * massj * r_b*r_b;
+	            vec3<Scalar> ang_vel_i =  ang_i / sphere_inertia_i; 
+	            vec3<Scalar> ang_vel_j =  ang_j / sphere_inertia_j; 
+	            vec3<Scalar> sum_avel =  ang_vel_i + ang_vel_j;	    
+	            vec3<Scalar> diff_avel =  ang_vel_i - ang_vel_j;	    
+	            vec3<Scalar> delta_U =  -1.0 * velocity;    
+                Scalar d = 1.0 / rinv - diameter;
+	            Scalar laminv = ((r_a+r_b)/2)/d;
+                Scalar log_laminv = fast::log(laminv);
+	            Scalar dot_vel = dot(n_v,delta_U);
+	            vec3<Scalar> cross_vel = cross(n_v,delta_U);
+	            Scalar dot_angvel_sum = dot(n_v,sum_avel);
+	            Scalar dot_angvel_diff = dot(n_v,diff_avel);
+	            vec3<Scalar> cross_angvel_diff = cross(diff_avel,n_v);
+	            vec3<Scalar> cross_angvel_sum = cross(sum_avel,n_v);
+	            Scalar YA11 = 6.0*pi*r_a*((8.0*beta+4.0*beta*beta+8.0*beta*beta*beta)/
+		        	  (15.0*(1.0+beta)*(1.0+beta)*(1.0+beta))*log_laminv); 
+	            Scalar YB11 = -4.0 * pi * r_a*r_a * (beta*(4.0+beta)/
+		            	(5.0*(1.0+beta)*(1.0+beta))*log_laminv);
+	            Scalar YC12 = 8.0*pi*r_a*r_a*r_a * (beta*beta/(10.0+10.0*beta))*log_laminv;
+	            Scalar XA11 = 6.0 * pi * r_a * (2.0*beta*beta/((1.0+beta)*(1.0+beta)*(1.0+beta))*laminv+
+		            	(beta+7.0*beta*beta+beta*beta*beta)/(5.0*(1.0+beta)*
+		        	(1.0+beta)*(1.0+beta))*log_laminv);
+	            vec3<Scalar> f_vel = XA11 * dot_vel * n_v + YA11 * (delta_U - n_v*dot_vel);  
+                
 
-            Scalar d = 1.0 / rinv - diameter;
-	    Scalar laminv = ((r_a+r_b)/2)/d;
-	    Scalar dot_vel = dot(n_v,delta_U);
-	    vec3<Scalar> cross_vel = cross(delta_U,n_v);
-	    Scalar dot_angvel_sum = dot(n_v,sum_avel);
-	    Scalar dot_angvel_diff = dot(n_v,diff_avel);
-	    vec3<Scalar> cross_angvel_diff = cross(diff_avel,n_v);
-	    vec3<Scalar> cross_angvel_sum = cross(sum_avel,n_v);
-	    Scalar YA11 = 6.0*pi*r_a*((8.0*beta+4.0*beta*beta+8.0*beta*beta)/
-			  (15.0*(1.0+beta)*(1.0+beta)*(1.0+beta))*fast::log(laminv)); 
-	    Scalar YB11 = -4.0 * pi * r_a*r_a * (beta*(4.0+beta)/
-		    	(5.0*(1.0+beta)*(1.0+beta))*fast::log(laminv));
-	    Scalar YC12 = 8.0*pi*r_a*r_a*r_a * (beta*beta/(10.0+10.0*beta))*fast::log(laminv);
-	    Scalar XA11 = 6.0 * pi * r_a * (2.0*beta*beta/((1.0+beta)*(1.0+beta)*(1.0+beta))*laminv+
-		    	(beta+7.0*beta*beta+beta*beta*beta)/(5.0*(1.0+beta)*
-			(1.0+beta)*(1.0+beta))*fast::log(laminv));
-	    vec3<Scalar> f_vel = XA11 * dot_vel * n_v + YA11 * (delta_U - vec3<Scalar>(1.,1.,1.)*dot_vel);  
-	    vec3<Scalar> f_rot = -(r_a+r_b)/2*YA11*cross_angvel_sum + 
-	    			(1-(r_b*r_a+4*r_b*r_b)/(4*r_a*r_a+r_a*r_b))*YB11/2*cross_angvel_diff;  
-            vec3<Scalar> f = mu * (f_vel + f_rot);
-            vec3<Scalar> t_i = mu * (YB11*cross_vel+(r_a+r_b)*YB11/2*(sum_avel-dot_angvel_sum* n_v)+
-		   	      (1-4*r_a/r_b)/2*YC12*(diff_avel-dot_angvel_diff* n_v));
-            vec3<Scalar> t_j = mu * ((r_a*r_b+4*r_b*r_b)/(4*r_a*r_a+r_a*r_b)*YB11*cross_vel+
-		    	(r_b*(r_a+r_b)*(r_a+4*r_b))/(2*r_a*r_b+8*r_a*r_a)*YB11*(sum_avel-dot_angvel_sum* n_v)
-			-(1-4*r_b/r_a)*YC12*(diff_avel-dot_angvel_diff* n_v));
-            force = vec_to_scalar3(f);
-            torque_i = vec_to_scalar3(t_i);
-            torque_j = vec_to_scalar3(t_j);
-            }
-        else
-            {
-            force = make_scalar3(0, 0, 0);
-            torque_i = make_scalar3(0, 0, 0);
-            torque_j = make_scalar3(0, 0, 0);
-            }
-
+	            vec3<Scalar> f_rot = -(r_a+r_b)/2*YA11*cross_angvel_sum + 
+	        			(1-(r_b*r_a+4*r_b*r_b)/(4*r_a*r_a+r_a*r_b))*YB11/2*cross_angvel_diff;  
+                vec3<Scalar> f = mu * (f_vel + f_rot);
+                vec3<Scalar> t_i = mu * (YB11*cross_vel+(r_a+r_b)*YB11/2*(sum_avel-dot_angvel_sum* n_v)+
+		       	      (1-4*r_a/r_b)/2*YC12*(diff_avel-dot_angvel_diff* n_v));
+                vec3<Scalar> t_j = mu * ((r_a*r_b+4*r_b*r_b)/(4*r_a*r_a+r_a*r_b)*YB11*cross_vel+
+		        	(r_b*(r_a+r_b)*(r_a+4*r_b))/(2*r_a*r_b+8*r_a*r_a)*YB11*(sum_avel-dot_angvel_sum* n_v)
+		    	-(1-4*r_b/r_a)*YC12*(diff_avel-dot_angvel_diff* n_v));
+                force = vec_to_scalar3(f);
+                torque_i = vec_to_scalar3(t_i);
+                torque_j = vec_to_scalar3(t_j);
+                }
         pair_eng = 0;
         return true;
         }
@@ -368,8 +355,6 @@ class EvaluatorPairVelocityLubricationCoupling
     vec3<Scalar> ang_i;   /// angular momentum for ith particle
     vec3<Scalar> ang_j;   /// angular momentum for jth particle
     vec3<Scalar> velocity;   /// difference of velocity for ith and jth particle
-    bool am;
-    bool vel;
     Scalar diameter_i; /// diameter of particle i 
     Scalar diameter_j; /// diameter of particle j 
     Scalar mu;
