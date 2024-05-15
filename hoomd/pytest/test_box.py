@@ -2,7 +2,9 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
+
 import numpy as np
+import pytest
 from pytest import fixture
 
 from hoomd.box import Box
@@ -172,9 +174,11 @@ def test_from_matrix(new_box_matrix_dict):
     ])
 
 
-def test_from_basis_vectors_non_triangular():
-    box_matrix = np.array([[1 / np.sqrt(2), 1 / np.sqrt(2), 0],
-                           [-1 / np.sqrt(2), 1 / np.sqrt(2), 0], [0, 0, 1]])
+@pytest.mark.parametrize("theta",
+                         [np.pi, np.pi / 2, np.pi / 3, np.pi / 4, np.pi * 1.23])
+def test_from_basis_vectors_non_triangular(theta):
+    box_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
+                           [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
     box, rotation = Box.from_basis_vectors(box_matrix.T)
     assert np.allclose([box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz],
                        [1, 1, 1, 0, 0, 0],
@@ -190,9 +194,11 @@ def test_from_matrix_two_dimensional():
     assert box.is2D and box.dimensions == 2
 
 
-def test_rotation_matrix_from_basis_vectors_two_dimensional():
-    box_matrix = np.array([[1 / np.sqrt(2), 1 / np.sqrt(2), 0],
-                           [-1 / np.sqrt(2), 1 / np.sqrt(2), 0], [0, 0, 0]])
+@pytest.mark.parametrize("theta",
+                         [np.pi, np.pi / 2, np.pi / 3, np.pi / 4, np.pi * 1.23])
+def test_rotation_matrix_from_basis_vectors_two_dimensional(theta):
+    box_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
+                           [np.sin(theta), np.cos(theta), 0], [0, 0, 0]])
     box, rotation = Box.from_basis_vectors(box_matrix.T)
     rotated_matrix = box.to_matrix()
     rotated_points = rotation @ box_matrix
