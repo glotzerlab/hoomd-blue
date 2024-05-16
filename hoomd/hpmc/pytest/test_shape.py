@@ -80,6 +80,16 @@ def test_invalid_shape_params(invalid_args):
         mc.shape["A"] = args
 
 
+@pytest.mark.parametrize("c", [0.0, 1e-8, -0.5])
+def test_ellipsoid_semimajor_axis(c):
+    cpp_shape = hoomd.hpmc._hpmc.EllipsoidParams
+    args = {'a': 0.125, 'b': 0.375, 'c': c}
+    with pytest.raises(ValueError) as err:
+        cpp_shape({"ignore_statistics": False} | args)
+
+    assert ("All semimajor axes must be nonzero!" in str(err))
+
+
 def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
                         valid_args):
     integrator = valid_args[0]

@@ -66,6 +66,12 @@ struct EllipsoidParams : ShapeParams
         x = v["a"].cast<ShortReal>();
         y = v["b"].cast<ShortReal>();
         z = v["c"].cast<ShortReal>();
+
+        if (x <= ELLIPSOID_OVERLAP_PRECISION || y <= ELLIPSOID_OVERLAP_PRECISION
+            || z <= ELLIPSOID_OVERLAP_PRECISION)
+            {
+            throw std::domain_error("All semimajor axes must be nonzero!");
+            }
         }
 
     /// Convert parameters to a python dictionary
