@@ -107,13 +107,13 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v4.3.1
+      uses: actions/upload-artifact@v4.3.3
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v4.3.1
+      uses: actions/upload-artifact@v4.3.3
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -121,7 +121,7 @@ env:
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v4.1.4
+      uses: actions/download-artifact@v4.1.7
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -129,7 +129,7 @@ env:
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v4.1.4
+      uses: actions/download-artifact@v4.1.7
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -183,7 +183,7 @@ env:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
@@ -211,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.4
+      uses: glotzerlab/jetstream2-admin/start@v1.2.5
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
