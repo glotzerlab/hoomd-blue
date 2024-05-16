@@ -112,5 +112,5 @@ void export_CellListStencil(pybind11::module& m);
 #endif
     } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // __CELLLISTSTENCIL_H__

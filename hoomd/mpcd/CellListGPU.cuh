@@ -60,7 +60,7 @@ cudaError_t cell_apply_sort(unsigned int* d_cell_list,
                             const unsigned int N_mpcd,
                             const unsigned int block_size);
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_CELL_LIST_GPU_CUH_

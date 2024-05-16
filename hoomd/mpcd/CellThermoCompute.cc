@@ -446,8 +446,8 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                     h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
                     }
                 } // i
-            }     // j
-        }         // k
+            } // j
+        } // k
     }
 
 void mpcd::CellThermoCompute::computeNetProperties()

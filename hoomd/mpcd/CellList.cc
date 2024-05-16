@@ -482,9 +482,9 @@ void mpcd::CellList::checkDomainBoundaries()
             if (overlap_error)
                 {
                 m_exec_conf->msg->error()
-                    << "mpcd: communication grid does not overlap. "
-                    << "Expected to receive cell " << err_pair[1] << " from rank " << recv_neighbor
-                    << ", but got cell " << err_pair[0] << "." << std::endl;
+                    << "mpcd: communication grid does not overlap. " << "Expected to receive cell "
+                    << err_pair[1] << " from rank " << recv_neighbor << ", but got cell "
+                    << err_pair[0] << "." << std::endl;
                 }
             throw std::runtime_error("Error setting up MPCD cell list");
             }

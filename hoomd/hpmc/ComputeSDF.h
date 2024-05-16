@@ -448,13 +448,13 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
                     cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
                     }
                 } // end loop over AABB nodes
-            }     // end loop over images
+            } // end loop over images
         if (min_bin < m_hist_compression.size())
             {
             m_hist_compression[min_bin]++;
             }
         } // end loop over all particles
-    }     // end countHistogramBinarySearch()
+    } // end countHistogramBinarySearch()
 
 template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_t timestep)
     {
@@ -619,7 +619,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                             }
                                         }
                                     } // end if (!hard_overlap)
-                                }     // end loop over bins for compression
+                                } // end loop over bins for compression
 
                             // do expansions
                             for (size_t bin_to_sample = 0; bin_to_sample < min_bin_expansion;
@@ -679,7 +679,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                             }
                                         }
                                     } // end if (!hard_overlap)
-                                }     // end loop over histogram bins for expansions
+                                } // end loop over histogram bins for expansions
                             }
                         }
                     }
@@ -689,7 +689,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                     cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
                     }
                 } // end loop over AABB nodes
-            }     // end loop over images
+            } // end loop over images
         if (min_bin_compression < m_hist_compression.size() && hist_weight_ptl_i_compression <= 1.0)
             {
             m_hist_compression[min_bin_compression] += hist_weight_ptl_i_compression;
@@ -699,7 +699,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
             m_hist_expansion[min_bin_expansion] += hist_weight_ptl_i_expansion;
             }
         } // end loop over all particles
-    }     // end countHistogramLinearSearch()
+    } // end countHistogramLinearSearch()
 
 /*! \param r_ij Vector pointing from particle i to j (already wrapped into the box)
     \param orientation_i Orientation of the particle i

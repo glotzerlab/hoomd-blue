@@ -215,11 +215,11 @@ void mpcd::CellCommunicator::initialize()
                             neighbors.insert(neigh_rank);
                             send_map.insert(std::make_pair(neigh_rank, global_cell_idx));
                             } // ddz
-                        }     // ddy
-                    }         // ddx
-                }             // i
-            }                 // j
-        }                     // k
+                        } // ddy
+                    } // ddx
+                } // i
+            } // j
+        } // k
 
         // allocate send / receive index arrays
         {

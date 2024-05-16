@@ -111,7 +111,7 @@ template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, st
         .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE);
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif // end inclusion guard
