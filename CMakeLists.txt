@@ -104,7 +104,7 @@ else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
-option(BUILD_MPCD "Build the mpcd package" on)
+option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
