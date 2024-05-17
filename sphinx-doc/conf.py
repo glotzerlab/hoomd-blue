@@ -32,8 +32,8 @@ extensions = [
 ]
 
 if os.getenv("READTHEDOCS"):
-  extensions.append("sphinxcontrib.googleanalytics")
-  googleanalytics_id = "G-ZR0DNZD21E"
+    extensions.append("sphinxcontrib.googleanalytics")
+    googleanalytics_id = "G-ZR0DNZD21E"
 
 napoleon_include_special_with_doc = True
 
