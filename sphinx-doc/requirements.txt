@@ -84,7 +84,7 @@ nbformat==5.10.4
     #   nbclient
     #   nbconvert
     #   nbsphinx
-nbsphinx==0.9.3
+nbsphinx==0.9.4
     # via -r sphinx-doc/requirements.in
 numpy==1.26.4
     # via -r sphinx-doc/requirements.in
@@ -147,12 +147,15 @@ sphinx==7.3.7
     #   furo
     #   nbsphinx
     #   sphinx-basic-ng
+    #   sphinxcontrib-googleanalytics
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
 sphinxcontrib-devhelp==1.0.6
     # via sphinx
+sphinxcontrib-googleanalytics==0.4
+    # via -r sphinx-doc/requirements.in
 sphinxcontrib-htmlhelp==2.0.5
     # via sphinx
 sphinxcontrib-jsmath==1.0.1
