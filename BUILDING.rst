@@ -30,7 +30,7 @@ To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install sphinx furo nbsphinx ipython
+   $ <package-manager> install sphinx sphinx-copybutton furo nbsphinx ipython
 
 .. note::
 
@@ -130,6 +130,7 @@ Install prerequisites
 **To build the documentation:**
 
 - sphinx
+- sphinx-copybutton
 - furo
 - nbsphinx
 - ipython

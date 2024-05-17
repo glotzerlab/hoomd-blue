@@ -27,7 +27,8 @@ os.environ['SPHINX'] = '1'
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
     'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
-    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting'
+    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting',
+    'sphinx_copybutton'
 ]
 
 napoleon_include_special_with_doc = True
