@@ -67,8 +67,7 @@ struct EllipsoidParams : ShapeParams
         y = v["b"].cast<ShortReal>();
         z = v["c"].cast<ShortReal>();
 
-        if (x <= ELLIPSOID_OVERLAP_PRECISION || y <= ELLIPSOID_OVERLAP_PRECISION
-            || z <= ELLIPSOID_OVERLAP_PRECISION)
+        if (x <= 0.0f || y <= 0.0f || z <= 0.0f)
             {
             throw std::domain_error("All semimajor axes must be nonzero!");
             }
