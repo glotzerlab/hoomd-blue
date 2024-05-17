@@ -147,9 +147,12 @@ sphinx==7.3.7
     #   furo
     #   nbsphinx
     #   sphinx-basic-ng
+    #   sphinx-copybutton
     #   sphinxcontrib-googleanalytics
 sphinx-basic-ng==1.0.0b2
     # via furo
+sphinx-copybutton==0.5.2
+    # via -r sphinx-doc/requirements.in
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
 sphinxcontrib-devhelp==1.0.6

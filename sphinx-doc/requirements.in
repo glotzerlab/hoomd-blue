@@ -7,3 +7,4 @@ sphinx==7.3.7
 furo==2024.5.6
 tornado==6.4
 sphinxcontrib-googleanalytics==0.4
+sphinx-copybutton==0.5.2
