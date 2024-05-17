@@ -101,6 +101,9 @@ html_favicon = 'hoomdblue-logo-favicon.svg'
 IGNORE_MODULES = ['hoomd._hoomd']
 IGNORE_CLASSES = []
 
+copybutton_prompt_text = "$ "
+copybutton_remove_prompts = True
+copybutton_line_continuation_character = "\\"
 
 def autodoc_process_bases(app, name, obj, options, bases):
     """Ignore base classes from the '_hoomd' module."""
