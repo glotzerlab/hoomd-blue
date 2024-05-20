@@ -54,8 +54,8 @@ body:
       description: How did you install HOOMD-blue?
       options:
         - Compiled from source
-        - Conda package
-        - glotzerlab-software container
+        - Conda-forge package
+        - glotzerlab-software package
     validations:
       required: true
   - type: input
