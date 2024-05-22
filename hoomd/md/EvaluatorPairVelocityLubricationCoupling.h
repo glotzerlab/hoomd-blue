@@ -287,7 +287,12 @@ class EvaluatorPairVelocityLubricationCoupling
 	            vec3<Scalar> diff_avel =  ang_vel_i - ang_vel_j;	    
 	            vec3<Scalar> delta_U =  -1.0 * velocity;    
                 Scalar d = 1.0 / rinv - diameter;
-	            Scalar laminv = ((r_a+r_b)/2)/d;
+                Scalar dmin = 0.005 * diameter;
+                if (d < dmin)
+                {
+                    d = dmin; 
+                }
+	            Scalar laminv = ((r_a+r_b)/(2*d));
                 Scalar log_laminv = fast::log(laminv);
 	            Scalar dot_vel = dot(n_v,delta_U);
 	            vec3<Scalar> cross_vel = cross(n_v,delta_U);
