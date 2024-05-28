@@ -72,56 +72,57 @@ struct FacetedEllipsoidParams : ShapeParams
             }
         }
 
-        if (pybind11::len(offsets) != pybind11::len(normals))
-            throw std::runtime_error("Number of normals unequal number of offsets");
+    if (pybind11::len(offsets) != pybind11::len(normals))
+        throw std::runtime_error("Number of normals unequal number of offsets");
 
-        // extract the normals from the python list
-        for (unsigned int i = 0; i < len(normals); i++)
-            {
-            pybind11::list normals_i = normals[i];
-            if (len(normals_i) != 3)
-                throw std::runtime_error("Each normal must have 3 elements: found "
-                                         + pybind11::str(normals_i).cast<std::string>() + " in "
-                                         + pybind11::str(normals).cast<std::string>());
-            n[i] = vec3<ShortReal>(pybind11::cast<ShortReal>(normals_i[0]),
-                                   pybind11::cast<ShortReal>(normals_i[1]),
-                                   pybind11::cast<ShortReal>(normals_i[2]));
-            offset[i] = pybind11::cast<ShortReal>(offsets[i]);
-            }
-
-        // extract the vertices from the python list
-        pybind11::list vertices_list;
-        if (!vertices.is_none())
-            {
-            vertices_list = pybind11::list(vertices);
-            }
-        // when vertices is None, pass an empty list to PolyhedronVertices
-
-        pybind11::dict verts_dict;
-        verts_dict["vertices"] = vertices_list;
-        verts_dict["sweep_radius"] = 0;
-        verts_dict["ignore_statistics"] = ignore;
-        verts = PolyhedronVertices(verts_dict, managed);
-
-        // scale vertices onto the surface of the ellipsoid
-        for (unsigned int i = 0; i < verts.N; ++i)
-            {
-            verts.x[i] /= a;
-            verts.y[i] /= b;
-            verts.z[i] /= c;
-            }
-
-        // set the origin
-        origin = vec3<ShortReal>(pybind11::cast<ShortReal>(origin_tuple[0]),
-                                 pybind11::cast<ShortReal>(origin_tuple[1]),
-                                 pybind11::cast<ShortReal>(origin_tuple[2]));
-
-        // add the edge-sphere vertices
-        initializeVertices(managed);
+    // extract the normals from the python list
+    for (unsigned int i = 0; i < len(normals); i++)
+        {
+        pybind11::list normals_i = normals[i];
+        if (len(normals_i) != 3)
+            throw std::runtime_error("Each normal must have 3 elements: found "
+                                     + pybind11::str(normals_i).cast<std::string>() + " in "
+                                     + pybind11::str(normals).cast<std::string>());
+        n[i] = vec3<ShortReal>(pybind11::cast<ShortReal>(normals_i[0]),
+                               pybind11::cast<ShortReal>(normals_i[1]),
+                               pybind11::cast<ShortReal>(normals_i[2]));
+        offset[i] = pybind11::cast<ShortReal>(offsets[i]);
         }
 
+    // extract the vertices from the python list
+    pybind11::list vertices_list;
+    if (!vertices.is_none())
+        {
+        vertices_list = pybind11::list(vertices);
+        }
+    // when vertices is None, pass an empty list to PolyhedronVertices
+
+    pybind11::dict verts_dict;
+    verts_dict["vertices"] = vertices_list;
+    verts_dict["sweep_radius"] = 0;
+    verts_dict["ignore_statistics"] = ignore;
+    verts = PolyhedronVertices(verts_dict, managed);
+
+    // scale vertices onto the surface of the ellipsoid
+    for (unsigned int i = 0; i < verts.N; ++i)
+        {
+        verts.x[i] /= a;
+        verts.y[i] /= b;
+        verts.z[i] /= c;
+        }
+
+    // set the origin
+    origin = vec3<ShortReal>(pybind11::cast<ShortReal>(origin_tuple[0]),
+                             pybind11::cast<ShortReal>(origin_tuple[1]),
+                             pybind11::cast<ShortReal>(origin_tuple[2]));
+
+    // add the edge-sphere vertices
+    initializeVertices(managed);
+    }
+
     /// Convert parameters to a python dictionary
-    pybind11::dict asDict()
+    pybind11::dict
+    asDict()
         {
         pybind11::dict v;
         pybind11::list vertices = verts.asDict()["vertices"];
@@ -347,7 +348,8 @@ struct FacetedEllipsoidParams : ShapeParams
         additional_verts.set_memory_hint();
         }
 #endif
-    } __attribute__((aligned(32)));
+    }
+__attribute__((aligned(32)));
 
 /// Support function for ShapeFacetedEllipsoid
 class SupportFuncFacetedEllipsoid
@@ -656,7 +658,7 @@ test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r
     }
 
     } // end namespace hpmc
-    } // end namespace hoomd
+} // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE
