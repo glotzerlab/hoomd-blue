@@ -267,7 +267,8 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability)
-        .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials);
+        .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials)
+        .def_property_readonly("external_potentials", &IntegratorHPMC::getExternalPotentials);
 
     pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
