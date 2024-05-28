@@ -85,7 +85,16 @@ def test_invalid_shape_params(invalid_args):
     [hoomd.hpmc._hpmc.EllipsoidParams, hoomd.hpmc._hpmc.FacetedEllipsoidParams])
 @pytest.mark.parametrize("c", [0.0, -0.5])
 def test_semimajor_axis_validity(cpp_shape, c):
-    args = {'a': 0.125, 'b': 0.375, 'c': c}
+    args = {
+        'a': 0.125,
+        'b': 0.375,
+        'c': c,
+        # These properties are only read for the FacetedEllipsoid
+        'normals': [],
+        'offsets': [],
+        'vertices': [],
+        'origin': []
+    }
     with pytest.raises(ValueError) as err:
         cpp_shape({"ignore_statistics": False} | args)
 
