@@ -31,12 +31,15 @@ struct wall_constraint_params
     Scalar k;
     Scalar mus;
     Scalar muk;
+    Scalar Tb;
+    Scalar nus;
+
 
 #ifndef __HIPCC__
-    wall_constraint_params() : k(0), mus(0), muk(0) { }
+    wall_constraint_params() : k(0), mus(0), muk(0), Tb(0), nus(0) { }
 
     wall_constraint_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), mus(params["mu_s"].cast<Scalar>()), muk(params["mu_k"].cast<Scalar>())
+        : k(params["k"].cast<Scalar>()), mus(params["mu_s"].cast<Scalar>()), muk(params["mu_k"].cast<Scalar>()), Tb(params["T_b"].cast<Scalar>()), nus(params["nu_s"].cast<Scalar>())
         {
         }
 
@@ -46,6 +49,8 @@ struct wall_constraint_params
         v["k"] = k;
         v["mu_s"] = mus;
         v["mu_k"] = muk;
+        v["T_b"] = Tb;
+        v["nu_s"] = nus;
         return v;
         }
 #endif
@@ -73,7 +78,7 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     ~WallForceConstraintCompute();
 
     //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar k, Scalar mus, Scalar muk);
+    virtual void setParams(unsigned int type, Scalar k, Scalar mus, Scalar muk, Scalar Tb, Scalar nus);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -101,6 +106,8 @@ class PYBIND11_EXPORT WallForceConstraintCompute : public ForceConstraint
     Scalar* m_k;   //!< k harmonic spring constant
     Scalar* m_mus; //!< mus stick friction coefficient
     Scalar* m_muk; //!< mus kinetic friction coefficient
+    Scalar* m_Tb; //!< mus stick friction coefficient
+    Scalar* m_nus; //!< mus stick friction coefficient
     };
 
 /*! \param sysdef The system definition
@@ -112,12 +119,14 @@ WallForceConstraintCompute<Manifold>::WallForceConstraintCompute(
     std::shared_ptr<ParticleGroup> group,
     Manifold manifold,
     bool brownian)
-    : ForceConstraint(sysdef), m_group(group), m_manifold(manifold), m_brownian(brownian), m_k(NULL), m_mus(NULL), m_muk(NULL)
+    : ForceConstraint(sysdef), m_group(group), m_manifold(manifold), m_brownian(brownian), m_k(NULL), m_mus(NULL), m_muk(NULL), m_Tb(NULL), m_nus(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing WallForceConstraintCompute" << std::endl;
     m_k = new Scalar[m_pdata->getNTypes()];
     m_mus = new Scalar[m_pdata->getNTypes()];
     m_muk = new Scalar[m_pdata->getNTypes()];
+    m_Tb = new Scalar[m_pdata->getNTypes()];
+    m_nus = new Scalar[m_pdata->getNTypes()];
     }
 
 template<class Manifold> WallForceConstraintCompute<Manifold>::~WallForceConstraintCompute()
@@ -127,9 +136,13 @@ template<class Manifold> WallForceConstraintCompute<Manifold>::~WallForceConstra
     delete[] m_k;
     delete[] m_mus;
     delete[] m_muk;
+    delete[] m_Tb;
+    delete[] m_nus;
     m_k = NULL;
     m_mus = NULL;
     m_muk = NULL;
+    m_Tb = NULL;
+    m_nus = NULL;
     }
 
 /*! \param type Type of the wall constraint to set parameters for
@@ -140,7 +153,7 @@ template<class Manifold> WallForceConstraintCompute<Manifold>::~WallForceConstra
     Sets parameters for the potential of a particular particle type
 */
 template<class Manifold>
-void WallForceConstraintCompute<Manifold>::setParams(unsigned int type, Scalar k, Scalar mus, Scalar muk)
+void WallForceConstraintCompute<Manifold>::setParams(unsigned int type, Scalar k, Scalar mus, Scalar muk, Scalar Tb, Scalar nus)
     {
     // make sure the type is valid
     if (type >= m_pdata->getNTypes())
@@ -151,14 +164,8 @@ void WallForceConstraintCompute<Manifold>::setParams(unsigned int type, Scalar k
     m_k[type] = k;
     m_mus[type] = mus;
     m_muk[type] = muk;
-
-    // check for some silly errors a user could make
-    if (k <= 0)
-        m_exec_conf->msg->warning() << "constrain.wall: specified k <= 0" << std::endl;
-    if (mus <= 0)
-        m_exec_conf->msg->warning() << "constrain.wall: specified mu_s <= 0" << std::endl;
-    if (muk <= 0)
-        m_exec_conf->msg->warning() << "constrain.wall: specified mu_k <= 0" << std::endl;
+    m_Tb[type] = Tb;
+    m_nus[type] = nus;
     }
 
 template<class Manifold>
@@ -166,7 +173,7 @@ void WallForceConstraintCompute<Manifold>::setParamsPython(std::string type, pyb
     {
     auto typ = m_pdata->getTypeByName(type);
     auto _params = wall_constraint_params(params);
-    setParams(typ, _params.k, _params.mus, _params.muk);
+    setParams(typ, _params.k, _params.mus, _params.muk, _params.Tb, _params.nus);
     }
 
 template<class Manifold>
@@ -181,6 +188,8 @@ pybind11::dict WallForceConstraintCompute<Manifold>::getParams(std::string type)
     params["k"] = m_k[typ];
     params["mu_s"] = m_mus[typ];
     params["mu_k"] = m_muk[typ];
+    params["T_b"] = m_Tb[typ];
+    params["nu_s"] = m_nus[typ];
     return params;
     }
 
@@ -206,23 +215,32 @@ template<class Manifold>
 void WallForceConstraintCompute<Manifold>::computeFrictionForces()
     {
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
     ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),access_location::host,access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
 
     // sanity check
     assert(h_pos.data != NULL);
+    assert(h_orientation.data != NULL);
     assert(h_vel.data != NULL);
+    assert(h_angmom.data != NULL);
     assert(h_net_force.data != NULL);
+    assert(h_net_torque.data != NULL);
 
     // zero forces so we don't leave any forces set for indices that are no longer part of our group
     memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset(h_torque.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     assert(h_force.data);
+    assert(h_torque.data);
     assert(h_virial.data);
 
     // for each particle
@@ -245,18 +263,50 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	if(normal_magnitude < 0)
 		continue;
 
-	 vec3<Scalar> perp_vel, perp_force;
+	 vec3<Scalar> perp_vel, perp_force, para_ang_mom, para_torque;
 	 Scalar norm_perp_vel = -1;
+	 Scalar norm_para_angmom = 0;
+
+	 vec3<Scalar> net_tor(h_net_torque.data[idx].x,h_net_torque.data[idx].y,h_net_torque.data[idx].z);
+	 Scalar normal_tor = dot(norm,net_tor);
 
 	 if(!m_brownian)
 	 	{
+            	quat<Scalar> q(h_orientation.data[idx]);
+            	quat<Scalar> p(h_angmom.data[idx]);
+            	vec3<Scalar> net_angmom = (Scalar(1. / 2.) * conj(q) * p).v;
+		norm_para_angmom = dot(norm,net_angmom);
+
 		vec3<Scalar> net_vel(h_vel.data[idx].x,h_vel.data[idx].y,h_vel.data[idx].z);
 		Scalar normal_vel = dot(norm,net_vel);
 		perp_vel = -net_vel + normal_vel*norm;
 		norm_perp_vel = fast::sqrt(dot(perp_vel,perp_vel));
 		}
 
-	if( norm_perp_vel > 1e-8)
+	 Scalar Tb = m_Tb[typei];
+	 Scalar Tbn = m_nus[typei]*Tb;
+
+	if( norm_para_angmom > 1e-6 || norm_para_angmom < -1e-6 )
+		{
+		if( norm_para_angmom > 0) 
+			Tbn = -Tbn;
+		para_torque = norm*Tbn;
+	   	}
+	else
+		{
+		 if( normal_tor > Tb) 
+			 para_torque = -norm*Tbn;
+		 else
+			{
+			if(normal_tor < -Tb) 
+				para_torque = norm*Tbn;
+			else
+				para_torque = -norm*normal_tor;
+			}
+		}
+
+
+	if( norm_perp_vel > 1e-6)
 		{
 		perp_force = perp_vel*normal_magnitude*m_muk[typei]/norm_perp_vel;
 	   	}
@@ -273,6 +323,10 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
         h_force.data[idx].x = perp_force.x;
         h_force.data[idx].y = perp_force.y;
         h_force.data[idx].z = perp_force.z;
+
+        h_torque.data[idx].x = para_torque.x;
+        h_torque.data[idx].y = para_torque.y;
+        h_torque.data[idx].z = para_torque.z;
 
         h_virial.data[0 * m_virial_pitch + idx] = perp_force.x * pi.x;
         h_virial.data[1 * m_virial_pitch + idx] = perp_force.x * pi.y;

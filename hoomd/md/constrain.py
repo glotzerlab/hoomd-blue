@@ -349,6 +349,8 @@ class WallWithFriction(Constraint):
             TypeParameterDict(k=float, 
                               mu_s=float,
                               mu_k=float,
+                              T_b=float,
+                              nu_s=float,
                               len_keys=1))
         self._add_typeparam(params)
 
