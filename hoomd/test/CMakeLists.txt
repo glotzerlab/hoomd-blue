@@ -20,10 +20,6 @@ set(TEST_LIST
     random_numbers_test
     )
 
-if (HIP_PLATFORM STREQUAL "nvcc")
-    set(add TEST_LIST test_gpu_polymorph)
-endif()
-
 if (ENABLE_HIP)
 list(APPEND TEST_LIST
      test_warp_tools
