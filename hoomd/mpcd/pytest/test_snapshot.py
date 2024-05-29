@@ -1,10 +1,10 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import hoomd
-from hoomd import Simulation
-import numpy as np
 import pytest
+
+import hoomd
+import numpy as np
 
 # default testing configuration, used in setting values below
 test_positions = np.array([[1, 2, 3], [-9, -6, -3], [7, 8, 9]])
@@ -67,7 +67,8 @@ def test_resize(snap):
         np.testing.assert_array_equal(snap.mpcd.velocity, [test_velocities[0]])
         np.testing.assert_array_equal(snap.mpcd.typeid, [test_typeids[0]])
 
-        # grow the snapshot by one, and make sure first entry is retained, and it is padded by zeros
+        # grow the snapshot by one, and make sure first entry is retained, and
+        # it is padded by zeros
         snap.mpcd.N = 2
         np.testing.assert_array_equal(snap.mpcd.position,
                                       [test_positions[0], [0, 0, 0]])
@@ -135,7 +136,7 @@ def test_replicate(snap):
 
 
 def test_create_and_restore_from_snap(snap, simulation_factory):
-    """Test that simulation can be created and restored with MPCD data in snapshot."""
+    """Test simulation can be created and restored with MPCD data."""
     if snap.communicator.num_ranks > 2:
         pytest.skip("Test must be run on 1 or 2 ranks")
 

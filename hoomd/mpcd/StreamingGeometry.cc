@@ -14,35 +14,27 @@ namespace mpcd
     {
 namespace detail
     {
-void export_boundary(pybind11::module& m)
+
+void export_ParallelPlateGeometry(pybind11::module& m)
     {
-    pybind11::enum_<boundary>(m, "boundary")
-        .value("no_slip", boundary::no_slip)
-        .value("slip", boundary::slip);
+    pybind11::class_<ParallelPlateGeometry, std::shared_ptr<ParallelPlateGeometry>>(
+        m,
+        ParallelPlateGeometry::getName().c_str())
+        .def(pybind11::init<Scalar, Scalar, bool>())
+        .def_property_readonly("separation", &ParallelPlateGeometry::getSeparation)
+        .def_property_readonly("speed", &ParallelPlateGeometry::getSpeed)
+        .def_property_readonly("no_slip", &ParallelPlateGeometry::getNoSlip);
     }
 
-void export_BulkGeometry(pybind11::module& m)
+void export_PlanarPoreGeometry(pybind11::module& m)
     {
-    pybind11::class_<BulkGeometry, std::shared_ptr<BulkGeometry>>(m, "BulkGeometry")
-        .def(pybind11::init<>());
-    }
-
-void export_SlitGeometry(pybind11::module& m)
-    {
-    pybind11::class_<SlitGeometry, std::shared_ptr<SlitGeometry>>(m, "SlitGeometry")
-        .def(pybind11::init<Scalar, Scalar, boundary>())
-        .def("getH", &SlitGeometry::getH)
-        .def("getVelocity", &SlitGeometry::getVelocity)
-        .def("getBoundaryCondition", &SlitGeometry::getBoundaryCondition);
-    }
-
-void export_SlitPoreGeometry(pybind11::module& m)
-    {
-    pybind11::class_<SlitPoreGeometry, std::shared_ptr<SlitPoreGeometry>>(m, "SlitPoreGeometry")
-        .def(pybind11::init<Scalar, Scalar, boundary>())
-        .def("getH", &SlitPoreGeometry::getH)
-        .def("getL", &SlitPoreGeometry::getL)
-        .def("getBoundaryCondition", &SlitPoreGeometry::getBoundaryCondition);
+    pybind11::class_<PlanarPoreGeometry, std::shared_ptr<PlanarPoreGeometry>>(
+        m,
+        PlanarPoreGeometry::getName().c_str())
+        .def(pybind11::init<Scalar, Scalar, bool>())
+        .def_property_readonly("separation", &PlanarPoreGeometry::getSeparation)
+        .def_property_readonly("length", &PlanarPoreGeometry::getLength)
+        .def_property_readonly("no_slip", &PlanarPoreGeometry::getNoSlip);
     }
 
     } // end namespace detail

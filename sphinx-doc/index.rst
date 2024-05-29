@@ -143,6 +143,7 @@ Molecular dynamics:
    package-hoomd
    package-hpmc
    package-md
+   package-mpcd
 
 .. toctree::
    :maxdepth: 2

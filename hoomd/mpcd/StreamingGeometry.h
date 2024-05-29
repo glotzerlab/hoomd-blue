@@ -9,10 +9,8 @@
 #ifndef MPCD_STREAMING_GEOMETRY_H_
 #define MPCD_STREAMING_GEOMETRY_H_
 
-#include "BoundaryCondition.h"
-#include "BulkGeometry.h"
-#include "SlitGeometry.h"
-#include "SlitPoreGeometry.h"
+#include "ParallelPlateGeometry.h"
+#include "PlanarPoreGeometry.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -23,17 +21,12 @@ namespace mpcd
     {
 namespace detail
     {
-//! Export boundary enum to python
-void export_boundary(pybind11::module& m);
 
-//! Export BulkGeometry to python
-void export_BulkGeometry(pybind11::module& m);
+//! Export ParallelPlateGeometry to python
+void export_ParallelPlateGeometry(pybind11::module& m);
 
-//! Export SlitGeometry to python
-void export_SlitGeometry(pybind11::module& m);
-
-//! Export SlitPoreGeometry to python
-void export_SlitPoreGeometry(pybind11::module& m);
+//! Export PlanarPoreGeometry to python
+void export_PlanarPoreGeometry(pybind11::module& m);
 
     } // end namespace detail
     } // end namespace mpcd

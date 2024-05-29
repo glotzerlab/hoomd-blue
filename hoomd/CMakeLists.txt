@@ -143,8 +143,6 @@ set(_hoomd_headers
     GPUArray.h
     GPUFlags.h
     GPUPartition.cuh
-    GPUPolymorph.h
-    GPUPolymorph.cuh
     GPUVector.h
     GSD.h
     GSDDequeWriter.h
@@ -213,7 +211,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       SFCPackTunerGPU.cu)
 
 # add the MPCD base parts that should go into _hoomd (i.e., core particle data)
-if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
+if (BUILD_MPCD)
     list(APPEND _hoomd_sources
         mpcd/ParticleData.cc
         mpcd/ParticleDataSnapshot.cc
@@ -407,7 +405,7 @@ if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
 
-if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
+if (BUILD_MPCD)
     target_compile_definitions(_hoomd PUBLIC BUILD_MPCD)
     add_subdirectory(mpcd)
 endif()

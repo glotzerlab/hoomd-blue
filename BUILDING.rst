@@ -110,8 +110,7 @@ Install prerequisites
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
    1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The ``mpcd`` component is disabled on AMD GPUs.
-   3. Multi-GPU execution via unified memory is not available.
+   2. Multi-GPU execution via unified memory is not available.
 
 .. note::
 
@@ -222,6 +221,8 @@ Other option changes take effect at any time:
 - ``BUILD_HPMC`` - When enabled, build the ``hoomd.hpmc`` module (default: ``on``).
 - ``BUILD_MD`` - When enabled, build the ``hoomd.md`` module (default: ``on``).
 - ``BUILD_METAL`` - When enabled, build the ``hoomd.metal`` module (default: ``on``).
+- ``BUILD_MPCD`` - When enabled, build the ``hoomd.mpcd`` module. ``hoomd.md`` must also be built.
+  (default: same as ``BUILD_MD``).
 - ``BUILD_TESTING`` - When enabled, build unit tests (default: ``on``).
 - ``CMAKE_BUILD_TYPE`` - Sets the build type (case sensitive) Options:
 
