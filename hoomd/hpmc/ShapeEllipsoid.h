@@ -66,6 +66,11 @@ struct EllipsoidParams : ShapeParams
         x = v["a"].cast<ShortReal>();
         y = v["b"].cast<ShortReal>();
         z = v["c"].cast<ShortReal>();
+
+        if (x <= 0.0f || y <= 0.0f || z <= 0.0f)
+            {
+            throw std::domain_error("All semimajor axes must be nonzero!");
+            }
         }
 
     /// Convert parameters to a python dictionary
