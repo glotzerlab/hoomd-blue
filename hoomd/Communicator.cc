@@ -219,7 +219,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                             }
                     }
                 } // end loop over groups
-            }     // end ArrayHandle scope
+            } // end ArrayHandle scope
 
         // clear send buffer
         m_ranks_sendbuf.clear();
@@ -905,7 +905,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
                         } // end inner loop over group members
                     }
                 } // end outer loop over group members
-            }     // end loop over groups
+            } // end loop over groups
         }
     }
 
@@ -3413,5 +3413,5 @@ void export_Communicator(pybind11::module& m)
     }
     } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

@@ -93,8 +93,7 @@ class GSDUtils
         else if (retval != GSD_SUCCESS)
             {
             std::ostringstream s;
-            s << "GSD: "
-              << "Unknown error " << retval << " writing: " << fname;
+            s << "GSD: " << "Unknown error " << retval << " writing: " << fname;
             throw std::runtime_error(s.str());
             }
         }

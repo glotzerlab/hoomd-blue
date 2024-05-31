@@ -160,8 +160,8 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, `from_matrix`, and `from_box`. See each method's documentation for
-    more details.
+    `square`, `from_matrix`, `from_basis_vectors`, and `from_box`. See each
+    method's documentation for more details.
 
     .. rubric:: Example:
 
@@ -217,6 +217,86 @@ class Box:
         return cls(L, L, 0, 0, 0, 0)
 
     @classmethod
+    def from_basis_vectors(cls, box_matrix):
+        r"""Initialize a Box instance from a box matrix.
+
+        Args:
+            box_matrix ((3, 3) `numpy.ndarray` of `float`): A 3x3 matrix
+                or list of lists representing a set of lattice basis vectors.
+
+        Note:
+           The created box will be rotated with respect to the lattice basis. As
+           a consequence the output of `to_matrix` will not be the same as the
+           input provided to this function. This function also returns a
+           rotation matrix comensurate with this transformation. Using this
+           rotation matrix users can rotate the original points into the new box
+           by applying the rotation to the points.
+
+        Note:
+           When passing a 2D basis vectors, the third vector should be set to
+           all zeros, while first two vectors should have the last element set
+           to zero.
+
+        Returns:
+            tuple[hoomd.Box, numpy.ndarray]: A tuple containing:
+                - hoomd.Box: The created box configured according to the given
+                  basis vectors.
+                - numpy.ndarray: A 3x3 floating-point rotation matrix that can
+                  be used to transform the original basis vectors to align with
+                  the new box basis vectors.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            points = np.array([[0, 0, 0], [0.5, 0, 0], [0.25, 0.25, 0]])
+            box, rotation = hoomd.Box.from_basis_vectors(
+                box_matrix = [[ 1,  1,  0],
+                              [ 1, -1,  0],
+                              [ 0,  0,  1]])
+            rotated_points = rotation @ points
+        """
+        box_matrix = np.asarray(box_matrix, dtype=np.float64)
+        if box_matrix.shape != (3, 3):
+            raise ValueError("Box matrix must be a 3x3 matrix.")
+        v0 = box_matrix[:, 0]
+        v1 = box_matrix[:, 1]
+        v2 = box_matrix[:, 2]
+        Lx = np.sqrt(np.dot(v0, v0))
+        a2x = np.dot(v0, v1) / Lx
+        Ly = np.sqrt(np.dot(v1, v1) - a2x * a2x)
+        xy = a2x / Ly
+        v0xv1 = np.cross(v0, v1)
+        v0xv1mag = np.sqrt(np.dot(v0xv1, v0xv1))
+        Lz = np.dot(v2, v0xv1) / v0xv1mag
+        if Lz != 0:
+            a3x = np.dot(v0, v2) / Lx
+            xz = a3x / Lz
+            yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
+            upper_triangular_box_matrix = np.array([[Lx, Ly * xy, Lz * xz],
+                                                    [0, Ly, Lz * yz],
+                                                    [0, 0, Lz]])
+        else:
+            xz = yz = 0
+            if not (np.allclose(v2, [0, 0, 0]) and np.allclose(v0[2], 0)
+                    and np.allclose(v1[2], 0)):
+                error_string = ("A 2D box matrix must have a third vector and"
+                                "third component of first two vectors set to"
+                                "zero.")
+                raise ValueError(error_string)
+            upper_triangular_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
+            box_matrix = box_matrix[:2, :2]
+
+        rotation = np.linalg.solve(upper_triangular_box_matrix, box_matrix)
+
+        if Lz == 0:
+            rotation = np.zeros((3, 3))
+            rotation[:2, :2] = box_matrix
+            rotation[2, 2] = 1
+
+        return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz), rotation
+
+    @classmethod
     def from_matrix(cls, box_matrix):
         r"""Create a box from an upper triangular matrix.
 
@@ -247,7 +327,7 @@ class Box:
                               [0, 8, 16],
                               [0, 0, 18]])
         """
-        box_matrix = np.asarray(box_matrix)
+        box_matrix = np.asarray(box_matrix, dtype=np.float64)
         if box_matrix.shape != (3, 3):
             raise ValueError("Box matrix must be a 3x3 matrix.")
         if not np.allclose(box_matrix, np.triu(box_matrix)):

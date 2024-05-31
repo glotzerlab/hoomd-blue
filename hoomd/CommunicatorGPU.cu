@@ -2820,5 +2820,5 @@ template void gpu_exchange_ghost_groups_copy_buf<2>(unsigned int nrecv,
                                                     unsigned int& n_keep,
                                                     CachedAllocator& alloc);
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

@@ -322,7 +322,7 @@ DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat
     }
 
     }; // end namespace hpmc
-    }  // namespace hoomd
+    } // namespace hoomd
 
 #undef DEVICE
 

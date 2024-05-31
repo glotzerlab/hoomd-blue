@@ -38,5 +38,5 @@ class PYBIND11_EXPORT TwoStepConstantVolumeGPU : public TwoStepConstantVolume
     /// Autotuner_angular for block size (angular step two kernel).
     std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
-    }  // namespace hoomd::md
+    } // namespace hoomd::md
 #endif // HOOMD_TWOSTEPCONSTANTVOLUMEGPU_H

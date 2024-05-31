@@ -253,9 +253,8 @@ void NeighborListGPUTree::buildTree()
             const unsigned int error_tag = h_tag.data[error_idx];
 
             m_exec_conf->msg->error()
-                << "nlist.tree(): Particle " << error_tag << " is out of bounds "
-                << "(" << error_pos.x << ", " << error_pos.y << ", " << error_pos.z << ")"
-                << std::endl;
+                << "nlist.tree(): Particle " << error_tag << " is out of bounds " << "("
+                << error_pos.x << ", " << error_pos.y << ", " << error_pos.z << ")" << std::endl;
             throw std::runtime_error("Error updating neighborlist");
             }
         }

@@ -22,8 +22,8 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     //! Constructs the integration method and associates it with the system
     AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef, unsigned int alchemTimeFactor)
         : IntegrationMethodTwoStep(
-            sysdef,
-            std::make_shared<ParticleGroup>(sysdef, std::make_shared<ParticleFilterNull>())),
+              sysdef,
+              std::make_shared<ParticleGroup>(sysdef, std::make_shared<ParticleFilterNull>())),
           m_nTimeFactor(alchemTimeFactor), m_halfDeltaT(0.5 * m_deltaT * alchemTimeFactor) {};
 
     virtual ~AlchemostatTwoStep() { }

@@ -57,9 +57,9 @@ void add_particles(unsigned int old_nparticles,
                    const mpcd::detail::pdata_element* d_in,
                    const unsigned int mask,
                    const unsigned int block_size);
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // ENABLE_MPI
 
 #endif // MPCD_PARTICLE_DATA_CUH_
