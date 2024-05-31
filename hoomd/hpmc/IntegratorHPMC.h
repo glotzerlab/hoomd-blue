@@ -412,8 +412,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     /// Compute the total energy due to potentials in m_external_potentials
     /** Does NOT include external energies in the soon to be removed m_external_base.
-    */
-    double computeTotalExternalEnergy(bool trial=false)
+     */
+    double computeTotalExternalEnergy(bool trial = false)
         {
         double total_energy = 0.0;
 
@@ -421,7 +421,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             total_energy += external->totalEnergy(trial);
             }
-    
+
         return total_energy;
         }
 
@@ -537,7 +537,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     /*** Evaluate the total energy of all external fields interacting with one particle.
 
-        @param box Simulation box.
         @param type_i Type index of the particle.
         @param r_i Posiion of the particle in the box.
         @param q_i Orientation of the particle.
@@ -550,8 +549,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         0 when trial is false. This avoids computing INFINITY - INFINITY -> NaN.
     */
     __attribute__((always_inline)) inline LongReal
-    computeOneExternalEnergy(const BoxDim& box,
-                             unsigned int type_i,
+    computeOneExternalEnergy(unsigned int type_i,
                              const vec3<LongReal>& r_i,
                              const quat<LongReal>& q_i,
                              LongReal charge_i,
@@ -560,7 +558,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         LongReal energy = 0;
         for (const auto& external : m_external_potentials)
             {
-            energy += external->particleEnergy(box, type_i, r_i, q_i, charge_i, trial);
+            energy += external->particleEnergy(type_i, r_i, q_i, charge_i, trial);
             }
 
         return energy;

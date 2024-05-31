@@ -944,8 +944,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
                 // U_old - U_new
                 patch_field_energy_diff +=
-                    this->computeOneExternalEnergy(box, typ_i, pos_old, shape_old.orientation, h_charge.data[i], false) -
-                    this->computeOneExternalEnergy(box, typ_i, pos_i, shape_i.orientation, h_charge.data[i], true);
+                    this->computeOneExternalEnergy(typ_i, pos_old, shape_old.orientation, h_charge.data[i], false) -
+                    this->computeOneExternalEnergy(typ_i, pos_i, shape_i.orientation, h_charge.data[i], true);
                 }
 
             bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff);
@@ -1187,7 +1187,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
 
     return overlap_count;
     }
-    
+
 template<class Shape>
 double IntegratorHPMCMono<Shape>::computeTotalPairEnergy(uint64_t timestep)
     {
