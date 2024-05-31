@@ -1187,7 +1187,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
 
     return overlap_count;
     }
-
+    
 template<class Shape>
 double IntegratorHPMCMono<Shape>::computeTotalPairEnergy(uint64_t timestep)
     {

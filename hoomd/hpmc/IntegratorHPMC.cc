@@ -262,13 +262,14 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
-        .def("computeTotalPairEnergy", &IntegratorHPMC::computeTotalPairEnergy)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability)
         .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials)
-        .def_property_readonly("external_potentials", &IntegratorHPMC::getExternalPotentials);
+        .def("computeTotalPairEnergy", &IntegratorHPMC::computeTotalPairEnergy)
+        .def_property_readonly("external_potentials", &IntegratorHPMC::getExternalPotentials)
+        .def("computeTotalExternalEnergy", &IntegratorHPMC::computeTotalExternalEnergy);
 
     pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)

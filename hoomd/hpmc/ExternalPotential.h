@@ -25,7 +25,7 @@ class ExternalPotential
     ExternalPotential(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
     virtual ~ExternalPotential() { }
 
-    /*** Evaluate the energy of the external field interacting with one particle
+    /** Evaluate the energy of the external field interacting with one particle
 
         @param box Simulation box.
         @param type_i Type index of the particle.
@@ -49,10 +49,45 @@ class ExternalPotential
         return 0;
         }
 
+    /// Evaluate the total external energy due to this potential.
+    LongReal totalEnergy(bool trial=false);
+
     protected:
     /// The system definition.
     std::shared_ptr<SystemDefinition> m_sysdef;
     };
+
+
+    inline LongReal ExternalPotential::totalEnergy(bool trial)
+        {
+        LongReal total_energy = 0.0;
+
+        const auto& particle_data = m_sysdef->getParticleData();
+
+        ArrayHandle<Scalar4> h_postype(particle_data->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(particle_data->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(particle_data->getCharges(), access_location::host, access_mode::read);
+
+        for (unsigned int i = 0; i < particle_data->getN(); i++)
+            {
+            Scalar4 postype_i = h_postype.data[i];
+            auto r_i = vec3<LongReal>(postype_i);
+            int type_i = __scalar_as_int(postype_i.w);
+            auto q_i = quat<LongReal>(h_orientation.data[i]);
+
+            total_energy += particleEnergy(particle_data->getGlobalBox(), type_i, r_i, q_i,
+                h_charge.data[i], trial);            
+            }
+            
+        #ifdef ENABLE_MPI
+        if (this->m_pdata->getDomainDecomposition())
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &total_energy, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
+        #endif
+
+        return total_energy;
+        } 
 
     } // end namespace hpmc
 

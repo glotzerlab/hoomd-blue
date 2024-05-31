@@ -410,6 +410,21 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_external_base;
         }
 
+    /// Compute the total energy due to potentials in m_external_potentials
+    /** Does NOT include external energies in the soon to be removed m_external_base.
+    */
+    double computeTotalExternalEnergy(bool trial=false)
+        {
+        double total_energy = 0.0;
+
+        for (const auto& external : m_external_potentials)
+            {
+            total_energy += external->totalEnergy(trial);
+            }
+    
+        return total_energy;
+        }
+
     //! Compute the total energy from pair interactions.
     /*! \param timestep the current time step
      * \returns the total patch energy

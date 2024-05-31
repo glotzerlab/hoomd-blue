@@ -636,6 +636,12 @@ class HPMCIntegrator(Integrator):
         timestep = self._simulation.timestep
         return self._cpp_obj.computeTotalPairEnergy(timestep)
 
+    @log(requires_run=True)
+    def external_energy(self):
+        """float: Total external energy contributed by all external potentials \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.computeTotalExternalEnergy()
+
 
 class Sphere(HPMCIntegrator):
     """Sphere hard particle Monte Carlo integrator.
