@@ -32,7 +32,7 @@ namespace kernel
     \param d_rtag device array of particle reverse tags
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
+    \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
 */
 __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
@@ -236,7 +236,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
     \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
+    \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
@@ -507,6 +507,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
@@ -514,13 +515,12 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
     \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
+    \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
     \param block_size Block size to use when performing calculations
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
-    \param compute_capability Device compute capability (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()

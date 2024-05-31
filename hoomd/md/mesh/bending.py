@@ -18,15 +18,6 @@ See Also:
    See the documentation in `hoomd.mesh.Mesh` for more information on the
    initialization of the mesh object.
 
-
-Note:
-   The mesh bond forces are computed over the mesh data structure and not the
-   separate bond data structure. Hence, the mesh bonds are defined exclusively
-   by the mesh triangulation as HOOMD-blue automatically constructs the mesh
-   bond pairs based on ``triangulation`` in the `hoomd.mesh.Mesh` object.
-   The bonds should **not** be defined separately in the `hoomd.State` member
-   ``bond_group``!
-
 """
 
 from hoomd.md.mesh.potential import MeshPotential
