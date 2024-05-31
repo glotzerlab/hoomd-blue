@@ -548,12 +548,11 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         Note: Potentials that may return INFINITY should assume valid old configurations and return
         0 when trial is false. This avoids computing INFINITY - INFINITY -> NaN.
     */
-    __attribute__((always_inline)) inline LongReal
-    computeOneExternalEnergy(unsigned int type_i,
-                             const vec3<LongReal>& r_i,
-                             const quat<LongReal>& q_i,
-                             LongReal charge_i,
-                             bool trial = true)
+    inline LongReal computeOneExternalEnergy(unsigned int type_i,
+                                             const vec3<LongReal>& r_i,
+                                             const quat<LongReal>& q_i,
+                                             LongReal charge_i,
+                                             bool trial = true)
         {
         LongReal energy = 0;
         for (const auto& external : m_external_potentials)

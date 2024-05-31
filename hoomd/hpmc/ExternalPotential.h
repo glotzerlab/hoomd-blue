@@ -28,12 +28,16 @@ class ExternalPotential
     /** Evaluate the energy of the external field interacting with one particle (translated box)
 
         @param type_i Type index of the particle.
-        @param r_i Posiion of the particle in the box.
+        @param r_i Posiion of the particle in the box (un-shifted local particle).
         @param q_i Orientation of the particle
         @param charge Charge of the particle.
         @param trial Set to false when evaluating the energy of a current configuration. Set to
                true when evaluating a trial move.
         @returns Energy of the external interaction (possibly INFINITY).
+
+        particleEnergy takes in positions that are in the current box coordinates. It will correct
+        for the origin shift so that implemented potentials can work in the coordinate frame of the
+        global unshifted box.
     */
     LongReal particleEnergy(unsigned int type_i,
                             const vec3<LongReal>& r_i,
