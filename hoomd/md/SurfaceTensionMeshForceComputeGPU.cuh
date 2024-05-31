@@ -3,7 +3,7 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include "hoomd/MeshGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 #include "hoomd/ParticleData.cuh"
 
 /*! \file SurfaceTensionMeshForceComputeGPU.cuh
@@ -26,7 +26,7 @@ hipError_t gpu_compute_surface_tension(Scalar* d_sum_area,
                                                      const unsigned int N,
                                                      const Scalar4* d_pos,
                                                      const BoxDim& box,
-                                                     const group_storage<6>* tlist,
+                                                     const group_storage<3>* tlist,
                                                      const Index2D tlist_idx,
                                                      const unsigned int* n_triangles_list,
                                                      unsigned int block_size,
@@ -40,7 +40,7 @@ hipError_t gpu_compute_surface_tension_force(Scalar4* d_force,
                                                       const unsigned int N_tri,
                                                       const Scalar4* d_pos,
                                                       const BoxDim& box,
-                                                      const group_storage<6>* tlist,
+                                                      const group_storage<3>* tlist,
                                                       const unsigned int* tpos_list,
                                                       const Index2D tlist_idx,
                                                       const unsigned int* n_triangles_list,

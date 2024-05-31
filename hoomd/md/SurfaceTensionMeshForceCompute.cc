@@ -93,7 +93,7 @@ void SurfaceTensionMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+    ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
         access_location::host,
         access_mode::read);
@@ -129,7 +129,7 @@ void SurfaceTensionMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the triangle
-        const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
+        const typename Angle::members_t& triangle = h_triangles.data[i];
         assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);

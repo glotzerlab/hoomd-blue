@@ -30,7 +30,7 @@ gpu_compute_surface_tension_kernel(Scalar* d_partial_sum_area,
                                                  const unsigned int N,
                                                  const Scalar4* d_pos,
                                                  BoxDim box,
-                                                 const group_storage<6>* tlist,
+                                                 const group_storage<3>* tlist,
                                                  const Index2D tlist_idx,
                                                  const unsigned int* n_triangles_list)
     {
@@ -49,7 +49,7 @@ gpu_compute_surface_tension_kernel(Scalar* d_partial_sum_area,
 
         for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
-            group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+            group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
             int cur_mem2_idx = cur_triangle.idx[0];
             int cur_mem3_idx = cur_triangle.idx[1];
@@ -159,7 +159,7 @@ hipError_t gpu_compute_surface_tension(Scalar* d_sum_area,
                                                      const unsigned int N,
                                                      const Scalar4* d_pos,
                                                      const BoxDim& box,
-                                                     const group_storage<6>* tlist,
+                                                     const group_storage<3>* tlist,
                                                      const Index2D tlist_idx,
                                                      const unsigned int* n_triangles_list,
                                                      unsigned int block_size,
@@ -218,7 +218,7 @@ gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
                                                   const unsigned int N_tri,
                                                   const Scalar4* d_pos,
                                                   BoxDim box,
-                                                  const group_storage<6>* tlist,
+                                                  const group_storage<3>* tlist,
                                                   const unsigned int* tpos_list,
                                                   const Index2D tlist_idx,
                                                   const unsigned int* n_triangles_list,
@@ -250,13 +250,13 @@ gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
-        group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+        group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
         int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
         int cur_mem2_idx = cur_triangle.idx[0];
         int cur_mem3_idx = cur_triangle.idx[1];
-        int cur_triangle_type = cur_triangle.idx[5];
+        int cur_triangle_type = cur_triangle.idx[2];
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_mem2_idx];
@@ -371,7 +371,7 @@ hipError_t gpu_compute_surface_tension_force(Scalar4* d_force,
                                                       const unsigned int N_tri,
                                                       const Scalar4* d_pos,
                                                       const BoxDim& box,
-                                                      const group_storage<6>* tlist,
+                                                      const group_storage<3>* tlist,
                                                       const unsigned int* tpos_list,
                                                       const Index2D tlist_idx,
                                                       const unsigned int* n_triangles_list,
