@@ -13,7 +13,7 @@ class Area(MeshConvervationPotential):
     r"""Area conservation potential.
 
     :py:class:`Area` specifies a global area conservation energy for each
-    triangle mesh type.
+    mesh type.
 
     .. math::
 

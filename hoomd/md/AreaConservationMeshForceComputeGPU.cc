@@ -14,6 +14,8 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
+    \param meshdef Mesh triangulation 
+    \param ignore_type boolean whether to ignore types
     \post Memory is allocated, and forces are zeroed.
 */
 AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
