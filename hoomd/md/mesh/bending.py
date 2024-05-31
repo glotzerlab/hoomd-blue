@@ -1,7 +1,24 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Mesh Bending potentials."""
+r"""Mesh Bending potentials.
+
+Mesh bending force classes apply a force and virial to every mesh vertex
+particle based on the local curvature :math:`K` of the given mesh triangulation.
+
+.. math::
+
+    U_\mathrm{mesh bending} = \sum_{j \in \mathrm{mesh}}
+    U_{j}(K(\mathbf{r}_j))
+
+The curvature at each vertex particle :math:`j` is determined at its position
+:math:`\mathbf{r}_j`.
+
+See Also:
+   See the documentation in `hoomd.mesh.Mesh` for more information on the
+   initialization of the mesh object.
+
+"""
 
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
