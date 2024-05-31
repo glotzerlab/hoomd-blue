@@ -49,6 +49,6 @@ namespace detail
     {
 /// Export the BoxResizeUpdaterGPU to python
 void export_BoxResizeUpdaterGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hoomd
 #endif // __BOX_RESIZE_UPDATER_GPU_H__

@@ -116,6 +116,6 @@ namespace detail
 void export_SRDCollisionMethod(pybind11::module& m);
     } // end namespace detail
 
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_H_

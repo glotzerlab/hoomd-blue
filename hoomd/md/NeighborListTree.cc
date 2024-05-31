@@ -244,9 +244,9 @@ void NeighborListTree::buildTree()
                                             access_location::host,
                                             access_mode::read);
             ostringstream s;
-            s << "Particle " << h_tag.data[i] << " is out of bounds "
-              << "(x: " << my_pos.x << ", y: " << my_pos.y << ", z: " << my_pos.z << ", fx: " << f.x
-              << ", fy: " << f.y << ", fz:" << f.z << ")" << endl;
+            s << "Particle " << h_tag.data[i] << " is out of bounds " << "(x: " << my_pos.x
+              << ", y: " << my_pos.y << ", z: " << my_pos.z << ", fx: " << f.x << ", fy: " << f.y
+              << ", fz:" << f.z << ")" << endl;
             throw runtime_error(s.str());
             return;
             }
@@ -386,8 +386,8 @@ void NeighborListTree::traverseTree()
                         cur_node_idx += cur_aabb_tree->getNodeSkip(cur_node_idx);
                         }
                     } // end stackless search
-                }     // end loop over images
-            }         // end loop over pair types
+                } // end loop over images
+            } // end loop over pair types
         h_n_neigh.data[i] = n_neigh_i;
         } // end loop over particles
     }

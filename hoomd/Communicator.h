@@ -732,6 +732,6 @@ void export_Communicator(pybind11::module& m);
 
     } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

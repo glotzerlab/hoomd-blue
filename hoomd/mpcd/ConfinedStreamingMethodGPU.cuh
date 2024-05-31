@@ -161,7 +161,7 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
     }
 #endif // __HIPCC__
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_GPU_CUH_

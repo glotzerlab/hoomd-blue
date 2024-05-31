@@ -813,7 +813,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                         if (overlap)
                             break;
                         } // end loop over images
-                    }     // end overlap check in new configuration
+                    } // end overlap check in new configuration
 
                 if (overlap_old)
                     {
@@ -1791,7 +1791,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                             cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
                             }
                         } // end loop over AABB nodes
-                    }     // end loop over images
+                    } // end loop over images
                 }
             }
 
@@ -1907,7 +1907,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 // just accept
                 }
             } // end if particle exists
-        }     // end loop over depletants
+        } // end loop over depletants
 
     return nonzero;
     }
@@ -2127,8 +2127,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                     break;
                     }
                 } // end loop over images
-            }     // end if nptl_local > 0
-        }         // end if local
+            } // end if nptl_local > 0
+        } // end if local
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -2489,7 +2489,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
                 zero = 1;
                 }
             } // end loop over test depletants
-        }     // is_local
+        } // is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
@@ -2708,7 +2708,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
                 zero = 1;
                 }
             } // end loop over test depletants
-        }     // end is_local
+        } // end is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
@@ -2899,7 +2899,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
                 }
 
             } // end loop over test depletants
-        }     // is_local
+        } // is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
@@ -3070,7 +3070,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
                 n_overlap++;
                 }
             } // end loop over test depletants
-        }     // is_local
+        } // is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
