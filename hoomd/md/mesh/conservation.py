@@ -1,7 +1,22 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Mesh Bond potentials."""
+"""Mesh Conservation potential.
+
+Mesh conservation force classes apply a force and virial to every mesh vertex
+particle based on a global or local quantity :math:`A` of the given mesh 
+triangulation :math:`T`.
+
+.. math::
+
+    U_\mathrm{conservation} = U(A(T))
+
+See Also:
+   See the documentation in `hoomd.mesh.Mesh` for more information on the
+   initialization of the mesh object.
+
+"""
+
 
 from hoomd.md.mesh.potential import MeshConvervationPotential
 from hoomd.data.typeparam import TypeParameter
@@ -25,8 +40,7 @@ class Volume(MeshConvervationPotential):
     Attributes:
         parameter (TypeParameter[dict]):
             The parameter of the volume constraint for the defined mesh.
-            A type name does not have to be stated as the mesh can only
-            have one type. The dictionary has the following keys:
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-3}]`

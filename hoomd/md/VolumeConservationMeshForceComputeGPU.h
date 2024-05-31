@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceCompute.h"
@@ -23,8 +23,8 @@ namespace hoomd
 namespace md
     {
 
-//! Computes helfrich energy forces on the mesh on the GPU
-/*! Helfrich energy forces are computed on every particle in a mesh.
+//! Computes volume conservation energy forces on the mesh on the GPU
+/*! Volume energy forces are computed on every particle in a mesh.
 
     \ingroup computes
 */

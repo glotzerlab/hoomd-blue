@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceCompute.h"
@@ -19,6 +19,8 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
+    \param meshdef Mesh triangulation 
+    \param ignore_type boolean whether to ignore types
     \post Memory is allocated, and forces are zeroed.
 */
 VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
@@ -57,6 +59,7 @@ VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
 
 /*! \param type Type of the angle to set parameters for
     \param K Stiffness parameter for the force computation
+    \param V0 desired volume to maintain for the force computation
 
     Sets parameters for the potential of a particular angle type
 */
@@ -87,7 +90,7 @@ pybind11::dict VolumeConservationMeshForceCompute::getParams(std::string type)
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
     if (typ >= m_mesh_data->getMeshBondData()->getNTypes())
         {
-        m_exec_conf->msg->error() << "mesh.helfrich: Invalid mesh type specified" << endl;
+        m_exec_conf->msg->error() << "mesh.volume: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in VolumeConservationMeshForceCompute");
         }
     if(m_ignore_type) typ = 0;

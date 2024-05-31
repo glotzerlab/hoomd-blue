@@ -1,10 +1,7 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
-// Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 #include "VolumeConservationMeshForceComputeGPU.cuh"
 #include "hoomd/TextureTools.h"
 #include "hoomd/VectorMath.h"
@@ -25,15 +22,17 @@ namespace md
 namespace kernel
     {
 //! Kernel for calculating volume_constraint sigmas on the GPU
-/*! \param d_sigma Device memory to write per paricle sigma
-    \param d_sigma_dash Device memory to write per particle sigma_dash
+/*! \param d_partial_sum_volume Device memory to write partial meah volume
     \param N number of particles
+    \param tN number of mesh types
+    \param cN current mesh type index
     \param d_pos device array of particle positions
-    \param d_rtag device array of particle reverse tags
+    \param d_image device array of particle images
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
-    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
+    \param tlist List of mesh triangle indices stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
+    \param ignore_type ignores mesh type if true
+    \param n_triangles_list List of mesh triangles stored on the GPU
 */
 __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_sum_volume,
                                                             const unsigned int N,
@@ -52,11 +51,6 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
     Scalar* volume_sdata = (Scalar*)&s_data[0];
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    //Scalar* volume_transfer = (Scalar*)malloc(tN * sizeof *volume_transfer);
-
-    //for (unsigned int i_types = 0; i_types < tN; i_types++)
-    //    volume_transfer[i_types] = 0;
     Scalar volume_transfer = 0;
 
     if (idx < N)
@@ -107,7 +101,6 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
                 dVol.z = pos_c.x * pos_b.y - pos_c.y * pos_b.x;
                 }
             Scalar Vol = dVol.x * pos_a.x + dVol.y * pos_a.y + dVol.z * pos_a.z;
-            //volume_transfer[cur_triangle_type] += Vol / 18.0;
             volume_transfer += Vol / 18.0;
             }
         }
@@ -184,15 +177,17 @@ __global__ void gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum,
         }
     }
 
-/*! \param d_sigma Device memory to write per paricle sigma
-    \param d_sigma_dash Device memory to write per particle sigma_dash
+/*! \param d_partial_sum_volume Device memory to write partial meah volume
     \param N number of particles
+    \param tN number of mesh types
+    \param cN current mesh type index
     \param d_pos device array of particle positions
-    \param d_rtag device array of particle reverse tags
+    \param d_image device array of particle images
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
-    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
+    \param tlist List of mesh triangle indices stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
+    \param ignore_type ignores mesh type if true
+    \param n_triangles_list List of mesh triangles stored on the GPU
     \param block_size Block size to use when performing calculations
     \param compute_capability Device compute capability (200, 300, 350, ...)
 
@@ -257,18 +252,18 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch
-    \param N number of particles
+    \param N Number of particles
+    \param gN Number of triangles of a triangle type
+    \param aN Total global number of triangles
     \param d_pos device array of particle positions
-    \param d_rtag device array of particle reverse tags
+    \param d_magep device array of particle images
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param d_sigma Device memory to write per paricle sigma
-    \param d_sigma_dash Device memory to write per particle sigma_dash
-    \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
-    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
-    \param d_params K params packed as Scalar variables
-    \param n_bond_type number of mesh bond types
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
+    \param area Total instantaneous area per mesh type
+    \param tlist List of mesh triangle indices stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
+    \param n_triangles_list total group number of triangles
+    \param d_params K, V0 params packed as Scalar variables
+    \param ignore_type ignores mesh type if true
 */
 __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
                                                            Scalar* d_virial,
@@ -391,17 +386,18 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
-    \param N number of particles
+    \param N Number of particles
+    \param gN Number of triangles of a triangle type
+    \param aN Total global number of triangles
     \param d_pos device array of particle positions
-    \param d_rtag device array of particle reverse tags
+    \param d_magep device array of particle images
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param d_sigma Device memory to write per paricle sigma
-    \param d_sigma_dash Device memory to write per particle sigma_dash
-    \param blist List of mesh bonds stored on the GPU
-    \param d_triangles device array of mesh triangles
-    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
-    \param d_params K params packed as Scalar variables
-    \param n_bond_type number of mesh bond types
+    \param area Total instantaneous area per mesh type
+    \param tlist List of mesh triangle indices stored on the GPU
+    \param tpos_list Position of current index in list of mesh triangles stored on the GPU
+    \param n_triangles_list total group number of triangles
+    \param d_params K, V0 params packed as Scalar variables
+    \param ignore_type ignores mesh type if true
     \param block_size Block size to use when performing calculations
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
     \param compute_capability Device compute capability (200, 300, 350, ...)
