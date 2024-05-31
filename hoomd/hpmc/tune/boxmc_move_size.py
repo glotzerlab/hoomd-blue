@@ -317,7 +317,7 @@ class BoxMCMoveSize(_InternalCustomTuner):
 
         Note:
             Increasing ``gamma`` towards 1 does not necessarily speed up
-            convergence and can slow it done. In addition, large values of
+            convergence and can slow it down. In addition, large values of
             ``gamma`` can make the solver unstable especially when tuning
             frequently.
         """
