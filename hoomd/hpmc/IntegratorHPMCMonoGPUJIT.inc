@@ -282,7 +282,7 @@ __launch_bounds__(max_threads) __global__
                         }
                     }
                 } // end while (s_queue_size < max_queue_size && (k>>1) < excell_size)
-            }     // end if active
+            } // end if active
 
         // sync to make sure all threads in the block are caught up
         __syncthreads();

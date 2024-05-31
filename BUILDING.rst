@@ -30,7 +30,7 @@ To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install sphinx furo nbsphinx ipython
+   $ <package-manager> install sphinx sphinx-copybutton furo nbsphinx ipython
 
 .. note::
 
@@ -86,7 +86,7 @@ Install prerequisites
 
 **For MPI parallel execution** (required when ``ENABLE_MPI=on``):
 
-- MPI (tested with OpenMPI, MVAPICH)
+- MPI (tested with OpenMPI)
 - cereal >= 1.1
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
@@ -109,9 +109,9 @@ Install prerequisites
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
-   1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The ``mpcd`` component is disabled on AMD GPUs.
-   3. Multi-GPU execution via unified memory is not available.
+  1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+  2. The ``mpcd`` component is disabled on AMD GPUs.
+  3. Multi-GPU execution via unified memory is not available.
 
 .. note::
 
@@ -130,6 +130,7 @@ Install prerequisites
 **To build the documentation:**
 
 - sphinx
+- sphinx-copybutton
 - furo
 - nbsphinx
 - ipython
@@ -145,7 +146,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.6.0.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.7.0.tar.gz`_.
 
 .. seealso::
 
@@ -158,7 +159,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-4.6.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.6.0/hoomd-4.6.0.tar.gz
+.. _Download hoomd-4.7.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.7.0/hoomd-4.7.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/

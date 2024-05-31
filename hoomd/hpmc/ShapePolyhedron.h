@@ -842,7 +842,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<ShortReal> dr,
                     }
                 }
             } // end loop over faces of b
-        }     // end loop over over faces of a
+        } // end loop over over faces of a
     return false;
     }
 

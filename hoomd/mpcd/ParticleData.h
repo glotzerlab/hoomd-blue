@@ -472,6 +472,6 @@ namespace detail
 void export_ParticleData(pybind11::module& m);
     } // end namespace detail
 
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_H_

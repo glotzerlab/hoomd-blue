@@ -1,0 +1,10 @@
+ipython==8.24.0
+nbconvert==7.16.4
+nbsphinx==0.9.4
+numpy==1.26.4
+pandoc==2.3
+sphinx==7.3.7
+furo==2024.5.6
+tornado==6.4
+sphinxcontrib-googleanalytics==0.4
+sphinx-copybutton==0.5.2
