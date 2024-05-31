@@ -66,6 +66,11 @@ struct FacetedEllipsoidParams : ShapeParams
         pybind11::tuple origin_tuple = v["origin"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
+        if (a <= 0.0f || b <= 0.0f || c <= 0.0f)
+            {
+            throw std::domain_error("All semimajor axes must be nonzero!");
+            }
+
         if (pybind11::len(offsets) != pybind11::len(normals))
             throw std::runtime_error("Number of normals unequal number of offsets");
 

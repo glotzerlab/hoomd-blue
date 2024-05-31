@@ -397,8 +397,8 @@ __launch_bounds__(max_threads)
                             k -= group_size;
                             }
                         } // end if k < excell_size
-                    }     // end while (s_queue_size < max_queue_size && k < excell_size)
-                }         // end if active
+                    } // end while (s_queue_size < max_queue_size && k < excell_size)
+                } // end if active
 
             // sync to make sure all threads in the block are caught up
             __syncthreads();
@@ -560,8 +560,8 @@ __launch_bounds__(max_threads)
                             k -= group_size;
                             }
                         } // end if k < excell_size
-                    }     // end while (s_queue_size < max_queue_size && k < excell_size)
-                }         // end if active
+                    } // end while (s_queue_size < max_queue_size && k < excell_size)
+                } // end if active
 
             // sync to make sure all threads in the block are caught up
             __syncthreads();
@@ -713,8 +713,8 @@ __launch_bounds__(max_threads)
                             k -= group_size;
                             }
                         } // end if k < excell_size
-                    }     // end while (s_queue_size < max_queue_size && k < excell_size)
-                }         // end if active
+                    } // end while (s_queue_size < max_queue_size && k < excell_size)
+                } // end if active
 
             // sync to make sure all threads in the block are caught up
             __syncthreads();

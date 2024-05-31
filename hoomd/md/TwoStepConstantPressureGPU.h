@@ -35,5 +35,5 @@ class TwoStepConstantPressureGPU : public TwoStepConstantPressure
     std::shared_ptr<Autotuner<1>> m_tuner_angular_two; //!< Autotuner for angular step two
     };
 
-    }  // namespace hoomd::md
+    } // namespace hoomd::md
 #endif // HOOMD_TWOSTEPCONSTANTPRESSUREGPU_H

@@ -35,8 +35,8 @@ void export_SlitGeometry(pybind11::module& m);
 //! Export SlitPoreGeometry to python
 void export_SlitPoreGeometry(pybind11::module& m);
 
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // __HIPCC__
 #endif // MPCD_STREAMING_GEOMETRY_H_

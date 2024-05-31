@@ -77,9 +77,9 @@ DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration>
         || (nz > 0 && try_fzs.size() != m_nz - 1))
         {
         std::ostringstream o;
-        o << "Domain decomposition grid does not match specification:"
-          << "(" << m_nx << "," << m_ny << "," << m_nz << ") is not (" << try_fxs.size() + 1 << ","
-          << try_fys.size() + 1 << "," << try_fzs.size() + 1 << ")";
+        o << "Domain decomposition grid does not match specification:" << "(" << m_nx << "," << m_ny
+          << "," << m_nz << ") is not (" << try_fxs.size() + 1 << "," << try_fys.size() + 1 << ","
+          << try_fzs.size() + 1 << ")";
         throw std::invalid_argument(o.str());
         }
 
@@ -735,5 +735,5 @@ void export_DomainDecomposition(pybind11::module& m)
     }
     } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

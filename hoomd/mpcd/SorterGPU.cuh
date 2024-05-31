@@ -49,7 +49,7 @@ cudaError_t sort_gen_reverse(unsigned int* d_rorder,
                              const unsigned int* d_order,
                              const unsigned int N,
                              const unsigned int block_size);
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SORTER_GPU_CUH_
