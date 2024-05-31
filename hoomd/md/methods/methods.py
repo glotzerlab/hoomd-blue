@@ -652,7 +652,8 @@ class Langevin(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
-            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
+            coefficient tensor for all particles :math:`[\mathrm{mass} \cdot
+            \mathrm{length}^{2} \cdot \mathrm{time}^{-1}]`.
 
     `Langevin` integrates particles forward in time according to the
     Langevin equations of motion, modelling a canonical ensemble (NVT).
@@ -680,8 +681,8 @@ class Langevin(Method):
 
     .. math::
 
-        I \frac{d\vec{L}}{dt} &= \vec{\tau}_\mathrm{C} - \gamma_r \cdot \vec{L}
-        + \vec{\tau}_\mathrm{R}
+        I \frac{d\vec{\omega}}{dt} &= \vec{\tau}_\mathrm{C} - \gamma_r \cdot
+        \vec{\omega} + \vec{\tau}_\mathrm{R}
 
         \langle \vec{\tau}_\mathrm{R} \rangle &= 0,
 
@@ -691,10 +692,10 @@ class Langevin(Method):
     where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
     :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
     (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
-    the torque, :math:`\vec{L}` is the particle's angular momentum and :math:`I`
-    is the the particle's moment of inertia. The magnitude of the random torque
-    is chosen via the fluctuation-dissipation theorem to be consistent with the
-    specified drag and temperature, :math:`kT`.
+    torque, :math:`\vec{\omega}` is the particle's angular velocity and
+    :math:`I` is the the particle's moment of inertia. The magnitude of the
+    random torque is chosen via the fluctuation-dissipation theorem to be
+    consistent with the specified drag and temperature, :math:`kT`.
 
     `Langevin` numerically integrates the translational degrees of freedom
     using Velocity-Verlet and the rotational degrees of freedom with a scheme
@@ -753,7 +754,8 @@ class Langevin(Method):
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
-            :math:`[\mathrm{time}^{-1}]`.
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{2} \cdot
+            \mathrm{time}^{-1}]`.
 
             .. rubric:: Example:
 

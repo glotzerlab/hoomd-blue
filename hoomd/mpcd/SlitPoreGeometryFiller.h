@@ -72,7 +72,7 @@ namespace detail
     {
 //! Export SlitPoreGeometryFiller to python
 void export_SlitPoreGeometryFiller(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_H_

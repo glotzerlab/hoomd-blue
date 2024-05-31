@@ -175,7 +175,7 @@ class SineForce : public ExternalField
 namespace detail
     {
 void export_ExternalFieldPolymorph(pybind11::module& m);
-    }  // end namespace detail
+    } // end namespace detail
 #endif // __HIPCC__
 
     } // end namespace mpcd
