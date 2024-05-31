@@ -23,6 +23,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
+    \param meshdef Mesh triangulation
     \post Memory is allocated, and forces are zeroed.
 */
 BendingRigidityMeshForceCompute::BendingRigidityMeshForceCompute(

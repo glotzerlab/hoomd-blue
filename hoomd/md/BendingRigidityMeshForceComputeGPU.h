@@ -8,7 +8,7 @@
 #include <memory>
 
 /*! \file BendingRigidityMeshForceComputeGPU.h
-    \brief Declares a class for computing helfrich energy forces on the GPU
+    \brief Declares a class for computing bending rigidity energy forces on the GPU
 */
 
 #ifdef __HIPCC__

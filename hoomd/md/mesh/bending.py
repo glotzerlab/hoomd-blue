@@ -20,16 +20,14 @@ class BendingRigidity(MeshPotential):
         ( 1 - cos(\theta_{ij}))
 
     with :math:`\theta_{ij}` is the angle between the two normal
-    directors of the bordering triangles of bong :math:`i` and :math:`j`.
+    directors of the bordering triangles of bond :math:`i` and :math:`j`.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
         parameter (TypeParameter[dict]):
-            The parameter of the bending energy for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+            The parameter of the bending energy for the defined mesh:
             * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy}]`
 
