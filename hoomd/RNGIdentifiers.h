@@ -55,8 +55,8 @@ struct RNGIdentifier
     static const uint8_t ATCollisionMethod = 29;
     static const uint8_t CollisionMethod = 30;
     static const uint8_t SRDCollisionMethod = 31;
-    static const uint8_t SlitGeometryFiller = 32;
-    static const uint8_t SlitPoreGeometryFiller = 33;
+    static const uint8_t ParallelPlateGeometryFiller = 32;
+    static const uint8_t PlanarPoreGeometryFiller = 33;
     static const uint8_t UpdaterQuickCompress = 34;
     static const uint8_t ParticleGroupThermalize = 35;
     static const uint8_t HPMCDepletantsAccept = 36;
@@ -70,6 +70,7 @@ struct RNGIdentifier
     static const uint8_t HPMCShapeMoveUpdateOrder = 44;
     static const uint8_t BussiThermostat = 45;
     static const uint8_t ConstantPressure = 46;
+    static const uint8_t MPCDCellList = 47;
     };
 
     } // namespace hoomd

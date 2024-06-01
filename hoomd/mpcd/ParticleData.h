@@ -336,7 +336,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
         }
 
     //! Allocate memory for virtual particles
-    void addVirtualParticles(unsigned int N);
+    unsigned int addVirtualParticles(unsigned int N);
 
     //! Remove all virtual particles
     /*!

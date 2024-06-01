@@ -256,7 +256,9 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
                             uint64_t,
                             int,
                             std::shared_ptr<Variant>>())
-        .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
+        .def_property("kT",
+                      &mpcd::ATCollisionMethod::getTemperature,
+                      &mpcd::ATCollisionMethod::setTemperature);
     }
 
     } // end namespace hoomd

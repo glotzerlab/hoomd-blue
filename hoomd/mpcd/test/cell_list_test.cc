@@ -28,7 +28,7 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
     auto pdata_1 = sysdef->getMPCDParticleData();
 
     // define a system of different edge lengths
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
 
     // compute the cell list dimensions
     cl->computeDimensions();
@@ -115,7 +115,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
 
     std::shared_ptr<mpcd::ParticleData> pdata_9 = sysdef->getMPCDParticleData();
 
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
     cl->compute(0);
 
         // check that each particle is in the proper bin (cell list and velocity)
@@ -285,7 +285,7 @@ template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfig
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     std::shared_ptr<mpcd::ParticleData> pdata_1 = sysdef->getMPCDParticleData();
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
     cl->compute(0);
         {
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
@@ -405,7 +405,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     std::shared_ptr<mpcd::ParticleData> pdata_8 = sysdef->getMPCDParticleData();
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
     cl->compute(0);
 
         // at first, there is no embedded particle, so everything should just look like the test
