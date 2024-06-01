@@ -31,7 +31,7 @@ template<class Geometry> class PYBIND11_EXPORT BounceBackNVEGPU : public BounceB
     //! Constructor
     BounceBackNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
-                     std::shared_ptr<const Geometry> geom)
+                     std::shared_ptr<Geometry> geom)
         : BounceBackNVE<Geometry>(sysdef, group, geom)
         {
         m_tuner_1.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
@@ -63,9 +63,6 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint6
                                         << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-
-    if (this->m_validate_geom)
-        this->validate();
 
     // particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -155,7 +152,7 @@ template<class Geometry> void export_BounceBackNVEGPU(pybind11::module& m)
                      std::shared_ptr<BounceBackNVEGPU<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<const Geometry>>());
+                            std::shared_ptr<Geometry>>());
     }
     } // end namespace detail
     } // end namespace mpcd

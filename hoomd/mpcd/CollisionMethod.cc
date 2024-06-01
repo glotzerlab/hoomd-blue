@@ -7,8 +7,6 @@
  */
 
 #include "CollisionMethod.h"
-#include "hoomd/RNGIdentifiers.h"
-#include "hoomd/RandomNumbers.h"
 
 namespace hoomd
     {
@@ -25,7 +23,7 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                        int phase)
     : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
       m_mpcd_pdata(sysdef->getMPCDParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_period(period), m_enable_grid_shift(true)
+      m_period(period)
     {
     // setup next timestep for collision
     m_next_timestep = cur_timestep;
@@ -51,7 +49,7 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
     m_cl->setEmbeddedGroup(m_embed_group);
 
     // set random grid shift
-    drawGridShift(timestep);
+    m_cl->drawGridShift(timestep);
 
     // update cell list
     m_cl->compute(timestep);
@@ -82,7 +80,7 @@ bool mpcd::CollisionMethod::peekCollide(uint64_t timestep) const
  * The collision method period is updated to \a period only if collision would occur at \a
  * cur_timestep. It is the caller's responsibility to ensure this condition is valid.
  */
-void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int period)
+void mpcd::CollisionMethod::setPeriod(uint64_t cur_timestep, uint64_t period)
     {
     if (!peekCollide(cur_timestep))
         {
@@ -130,44 +128,6 @@ bool mpcd::CollisionMethod::shouldCollide(uint64_t timestep)
     }
 
 /*!
- * \param timestep Timestep to set shifting for
- *
- * \post The MPCD cell list has its grid shift set for \a timestep.
- *
- * If grid shifting is enabled, three uniform random numbers are drawn using
- * the Mersenne twister generator. (In two dimensions, only two numbers are drawn.)
- *
- * If grid shifting is disabled, a zero vector is instead set.
- */
-void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
-    {
-    uint16_t seed = m_sysdef->getSeed();
-
-    // return zeros if shifting is off
-    if (!m_enable_grid_shift)
-        {
-        m_cl->setGridShift(make_scalar3(0.0, 0.0, 0.0));
-        }
-    else
-        {
-        // PRNG using seed and timestep as seeds
-        hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
-            hoomd::Counter(m_instance));
-        const Scalar max_shift = m_cl->getMaxGridShift();
-
-        // draw shift variables from uniform distribution
-        Scalar3 shift;
-        hoomd::UniformDistribution<Scalar> uniform(-max_shift, max_shift);
-        shift.x = uniform(rng);
-        shift.y = uniform(rng);
-        shift.z = (m_sysdef->getNDimensions() == 3) ? uniform(rng) : Scalar(0.0);
-
-        m_cl->setGridShift(shift);
-        }
-    }
-
-/*!
  * \param m Python module to export to
  */
 void mpcd::detail::export_CollisionMethod(pybind11::module& m)
@@ -176,12 +136,15 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
         m,
         "CollisionMethod")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, uint64_t, uint64_t, int>())
-        .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
+        .def_property_readonly("embedded_particles",
+                               [](const std::shared_ptr<mpcd::CollisionMethod> method)
+                               {
+                                   auto group = method->getEmbeddedGroup();
+                                   return (group) ? group->getFilter()
+                                                  : std::shared_ptr<hoomd::ParticleFilter>();
+                               })
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
-        .def("setPeriod", &mpcd::CollisionMethod::setPeriod)
-        .def_property("instance",
-                      &mpcd::CollisionMethod::getInstance,
-                      &mpcd::CollisionMethod::setInstance);
+        .def_property_readonly("period", &mpcd::CollisionMethod::getPeriod);
     }
 
     } // end namespace hoomd
