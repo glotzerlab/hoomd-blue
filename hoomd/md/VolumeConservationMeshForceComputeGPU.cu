@@ -105,32 +105,28 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             }
         }
 
-    //for (unsigned int i_types = 0; i_types < tN; i_types++)
+    volume_sdata[threadIdx.x] = volume_transfer;//[i_types];
+     
+    __syncthreads();
+     
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
         {
-        volume_sdata[threadIdx.x] = volume_transfer;//[i_types];
-
+        if (threadIdx.x < offs)
+    	{
+    	volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+    	}
+        offs >>= 1;
         __syncthreads();
-
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                {
-                volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
-                }
-            offs >>= 1;
-            __syncthreads();
-            }
-
-        // write out our partial sum
-        if (threadIdx.x == 0)
-            {
-            //d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
-            d_partial_sum_volume[blockIdx.x * tN + cN] = volume_sdata[0];
-            }
         }
-    //free(volume_transfer);
+    
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        //d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
+        d_partial_sum_volume[blockIdx.x * tN + cN] = volume_sdata[0];
+        }
     }
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
