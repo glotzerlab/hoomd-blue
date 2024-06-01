@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/mpcd/ConfinedStreamingMethod.h"
-#include "hoomd/mpcd/StreamingGeometry.h"
+#include "hoomd/mpcd/BulkStreamingMethod.h"
 #ifdef ENABLE_HIP
-#include "hoomd/mpcd/ConfinedStreamingMethodGPU.h"
+#include "hoomd/mpcd/BulkStreamingMethodGPU.h"
 #endif // ENABLE_HIP
+#include "hoomd/mpcd/NoForce.h"
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -33,9 +33,8 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // setup a streaming method at timestep 2 with period 2 and phase 1
-    auto geom = std::make_shared<const mpcd::detail::BulkGeometry>();
-    std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(sysdef, 2, 2, 1, geom);
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(sysdef, 2, 2, 1, nullptr);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     stream->setCellList(cl);
 
     // set timestep to 0.05, so the MPCD step is 2 x 0.05 = 0.1
@@ -113,16 +112,14 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
 //! basic test case for MPCD StreamingMethod class
 UP_TEST(mpcd_streaming_method_basic)
     {
-    typedef mpcd::ConfinedStreamingMethod<mpcd::detail::BulkGeometry> method;
-    streaming_method_basic_test<method>(
+    streaming_method_basic_test<mpcd::BulkStreamingMethod<mpcd::NoForce>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
 //! basic test case for MPCD StreamingMethod class
 UP_TEST(mpcd_streaming_method_setup)
     {
-    typedef mpcd::ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry> method;
-    streaming_method_basic_test<method>(
+    streaming_method_basic_test<mpcd::BulkStreamingMethodGPU<mpcd::NoForce>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP

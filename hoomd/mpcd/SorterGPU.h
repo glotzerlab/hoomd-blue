@@ -29,9 +29,7 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     {
     public:
     //! Constructor
-    SorterGPU(std::shared_ptr<SystemDefinition> sysdef,
-              unsigned int cur_timestep,
-              unsigned int period);
+    SorterGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     protected:
     /// Kernel tuner for filling sentinels in cell list.

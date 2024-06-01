@@ -74,7 +74,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     // initialize mpcd system
     auto pdata_1 = sysdef->getMPCDParticleData();
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
 
     // compute the cell list
     cl->computeDimensions();
@@ -763,7 +763,7 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
 
     // initialize mpcd system
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
     cl->compute(0);
     const unsigned int my_rank = exec_conf->getRank();
         {
@@ -986,7 +986,7 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
     sysdef->setCommunicator(pdata_comm);
 
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
-    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef));
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, 1.0, false));
 
     // move particles to edges of domains for testing
     const unsigned int my_rank = exec_conf->getRank();
