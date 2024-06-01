@@ -120,7 +120,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
         {
         __syncthreads();
-        area_sdata[threadIdx.x] = area_transfer;//[i_types];
+        area_sdata[threadIdx.x] = area_transfer;
         __syncthreads();
 
         // reduce the sum in parallel
