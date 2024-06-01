@@ -1,13 +1,13 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD streaming methods
+r"""MPCD streaming methods.
 
 An MPCD streaming method is required to update the particle positions over time.
-It is meant to be used in conjunction with an :py:class:`~hoomd.mpcd.integrator`
-and collision method (see :py:mod:`~hoomd.mpcd.collide`). Particle positions are
-propagated ballistically according to Newton's equations using a velocity-Verlet
-scheme for a time :math:`\Delta t`:
+It is meant to be used in conjunction with an :class:`.mpcd.Integrator` and
+:class:`~hoomd.mpcd.collide.CollisionMethod`. Particle positions are propagated
+ballistically according to Newton's equations using a velocity-Verlet scheme for
+a time :math:`\Delta t`:
 
 .. math::
 
@@ -15,554 +15,291 @@ scheme for a time :math:`\Delta t`:
 
     \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t
 
-    \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) + (\mathbf{f}/m)(\Delta t / 2)
+    \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) +
+    (\mathbf{f}/m)(\Delta t / 2)
 
-where **r** and **v** are the particle position and velocity, respectively, and **f**
-is the external force acting on the particles of mass *m*. For a list of forces
-that can be applied, see :py:mod:`.mpcd.force`.
+where **r** and **v** are the particle position and velocity, respectively, and
+**f** is the external force acting on the particles of mass *m*. For a list of
+forces that can be applied, see :mod:`.mpcd.force`.
 
-Since one of the main strengths of the MPCD algorithm is that it can be coupled to
-complex boundaries, the streaming geometry can be configured. MPCD solvent particles
-will be reflected from boundary surfaces using specular reflections (bounce-back)
-rules consistent with either "slip" or "no-slip" hydrodynamic boundary conditions.
-(The external force is only applied to the particles at the beginning and the end
-of this process.) To help fully enforce the boundary conditions, "virtual" MPCD
-particles can be inserted near the boundary walls.
+.. invisible-code-block: python
 
-Although a streaming geometry is enforced on the MPCD solvent particles, there are
-a few important caveats:
-
-    1. Embedded particles are not coupled to the boundary walls. They must be confined
-       by an appropriate method, e.g., an external potential, an explicit particle wall,
-       or a bounce-back method (see :py:mod:`.mpcd.integrate`).
-    2. The confined geometry exists inside a fully periodic simulation box. Hence, the
-       box must be padded large enough that the MPCD cells do not interact through the
-       periodic boundary. Usually, this means adding at least one extra layer of cells
-       in the confined dimensions. Your periodic simulation box will be validated by
-       the confined geometry.
-    3. It is an error for MPCD particles to lie "outside" the confined geometry. You
-       must initialize your system carefully using the snapshot interface to ensure
-       all particles are "inside" the geometry. An error will be raised otherwise.
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
 
 """
 
 import hoomd
-from hoomd import _hoomd
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
+from hoomd.mpcd import _mpcd
+from hoomd.mpcd.force import BodyForce
+from hoomd.mpcd.geometry import Geometry
+from hoomd.operation import Operation
 
-from . import _mpcd
 
-
-class _streaming_method:
-    """Base streaming method
+class StreamingMethod(Operation):
+    """Base streaming method.
 
     Args:
-        period (int): Number of integration steps between streaming step
+        period (int): Number of integration steps covered by streaming step.
+        mpcd_particle_force (BodyForce): Force on MPCD particles.
 
-    This class is not intended to be initialized directly by the user. Instead,
-    initialize a specific streaming method directly. It is included in the documentation
-    to supply signatures for common methods.
+    Attributes:
+        period (int): Number of integration steps covered by streaming step
+            (*read only*).
+
+            The MPCD particles will be streamed every time the
+            :attr:`~hoomd.Simulation.timestep` is a multiple of `period`. The
+            streaming time is hence equal to `period` steps of the
+            :class:`~hoomd.mpcd.Integrator`. Typically `period` should be equal
+            to the :attr:`~hoomd.mpcd.collide.CollisionMethod.period` for the
+            corresponding collision method. A smaller fraction of this may be
+            used if an external force is applied, and more faithful numerical
+            integration is needed.
+
+        mpcd_particle_force (BodyForce): Body force on MPCD particles.
+
+            The `mpcd_particle_force` cannot be changed after the
+            `StreamingMethod` is constructed, but its attributes can be
+            modified.
 
     """
 
-    def __init__(self, period):
-        # check for hoomd initialization
-        if not hoomd.init.is_initialized():
-            raise RuntimeError(
-                "mpcd.stream: system must be initialized before streaming method\n"
+    def __init__(self, period, mpcd_particle_force=None):
+        super().__init__()
+
+        param_dict = ParameterDict(
+            period=int(period),
+            mpcd_particle_force=OnlyTypes(BodyForce, allow_none=True),
+        )
+        param_dict["mpcd_particle_force"] = mpcd_particle_force
+        self._param_dict.update(param_dict)
+
+
+class Bulk(StreamingMethod):
+    """Bulk fluid.
+
+    Args:
+        period (int): Number of integration steps covered by streaming step.
+        mpcd_particle_force (BodyForce): Body force on MPCD particles.
+
+    `Bulk` streams the MPCD particles in a fully periodic geometry (2D or 3D).
+    This geometry is appropriate for modeling bulk fluids, i.e., those that
+    are not confined by any surfaces.
+
+    .. rubric:: Examples:
+
+    Bulk streaming.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.Bulk(period=1)
+        simulation.operations.integrator.streaming_method = stream
+
+    Bulk streaming with applied force.
+
+    .. code-block:: python
+
+        stream = hoomd.mpcd.stream.Bulk(
+            period=1,
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+        simulation.operations.integrator.streaming_method = stream
+
+    """
+
+    def _attach_hook(self):
+        sim = self._simulation
+
+        # attach and use body force if present
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._attach(sim)
+            mpcd_particle_force = self.mpcd_particle_force._cpp_obj
+        else:
+            mpcd_particle_force = None
+
+        # try to find force in map, otherwise use default
+        force_type = type(self.mpcd_particle_force)
+        try:
+            class_info = self._cpp_class_map[force_type]
+        except KeyError:
+            if self.mpcd_particle_force is not None:
+                force_name = force_type.__name__
+            else:
+                force_name = "NoForce"
+            class_info = (
+                _mpcd,
+                "BulkStreamingMethod" + force_name,
             )
+        class_info = list(class_info)
+        if isinstance(sim.device, hoomd.device.GPU):
+            class_info[1] += "GPU"
+        class_ = getattr(*class_info, None)
+        assert class_ is not None, ("C++ streaming method could not be "
+                                    "determined")
 
-        # check for mpcd initialization
-        if hoomd.context.current.mpcd is None:
-            hoomd.context.current.device.cpp_msg.error(
-                "mpcd.stream: an MPCD system must be initialized before the streaming method\n"
-            )
-            raise RuntimeError("MPCD system not initialized")
+        self._cpp_obj = class_(
+            sim.state._cpp_sys_def,
+            sim.timestep,
+            self.period,
+            0,
+            mpcd_particle_force,
+        )
 
-        # check for multiple collision rule initializations
-        if hoomd.context.current.mpcd._stream is not None:
-            hoomd.context.current.device.cpp_msg.error(
-                "mpcd.stream: only one streaming method can be created.\n")
-            raise RuntimeError("Multiple initialization of streaming method")
+        super()._attach_hook()
 
-        self.period = period
-        self.enabled = True
-        self.force = None
-        self._cpp = None
-        self._filler = None
+    def _detach_hook(self):
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._detach()
+        super()._detach_hook()
 
-        # attach the streaming method to the system
-        self.enable()
+    _cpp_class_map = {}
 
-    def enable(self):
-        """Enable the streaming method
+    @classmethod
+    def _register_cpp_class(cls, force, module, class_name):
+        cls._cpp_class_map[force] = (module, class_name)
 
-        Examples::
 
-            method.enable()
+class BounceBack(StreamingMethod):
+    """Streaming with bounce-back rule for surfaces.
 
-        Enabling the streaming method adds it to the current MPCD system definition.
-        Only one streaming method can be attached to the system at any time.
-        If another method is already set, ``disable`` must be called
-        first before switching. Streaming will occur when the timestep is the next
-        multiple of *period*.
+    Args:
+        period (int): Number of integration steps covered by streaming step.
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from.
+        mpcd_particle_force (BodyForce): Body force on MPCD particles.
 
-        """
+    One of the main strengths of the MPCD algorithm is that it can be coupled to
+    complex boundaries, defined by a `geometry`. This `StreamingMethod` reflects
+    the MPCD particles from boundary surfaces using specular reflections
+    (bounce-back) rules consistent with either "slip" or "no-slip" hydrodynamic
+    boundary conditions. The external force is only applied to the particles at
+    the beginning and the end of this process.
 
-        self.enabled = True
-        hoomd.context.current.mpcd._stream = self
+    Although a streaming geometry is enforced on the MPCD particles,
+    there are a few important caveats:
 
-    def disable(self):
-        """Disable the streaming method
+    1. Embedded particles are not coupled to the boundary walls. They must be
+       confined by an appropriate method, e.g., an external potential, an
+       explicit particle wall, or a bounce-back method
+       (`hoomd.mpcd.methods.BounceBack`).
+    2. The `geometry` exists inside a fully periodic simulation box.
+       Hence, the box must be padded large enough that the MPCD cells do not
+       interact through the periodic boundary. Usually, this means adding at
+       least one extra layer of cells in the confined dimensions. Your periodic
+       simulation box will be validated by the `geometry`.
+    3. It is an error for MPCD particles to lie "outside" the `geometry`.
+       You must initialize your system carefully to ensure all particles are
+       "inside" the geometry.
 
-        Examples::
+    .. rubric:: Examples:
 
-            method.disable()
+    Shear flow between moving parallel plates.
 
-        Disabling the streaming method removes it from the current MPCD system definition.
-        Only one streaming method can be attached to the system at any time, so
-        use this method to remove the current streaming method before adding another.
+    .. code-block:: python
 
-        """
+        stream = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(
+                separation=6.0, speed=1.0, no_slip=True))
+        simulation.operations.integrator.streaming_method = stream
 
-        self.enabled = False
-        hoomd.context.current.mpcd._stream = None
+    Pressure driven flow between parallel plates.
 
-    def set_period(self, period):
-        """Set the streaming period.
+    .. code-block:: python
 
-        Args:
-            period (int): New streaming period.
+        stream = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.ParallelPlates(
+                separation=6.0, no_slip=True),
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+        simulation.operations.integrator.streaming_method = stream
 
-        The MPCD streaming period can only be changed to a new value on a
-        simulation timestep that is a multiple of both the previous *period*
-        and the new *period*. An error will be raised if it is not.
+    Attributes:
+        geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from
+            (*read only*).
 
-        Examples::
+    """
 
-            # The initial period is 5.
-            # The period can be updated to 2 on step 10.
-            hoomd.run_upto(10)
-            method.set_period(period=2)
+    _cpp_class_map = {}
 
-            # The period can be updated to 4 on step 12.
-            hoomd.run_upto(12)
-            hoomd.set_period(period=4)
+    def __init__(self, period, geometry, mpcd_particle_force=None):
+        super().__init__(period, mpcd_particle_force)
 
-        """
+        param_dict = ParameterDict(geometry=Geometry)
+        param_dict["geometry"] = geometry
+        self._param_dict.update(param_dict)
 
-        cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
-        if cur_tstep % self.period != 0 or cur_tstep % period != 0:
-            hoomd.context.current.device.cpp_msg.error(
-                "mpcd.stream: streaming period can only be changed on multiple of current and new period.\n"
-            )
-            raise RuntimeError(
-                "Streaming period can only be changed on multiple of current and new period"
-            )
+    def check_mpcd_particles(self):
+        """Check if MPCD particles are inside `geometry`.
 
-        self._cpp.setPeriod(cur_tstep, period)
-        self.period = period
-
-    def set_force(self, force):
-        """Set the external force field for streaming.
-
-        Args:
-            force (:py:mod:`.mpcd.force`): External force field to apply to MPCD particles.
-
-        Setting an external *force* will generate a flow of the MPCD particles subject to the
-        boundary conditions of the streaming geometry. Note that the force field should be
-        chosen in a way that makes sense for the geometry (e.g., so that the box is not
-        continually accelerating).
-
-        Warning:
-            The *force* applies only to the MPCD particles. If you have embedded
-            particles, you should usually additionally specify a force from :py:mod:`.md.force`
-            for that particle group.
-
-        Examples::
-
-            f = mpcd.force.constant(field=(1.0,0.0,0.0))
-            streamer.set_force(f)
-
-        """
-        self.force = force
-        self._cpp.setField(self.force._cpp)
-
-    def remove_force(self):
-        """Remove the external force field for streaming.
-
-        Warning:
-            This only removes the force on the MPCD particles. If you have embedded
-            particles, you must separately disable any corresponding external force.
-
-        Example::
-
-            streamer.remove_force()
-
-        """
-        self.force = None
-        self._cpp.removeField()
-
-    def _process_boundary(self, bc):
-        """Process boundary condition string into enum
-
-        Args:
-            bc (str): Boundary condition, either "no_slip" or "slip"
+        This method can only be called after this object is attached to a
+        simulation.
 
         Returns:
-            A valid boundary condition enum.
+            True if all MPCD particles are inside `geometry`.
 
-        The enum interface is still fairly clunky for the user since the boundary
-        condition is buried too deep in the package structure. This is a convenience
-        method for interpreting.
+        .. rubric:: Examples:
 
-        """
-        if bc == "no_slip":
-            return _mpcd.boundary.no_slip
-        elif bc == "slip":
-            return _mpcd.boundary.slip
-        else:
-            hoomd.context.current.device.cpp_msg.error(
-                "mpcd.stream: boundary condition " + bc + " not recognized.\n")
-            raise ValueError("Unrecognized streaming boundary condition")
+        .. code-block:: python
 
-
-class bulk(_streaming_method):
-    """Bulk fluid streaming geometry.
-
-    Args:
-        period (int): Number of integration steps between collisions.
-
-    :py:class:`bulk` performs the streaming step for MPCD particles in a fully
-    periodic geometry (2D or 3D). This geometry is appropriate for modeling
-    bulk fluids. The streaming time :math:`\\Delta t` is equal to *period* steps
-    of the :py:class:`~hoomd.mpcd.integrator`. For a pure MPCD fluid,
-    typically *period* should be 1. When particles are embedded in the MPCD fluid
-    through the collision step, *period* should be equal to the MPCD collision
-    *period* for best performance. The MPCD particle positions will be updated
-    every time the simulation timestep is a multiple of *period*. This is
-    equivalent to setting a *phase* of 0 using the terminology of other
-    periodic :py:mod:`~hoomd.update` methods.
-
-    Example for pure MPCD fluid::
-
-        mpcd.integrator(dt=0.1)
-        mpcd.collide.srd(seed=42, period=1, angle=130.)
-        mpcd.stream.bulk(period=1)
-
-    Example for embedded particles::
-
-        mpcd.integrator(dt=0.01)
-        mpcd.collide.srd(seed=42, period=10, angle=130., group=hoomd.group.all())
-        mpcd.stream.bulk(period=10)
-
-    """
-
-    def __init__(self, period=1):
-        _streaming_method.__init__(self, period)
-
-        # create the base streaming class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            stream_class = _mpcd.ConfinedStreamingMethodBulk
-        else:
-            stream_class = _mpcd.ConfinedStreamingMethodGPUBulk
-        self._cpp = stream_class(
-            hoomd.context.current.mpcd.data,
-            hoomd.context.current.system.getCurrentTimeStep(),
-            self.period,
-            0,
-            _mpcd.BulkGeometry(),
-        )
-
-
-class slit(_streaming_method):
-    r"""Parallel plate (slit) streaming geometry.
-
-    Args:
-        H (float): channel half-width
-        V (float): wall speed (default: 0)
-        boundary (str): boundary condition at wall ("slip" or "no_slip"")
-        period (int): Number of integration steps between collisions
-
-    The slit geometry represents a fluid confined between two infinite parallel
-    plates. The slit is centered around the origin, and the walls are placed
-    at :math:`z=-H` and :math:`z=+H`, so the total channel width is *2H*.
-    The walls may be put into motion, moving with speeds :math:`-V` and
-    :math:`+V` in the *x* direction, respectively. If combined with a
-    no-slip boundary condition, this motion can be used to generate simple
-    shear flow.
-
-    The "inside" of the :py:class:`slit` is the space where :math:`|z| < H`.
-
-    Examples::
-
-        stream.slit(period=10, H=30.)
-        stream.slit(period=1, H=25., V=0.1)
-
-    .. versionadded:: 2.6
-
-    """
-
-    def __init__(self, H, V=0.0, boundary="no_slip", period=1):
-        _streaming_method.__init__(self, period)
-
-        self.H = H
-        self.V = V
-        self.boundary = boundary
-
-        bc = self._process_boundary(boundary)
-
-        # create the base streaming class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            stream_class = _mpcd.ConfinedStreamingMethodSlit
-        else:
-            stream_class = _mpcd.ConfinedStreamingMethodGPUSlit
-        self._cpp = stream_class(
-            hoomd.context.current.mpcd.data,
-            hoomd.context.current.system.getCurrentTimeStep(),
-            self.period,
-            0,
-            _mpcd.SlitGeometry(H, V, bc),
-        )
-
-    def set_filler(self, density, kT, seed, type="A"):
-        r"""Add virtual particles to slit channel.
-
-        Args:
-            density (float): Density of virtual particles.
-            kT (float): Temperature of virtual particles.
-            seed (int): Seed to pseudo-random number generator for virtual particles.
-            type (str): Type of the MPCD particles to fill with.
-
-        The virtual particle filler draws particles within the volume *outside* the
-        slit walls that could be overlapped by any cell that is partially *inside*
-        the slit channel (between the parallel plates). The particles are drawn from
-        the velocity distribution consistent with *kT* and with the given *density*.
-        The mean of the distribution is zero in *y* and *z*, but is equal to the wall
-        speed in *x*. Typically, the virtual particle density and temperature are set
-        to the same conditions as the solvent.
-
-        The virtual particles will act as a weak thermostat on the fluid, and so energy
-        is no longer conserved. Momentum will also be sunk into the walls.
-
-        Example::
-
-            slit.set_filler(density=5.0, kT=1.0, seed=42)
-
-        .. versionadded:: 2.6
+            assert stream.check_mpcd_particles()
 
         """
+        return self._cpp_obj.check_mpcd_particles()
 
-        type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
-        T = hoomd.variant._setup_variant_input(kT)
+    def _attach_hook(self):
+        sim = self._simulation
 
-        if self._filler is None:
-            if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-                fill_class = _mpcd.SlitGeometryFiller
+        self.geometry._attach(sim)
+
+        # attach and use body force if present
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._attach(sim)
+            mpcd_particle_force = self.mpcd_particle_force._cpp_obj
+        else:
+            mpcd_particle_force = None
+
+        # try to find force in map, otherwise use default
+        geom_type = type(self.geometry)
+        force_type = type(self.mpcd_particle_force)
+        try:
+            class_info = self._cpp_class_map[geom_type, force_type]
+        except KeyError:
+            if self.mpcd_particle_force is not None:
+                force_name = force_type.__name__
             else:
-                fill_class = _mpcd.SlitGeometryFillerGPU
-            self._filler = fill_class(
-                hoomd.context.current.mpcd.data,
-                density,
-                type_id,
-                T.cpp_variant,
-                seed,
-                self._cpp.geometry,
+                force_name = "NoForce"
+
+            class_info = (
+                _mpcd,
+                "BounceBackStreamingMethod" + geom_type.__name__ + force_name,
             )
-        else:
-            self._filler.setDensity(density)
-            self._filler.setType(type_id)
-            self._filler.setTemperature(T.cpp_variant)
-            self._filler.setSeed(seed)
+        class_info = list(class_info)
+        if isinstance(sim.device, hoomd.device.GPU):
+            class_info[1] += "GPU"
+        class_ = getattr(*class_info, None)
+        assert class_ is not None, "Streaming method for geometry not found"
 
-    def remove_filler(self):
-        """Remove the virtual particle filler.
-
-        Example::
-
-            slit.remove_filler()
-
-        .. versionadded:: 2.6
-
-        """
-
-        self._filler = None
-
-    def set_params(self, H=None, V=None, boundary=None):
-        """Set parameters for the slit geometry.
-
-        Args:
-            H (float): channel half-width
-            V (float): wall speed (default: 0)
-            boundary (str): boundary condition at wall ("slip" or "no_slip"")
-
-        Changing any of these parameters will require the geometry to be
-        constructed and validated, so do not change these too often.
-
-        Examples::
-
-            slit.set_params(H=15.0)
-            slit.set_params(V=0.2, boundary="no_slip")
-
-        .. versionadded:: 2.6
-
-        """
-
-        if H is not None:
-            self.H = H
-
-        if V is not None:
-            self.V = V
-
-        if boundary is not None:
-            self.boundary = boundary
-
-        bc = self._process_boundary(self.boundary)
-        self._cpp.geometry = _mpcd.SlitGeometry(self.H, self.V, bc)
-        if self._filler is not None:
-            self._filler.setGeometry(self._cpp.geometry)
-
-
-class slit_pore(_streaming_method):
-    r"""Parallel plate (slit) pore streaming geometry.
-
-    Args:
-        H (float): channel half-width
-        L (float): pore half-length
-        boundary (str): boundary condition at wall ("slip" or "no_slip"")
-        period (int): Number of integration steps between collisions
-
-    The slit pore geometry represents a fluid partially confined between two
-    parallel plates that have finite length in *x*. The slit pore is centered
-    around the origin, and the walls are placed at :math:`z=-H` and
-    :math:`z=+H`, so the total channel width is *2H*. They extend from
-    :math:`x=-L` to :math:`x=+L` (total length *2L*), where additional solid walls
-    with normals in *x* prevent penetration into the regions above / below the
-    plates. The plates are infinite in *y*. Outside the pore, the simulation box
-    has full periodic boundaries; it is not confined by any walls. This model
-    hence mimics a narrow pore in, e.g., a membrane.
-
-    .. image:: mpcd_slit_pore.png
-
-    The "inside" of the :py:class:`slit_pore` is the space where
-    :math:`|z| < H` for :math:`|x| < L`, and the entire space where
-    :math:`|x| \ge L`.
-
-    Examples::
-
-        stream.slit_pore(period=10, H=30., L=10.)
-        stream.slit_pore(period=1, H=25., L=25.)
-
-    .. versionadded:: 2.7
-
-    """
-
-    def __init__(self, H, L, boundary="no_slip", period=1):
-        _streaming_method.__init__(self, period)
-
-        self.H = H
-        self.L = L
-        self.boundary = boundary
-
-        bc = self._process_boundary(boundary)
-
-        # create the base streaming class
-        if not hoomd.context.current.device.mode == "gpu":
-            stream_class = _mpcd.ConfinedStreamingMethodSlitPore
-        else:
-            stream_class = _mpcd.ConfinedStreamingMethodGPUSlitPore
-        self._cpp = stream_class(
-            hoomd.context.current.mpcd.data,
-            hoomd.context.current.system.getCurrentTimeStep(),
+        self._cpp_obj = class_(
+            sim.state._cpp_sys_def,
+            sim.timestep,
             self.period,
             0,
-            _mpcd.SlitPoreGeometry(H, L, bc),
+            self.geometry._cpp_obj,
+            mpcd_particle_force,
         )
 
-    def set_filler(self, density, kT, seed, type="A"):
-        r"""Add virtual particles to slit pore.
+        super()._attach_hook()
 
-        Args:
-            density (float): Density of virtual particles.
-            kT (float): Temperature of virtual particles.
-            seed (int): Seed to pseudo-random number generator for virtual particles.
-            type (str): Type of the MPCD particles to fill with.
+    def _detach_hook(self):
+        self.geometry._detach()
+        if self.mpcd_particle_force is not None:
+            self.mpcd_particle_force._detach()
+        super()._detach_hook()
 
-        The virtual particle filler draws particles within the volume *outside* the
-        slit pore boundaries that could be overlapped by any cell that is partially *inside*
-        the slit pore. The particles are drawn from the velocity distribution consistent
-        with *kT* and with the given *density*. The mean of the distribution is zero in
-        *x*, *y*, and *z*. Typically, the virtual particle density and temperature are set
-        to the same conditions as the solvent.
-
-        The virtual particles will act as a weak thermostat on the fluid, and so energy
-        is no longer conserved. Momentum will also be sunk into the walls.
-
-        Example::
-
-            slit_pore.set_filler(density=5.0, kT=1.0, seed=42)
-
-        """
-        type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
-        T = hoomd.variant._setup_variant_input(kT)
-
-        if self._filler is None:
-            if not hoomd.context.current.device.mode == "gpu":
-                fill_class = _mpcd.SlitPoreGeometryFiller
-            else:
-                fill_class = _mpcd.SlitPoreGeometryFillerGPU
-            self._filler = fill_class(
-                hoomd.context.current.mpcd.data,
-                density,
-                type_id,
-                T.cpp_variant,
-                seed,
-                self._cpp.geometry,
-            )
-        else:
-            self._filler.setDensity(density)
-            self._filler.setType(type_id)
-            self._filler.setTemperature(T.cpp_variant)
-            self._filler.setSeed(seed)
-
-    def remove_filler(self):
-        """Remove the virtual particle filler.
-
-        Example::
-
-            slit_pore.remove_filler()
-
-        """
-
-        self._filler = None
-
-    def set_params(self, H=None, L=None, boundary=None):
-        """Set parameters for the slit geometry.
-
-        Args:
-            H (float): channel half-width
-            L (float): pore half-length
-            boundary (str): boundary condition at wall ("slip" or "no_slip"")
-
-        Changing any of these parameters will require the geometry to be
-        constructed and validated, so do not change these too often.
-
-        Examples::
-
-            slit_pore.set_params(H=15.0)
-            slit_pore.set_params(L=10.0, boundary="no_slip")
-
-        """
-
-        if H is not None:
-            self.H = H
-
-        if L is not None:
-            self.L = L
-
-        if boundary is not None:
-            self.boundary = boundary
-
-        bc = self._process_boundary(self.boundary)
-        self._cpp.geometry = _mpcd.SlitPoreGeometry(self.H, self.L, bc)
-        if self._filler is not None:
-            self._filler.setGeometry(self._cpp.geometry)
+    @classmethod
+    def _register_cpp_class(cls, geometry, force, module, cpp_class_name):
+        # we will allow None for the force, but we need its class type not value
+        if force is None:
+            force = type(None)
+        cls._cpp_cpp_class_map[geometry, force] = (module, cpp_class_name)

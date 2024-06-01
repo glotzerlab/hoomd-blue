@@ -15,6 +15,12 @@
 #include "CellThermoComputeGPU.h"
 #endif // ENABLE_HIP
 
+// forces
+#include "BlockForce.h"
+#include "ConstantForce.h"
+#include "NoForce.h"
+#include "SineForce.h"
+
 // integration
 #include "Integrator.h"
 
@@ -28,11 +34,13 @@
 #endif // ENABLE_HIP
 
 // Streaming methods
-#include "ConfinedStreamingMethod.h"
+#include "BounceBackStreamingMethod.h"
+#include "BulkStreamingMethod.h"
 #include "StreamingGeometry.h"
 #include "StreamingMethod.h"
 #ifdef ENABLE_HIP
-#include "ConfinedStreamingMethodGPU.h"
+#include "BounceBackStreamingMethodGPU.h"
+#include "BulkStreamingMethodGPU.h"
 #endif // ENABLE_HIP
 
 // integration methods
@@ -42,12 +50,13 @@
 #endif
 
 // virtual particle fillers
-#include "SlitGeometryFiller.h"
-#include "SlitPoreGeometryFiller.h"
+#include "ManualVirtualParticleFiller.h"
+#include "ParallelPlateGeometryFiller.h"
+#include "PlanarPoreGeometryFiller.h"
 #include "VirtualParticleFiller.h"
 #ifdef ENABLE_HIP
-#include "SlitGeometryFillerGPU.h"
-#include "SlitPoreGeometryFillerGPU.h"
+#include "ParallelPlateGeometryFillerGPU.h"
+#include "PlanarPoreGeometryFillerGPU.h"
 #endif // ENABLE_HIP
 
 // communicator
@@ -118,6 +127,11 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_CellThermoComputeGPU(m);
 #endif // ENABLE_HIP
 
+    mpcd::detail::export_BlockForce(m);
+    mpcd::detail::export_ConstantForce(m);
+    mpcd::detail::export_NoForce(m);
+    mpcd::detail::export_SineForce(m);
+
     mpcd::detail::export_Integrator(m);
 
     mpcd::detail::export_CollisionMethod(m);
@@ -128,35 +142,67 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_SRDCollisionMethodGPU(m);
 #endif // ENABLE_HIP
 
-    mpcd::detail::export_boundary(m);
-    mpcd::detail::export_BulkGeometry(m);
-    mpcd::detail::export_SlitGeometry(m);
-    mpcd::detail::export_SlitPoreGeometry(m);
+    mpcd::detail::export_ParallelPlateGeometry(m);
+    mpcd::detail::export_PlanarPoreGeometry(m);
 
     mpcd::detail::export_StreamingMethod(m);
-    mpcd::detail::export_ExternalFieldPolymorph(m);
-    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::BulkGeometry>(m);
-    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
-    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitPoreGeometry>(m);
+    // bulk
+    mpcd::detail::export_BulkStreamingMethod<mpcd::BlockForce>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::ConstantForce>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethod<mpcd::SineForce>(m);
 #ifdef ENABLE_HIP
-    mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry>(m);
-    mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitGeometry>(m);
-    mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitPoreGeometry>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::BlockForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::ConstantForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::NoForce>(m);
+    mpcd::detail::export_BulkStreamingMethodGPU<mpcd::SineForce>(m);
+#endif // ENABLE_HIP
+    // parallel plate
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::BlockForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry,
+                                                   mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::ParallelPlateGeometry, mpcd::SineForce>(m);
+#ifdef ENABLE_HIP
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry,
+                                                      mpcd::BlockForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry,
+                                                      mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry, mpcd::NoForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::ParallelPlateGeometry, mpcd::SineForce>(
+        m);
+#endif // ENABLE_HIP
+    // planar pore
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::BlockForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::ConstantForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethod<mpcd::PlanarPoreGeometry, mpcd::SineForce>(m);
+#ifdef ENABLE_HIP
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::BlockForce>(
+        m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry,
+                                                      mpcd::ConstantForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::NoForce>(m);
+    mpcd::detail::export_BounceBackStreamingMethodGPU<mpcd::PlanarPoreGeometry, mpcd::SineForce>(m);
 #endif // ENABLE_HIP
 
-    mpcd::detail::export_BounceBackNVE<mpcd::detail::SlitGeometry>(m);
-    mpcd::detail::export_BounceBackNVE<mpcd::detail::SlitPoreGeometry>(m);
+    mpcd::detail::export_BounceBackNVE<mpcd::ParallelPlateGeometry>(m);
+    mpcd::detail::export_BounceBackNVE<mpcd::PlanarPoreGeometry>(m);
 #ifdef ENABLE_HIP
-    mpcd::detail::export_BounceBackNVEGPU<mpcd::detail::SlitGeometry>(m);
-    mpcd::detail::export_BounceBackNVEGPU<mpcd::detail::SlitPoreGeometry>(m);
+    mpcd::detail::export_BounceBackNVEGPU<mpcd::ParallelPlateGeometry>(m);
+    mpcd::detail::export_BounceBackNVEGPU<mpcd::PlanarPoreGeometry>(m);
 #endif // ENABLE_HIP
 
     mpcd::detail::export_VirtualParticleFiller(m);
-    mpcd::detail::export_SlitGeometryFiller(m);
-    mpcd::detail::export_SlitPoreGeometryFiller(m);
+    mpcd::detail::export_ManualVirtualParticleFiller(m);
+    mpcd::detail::export_ParallelPlateGeometryFiller(m);
+    mpcd::detail::export_PlanarPoreGeometryFiller(m);
 #ifdef ENABLE_HIP
-    mpcd::detail::export_SlitGeometryFillerGPU(m);
-    mpcd::detail::export_SlitPoreGeometryFillerGPU(m);
+    mpcd::detail::export_ParallelPlateGeometryFillerGPU(m);
+    mpcd::detail::export_PlanarPoreGeometryFillerGPU(m);
 #endif // ENABLE_HIP
 
 #ifdef ENABLE_MPI

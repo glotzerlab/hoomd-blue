@@ -253,7 +253,10 @@ class _SafeNamespaceDict(_NamespaceDict):
             super().__setitem__(namespace, value)
 
 
-def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
+def make_example_simulation(device=None,
+                            dimensions=3,
+                            particle_types=['A'],
+                            mpcd_types=None):
     """Make an example Simulation object.
 
     The simulation state contains two particles at positions (-1, 0, 0) and
@@ -266,6 +269,9 @@ def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
         dimensions (int): Number of dimensions (2 or 3).
 
         particle_types (list[str]): Particle type names.
+
+        mpcd_types (list[str]): If not `None`, also create two MPCD particles,
+            and include these type names in the snapshot.
 
     Returns:
         hoomd.Simulation: The simulation object.
@@ -280,6 +286,7 @@ def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
     .. code-block:: python
 
         simulation = hoomd.util.make_example_simulation()
+
     """
     if device is None:
         device = hoomd.device.CPU()
@@ -293,6 +300,13 @@ def make_example_simulation(device=None, dimensions=3, particle_types=['A']):
         if dimensions == 2:
             Lz = 0
         snapshot.configuration.box = [10, 10, Lz, 0, 0, 0]
+
+        if mpcd_types is not None:
+            if not hoomd.version.mpcd_built:
+                raise RuntimeError("MPCD component not built")
+            snapshot.mpcd.N = 2
+            snapshot.mpcd.position[:] = [(-1, 0, 0), (1, 0, 0)]
+            snapshot.mpcd.types = mpcd_types
 
     simulation = hoomd.Simulation(device=device)
     simulation.create_state_from_snapshot(snapshot)
