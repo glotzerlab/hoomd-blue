@@ -7,6 +7,22 @@ Change Log
 4.x
 ---
 
+4.8.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.mpcd`` reimplements the MPCD method for simulating hydrodynamic interactions.
+  See the migrating page for an overview and individual class and method documentation for more
+  information (`#1784 <https://github.com/glotzerlab/hoomd-blue/pull/1784>`__).
+
+*Changed*
+
+* Miscellaneous documentation improvements
+  (`#1786 <https://github.com/glotzerlab/hoomd-blue/pull/1786>`__).
+* Provide an error message for invalid Ellipsoid shape parameters
+  (`#1785 <https://github.com/glotzerlab/hoomd-blue/pull/1785>`__).
+
 4.7.0 (2024-05-16)
 ^^^^^^^^^^^^^^^^^^
 
