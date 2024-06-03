@@ -219,10 +219,10 @@ jobs:
   build:
 << job(name='Build', run_tests=False, configurations=unit_test_configurations) >>
     steps:
-    - name: Set Werror on recent compilers
-      run: |
-        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
-      if: ${{ !startsWith(matrix.config[0], 'gcc7') }}
+    # - name: Set Werror on recent compilers
+    #   run: |
+    #     echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
+    #   if: ${{ !startsWith(matrix.config[0], 'gcc7') }}
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>

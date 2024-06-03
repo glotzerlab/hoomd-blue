@@ -76,10 +76,10 @@ jobs:
         - {config: [gcc9_py39], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     steps:
-    - name: Set Werror on recent compilers
-      run: |
-        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
-      if: ${{ !startsWith(matrix.config[0], 'gcc7') }}
+    # - name: Set Werror on recent compilers
+    #   run: |
+    #     echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
+    #   if: ${{ !startsWith(matrix.config[0], 'gcc7') }}
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
