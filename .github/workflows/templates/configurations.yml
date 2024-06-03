@@ -3,7 +3,7 @@
 # - config: a string encoded list containing the docker image name and any number of build options.
 # - The build options are `mpi`, `tbb`, `llvm`, `nomd`, and `nohpmc`.
 unit_test_configurations:
-- config: "[clang18_py312, mpi, tbb, llvm]"
+- config: "[clang18_py312, mpi, tbb]"
 - config: "[gcc14_py312]"
 - config: "[gcc14_py312, nomd]"
 - config: "[gcc14_py312, nohpmc]"
@@ -16,7 +16,7 @@ unit_test_configurations:
 # Configurations on which to run longer validation tests. Must be a subset of
 # `unit_test_configurations`
 validate_configurations:
-- config: "[clang18_py311, mpi, tbb, llvm]"
+- config: "[clang18_py311, mpi, tbb]"
 - config: "[gcc14_py312]"
 - config: "[cuda120_gcc11_py310, mpi, llvm]"
 - config: "[cuda120_gcc11_py310]"
