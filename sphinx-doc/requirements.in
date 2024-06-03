@@ -1,4 +1,4 @@
-ipython==8.24.0
+ipython==8.25.0
 nbconvert==7.16.4
 nbsphinx==0.9.4
 numpy==1.26.4
