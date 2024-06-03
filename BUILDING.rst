@@ -109,8 +109,8 @@ Install prerequisites
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
-   1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. Multi-GPU execution via unified memory is not available.
+  1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+  2. Multi-GPU execution via unified memory is not available.
 
 .. note::
 
