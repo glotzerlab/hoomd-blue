@@ -30,7 +30,7 @@ To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install sphinx furo nbsphinx ipython
+   $ <package-manager> install sphinx sphinx-copybutton furo nbsphinx ipython
 
 .. note::
 
@@ -86,7 +86,7 @@ Install prerequisites
 
 **For MPI parallel execution** (required when ``ENABLE_MPI=on``):
 
-- MPI (tested with OpenMPI, MVAPICH)
+- MPI (tested with OpenMPI)
 - cereal >= 1.1
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
@@ -109,8 +109,8 @@ Install prerequisites
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
-   1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. Multi-GPU execution via unified memory is not available.
+  1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+  2. Multi-GPU execution via unified memory is not available.
 
 .. note::
 
@@ -129,6 +129,7 @@ Install prerequisites
 **To build the documentation:**
 
 - sphinx
+- sphinx-copybutton
 - furo
 - nbsphinx
 - ipython

@@ -4,59 +4,52 @@
 Installing binaries
 ===================
 
-**HOOMD-blue** binaries are available in the glotzerlab-software_ Docker_/Singularity_ images and in
-packages on conda-forge_
+MPI parallel builds
+-------------------
+
+You must build **HOOMD-blue** from source to enable support for the native **MPI** and **CUDA**
+libraries on your **HPC resource**. You can use the glotzerlab-software_ repository to manage such
+builds as conda packages.
 
 .. _glotzerlab-software: https://glotzerlab-software.readthedocs.io
-.. _Docker: https://hub.docker.com/
-.. _Singularity: https://www.sylabs.io/
+
+Serial CPU and single GPU builds
+--------------------------------
+
+**HOOMD-blue** binaries for **serial CPU** and **single GPU** are available on conda-forge_ for the
+*linux-64*, *osx-64*, and *osx-arm64* platforms. Install the ``hoomd`` package from the conda-forge_
+channel into a conda environment::
+
+    $ mamba install hoomd=4.7.0
+
 .. _conda-forge: https://conda-forge.org/docs/user/introduction.html
-
-Singularity / Docker images
----------------------------
-
-See the glotzerlab-software_ documentation for instructions to install and use the containers on
-supported HPC clusters.
-
-Conda package
--------------
-
-**HOOMD-blue** is available on conda-forge_ on the *linux-64*, *osx-64*, and *osx-arm64* platforms.
-Install the ``hoomd`` package from the conda-forge_ channel into a conda environment::
-
-    $ conda install hoomd=4.7.0
 
 ``conda`` auto-detects whether your system has a GPU and attempts to install the appropriate
 package. Override this and force the GPU enabled package installation with::
 
     $ export CONDA_OVERRIDE_CUDA="12.0"
-    $ conda install "hoomd=4.7.0=*gpu*" "cuda-version=12.0"
+    $ mamba install "hoomd=4.7.0=*gpu*" "cuda-version=12.0"
 
 Similarly, you can force CPU only package installation with::
 
-    $ conda install "hoomd=4.7.0=*cpu*"
+    $ mamba install "hoomd=4.7.0=*cpu*"
 
 .. note::
 
-    CUDA 11.2 compatible packages are also available. Replace "12.0" with "11.2" above when
+    CUDA 11.8 compatible packages are also available. Replace "12.0" with "11.8" above when
     installing HOOMD-blue on systems with CUDA 11 compatible drivers.
 
 .. note::
 
-    To use :ref:`run time compilation` on **macOS**, install the ``compilers`` package::
-
-        $ conda install compilers
-
-    Without this package you will get *file not found* errors when HOOMD-blue performs the run time
-    compilation.
+    Run time compilation is no longer available on conda-forge builds starting with HOOMD-blue
+    4.7.0.
 
 .. tip::
 
-    Use mambaforge_, miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid
-    package conflicts with conda-forge_ packages. When using miniconda_, follow the instructions
-    provided in the conda-forge_ documentation to configure the channel selection so that all
-    packages are installed from the conda-forge_ channel.
+    Use miniforge_, miniconda_, or any other *minimal* conda environment provider instead of the
+    full Anaconda distribution to avoid package conflicts with conda-forge_ packages. When using
+    miniconda_, follow the instructions provided in the conda-forge_ documentation to configure the
+    channel selection so that all packages are installed from the conda-forge_ channel.
 
-.. _mambaforge: https://github.com/conda-forge/miniforge
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _miniconda: http://conda.pydata.org/miniconda.html
