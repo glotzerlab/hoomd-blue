@@ -8,6 +8,7 @@
 
 #include <pybind11/stl_bind.h>
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::PairPotential>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::ExternalPotential>>);
 
 using namespace std;
 

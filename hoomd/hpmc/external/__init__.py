@@ -11,3 +11,5 @@ Define :math:`U_{\\mathrm{external},i}` for use with
 from . import user
 from . import field
 from . import wall
+from .external import External
+from .linear import Linear
