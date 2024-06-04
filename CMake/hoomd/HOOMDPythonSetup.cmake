@@ -12,7 +12,7 @@ if (Python_FOUND)
     endif()
 endif()
 
-find_package(pybind11 2.2 CONFIG REQUIRED)
+find_package(pybind11 2.12 CONFIG REQUIRED)
 
 if (pybind11_FOUND)
     find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
