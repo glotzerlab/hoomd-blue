@@ -1,4 +1,4 @@
-name: Tests (new)
+name: Test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,59 +31,77 @@ jobs:
     with:
       config: ${{ join(matrix.config, '_') }}
       container_prefix: ${{ matrix.config[0] }}
-      build_runner: ${{ toJson(matrix.build_runner) }}
-      test_runner: ${{ toJson(matrix.test_runner) }}
+      # Default to ubuntu-latest when unset
+      test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
-      validate: ${{ matrix.validate }}
+      # Default to false when unset
+      validate: ${{ matrix.validate == '' && false || matrix.validate }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
         - config: [clang14_py311, mpi, tbb, llvm]
-          build_runner: [self-hosted,jetstream2,CPU]
-          test_runner: ubuntu-latest
           validate: true
 
         - config: [gcc13_py312]
-          build_runner: [self-hosted,jetstream2,CPU]
-          test_runner: ubuntu-latest
           validate: true
 
         - config: [cuda120_gcc11_py310, mpi, llvm]
-          build_runner: [self-hosted,jetstream2,CPU]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
           validate: true
 
         - config: [cuda120_gcc11_py310]
-          build_runner: [self-hosted,jetstream2,CPU]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
           validate: true
 
         - config: [gcc13_py312, nomd]
-          build_runner: [self-hosted,jetstream2,CPU]
-          test_runner: ubuntu-latest
-          validate: false
-
+        
         - config: [gcc13_py312, nohpmc]
-          build_runner: [self-hosted,jetstream2,CPU]
-          test_runner: ubuntu-latest
-          validate: false
-
+        
         - config: [gcc13_py312, nomd, nohpmc]
-          build_runner: [self-hosted,jetstream2,CPU]
-          test_runner: ubuntu-latest
-          validate: false
-
+        
         - config: [cuda120_gcc11_py310, mpi, llvm, debug]
-          build_runner: [self-hosted,jetstream2,CPU]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
           validate: false
 
         - config: [gcc9_py39]
-          build_runner: [self-hosted,jetstream2,CPU]
-          test_runner: ubuntu-latest
-          validate: false
+
+  release:
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    name: "${{ join(matrix.config, '_') }}"
+    uses: ./.github/workflows/build_and_test.yaml
+    with:
+      config: ${{ join(matrix.config, '_') }}
+      container_prefix: ${{ matrix.config[0] }}
+      # Default to ubuntu-latest when unset
+      test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
+      test_docker_options: ${{ matrix.test_docker_options }}
+      # Default to false when unset
+      validate: ${{ matrix.validate == '' && false || matrix.validate }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - config: [clang18_py312, mpi]
+        - config: [clang17_py312, mpi]
+        - config: [clang16_py312, mpi, llvm]
+        - config: [clang15_py312, mpi, llvm]
+        - config: [clang13_py310, llvm]
+        - config: [clang12_py310, llvm]
+        - config: [clang11_py310, llvm]
+        - config: [gcc14_py312]
+        - config: [gcc12_py311]
+        - config: [gcc11_py310]
+        - config: [gcc10_py310]
+        - config: [cuda118_gcc11_py310, mpi, llvm]
+          test_runner: [self-hosted,GPU]
+          test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
+
+        - config: [cuda117_gcc11_py310, mpi, llvm]
+          test_runner: [self-hosted,GPU]
+          test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
