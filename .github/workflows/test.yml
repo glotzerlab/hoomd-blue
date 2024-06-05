@@ -7,14 +7,14 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request:
-      types: [opened, labeled, reopened, synchronize]
+  # pull_request:
+  #     types: [opened, labeled, reopened, synchronize]
 
-  # Trigger on pushes to the trunk branches. This prevents building commits twice when the pull
-  # request source branch is in the same repository.
-  push:
-    branches:
-    - "trunk-*"
+  # # Trigger on pushes to the trunk branches. This prevents building commits twice when the pull
+  # # request source branch is in the same repository.
+  # push:
+  #   branches:
+  #   - "trunk-*"
 
   # Trigger on request.
   workflow_dispatch:
