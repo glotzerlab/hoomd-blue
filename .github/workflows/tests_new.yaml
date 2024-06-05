@@ -105,3 +105,14 @@ jobs:
         - config: [cuda117_gcc11_py310, mpi, llvm]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
+
+  tests_complete:
+    name: Unit test
+    if: always()
+    needs: [typical]
+    runs-on: ubuntu-latest
+
+    steps:
+    - run: jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'
+    - name: Done
+      run: exit 0
