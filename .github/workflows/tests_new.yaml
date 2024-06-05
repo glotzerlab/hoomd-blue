@@ -55,18 +55,18 @@ jobs:
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
           validate: true
-          
+
         - config: [cuda120_gcc11_py310]
           build_runner: [self-hosted,jetstream2,CPU]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
           validate: true
-          
+
         - config: [gcc13_py312, nomd]
           build_runner: [self-hosted,jetstream2,CPU]
           test_runner: ubuntu-latest
           validate: false
-          
+
         - config: [gcc13_py312, nohpmc]
           build_runner: [self-hosted,jetstream2,CPU]
           test_runner: ubuntu-latest
@@ -76,13 +76,13 @@ jobs:
           build_runner: [self-hosted,jetstream2,CPU]
           test_runner: ubuntu-latest
           validate: false
-          
-        - config: [cuda120_gcc11_py310 mpi, llvm, debug]
+
+        - config: [cuda120_gcc11_py310, mpi, llvm, debug]
           build_runner: [self-hosted,jetstream2,CPU]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
           validate: false
-          
+
         - config: [gcc9_py39]
           build_runner: [self-hosted,jetstream2,CPU]
           test_runner: ubuntu-latest
