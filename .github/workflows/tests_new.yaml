@@ -35,27 +35,27 @@ jobs:
       test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
       # Default to false when unset
-      validate: ${{ matrix.validate == '' && false || matrix.validate }}
+      validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
         - config: [clang14_py311, mpi, tbb, llvm]
-          validate: true
+          validate: 'true'
 
         - config: [gcc13_py312]
-          validate: true
+          validate: 'true'
 
         - config: [cuda120_gcc11_py310, mpi, llvm]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
-          validate: true
+          validate: 'true'
 
         - config: [cuda120_gcc11_py310]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
-          validate: true
+          validate: 'true'
 
         - config: [gcc13_py312, nomd]
         
@@ -66,7 +66,6 @@ jobs:
         - config: [cuda120_gcc11_py310, mpi, llvm, debug]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
-          validate: false
 
         - config: [gcc9_py39]
 
@@ -81,7 +80,7 @@ jobs:
       test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
       # Default to false when unset
-      validate: ${{ matrix.validate == '' && false || matrix.validate }}
+      validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
 
     strategy:
       fail-fast: false

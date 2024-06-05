@@ -17,7 +17,7 @@ on:
         type: string
         required: false
       validate:
-        type: boolean
+        type: string
         required: false
       
 env:
@@ -227,7 +227,7 @@ jobs:
       image: glotzerlab/ci:2024.06.04-${{ inputs.container_prefix }}
       options: ${{ inputs.test_docker_options }} -e CUDA_VISIBLE_DEVICES
 
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
