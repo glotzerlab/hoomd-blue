@@ -26,7 +26,7 @@ jobs:
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
 
   typical:
-    name: Build and test typical configurations
+    name: "${{ join(matrix.config, '_') }}"
     uses: ./.github/workflows/build_and_test.yaml
     with:
       config: ${{ join(matrix.config, '_') }}
