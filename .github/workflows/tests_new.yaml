@@ -17,16 +17,12 @@ on:
 jobs:
   start_action_runners:
     name: Start action runners
-    runs-on: ubuntu-latest
-    steps:
-    - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.5
-      with:
-        OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
-        OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@c5d1d59b0b3e069b611f4002bbba4d5ff8e01c60
+    secrets: inherit
 
   typical:
     name: "${{ join(matrix.config, '_') }}"
+    needs: start_action_runners
     uses: ./.github/workflows/build_and_test.yaml
     with:
       config: ${{ join(matrix.config, '_') }}
@@ -72,6 +68,7 @@ jobs:
   release:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     name: "${{ join(matrix.config, '_') }}"
+    needs: start_action_runners
     uses: ./.github/workflows/build_and_test.yaml
     with:
       config: ${{ join(matrix.config, '_') }}
@@ -81,6 +78,10 @@ jobs:
       test_docker_options: ${{ matrix.test_docker_options }}
       # Default to false when unset
       validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
+
+    # TODO: possible to implelemtn fallback to `ubuntu-latest` when actions runners are offline?
+
+    # runs-on: ${{ needs.start_workflow.outputs.exit_code == 3 && 'ubuntu-20.04' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
