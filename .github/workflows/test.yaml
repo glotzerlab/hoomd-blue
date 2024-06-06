@@ -26,7 +26,7 @@ jobs:
     uses: ./.github/workflows/build_and_test.yaml
     with:
       config: ${{ join(matrix.config, '_') }}
-      container_prefix: ${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.06.04-${{ matrix.config[0] }}
       # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
       build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson('ubuntu-latest') || '["self-hosted","jetstream2","CPU"]' }}
       # Default to ubuntu-latest when unset
@@ -74,7 +74,7 @@ jobs:
     uses: ./.github/workflows/build_and_test.yaml
     with:
       config: ${{ join(matrix.config, '_') }}
-      container_prefix: ${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.06.04-${{ matrix.config[0] }}
       # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
       build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson('ubuntu-latest') || '["self-hosted","jetstream2","CPU"]' }}
       # Default to ubuntu-latest when unset
