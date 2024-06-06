@@ -20,6 +20,7 @@
 
 #include <mpi.h>
 
+#include <algorithm>
 #include <numeric>
 #include <queue>
 #include <sstream>

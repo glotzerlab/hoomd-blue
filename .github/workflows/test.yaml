@@ -94,7 +94,7 @@ jobs:
         - config: [clang13_py310, llvm]
         - config: [clang12_py310, llvm]
         - config: [clang11_py310, llvm]
-        - config: [gcc14_py312]
+        - config: [gcc14_py312, mpi]
         - config: [gcc12_py311]
         - config: [gcc11_py310]
         - config: [gcc10_py310]
