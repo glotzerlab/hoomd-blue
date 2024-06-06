@@ -417,12 +417,12 @@ void ExecutionConfiguration::scanGPUs()
     if (error != hipSuccess)
         {
         std::string message = "Failed to get GPU device count: ";
-        #ifdef __HIP_PLATFORM_NVCC__
-                cudaError_t cuda_error = cudaPeekAtLastError();
-                message += string(cudaGetErrorString(cuda_error));
-        #else
-                message += string(hipGetErrorString(error));
-        #endif
+#ifdef __HIP_PLATFORM_NVCC__
+        cudaError_t cuda_error = cudaPeekAtLastError();
+        message += string(cudaGetErrorString(cuda_error));
+#else
+        message += string(hipGetErrorString(error));
+#endif
         s_gpu_scan_messages.push_back(message);
         return;
         }
@@ -442,12 +442,12 @@ void ExecutionConfiguration::scanGPUs()
         if (error != hipSuccess)
             {
             std::string message = "Failed to get device properties: ";
-            #ifdef __HIP_PLATFORM_NVCC__
-                    cudaError_t cuda_error = cudaPeekAtLastError();
-                    message += string(cudaGetErrorString(cuda_error));
-            #else
-                    message += string(hipGetErrorString(error));
-            #endif
+#ifdef __HIP_PLATFORM_NVCC__
+            cudaError_t cuda_error = cudaPeekAtLastError();
+            message += string(cudaGetErrorString(cuda_error));
+#else
+            message += string(hipGetErrorString(error));
+#endif
             s_gpu_scan_messages.push_back(message);
             continue;
             }
