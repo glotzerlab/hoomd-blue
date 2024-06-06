@@ -480,7 +480,8 @@ void test_communicator_migrate(communicator_creator comm_creator,
     comm->migrateParticles(2);
         {
         unsigned int tag(0xffffffff), type(0xffffffff);
-        Scalar3 pos, vel;
+        Scalar3 pos = make_scalar3(0,0,0);
+        Scalar3 vel = make_scalar3(0,0,0);
 
         if (pdata->getN())
             {
