@@ -56,11 +56,11 @@ jobs:
           validate: 'true'
 
         - config: [gcc13_py312, nomd]
-        
+
         - config: [gcc13_py312, nohpmc]
-        
+
         - config: [gcc13_py312, nomd, nohpmc]
-        
+
         - config: [cuda120_gcc11_py310, mpi, llvm, debug]
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'

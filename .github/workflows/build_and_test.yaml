@@ -23,7 +23,7 @@ on:
       validate:
         type: string
         required: false
-      
+
 env:
   # prevent deadlocked MPI tests from causing the job to cancel
   MPIEXEC_TIMEOUT: 3000
@@ -87,11 +87,11 @@ jobs:
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
       shell: bash
-      
+
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
-      
+
     - name: Configure plugins
       run : |
         if [[ ${BUILD_DEBUG} == "true" ]]; then BUILD_TYPE="Debug"; else BUILD_TYPE="Release"; fi
@@ -100,20 +100,20 @@ jobs:
       env:
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
       shell: bash
-      
+
     - name: Build plugins
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build-example-plugins
 
     - name: Remove object files
       run: find build -type f -name '*.o' -delete
-      
+
     - name: 'Tar build'
       run: tar --use-compress-program='zstd -10 -T0' -cvf build.tar build
-      
+
     - name: 'Tar install'
       run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
-      
+
     - name: 'Upload build'
       uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
       with:
