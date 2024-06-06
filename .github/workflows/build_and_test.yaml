@@ -89,7 +89,7 @@ jobs:
       shell: bash
 
     - name: Build
-      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
       working-directory: build
 
     - name: Configure plugins
@@ -102,7 +102,7 @@ jobs:
       shell: bash
 
     - name: Build plugins
-      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
       working-directory: build-example-plugins
 
     - name: Remove object files
