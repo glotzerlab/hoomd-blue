@@ -229,6 +229,8 @@ struct PolyhedronVertices : ShapeParams
     /// Z coordinate of vertices
     ManagedArray<ShortReal> z;
 
+    /// TODO: store aligned copy of d here for use in the support function.
+
     /** List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex
         hull
     */
