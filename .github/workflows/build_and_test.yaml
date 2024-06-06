@@ -192,11 +192,11 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
 
     ### Validation tests
-    - name: Run pytest (serial)
+    - name: Run pytest -m validate (serial)
       if: ${{ !contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
       run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
 
-    - name: Run pytest (mpi)
+    - name: Run pytest -m validate (mpi)
       if: ${{ contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
       run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
