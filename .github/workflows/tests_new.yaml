@@ -28,7 +28,7 @@ jobs:
       config: ${{ join(matrix.config, '_') }}
       container_prefix: ${{ matrix.config[0] }}
       # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
-      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && 'ubuntu-latest' || '["self-hosted","jetstream2","CPU"]' }}
+      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson('ubuntu-latest') || '["self-hosted","jetstream2","CPU"]' }}
       # Default to ubuntu-latest when unset
       test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}

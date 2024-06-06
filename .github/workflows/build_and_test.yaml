@@ -42,6 +42,18 @@ env:
   PYTHONPATH: ${{ github.workspace }}/install
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: build_runner
+        run: echo ${{ inputs.build_runner }}
+      - name: build_runner_from_json
+        run: echo ${{ fromJson(inputs.build_runner) }}
+      - name: test_runner
+        run: echo ${{ inputs.test_runner }}
+      - name: test_runner_from_json
+        run: echo ${{ fromJson(inputs.test_runner) }}
+
   build:
     runs-on: ${{ fromJson(inputs.build_runner) }}
     container:
