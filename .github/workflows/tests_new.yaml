@@ -17,7 +17,7 @@ on:
 jobs:
   start_action_runners:
     name: Start
-    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@cc78b529b8f408239597619e30c9d47880c3b409
+    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@c89b62aa89f7886318edb166bc0500cfc658f24f # v1.3.0
     secrets: inherit
 
   typical:
