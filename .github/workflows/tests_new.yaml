@@ -16,8 +16,8 @@ on:
 
 jobs:
   start_action_runners:
-    name: Start action runners
-    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@c5d1d59b0b3e069b611f4002bbba4d5ff8e01c60
+    name: Start
+    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@a862161adac42e4173f3d142ebd4ddfcde54779b
     secrets: inherit
 
   typical:
@@ -27,6 +27,8 @@ jobs:
     with:
       config: ${{ join(matrix.config, '_') }}
       container_prefix: ${{ matrix.config[0] }}
+      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
+      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && 'ubuntu-latest' || '["self-hosted","jetstream2","CPU"]' }}
       # Default to ubuntu-latest when unset
       test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
@@ -73,15 +75,13 @@ jobs:
     with:
       config: ${{ join(matrix.config, '_') }}
       container_prefix: ${{ matrix.config[0] }}
+      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
+      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && 'ubuntu-latest' || '["self-hosted","jetstream2","CPU"]' }}
       # Default to ubuntu-latest when unset
       test_runner: ${{ matrix.test_runner == '' && 'ubuntu-latest' || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
       # Default to false when unset
       validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
-
-    # TODO: possible to implelemtn fallback to `ubuntu-latest` when actions runners are offline?
-
-    # runs-on: ${{ needs.start_workflow.outputs.exit_code == 3 && 'ubuntu-20.04' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false

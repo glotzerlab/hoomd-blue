@@ -9,6 +9,10 @@ on:
       container_prefix:
         type: string
         required: true
+      build_runner:
+        type: string
+        required: true
+        default: ubuntu-latest
       test_runner:
         type: string
         required: true
@@ -39,7 +43,7 @@ env:
 
 jobs:
   build:
-    runs-on: [self-hosted,jetstream2,CPU]
+    runs-on: ${{ fromJson(inputs.build_runner) }}
     container:
       image: glotzerlab/ci:2024.06.04-${{ inputs.container_prefix }}
 
