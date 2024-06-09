@@ -29,8 +29,9 @@ namespace kernel
  * \param periodic Flags if local simulation is periodic
  * \param origin_idx Global origin index for the local box
  * \param grid_shift Random grid shift vector
- * \param global_lo Lower bound of global orthorhombic simulation box
+ * \param global_box Global simulation box
  * \param n_global_cell Global dimensions of the cell list, including padding
+ * \param global_cell_dim Global cell dimensions, no padding
  * \param cell_size Cell width
  * \param cell_np_max Maximum number of particles per cell
  * \param cell_indexer 3D indexer for cell id
@@ -56,8 +57,9 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
                                   const uchar3 periodic,
                                   const int3 origin_idx,
                                   const Scalar3 grid_shift,
-                                  const Scalar3 global_lo,
+                                  const BoxDim global_box,
                                   const uint3 n_global_cell,
+                                  const uint3 global_cell_dim,
                                   const Scalar cell_size,
                                   const unsigned int cell_np_max,
                                   const Index3D cell_indexer,
@@ -87,11 +89,11 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
         return;
         }
 
-    // bin particle with grid shift assuming orthorhombic box (already validated)
-    const Scalar3 delta = (pos_i - grid_shift) - global_lo;
-    int3 global_bin = make_int3(std::floor(delta.x / cell_size),
-                                std::floor(delta.y / cell_size),
-                                std::floor(delta.z / cell_size));
+    // bin particle with grid shift
+    const Scalar3 fractional_pos_i = global_box.makeFraction(pos_i - grid_shift);
+    int3 global_bin = make_int3((int)std::floor(fractional_pos_i.x * global_cell_dim.x),
+                                (int)std::floor(fractional_pos_i.y * global_cell_dim.y),
+                                (int)std::floor(fractional_pos_i.z * global_cell_dim.z));
 
     // wrap cell back through the boundaries (grid shifting may send +/- 1 outside of range)
     // this is done using periodic from the "local" box, since this will be periodic
@@ -185,13 +187,12 @@ __global__ void cell_check_migrate_embed(unsigned int* d_migrate_flag,
     const Scalar4 postype = d_pos[idx];
     const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
-    const Scalar3 lo = box.getLo();
-    const Scalar3 hi = box.getHi();
     const uchar3 periodic = box.getPeriodic();
-
-    if ((!periodic.x && (pos.x >= hi.x || pos.x < lo.x))
-        || (!periodic.y && (pos.y >= hi.y || pos.y < lo.y))
-        || (!periodic.z && num_dim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
+    const Scalar3 fractional_pos = box.makeFraction(pos);
+    if ((!periodic.x && (fractional_pos.x >= Scalar(1.0) || fractional_pos.x < Scalar(0.0)))
+        || (!periodic.y && (fractional_pos.y >= Scalar(1.0) || fractional_pos.y < Scalar(0.0)))
+        || (!periodic.z && num_dim == 3
+            && (fractional_pos.z >= Scalar(1.0) || fractional_pos.z < Scalar(0.0))))
         {
         atomicMax(d_migrate_flag, 1);
         }
@@ -242,8 +243,9 @@ __global__ void cell_apply_sort(unsigned int* d_cell_list,
  * \param periodic Flags if local simulation is periodic
  * \param origin_idx Global origin index for the local box
  * \param grid_shift Random grid shift vector
- * \param global_lo Lower bound of global orthorhombic simulation box
+ * \param global_box Global simulation box
  * \param n_global_cell Global dimensions of the cell list, including padding
+ * \param global_cell_dim Global cell dimensions, no padding
  * \param cell_size Cell width
  * \param cell_np_max Maximum number of particles per cell
  * \param cell_indexer 3D indexer for cell id
@@ -265,8 +267,9 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
                                          const uchar3& periodic,
                                          const int3& origin_idx,
                                          const Scalar3& grid_shift,
-                                         const Scalar3& global_lo,
+                                         const BoxDim& global_box,
                                          const uint3& n_global_cell,
+                                         const uint3& global_cell_dim,
                                          const Scalar cell_size,
                                          const unsigned int cell_np_max,
                                          const Index3D& cell_indexer,
@@ -299,8 +302,9 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
                                                                    periodic,
                                                                    origin_idx,
                                                                    grid_shift,
-                                                                   global_lo,
+                                                                   global_box,
                                                                    n_global_cell,
+                                                                   global_cell_dim,
                                                                    cell_size,
                                                                    cell_np_max,
                                                                    cell_indexer,

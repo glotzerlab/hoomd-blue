@@ -121,7 +121,6 @@ class PYBIND11_EXPORT CellList : public Compute
     void setCellSize(Scalar cell_size)
         {
         m_cell_size = cell_size;
-        m_max_grid_shift = 0.5 * m_cell_size;
         m_needs_compute_dim = true;
         }
 
@@ -190,8 +189,9 @@ class PYBIND11_EXPORT CellList : public Compute
         }
 
     //! Get the maximum permitted grid shift
-    const Scalar getMaxGridShift() const
+    const Scalar3 getMaxGridShift()
         {
+        computeDimensions();
         return m_max_grid_shift;
         }
 
@@ -204,13 +204,15 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Set the grid shift vector
     void setGridShift(const Scalar3& shift)
         {
-        if (std::fabs(shift.x) > m_max_grid_shift || std::fabs(shift.y) > m_max_grid_shift
-            || std::fabs(shift.z) > m_max_grid_shift)
+        const Scalar3 max_grid_shift = getMaxGridShift();
+        if (std::fabs(shift.x) > max_grid_shift.x || std::fabs(shift.y) > max_grid_shift.y
+            || std::fabs(shift.z) > max_grid_shift.z)
             {
             m_exec_conf->msg->error()
                 << "mpcd: Specified cell list grid shift (" << shift.x << ", " << shift.y << ", "
                 << shift.z << ")" << std::endl
-                << "exceeds maximum component magnitude " << m_max_grid_shift << std::endl;
+                << "exceeds maximum allowed (" << max_grid_shift.x << ", " << max_grid_shift.y
+                << ", " << max_grid_shift.z << ")" << std::endl;
             throw std::runtime_error("Error setting MPCD grid shift");
             }
 
@@ -261,7 +263,7 @@ class PYBIND11_EXPORT CellList : public Compute
 
     bool m_enable_grid_shift; //!< Flag to enable grid shifting
     Scalar3 m_grid_shift;     //!< Amount to shift particle positions when computing cell list
-    Scalar m_max_grid_shift;  //!< Maximum amount grid can be shifted in any direction
+    Scalar3 m_max_grid_shift; //!< Maximum amount grid can be shifted in any direction
 
     //! Allocates internal data arrays
     virtual void reallocate();
@@ -269,6 +271,7 @@ class PYBIND11_EXPORT CellList : public Compute
     Scalar m_cell_size;            //!< MPCD cell width
     uint3 m_cell_dim;              //!< Number of cells in each direction
     uint3 m_global_cell_dim;       //!< Number of cells in each direction of global simulation box
+    Scalar3 m_global_cell_dim_inv; //!< Inverse of number of cells in each direction of global box
     Index3D m_cell_indexer;        //!< Indexer from 3D into cell list 1D
     Index3D m_global_cell_indexer; //!< Indexer from 3D into 1D for global cell indexes
     Index2D m_cell_list_indexer;   //!< Indexer into cell list members

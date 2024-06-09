@@ -28,6 +28,17 @@ mpcd::ParallelPlateGeometryFiller::~ParallelPlateGeometryFiller()
     m_exec_conf->msg->notice(5) << "Destroying MPCD ParallelPlateGeometryFiller" << std::endl;
     }
 
+void mpcd::ParallelPlateGeometryFiller::fill(uint64_t timestep)
+    {
+    const BoxDim& box = m_pdata->getBox();
+    if (box.getTiltFactorXY() != Scalar(0.0) || box.getTiltFactorXZ() != Scalar(0.0)
+        || box.getTiltFactorYZ() != Scalar(0.0))
+        {
+        throw std::runtime_error("ParallelPlateGeometryFiller does not work with skewed boxes");
+        }
+    mpcd::ManualVirtualParticleFiller::fill(timestep);
+    }
+
 void mpcd::ParallelPlateGeometryFiller::computeNumFill()
     {
     const BoxDim& global_box = m_pdata->getGlobalBox();
@@ -49,7 +60,7 @@ void mpcd::ParallelPlateGeometryFiller::computeNumFill()
      * This is done by round the walls onto the cell grid away from zero, and then including the
      * max shift of this cell edge.
      */
-    const Scalar max_shift = m_cl->getMaxGridShift();
+    const Scalar max_shift = m_cl->getMaxGridShift().y;
     const Scalar global_lo = global_box.getLo().y;
     if (box.getHi().y >= H)
         {

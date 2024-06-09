@@ -460,27 +460,26 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
                                           access_mode::overwrite);
 
     // since box is orthorhombic, just use branching to compute comm flags
-    const Scalar3 lo = box.getLo();
-    const Scalar3 hi = box.getHi();
     for (unsigned int idx = 0; idx < N; ++idx)
         {
         const Scalar4& postype = h_pos.data[idx];
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        const Scalar3 f = box.makeFraction(pos);
 
         unsigned int flags = 0;
-        if (pos.x >= hi.x)
+        if (f.x >= Scalar(1.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-        else if (pos.x < lo.x)
+        else if (f.x < Scalar(0.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
 
-        if (pos.y >= hi.y)
+        if (f.y >= Scalar(1.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-        else if (pos.y < lo.y)
+        else if (f.y < Scalar(0.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
 
-        if (pos.z >= hi.z)
+        if (f.z >= Scalar(1.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-        else if (pos.z < lo.z)
+        else if (f.z < Scalar(0.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
         h_comm_flag.data[idx] = flags;
@@ -654,7 +653,10 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
     periodic.y = (isCommunicating(mpcd::detail::face::north)) ? 1 : 0;
     periodic.z = (isCommunicating(mpcd::detail::face::up)) ? 1 : 0;
 
-    return BoxDim(global_lo + shift, global_hi + shift, periodic);
+    BoxDim wrap_box(global_box);
+    wrap_box.setLoHi(global_lo + shift, global_hi + shift);
+    wrap_box.setPeriodic(periodic);
+    return wrap_box;
     }
 
 void mpcd::Communicator::attachCallbacks()

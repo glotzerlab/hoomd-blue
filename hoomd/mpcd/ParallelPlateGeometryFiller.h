@@ -38,6 +38,8 @@ class PYBIND11_EXPORT ParallelPlateGeometryFiller : public mpcd::ManualVirtualPa
 
     virtual ~ParallelPlateGeometryFiller();
 
+    virtual void fill(uint64_t timestep) override;
+
     std::shared_ptr<const mpcd::ParallelPlateGeometry> getGeometry() const
         {
         return m_geom;

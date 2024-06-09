@@ -139,7 +139,15 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         if (mpi_x)
             {
             // split evenly in x -> both domains are same size
-            UP_ASSERT_EQUAL(dim.x, 4);
+            if (pos.x)
+                {
+                UP_ASSERT_EQUAL(dim.x, 4);
+                }
+            else
+                {
+                // floating point rounding makes this 5 not 4 (extra cell communicated on this edge)
+                UP_ASSERT_EQUAL(dim.x, 5);
+                }
             }
         else
             {
@@ -181,46 +189,18 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             }
 
         std::array<unsigned int, 6> num_comm = cl->getNComm();
-        if (mpi_x)
-            {
-            if (pos.x)
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 2);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 1);
-                }
-            else
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 1);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 2);
-                }
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 0);
-            }
-
-        if (mpi_y)
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 2);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 2);
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 0);
-            }
-
-        if (mpi_z)
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 2);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 2);
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 0);
-            }
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)],
+                        (mpi_x) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)],
+                        (mpi_x) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)],
+                        (mpi_y) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)],
+                        (mpi_y) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)],
+                        (mpi_z) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)],
+                        (mpi_z) ? 2 : 0);
 
         // check for grid shifting errors
         UP_ASSERT_EXCEPTION(std::runtime_error,
@@ -234,57 +214,58 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             {
             if (pos.x)
                 {
-                CHECK_CLOSE(coverage.getLo().x, 0.0, tol);
-                CHECK_CLOSE(coverage.getHi().x, 3.0, tol);
+                UP_ASSERT_SMALL(coverage.getLo().x, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().x, 3.0, tol);
                 }
             else
                 {
-                CHECK_CLOSE(coverage.getLo().x, -3.0, tol);
-                CHECK_CLOSE(coverage.getHi().x, 0.0, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().x, -3.0, tol);
+                // floating point rounding makes this 1.0 not 0.0
+                UP_ASSERT_CLOSE(coverage.getHi().x, 1.0, tol);
                 }
             }
         else
             {
-            CHECK_CLOSE(coverage.getLo().x, -2.5, tol);
-            CHECK_CLOSE(coverage.getHi().x, 2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getLo().x, -2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getHi().x, 2.5, tol);
             }
 
         if (mpi_y)
             {
             if (pos.y)
                 {
-                CHECK_CLOSE(coverage.getLo().y, -1.0, tol);
-                CHECK_CLOSE(coverage.getHi().y, 3.0, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().y, -1.0, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().y, 3.0, tol);
                 }
             else
                 {
-                CHECK_CLOSE(coverage.getLo().y, -3.0, tol);
-                CHECK_CLOSE(coverage.getHi().y, 0.0, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().y, -3.0, tol);
+                UP_ASSERT_SMALL(coverage.getHi().y, tol);
                 }
             }
         else
             {
-            CHECK_CLOSE(coverage.getLo().y, -2.5, tol);
-            CHECK_CLOSE(coverage.getHi().y, 2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getLo().y, -2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getHi().y, 2.5, tol);
             }
 
         if (mpi_z)
             {
             if (pos.z)
                 {
-                CHECK_CLOSE(coverage.getLo().z, 0.0, tol);
-                CHECK_CLOSE(coverage.getHi().z, 3.0, tol);
+                UP_ASSERT_SMALL(coverage.getLo().z, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().z, 3.0, tol);
                 }
             else
                 {
-                CHECK_CLOSE(coverage.getLo().z, -3.0, tol);
-                CHECK_CLOSE(coverage.getHi().z, 1.0, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().z, -3.0, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().z, 1.0, tol);
                 }
             }
         else
             {
-            CHECK_CLOSE(coverage.getLo().z, -2.5, tol);
-            CHECK_CLOSE(coverage.getHi().z, 2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getLo().z, -2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getHi().z, 2.5, tol);
             }
         }
 
@@ -385,7 +366,8 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                 }
             else
                 {
-                UP_ASSERT_EQUAL(dim.z, 7);
+                // floating point rounding makes this 8 not 7 (extra cell communicated on this edge)
+                UP_ASSERT_EQUAL(dim.z, 8);
                 }
             }
         else
@@ -394,54 +376,18 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             }
 
         std::array<unsigned int, 6> num_comm = cl->getNComm();
-        if (mpi_x)
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 2);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 2);
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 0);
-            }
-
-        if (mpi_y)
-            {
-            if (pos.y)
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 2);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 1);
-                }
-            else
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 1);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 2);
-                }
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 0);
-            }
-
-        if (mpi_z)
-            {
-            if (pos.z)
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 2);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 1);
-                }
-            else
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 1);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 2);
-                }
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 0);
-            }
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)],
+                        (mpi_x) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)],
+                        (mpi_x) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)],
+                        (mpi_y) ? ((pos.y) ? 2 : 1) : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)],
+                        (mpi_y) ? ((pos.y) ? 1 : 2) : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)],
+                        (mpi_z) ? 2 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)],
+                        (mpi_z) ? 2 : 0);
 
         UP_ASSERT_EXCEPTION(std::runtime_error,
                             [&] { cl->setGridShift(make_scalar3(-0.3, -0.3, -0.3)); });
@@ -453,57 +399,58 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             {
             if (pos.x)
                 {
-                CHECK_CLOSE(coverage.getLo().x, -0.25, tol);
-                CHECK_CLOSE(coverage.getHi().x, 2.75, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().x, -0.25, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().x, 2.75, tol);
                 }
             else
                 {
-                CHECK_CLOSE(coverage.getLo().x, -2.75, tol);
-                CHECK_CLOSE(coverage.getHi().x, 0.25, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().x, -2.75, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().x, 0.25, tol);
                 }
             }
         else
             {
-            CHECK_CLOSE(coverage.getLo().x, -2.5, tol);
-            CHECK_CLOSE(coverage.getHi().x, 2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getLo().x, -2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getHi().x, 2.5, tol);
             }
 
         if (mpi_y)
             {
             if (pos.y)
                 {
-                CHECK_CLOSE(coverage.getLo().y, -0.25, tol);
-                CHECK_CLOSE(coverage.getHi().y, 2.75, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().y, -0.25, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().y, 2.75, tol);
                 }
             else
                 {
-                CHECK_CLOSE(coverage.getLo().y, -2.75, tol);
-                CHECK_CLOSE(coverage.getHi().y, -0.25, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().y, -2.75, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().y, -0.25, tol);
                 }
             }
         else
             {
-            CHECK_CLOSE(coverage.getLo().y, -2.5, tol);
-            CHECK_CLOSE(coverage.getHi().y, 2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getLo().y, -2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getHi().y, 2.5, tol);
             }
 
         if (mpi_z)
             {
             if (pos.z)
                 {
-                CHECK_CLOSE(coverage.getLo().z, 0.25, tol);
-                CHECK_CLOSE(coverage.getHi().z, 2.75, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().z, 0.25, tol);
+                UP_ASSERT_CLOSE(coverage.getHi().z, 2.75, tol);
                 }
             else
                 {
-                CHECK_CLOSE(coverage.getLo().z, -2.75, tol);
-                CHECK_CLOSE(coverage.getHi().z, 0.25, tol);
+                UP_ASSERT_CLOSE(coverage.getLo().z, -2.75, tol);
+                // floating point rounding makes this 0.75 not 0.25
+                UP_ASSERT_CLOSE(coverage.getHi().z, 0.75, tol);
                 }
             }
         else
             {
-            CHECK_CLOSE(coverage.getLo().z, -2.5, tol);
-            CHECK_CLOSE(coverage.getHi().z, 2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getLo().z, -2.5, tol);
+            UP_ASSERT_CLOSE(coverage.getHi().z, 2.5, tol);
             }
         }
 
@@ -599,7 +546,8 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                 }
             else
                 {
-                UP_ASSERT_EQUAL(dim.z, 9);
+                // floating point rounding makes thes 10 not 9
+                UP_ASSERT_EQUAL(dim.z, 10);
                 }
             }
         else
@@ -609,54 +557,18 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
         // all comms should be increased by 1
         std::array<unsigned int, 6> num_comm = cl->getNComm();
-        if (mpi_x)
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 3);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 3);
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)], 0);
-            }
-
-        if (mpi_y)
-            {
-            if (pos.y)
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 3);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 2);
-                }
-            else
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 2);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 3);
-                }
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)], 0);
-            }
-
-        if (mpi_z)
-            {
-            if (pos.z)
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 3);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 2);
-                }
-            else
-                {
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 2);
-                UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 3);
-                }
-            }
-        else
-            {
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)], 0);
-            UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 0);
-            }
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::east)],
+                        (mpi_x) ? 3 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::west)],
+                        (mpi_x) ? 3 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::north)],
+                        (mpi_y) ? ((pos.y) ? 3 : 2) : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::south)],
+                        (mpi_y) ? ((pos.y) ? 2 : 3) : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::up)],
+                        (mpi_z) ? 3 : 0);
+        UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)],
+                        (mpi_z) ? 3 : 0);
 
         UP_ASSERT_EXCEPTION(std::runtime_error,
                             [&] { cl->setGridShift(make_scalar3(-0.3, -0.3, -0.3)); });
@@ -712,7 +624,8 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             else
                 {
                 CHECK_CLOSE(coverage.getLo().z, -3.25, tol);
-                CHECK_CLOSE(coverage.getHi().z, 0.75, tol);
+                // floating point rounding makes this 1.25 not 0.75
+                CHECK_CLOSE(coverage.getHi().z, 1.25, tol);
                 }
             }
         else

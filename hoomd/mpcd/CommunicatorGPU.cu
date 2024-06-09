@@ -50,21 +50,22 @@ stage_particles(unsigned int* d_comm_flag, const Scalar4* d_pos, unsigned int N,
 
     const Scalar4 postype = d_pos[idx];
     const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-    const Scalar3 lo = box.getLo();
-    const Scalar3 hi = box.getHi();
+    const Scalar3 f = box.makeFraction(pos);
 
     unsigned int flags = 0;
-    if (pos.x >= hi.x)
+    if (f.x >= Scalar(1.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-    else if (pos.x < lo.x)
+    else if (f.x < Scalar(0.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
-    if (pos.y >= hi.y)
+
+    if (f.y >= Scalar(1.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-    else if (pos.y < lo.y)
+    else if (f.y < Scalar(0.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
-    if (pos.z >= hi.z)
+
+    if (f.z >= Scalar(1.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-    else if (pos.z < lo.z)
+    else if (f.z < Scalar(0.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
     d_comm_flag[idx] = flags;

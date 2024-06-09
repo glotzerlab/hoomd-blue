@@ -29,7 +29,7 @@ mpcd::PlanarPoreGeometryFiller::PlanarPoreGeometryFiller(
 
     // unphysical values in cache to always force recompute
     m_needs_recompute = true;
-    m_recompute_cache = make_scalar3(-1, -1, -1);
+    m_recompute_cache = make_scalar4(-1, -1, -1, -1);
     m_pdata->getBoxChangeSignal()
         .connect<mpcd::PlanarPoreGeometryFiller, &mpcd::PlanarPoreGeometryFiller::notifyRecompute>(
             this);
@@ -43,15 +43,27 @@ mpcd::PlanarPoreGeometryFiller::~PlanarPoreGeometryFiller()
                     &mpcd::PlanarPoreGeometryFiller::notifyRecompute>(this);
     }
 
+void mpcd::PlanarPoreGeometryFiller::fill(uint64_t timestep)
+    {
+    const BoxDim& box = m_pdata->getBox();
+    if (box.getTiltFactorXY() != Scalar(0.0) || box.getTiltFactorXZ() != Scalar(0.0)
+        || box.getTiltFactorYZ() != Scalar(0.0))
+        {
+        throw std::runtime_error("PlanarPoreGeometryFiller does not work with skewed boxes");
+        }
+    mpcd::ManualVirtualParticleFiller::fill(timestep);
+    }
+
 void mpcd::PlanarPoreGeometryFiller::computeNumFill()
     {
     const Scalar cell_size = m_cl->getCellSize();
-    const Scalar max_shift = m_cl->getMaxGridShift();
+    const Scalar3 max_shift = m_cl->getMaxGridShift();
 
     // check if fill-relevant variables have changed (can't use signal because cell list build may
     // not have triggered yet)
-    m_needs_recompute |= (m_recompute_cache.x != cell_size || m_recompute_cache.y != max_shift
-                          || m_recompute_cache.z != m_density);
+    m_needs_recompute
+        |= (m_recompute_cache.x != cell_size || m_recompute_cache.y != max_shift.x
+            || m_recompute_cache.z != max_shift.y || m_recompute_cache.w != m_density);
 
     // only recompute if needed
     if (!m_needs_recompute)
@@ -77,13 +89,13 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
     const Scalar3 global_hi = global_box.getHi();
     Scalar2 x_bounds, y_bounds;
     // upper bound on lower wall in x
-    x_bounds.x = cell_size * std::ceil((-L - global_lo.x) / cell_size) + global_lo.x + max_shift;
+    x_bounds.x = cell_size * std::ceil((-L - global_lo.x) / cell_size) + global_lo.x + max_shift.x;
     // lower bound on upper wall in x
-    x_bounds.y = cell_size * std::floor((L - global_lo.x) / cell_size) + global_lo.x - max_shift;
+    x_bounds.y = cell_size * std::floor((L - global_lo.x) / cell_size) + global_lo.x - max_shift.x;
     // lower bound on lower wall in y
-    y_bounds.x = cell_size * std::floor((-H - global_lo.y) / cell_size) + global_lo.y - max_shift;
+    y_bounds.x = cell_size * std::floor((-H - global_lo.y) / cell_size) + global_lo.y - max_shift.y;
     // upper bound on upper wall in y
-    y_bounds.y = cell_size * std::ceil((H - global_lo.y) / cell_size) + global_lo.y + max_shift;
+    y_bounds.y = cell_size * std::ceil((H - global_lo.y) / cell_size) + global_lo.y + max_shift.y;
 
     // define the 6 2D bounding boxes (lo.x,hi.x,lo.y,hi.y) for filling in this geometry (z is
     // infinite) (this is essentially a U shape inside the pore).
@@ -130,7 +142,7 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
 
     // size is now updated, cache the cell dimensions used
     m_needs_recompute = false;
-    m_recompute_cache = make_scalar3(cell_size, max_shift, m_density);
+    m_recompute_cache = make_scalar4(cell_size, max_shift.x, max_shift.y, m_density);
     }
 
 /*!

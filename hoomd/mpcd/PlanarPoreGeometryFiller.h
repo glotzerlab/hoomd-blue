@@ -38,6 +38,8 @@ class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::ManualVirtualParti
 
     virtual ~PlanarPoreGeometryFiller();
 
+    virtual void fill(uint64_t timestep) override;
+
     std::shared_ptr<const mpcd::PlanarPoreGeometry> getGeometry() const
         {
         return m_geom;
@@ -65,7 +67,7 @@ class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::ManualVirtualParti
 
     private:
     bool m_needs_recompute;
-    Scalar3 m_recompute_cache;
+    Scalar4 m_recompute_cache;
     void notifyRecompute()
         {
         m_needs_recompute = true;
