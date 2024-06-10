@@ -44,7 +44,7 @@ namespace detail
 struct PolyhedronVertices : ShapeParams
     {
     static constexpr unsigned int MAX_VERTS = 4096;
-    
+
     /// Default constructor initializes zero values.
     DEVICE PolyhedronVertices()
         : n_hull_verts(0), N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
@@ -88,7 +88,7 @@ struct PolyhedronVertices : ShapeParams
             {
             throw std::domain_error("Too many vertices in polyhedron.");
             }
-        
+
         diameter = 0;
         sweep_radius = sweep_radius_;
 
@@ -279,7 +279,7 @@ class SupportFuncConvexPolyhedron
         been set to zero.
     */
     DEVICE inline SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
-                                       ShortReal extra_sweep_radius = ShortReal(0.0))
+                                              ShortReal extra_sweep_radius = ShortReal(0.0))
         : verts(_verts), sweep_radius(extra_sweep_radius)
         {
         }
@@ -289,7 +289,8 @@ class SupportFuncConvexPolyhedron
         @param n Normal vector input (in the local frame)
         @returns Local coords of the point furthest in the direction of n
     */
-    DEVICE inline __attribute__((always_inline)) vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
+    DEVICE inline __attribute__((always_inline)) vec3<ShortReal>
+    operator()(const vec3<ShortReal>& n) const
         {
         ShortReal max_dot = -(verts.diameter * verts.diameter);
         unsigned int max_idx = 0;
@@ -800,9 +801,9 @@ struct ShapeConvexPolyhedron
 */
 template<>
 DEVICE inline __attribute__((always_inline)) bool test_overlap(const vec3<Scalar>& r_ab,
-                                const ShapeConvexPolyhedron& a,
-                                const ShapeConvexPolyhedron& b,
-                                unsigned int& err)
+                                                               const ShapeConvexPolyhedron& a,
+                                                               const ShapeConvexPolyhedron& b,
+                                                               unsigned int& err)
     {
     vec3<ShortReal> dr(r_ab);
 

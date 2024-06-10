@@ -65,7 +65,8 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
         \returns S_B(n) - S_A(n) in world space coords (transformations put n into local coords for
        S_A and S_b)
     */
-    DEVICE inline __attribute__((always_inline)) vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
+    DEVICE inline __attribute__((always_inline)) vec3<ShortReal>
+    operator()(const vec3<ShortReal>& n) const
         {
             // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
 #ifdef __HIPCC__
