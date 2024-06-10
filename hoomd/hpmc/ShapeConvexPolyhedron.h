@@ -43,6 +43,8 @@ namespace detail
 */
 struct PolyhedronVertices : ShapeParams
     {
+    static constexpr unsigned int MAX_VERTS = 4096;
+    
     /// Default constructor initializes zero values.
     DEVICE PolyhedronVertices()
         : n_hull_verts(0), N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
@@ -81,6 +83,12 @@ struct PolyhedronVertices : ShapeParams
                   bool managed = false)
         {
         N = (unsigned int)verts.size();
+
+        if (N > MAX_VERTS)
+            {
+            throw std::domain_error("Too many vertices in polyhedron.");
+            }
+        
         diameter = 0;
         sweep_radius = sweep_radius_;
 
@@ -295,7 +303,7 @@ class SupportFuncConvexPolyhedron
             __m256 ny_v = _mm256_broadcast_ss(&n.y);
             __m256 nz_v = _mm256_broadcast_ss(&n.z);
             __m256 max_dot_v = _mm256_broadcast_ss(&max_dot);
-            float d_s[verts.x.size()] __attribute__((aligned(32)));
+            float d_s[PolyhedronVertices::MAX_VERTS] __attribute__((aligned(32)));
 
             for (unsigned int i = 0; i < verts.N; i += 8)
                 {
@@ -347,7 +355,7 @@ class SupportFuncConvexPolyhedron
             __m128 ny_v = _mm_load_ps1(&n.y);
             __m128 nz_v = _mm_load_ps1(&n.z);
             __m128 max_dot_v = _mm_load_ps1(&max_dot);
-            float d_s[verts.x.size()] __attribute__((aligned(16)));
+            float d_s[PolyhedronVertices::MAX_VERTS] __attribute__((aligned(16)));
 
             for (unsigned int i = 0; i < verts.N; i += 4)
                 {
