@@ -37,7 +37,13 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
 
     void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
-    //! Set the temperature and enable the thermostat
+    //! Get the temperature
+    std::shared_ptr<Variant> getTemperature() const
+        {
+        return m_T;
+        }
+
+    //! Set the temperature
     void setTemperature(std::shared_ptr<Variant> T)
         {
         m_T = T;
