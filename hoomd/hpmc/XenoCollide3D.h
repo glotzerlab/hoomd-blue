@@ -70,7 +70,7 @@ const unsigned int XENOCOLLIDE_3D_MAX_ITERATIONS = 1024;
     \ingroup minkowski
 */
 template<class SupportFuncA, class SupportFuncB>
-DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
+DEVICE inline __attribute__((always_inline)) bool xenocollide_3d(const SupportFuncA& sa,
                                   const SupportFuncB& sb,
                                   const vec3<ShortReal>& ab_t,
                                   const quat<ShortReal>& q,

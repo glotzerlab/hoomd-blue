@@ -270,7 +270,7 @@ class SupportFuncConvexPolyhedron
         Note that for performance it is assumed that unused vertices (beyond N) have already
         been set to zero.
     */
-    DEVICE SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
+    DEVICE inline SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
                                        ShortReal extra_sweep_radius = ShortReal(0.0))
         : verts(_verts), sweep_radius(extra_sweep_radius)
         {
@@ -281,7 +281,7 @@ class SupportFuncConvexPolyhedron
         @param n Normal vector input (in the local frame)
         @returns Local coords of the point furthest in the direction of n
     */
-    DEVICE vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
+    DEVICE inline __attribute__((always_inline)) vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
         {
         ShortReal max_dot = -(verts.diameter * verts.diameter);
         unsigned int max_idx = 0;
@@ -791,7 +791,7 @@ struct ShapeConvexPolyhedron
     @returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template<>
-DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
+DEVICE inline __attribute__((always_inline)) bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeConvexPolyhedron& a,
                                 const ShapeConvexPolyhedron& b,
                                 unsigned int& err)
