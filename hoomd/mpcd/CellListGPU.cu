@@ -32,7 +32,6 @@ namespace kernel
  * \param global_box Global simulation box
  * \param n_global_cell Global dimensions of the cell list, including padding
  * \param global_cell_dim Global cell dimensions, no padding
- * \param cell_size Cell width
  * \param cell_np_max Maximum number of particles per cell
  * \param cell_indexer 3D indexer for cell id
  * \param cell_list_indexer 2D indexer for particle position in cell
@@ -60,7 +59,6 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
                                   const BoxDim global_box,
                                   const uint3 n_global_cell,
                                   const uint3 global_cell_dim,
-                                  const Scalar cell_size,
                                   const unsigned int cell_np_max,
                                   const Index3D cell_indexer,
                                   const Index2D cell_list_indexer,
@@ -246,7 +244,6 @@ __global__ void cell_apply_sort(unsigned int* d_cell_list,
  * \param global_box Global simulation box
  * \param n_global_cell Global dimensions of the cell list, including padding
  * \param global_cell_dim Global cell dimensions, no padding
- * \param cell_size Cell width
  * \param cell_np_max Maximum number of particles per cell
  * \param cell_indexer 3D indexer for cell id
  * \param cell_list_indexer 2D indexer for particle position in cell
@@ -270,7 +267,6 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
                                          const BoxDim& global_box,
                                          const uint3& n_global_cell,
                                          const uint3& global_cell_dim,
-                                         const Scalar cell_size,
                                          const unsigned int cell_np_max,
                                          const Index3D& cell_indexer,
                                          const Index2D& cell_list_indexer,
@@ -305,7 +301,6 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
                                                                    global_box,
                                                                    n_global_cell,
                                                                    global_cell_dim,
-                                                                   cell_size,
                                                                    cell_np_max,
                                                                    cell_indexer,
                                                                    cell_list_indexer,

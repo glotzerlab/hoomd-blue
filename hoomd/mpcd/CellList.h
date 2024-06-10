@@ -33,8 +33,11 @@ namespace mpcd
 class PYBIND11_EXPORT CellList : public Compute
     {
     public:
-    //! Constructor
+    //! Constructor by size (deprecated)
     CellList(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift);
+
+    //! Constructor by dimension
+    CellList(std::shared_ptr<SystemDefinition> sysdef, const uint3& global_cell_dim, bool shift);
 
     //! Destructor
     virtual ~CellList();
@@ -93,19 +96,21 @@ class PYBIND11_EXPORT CellList : public Compute
         return m_global_cell_dim;
         }
 
+    void setGlobalDim(const uint3& global_cell_dim);
+
     const int3& getOriginIndex() const
         {
         return m_origin_idx;
         }
 
     //! Obtain the local cell index corresponding to a global cell
-    const int3 getLocalCell(const int3& global) const;
+    const int3 getLocalCell(const int3& global);
 
     //! Obtain the global cell corresponding to local cell
-    const int3 getGlobalCell(const int3& local) const;
+    const int3 getGlobalCell(const int3& local);
 
     //! Wrap a cell into a global cell
-    const int3 wrapGlobalCell(const int3& cell) const;
+    const int3 wrapGlobalCell(const int3& cell);
 
     //! Get the maximum number of particles in a cell
     const unsigned int getNmax() const
@@ -113,22 +118,11 @@ class PYBIND11_EXPORT CellList : public Compute
         return m_cell_np_max;
         }
 
-    //! Set the MPCD cell size
-    /*!
-     * \param cell_size Grid spacing
-     * \note Calling forces a resize of the cell list on the next update
-     */
-    void setCellSize(Scalar cell_size)
-        {
-        m_cell_size = cell_size;
-        m_needs_compute_dim = true;
-        }
+    //! Get the MPCD cell size (deprecated)
+    Scalar3 getCellSize();
 
-    //! Get the MPCD cell size
-    Scalar getCellSize() const
-        {
-        return m_cell_size;
-        }
+    //! Set the MPCD cell size (deprecated)
+    void setCellSize(Scalar cell_size);
 
     //! Get the box that is covered by the cell list
     /*!
@@ -222,9 +216,6 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Generates the random grid shift vector
     void drawGridShift(uint64_t timestep);
 
-    //! Calculate current cell occupancy statistics
-    virtual void getCellStatistics() const;
-
     //! Gets the group of particles that is coupled to the MPCD solvent through the collision step
     std::shared_ptr<ParticleGroup> getEmbeddedGroup() const
         {
@@ -268,7 +259,6 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Allocates internal data arrays
     virtual void reallocate();
 
-    Scalar m_cell_size;            //!< MPCD cell width
     uint3 m_cell_dim;              //!< Number of cells in each direction
     uint3 m_global_cell_dim;       //!< Number of cells in each direction of global simulation box
     Scalar3 m_global_cell_dim_inv; //!< Inverse of number of cells in each direction of global box
@@ -340,9 +330,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
 #ifdef ENABLE_MPI
     std::shared_ptr<DomainDecomposition> m_decomposition;
-
-    //! Checks neighboring domains to make sure they are properly overlapping
-    void checkDomainBoundaries();
 #endif // ENABLE_MPI
     };
 

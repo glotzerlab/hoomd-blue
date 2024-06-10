@@ -32,9 +32,10 @@ class CellList(Compute):
         cell_size (float): Size of a collision cell.
         shift (bool): When True, randomly shift underlying collision cells.
 
-    The MPCD `CellList` bins particles into cubic cells of edge length
-    `cell_size`. Currently, the simulation box must be orthorhombic, and its
-    edges must be a multiple of `cell_size`.
+    The MPCD `CellList` bins particles into cells aligned with the lattice
+    vectors that define the simulation box. The number of cells can be
+    determined from the nominal :math:`L_x`, :math:`L_y`, and :math:`L_z` and
+    the desired `cell_size`.
 
     When the total mean-free path of the MPCD particles is small, the cells
     should be randomly shifted in order to ensure Galilean invariance of the
@@ -52,14 +53,6 @@ class CellList(Compute):
         cell_list = simulation.operations.integrator.cell_list
 
     Attributes:
-        cell_size (float): Edge length of a collision cell.
-
-            .. rubric:: Example:
-
-            .. code-block:: python
-
-                cell_list.cell_size = 1.0
-
         shift (bool): When True, randomly shift underlying collision cells.
 
             .. rubric:: Example:
@@ -73,11 +66,10 @@ class CellList(Compute):
     def __init__(self, cell_size, shift=True):
         super().__init__()
 
-        param_dict = ParameterDict(
-            cell_size=float(cell_size),
-            shift=bool(shift),
-        )
+        param_dict = ParameterDict(shift=bool(shift))
         self._param_dict.update(param_dict)
+
+        self.cell_size = cell_size
 
     def _attach_hook(self):
         sim = self._simulation
@@ -88,10 +80,41 @@ class CellList(Compute):
         else:
             cpp_class = _mpcd.CellList
 
-        self._cpp_obj = cpp_class(sim.state._cpp_sys_def, self.cell_size,
+        self._cpp_obj = cpp_class(sim.state._cpp_sys_def, self._cell_size,
                                   self.shift)
 
         super()._attach_hook()
+
+    @property
+    def cell_size(self):
+        """float: Edge length of a collision cell.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            cell_list.cell_size = 1.0
+
+        """
+        return self._cell_size
+
+    @cell_size.setter
+    def cell_size(self, value):
+        try:
+            cell_size_ = float(value)
+        except TypeError:
+            cell_size_ = None
+        if cell_size_ is None:
+            raise TypeError("Cell size must be a float")
+
+        self._cell_size = cell_size_
+        if self._attached:
+            self._cpp_obj.setCellSize(self._cell_size)
+
+    @property
+    def num_cells(self):
+        """tuple[int]: Number of cells along each lattice vector."""
+        return self._cpp_obj.num_cells
 
 
 class CollisionMethod(Operation):

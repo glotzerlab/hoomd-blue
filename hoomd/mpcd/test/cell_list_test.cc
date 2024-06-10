@@ -80,17 +80,13 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
     /*******************/
     // Change the cell size to something that does not evenly divide a side, and check for an
     // exception evenly divides no sides
-    cl->setCellSize(4.2);
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->computeDimensions(); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->setCellSize(4.2); });
     // evenly divides z
-    cl->setCellSize(10.0);
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->computeDimensions(); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->setCellSize(10.0); });
     // evenly divides y
-    cl->setCellSize(8.0);
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->computeDimensions(); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->setCellSize(8.0); });
     // evenly divides x
-    cl->setCellSize(6.0);
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->computeDimensions(); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->setCellSize(6.0); });
     }
 
 //! Test for correct cell listing of a small system

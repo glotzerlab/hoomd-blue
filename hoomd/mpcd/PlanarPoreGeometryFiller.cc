@@ -56,7 +56,13 @@ void mpcd::PlanarPoreGeometryFiller::fill(uint64_t timestep)
 
 void mpcd::PlanarPoreGeometryFiller::computeNumFill()
     {
-    const Scalar cell_size = m_cl->getCellSize();
+    const Scalar3 cell_size_vector = m_cl->getCellSize();
+    if (fabs(cell_size_vector.x - cell_size_vector.y) > Scalar(1e-6)
+        || fabs(cell_size_vector.x - cell_size_vector.z) > Scalar(1e-6))
+        {
+        throw std::runtime_error("Cell size must be constant");
+        }
+    const Scalar cell_size = cell_size_vector.y;
     const Scalar3 max_shift = m_cl->getMaxGridShift();
 
     // check if fill-relevant variables have changed (can't use signal because cell list build may
