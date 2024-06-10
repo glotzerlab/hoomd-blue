@@ -534,7 +534,7 @@ class ALJ(AnisotropicPair):
                                   to_type_converter((float, float, float)),
                                   preprocess=self._to_three_tuple),
                               len_keys=1,
-                              _defaults={'rounding_radii', (0.0, 0.0, 0.0)}))
+                              _defaults={'rounding_radii': (0.0, 0.0, 0.0)}))
 
         self._extend_typeparam((params, shape))
 
