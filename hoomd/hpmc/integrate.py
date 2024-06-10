@@ -416,6 +416,10 @@ class HPMCIntegrator(Integrator):
             hoomd.hpmc.pair.Pair,
             hoomd.data.syncedlist._PartialGetAttr('_cpp_obj'))
 
+        self._external_potentials = hoomd.data.syncedlist.SyncedList(
+            hoomd.hpmc.external.External,
+            hoomd.data.syncedlist._PartialGetAttr('_cpp_obj'))
+
     def _attach_hook(self):
         """Initialize the reflected c++ class.
 
@@ -460,6 +464,9 @@ class HPMCIntegrator(Integrator):
         self._pair_potentials._sync(self._simulation,
                                     self._cpp_obj.pair_potentials)
 
+        self._external_potentials._sync(self._simulation,
+                                    self._cpp_obj.external_potentials)
+
         super()._attach_hook()
 
     def _detach_hook(self):
@@ -468,6 +475,7 @@ class HPMCIntegrator(Integrator):
         if self._pair_potential is not None:
             self._pair_potential._detach()
         self._pair_potentials._unsync()
+        self._external_potentials._unsync()
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -484,7 +492,7 @@ class HPMCIntegrator(Integrator):
 
         .. invisible-code-block: python
 
-            lennard_jones =  hoomd.hpmc.pair.LennardJones()
+            lennard_jones = hoomd.hpmc.pair.LennardJones()
             lennard_jones.params[('A', 'A')] = dict(
                 epsilon=1, sigma=1, r_cut=2.5)
 
@@ -497,6 +505,27 @@ class HPMCIntegrator(Integrator):
     def pair_potentials(self, value):
         self._pair_potentials.clear()
         self._pair_potentials.extend(value)
+
+    @property
+    def external_potentials(self):
+        """list[hoomd.hpmc.external.External]: External potentials to apply.
+
+        .. rubric:: Example
+
+        .. invisible-code-block: python
+
+            gravity = hoomd.hpmc.external.Linear(plane_origin=(0, 0, 0), plane_normal=(0, 0, -1))
+            gravity.alpha['A'] = 1.234
+
+        .. code-block python
+            simulation.operations.integrator.external_potentials = [gravity]
+        """
+        return self._external_potentials
+
+    @external_potentials.setter
+    def external_potentials(self, value):
+        self._external_potentials.clear()
+        self._external_potentials.extend(value)
 
     @log(category='sequence', requires_run=True)
     def map_overlaps(self):

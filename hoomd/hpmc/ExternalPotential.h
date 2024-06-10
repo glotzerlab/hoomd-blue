@@ -116,14 +116,14 @@ inline LongReal ExternalPotential::totalEnergy(bool trial)
         }
 
 #ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
+    if (particle_data->getDomainDecomposition())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &total_energy,
                       1,
                       MPI_DOUBLE,
                       MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
+                      particle_data->getExecConf()->getMPICommunicator());
         }
 #endif
 

@@ -45,25 +45,29 @@ def test_valid_construction_harmonicfield(device, constructor_args):
 @pytest.fixture(scope="module")
 def add_default_integrator():
 
-    def add(simulation):
+    def add(simulation, field_type):
         mc = hoomd.hpmc.integrate.Sphere()
         mc.shape['A'] = dict(diameter=0)
         snapshot = simulation.state.get_snapshot()
-        if simulation.device.communicator.rank == 0:
-            reference_positions = snapshot.particles.position
-            reference_orientations = snapshot.particles.orientation
-        else:
-            reference_positions = [[0, 0, 0], [0, 0, 0]]
-            reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-        lattice = hoomd.hpmc.external.field.Harmonic(
-            reference_positions=reference_positions,
-            reference_orientations=reference_orientations,
-            k_translational=1.0,
-            k_rotational=1.0,
-            symmetries=[[1, 0, 0, 0]])
-        mc.external_potential = lattice
+        if field_type == 'harmonic':
+            if simulation.device.communicator.rank == 0:
+                reference_positions = snapshot.particles.position
+                reference_orientations = snapshot.particles.orientation
+            else:
+                reference_positions = [[0, 0, 0], [0, 0, 0]]
+                reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
+            field = hoomd.hpmc.external.field.Harmonic(
+                reference_positions=reference_positions,
+                reference_orientations=reference_orientations,
+                k_translational=1.0,
+                k_rotational=1.0,
+                symmetries=[[1, 0, 0, 0]])
+            mc.external_potential = field
+        elif field_type == 'linear':
+            field = hoomd.hpmc.external.Linear(default_alpha=3.0)
+            mc.external_potentials = [field]
         simulation.operations.integrator = mc
-        return mc, lattice
+        return mc, field
 
     return add
 
@@ -73,7 +77,7 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
                    add_default_integrator):
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, lattice = add_default_integrator(sim)
+    mc, lattice = add_default_integrator(sim, 'harmonic')
 
     # create C++ mirror classes and set parameters
     sim.run(0)
@@ -88,7 +92,7 @@ def test_detaching(simulation_factory, two_particle_snapshot_factory,
                    add_default_integrator):
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, lattice = add_default_integrator(sim)
+    mc, lattice = add_default_integrator(sim, 'harmonic')
 
     # create C++ mirror classes and set parameters
     sim.run(0)
@@ -106,7 +110,7 @@ def test_harmonic_displacement_energy(simulation_factory,
     """Ensure harmonic displacements result in expected energy."""
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, lattice = add_default_integrator(sim)
+    mc, lattice = add_default_integrator(sim, 'harmonic')
     mc.shape['A'] = dict(diameter=0, orientable=True)
 
     dx = 0.01
@@ -142,7 +146,7 @@ def test_harmonic_displacement(simulation_factory,
     """Ensure particles remain close to reference positions."""
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, lattice = add_default_integrator(sim)
+    mc, lattice = add_default_integrator(sim, 'harmonic')
     particle_diameter = 0.5
     mc.shape['A'] = dict(diameter=particle_diameter)
     k_trans = 100.0
@@ -155,3 +159,24 @@ def test_harmonic_displacement(simulation_factory,
         new_positions = snapshot.particles.position
         dx = np.linalg.norm(new_positions - lattice.reference_positions, axis=1)
         assert np.all(np.less(dx, particle_diameter / 2))
+
+
+@pytest.mark.cpu
+def test_valid_construction_linearfield(device):
+    """Test that Linear can be constructed with valid arguments."""
+    field = hoomd.hpmc.external.Linear(default_alpha=1.0)
+
+@pytest.mark.cpu
+def test_attaching(simulation_factory, two_particle_snapshot_factory,
+                   add_default_integrator):
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc, field = add_default_integrator(sim, 'linear')
+
+    # create C++ mirror classes and set parameters
+    breakpoint()
+    sim.run(0)
+
+    # make sure objecst are attached
+    assert mc._attached
+    assert field._attached

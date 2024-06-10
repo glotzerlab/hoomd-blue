@@ -569,7 +569,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_pair_potentials;
         }
 
-    /// Get the list of pair potentials.
+    /// Get the list of external potentials.
     std::vector<std::shared_ptr<ExternalPotential>>& getExternalPotentials()
         {
         return m_external_potentials;
