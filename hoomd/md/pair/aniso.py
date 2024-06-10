@@ -431,7 +431,7 @@ class ALJ(AnisotropicPair):
         * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
           **required**) - The vertices of a convex polytope in 2 or 3
           dimensions. The third dimension in 2D is ignored.
-        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`) 
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`)
           - The semimajor axes of a rounding ellipsoid
           :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
           rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
