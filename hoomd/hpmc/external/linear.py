@@ -22,7 +22,7 @@ class Linear(External):
 
     Args:
         default_alpha (float): Default value for alpha
-            :math:`[\\mathrm{energy} \\mathrm{length}^{-1}`
+            :math:`[\\mathrm{energy}] [\\mathrm{length}]^{-1}`
         plane_origin ([`float`, `float`, `float`]): A point on the plane of 0 energy.
         plane_normal ([`float`, `float`, `float`]): A vector perpendicular to the plane of 0 energy.
 
@@ -33,7 +33,7 @@ class Linear(External):
         U_{\\mathrm{external},i} = \\alpha_i \\cdot \\vec{n} \\cdot
             ( \\vec{r}_i - \\vec{p} )
 
-    where :math:`\\alpha_i`` (`alpha`) is the linear energy
+    where :math:`\\alpha_i` (`alpha`) is the linear energy
     coefficient , :math:`\\vec{n}` is the normal vector to the plane
     (`plane_normal`), and :math:`\\vec{p}` is the plane origin (`plane_origin`):
 
@@ -48,7 +48,7 @@ class Linear(External):
 
     .. py:attribute:: alpha
 
-        The linear energy coefficient :math:`\\alpha`` by particle type.
+        The linear energy coefficient :math:`\\alpha` by particle type.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`]

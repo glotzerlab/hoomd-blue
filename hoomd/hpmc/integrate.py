@@ -168,7 +168,9 @@ potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` and the
 
 Similarly, potential classes in :doc:`module-hpmc-external` evaluate
 :math:`U_{\mathrm{external},i}`. Assign a class instance to
-`HPMCIntegrator.external_potential` to apply it during integration.
+`external_potential <HPMCIntegrator.external_potential>` or add instances to
+`external_potentials <HPMCIntegrator.external_potentials>` to apply during
+integration.
 
 .. rubric:: Shape overlap tests
 
@@ -465,7 +467,7 @@ class HPMCIntegrator(Integrator):
                                     self._cpp_obj.pair_potentials)
 
         self._external_potentials._sync(self._simulation,
-                                    self._cpp_obj.external_potentials)
+                                        self._cpp_obj.external_potentials)
 
         super()._attach_hook()
 
@@ -496,7 +498,8 @@ class HPMCIntegrator(Integrator):
             lennard_jones.params[('A', 'A')] = dict(
                 epsilon=1, sigma=1, r_cut=2.5)
 
-        .. code-block: python
+        .. code-block:: python
+
             simulation.operations.integrator.pair_potentials = [lennard_jones]
         """
         return self._pair_potentials
@@ -514,11 +517,12 @@ class HPMCIntegrator(Integrator):
 
         .. invisible-code-block: python
 
-            gravity = hoomd.hpmc.external.Linear(plane_origin=(0, 0, 0), plane_normal=(0, 0, -1))
-            gravity.alpha['A'] = 1.234
+            linear = hoomd.hpmc.external.Linear(plane_origin=(0, 0, 0), plane_normal=(0, 0, -1))
+            linear.alpha['A'] = 1.234
 
-        .. code-block python
-            simulation.operations.integrator.external_potentials = [gravity]
+        .. code-block:: python
+
+            simulation.operations.integrator.external_potentials = [linear]
         """
         return self._external_potentials
 

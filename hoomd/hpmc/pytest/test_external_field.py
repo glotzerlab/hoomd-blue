@@ -74,6 +74,7 @@ def add_default_integrator():
 
 @pytest.mark.cpu
 class TestExternalPotentialHarmonic:
+
     def test_attaching(self, simulation_factory, two_particle_snapshot_factory,
                        add_default_integrator):
         # create simulation & attach objects
@@ -86,7 +87,6 @@ class TestExternalPotentialHarmonic:
         # make sure objecst are attached
         assert mc._attached
         assert lattice._attached
-
 
     def test_detaching(self, simulation_factory, two_particle_snapshot_factory,
                        add_default_integrator):
@@ -101,7 +101,6 @@ class TestExternalPotentialHarmonic:
         sim.operations.remove(mc)
         assert not mc._attached
         assert not lattice._attached
-
 
     def test_harmonic_displacement_energy(self, simulation_factory,
                                           two_particle_snapshot_factory,
@@ -119,15 +118,17 @@ class TestExternalPotentialHarmonic:
         # run and check energy
         sim.run(0)
         k_translational = lattice.k_translational(sim.timestep)
-        assert np.allclose(lattice.energy,
-                           0.5 * dx**2 * k_translational * sim.state.N_particles)
+        assert np.allclose(
+            lattice.energy,
+            0.5 * dx**2 * k_translational * sim.state.N_particles)
 
         # make some moves and make sure the different energies are not zero
         sim.run(10)
         assert lattice.energy_rotational != 0.0
         assert lattice.energy_translational != 0.0
-        assert np.allclose(lattice.energy,
-                           lattice.energy_translational + lattice.energy_rotational)
+        assert np.allclose(
+            lattice.energy,
+            lattice.energy_translational + lattice.energy_rotational)
 
         # set k_rotational to zero and ensure the rotational energy is zero
         lattice.k_rotational = 0
@@ -136,7 +137,6 @@ class TestExternalPotentialHarmonic:
         # set k_translational to zero and ensure the translational energy is zero
         lattice.k_translational = 0
         assert lattice.energy_translational == 0.0
-
 
     def test_harmonic_displacement(self, simulation_factory,
                                    two_particle_snapshot_factory,
@@ -155,9 +155,9 @@ class TestExternalPotentialHarmonic:
         snapshot = sim.state.get_snapshot()
         if snapshot.communicator.rank == 0:
             new_positions = snapshot.particles.position
-            dx = np.linalg.norm(new_positions - lattice.reference_positions, axis=1)
+            dx = np.linalg.norm(new_positions - lattice.reference_positions,
+                                axis=1)
             assert np.all(np.less(dx, particle_diameter / 2))
-
 
 
 @pytest.mark.cpu
@@ -166,7 +166,6 @@ class TestExternalPotentialLinear:
     def test_valid_construction_linearfield(self, device):
         """Test that Linear can be constructed with valid arguments."""
         field = hoomd.hpmc.external.Linear(default_alpha=1.0)
-
 
     def test_attaching(self, simulation_factory, two_particle_snapshot_factory,
                        add_default_integrator):
@@ -195,7 +194,8 @@ class TestExternalPotentialLinear:
         assert not mc._attached
         assert not lattice._attached
 
-    def test_energy(self, simulation_factory, two_particle_snapshot_factory, add_default_integrator):
+    def test_energy(self, simulation_factory, two_particle_snapshot_factory,
+                    add_default_integrator):
         """Verify energy is what it should be with known particle positions"""
         sim = simulation_factory(two_particle_snapshot_factory(d=1.0))
         mc, field = add_default_integrator(sim, 'linear')
@@ -212,23 +212,26 @@ class TestExternalPotentialLinear:
         pos = sim.state.get_snapshot().particles.position
         total_energy = 0.0
         for _r in pos:
-            total_energy += np.dot(_r - field.plane_origin, field.plane_normal) * field.alpha['A']
+            total_energy += np.dot(_r - field.plane_origin,
+                                   field.plane_normal) * field.alpha['A']
         assert field.energy == pytest.approx(total_energy)
         assert field.energy == pytest.approx(mc.external_energy)
 
-        field2 = hoomd.hpmc.external.Linear(
-            default_alpha=2.345, plane_origin=(0.1, 0.2, 0.3),
-            plane_normal=(-0.2, 5, -2))
+        field2 = hoomd.hpmc.external.Linear(default_alpha=2.345,
+                                            plane_origin=(0.1, 0.2, 0.3),
+                                            plane_normal=(-0.2, 5, -2))
         mc.external_potentials.append(field2)
         field2_reference_energy = 0
         for _r in pos:
             field2_reference_energy += np.dot(
-                _r - field2.plane_origin, field2.plane_normal) * field2.alpha['A']
+                _r - field2.plane_origin,
+                field2.plane_normal) * field2.alpha['A']
         assert field2_reference_energy == pytest.approx(field2.energy)
         assert field.energy + field2.energy == pytest.approx(mc.external_energy)
 
-    def test_normalization_of_plane_normal(self, simulation_factory, two_particle_snapshot_factory,
-                       add_default_integrator):
+    def test_normalization_of_plane_normal(self, simulation_factory,
+                                           two_particle_snapshot_factory,
+                                           add_default_integrator):
         # create simulation & attach objects
         sim = simulation_factory(two_particle_snapshot_factory())
         mc, field = add_default_integrator(sim, 'linear')
@@ -238,4 +241,5 @@ class TestExternalPotentialLinear:
         # create C++ mirror classes and set parameters
         assert field.plane_normal == (1, 2, 3)
         sim.run(0)
-        np.testing.assert_allclose(np.array(field.plane_normal) * magnitude, (1, 2, 3))
+        np.testing.assert_allclose(
+            np.array(field.plane_normal) * magnitude, (1, 2, 3))

@@ -38,7 +38,9 @@ static void setPlaneOrigin(std::shared_ptr<ExternalPotentialLinear> field, pybin
         {
         throw std::length_error("Plane origin must have length 3");
         }
-    vec3<LongReal> new_origin(origin[0].cast<LongReal>(), origin[1].cast<LongReal>(), origin[2].cast<LongReal>());
+    vec3<LongReal> new_origin(origin[0].cast<LongReal>(),
+                              origin[1].cast<LongReal>(),
+                              origin[2].cast<LongReal>());
     field->setPlaneOrigin(new_origin);
     }
 
@@ -54,7 +56,9 @@ static void setPlaneNormal(std::shared_ptr<ExternalPotentialLinear> field, pybin
         {
         throw std::length_error("Plane normal must have length 3");
         }
-    vec3<LongReal> new_normal(normal[0].cast<LongReal>(), normal[1].cast<LongReal>(), normal[2].cast<LongReal>());
+    vec3<LongReal> new_normal(normal[0].cast<LongReal>(),
+                              normal[1].cast<LongReal>(),
+                              normal[2].cast<LongReal>());
     field->setPlaneNormal(new_normal);
     }
 
