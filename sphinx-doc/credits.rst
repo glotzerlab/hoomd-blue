@@ -65,6 +65,7 @@ The following people have contributed to HOOMD-blue:
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan
+* Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan
 * Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
