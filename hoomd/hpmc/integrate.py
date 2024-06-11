@@ -490,6 +490,10 @@ class HPMCIntegrator(Integrator):
     def pair_potentials(self):
         """list[hoomd.hpmc.pair.Pair]: Pair potentials to apply.
 
+        Defines the pairwise particle interaction energy
+        :math:`U_{\\mathrm{pair},ij}` as the sum over all potentials in the
+        list.
+
         .. rubric:: Example
 
         .. invisible-code-block: python
@@ -513,11 +517,16 @@ class HPMCIntegrator(Integrator):
     def external_potentials(self):
         """list[hoomd.hpmc.external.External]: External potentials to apply.
 
+        Defines the external energy :math:`U_{\\mathrm{external},i}` as the
+        sum over all potentials in the list.
+
         .. rubric:: Example
 
         .. invisible-code-block: python
 
-            linear = hoomd.hpmc.external.Linear(plane_origin=(0, 0, 0), plane_normal=(0, 0, -1))
+            linear = hoomd.hpmc.external.Linear(
+                plane_origin=(0, 0, 0),
+                plane_normal=(0, 0, -1))
             linear.alpha['A'] = 1.234
 
         .. code-block:: python
@@ -613,6 +622,10 @@ class HPMCIntegrator(Integrator):
         Defines the pairwise particle interaction energy
         :math:`U_{\mathrm{pair},ij}`. Defaults to `None`. May be set to an
         object from :doc:`module-hpmc-pair`.
+
+        .. deprecated:: 4.5.0
+
+            Use `pair_potentials`.
         """
         warnings.warn(
             "pair_potential is deprecated since 4.5.0. "
@@ -645,11 +658,25 @@ class HPMCIntegrator(Integrator):
 
         Defines the external energy :math:`U_{\mathrm{external},i}`. Defaults to
         `None`. May be set to an object from :doc:`module-hpmc-external`.
+
+        .. deprecated:: 4.8.0
+
+            Use `external_potentials`.
         """
+        warnings.warn(
+            "external_potential is deprecated since 4.8.0. "
+            "Use external_potentials (when possible).",
+            FutureWarning,
+            stacklevel=2)
         return self._external_potential
 
     @external_potential.setter
     def external_potential(self, new_external_potential):
+        warnings.warn(
+            "external_potential is deprecated since 4.8.0. "
+            "Use external_potentials (when possible).",
+            FutureWarning,
+            stacklevel=4)
         if not isinstance(new_external_potential,
                           hoomd.hpmc.external.field.ExternalField):
             msg = 'External potentials should be an instance of '
@@ -809,6 +836,7 @@ class ConvexPolygon(HPMCIntegrator):
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
+
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
@@ -827,9 +855,9 @@ class ConvexPolygon(HPMCIntegrator):
               present because `ConvexPolygon` shares data structures with
               `ConvexSpheropolygon` :math:`[\\mathrm{length}]`.
 
-          Warning:
-              HPMC does not check that all vertex requirements are met.
-              Undefined behavior **will result** when they are violated.
+            Warning:
+                HPMC does not check that all vertex requirements are met.
+                Undefined behavior **will result** when they are violated.
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
@@ -1020,6 +1048,7 @@ class SimplePolygon(HPMCIntegrator):
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
+
             The shape parameters for each particle type. The dictionary has the
             following keys:
 

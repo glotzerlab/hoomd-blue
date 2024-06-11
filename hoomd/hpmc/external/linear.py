@@ -23,10 +23,13 @@ class Linear(External):
     Args:
         default_alpha (float): Default value for alpha
             :math:`[\\mathrm{energy}] [\\mathrm{length}]^{-1}`
-        plane_origin ([`float`, `float`, `float`]): A point on the plane of 0 energy.
-        plane_normal ([`float`, `float`, `float`]): A vector perpendicular to the plane of 0 energy.
+        plane_origin ([`float`, `float`, `float`]): A point on the plane of 0
+            energy.
+        plane_normal ([`float`, `float`, `float`]): A vector perpendicular to
+            the plane of 0 energy.
 
-    `Linear` computes a linear external potential on all particles in the simulation state:
+    `Linear` computes a linear external potential on all particles in the
+    simulation state:
 
     .. math::
 
@@ -61,7 +64,8 @@ class Linear(External):
 
     .. py:attribute:: plane_normal
 
-        A unit length vector perpendicular to the plane where the energy is zero.
+        A unit length vector perpendicular to the plane where the energy is
+        zero.
 
         Type: (`float`, `float`, `float`)
     """

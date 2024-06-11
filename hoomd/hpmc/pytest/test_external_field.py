@@ -134,7 +134,8 @@ class TestExternalPotentialHarmonic:
         lattice.k_rotational = 0
         assert lattice.energy_rotational == 0.0
 
-        # set k_translational to zero and ensure the translational energy is zero
+        # set k_translational to zero and ensure the translational energy is
+        # zero
         lattice.k_translational = 0
         assert lattice.energy_translational == 0.0
 
@@ -150,7 +151,8 @@ class TestExternalPotentialHarmonic:
         k_trans = 100.0
         lattice.k_translational = k_trans
 
-        # run and check that particles haven't moved farther than half a diameter
+        # run and check that particles haven't moved farther than half a
+        # diameter
         sim.run(100)
         snapshot = sim.state.get_snapshot()
         if snapshot.communicator.rank == 0:
@@ -165,7 +167,7 @@ class TestExternalPotentialLinear:
 
     def test_valid_construction_linearfield(self, device):
         """Test that Linear can be constructed with valid arguments."""
-        field = hoomd.hpmc.external.Linear(default_alpha=1.0)
+        hoomd.hpmc.external.Linear(default_alpha=1.0)
 
     def test_attaching(self, simulation_factory, two_particle_snapshot_factory,
                        add_default_integrator):
@@ -196,7 +198,7 @@ class TestExternalPotentialLinear:
 
     def test_energy(self, simulation_factory, two_particle_snapshot_factory,
                     add_default_integrator):
-        """Verify energy is what it should be with known particle positions"""
+        """Verify energy is what it should be with known particle positions."""
         sim = simulation_factory(two_particle_snapshot_factory(d=1.0))
         mc, field = add_default_integrator(sim, 'linear')
         field.plane_normal = (1, 0, 0)
