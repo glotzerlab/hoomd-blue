@@ -88,6 +88,5 @@ class Linear(External):
                                                                   float),
                                                     plane_normal=(float, float,
                                                                   float)))
-
         self.plane_origin = plane_origin
         self.plane_normal = plane_normal

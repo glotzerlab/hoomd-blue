@@ -78,4 +78,4 @@ class External(hoomd.operation._HOOMDBaseObject):
             logger.add(obj=external, quantities=['energy'])
         """
         timestep = self._simulation.timestep
-        return self._cpp_obj.totalEnergy(timestep)
+        return self._cpp_obj.totalEnergy(False)
