@@ -1010,15 +1010,15 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator(),
                              &stat);
-                    char s[n];
-                    MPI_Recv(s,
+                    std::vector<char> s(n);
+                    MPI_Recv(s.data(),
                              n,
                              MPI_CHAR,
                              m_gibbs_other,
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator(),
                              &stat);
-                    type_name = std::string(s);
+                    type_name = std::string(s.data());
 
                     // resolve type name
                     type = m_pdata->getTypeByName(type_name);
@@ -1245,9 +1245,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              m_gibbs_other,
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator());
-                    char s[n];
-                    memcpy(s, type_name.c_str(), n);
-                    MPI_Send(s,
+                    std::vector<char> s(n);
+                    memcpy(s.data(), type_name.c_str(), n);
+                    MPI_Send(s.data(),
                              n,
                              MPI_CHAR,
                              m_gibbs_other,

@@ -564,12 +564,12 @@ void LoadBalancer::computeOwnedParticles()
         }
     countParticlesOffRank(cnts);
 
-    MPI_Request req[2 * m_comm->getNUniqueNeighbors()];
-    MPI_Status stat[2 * m_comm->getNUniqueNeighbors()];
+    std::vector<MPI_Request> req(2 * m_comm->getNUniqueNeighbors());
+    std::vector<MPI_Status> stat(2 * m_comm->getNUniqueNeighbors());
     unsigned int nreq = 0;
 
-    unsigned int n_send_ptls[m_comm->getNUniqueNeighbors()];
-    unsigned int n_recv_ptls[m_comm->getNUniqueNeighbors()];
+    std::vector<unsigned int> n_send_ptls(m_comm->getNUniqueNeighbors());
+    std::vector<unsigned int> n_recv_ptls(m_comm->getNUniqueNeighbors());
     for (unsigned int cur_neigh = 0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
         {
         unsigned int neigh_rank = h_unique_neigh.data[cur_neigh];
@@ -590,7 +590,7 @@ void LoadBalancer::computeOwnedParticles()
                   m_mpi_comm,
                   &req[nreq++]);
         }
-    MPI_Waitall(nreq, req, stat);
+    MPI_Waitall(nreq, req.data(), stat.data());
 
     // reduce the particles sent to me
     int N_own = m_pdata->getN();
