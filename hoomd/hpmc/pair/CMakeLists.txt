@@ -1,5 +1,6 @@
 set(files __init__.py
         lennard_jones.py
+        expanded_gaussian.py
         pair.py
         step.py
         union.py
