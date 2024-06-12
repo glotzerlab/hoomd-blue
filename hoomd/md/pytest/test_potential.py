@@ -319,7 +319,7 @@ def _invalid_params():
 
     ljgauss_valid_dict = {'r0': 1.8, 'epsilon': 2.0, 'sigma': 0.02}
     ljgauss_invalid_dicts = _make_invalid_param_dict(ljgauss_valid_dict)
-    ljgauss_invalid_dicts.append({'r0': 1.8, 'epsilon': 0, 'sigma': 0.02})
+    ljgauss_invalid_dicts.append({'r0': 1.8, 'epsilon': 0.2, 'sigma': 0})
     invalid_params_list.extend(
         _make_invalid_params(ljgauss_invalid_dicts, hoomd.md.pair.LJGauss, {}))
     table_valid_dict = {
