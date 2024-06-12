@@ -17,7 +17,8 @@ class ExternalPotentialLinear : public ExternalPotential
     {
     public:
     ExternalPotentialLinear(std::shared_ptr<SystemDefinition> sysdef)
-        : ExternalPotential(sysdef), m_plane_origin(0, 1, 0), m_plane_normal(0, 0, 0), m_alpha(sysdef->getParticleData()->getNTypes())
+        : ExternalPotential(sysdef), m_plane_origin(0, 1, 0), m_plane_normal(0, 0, 0),
+          m_alpha(sysdef->getParticleData()->getNTypes())
         {
         }
     virtual ~ExternalPotentialLinear() { }
