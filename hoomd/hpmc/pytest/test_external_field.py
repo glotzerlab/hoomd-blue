@@ -211,25 +211,28 @@ class TestExternalPotentialLinear:
         with sim.state.cpu_local_snapshot as snap:
             x0 = snap.particles.position[snap.particles.rtag[0]][0]
             snap.particles.position[snap.particles.rtag[1]][0] = 2 * x0
-        pos = sim.state.get_snapshot().particles.position
-        total_energy = 0.0
-        for _r in pos:
-            total_energy += np.dot(_r - field.plane_origin,
-                                   field.plane_normal) * field.alpha['A']
-        assert field.energy == pytest.approx(total_energy)
-        assert field.energy == pytest.approx(mc.external_energy)
+
+        snapshot = sim.state.get_snapshot()
+        if sim.device.communicator.rank == 0:
+            total_energy = 0.0
+            for r in snapshot.particles.position:
+                total_energy += np.dot(r - field.plane_origin,
+                                       field.plane_normal) * field.alpha['A']
+            assert field.energy == pytest.approx(total_energy)
+            assert field.energy == pytest.approx(mc.external_energy)
 
         field2 = hoomd.hpmc.external.Linear(default_alpha=2.345,
                                             plane_origin=(0.1, 0.2, 0.3),
                                             plane_normal=(-0.2, 5, -2))
         mc.external_potentials.append(field2)
         field2_reference_energy = 0
-        for _r in pos:
-            field2_reference_energy += np.dot(
-                _r - field2.plane_origin,
-                field2.plane_normal) * field2.alpha['A']
-        assert field2_reference_energy == pytest.approx(field2.energy)
-        assert field.energy + field2.energy == pytest.approx(mc.external_energy)
+        if sim.device.communicator.rank == 0:
+            for r in snapshot.particles.position:
+                field2_reference_energy += np.dot(
+                    r - field2.plane_origin,
+                    field2.plane_normal) * field2.alpha['A']
+            assert field2_reference_energy == pytest.approx(field2.energy)
+            assert field.energy + field2.energy == pytest.approx(mc.external_energy)
 
     def test_normalization_of_plane_normal(self, simulation_factory,
                                            two_particle_snapshot_factory,
