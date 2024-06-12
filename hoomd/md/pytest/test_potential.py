@@ -193,8 +193,11 @@ def _invalid_params():
     }
     expanded_gaussian_invalid_dicts = _make_invalid_param_dict(
         expanded_gaussian_valid_dict)
-    expanded_gaussian_invalid_dicts.append({'sigma': 0, 'epsilon': 0.05,
-                                            'delta': 0.1})
+    expanded_gaussian_invalid_dicts.append({
+        'sigma': 0,
+        'epsilon': 0.05,
+        'delta': 0.1
+    })
     invalid_params_list.extend(
         _make_invalid_params(expanded_gaussian_invalid_dicts,
                              md.pair.ExpandedGaussian, {}))
