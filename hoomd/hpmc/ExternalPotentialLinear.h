@@ -17,10 +17,8 @@ class ExternalPotentialLinear : public ExternalPotential
     {
     public:
     ExternalPotentialLinear(std::shared_ptr<SystemDefinition> sysdef)
-        : ExternalPotential(sysdef), m_alpha(sysdef->getParticleData()->getNTypes())
+        : ExternalPotential(sysdef), m_plane_origin(0, 1, 0), m_plane_normal(0, 0, 0), m_alpha(sysdef->getParticleData()->getNTypes())
         {
-        m_plane_origin = vec3<LongReal>(0, 0, 0);
-        m_plane_normal = vec3<LongReal>(0, 1, 0);
         }
     virtual ~ExternalPotentialLinear() { }
 
@@ -68,7 +66,7 @@ class ExternalPotentialLinear : public ExternalPotential
         @param type_i Type index of the particle.
         @param r_i Posiion of the particle in the box.
         @param q_i Orientation of the particle
-        @param charge Charge of the particle.
+        @param charge_i Charge of the particle.
         @param trial Set to false when evaluating the energy of a current configuration. Set to
                true when evaluating a trial move.
         @returns Energy of the external interaction (possibly INFINITY).

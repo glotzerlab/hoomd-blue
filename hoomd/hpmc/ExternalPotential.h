@@ -30,7 +30,7 @@ class ExternalPotential
         @param type_i Type index of the particle.
         @param r_i Posiion of the particle in the box (un-shifted local particle).
         @param q_i Orientation of the particle
-        @param charge Charge of the particle.
+        @param charge_i Charge of the particle.
         @param trial Set to false when evaluating the energy of a current configuration. Set to
                true when evaluating a trial move.
         @returns Energy of the external interaction (possibly INFINITY).
@@ -66,7 +66,7 @@ class ExternalPotential
         @param type_i Type index of the particle.
         @param r_i Posiion of the particle in the box.
         @param q_i Orientation of the particle
-        @param charge Charge of the particle.
+        @param charge_i Charge of the particle.
         @param trial Set to false when evaluating the energy of a current configuration. Set to
                true when evaluating a trial move.
         @returns Energy of the external interaction (possibly INFINITY).
