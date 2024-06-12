@@ -277,6 +277,10 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
+
+    pybind11::bind_vector<std::vector<std::shared_ptr<ExternalPotential>>>(m,
+                                                                           "ExternalPotentialList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");
     }
 
     } // end namespace detail
