@@ -11,6 +11,7 @@
 
 // clang-format off
 #include "hoomd/mpcd/@_force@.h"
+#include "hoomd/mpcd/BulkStreamingMethod.h"
 #include "hoomd/mpcd/BulkStreamingMethodGPU.h"
 
 #define FORCE_CLASS @_force@
@@ -20,6 +21,10 @@ namespace hoomd
     {
 namespace mpcd
     {
+
+// Use CPU class from another compilation unit
+extern template class BulkStreamingMethod<FORCE_CLASS>;
+
 namespace detail
     {
 template void export_BulkStreamingMethodGPU<FORCE_CLASS>(pybind11::module& m);

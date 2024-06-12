@@ -22,6 +22,10 @@ namespace hoomd
     {
 namespace mpcd
     {
+
+// Use CPU class from another compilation unit
+extern template class BounceBackStreamingMethod<GEOMETRY_CLASS, FORCE_CLASS>;
+
 namespace detail
     {
 template void export_BounceBackStreamingMethodGPU<GEOMETRY_CLASS, FORCE_CLASS>(pybind11::module& m);

@@ -165,6 +165,30 @@ foreach(_force ${_forces})
     endforeach()
 endforeach()
 
+# BounceBackNVE for the different geometries (no force involved)
+foreach(_geometry ${_geometries})
+    configure_file(
+        BounceBackNVE.cc.inc
+        BounceBackNVE${_geometry}.cc
+        @ONLY
+        )
+    list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}.cc)
+    if(ENABLE_HIP)
+        configure_file(
+            BounceBackNVEGPU.cc.inc
+            BounceBackNVE${_geometry}GPU.cc
+            @ONLY
+        )
+        configure_file(
+            BounceBackNVEGPU.cu.inc
+            BounceBackNVE${_geometry}GPU.cu
+            @ONLY
+        )
+        list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}GPU.cc)
+        list(APPEND _mpcd_cu_sources BounceBackNVE${_geometry}GPU.cu)
+    endif()
+endforeach()
+
 if(ENABLE_HIP)
     set_source_files_properties(${_mpcd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
