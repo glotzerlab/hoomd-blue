@@ -208,11 +208,12 @@ class TestExternalPotentialLinear:
         sim.run(0)
 
         # move one particle to break symmetry and give non-zero energy
-        with sim.state.cpu_local_snapshot as snap:
-            x0 = snap.particles.position[snap.particles.rtag[0]][0]
-            snap.particles.position[snap.particles.rtag[1]][0] = 2 * x0
-
         snapshot = sim.state.get_snapshot()
+        if sim.device.communicator.rank == 0:
+            x0 = snapshot.particles.position[0][0]
+            snapshot.particles.position[1][0] = 2 * x0
+        sim.state.set_snapshot(snapshot)
+
         if sim.device.communicator.rank == 0:
             total_energy = 0.0
             for r in snapshot.particles.position:
