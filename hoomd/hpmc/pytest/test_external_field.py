@@ -261,3 +261,41 @@ class TestExternalPotentialLinear:
         sim.run(0)
         np.testing.assert_allclose(
             np.array(field.plane_normal) * magnitude, (1, 2, 3))
+
+    def test_z_bias(device, simulation_factory, lattice_snapshot_factory):
+        """Test that a biasing potential restrains particles to a specified region.
+
+        This test simulates a system of particles with a linear potential that
+        biases their z-coordinates to more negative values.
+
+        """
+        sim = simulation_factory(lattice_snapshot_factory(a=1.1, n=5))
+        mc = hoomd.hpmc.integrate.Sphere(default_d=0.01)
+        mc.shape['A'] = dict(diameter=1)
+        mc.nselect = 1
+
+        # expand box and add external field
+        old_box = sim.state.box
+        new_box = hoomd.Box(Lx=3 * old_box.Lx, Ly=3 * old_box.Ly, Lz=3 * old_box.Lz)
+        sim.state.set_box(new_box)
+        ext = hoomd.hpmc.external.Linear(
+            default_alpha=1000, plane_origin=(0, 0, 0), plane_normal=(0, 0, 1))
+        mc.external_potentials = [ext]
+        sim.operations.integrator = mc
+
+        snapshot = sim.state.get_snapshot()
+        if snapshot.communicator.rank == 0:
+            old_mean_z = np.mean(snapshot.particles.position[:, 2])
+        sim.run(0)
+        old_energy = ext.energy
+
+        for n in range(10):
+            sim.run(1e3)
+            snapshot = sim.state.get_snapshot()
+            if snapshot.communicator.rank == 0:
+                new_mean_z = np.mean(snapshot.particles.position[:, 2])
+                assert (new_mean_z < old_mean_z)
+                old_mean_z = new_mean_z
+            new_energy = ext.energy
+            assert new_energy < old_energy
+            old_energy = new_energy
