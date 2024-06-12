@@ -219,9 +219,15 @@ class TestExternalPotentialLinear:
             for r in snapshot.particles.position:
                 total_energy += np.dot(r - field.plane_origin,
                                        field.plane_normal) * field.alpha['A']
-            assert field.energy == pytest.approx(total_energy)
-            assert field.energy == pytest.approx(mc.external_energy)
 
+        field_energy = field.energy
+        mc_external_energy = mc.external_energy
+
+        if sim.device.communicator.rank == 0:
+            assert field_energy == pytest.approx(total_energy)
+            assert field_energy == pytest.approx(mc_external_energy)
+
+        # Test that HPMCIntegrator correctly handles multiple fields.
         field2 = hoomd.hpmc.external.Linear(default_alpha=2.345,
                                             plane_origin=(0.1, 0.2, 0.3),
                                             plane_normal=(-0.2, 5, -2))
@@ -232,9 +238,14 @@ class TestExternalPotentialLinear:
                 field2_reference_energy += np.dot(
                     r - field2.plane_origin,
                     field2.plane_normal) * field2.alpha['A']
-            assert field2_reference_energy == pytest.approx(field2.energy)
-            assert field.energy + field2.energy == pytest.approx(
-                mc.external_energy)
+
+        field2_energy = field2.energy
+        mc_external_energy = mc.external_energy
+
+        if sim.device.communicator.rank == 0:
+            assert field2_energy == pytest.approx(field2_reference_energy)
+            assert field_energy + field2_energy == pytest.approx(
+                mc_external_energy)
 
     def test_normalization_of_plane_normal(self, simulation_factory,
                                            two_particle_snapshot_factory,
