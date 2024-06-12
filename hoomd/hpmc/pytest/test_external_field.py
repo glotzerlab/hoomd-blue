@@ -232,7 +232,8 @@ class TestExternalPotentialLinear:
                     r - field2.plane_origin,
                     field2.plane_normal) * field2.alpha['A']
             assert field2_reference_energy == pytest.approx(field2.energy)
-            assert field.energy + field2.energy == pytest.approx(mc.external_energy)
+            assert field.energy + field2.energy == pytest.approx(
+                mc.external_energy)
 
     def test_normalization_of_plane_normal(self, simulation_factory,
                                            two_particle_snapshot_factory,
