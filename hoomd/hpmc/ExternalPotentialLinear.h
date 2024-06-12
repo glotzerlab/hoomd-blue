@@ -37,6 +37,10 @@ class ExternalPotentialLinear : public ExternalPotential
     /// Set the normal of the potential.
     void setPlaneNormal(const vec3<LongReal>& plane_normal)
         {
+        if (dot(plane_normal, plane_normal) == 0)
+            {
+            throw std::domain_error("plane_normal must have a nonzero magnitude.");
+            }
         m_plane_normal = normalize(plane_normal);
         }
 
