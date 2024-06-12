@@ -1868,6 +1868,8 @@ class LJGauss(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=positive_real,
-                              r0=float, len_keys=2))
+            TypeParameterDict(epsilon=float, 
+                              sigma=positive_real,
+                              r0=float, 
+                              len_keys=2))
         self._add_typeparam(params)
