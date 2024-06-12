@@ -13,11 +13,12 @@ set(_mpcd_cc_sources
     Communicator.cc
     Integrator.cc
     ManualVirtualParticleFiller.cc
+    ParallelPlateGeometry.cc
     ParallelPlateGeometryFiller.cc
+    PlanarPoreGeometry.cc
     PlanarPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
-    StreamingGeometry.cc
     StreamingMethod.cc
     VirtualParticleFiller.cc
     )
@@ -45,7 +46,6 @@ set(_mpcd_headers
     PlanarPoreGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
-    StreamingGeometry.h
     StreamingMethod.h
     VirtualParticleFiller.h
     )

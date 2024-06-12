@@ -16,6 +16,7 @@
 
 #define GEOMETRY_CLASS @_geometry@
 #define FORCE_CLASS @_force@
+#define EXPORT_FUNCTION export_BounceBackStreamingMethod@_geometry@@_force@
 // clang-format on
 
 namespace hoomd
@@ -24,7 +25,10 @@ namespace mpcd
     {
 namespace detail
     {
-template void export_BounceBackStreamingMethod<GEOMETRY_CLASS, FORCE_CLASS>(pybind11::module& m);
+void EXPORT_FUNCTION(pybind11::module& m)
+    {
+    export_BounceBackStreamingMethod<GEOMETRY_CLASS, FORCE_CLASS>(m);
+    }
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

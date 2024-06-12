@@ -575,15 +575,20 @@ void mpcd::CellThermoCompute::reallocate(unsigned int ncells)
     m_ncells_alloc = ncells;
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
- * \param m Python module
+ * \param m Python module to export to
  */
-void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
+void export_CellThermoCompute(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute>>(
         m,
         "CellThermoCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::CellList>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

@@ -14,6 +14,7 @@
 #include "hoomd/mpcd/BounceBackNVEGPU.h"
 
 #define GEOMETRY_CLASS @_geometry@
+#define EXPORT_FUNCTION export_BounceBackNVE@_geometry@GPU
 // clang-format on
 
 namespace hoomd
@@ -26,7 +27,10 @@ extern template class BounceBackNVE<GEOMETRY_CLASS>;
 
 namespace detail
     {
-template void export_BounceBackNVEGPU<GEOMETRY_CLASS>(pybind11::module& m);
+void EXPORT_FUNCTION(pybind11::module& m)
+    {
+    export_BounceBackNVEGPU<GEOMETRY_CLASS>(m);
+    }
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

@@ -8,7 +8,6 @@
  */
 
 #include "BounceBackNVEGPU.cuh"
-#include "StreamingGeometry.h"
 
 namespace hoomd
     {

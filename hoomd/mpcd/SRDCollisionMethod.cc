@@ -277,10 +277,14 @@ void mpcd::SRDCollisionMethod::detachCallbacks()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
+void export_SRDCollisionMethod(pybind11::module& m)
     {
     pybind11::class_<mpcd::SRDCollisionMethod,
                      mpcd::CollisionMethod,
@@ -294,5 +298,6 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
                       &mpcd::SRDCollisionMethod::getTemperature,
                       &mpcd::SRDCollisionMethod::setTemperature);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

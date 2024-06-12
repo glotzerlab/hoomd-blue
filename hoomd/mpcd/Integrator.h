@@ -153,12 +153,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     //! Synchronize cell list to integrator dependencies
     void syncCellList();
     };
-
-namespace detail
-    {
-//! Exports the mpcd::Integrator to python
-void export_Integrator(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_INTEGRATOR_H_

@@ -14,6 +14,7 @@
 #include "hoomd/mpcd/BounceBackNVE.h"
 
 #define GEOMETRY_CLASS @_geometry@
+#define EXPORT_FUNCTION export_BounceBackNVE@_geometry@
 // clang-format on
 
 namespace hoomd
@@ -22,7 +23,10 @@ namespace mpcd
     {
 namespace detail
     {
-template void export_BounceBackNVE<GEOMETRY_CLASS>(pybind11::module& m);
+void EXPORT_FUNCTION(pybind11::module& m)
+    {
+    export_BounceBackNVE<GEOMETRY_CLASS>(m);
+    }
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

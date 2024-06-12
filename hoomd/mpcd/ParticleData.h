@@ -465,13 +465,6 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     void setupMPI(std::shared_ptr<DomainDecomposition> decomposition);
 #endif // ENABLE_MPI
     };
-
-namespace detail
-    {
-//! Export MPCD ParticleData to python
-void export_ParticleData(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_H_

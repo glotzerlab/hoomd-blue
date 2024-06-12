@@ -158,7 +158,11 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
+namespace mpcd
+    {
+namespace detail
+    {
+void export_ParticleDataSnapshot(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParticleDataSnapshot, std::shared_ptr<mpcd::ParticleDataSnapshot>>(
         m,
@@ -219,5 +223,6 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
             [](pybind11::object self) { return self.cast<ParticleDataSnapshot*>()->size; },
             &mpcd::ParticleDataSnapshot::resize);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd
