@@ -25,16 +25,18 @@ LongReal PairPotentialExpandedGaussian::energy(const LongReal r_squared,
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
 
-    LongReal r = fast::sqrt(r_squared); // Scalar or LongReal?
-    LongReal num = r - param.delta;
-    LongReal exponent = (LongReal(-0.5) * (num * num)) / param.sigma_2;
-    LongReal energy = param.epsilon * fast::exp(exponent);
+    LongReal r = fast::sqrt(r_squared);
+    LongReal rmd_2 = (r - param.delta) * (r - param.delta);
+    LongReal rmd_over_sigma_2 = rmd_2 / param.sigma_2;
+    LongReal exp_val = fast::exp(-LongReal(1.0) / LongReal(2.0) * rmd_over_sigma_2);
+    LongReal energy = param.epsilon * exp_val;
 
     if (m_mode == shift || (m_mode == xplor && param.r_on_squared >= param.r_cut_squared))
         {
-        LongReal num_r_cut = param.r_cut - param.delta;
-        LongReal exponent_r_cut = (LongReal(-0.5) * (num_r_cut * num_r_cut) / param.sigma_2);
-        energy -= param.epsilon * fast::exp(exponent_r_cut);
+        LongReal r_cut = fast::sqrt(param.r_cut_squared);
+        LongReal rcutmd_2 = (r_cut - param.delta) * (r_cut - param.delta);
+        LongReal rcutmd_over_sigma_2 = rcutmd_2 / param.sigma_2;
+        energy -= param.epsilon * fast::exp(-LongReal(1.0) / LongReal(2.0) * rcutmd_over_sigma_2);
         }
 
     if (m_mode == xplor && r_squared > param.r_on_squared)
