@@ -133,7 +133,7 @@ expanded_gauss_test_parameters = [
         dict(epsilon=5.0, sigma=1.1, delta=1.0, r_cut=6.0),
         'shift',
         1.5,
-        eg(1.5, 5, 1.1, 1.0) - eg(2, 5, 1.1, 1.0),
+        eg(1.5, 5, 1.1, 1.0) - eg(6.0, 5, 1.1, 1.0),
     ),
     (
         dict(epsilon=5.0, sigma=1.1, delta=1.0, r_cut=6.0, r_on=2.0),
