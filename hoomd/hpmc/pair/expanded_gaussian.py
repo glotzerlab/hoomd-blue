@@ -90,6 +90,7 @@ class ExpandedGaussian(Pair):
             hoomd.data.parameterdicts.TypeParameterDict(
                 epsilon=float,
                 sigma=float,
+                delta=float,
                 r_cut=default_r_cut,
                 r_on=float(default_r_on),
                 len_keys=2))
