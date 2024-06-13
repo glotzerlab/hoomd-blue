@@ -33,7 +33,7 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
     virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
         {
         unsigned int param_index = m_type_param_index(type_i, type_j);
-        return slow::sqrt(m_params[param_index].r_cut_squared);
+        return m_params[param_index].r_cut;
         }
 
     /// Set type pair dependent parameters to the potential.
@@ -92,8 +92,11 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
         {
         ParamType()
             {
-            sigma_6 = 0;
-            epsilon_x_4 = 0;
+            sigma_2 = 0;
+            epsilon = 0;
+            delta = 0;
+            r_cut = 0;
+            r_on = 0;
             r_cut_squared = 0;
             r_on_squared = 0;
             }
@@ -102,11 +105,15 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
             {
             auto sigma(v["sigma"].cast<LongReal>());
             auto epsilon(v["epsilon"].cast<LongReal>());
+            auto delta(v["delta"].cast<LongReal>());
             auto r_cut(v["r_cut"].cast<LongReal>());
             auto r_on(v["r_on"].cast<LongReal>());
 
-            sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
-            epsilon_x_4 = LongReal(4.0) * epsilon;
+            sigma_2 = sigma * sigma;
+            epsilon = epsilon;
+            delta = delta;
+            r_cut = r_cut;
+            r_on = r_on;
             r_cut_squared = r_cut * r_cut;
             r_on_squared = r_on * r_on;
             }
@@ -115,16 +122,20 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
             {
             pybind11::dict result;
 
-            result["sigma"] = pow(sigma_6, 1. / 6.);
-            result["epsilon"] = epsilon_x_4 / 4.0;
-            result["r_cut"] = slow::sqrt(r_cut_squared);
-            result["r_on"] = slow::sqrt(r_on_squared);
+            result["sigma"] = pow(sigma_2, 1. / 2.);
+            result["epsilon"] = epsilon;
+            result["delta"] = delta;
+            result["r_cut"] = r_cut;
+            result["r_on"] = r_on;
 
             return result;
             }
 
-        LongReal sigma_6;
-        LongReal epsilon_x_4;
+        LongReal sigma_2;
+        LongReal epsilon;
+        LongReal delta;
+        LongReal r_cut;
+        LongReal r_on;
         LongReal r_cut_squared;
         LongReal r_on_squared;
         };
