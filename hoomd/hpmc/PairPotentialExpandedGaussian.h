@@ -33,7 +33,7 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
     virtual LongReal computeRCutNonAdditive(unsigned int type_i, unsigned int type_j) const
         {
         unsigned int param_index = m_type_param_index(type_i, type_j);
-        return m_params[param_index].r_cut;
+        return slow::sqrt(m_params[param_index].r_cut_squared);
         }
 
     /// Set type pair dependent parameters to the potential.
@@ -125,8 +125,8 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
             result["sigma"] = pow(sigma_2, 1. / 2.);
             result["epsilon"] = epsilon;
             result["delta"] = delta;
-            result["r_cut"] = r_cut;
-            result["r_on"] = r_on;
+            result["r_cut"] = slow::sqrt(r_cut_squared);
+            result["r_on"] = slow::sqrt(r_on_squared);
 
             return result;
             }
@@ -134,8 +134,6 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
         LongReal sigma_2;
         LongReal epsilon;
         LongReal delta;
-        LongReal r_cut;
-        LongReal r_on;
         LongReal r_cut_squared;
         LongReal r_on_squared;
         };
