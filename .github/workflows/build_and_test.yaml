@@ -34,6 +34,10 @@ on:
         type: string
         required: false
 
+defaults:
+  run:
+    shell: bash
+
 env:
   # prevent deadlocked MPI tests from causing the job to cancel
   MPIEXEC_TIMEOUT: 3000
@@ -52,10 +56,6 @@ env:
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
 
-defaults:
-  run:
-    shell: bash -leo pipefail {0}
-
 jobs:
   build:
     runs-on: ${{ fromJson(inputs.build_runner) }}
@@ -67,7 +67,6 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
-      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -81,6 +80,14 @@ jobs:
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
         post-cleanup: all
+
+    - name: Configure conda environment variables
+      run: |
+        echo "$HOME/micromamba/envs/test/bin" >> $GITHUB_PATH
+        echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
+
+      # TODO: Combine ctest and pytest into one job? This saves some container download time and reduces the
+      # micromamba code setup dupliation.
 
     - name: Set Werror on recent compilers
       run: |
@@ -119,7 +126,7 @@ jobs:
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
 
     - name: Build
-      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0 -v
       working-directory: build
 
     - name: Configure plugins
@@ -168,7 +175,6 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
-      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -182,6 +188,11 @@ jobs:
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
         post-cleanup: environment
+
+    - name: Configure conda environment variables
+      run: |
+        echo "$HOME/micromamba/envs/test/bin" >> $GITHUB_PATH
+        echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
 
     - name: Download install
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
@@ -236,7 +247,6 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
-      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -251,12 +261,21 @@ jobs:
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
         post-cleanup: environment
 
+    - name: Configure conda environment variables
+      run: |
+        echo "$HOME/micromamba/envs/test/bin" >> $GITHUB_PATH
+        echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+
     - name: Download build
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
     - name: Untar build
       run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
+
+    # DEBUG
+    - run: ldd build/hoomd/test/test_utils
 
     - name: Run tests
       run: >-

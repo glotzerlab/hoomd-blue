@@ -30,12 +30,12 @@ jobs:
       config: ${{ join(matrix.config, '_') }}
       # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
       # TODO: test failure mode
-      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson('ubuntu-latest') || '["self-hosted","jetstream2","CPU"]' }}
-      build_image: glotzerlab/ci:${{ matrix.image }}
+      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson(matrix.image) || '["self-hosted","jetstream2","CPU"]' }}
+      build_image: ${{ needs.start_action_runners.outputs.active == '0' && '' || 'glotzerlab/ci:' }}${{ needs.start_action_runners.outputs.active == '0' && '' || matrix.image }}
 
       test_docker_options: ${{ matrix.test_docker_options }}
-      test_runner: ${{ matrix.test_runner == '' && toJson('ubuntu-latest') || toJson(matrix.test_runner) }}
-      test_image: glotzerlab/ci:${{ matrix.image }}
+      test_runner: ${{ matrix.test_runner == '' && toJson(matrix.image) || toJson(matrix.test_runner) }}
+      test_image: ${{ matrix.test_runner == '' && '' || 'glotzerlab/ci:' }}${{ matrix.test_runner == '' && '' || matrix.image }}
 
       # Default to false when unset
       validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
