@@ -3,19 +3,28 @@ name: Build and test
 on:
   workflow_call:
     inputs:
+      compiler_family:
+        type: string
+        required: true
+      compiler_version:
+        type: string
+        required: true
       config:
         type: string
         required: true
-      image:
+      build_runner:
         type: string
         required: true
-      build_runner:
+      build_image:
         type: string
         required: true
       python:
         type: string
         required: true
       test_runner:
+        type: string
+        required: true
+      test_image:
         type: string
         required: true
       test_docker_options:
@@ -51,7 +60,7 @@ jobs:
   build:
     runs-on: ${{ fromJson(inputs.build_runner) }}
     container:
-      image: ${{ inputs.image == '' && null || inputs.image }}
+      image: ${{ inputs.build_image == '' && null || inputs.build_image }}
 
     steps:
     - name: Clean workspace
@@ -73,6 +82,11 @@ jobs:
     - name: Set Werror on recent compilers
       run: |
         echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
+
+    - name: Set compiler
+      run: |
+        echo "CC=${{ inputs.compiler_family == 'gcc' && 'gcc' || 'clang' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+        echo "CXX=${{ inputs.compiler_family == 'gcc' && 'g++' || 'clang++' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
 
     - name: Configure
       run: |
@@ -143,7 +157,7 @@ jobs:
     needs: build
     runs-on: ${{ fromJson(inputs.test_runner) }}
     container:
-      image: ${{ inputs.image == '' && null || inputs.image }}
+      image: ${{ inputs.test_image == '' && null || inputs.test_image }}
       options: ${{ inputs.test_docker_options }} -e CUDA_VISIBLE_DEVICES
 
     steps:
@@ -208,7 +222,7 @@ jobs:
     needs: build
     runs-on: ${{ fromJson(inputs.test_runner) }}
     container:
-      image: ${{ inputs.image == '' && null || inputs.image }}
+      image: ${{ inputs.test_image == '' && null || inputs.test_image }}
       options: ${{ inputs.test_docker_options }} -e CUDA_VISIBLE_DEVICES
 
     steps:

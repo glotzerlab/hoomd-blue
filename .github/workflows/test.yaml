@@ -21,23 +21,21 @@ jobs:
     secrets: inherit
 
   typical:
-    name: "py${{ matrix.python }}_${{ join(matrix.config, '_') }}"
+    name: "${{ join(matrix.compiler) }}-py${{ matrix.python }}-${{ join(matrix.config, '-') }}"
     needs: start_action_runners
     uses: ./.github/workflows/build_and_test.yaml
     with:
+      compiler_family: ${{ matrix.compiler[0] }}
+      compiler_version: ${{ matrix.compiler[1] }}
       config: ${{ join(matrix.config, '_') }}
-      # image: glotzerlab/ci:2024.06.04-${{ matrix.config[0] }}
-      # # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
-      # build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson('ubuntu-latest') || '["self-hosted","jetstream2","CPU"]' }}
+      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
+      build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson(matrix.image) || '["self-hosted","jetstream2","CPU"]' }}
+      build_image: glotzerlab/ci:${{ needs.start_action_runners.outputs.active == '0' && '' || matrix.image }}
 
-      # TESTING: always build on GitHub provided runners for now
-      build_runner: ${{ toJson('ubuntu-24.04') }}
-      test_runner: ${{ toJson('ubuntu-24.04') }}
-      image: ''
-
-      # Default to ubuntu-latest when unset
-      # test_runner: ${{ matrix.test_runner == '' && toJson('ubuntu-latest') || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
+      test_runner: ${{ matrix.test_runner == '' && toJson(matrix.image) || toJson(matrix.test_runner) }}
+      test_image: ${{ matrix.test_runner == '' && '' || toJson(matrix.image) }}
+
       # Default to false when unset
       validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
       python: ${{ matrix.python }}
@@ -48,9 +46,11 @@ jobs:
         include:
         # TESTING: Limit test matrix
 
-        - config: [clang18, mpi, tbb]
+        - config: [mpi, tbb]
           python: "312"
+          compiler: [clang, 18]
           validate: 'true'
+          image: 'ubuntu-24.04'
 
         # - config: [gcc13_py312]
         #   validate: 'true'
@@ -69,8 +69,10 @@ jobs:
 
         # - config: [gcc14_py312, nohpmc]
 
-        - config: [gcc14, nomd, nohpmc]
+        - config: [nomd, nohpmc]
           python: "312"
+          compiler: [gcc, 14]
+          image: 'ubuntu-24.04'
 
         # - config: [cuda120_gcc11_py310, mpi, llvm, debug]
         #   test_runner: [self-hosted,GPU]
