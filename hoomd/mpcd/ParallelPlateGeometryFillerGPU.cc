@@ -65,10 +65,14 @@ void mpcd::ParallelPlateGeometryFillerGPU::drawParticles(uint64_t timestep)
     m_tuner->end();
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ParallelPlateGeometryFillerGPU(pybind11::module& m)
+void export_ParallelPlateGeometryFillerGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParallelPlateGeometryFillerGPU,
                      mpcd::ParallelPlateGeometryFiller,
@@ -81,5 +85,6 @@ void mpcd::detail::export_ParallelPlateGeometryFillerGPU(pybind11::module& m)
                             std::shared_ptr<Variant>,
                             std::shared_ptr<const mpcd::ParallelPlateGeometry>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

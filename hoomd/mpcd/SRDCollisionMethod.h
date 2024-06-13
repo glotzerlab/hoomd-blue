@@ -109,13 +109,6 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     //! Detach callback signals
     void detachCallbacks();
     };
-
-namespace detail
-    {
-//! Export SRDCollisionMethod to python
-void export_SRDCollisionMethod(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_H_

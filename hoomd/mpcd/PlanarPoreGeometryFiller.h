@@ -71,12 +71,6 @@ class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::ManualVirtualParti
         m_needs_recompute = true;
         }
     };
-
-namespace detail
-    {
-//! Export PlanarPoreGeometryFiller to python
-void export_PlanarPoreGeometryFiller(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_H_

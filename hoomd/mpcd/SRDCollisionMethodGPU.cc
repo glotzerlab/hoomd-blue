@@ -172,10 +172,14 @@ void mpcd::SRDCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
+void export_SRDCollisionMethodGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::SRDCollisionMethodGPU,
                      mpcd::SRDCollisionMethod,
@@ -184,5 +188,6 @@ void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
             pybind11::
                 init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, Scalar>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

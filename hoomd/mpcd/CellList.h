@@ -342,13 +342,6 @@ class PYBIND11_EXPORT CellList : public Compute
     void checkDomainBoundaries();
 #endif // ENABLE_MPI
     };
-
-namespace detail
-    {
-//! Export the CellList class to python
-void export_CellList(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_CELL_LIST_H_

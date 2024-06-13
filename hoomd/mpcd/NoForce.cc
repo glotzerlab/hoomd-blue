@@ -14,12 +14,10 @@ namespace mpcd
     {
 namespace detail
     {
-
 void export_NoForce(pybind11::module& m)
     {
     pybind11::class_<NoForce, std::shared_ptr<NoForce>>(m, "NoForce").def(pybind11::init<>());
     }
-
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

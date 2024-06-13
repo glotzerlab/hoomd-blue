@@ -39,12 +39,6 @@ class PYBIND11_EXPORT PlanarPoreGeometryFillerGPU : public mpcd::PlanarPoreGeome
     private:
     std::shared_ptr<hoomd::Autotuner<1>> m_tuner; //!< Autotuner for drawing particles
     };
-
-namespace detail
-    {
-//! Export PlanarPoreGeometryFillerGPU to python
-void export_PlanarPoreGeometryFillerGPU(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_H_
