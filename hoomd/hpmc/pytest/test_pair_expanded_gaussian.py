@@ -5,6 +5,7 @@
 
 import hoomd
 import pytest
+import math
 
 valid_constructor_args = [
     {},
@@ -78,9 +79,9 @@ def xplor_factor(r, r_on, r_cut):
     return 0
 
 
-def lj(r, r_cut, epsilon, sigma):
-    """Compute the lj energy."""
-    return 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
+def eg(r, epsilon, sigma, delta):
+    """Compute the eg energy."""
+    return epsilon * math.exp(-0.5*(((r-delta)/sigma)**2))
 
 
 # (pair params,
