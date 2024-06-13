@@ -32,7 +32,7 @@ env:
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
   # allow openmpi to oversubscribe cores
-  OMPI_MCA_rmaps_base_oversubscribe: 1
+  MPIRUN_OPTIONS: "--map-by :OVERSUBSCRIBE"
   # prevent errors from mis-configured openib systems
   OMPI_MCA_btl: "vader,self"
   # skip running the CPU tests in GPU builds
@@ -175,7 +175,7 @@ jobs:
 
     - name: Run pytest (mpi)
       if: ${{ contains(inputs.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun ${MPIRUN_OPTIONS} -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
 
     - name: Run pytest (serial without cupy)
       if: ${{ contains(inputs.config, 'cuda') }}
@@ -185,7 +185,7 @@ jobs:
 
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(inputs.config, 'cuda') && contains(inputs.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun ${MPIRUN_OPTIONS} -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -196,7 +196,7 @@ jobs:
 
     - name: Run pytest -m validate (mpi)
       if: ${{ contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun ${MPIRUN_OPTIONS} -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
     - name: Run howto guides (serial)
       if: ${{ contains(inputs.config, 'llvm') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}  # some examples require LLVM
