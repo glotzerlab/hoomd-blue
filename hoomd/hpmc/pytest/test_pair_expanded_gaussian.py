@@ -40,7 +40,10 @@ def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
 def test_attaching(mc_simulation_factory):
     """Test that ExpandedGaussian attaches."""
     expanded_gauss = hoomd.hpmc.pair.ExpandedGaussian()
-    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
+    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0, 
+                                             sigma=1.0, 
+                                             delta=1.0, 
+                                             r_cut=2.5)
 
     simulation = mc_simulation_factory()
     simulation.operations.integrator.pair_potentials = [expanded_gauss]
