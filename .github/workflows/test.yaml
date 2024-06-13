@@ -48,8 +48,9 @@ jobs:
         include:
         # TESTING: Limit test matrix
 
-        # - config: [clang18_py312, mpi, tbb]
-        #   validate: 'true'
+        - config: [clang18, mpi, tbb]
+          python: "312"
+          validate: 'true'
 
         # - config: [gcc13_py312]
         #   validate: 'true'
