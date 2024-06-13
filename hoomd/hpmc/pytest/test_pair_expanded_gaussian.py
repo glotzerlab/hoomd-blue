@@ -40,9 +40,9 @@ invalid_parameters = [
     {},
     dict(epsilon=1.0),
     dict(epsilon=1.0, sigma=1.0),
-    dict(epsilon=1.0, sigma=1.0, r_cut='invalid'),
-    dict(epsilon=1.0, sigma=1.0, r_cut=2.5, r_on='invalid'),
-    dict(epsilon=1.0, sigma=1.0, r_cut=2.5, r_on=2.0, invalid=10),
+    dict(epsilon=1.0, sigma=1.0, delta=1.0, r_cut='invalid'),
+    dict(epsilon=1.0, sigma=1.0, delta=1.0, r_cut=2.5, r_on='invalid'),
+    dict(epsilon=1.0, sigma=1.0, delta=1.0, r_cut=2.5, r_on=2.0, invalid=10),
 ]
 
 
