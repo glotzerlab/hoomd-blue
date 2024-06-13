@@ -26,10 +26,10 @@ class ExpandedGaussian(Pair):
           :math:`[\\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `ExpandedGaussian` computes the Expanded Gaussian pair potential between every pair
-    of particles in the simulation state. The functional form of the potential,
-    including its behavior under shifting modes, is identical to that in
-    the MD pair potential `hoomd.md.pair.ExpandedGaussian`.
+    `ExpandedGaussian` computes the Expanded Gaussian pair potential between 
+    every pair of particles in the simulation state. The functional form of the 
+    potential, including its behavior under shifting modes, is identical to that
+    in the MD pair potential `hoomd.md.pair.ExpandedGaussian`.
 
     See Also:
         `hoomd.md.pair.ExpandedGaussian`
@@ -41,7 +41,10 @@ class ExpandedGaussian(Pair):
     .. code-block:: python
 
         expanded_gaussian =  hoomd.hpmc.pair.ExpandedGaussian()
-        expanded_gaussian.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, delta=1.0, r_cut=2.5)
+        expanded_gaussian.params[('A', 'A')] = dict(epsilon=1.0, 
+                                                    sigma=1.0, 
+                                                    delta=1.0, 
+                                                    r_cut=2.5)
         simulation.operations.integrator.pair_potentials = [expanded_gaussian]
 
     .. py:attribute:: params
