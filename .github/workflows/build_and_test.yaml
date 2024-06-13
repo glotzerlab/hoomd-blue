@@ -65,6 +65,9 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+    - name: Clean HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -163,6 +166,9 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+    - name: Clean HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -228,6 +234,9 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+    - name: Clean HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
