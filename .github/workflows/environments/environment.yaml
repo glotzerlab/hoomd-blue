@@ -10,5 +10,6 @@ dependencies:
 - openmpi
 - pybind11
 - pytest
+- rowan
 - tbb
 - tbb-devel
