@@ -16,26 +16,8 @@ valid_constructor_args = [
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(device, constructor_args):
-    """Test that LennardJones can be constructed with valid arguments."""
-    hoomd.hpmc.pair.LennardJones(**constructor_args)
-
-
-@pytest.fixture(scope='session')
-def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
-    """Make a MC simulation with two particles separate dy by a distance d."""
-
-    def make_simulation(d=1):
-        snapshot = two_particle_snapshot_factory(d=d)
-        simulation = simulation_factory(snapshot)
-
-        sphere = hoomd.hpmc.integrate.Sphere()
-        sphere.shape['A'] = dict(diameter=0)
-        simulation.operations.integrator = sphere
-
-        return simulation
-
-    return make_simulation
-
+    """Test that ExpandedGaussian can be constructed with valid arguments."""
+    hoomd.hpmc.pair.ExpandedGaussian(**constructor_args)
 
 @pytest.mark.cpu
 def test_attaching(mc_simulation_factory):
