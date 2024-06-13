@@ -53,6 +53,9 @@ class ExpandedGaussian(Pair):
         * ``sigma`` (`float`, **required**) -
           Characteristic length scale :math:`\\sigma`
           :math:`[\\mathrm{length}]`.
+        * ``delta`` (`float`, **required**) -
+          Characteristic length scale :math:`\\delta`
+          :math:`[\\mathrm{length}]`.
         * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`.
           Defaults to the value given in ``default_r_cut`` on construction.
         * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`.
