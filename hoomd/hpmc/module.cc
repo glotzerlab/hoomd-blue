@@ -150,6 +150,7 @@ PYBIND11_MODULE(_hpmc, m)
 
     exportPairPotential(m);
     exportPairPotentialLennardJones(m);
+    exportPairPotentialExpandedGaussian(m);
     exportPairPotentialAngularStep(m);
     exportPairPotentialStep(m);
     exportPairPotentialUnion(m);
