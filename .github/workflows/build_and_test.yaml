@@ -12,11 +12,12 @@ on:
       build_runner:
         type: string
         required: true
-        default: ubuntu-latest
+      python:
+        type: string
+        required: true
       test_runner:
         type: string
         required: true
-        default: ubuntu-latest
       test_docker_options:
         type: string
         required: false
@@ -41,6 +42,10 @@ env:
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 jobs:
   build:
     runs-on: ${{ fromJson(inputs.build_runner) }}
@@ -59,6 +64,13 @@ jobs:
       with:
         path: code
         submodules: true
+
+    - name: Create Python Environment
+      uses: mamba-org/setup-micromamba@v1.9.0
+      with:
+        micromamba-version: '1.5.8-0'
+        environment-name: test
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
 
     - name: Configure
       run: |
@@ -152,6 +164,13 @@ jobs:
         path: code
         submodules: true
 
+    - name: Create Python Environment
+      uses: mamba-org/setup-micromamba@v1.9.0
+      with:
+        micromamba-version: '1.5.8-0'
+        environment-name: test
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+
     - name: Download install
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
       with:
@@ -217,6 +236,13 @@ jobs:
       with:
         path: code
         submodules: true
+
+    - name: Create Python Environment
+      uses: mamba-org/setup-micromamba@v1.9.0
+      with:
+        micromamba-version: '1.5.8-0'
+        environment-name: test
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
 
     - name: Download build
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
