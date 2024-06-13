@@ -19,7 +19,8 @@ valid_constructor_args = [
 def test_valid_construction(device, constructor_args):
     """Test that ExpandedGaussian can be constructed with valid arguments."""
     hoomd.hpmc.pair.ExpandedGaussian(**constructor_args)
-    
+
+
 @pytest.fixture(scope='session')
 def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     """Make a MC simulation with two particles separate dy by a distance d."""
@@ -36,13 +37,14 @@ def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
 
     return make_simulation
 
+
 @pytest.mark.cpu
 def test_attaching(mc_simulation_factory):
     """Test that ExpandedGaussian attaches."""
     expanded_gauss = hoomd.hpmc.pair.ExpandedGaussian()
-    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0, 
-                                             sigma=1.0, 
-                                             delta=1.0, 
+    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0,
+                                             sigma=1.0,
+                                             delta=1.0,
                                              r_cut=2.5)
 
     simulation = mc_simulation_factory()
@@ -103,7 +105,7 @@ def xplor_factor(r, r_on, r_cut):
 
 def eg(r, epsilon, sigma, delta):
     """Compute the eg energy."""
-    return epsilon * math.exp(-0.5*(((r-delta)/sigma)**2))
+    return epsilon * math.exp(-0.5 * (((r - delta) / sigma)**2))
 
 
 # (pair params,
@@ -200,10 +202,12 @@ def test_multiple_pair_potentials(mc_simulation_factory):
     ]
     simulation.run(0)
 
-    assert expanded_gauss_1.energy == pytest.approx(
-        expected=eg(1.5, 1.0, 1.0, 1.0), rel=1e-5)
-    assert expanded_gauss_2.energy == pytest.approx(
-        expected=eg(1.5, 2.0, 1.0, 1.0), rel=1e-5)
+    assert expanded_gauss_1.energy == pytest.approx(expected=eg(
+        1.5, 1.0, 1.0, 1.0),
+                                                    rel=1e-5)
+    assert expanded_gauss_2.energy == pytest.approx(expected=eg(
+        1.5, 2.0, 1.0, 1.0),
+                                                    rel=1e-5)
     assert simulation.operations.integrator.pair_energy == pytest.approx(
         expected=eg(1.5, 1.0, 1.0, 1.0) + eg(1.5, 2.0, 1.0, 1.0), rel=1e-5)
 

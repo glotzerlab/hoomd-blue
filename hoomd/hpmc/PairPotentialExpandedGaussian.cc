@@ -8,19 +8,20 @@ namespace hoomd
 namespace hpmc
     {
 
-PairPotentialExpandedGaussian::PairPotentialExpandedGaussian(std::shared_ptr<SystemDefinition> sysdef)
+PairPotentialExpandedGaussian::PairPotentialExpandedGaussian(
+    std::shared_ptr<SystemDefinition> sysdef)
     : PairPotential(sysdef), m_params(m_type_param_index.getNumElements())
     {
     }
 
 LongReal PairPotentialExpandedGaussian::energy(const LongReal r_squared,
-                                           const vec3<LongReal>& r_ij,
-                                           const unsigned int type_i,
-                                           const quat<LongReal>& q_i,
-                                           const LongReal charge_i,
-                                           const unsigned int type_j,
-                                           const quat<LongReal>& q_j,
-                                           const LongReal charge_j) const
+                                               const vec3<LongReal>& r_ij,
+                                               const unsigned int type_i,
+                                               const quat<LongReal>& q_i,
+                                               const LongReal charge_i,
+                                               const unsigned int type_j,
+                                               const quat<LongReal>& q_j,
+                                               const LongReal charge_j) const
     {
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
@@ -82,7 +83,9 @@ void exportPairPotentialExpandedGaussian(pybind11::module& m)
     {
     pybind11::class_<PairPotentialExpandedGaussian,
                      PairPotential,
-                     std::shared_ptr<PairPotentialExpandedGaussian>>(m, "PairPotentialExpandedGaussian")
+                     std::shared_ptr<PairPotentialExpandedGaussian>>(
+        m,
+        "PairPotentialExpandedGaussian")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialExpandedGaussian::setParamsPython)
         .def("getParams", &PairPotentialExpandedGaussian::getParamsPython)
