@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Lennard-Jones pair potential.
+"""Expanded Gaussian pair potential.
 
 .. invisible-code-block: python
 
@@ -16,9 +16,9 @@ import hoomd
 from .pair import Pair
 
 
-@hoomd.logging.modify_namespace(('hpmc', 'pair', 'LennardJones'))
-class LennardJones(Pair):
-    """Lennard-Jones pair potential (HPMC).
+@hoomd.logging.modify_namespace(('hpmc', 'pair', 'ExpandedGaussian'))
+class ExpandedGaussian(Pair):
+    """Expanded Gaussian pair potential (HPMC).
 
     Args:
         default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
@@ -26,13 +26,13 @@ class LennardJones(Pair):
           :math:`[\\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `LennardJones` computes the Lennard-Jones pair potential between every pair
+    `ExpandedGaussian` computes the Expanded Gaussian pair potential between every pair
     of particles in the simulation state. The functional form of the potential,
     including its behavior under shifting modes, is identical to that in
-    the MD pair potential `hoomd.md.pair.LJ`.
+    the MD pair potential `hoomd.md.pair.ExpandedGaussian`.
 
     See Also:
-        `hoomd.md.pair.LJ`
+        `hoomd.md.pair.ExpandedGaussian`
 
         `hoomd.md.pair`
 
@@ -40,9 +40,9 @@ class LennardJones(Pair):
 
     .. code-block:: python
 
-        lennard_jones =  hoomd.hpmc.pair.LennardJones()
-        lennard_jones.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
-        simulation.operations.integrator.pair_potentials = [lennard_jones]
+        expanded_gaussian =  hoomd.hpmc.pair.ExpandedGaussian()
+        expanded_gaussian.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, delta=1.0, r_cut=2.5)
+        simulation.operations.integrator.pair_potentials = [expanded_gaussian]
 
     .. py:attribute:: params
 
@@ -70,11 +70,11 @@ class LennardJones(Pair):
 
         .. code-block:: python
 
-            lennard_jones.mode = 'shift'
+            expanded_gaussian.mode = 'shift'
 
         Type: `str`
     """
-    _cpp_class_name = "PairPotentialLennardJones"
+    _cpp_class_name = "PairPotentialExpandedGaussian"
 
     def __init__(self, default_r_cut=None, default_r_on=0.0, mode='none'):
         if default_r_cut is None:

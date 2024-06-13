@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Test hoomd.hpmc.pair.LennardJones and HPMC pair infrastructure."""
+"""Test hoomd.hpmc.pair.ExpandedGaussian and HPMC pair infrastructure."""
 
 import hoomd
 import pytest
@@ -39,19 +39,19 @@ def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
 
 @pytest.mark.cpu
 def test_attaching(mc_simulation_factory):
-    """Test that LennardJones attaches."""
-    lennard_jones = hoomd.hpmc.pair.LennardJones()
-    lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
+    """Test that ExpandedGaussian attaches."""
+    expanded_gauss = hoomd.hpmc.pair.ExpandedGaussian()
+    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
 
     simulation = mc_simulation_factory()
-    simulation.operations.integrator.pair_potentials = [lennard_jones]
+    simulation.operations.integrator.pair_potentials = [expanded_gauss]
     simulation.run(0)
 
     assert simulation.operations.integrator._attached
-    assert lennard_jones._attached
+    assert expanded_gauss._attached
 
-    simulation.operations.integrator.pair_potentials.remove(lennard_jones)
-    assert not lennard_jones._attached
+    simulation.operations.integrator.pair_potentials.remove(expanded_gauss)
+    assert not expanded_gauss._attached
 
 
 invalid_parameters = [
@@ -67,13 +67,13 @@ invalid_parameters = [
 @pytest.mark.parametrize("parameters", invalid_parameters)
 @pytest.mark.cpu
 def test_invalid_params_on_attach(mc_simulation_factory, parameters):
-    """Test that LennardJones validates parameters."""
-    lennard_jones = hoomd.hpmc.pair.LennardJones()
-    lennard_jones.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
+    """Test that ExpandedGaussian validates parameters."""
+    expanded_gauss = hoomd.hpmc.pair.ExpandedGaussian()
+    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory()
-    simulation.operations.integrator.pair_potentials = [lennard_jones]
+    simulation.operations.integrator.pair_potentials = [expanded_gauss]
     simulation.run(0)
 
     with pytest.raises((
@@ -81,7 +81,7 @@ def test_invalid_params_on_attach(mc_simulation_factory, parameters):
             hoomd.error.TypeConversionError,
             KeyError,
     )):
-        lennard_jones.params[('A', 'A')] = parameters
+        expanded_gauss.params[('A', 'A')] = parameters
 
 
 def xplor_factor(r, r_on, r_cut):
@@ -104,7 +104,7 @@ def lj(r, r_cut, epsilon, sigma):
 # (pair params,
 #  distance between particles,
 #  expected energy)
-lennard_jones_test_parameters = [
+expanded_gauss_test_parameters = [
     (
         dict(epsilon=2.0, sigma=1.5, r_cut=2.5),
         'none',
@@ -169,46 +169,52 @@ lennard_jones_test_parameters = [
 
 
 @pytest.mark.parametrize('params, mode, d, expected_energy',
-                         lennard_jones_test_parameters)
+                         expanded_gauss_test_parameters)
 @pytest.mark.cpu
 def test_energy(mc_simulation_factory, params, mode, d, expected_energy):
-    """Test that LennardJones computes the correct energies for 1 pair."""
-    lennard_jones = hoomd.hpmc.pair.LennardJones(mode=mode)
-    lennard_jones.params[('A', 'A')] = params
+    """Test that ExpandedGaussian computes the correct energies for 1 pair."""
+    expanded_gauss = hoomd.hpmc.pair.ExpandedGaussian(mode=mode)
+    expanded_gauss.params[('A', 'A')] = params
 
     simulation = mc_simulation_factory(d=d)
-    simulation.operations.integrator.pair_potentials = [lennard_jones]
+    simulation.operations.integrator.pair_potentials = [expanded_gauss]
     simulation.run(0)
 
-    assert lennard_jones.energy == pytest.approx(expected=expected_energy,
-                                                 rel=1e-5)
+    assert expanded_gauss.energy == pytest.approx(expected=expected_energy,
+                                                  rel=1e-5)
 
 
 @pytest.mark.cpu
 def test_multiple_pair_potentials(mc_simulation_factory):
     """Test that energy operates correctly with multiple pair potentials."""
-    lennard_jones_1 = hoomd.hpmc.pair.LennardJones()
-    lennard_jones_1.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
+    expanded_gauss_1 = hoomd.hpmc.pair.ExpandedGaussian()
+    expanded_gauss_1.params[('A', 'A')] = dict(epsilon=1.0,
+                                               sigma=1.0,
+                                               delta=1.0,
+                                               r_cut=2.5)
 
-    lennard_jones_2 = hoomd.hpmc.pair.LennardJones()
-    lennard_jones_2.params[('A', 'A')] = dict(epsilon=2.0, sigma=1.0, r_cut=2.5)
+    expanded_gauss_2 = hoomd.hpmc.pair.ExpandedGaussian()
+    expanded_gauss_2.params[('A', 'A')] = dict(epsilon=2.0,
+                                               sigma=1.0,
+                                               delta=1.0,
+                                               r_cut=2.5)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory(2**(1 / 6))
     simulation.operations.integrator.pair_potentials = [
-        lennard_jones_1, lennard_jones_2
+        expanded_gauss_1, expanded_gauss_2
     ]
     simulation.run(0)
 
-    assert lennard_jones_1.energy == pytest.approx(expected=-1.0, rel=1e-5)
-    assert lennard_jones_2.energy == pytest.approx(expected=-2.0, rel=1e-5)
+    assert expanded_gauss_1.energy == pytest.approx(expected=-1.0, rel=1e-5)
+    assert expanded_gauss_2.energy == pytest.approx(expected=-2.0, rel=1e-5)
     assert simulation.operations.integrator.pair_energy == pytest.approx(
         expected=-3.0, rel=1e-5)
 
 
 def test_logging():
     hoomd.conftest.logging_check(
-        hoomd.hpmc.pair.LennardJones, ('hpmc', 'pair'), {
+        hoomd.hpmc.pair.ExpandedGaussian, ('hpmc', 'pair'), {
             'energy': {
                 'category': hoomd.logging.LoggerCategories.scalar,
                 'default': True

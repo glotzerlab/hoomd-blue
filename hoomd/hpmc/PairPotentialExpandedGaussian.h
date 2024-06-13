@@ -10,15 +10,15 @@ namespace hoomd
 namespace hpmc
     {
 
-/*** Compute Lennard-Jones energy between two particles.
+/*** Compute Expanded Gaussian energy between two particles.
 
 For use with HPMC simulations.
 */
-class PairPotentialLennardJones : public hpmc::PairPotential
+class PairPotentialExpandedGaussian : public hpmc::PairPotential
     {
     public:
-    PairPotentialLennardJones(std::shared_ptr<SystemDefinition> sysdef);
-    virtual ~PairPotentialLennardJones() { }
+    PairPotentialExpandedGaussian(std::shared_ptr<SystemDefinition> sysdef);
+    virtual ~PairPotentialExpandedGaussian() { }
 
     virtual LongReal energy(const LongReal r_squared,
                             const vec3<LongReal>& r_ij,
@@ -87,7 +87,7 @@ class PairPotentialLennardJones : public hpmc::PairPotential
         xplor
         };
 
-    /// Type pair parameters of LJ potential
+    /// Type pair parameters of EG potential
     struct ParamType
         {
         ParamType()

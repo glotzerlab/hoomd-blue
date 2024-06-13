@@ -1,19 +1,19 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "PairPotentialLennardJones.h"
+#include "PairPotentialExpandedGaussian.h"
 
 namespace hoomd
     {
 namespace hpmc
     {
 
-PairPotentialLennardJones::PairPotentialLennardJones(std::shared_ptr<SystemDefinition> sysdef)
+PairPotentialExpandedGaussian::PairPotentialExpandedGaussian(std::shared_ptr<SystemDefinition> sysdef)
     : PairPotential(sysdef), m_params(m_type_param_index.getNumElements())
     {
     }
 
-LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
+LongReal PairPotentialExpandedGaussian::energy(const LongReal r_squared,
                                            const vec3<LongReal>& r_ij,
                                            const unsigned int type_i,
                                            const quat<LongReal>& q_i,
@@ -55,7 +55,7 @@ LongReal PairPotentialLennardJones::energy(const LongReal r_squared,
     return energy;
     }
 
-void PairPotentialLennardJones::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+void PairPotentialExpandedGaussian::setParamsPython(pybind11::tuple typ, pybind11::dict params)
     {
     auto pdata = m_sysdef->getParticleData();
     auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
@@ -68,7 +68,7 @@ void PairPotentialLennardJones::setParamsPython(pybind11::tuple typ, pybind11::d
     notifyRCutChanged();
     }
 
-pybind11::dict PairPotentialLennardJones::getParamsPython(pybind11::tuple typ)
+pybind11::dict PairPotentialExpandedGaussian::getParamsPython(pybind11::tuple typ)
     {
     auto pdata = m_sysdef->getParticleData();
     auto type_i = pdata->getTypeByName(typ[0].cast<std::string>());
@@ -79,17 +79,17 @@ pybind11::dict PairPotentialLennardJones::getParamsPython(pybind11::tuple typ)
 
 namespace detail
     {
-void exportPairPotentialLennardJones(pybind11::module& m)
+void exportPairPotentialExpandedGaussian(pybind11::module& m)
     {
-    pybind11::class_<PairPotentialLennardJones,
+    pybind11::class_<PairPotentialExpandedGaussian,
                      PairPotential,
-                     std::shared_ptr<PairPotentialLennardJones>>(m, "PairPotentialLennardJones")
+                     std::shared_ptr<PairPotentialExpandedGaussian>>(m, "PairPotentialExpandedGaussian")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &PairPotentialLennardJones::setParamsPython)
-        .def("getParams", &PairPotentialLennardJones::getParamsPython)
+        .def("setParams", &PairPotentialExpandedGaussian::setParamsPython)
+        .def("getParams", &PairPotentialExpandedGaussian::getParamsPython)
         .def_property("mode",
-                      &PairPotentialLennardJones::getMode,
-                      &PairPotentialLennardJones::setMode);
+                      &PairPotentialExpandedGaussian::getMode,
+                      &PairPotentialExpandedGaussian::setMode);
     }
     } // end namespace detail
     } // end namespace hpmc
