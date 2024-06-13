@@ -5,6 +5,7 @@ dependencies:
 - cereal
 - cmake
 - eigen
+- ninja
 - numpy>=2.0.0rc1
 - openmpi
 - pybind11

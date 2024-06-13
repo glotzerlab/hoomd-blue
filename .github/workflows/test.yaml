@@ -32,14 +32,15 @@ jobs:
 
       # TESTING: always build on GitHub provided runners for now
       build_runner: ${{ toJson('ubuntu-24.04') }}
-      image: null
+      test_runner: ${{ toJson('ubuntu-24.04') }}
+      image: ''
 
       # Default to ubuntu-latest when unset
-      test_runner: ${{ matrix.test_runner == '' && toJson('ubuntu-latest') || toJson(matrix.test_runner) }}
+      # test_runner: ${{ matrix.test_runner == '' && toJson('ubuntu-latest') || toJson(matrix.test_runner) }}
       test_docker_options: ${{ matrix.test_docker_options }}
       # Default to false when unset
       validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
-      python: $${ matrix.python }}
+      python: ${{ matrix.python }}
 
     strategy:
       fail-fast: false
@@ -74,7 +75,7 @@ jobs:
         #   test_runner: [self-hosted,GPU]
         #   test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
 
-        - config: [gcc9_py39]
+        # - config: [gcc9_py39]
 
   # release:
   #   if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}

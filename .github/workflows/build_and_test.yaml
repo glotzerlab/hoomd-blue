@@ -53,12 +53,8 @@ jobs:
       image: ${{ inputs.image == '' && null || inputs.image }}
 
     steps:
-    - name: Set Werror on recent compilers
-      run: |
-        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
-      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -71,6 +67,11 @@ jobs:
         micromamba-version: '1.5.8-0'
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        post-cleanup: all
+
+    - name: Set Werror on recent compilers
+      run: |
+        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
 
     - name: Configure
       run: |
@@ -98,7 +99,6 @@ jobs:
         BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
-      shell: bash
 
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
@@ -111,7 +111,6 @@ jobs:
         CMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install cmake -S code/example_plugins -B build-example-plugins -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
       env:
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
-      shell: bash
 
     - name: Build plugins
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
@@ -139,14 +138,6 @@ jobs:
         path: install.tar
         retention-days: 7
 
-    - name: Clean workspace
-      run: ( shopt -s dotglob nullglob; rm -rf ./* )
-      shell: bash
-    - name: Clean HOME
-      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
-      shell: bash
-
-
   pytest:
     needs: build
     runs-on: ${{ fromJson(inputs.test_runner) }}
@@ -157,7 +148,6 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
-      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -170,6 +160,7 @@ jobs:
         micromamba-version: '1.5.8-0'
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        post-cleanup: environment
 
     - name: Download install
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
@@ -212,14 +203,6 @@ jobs:
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
       working-directory: code/sphinx-doc/howto
 
-    - name: Clean workspace
-      run: ( shopt -s dotglob nullglob; rm -rf ./* )
-      shell: bash
-    - name: Clean HOME
-      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
-      shell: bash
-
-
   ctest:
     needs: build
     runs-on: ${{ fromJson(inputs.test_runner) }}
@@ -230,7 +213,6 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
-      shell: bash
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -243,6 +225,7 @@ jobs:
         micromamba-version: '1.5.8-0'
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        post-cleanup: environment
 
     - name: Download build
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
@@ -259,10 +242,3 @@ jobs:
         --test-output-size-failed 1048576
         --test-output-size-passed 1048576
       working-directory: build
-
-    - name: Clean workspace
-      run: ( shopt -s dotglob nullglob; rm -rf ./* )
-      shell: bash
-    - name: Clean HOME
-      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
-      shell: bash

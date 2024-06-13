@@ -5,17 +5,17 @@
 # available, unless you explicitly update the lock file.
 #
 # Install this environment as "YOURENV" with:
-#     conda-lock install -n YOURENV py311-conda-lock.yml
+#     conda-lock install -n YOURENV py39-conda-lock.yml
 # To update a single package to the latest version compatible with the version constraints in the source:
-#     conda-lock lock  --lockfile py311-conda-lock.yml --update PACKAGE
+#     conda-lock lock  --lockfile py39-conda-lock.yml --update PACKAGE
 # To re-solve the entire environment, e.g. after changing a version constraint in the source file:
-#     conda-lock -f tmp.yaml --lockfile py311-conda-lock.yml
+#     conda-lock -f tmp.yaml --lockfile py39-conda-lock.yml
 version: 1
 metadata:
   content_hash:
-    osx-arm64: a3b1cf288762a1abfba816c88ec8fccf501d71cecf3102f7859da77a17cd469d
-    osx-64: 16be5e9fb478d259e8ba466cdbcbabd38d35dfe6201b4f8401815f5c8afc5b69
-    linux-64: 97b19f90206cbfccd00383839bb4ae934a9ad025dfc2dd5c6815c860d5c93503
+    osx-arm64: fd1216a18d622a8f59eed8f0867c4d2a600f34445255525affda0d101aabb1f1
+    osx-64: 0a01d5130654c3f6ca2d3abd8fc87f45fa2fc6b1291d791d12e16665e153a4cf
+    linux-64: 1b608c2f819aab80ccd63a1e2cc2e0b58d8fb88d63e62510ef000c8155a241a6
   channels:
   - url: conda-forge/label/numpy_rc
     used_env_vars: []
@@ -1504,6 +1504,45 @@ package:
   hash:
     md5: b13ad5724ac9ae98b6b4fd87e4500ba4
     sha256: 87d7cf716d9d930dab682cb57b3b8d3a61940b47d6703f3529a155c938a6990a
+  category: main
+  optional: false
+- name: ninja
+  version: 1.12.1
+  manager: conda
+  platform: linux-64
+  dependencies:
+    libgcc-ng: '>=12'
+    libstdcxx-ng: '>=12'
+  url: https://conda.anaconda.org/conda-forge/linux-64/ninja-1.12.1-h297d8ca_0.conda
+  hash:
+    md5: 3aa1c7e292afeff25a0091ddd7c69b72
+    sha256: 40f7b76b07067935f8a5886aab0164067b7aa71eb5ad20b7278618c0c2c98e06
+  category: main
+  optional: false
+- name: ninja
+  version: 1.12.1
+  manager: conda
+  platform: osx-64
+  dependencies:
+    __osx: '>=10.13'
+    libcxx: '>=16'
+  url: https://conda.anaconda.org/conda-forge/osx-64/ninja-1.12.1-h3c5361c_0.conda
+  hash:
+    md5: a0ebabd021c8191aeb82793fe43cfdcb
+    sha256: 230f11a2f73955b67550be09a0c1fd053772f5e01e98d5873547d63ebea73229
+  category: main
+  optional: false
+- name: ninja
+  version: 1.12.1
+  manager: conda
+  platform: osx-arm64
+  dependencies:
+    __osx: '>=11.0'
+    libcxx: '>=16'
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/ninja-1.12.1-h420ef59_0.conda
+  hash:
+    md5: 9166c10405d41c95ffde8fcb8e5c3d51
+    sha256: 11528acfa0f05d0c51639f6b09b51dc6611b801668449bb36c206c4b055be4f4
   category: main
   optional: false
 - name: numpy
