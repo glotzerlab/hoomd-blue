@@ -95,8 +95,6 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
             sigma_2 = 0;
             epsilon = 0;
             delta = 0;
-            r_cut = 0;
-            r_on = 0;
             r_cut_squared = 0;
             r_on_squared = 0;
             }
@@ -104,16 +102,12 @@ class PairPotentialExpandedGaussian : public hpmc::PairPotential
         ParamType(pybind11::dict v)
             {
             auto sigma(v["sigma"].cast<LongReal>());
-            auto epsilon(v["epsilon"].cast<LongReal>());
-            auto delta(v["delta"].cast<LongReal>());
             auto r_cut(v["r_cut"].cast<LongReal>());
             auto r_on(v["r_on"].cast<LongReal>());
 
             sigma_2 = sigma * sigma;
-            epsilon = epsilon;
-            delta = delta;
-            r_cut = r_cut;
-            r_on = r_on;
+            epsilon = v["epsilon"].cast<LongReal>();
+            delta = v["delta"].cast<LongReal>();
             r_cut_squared = r_cut * r_cut;
             r_on_squared = r_on * r_on;
             }
