@@ -71,7 +71,10 @@ invalid_parameters = [
 def test_invalid_params_on_attach(mc_simulation_factory, parameters):
     """Test that ExpandedGaussian validates parameters."""
     expanded_gauss = hoomd.hpmc.pair.ExpandedGaussian()
-    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_cut=2.5)
+    expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0,
+                                             sigma=1.0,
+                                             delta=1.0,
+                                             r_cut=2.5)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory()
