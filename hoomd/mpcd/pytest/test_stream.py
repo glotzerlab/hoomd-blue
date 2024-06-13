@@ -28,11 +28,10 @@ def snap():
             hoomd.mpcd.stream.BounceBack,
             {
                 "geometry":
-                    hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                      amplitude=4.0,
-                                                      hw_narrow=2.0,
-                                                      repetitions=1,
-                                                      no_slip=True)
+                    hoomd.mpcd.geometry.CosineChannel(
+                        amplitude=4.0,
+                        wavenumber=2.0 * np.pi / 20.0,
+                        separation=4.0),
             },
         ),
         (
@@ -213,6 +212,7 @@ class TestCosineChannel:
 
     def _make_particles(self, snap):
         if snap.communicator.rank == 0:
+            snap.configuration.box = [20, 20, 20, 0, 0, 0]
             snap.mpcd.N = 3
             snap.mpcd.position[:] = [
                 [0., -3.0, 5.85],
@@ -231,10 +231,10 @@ class TestCosineChannel:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                       amplitude=4.0,
-                                                       hw_narrow=2.0,
-                                                       repetitions=1,
+            geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                       wavenumber=2.0 * np.pi
+                                                       / 20.0,
+                                                       separation=4.0,
                                                        no_slip=True),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -295,10 +295,10 @@ class TestCosineChannel:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                       amplitude=4.0,
-                                                       hw_narrow=2.0,
-                                                       repetitions=1,
+            geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                       wavenumber=2.0 * np.pi
+                                                       / 20.0,
+                                                       separation=4.0,
                                                        no_slip=False),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -353,39 +353,39 @@ class TestCosineChannel:
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                       amplitude=4.0,
-                                                       hw_narrow=2.0,
-                                                       repetitions=1),
+            geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                       wavenumber=2.0 * np.pi
+                                                       / 20.0,
+                                                       separation=4.0),
         )
         sim.run(0)
         assert ig.streaming_method.check_mpcd_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                       amplitude=10.0,
-                                                       hw_narrow=2.0,
-                                                       repetitions=1),
+            geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=10.0,
+                                                       wavenumber=2.0 * np.pi
+                                                       / 20.0,
+                                                       separation=4.0),
         )
         sim.run(0)
         assert not ig.streaming_method.check_mpcd_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                       amplitude=4.0,
-                                                       hw_narrow=2.0,
-                                                       repetitions=1),
+            geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                       wavenumber=2.0 * np.pi
+                                                       / 20.0,
+                                                       separation=4.0),
         )
         assert ig.streaming_method.check_mpcd_particles()
 
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.CosineChannel(channel_length=20.0,
-                                                       amplitude=2.0,
-                                                       hw_narrow=1.0,
-                                                       repetitions=1),
+            geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                       wavenumber=2.0 * np.pi
+                                                       / 20.0,
+                                                       separation=2.0),
         )
         sim.run(0)
         assert not ig.streaming_method.check_mpcd_particles()
@@ -395,6 +395,7 @@ class TestCosineExpansionContraction:
 
     def _make_particles(self, snap):
         if snap.communicator.rank == 0:
+            snap.configuration.box = [15, 10, 20, 0, 0, 0]
             snap.mpcd.N = 3
             snap.mpcd.position[:] = [[1., -3.0, -3.8], [3.5, 0., 3.],
                                      [-4.2, 5.1, -2.2]]

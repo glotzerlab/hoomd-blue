@@ -1,6 +1,7 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import numpy as np
 import pytest
 
 import hoomd
@@ -17,6 +18,102 @@ def snap():
         snap_.mpcd.N = 1
         snap_.mpcd.types = ["A"]
     return snap_
+
+
+class TestCosineChannel:
+
+    def test_default_init(self, simulation_factory, snap):
+        wavenumber = 2.0 * np.pi / 10.0
+        geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                 wavenumber=wavenumber,
+                                                 separation=4.0)
+        assert geom.amplitude == 4.0
+        assert geom.wavenumber == wavenumber
+        assert geom.separation == 4.0
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.amplitude == 4.0
+        assert geom.wavenumber == wavenumber
+        assert geom.separation == 4.0
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        wavenumber = 2.0 * np.pi / 10.0
+        geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                 wavenumber=wavenumber,
+                                                 separation=4.0,
+                                                 no_slip=False)
+        assert geom.amplitude == 4.0
+        assert geom.wavenumber == wavenumber
+        assert geom.separation == 4.0
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.amplitude == 4.0
+        assert geom.wavenumber == wavenumber
+        assert geom.separation == 4.0
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                 wavenumber=2.0 * np.pi / 10.0,
+                                                 separation=4.0)
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
+
+
+class TestCosineExpansionContraction:
+
+    def test_default_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineExpansionContraction(
+            channel_length=10.0, hw_wide=4, hw_narrow=2, repetitions=1)
+
+        assert geom.hw_wide == 4.0
+        assert geom.hw_narrow == 2.0
+        assert geom.repetitions == 1
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.hw_wide == 4.0
+        assert geom.hw_narrow == 2.0
+        assert geom.repetitions == 1
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineExpansionContraction(
+            channel_length=10.0,
+            hw_wide=4,
+            hw_narrow=2,
+            repetitions=1,
+            no_slip=False)
+        assert geom.hw_wide == 4.0
+        assert geom.hw_narrow == 2.0
+        assert geom.repetitions == 1
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.hw_wide == 4.0
+        assert geom.hw_narrow == 2.0
+        assert geom.repetitions == 1
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineExpansionContraction(
+            channel_length=10.0, hw_wide=4, hw_narrow=2, repetitions=1)
+
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
 
 
 class TestParallelPlates:
@@ -86,105 +183,6 @@ class TestPlanarPore:
 
     def test_pickling(self, simulation_factory, snap):
         geom = hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=10.0)
-        pickling_check(geom)
-
-        sim = simulation_factory(snap)
-        geom._attach(sim)
-        pickling_check(geom)
-
-class TestCosineChannel:
-
-    def test_default_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.CosineChannel(channel_length=10.0,
-                                                   amplitude=4.0,
-                                                   hw_narrow=2.0,
-                                                   repetitions=1)
-        assert geom.amplitude == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert geom.no_slip
-
-
-        sim = simulation_factory(snap)
-        geom._attach(sim)
-        assert geom.amplitude == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert geom.no_slip
-
-    def test_nondefault_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.CosineChannel(channel_length=10.0,
-                                                   amplitude=4.0,
-                                                   hw_narrow=2.0,
-                                                   repetitions=1,
-                                                   no_slip=False)
-        assert geom.amplitude == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert not geom.no_slip
-
-        sim = simulation_factory(snap)
-        geom._attach(sim)
-        assert geom.amplitude == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert not geom.no_slip
-
-    def test_pickling(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.CosineChannel(channel_length=10.0,
-                                                   amplitude=4.0,
-                                                   hw_narrow=2.0,
-                                                   repetitions=1)
-        pickling_check(geom)
-
-        sim = simulation_factory(snap)
-        geom._attach(sim)
-        pickling_check(geom)
-
-class TestCosineExpansionContraction:
-
-    def test_default_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.CosineExpansionContraction(channel_length=10.0,
-                                                              hw_wide=4,
-                                                              hw_narrow=2,
-                                                              repetitions=1)
-
-        assert geom.hw_wide == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert geom.no_slip
-
-        sim = simulation_factory(snap)
-        geom._attach(sim)
-        assert geom.hw_wide == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert geom.no_slip
-
-    def test_nondefault_init(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.CosineExpansionContraction(channel_length=10.0,
-                                                              hw_wide=4,
-                                                              hw_narrow=2,
-                                                              repetitions=1,
-                                                              no_slip=False)
-        assert geom.hw_wide == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert not geom.no_slip
-
-        sim = simulation_factory(snap)
-        geom._attach(sim)
-        assert geom.hw_wide == 4.0
-        assert geom.hw_narrow == 2.0
-        assert geom.repetitions == 1
-        assert not geom.no_slip
-
-    def test_pickling(self, simulation_factory, snap):
-        geom = hoomd.mpcd.geometry.CosineExpansionContraction(channel_length=10.0,
-                                                              hw_wide=4,
-                                                              hw_narrow=2,
-                                                              repetitions=1)
-
         pickling_check(geom)
 
         sim = simulation_factory(snap)

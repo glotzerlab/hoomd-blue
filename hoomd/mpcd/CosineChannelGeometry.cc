@@ -19,10 +19,10 @@ void export_CosineChannelGeometry(pybind11::module& m)
     pybind11::class_<CosineChannelGeometry, std::shared_ptr<CosineChannelGeometry>>(
         m,
         CosineChannelGeometry::getName().c_str())
-        .def(pybind11::init<Scalar, Scalar, Scalar, unsigned int, bool>())
+        .def(pybind11::init<Scalar, Scalar, Scalar, bool>())
         .def_property_readonly("amplitude", &CosineChannelGeometry::getAmplitude)
-        .def_property_readonly("hw_narrow", &CosineChannelGeometry::getHnarrow)
-        .def_property_readonly("repetitions", &CosineChannelGeometry::getRepetitions)
+        .def_property_readonly("wavenumber", &CosineChannelGeometry::getWavenumber)
+        .def_property_readonly("separation", &CosineChannelGeometry::getSeparation)
         .def_property_readonly("no_slip", &CosineChannelGeometry::getNoSlip);
     }
     } // end namespace detail

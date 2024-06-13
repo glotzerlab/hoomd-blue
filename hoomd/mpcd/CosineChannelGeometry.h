@@ -73,19 +73,15 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
     public:
     //! Constructor
     /*!
-     * \param L Channel length (Simulation box length in x)
-       \param Amplitude Channel Cosine Amplitude
-       \param H_narrow Channel half-width
-       \param Period Channel cosine period (integer >0)
-     * \param bc Boundary condition at the wall (slip or no-slip)
+     * \param amplitude Amplitude of the cosine
+     * \param wavenumber Wavenumber of the cosine
+     * \param separation Separation between channel walls
+     * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE CosineChannelGeometry(Scalar L,
-                                     Scalar Amplitude,
-                                     Scalar h,
-                                     unsigned int Repetitions,
-                                     bool no_slip)
-        : m_pi_period_div_L(2 * M_PI * Repetitions / L), m_Amplitude(Amplitude), m_h(h),
-          m_Repetitions(Repetitions), m_no_slip(no_slip)
+    HOSTDEVICE
+    CosineChannelGeometry(Scalar amplitude, Scalar wavenumber, Scalar separation, bool no_slip)
+        : m_amplitude(amplitude), m_wavenumber(wavenumber), m_H(Scalar(0.5) * separation),
+          m_no_slip(no_slip)
         {
         }
 
@@ -115,8 +111,8 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
          * channel width.
          */
 
-        Scalar a = pos.z - m_Amplitude * fast::cos(pos.x * m_pi_period_div_L);
-        const signed char sign = (a > m_h) - (a < -m_h);
+        Scalar a = pos.z - m_amplitude * fast::cos(pos.x * m_wavenumber);
+        const signed char sign = (char)((a > m_H) - (a < -m_H));
         // exit immediately if no collision is found
         if (sign == 0)
             {
@@ -147,18 +143,18 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             {
             x0 = pos.x;
             y0 = (pos.y - dt * vel.y);
-            z0 = (m_Amplitude * fast::cos(x0 * m_pi_period_div_L) + sign * m_h);
+            z0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
             }
         else if (vel.z == 0) // exactly horizontal z-collision
             {
-            x0 = 1 / m_pi_period_div_L * fast::acos((pos.z - sign * m_h) / m_Amplitude);
+            x0 = 1 / m_wavenumber * fast::acos((pos.z - sign * m_H) / m_amplitude);
             y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
             z0 = pos.z;
             }
         else
             {
             Scalar delta = fabs(0
-                                - ((m_Amplitude * fast::cos(x0 * m_pi_period_div_L) + sign * m_h)
+                                - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
                                    - vel.z / vel.x * (x0 - pos.x) - pos.z));
 
             Scalar n, n2;
@@ -166,12 +162,12 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             unsigned int counter = 0;
             while (delta > target_precision && counter < max_iteration)
                 {
-                fast::sincos(x0 * m_pi_period_div_L, s, c);
-                n = (m_Amplitude * c + sign * m_h) - vel.z / vel.x * (x0 - pos.x) - pos.z; // f
-                n2 = -m_pi_period_div_L * m_Amplitude * s - vel.z / vel.x;                 // df
+                fast::sincos(x0 * m_wavenumber, s, c);
+                n = (m_amplitude * c + sign * m_H) - vel.z / vel.x * (x0 - pos.x) - pos.z; // f
+                n2 = -m_wavenumber * m_amplitude * s - vel.z / vel.x;                      // df
                 x0 = x0 - n / n2; // x = x - f/df
                 delta = fabs(0
-                             - ((m_Amplitude * fast::cos(x0 * m_pi_period_div_L) + sign * m_h)
+                             - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
                                 - vel.z / vel.x * (x0 - pos.x) - pos.z));
                 ++counter;
                 }
@@ -180,7 +176,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
              * particle positon is exactly at the wall and not accidentally slightly inside of the
              * wall because of nummerical presicion.
              */
-            z0 = (m_Amplitude * fast::cos(x0 * m_pi_period_div_L) + sign * m_h);
+            z0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
 
             /* The new y position can be calculated from the fact that the last position outside of
              * the wall, the current position inside of the  wall, and the new position exactly at
@@ -203,14 +199,13 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                 Scalar3 point1 = pos;            // final position at t+dt, outside of channel
                 Scalar3 point2 = pos - dt * vel; // initial position, inside of channel
                 Scalar3 point3 = 0.5 * (point1 + point2); // halfway point
-                Scalar fpoint3
-                    = (m_Amplitude * fast::cos(point3.x * m_pi_period_div_L) + sign * m_h)
-                      - point3.z; // value at halfway point, f(x)
+                Scalar fpoint3 = (m_amplitude * fast::cos(point3.x * m_wavenumber) + sign * m_H)
+                                 - point3.z; // value at halfway point, f(x)
                 // Note: technically, the presicion of Newton's method and bisection is slightly
                 // different, with bisection being less precise and slower convergence.
                 while (fabs(fpoint3) > target_precision && counter < max_iteration)
                     {
-                    fpoint3 = (m_Amplitude * fast::cos(point3.x * m_pi_period_div_L) + sign * m_h)
+                    fpoint3 = (m_amplitude * fast::cos(point3.x * m_wavenumber) + sign * m_H)
                               - point3.z;
                     // because we know that point1 outside of the channel and point2 is inside of
                     // the channel, we only need to check the halfway point3 - if it is inside,
@@ -228,7 +223,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                     }
                 // final point3 == intersection
                 x0 = point3.x;
-                z0 = (m_Amplitude * fast::cos(x0 * m_pi_period_div_L) + sign * m_h);
+                z0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
                 y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
                 }
             }
@@ -252,7 +247,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             }
         else // Slip conditions require only tangential components to be reflected:
             {
-            Scalar B = m_Amplitude * m_pi_period_div_L * fast::sin(x0 * m_pi_period_div_L);
+            Scalar B = m_amplitude * m_wavenumber * fast::sin(x0 * m_wavenumber);
             // The reflected vector is given by v_reflected = -2*(v_normal*v_incoming)*v_normal +
             // v_incoming Calculate components by hand to avoid sqrt in normalization of the normal
             // of the surface.
@@ -272,57 +267,29 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
      */
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
-        Scalar a = pos.z - m_Amplitude * fast::cos(pos.x * m_pi_period_div_L);
-        return (a > m_h || a < -m_h);
-        }
-
-    //! Validate that the simulation box is large enough for the geometry
-    /*!
-     * \param box Global simulation box
-     * \param cell_size Size of MPCD cell
-     *
-     * The box is large enough for the cosine if it is padded along the z direction so that
-     * the cells just outside the highest point of the cosine would not interact with each
-     * other through the boundary.
-     */
-    HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
-        {
-        const Scalar hi = box.getHi().z;
-        const Scalar lo = box.getLo().z;
-        return ((hi - m_Amplitude) >= cell_size && (-m_Amplitude - lo) >= cell_size);
+        Scalar a = pos.z - m_amplitude * fast::cos(m_wavenumber * pos.x);
+        return (a > m_H || a < -m_H);
         }
 
     //! Get channel amplitude
-    /*!
-     * \returns Channel amplitude
-     */
     HOSTDEVICE Scalar getAmplitude() const
         {
-        return m_Amplitude;
+        return m_amplitude;
         }
 
-    //! Get channel half width at narrowest point
-    /*!
-     * \returns Channel half width at narrowest point
-     */
-    HOSTDEVICE Scalar getHnarrow() const
+    //! Get channel wavenumber
+    HOSTDEVICE Scalar getWavenumber() const
         {
-        return m_h;
+        return m_wavenumber;
         }
 
-    //! Get channel cosine wall repetitions
-    /*!
-     * \returns Channel cosine wall repetitions
-     */
-    HOSTDEVICE Scalar getRepetitions() const
+    //! Get channel separation width
+    HOSTDEVICE Scalar getSeparation() const
         {
-        return m_Repetitions;
+        return Scalar(2.0) * m_H;
         }
 
     //! Get the wall boundary condition
-    /*!
-     * \returns Boundary condition at wall
-     */
     HOSTDEVICE bool getNoSlip() const
         {
         return m_no_slip;
@@ -337,13 +304,10 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
 #endif // __HIPCC__
 
     private:
-    const Scalar
-        m_pi_period_div_L;    //!< Argument of the wall cosine (pi*period/Lx = 2*pi*repetitions/Lx)
-    const Scalar m_Amplitude; //!< Amplitude of the channel
-    const Scalar m_h;         //!< Half of the channel width
-    const unsigned int
-        m_Repetitions;    //!< Number of repetitions of the wide sections in the channel =  period
-    const bool m_no_slip; //!< Boundary condition
+    const Scalar m_amplitude;  //!< Amplitude of the channel
+    const Scalar m_wavenumber; //!< Wavenumber of cosine
+    const Scalar m_H;          //!< Half of the channel separation
+    const bool m_no_slip;      //!< Boundary condition
     };
 
     } // end namespace mpcd
