@@ -293,7 +293,7 @@ class ExpandedGaussian(Pair):
 
     .. math::
         U(r) = \varepsilon \exp \left( -\frac{1}{2}
-               \left( \frac{r-\Delta}{\sigma} \right)^2 \right)
+               \left( \frac{r-\delta}{\sigma} \right)^2 \right)
 
     Example::
 
