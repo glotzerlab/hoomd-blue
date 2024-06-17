@@ -15,7 +15,7 @@ on:
       build_runner:
         type: string
         required: true
-      build_image:
+      image:
         type: string
         required: true
       python:
@@ -24,15 +24,12 @@ on:
       test_runner:
         type: string
         required: true
-      test_image:
-        type: string
-        required: true
       test_docker_options:
         type: string
-        required: false
+        required: true
       validate:
         type: string
-        required: false
+        required: true
 
 defaults:
   run:
@@ -60,16 +57,14 @@ jobs:
   build:
     runs-on: ${{ fromJson(inputs.build_runner) }}
     container:
-      image: ${{ inputs.build_image == '' && null || inputs.build_image }}
+      image: ${{ inputs.image }}
 
     steps:
     - name: "Show inputs"
       run: echo "${{ toJson(inputs) }}"
-    - run: pwd
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      if: ${{ inputs.build_image }}
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
@@ -165,14 +160,13 @@ jobs:
     needs: build
     runs-on: ${{ fromJson(inputs.test_runner) }}
     container:
-      image: ${{ inputs.test_image == '' && null || inputs.test_image }}
+      image: ${{ inputs.image }}
       options: ${{ inputs.test_docker_options }} -e CUDA_VISIBLE_DEVICES
 
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      if: ${{ inputs.test_image }}
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
@@ -249,16 +243,10 @@ jobs:
     - name: Untar build
       run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
 
-    - run: ls -l
-    - run: ls -l build
-    - run: ls -l build/hoomd
-    - run: ls -l build/hoomd/test
-    - run: pwd
-
     - name: Run ctest
       run: >-
         ctest
-        -T test
+        --test-dir .
         --output-on-failure
         --test-output-size-failed 1048576
         --test-output-size-passed 1048576

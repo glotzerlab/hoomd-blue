@@ -28,20 +28,15 @@ jobs:
       compiler_family: ${{ matrix.compiler[0] }}
       compiler_version: ${{ matrix.compiler[1] }}
       config: ${{ join(matrix.config, '_') }}
-      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline.
-      # When using GitHub hosted runners, no container image is needed.
-      # TODO: test failure mode
-      build_runner: ${{ needs.start_action_runners.outputs.active != '0' && '["self-hosted","jetstream2","CPU"]' || toJson(matrix.image) }}
-      # Note: Ternary "operators" do not behave as expected. The middle expression must not
-      # evaluate to false: https://7tonshark.com/posts/github-actions-string-operations/
-      build_image: ${{ needs.start_action_runners.outputs.active != '0' && format('glotzerlab/ci:{0}',matrix.image) || ''}}
+      image: glotzerlab/ci:${{ matrix.image }}
 
-      test_docker_options: ${{ matrix.test_docker_options }}
+      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline.
+      build_runner: ${{ needs.start_action_runners.outputs.active != '0' && '["self-hosted","jetstream2","CPU"]' || toJson('ubuntu-24.04') }}
       test_runner: ${{ !matrix.test_runner == '' && toJson(matrix.test_runner) || toJson(matrix.image) }}
-      test_image: ${{ !matrix.test_runner == '' && format('glotzerlab/ci:{0}',matrix.image) || '' }}
+      test_docker_options: ${{ matrix.test_docker_options }}
 
       # Default to false when unset
-      validate: ${{ !matrix.validate && matrix.validate || 'false'}}
+      validate: ${{ matrix.validate && 'true' || 'false'}}
       python: ${{ matrix.python }}
 
     strategy:
@@ -53,7 +48,7 @@ jobs:
         - config: [mpi, tbb]
           python: "312"
           compiler: [clang, 18]
-          validate: 'true'
+          validate: true
           image: 'ubuntu-24.04'
 
         # - config: [gcc13_py312]
@@ -128,7 +123,7 @@ jobs:
     name: Unit test
     if: always()
     needs: [typical]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - run: jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'
