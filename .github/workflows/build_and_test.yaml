@@ -54,13 +54,15 @@ jobs:
   prepare:
     runs-on: ubuntu-24.04
     outputs:
-      image: ${{ steps.image.outputs.image }}
+      image: ${{ steps.set.outputs.image }}
+      cuda: ${{ steps.set.outputs.cuda }}
     steps:
-    - name: Set image
-      id: image
+    - name: Set outputs
+      id: set
       run: |
         if [[ "${{ inputs.compiler_family }}" == "gcc" ]]
         then
+          echo "cuda=none" >> "$GITHUB_OUTPUT"
           case ${{ inputs.compiler_version }} in
             10|11)
               echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
@@ -69,10 +71,9 @@ jobs:
             *)
               echo "Unknown compiler" && exit 1;;
           esac
-        fi
-
-        if [[ "${{ inputs.compiler_family }}" == "clang" ]]
+        elif [[ "${{ inputs.compiler_family }}" == "clang" ]]
         then
+          echo "cuda=none" >> "$GITHUB_OUTPUT"
           case "${{ inputs.compiler_version }}" in
             13|14|15)
               echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
@@ -81,7 +82,10 @@ jobs:
             *)
               echo "Unknown compiler" && exit 1;;
             esac
-          fi
+        else
+          echo "Invalid compiler family"
+          exit 1
+        fi
 
   build:
     needs: prepare
@@ -107,7 +111,7 @@ jobs:
       with:
         micromamba-version: '1.5.8-0'
         environment-name: test
-        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-${{ needs.prepare.outputs.cuda }}-conda-lock.yml
         post-cleanup: all
 
     - name: Configure conda environment variables
@@ -208,7 +212,7 @@ jobs:
       with:
         micromamba-version: '1.5.8-0'
         environment-name: test
-        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-${{ needs.prepare.outputs.cuda }}-conda-lock.yml
         post-cleanup: environment
 
     - name: Configure conda environment variables
