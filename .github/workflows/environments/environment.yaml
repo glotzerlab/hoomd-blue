@@ -5,11 +5,15 @@ dependencies:
 - cereal
 - cmake
 - eigen
+- gsd
+- h5py
 - ninja
 - numpy>=2.0.0rc1
+- mpi4py
 - openmpi
 - pybind11
 - pytest
 - rowan
+- sybil
 - tbb
 - tbb-devel
