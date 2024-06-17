@@ -111,8 +111,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
          * channel width.
          */
 
-        Scalar abcd = 5;
-        Scalar a = pos.z - m_amplitude * fast::cos(pos.x * m_wavenumber);
+        Scalar a = pos.y - m_amplitude * fast::cos(pos.x * m_wavenumber);
         const signed char sign = (char)((a > m_H) - (a < -m_H));
         // exit immediately if no collision is found
         if (sign == 0)
@@ -143,20 +142,20 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
         if (vel.x == 0) // exactly vertical x-collision
             {
             x0 = pos.x;
-            y0 = (pos.y - dt * vel.y);
-            z0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
+            y0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
+            z0 = (pos.z - dt * vel.z);
             }
-        else if (vel.z == 0) // exactly horizontal z-collision
+        else if (vel.y == 0) // exactly horizontal z-collision
             {
-            x0 = 1 / m_wavenumber * fast::acos((pos.z - sign * m_H) / m_amplitude);
-            y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
-            z0 = pos.z;
+            x0 = 1 / m_wavenumber * fast::acos((pos.y - sign * m_H) / m_amplitude);
+            y0 = pos.y;
+            z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
             }
         else
             {
             Scalar delta = fabs(0
                                 - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
-                                   - vel.z / vel.x * (x0 - pos.x) - pos.z));
+                                   - vel.y / vel.x * (x0 - pos.x) - pos.y));
 
             Scalar n, n2;
             Scalar s, c;
@@ -164,12 +163,12 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             while (delta > target_precision && counter < max_iteration)
                 {
                 fast::sincos(x0 * m_wavenumber, s, c);
-                n = (m_amplitude * c + sign * m_H) - vel.z / vel.x * (x0 - pos.x) - pos.z; // f
-                n2 = -m_wavenumber * m_amplitude * s - vel.z / vel.x;                      // df
+                n = (m_amplitude * c + sign * m_H) - vel.y / vel.x * (x0 - pos.x) - pos.y; // f
+                n2 = -m_wavenumber * m_amplitude * s - vel.y / vel.x;                      // df
                 x0 = x0 - n / n2; // x = x - f/df
                 delta = fabs(0
                              - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
-                                - vel.z / vel.x * (x0 - pos.x) - pos.z));
+                                - vel.y / vel.x * (x0 - pos.x) - pos.y));
                 ++counter;
                 }
 
@@ -177,13 +176,13 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
              * particle positon is exactly at the wall and not accidentally slightly inside of the
              * wall because of nummerical presicion.
              */
-            z0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
+            y0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
 
             /* The new y position can be calculated from the fact that the last position outside of
              * the wall, the current position inside of the  wall, and the new position exactly at
              * the wall are on a straight line.
              */
-            y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
+            z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
 
             // Newton's method sometimes failes to converge (close to saddle points, df'==0, bad
             // initial guess,overshoot,..) catch all of them here and do bisection if Newthon's
@@ -201,13 +200,13 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                 Scalar3 point2 = pos - dt * vel; // initial position, inside of channel
                 Scalar3 point3 = 0.5 * (point1 + point2); // halfway point
                 Scalar fpoint3 = (m_amplitude * fast::cos(point3.x * m_wavenumber) + sign * m_H)
-                                 - point3.z; // value at halfway point, f(x)
+                                 - point3.y; // value at halfway point, f(x)
                 // Note: technically, the presicion of Newton's method and bisection is slightly
                 // different, with bisection being less precise and slower convergence.
                 while (fabs(fpoint3) > target_precision && counter < max_iteration)
                     {
                     fpoint3 = (m_amplitude * fast::cos(point3.x * m_wavenumber) + sign * m_H)
-                              - point3.z;
+                              - point3.y;
                     // because we know that point1 outside of the channel and point2 is inside of
                     // the channel, we only need to check the halfway point3 - if it is inside,
                     // replace point2, if it is outside, replace point1
@@ -224,8 +223,8 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                     }
                 // final point3 == intersection
                 x0 = point3.x;
-                z0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
-                y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
+                y0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
+                z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
                 }
             }
 
@@ -252,9 +251,9 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             // The reflected vector is given by v_reflected = -2*(v_normal*v_incoming)*v_normal +
             // v_incoming Calculate components by hand to avoid sqrt in normalization of the normal
             // of the surface.
-            vel_new.x = vel.x - 2 * B * (B * vel.x + vel.z) / (B * B + 1);
-            vel_new.y = vel.y;
-            vel_new.z = vel.z - 2 * (B * vel.x + vel.z) / (B * B + 1);
+            vel_new.x = vel.x - 2 * B * (B * vel.x + vel.y) / (B * B + 1);
+            vel_new.z = vel.z;
+            vel_new.y = vel.y - 2 * (B * vel.x + vel.y) / (B * B + 1);
             }
         vel = vel_new;
 
@@ -268,7 +267,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
      */
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
-        Scalar a = pos.z - m_amplitude * fast::cos(m_wavenumber * pos.x);
+        Scalar a = pos.y - m_amplitude * fast::cos(m_wavenumber * pos.x);
         return (a > m_H || a < -m_H);
         }
 

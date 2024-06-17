@@ -31,7 +31,7 @@ def snap():
                     hoomd.mpcd.geometry.CosineChannel(
                         amplitude=4.0,
                         wavenumber=2.0 * np.pi / 20.0,
-                        separation=4.0),
+                        separation=2.0),
             },
         ),
         (
@@ -128,7 +128,8 @@ class TestStreamingMethod:
         have now.
         """
         if snap.communicator.rank == 0:
-            snap.mpcd.position[0] = [0, -1, 1]
+            # snap.mpcd.position[0] = [0, -1, 1]
+            snap.mpcd.position[0] = [0, 4, -1]
             snap.mpcd.velocity[0] = [1, -2, 3]
 
         sim = simulation_factory(snap)
@@ -144,8 +145,10 @@ class TestStreamingMethod:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.velocity,
                                                  [[1.1, -2.0, 2.9]])
-            np.testing.assert_array_almost_equal(snap.mpcd.position,
-                                                 [[0.105, -1.2, 1.295]])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position,
+                # [[0.105, -1.2, 4.295]])
+                [[0.105, 3.8, -0.705]])
 
 
 class TestBulk:
@@ -215,12 +218,12 @@ class TestCosineChannel:
             snap.configuration.box = [20, 20, 20, 0, 0, 0]
             snap.mpcd.N = 3
             snap.mpcd.position[:] = [
-                [0., -3.0, 5.85],
-                [1.55, 0., 5.5],
-                [0.0, 0.0, 2.2],
+                [0., 5.85, -3.0],
+                [1.55, 5.5, 0],
+                [0.0, 2.2, 0.0],
             ]
             snap.mpcd.velocity[:] = [
-                [0, 0., 1.],
+                [0, 1., 0.],
                 [1., 0., 0.],
                 [-1., -1., -1.],
             ]
@@ -245,15 +248,15 @@ class TestCosineChannel:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, -3.0, 5.95])
+                                                 [0, 5.95, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 0, 1.])
+                                                 [0, 1, 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.567225, 0.0, 5.5])
+                                                 [1.567225, 5.5, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [-1, 0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.1, -0.1, 2.1])
+                                                 [-0.1, 2.1, -0.1])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1, -1, -1])
 
@@ -262,15 +265,15 @@ class TestCosineChannel:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, -3.0, 5.95])
+                                                 [0, 5.95, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 0, -1.])
+                                                 [0, -1, 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.467225, 0.0, 5.5])
+                                                 [1.467225, 5.5, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [-1, 0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.2, -0.2, 2.0])
+                                                 [-0.2, 2.0, -0.2])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1, -1, -1])
         # particle 2 collides diagonally
@@ -278,15 +281,15 @@ class TestCosineChannel:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, -3.0, 5.85])
+                                                 [0, 5.85, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 0, -1.])
+                                                 [0, -1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.367225, 0.0, 5.5])
+                                                 [1.367225, 5.5, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [-1, 0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.11717, -0.11717, 2.08283])
+                                                 [-0.11717, 2.08283, -0.11717])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [1, 1, 1])
 
@@ -309,15 +312,15 @@ class TestCosineChannel:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, -3.0, 5.95])
+                                                 [0, 5.95, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 0, 1.])
+                                                 [0, 1, 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.62764, 0, 5.463246])
+                                                 [1.62764, 5.463246, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [0.459737, 0, -0.888055])
+                                                 [0.459737, -0.888055, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.1, -0.1, 2.1])
+                                                 [-0.1, 2.1, -0.1])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1, -1, -1])
 
@@ -327,11 +330,11 @@ class TestCosineChannel:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, -3.0, 5.95])
+                                                 [0, 5.95, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 0, -1.])
+                                                 [0, -1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.2, -0.2, 2.0])
+                                                 [-0.2, 2.0, -0.2])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1, -1, -1])
 
@@ -340,9 +343,9 @@ class TestCosineChannel:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.313714, -0.3, 2.066657])
+                                                 [-0.313714, 2.066657, -0.3])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [-1.150016, -1., 0.823081])
+                                                 [-1.150016, 0.823081, -1.])
 
     def test_check_mpcd_particles(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
