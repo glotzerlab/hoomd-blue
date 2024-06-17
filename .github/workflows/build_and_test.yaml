@@ -15,9 +15,6 @@ on:
       build_runner:
         type: string
         required: true
-      image:
-        type: string
-        required: true
       python:
         type: string
         required: true
@@ -54,10 +51,43 @@ env:
   PYTHONPATH: ${{ github.workspace }}/install
 
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+    - name: Set image
+      id: image
+      run: |
+        if [[ "${{ inputs.compiler_family }}" == "gcc" ]]
+        then
+          case ${{ inputs.compiler_version }} in
+            10|11)
+              echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
+            12|13|14)
+              echo "image=glotzerlab/ci:ubuntu-24.04" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+          esac
+        fi
+
+        if [[ "${{ inputs.compiler_family }}" == "clang" ]]
+        then
+          case "${{ inputs.compiler_version }}" in
+            13|14|15)
+              echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
+            16|17|18)
+              echo "image=glotzerlab/ci:ubuntu-24.04" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+            esac
+          fi
+
   build:
+    needs: prepare
     runs-on: ${{ fromJson(inputs.build_runner) }}
     container:
-      image: ${{ inputs.image }}
+      image: ${{ needs.prepare.outputs.image }}
 
     steps:
     - name: "Show inputs"
@@ -157,10 +187,10 @@ jobs:
         retention-days: 7
 
   test:
-    needs: build
+    needs: [prepare, build]
     runs-on: ${{ fromJson(inputs.test_runner) }}
     container:
-      image: ${{ inputs.image }}
+      image: ${{ needs.prepare.outputs.image }}
       options: ${{ inputs.test_docker_options }} -e CUDA_VISIBLE_DEVICES
 
     steps:
@@ -172,7 +202,6 @@ jobs:
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
         path: code
-        submodules: true
 
     - name: Create Python Environment
       uses: mamba-org/setup-micromamba@v1.9.0
