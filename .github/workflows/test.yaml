@@ -28,17 +28,20 @@ jobs:
       compiler_family: ${{ matrix.compiler[0] }}
       compiler_version: ${{ matrix.compiler[1] }}
       config: ${{ join(matrix.config, '_') }}
-      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
+      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline.
+      # When using GitHub hosted runners, no container image is needed.
       # TODO: test failure mode
-      build_runner: ${{ needs.start_action_runners.outputs.active == '8' && toJson(matrix.image) || '["self-hosted","jetstream2","CPU"]' }}
-      build_image: ${{ needs.start_action_runners.outputs.active == '8' && '' || 'glotzerlab/ci:' }}${{ needs.start_action_runners.outputs.active == '8' && '' || matrix.image }}
+      build_runner: ${{ needs.start_action_runners.outputs.active != '0' && '["self-hosted","jetstream2","CPU"]' || toJson(matrix.image) }}
+      # Note: Ternary "operators" do not behave as expected. The middle expression must not
+      # evaluate to false: https://7tonshark.com/posts/github-actions-string-operations/
+      build_image: ${{ needs.start_action_runners.outputs.active != '0' && format('glotzerlab/ci:{0}',matrix.image) || ''}}
 
       test_docker_options: ${{ matrix.test_docker_options }}
-      test_runner: ${{ matrix.test_runner == null && toJson(matrix.image) || toJson(matrix.test_runner) }}
-      test_image: ${{ matrix.test_runner == null && '' || 'glotzerlab/ci:' }}${{ matrix.test_runner == null && '' || matrix.image }}
+      test_runner: ${{ !matrix.test_runner == '' && toJson(matrix.test_runner) || toJson(matrix.image) }}
+      test_image: ${{ !matrix.test_runner == '' && format('glotzerlab/ci:{0}',matrix.image) || '' }}
 
       # Default to false when unset
-      validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
+      validate: ${{ !matrix.validate && matrix.validate || 'false'}}
       python: ${{ matrix.python }}
 
     strategy:

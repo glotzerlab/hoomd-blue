@@ -63,10 +63,13 @@ jobs:
       image: ${{ inputs.build_image == '' && null || inputs.build_image }}
 
     steps:
-    - run: echo "${{ toJson(inputs) }}"
+    - name: "Show inputs"
+      run: echo "${{ toJson(inputs) }}"
+    - run: pwd
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
+      if: ${{ inputs.build_image }}
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
@@ -87,17 +90,11 @@ jobs:
         echo "$HOME/micromamba/envs/test/bin" >> $GITHUB_PATH
         echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
 
-      # TODO: Combine ctest and pytest into one job? This saves some container download time and reduces the
-      # micromamba code setup dupliation.
-
-    - name: Set Werror on recent compilers
-      run: |
-        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
-
     - name: Set compiler
       run: |
         echo "CC=${{ inputs.compiler_family == 'gcc' && 'gcc' || 'clang' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
         echo "CXX=${{ inputs.compiler_family == 'gcc' && 'g++' || 'clang++' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
 
     - name: Configure
       run: |
@@ -175,6 +172,7 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
+      if: ${{ inputs.test_image }}
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
@@ -251,7 +249,13 @@ jobs:
     - name: Untar build
       run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
 
-    - name: Run tests
+    - run: ls -l
+    - run: ls -l build
+    - run: ls -l build/hoomd
+    - run: ls -l build/hoomd/test
+    - run: pwd
+
+    - name: Run ctest
       run: >-
         ctest
         -T test
