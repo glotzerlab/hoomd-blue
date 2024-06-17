@@ -48,7 +48,7 @@ class ExternalPotential
         const auto& particle_data = m_sysdef->getParticleData();
         auto box = particle_data->getGlobalBox();
 
-        auto shifted_r = r_i + vec3<LongReal>(particle_data->getOrigin());
+        auto shifted_r = r_i - vec3<LongReal>(particle_data->getOrigin());
         int3 tmp = make_int3(0, 0, 0);
         box.wrap(shifted_r, tmp);
         return particleEnergyImplementation(type_i, shifted_r, q_i, charge_i, trial);

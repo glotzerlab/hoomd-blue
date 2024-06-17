@@ -276,26 +276,38 @@ class TestExternalPotentialLinear:
 
         # expand box and add external field
         old_box = sim.state.box
-        new_box = hoomd.Box(Lx=3 * old_box.Lx, Ly=3 * old_box.Ly, Lz=3 * old_box.Lz)
+        new_box = hoomd.Box(Lx=3 * old_box.Lx,
+                            Ly=3 * old_box.Ly,
+                            Lz=3 * old_box.Lz)
         sim.state.set_box(new_box)
-        ext = hoomd.hpmc.external.Linear(
-            default_alpha=1000, plane_origin=(0, 0, 0), plane_normal=(0, 0, 1))
+        ext = hoomd.hpmc.external.Linear(default_alpha=1000,
+                                         plane_origin=(0, 0, 0),
+                                         plane_normal=(0, 0, 1))
         mc.external_potentials = [ext]
         sim.operations.integrator = mc
 
         snapshot = sim.state.get_snapshot()
+        sim.run(0)
         if snapshot.communicator.rank == 0:
             old_mean_z = np.mean(snapshot.particles.position[:, 2])
-        sim.run(0)
         old_energy = ext.energy
 
         for n in range(10):
             sim.run(1e3)
             snapshot = sim.state.get_snapshot()
+            new_energy = ext.energy
+            mc_energy = mc.external_energy
             if snapshot.communicator.rank == 0:
                 new_mean_z = np.mean(snapshot.particles.position[:, 2])
-                assert (new_mean_z < old_mean_z)
+                # since the potential's origin is (0, 0, 0) and its normal is
+                # (0, 0, 1), the total energy should be equal to N * alpha *
+                # mean_z, where N is the number of particles, alpha is the
+                # prefactor, and mean_z is the average position of the
+                # particles. verify that this equality holds.
+                np.testing.assert_allclose(
+                    new_energy,
+                    snapshot.particles.N * ext.alpha['A'] * new_mean_z)
+                assert new_mean_z < old_mean_z
+                assert new_energy < old_energy
                 old_mean_z = new_mean_z
-            new_energy = ext.energy
-            assert new_energy < old_energy
-            old_energy = new_energy
+                old_energy = new_energy
