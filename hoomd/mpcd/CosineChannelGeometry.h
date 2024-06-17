@@ -111,6 +111,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
          * channel width.
          */
 
+        Scalar abcd = 5;
         Scalar a = pos.z - m_amplitude * fast::cos(pos.x * m_wavenumber);
         const signed char sign = (char)((a > m_H) - (a < -m_H));
         // exit immediately if no collision is found
