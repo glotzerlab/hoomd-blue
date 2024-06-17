@@ -262,8 +262,8 @@ class TestExternalPotentialLinear:
         np.testing.assert_allclose(
             np.array(field.plane_normal) * magnitude, (1, 2, 3))
 
-    def test_z_bias(device, simulation_factory, lattice_snapshot_factory):
-        """Test that a biasing potential restrains particles to a specified region.
+    def test_z_bias(self, device, simulation_factory, lattice_snapshot_factory):
+        """Test that particles respond to a potential as expected.
 
         This test simulates a system of particles with a linear potential that
         biases their z-coordinates to more negative values.
@@ -296,7 +296,6 @@ class TestExternalPotentialLinear:
             sim.run(1e3)
             snapshot = sim.state.get_snapshot()
             new_energy = ext.energy
-            mc_energy = mc.external_energy
             if snapshot.communicator.rank == 0:
                 new_mean_z = np.mean(snapshot.particles.position[:, 2])
                 # since the potential's origin is (0, 0, 0) and its normal is
