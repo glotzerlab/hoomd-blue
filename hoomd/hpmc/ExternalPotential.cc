@@ -3,14 +3,14 @@
 
 #include <pybind11/pybind11.h>
 
-#include "PairPotential.h"
+#include "ExternalPotential.h"
 
 namespace hoomd::hpmc::detail
     {
-void exportPairPotential(pybind11::module& m)
+void exportExternalPotential(pybind11::module& m)
     {
-    pybind11::class_<hpmc::PairPotential, std::shared_ptr<hpmc::PairPotential>>(m, "PairPotential")
+    pybind11::class_<ExternalPotential, std::shared_ptr<ExternalPotential>>(m, "ExternalPotential")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParent", &hpmc::PairPotential::setParent);
+        .def("totalEnergy", &ExternalPotential::totalEnergy);
     }
     } // namespace hoomd::hpmc::detail
