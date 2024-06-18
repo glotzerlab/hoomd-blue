@@ -13,6 +13,7 @@ dependencies:
 - openmpi
 - pybind11
 - pytest
+- python==3.12
 - rowan
 - sybil
 - tbb

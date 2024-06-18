@@ -82,6 +82,15 @@ jobs:
             *)
               echo "Unknown compiler" && exit 1;;
             esac
+        elif [[ "${{ inputs.compiler_family }}" == "cuda" ]]
+        then
+          echo "cuda=cuda${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
+          case "${{ inputs.compiler_version }}" in
+            125)
+              echo "image=glotzerlab/ci:ubuntu-24.04" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+            esac
         else
           echo "Invalid compiler family"
           exit 1
@@ -120,6 +129,7 @@ jobs:
         echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
 
     - name: Set compiler
+      if: ${{ inputs.compiler_family != 'cuda' }}
       run: |
         echo "CC=${{ inputs.compiler_family == 'gcc' && 'gcc' || 'clang' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
         echo "CXX=${{ inputs.compiler_family == 'gcc' && 'g++' || 'clang++' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"

@@ -13,9 +13,9 @@
 version: 1
 metadata:
   content_hash:
-    osx-arm64: 1f618067a0c43a2482b90fc2177a6ea95c73b4a8c1e42b0b0a0a9562f85a5d94
-    osx-64: 7029618b2921010123bf84b1b543ff52be7ce5237d3a16ea9a6e27bd1555a799
-    linux-64: 79839d775b619c27fec6a62d53b5ce0b8ce09f5854308203ff421e9318111429
+    osx-arm64: 516fae6988b42b6ded20b63da98d34d06a8e05c30872f87877236e83a7528456
+    osx-64: a731aedf6da61aab177c32a26a8ea805c57da88b6f4d9452f7bd6be321d1fae0
+    linux-64: bfe67ed0051129ab7d8dc5080982d4825ef5d6df4e9a2c0ae0d50ee28acc9db3
   channels:
   - url: conda-forge/label/numpy_rc
     used_env_vars: []
@@ -259,7 +259,7 @@ package:
   category: main
   optional: false
 - name: cmake
-  version: 3.29.5
+  version: 3.29.6
   manager: conda
   platform: linux-64
   dependencies:
@@ -274,14 +274,14 @@ package:
     rhash: '>=1.4.4,<2.0a0'
     xz: '>=5.2.6,<6.0a0'
     zstd: '>=1.5.6,<1.6.0a0'
-  url: https://conda.anaconda.org/conda-forge/linux-64/cmake-3.29.5-hcafd917_0.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/cmake-3.29.6-hcafd917_0.conda
   hash:
-    md5: bdbeb3633eff0d1555aa14adbada3d49
-    sha256: 85c6a9648c0a4c89e6c79b411cee6a3205317b5e2a3b441a04efe77d1c2bb934
+    md5: b1084336535950b28485bb93653ca152
+    sha256: a788df92bf0e6e02d13ebc4e14e8bc56c80186f976200537799426aafc0e51ab
   category: main
   optional: false
 - name: cmake
-  version: 3.29.5
+  version: 3.29.6
   manager: conda
   platform: osx-64
   dependencies:
@@ -296,14 +296,14 @@ package:
     rhash: '>=1.4.4,<2.0a0'
     xz: '>=5.2.6,<6.0a0'
     zstd: '>=1.5.6,<1.6.0a0'
-  url: https://conda.anaconda.org/conda-forge/osx-64/cmake-3.29.5-h749d262_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/cmake-3.29.6-h749d262_0.conda
   hash:
-    md5: 332d300f667536dd127e98b9c178c87d
-    sha256: 3f85b92a116e1ad43cbda27794ea1f18f92f2b930dcbcabc5b46318ec2eb6e04
+    md5: 55f284f7cff98aea95fc9d0a2cc9dc33
+    sha256: 68c21e255259ae400adde74058adbaebc90f8f7b8cdf903017ea71b9ca65b2ce
   category: main
   optional: false
 - name: cmake
-  version: 3.29.5
+  version: 3.29.6
   manager: conda
   platform: osx-arm64
   dependencies:
@@ -318,10 +318,10 @@ package:
     rhash: '>=1.4.4,<2.0a0'
     xz: '>=5.2.6,<6.0a0'
     zstd: '>=1.5.6,<1.6.0a0'
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/cmake-3.29.5-had79d8f_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/cmake-3.29.6-had79d8f_0.conda
   hash:
-    md5: 7cbd163e79eb3bbb903ea952bc84a4b5
-    sha256: 3d7d156007d9ba0ba8fa8f6b84d2eac0cccef3dc06498d523c9371f08af3e8bb
+    md5: 683fac680a48e1b2a47edc4855f0874a
+    sha256: 6f132027419842f64ff5be4e51e5b749c8f2f28e824cae481be5262203580236
   category: main
   optional: false
 - name: colorama
