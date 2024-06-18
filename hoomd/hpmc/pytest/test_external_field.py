@@ -215,16 +215,17 @@ class TestExternalPotentialLinear:
         sim.state.set_snapshot(snapshot)
 
         if sim.device.communicator.rank == 0:
-            total_energy = 0.0
+            field_reference_energy = 0.0
             for r in snapshot.particles.position:
-                total_energy += np.dot(r - field.plane_origin,
-                                       field.plane_normal) * field.alpha['A']
+                field_reference_energy += np.dot(
+                    r - field.plane_origin,
+                    field.plane_normal) * field.alpha['A']
 
         field_energy = field.energy
         mc_external_energy = mc.external_energy
 
         if sim.device.communicator.rank == 0:
-            assert field_energy == pytest.approx(total_energy)
+            assert field_energy == pytest.approx(field_reference_energy)
             assert field_energy == pytest.approx(mc_external_energy)
 
         # Test that HPMCIntegrator correctly handles multiple fields.
@@ -247,6 +248,16 @@ class TestExternalPotentialLinear:
             assert field_energy + field2_energy == pytest.approx(
                 mc_external_energy)
 
+        # Test that origin shifting does not change the energy
+        mc.d['A'] = 0
+        sim.run(1000)
+        field_energy = field.energy
+        field2_energy = field2.energy
+
+        if sim.device.communicator.rank == 0:
+            assert field_energy == pytest.approx(field_reference_energy)
+            assert field2_energy == pytest.approx(field2_reference_energy)
+
     def test_normalization_of_plane_normal(self, simulation_factory,
                                            two_particle_snapshot_factory,
                                            add_default_integrator):
@@ -258,10 +269,11 @@ class TestExternalPotentialLinear:
 
         # create C++ mirror classes and set parameters
         assert field.plane_normal == (1, 2, 3)
-        sim.run(0)
+        sim.run(0)  # normalization occurs on attaching
         np.testing.assert_allclose(
             np.array(field.plane_normal) * magnitude, (1, 2, 3))
 
+    @pytest.mark.validate
     def test_z_bias(self, device, simulation_factory, lattice_snapshot_factory):
         """Test that particles respond to a potential as expected.
 
