@@ -39,10 +39,9 @@ def snap():
             {
                 "geometry":
                     hoomd.mpcd.geometry.CosineExpansionContraction(
-                        channel_length=15.0,
-                        hw_wide=4.0,
-                        hw_narrow=2.0,
-                        repetitions=int(1),
+                        expansion_separation=8.0,
+                        contraction_separation=4.0,
+                        wavenumber=2.0 * np.pi / 20.0,
                         no_slip=True)
             },
         ),
@@ -398,11 +397,11 @@ class TestCosineExpansionContraction:
 
     def _make_particles(self, snap):
         if snap.communicator.rank == 0:
-            snap.configuration.box = [15, 10, 20, 0, 0, 0]
+            snap.configuration.box = [15, 15, 15, 0, 0, 0]
             snap.mpcd.N = 3
-            snap.mpcd.position[:] = [[1., -3.0, -3.8], [3.5, 0., 3.],
-                                     [-4.2, 5.1, -2.2]]
-            snap.mpcd.velocity[:] = [[0., 0., -1.], [1., 0., 0.],
+            snap.mpcd.position[:] = [[1., -3.8, -3.0], [3.5, 3., 0.],
+                                     [-4.2, -2.2, 5.1]]
+            snap.mpcd.velocity[:] = [[0., -1., 0.], [1., 0., 0.],
                                      [-1., -1., -1.]]
         return snap
 
@@ -412,10 +411,9 @@ class TestCosineExpansionContraction:
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                channel_length=15.0,
-                hw_wide=4.0,
-                hw_narrow=2.0,
-                repetitions=int(1),
+                expansion_separation=8.0,
+                contraction_separation=4.0,
+                wavenumber=2.0 * np.pi / 15.0,
                 no_slip=True),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -426,15 +424,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [1, -3.0, -3.9])
+                                                 [1, -3.9, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0., 0., -1.])
+                                                 [0., -1, 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.6, 0.0, 3.0])
+                                                 [3.6, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [1., 0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.3, 5.0, -2.3])
+                                                 [-4.3, -2.3, 5.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -446,15 +444,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [1, -3.0, -3.82709])
+                                                 [1, -3.82709, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0., 0., +1.])
+                                                 [0., 1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.7, 0.0, 3.0])
+                                                 [3.7, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [1., 0., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.4, 4.9, -2.4])
+                                                 [-4.4, -2.4, 4.9])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -465,15 +463,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [1, -3.0, -3.72709])
+                                                 [1, -3.72709, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0., 0., +1.])
+                                                 [0., 1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.7, 0.0, 3.0])
+                                                 [3.7, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [-1., 0., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.5, 4.8, -2.5])
+                                                 [-4.5, -2.5, 4.8])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -482,15 +480,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [1, -3.0, -3.62709])
+                                                 [1, -3.62709, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0., 0., +1.])
+                                                 [0., 1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.6, 0.0, 3.0])
+                                                 [3.6, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [-1., 0., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.6, 4.7, -2.6])
+                                                 [-4.6, -2.6, 4.7])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -502,15 +500,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [1, -3.0, -3.52709])
+                                                 [1, -3.52709, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0., 0., +1.])
+                                                 [0., 1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.5, 0.0, 3.0])
+                                                 [3.5, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [-1., 0., 0.])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2], [-4.573913, 4.726087, -2.573919])
+                snap.mpcd.position[2], [-4.573913, -2.573919, 4.726087])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [1., 1., 1.])
 
@@ -520,10 +518,9 @@ class TestCosineExpansionContraction:
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                channel_length=15.0,
-                hw_wide=4.0,
-                hw_narrow=2.0,
-                repetitions=int(1),
+                expansion_separation=8.0,
+                contraction_separation=4.0,
+                wavenumber=2.0 * np.pi / 15.0,
                 no_slip=False),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -534,15 +531,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [1, -3.0, -3.9])
+                                                 [1, -3.9, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0., 0., -1.])
+                                                 [0., -1., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.6, 0.0, 3.0])
+                                                 [3.6, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [1., 0, 0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.3, 5.0, -2.3])
+                                                 [-4.3, -2.3, 5.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -559,15 +556,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0.971372, -3.0, -3.831968])
+                                                 [0.971372, -3.831968, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [-0.331135, 0., 0.943583])
+                                                 [-0.331135, 0.943583, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.7, 0.0, 3.0])
+                                                 [3.7, 3.0, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
                                                  [1., 0., 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.4, 4.9, -2.4])
+                                                 [-4.4, -2.4, 4.9])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -580,15 +577,15 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0.9382585, -3.0, -3.7376097])
+                                                 [0.9382585, -3.7376097, -3.0])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [-0.331135, 0., 0.943583])
+                                                 [-0.331135, 0.943583, 0.0])
             np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [3.785073, 0., 2.964365])
+                                                 [3.785073, 2.964365, 0.])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[1], [0.70146211038, 0., -0.71270674733])
+                snap.mpcd.velocity[1], [0.70146211038, -0.71270674733, 0.])
             np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-4.5, 4.8, -2.5])
+                                                 [-4.5, -2.5, 4.8])
             np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
                                                  [-1., -1., -1.])
 
@@ -601,10 +598,10 @@ class TestCosineExpansionContraction:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2], [-4.640625, 4.600002, -2.547881])
+                snap.mpcd.position[2], [-4.640625, -2.547881, 4.600002])
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity[2],
-                [-0.05819760480217273, -1., 1.4130155833518931])
+                [-0.05819760480217273, 1.4130155833518931, -1.])
 
     def test_check_mpcd_particles(self, simulation_factory, snap):
         """Test box validation raises an error on run."""
@@ -616,10 +613,9 @@ class TestCosineExpansionContraction:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                channel_length=15.0,
-                hw_wide=4.0,
-                hw_narrow=2.0,
-                repetitions=int(1)),
+                expansion_separation=8.0,
+                contraction_separation=4.0,
+                wavenumber=2.0 * np.pi / 15.0),
         )
         sim.run(0)
         assert ig.streaming_method.check_mpcd_particles()
@@ -627,10 +623,9 @@ class TestCosineExpansionContraction:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                channel_length=15.0,
-                hw_wide=10.0,
-                hw_narrow=2.0,
-                repetitions=int(1)),
+                expansion_separation=20.0,
+                contraction_separation=4.0,
+                wavenumber=2.0 * np.pi / 15.0),
         )
         sim.run(0)
         assert not ig.streaming_method.check_mpcd_particles()
@@ -638,10 +633,9 @@ class TestCosineExpansionContraction:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                channel_length=15.0,
-                hw_wide=4.0,
-                hw_narrow=2.0,
-                repetitions=int(1)),
+                expansion_separation=8.0,
+                contraction_separation=4.0,
+                wavenumber=2.0 * np.pi / 15.0),
         )
         sim.run(0)
         assert ig.streaming_method.check_mpcd_particles()
@@ -649,10 +643,9 @@ class TestCosineExpansionContraction:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                channel_length=15.0,
-                hw_wide=2.0,
-                hw_narrow=1.0,
-                repetitions=int(1)),
+                expansion_separation=4.0,
+                contraction_separation=2.0,
+                wavenumber=2.0 * np.pi / 15.0),
         )
         assert not ig.streaming_method.check_mpcd_particles()
 

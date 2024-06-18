@@ -27,16 +27,17 @@ namespace mpcd
 //! Sinusoidal expansion constriction channel geometry
 /*!
  * This class defines a channel with a series of expansions and constrictions. Symmetric cosines
- * given by the equations +/-(A cos(x*2*pi*p/Lx) + A + H_narrow) are used for the walls.
- * A = 0.5*(H_wide-H_narrow) is the amplitude and p is the period of the wall cosine.
- * H_wide is the half height of the channel at its widest point, H_narrow is the half height of the
- * channel at its narrowest point. The cosine wall wavelength/frenquency needs to be consumable with
- * the periodic boundary conditions in x, therefore the period p is specified and the wavelength
- * 2*pi*p/Lx is calculated.
+ * given by the equations +/-(A cos(x*2*pi*p/Lx) + A + contraction_separation*0.5) are used for the
+ * walls. A = expansion_separation-contraction_separation is the amplitude and p is the period of
+ * the wall cosine. expansion_separation is the height of the channel at its widest point,
+ * contraction_separation is the half height of the channel at its narrowest point. The cosine wall
+ * wavelength/frenquency needs to be consumable with the periodic boundary conditions in x,
+ * therefore the period p is specified and the wavelength 2*pi*p/Lx is calculated.
  *
- * Below is an example how a cosine channel looks like in a 30x30x30 box with H_wide=10, H_narrow=1,
- * and p=1. The wall cosine period p determines how many repetitions of the geometry are in the
- * simulation cell and there will be p wide sections, centered at the origin of the simulation box.
+ * Below is an example how a cosine channel looks like in a 30x30x30 box with
+ * expansion_separation=20, contraction_separation=2, and p=1. The wall cosine period p determines
+ * how many repetitions of the geometry are in the simulation cell and there will be p wide
+ * sections, centered at the origin of the simulation box.
  *
  *
  * 15 +-------------------------------------------------+
@@ -73,19 +74,18 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
     public:
     //! Constructor
     /*!
-     * \param L Channel length (Simulation box length in x)
-       \param H_wide Channel half-width at widest point
-       \param H_narrow Channel half-width at narrowest point
-       \param Period Channel cosine period (integer >0)
-     * \param bc Boundary condition at the wall (slip or no-slip)
+     * \param expansion_separation Channel width at narrowest point
+       \param contraction_separation Channel width at widest point
+       \param wavenumber Wavenumber of the cosine
+     * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE CosineExpansionContractionGeometry(Scalar L,
-                                                  Scalar H_wide,
-                                                  Scalar H_narrow,
-                                                  unsigned int Repetitions,
+    HOSTDEVICE CosineExpansionContractionGeometry(Scalar expansion_separation,
+                                                  Scalar contraction_separation,
+                                                  Scalar wavenumber,
                                                   bool no_slip)
-        : m_pi_period_div_L(2 * M_PI * Repetitions / L), m_H_wide(H_wide), m_H_narrow(H_narrow),
-          m_Repetitions(Repetitions), m_no_slip(no_slip)
+        : m_H_wide(Scalar(0.5) * expansion_separation),
+          m_H_narrow(Scalar(0.5) * contraction_separation), m_wavenumber(wavenumber),
+          m_no_slip(no_slip)
         {
         }
 
@@ -115,8 +115,8 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
          * channel width.
          */
         Scalar A = 0.5 * (m_H_wide - m_H_narrow);
-        Scalar a = A * fast::cos(pos.x * m_pi_period_div_L) + A + m_H_narrow;
-        const signed char sign = (pos.z > a) - (pos.z < -a);
+        Scalar a = A * fast::cos(pos.x * m_wavenumber) + A + m_H_narrow;
+        const signed char sign = (pos.y > a) - (pos.y < -a);
 
         // exit immediately if no collision is found
         if (sign == 0)
@@ -148,11 +148,11 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
         Scalar delta;
 
         // excatly horizontal z-collision, has a solution:
-        if (vel.z == 0)
+        if (vel.y == 0)
             {
-            x0 = 1 / m_pi_period_div_L * fast::acos((pos.z - A - m_H_narrow) / sign * A);
-            z0 = pos.z;
-            y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
+            x0 = 1 / m_wavenumber * fast::acos((pos.y - A - m_H_narrow) / sign * A);
+            y0 = pos.y;
+            z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
             }
         /* chatch the case where a particle collides exactly vertically (v_x=0 -> old x pos = new x
          * pos) In this case in Newton's method one would get: y0 = -(0)*0/0 + (y-dt*v_y) == nan,
@@ -161,38 +161,38 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
         else if (vel.x == 0)
             {
             x0 = pos.x;
-            y0 = (pos.y - dt * vel.y);
-            z0 = sign * (A * fast::cos(x0 * m_pi_period_div_L) + A + m_H_narrow);
+            z0 = (pos.z - dt * vel.z);
+            y0 = sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow);
             }
         else // not horizontal or vertical collision - do Newthon's method
             {
             delta = fabs(0
-                         - (sign * (A * fast::cos(x0 * m_pi_period_div_L) + A + m_H_narrow)
-                            - vel.z / vel.x * (x0 - pos.x) - pos.z));
+                         - (sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow)
+                            - vel.y / vel.x * (x0 - pos.x) - pos.y));
 
             unsigned int counter = 0;
             while (delta > target_precision && counter < max_iteration)
                 {
-                fast::sincos(x0 * m_pi_period_div_L, s, c);
-                n = sign * (A * c + A + m_H_narrow) - vel.z / vel.x * (x0 - pos.x) - pos.z; // f
-                n2 = -sign * m_pi_period_div_L * A * s - vel.z / vel.x;                     // df
+                fast::sincos(x0 * m_wavenumber, s, c);
+                n = sign * (A * c + A + m_H_narrow) - vel.y / vel.x * (x0 - pos.x) - pos.y; // f
+                n2 = -sign * m_wavenumber * A * s - vel.y / vel.x;                          // df
                 x0 = x0 - n / n2; // x = x - f/df
                 delta = fabs(0
-                             - (sign * (A * fast::cos(x0 * m_pi_period_div_L) + A + m_H_narrow)
-                                - vel.z / vel.x * (x0 - pos.x) - pos.z));
+                             - (sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow)
+                                - vel.y / vel.x * (x0 - pos.x) - pos.y));
                 ++counter;
                 }
             /* The new z position is calculated from the wall equation to guarantee that the new
              * particle positon is exactly at the wall and not accidentally slightly inside of the
              * wall because of nummerical presicion.
              */
-            z0 = sign * (A * fast::cos(x0 * m_pi_period_div_L) + A + m_H_narrow);
+            y0 = sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow);
 
             /* The new y position can be calculated from the fact that the last position outside of
              * the wall, the current position inside of the  wall, and the new position exactly at
              * the wall are on a straight line.
              */
-            y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
+            z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
 
             // Newton's method sometimes failes to converge (close to saddle points, df'==0,
             // overshoot, bad initial guess,..) catch all of them here and do bisection if Newthon's
@@ -209,15 +209,14 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
                 Scalar3 point1 = pos;                     // final position at t+dt
                 Scalar3 point2 = pos - dt * vel;          // initial position
                 Scalar3 point3 = 0.5 * (point1 + point2); // halfway point
-                Scalar fpoint3
-                    = (sign * (A * fast::cos(point3.x * m_pi_period_div_L) + A + m_H_narrow)
-                       - point3.z); // value at halfway point, f(x)
+                Scalar fpoint3 = (sign * (A * fast::cos(point3.x * m_wavenumber) + A + m_H_narrow)
+                                  - point3.y); // value at halfway point, f(x)
                 // Note: technically, the presicion of Newton's method and bisection is slightly
                 // different, with bisection being less precise and slower convergence.
                 while (fabs(fpoint3) > target_precision && counter < max_iteration)
                     {
-                    fpoint3 = (sign * (A * fast::cos(point3.x * m_pi_period_div_L) + A + m_H_narrow)
-                               - point3.z);
+                    fpoint3 = (sign * (A * fast::cos(point3.x * m_wavenumber) + A + m_H_narrow)
+                               - point3.y);
                     // because we know that point1 outside of the channel and point2 is inside of
                     // the channel, we only need to check the halfway point3 - if it is inside,
                     // replace point2, if it is outside, replace point1
@@ -234,8 +233,8 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
                     }
                 // final point3 == intersection
                 x0 = point3.x;
-                z0 = sign * (A * fast::cos(x0 * m_pi_period_div_L) + A + m_H_narrow);
-                y0 = -(pos.x - dt * vel.x - x0) * vel.y / vel.x + (pos.y - dt * vel.y);
+                y0 = sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow);
+                z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
                 }
             }
 
@@ -258,13 +257,13 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
             }
         else // Slip conditions require only tangential components to be reflected:
             {
-            Scalar B = sign * A * m_pi_period_div_L * fast::sin(x0 * m_pi_period_div_L);
+            Scalar B = sign * A * m_wavenumber * fast::sin(x0 * m_wavenumber);
             // The reflected vector is given by v_reflected = -2*(v_normal*v_incoming)*v_normal +
             // v_incoming Calculate components by hand to avoid sqrt in normalization of the normal
             // of the surface.
-            vel_new.x = vel.x - 2 * B * (B * vel.x + vel.z) / (B * B + 1);
-            vel_new.y = vel.y;
-            vel_new.z = vel.z - 2 * (B * vel.x + vel.z) / (B * B + 1);
+            vel_new.x = vel.x - 2 * B * (B * vel.x + vel.y) / (B * B + 1);
+            vel_new.z = vel.z;
+            vel_new.y = vel.y - 2 * (B * vel.x + vel.y) / (B * B + 1);
             }
         vel = vel_new;
 
@@ -278,9 +277,9 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
      */
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
-        const Scalar a = 0.5 * (m_H_wide - m_H_narrow) * fast::cos(pos.x * m_pi_period_div_L)
+        const Scalar a = 0.5 * (m_H_wide - m_H_narrow) * fast::cos(pos.x * m_wavenumber)
                          + 0.5 * (m_H_wide - m_H_narrow) + m_H_narrow;
-        return (pos.z > a || pos.z < -a);
+        return (pos.y > a || pos.y < -a);
         }
 
     //! Validate that the simulation box is large enough for the geometry
@@ -294,35 +293,33 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
      */
     HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
         {
-        const Scalar hi = box.getHi().z;
-        const Scalar lo = box.getLo().z;
+        const Scalar hi = box.getHi().y;
+        const Scalar lo = box.getLo().y;
         return ((hi - m_H_wide) >= cell_size && (-m_H_wide - lo) >= cell_size);
         }
 
-    //! Get channel half width at widest point
+    //! Get channel width at widest point
     /*!
-     * \returns Channel half width at widest point
+     * \returns Channel width at widest point
      */
-    HOSTDEVICE Scalar getHwide() const
+    HOSTDEVICE Scalar getExpansionSeparation() const
         {
-        return m_H_wide;
-        }
-    //! Get channel half width at narrowest point
-    /*!
-     * \returns Channel half width at narrowest point
-     */
-    HOSTDEVICE Scalar getHnarrow() const
-        {
-        return m_H_narrow;
+        return Scalar(2.0) * m_H_wide;
         }
 
-    //! Get channel cosine wall repetitions
+    //! Get channel width at narrowest point
     /*!
-     * \returns Channel cosine wall repetitions
+     * \returns Channel width at narrowest point
      */
-    HOSTDEVICE Scalar getRepetitions() const
+    HOSTDEVICE Scalar getContractionSeparation() const
         {
-        return m_Repetitions;
+        return Scalar(2.0) * m_H_narrow;
+        }
+
+    //! Get channel wavenumber
+    HOSTDEVICE Scalar getWavenumber() const
+        {
+        return m_wavenumber;
         }
 
     //! Get the wall boundary condition
@@ -343,13 +340,10 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
 #endif // __HIPCC__
 
     private:
-    const Scalar
-        m_pi_period_div_L;   //!< Argument of the wall cosine (pi*period/Lx = 2*pi*repetitions/Lx)
-    const Scalar m_H_wide;   //!< Half of the channel widest width
-    const Scalar m_H_narrow; //!< Half of the channel narrowest width
-    const unsigned int
-        m_Repetitions;    //!< Number of repetitions of the wide sections in the channel =  period
-    const bool m_no_slip; //!< Boundary condition
+    const Scalar m_wavenumber; //!< Wavenumber of cosine
+    const Scalar m_H_wide;     //!< Half of the channel widest width
+    const Scalar m_H_narrow;   //!< Half of the channel narrowest width
+    const bool m_no_slip;      //!< Boundary condition
     };
 
     } // end namespace mpcd

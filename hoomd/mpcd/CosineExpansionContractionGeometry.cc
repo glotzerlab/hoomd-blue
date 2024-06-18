@@ -20,10 +20,12 @@ void export_CosineExpansionContractionGeometry(pybind11::module& m)
                      std::shared_ptr<CosineExpansionContractionGeometry>>(
         m,
         CosineExpansionContractionGeometry::getName().c_str())
-        .def(pybind11::init<Scalar, Scalar, Scalar, unsigned int, bool>())
-        .def_property_readonly("hw_wide", &CosineExpansionContractionGeometry::getHwide)
-        .def_property_readonly("hw_narrow", &CosineExpansionContractionGeometry::getHnarrow)
-        .def_property_readonly("repetitions", &CosineExpansionContractionGeometry::getRepetitions)
+        .def(pybind11::init<Scalar, Scalar, Scalar, bool>())
+        .def_property_readonly("expansion_separation",
+                               &CosineExpansionContractionGeometry::getExpansionSeparation)
+        .def_property_readonly("contraction_separation",
+                               &CosineExpansionContractionGeometry::getContractionSeparation)
+        .def_property_readonly("wavenumber", &CosineExpansionContractionGeometry::getWavenumber)
         .def_property_readonly("no_slip", &CosineExpansionContractionGeometry::getNoSlip);
     }
     } // end namespace detail

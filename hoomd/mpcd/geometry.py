@@ -174,30 +174,49 @@ class PlanarPore(Geometry):
 class CosineExpansionContraction(Geometry):
     r"""Cosine expansion contraction.
 
-    TODO: revise as above.
+    Args:
+        expansion_separation (float): Maximum distance between channel walls.
+        contraction_separation (float): Minimum distance between channel walls.
+        wavenumber (float): Wavenumber of cosine.
+        no_slip (bool): If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+    TODO: rewrite this documentation and include an equation for the boundaries.
+
+    .. rubric:: Example:
+
+    TODO: rewrite this example so that it can actually run. Install sybil to
+    test your examples in docs.
+
+    Attributes:
+        expansion_separation (float): Maximum distance between channel walls
+        (*read only*).
+
+        wavenumber (float): Wavenumber of cosine (*read only*).
+
+        contraction_separation (float): Minimum distance between channel walls.
+        (*read only*).
 
     """
 
     def __init__(self,
-                 channel_length,
-                 hw_wide,
-                 hw_narrow,
-                 repetitions,
+                 expansion_separation,
+                 contraction_separation,
+                 wavenumber,
                  no_slip=True):
         super().__init__(no_slip)
 
         param_dict = ParameterDict(
-            channel_length=float(channel_length),
-            hw_wide=float(hw_wide),
-            hw_narrow=float(hw_narrow),
-            repetitions=int(repetitions),
+            expansion_separation=float(expansion_separation),
+            contraction_separation=float(contraction_separation),
+            wavenumber=float(wavenumber),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _mpcd.CosineExpansionContraction(
-            self.channel_length, self.hw_wide, self.hw_narrow,
-            int(self.repetitions), self.no_slip)
+            self.expansion_separation, self.contraction_separation,
+            self.wavenumber, self.no_slip)
         super()._attach_hook()
 
 
