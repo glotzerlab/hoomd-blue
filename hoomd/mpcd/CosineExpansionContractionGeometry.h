@@ -116,7 +116,7 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
          */
         Scalar A = 0.5 * (m_H_wide - m_H_narrow);
         Scalar a = A * fast::cos(pos.x * m_wavenumber) + A + m_H_narrow;
-        const signed char sign = (pos.y > a) - (pos.y < -a);
+        const signed char sign = (char)((pos.y > a) - (pos.y < -a));
 
         // exit immediately if no collision is found
         if (sign == 0)
@@ -340,9 +340,9 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
 #endif // __HIPCC__
 
     private:
-    const Scalar m_wavenumber; //!< Wavenumber of cosine
     const Scalar m_H_wide;     //!< Half of the channel widest width
     const Scalar m_H_narrow;   //!< Half of the channel narrowest width
+    const Scalar m_wavenumber; //!< Wavenumber of cosine
     const bool m_no_slip;      //!< Boundary condition
     };
 
