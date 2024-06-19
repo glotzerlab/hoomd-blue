@@ -81,7 +81,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - config: [clang, 18, -py, 312, -mpi, -tbb]
         - config: [clang, 17, -py, 312, -mpi, -tbb]
         - config: [clang, 16, -py, 312, -mpi, -tbb]
         - config: [clang, 15, -py, 311, -mpi, -tbb]
