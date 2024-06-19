@@ -62,7 +62,6 @@ jobs:
       run: |
         if [[ "${{ inputs.compiler_family }}" == "gcc" ]]
         then
-          echo "cuda=none" >> "$GITHUB_OUTPUT"
           case ${{ inputs.compiler_version }} in
             10|11)
               echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
@@ -73,7 +72,6 @@ jobs:
           esac
         elif [[ "${{ inputs.compiler_family }}" == "clang" ]]
         then
-          echo "cuda=none" >> "$GITHUB_OUTPUT"
           case "${{ inputs.compiler_version }}" in
             13|14|15)
               echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
@@ -87,7 +85,7 @@ jobs:
           echo "cuda=cuda${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
           case "${{ inputs.compiler_version }}" in
             125)
-              echo "image=glotzerlab/ci:ubuntu-24.04" >> "$GITHUB_OUTPUT";;
+              echo "image=nvidia/cuda:12.5.0-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
             *)
               echo "Unknown compiler" && exit 1;;
             esac
@@ -109,6 +107,11 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+    - name: Install git
+      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') }}
+      run: |
+        apt-get update
+        apt-get install git --yes
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -120,7 +123,7 @@ jobs:
       with:
         micromamba-version: '1.5.8-0'
         environment-name: test
-        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-${{ needs.prepare.outputs.cuda }}-conda-lock.yml
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
         post-cleanup: all
 
     - name: Configure conda environment variables
@@ -212,6 +215,11 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+    - name: Install git
+      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') }}
+      run: |
+        apt-get update
+        apt-get install git --yes
     - name: Checkout
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       with:
@@ -222,7 +230,7 @@ jobs:
       with:
         micromamba-version: '1.5.8-0'
         environment-name: test
-        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-${{ needs.prepare.outputs.cuda }}-conda-lock.yml
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
         post-cleanup: environment
 
     - name: Configure conda environment variables
