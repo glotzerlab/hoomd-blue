@@ -13,9 +13,9 @@
 version: 1
 metadata:
   content_hash:
-    osx-arm64: 9f242f1a63788f95a4933d24327bcfcadf9bd102b1ffdbaa9a82e65f7c06f73f
-    osx-64: 60285c5d20e6038b967aab2dcfa40ebba58c33126976978a6cd3112c254db70d
-    linux-64: 93845a3b034177780dd37842087081beb8d97443b5f2dbbbc1e7f9c84df85a0b
+    osx-arm64: 1a2accf32fa8eb8702039cee32a2fb440be91a1ac721280b840e42b960eb3480
+    osx-64: 54b76a8d561524ac643e6366f400ca13c4b9dcb8629faf4b74a12edfa6b62938
+    linux-64: 878be32ca19829de71885d93397c7a7966a0faecc7a76b0fc1d10e3de7562cd3
   channels:
   - url: conda-forge/label/numpy_rc
     used_env_vars: []
@@ -2621,6 +2621,45 @@ package:
   hash:
     md5: 161081fc7cec0bfda0d86d7cb595f8d8
     sha256: 7b2b69c54ec62a243eb6fba2391b5e443421608c3ae5dbff938ad33ca8db5122
+  category: main
+  optional: false
+- name: uv
+  version: 0.2.13
+  manager: conda
+  platform: linux-64
+  dependencies:
+    libgcc-ng: '>=12'
+    libstdcxx-ng: '>=12'
+  url: https://conda.anaconda.org/conda-forge/linux-64/uv-0.2.13-h0ea3d13_0.conda
+  hash:
+    md5: 7d09e1e02f5207d63b2a77f90f937071
+    sha256: 451be34c3b33ccdec2e9031b60f32b892e0d66a1a62ddc14d3e4ab95255a3137
+  category: main
+  optional: false
+- name: uv
+  version: 0.2.13
+  manager: conda
+  platform: osx-64
+  dependencies:
+    __osx: '>=10.13'
+    libcxx: '>=16'
+  url: https://conda.anaconda.org/conda-forge/osx-64/uv-0.2.13-h4e38c46_0.conda
+  hash:
+    md5: 5c5b1d21e08471d0c46aa6551aeb0a54
+    sha256: 550bd08a7aca4fe46ca06df7eda88bbc9f655eec2848c3607aad892bb067c76f
+  category: main
+  optional: false
+- name: uv
+  version: 0.2.13
+  manager: conda
+  platform: osx-arm64
+  dependencies:
+    __osx: '>=11.0'
+    libcxx: '>=16'
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/uv-0.2.13-hc069d6b_0.conda
+  hash:
+    md5: 5d29bcbc10048cea9a87b55e7ac8a5a7
+    sha256: 698da5451e73c916be54bf01fce57408030c8431512fe5537db33ac2fa80fff2
   category: main
   optional: false
 - name: xz

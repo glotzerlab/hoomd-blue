@@ -18,3 +18,4 @@ dependencies:
 - sybil
 - tbb
 - tbb-devel
+- uv

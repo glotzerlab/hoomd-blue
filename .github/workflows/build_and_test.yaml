@@ -43,6 +43,8 @@ env:
   _HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_: 1
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
+  CONDA_PREFIX: ${{ github.workspace }}/micromamba/envs/test
+  CMAKE_PREFIX_PATH: ${{ github.workspace }}/micromamba/envs/test
 
 jobs:
   prepare:
@@ -129,11 +131,11 @@ jobs:
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
         post-cleanup: all
+        micromamba-root-path: ${{ github.workspace }}/micromamba
 
     - name: Configure conda environment variables
       run: |
-        echo "$HOME/micromamba/envs/test/bin" >> $GITHUB_PATH
-        echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
+        echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
 
     - name: Set compiler
       if: ${{ inputs.compiler_family != 'cuda' }}
@@ -235,12 +237,12 @@ jobs:
         micromamba-version: '1.5.8-0'
         environment-name: test
         environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
-        post-cleanup: environment
+        post-cleanup: all
+        micromamba-root-path: ${{ github.workspace }}/micromamba
 
     - name: Configure conda environment variables
       run: |
-        echo "$HOME/micromamba/envs/test/bin" >> $GITHUB_PATH
-        echo "CMAKE_PREFIX_PATH=$HOME/micromamba/envs/test" >> $GITHUB_ENV
+        echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
 
     - name: Download install
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
@@ -248,6 +250,15 @@ jobs:
         name: install-${{ inputs.config }}-${{ github.sha }}
     - name: Untar install
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
+
+    # Install cupy from PyPI to avoid pulling in CUDA from conda-forge. This would conflict
+    # with the CUDA provided by the NVIDIA container image.
+    # cupy 12.3.0 is the latest version that supports our oldest test GPUs - however, 12.3.0 does
+    # not support numpy 2.0. Uncomment the next block after the old GPUs are removed from the
+    # test runner pool.
+    # - name: Install cupy
+    #   if: ${{ contains(inputs.config, 'cuda') }}
+    #   run: uv pip install --no-deps fastrlock==0.8.2 cupy-cuda12x==12.3.0
 
     ### Python unit tests
     - name: Run pytest (serial)
