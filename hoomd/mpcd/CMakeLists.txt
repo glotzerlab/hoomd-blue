@@ -189,6 +189,35 @@ foreach(_geometry ${_geometries})
     endif()
 endforeach()
 
+# virtual particle fillers for the different geometries, skip those that are already done manually
+set(_manual_geometries ParallelPlateGeometry PlanarPoreGeometry)
+foreach(_geometry ${_geometries})
+    if(${_geometry} IN_LIST _manual_geometries)
+        continue()
+    endif()
+
+    configure_file(
+        RejectionVirtualParticleFiller.cc.inc
+        RejectionVirtualParticleFiller${_geometry}.cc
+        @ONLY
+        )
+    list(APPEND _mpcd_cc_sources RejectionVirtualParticleFiller${_geometry}.cc)
+    if(ENABLE_HIP)
+        configure_file(
+            RejectionVirtualParticleFillerGPU.cc.inc
+            RejectionVirtualParticleFiller${_geometry}GPU.cc
+            @ONLY
+        )
+        configure_file(
+            RejectionVirtualParticleFillerGPU.cu.inc
+            RejectionVirtualParticleFiller${_geometry}GPU.cu
+            @ONLY
+        )
+        list(APPEND _mpcd_cc_sources RejectionVirtualParticleFiller${_geometry}GPU.cc)
+        list(APPEND _mpcd_cu_sources RejectionVirtualParticleFiller${_geometry}GPU.cu)
+    endif()
+endforeach()
+
 if(ENABLE_HIP)
     set_source_files_properties(${_mpcd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
