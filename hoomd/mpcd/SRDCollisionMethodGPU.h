@@ -28,7 +28,7 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                           unsigned int cur_timestep,
                           unsigned int period,
                           int phase,
-                          uint16_t seed);
+                          Scalar angle);
 
     void setCellList(std::shared_ptr<mpcd::CellList> cl);
 
@@ -43,13 +43,6 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     std::shared_ptr<Autotuner<1>> m_tuner_rotvec; //!< Tuner for drawing rotation vectors
     std::shared_ptr<Autotuner<1>> m_tuner_rotate; //!< Tuner for rotating velocities
     };
-
-namespace detail
-    {
-//! Export SRDCollisionMethodGPU to python
-void export_SRDCollisionMethodGPU(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_GPU_H_

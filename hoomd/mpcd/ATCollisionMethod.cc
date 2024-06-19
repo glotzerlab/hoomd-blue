@@ -243,10 +243,14 @@ void mpcd::ATCollisionMethod::detachCallbacks()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
+void export_ATCollisionMethod(pybind11::module& m)
     {
     pybind11::class_<mpcd::ATCollisionMethod,
                      mpcd::CollisionMethod,
@@ -256,7 +260,10 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
                             uint64_t,
                             int,
                             std::shared_ptr<Variant>>())
-        .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
+        .def_property("kT",
+                      &mpcd::ATCollisionMethod::getTemperature,
+                      &mpcd::ATCollisionMethod::setTemperature);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

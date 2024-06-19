@@ -704,8 +704,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_gpu_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_gpu_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_gpu_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_gpu_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -733,7 +733,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1059,8 +1059,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_gpu_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_gpu_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_gpu_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_gpu_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -1088,7 +1088,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1488,8 +1488,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                         = h_ghost_group_end.data[ineigh + stage * m_gpu_comm.m_n_unique_neigh]
                           - h_ghost_group_begin.data[ineigh + stage * m_gpu_comm.m_n_unique_neigh];
 
-                MPI_Request req[2 * m_gpu_comm.m_n_unique_neigh];
-                MPI_Status stat[2 * m_gpu_comm.m_n_unique_neigh];
+                std::vector<MPI_Request> req(2 * m_gpu_comm.m_n_unique_neigh);
+                std::vector<MPI_Status> stat(2 * m_gpu_comm.m_n_unique_neigh);
 
                 unsigned int nreq = 0;
 
@@ -1526,7 +1526,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     recv_bytes += (unsigned int)sizeof(unsigned int);
                     }
 
-                MPI_Waitall(nreq, req, stat);
+                MPI_Waitall(nreq, req.data(), stat.data());
 
                 // total up receive counts
                 for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1902,8 +1902,8 @@ void CommunicatorGPU::migrateParticles()
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_n_unique_neigh];
-            MPI_Status stat[2 * m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -1939,7 +1939,7 @@ void CommunicatorGPU::migrateParticles()
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
@@ -2405,8 +2405,8 @@ void CommunicatorGPU::exchangeGhosts()
                     = h_ghost_end.data[ineigh + stage * m_n_unique_neigh]
                       - h_ghost_begin.data[ineigh + stage * m_n_unique_neigh];
 
-            MPI_Request req[2 * m_n_unique_neigh];
-            MPI_Status stat[2 * m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -2443,7 +2443,7 @@ void CommunicatorGPU::exchangeGhosts()
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 }
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // total up receive counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)

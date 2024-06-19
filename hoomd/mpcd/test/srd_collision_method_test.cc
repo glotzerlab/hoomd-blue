@@ -53,13 +53,9 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
     // initialize system and collision method
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
-    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 2, 1, 42);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 2, 1, 130.);
     collide->setCellList(cl);
-    collide->enableGridShifting(false);
-    // 130 degrees, forces all components of the rotation matrix to act
-    const double rot_angle = 2.2689280275926285;
-    collide->setRotationAngle(rot_angle);
 
     // create a thermo, and use it to check the current
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
@@ -148,7 +144,7 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
             Scalar3 q1 = v1 - dot(v1, rot_vec) * rot_vec;
             Scalar3 q2 = v2 - dot(v2, rot_vec) * rot_vec;
             Scalar cos_angle = dot(q1, q2) / (sqrt(dot(q1, q1)) * sqrt(dot(q2, q2)));
-            CHECK_CLOSE(cos_angle, slow::cos(rot_angle), tol_small);
+            CHECK_CLOSE(cos_angle, slow::cos(collide->getRotationAngle() * M_PI / 180.), tol_small);
             }
         }
 
@@ -175,7 +171,7 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
     snap->global_box = std::make_shared<BoxDim>(50.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, 42);
     collide->setCellList(cl);
 
@@ -282,13 +278,10 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     // initialize system and collision method
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<mpcd::ParticleData> pdata_4 = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
-    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, 827);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide
+        = std::make_shared<CM>(sysdef, 0, 1, -1, 130.);
     collide->setCellList(cl);
-    collide->enableGridShifting(false);
-    // 130 degrees, forces all components of the rotation matrix to act
-    const double rot_angle = 2.2689280275926285;
-    collide->setRotationAngle(rot_angle);
 
     // create a thermo, and use it to check the current
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
@@ -339,7 +332,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     auto pdata = std::make_shared<mpcd::ParticleData>(10000, box, 1.0, 42, 3, exec_conf);
     sysdef->setMPCDParticleData(pdata);
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, 827);
     collide->setCellList(cl);
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);

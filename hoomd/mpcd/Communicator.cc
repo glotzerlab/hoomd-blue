@@ -673,14 +673,19 @@ void mpcd::Communicator::detachCallbacks()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_Communicator(pybind11::module& m)
+void export_Communicator(pybind11::module& m)
     {
     pybind11::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd
 #endif // ENABLE_MPI

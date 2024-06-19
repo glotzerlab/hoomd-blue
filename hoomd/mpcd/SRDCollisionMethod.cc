@@ -16,9 +16,9 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<SystemDefinition> s
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             uint16_t seed)
+                                             Scalar angle)
     : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_rotvec(m_exec_conf),
-      m_angle(0.0), m_factors(m_exec_conf)
+      m_angle(angle), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
     }
@@ -153,9 +153,10 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
 
     // load rotation vector and precompute functions for rotation matrix
     ArrayHandle<double3> h_rotvec(m_rotvec, access_location::host, access_mode::read);
-    const double cos_a = slow::cos(m_angle);
+    const double angle_rad = m_angle * M_PI / 180.0;
+    const double cos_a = slow::cos(angle_rad);
     const double one_minus_cos_a = 1.0 - cos_a;
-    const double sin_a = slow::sin(m_angle);
+    const double sin_a = slow::sin(angle_rad);
 
     // load scale factors if required
     const bool use_thermostat = (m_T) ? true : false;
@@ -276,22 +277,27 @@ void mpcd::SRDCollisionMethod::detachCallbacks()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
+void export_SRDCollisionMethod(pybind11::module& m)
     {
     pybind11::class_<mpcd::SRDCollisionMethod,
                      mpcd::CollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            unsigned int,
-                            unsigned int,
-                            int,
-                            unsigned int>())
-        .def("setRotationAngle", &mpcd::SRDCollisionMethod::setRotationAngle)
-        .def("setTemperature", &mpcd::SRDCollisionMethod::setTemperature)
-        .def("unsetTemperature", &mpcd::SRDCollisionMethod::unsetTemperature);
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, Scalar>())
+        .def_property("angle",
+                      &mpcd::SRDCollisionMethod::getRotationAngle,
+                      &mpcd::SRDCollisionMethod::setRotationAngle)
+        .def_property("kT",
+                      &mpcd::SRDCollisionMethod::getTemperature,
+                      &mpcd::SRDCollisionMethod::setTemperature);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

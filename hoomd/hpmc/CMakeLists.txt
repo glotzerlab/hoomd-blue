@@ -37,6 +37,8 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     ExternalFieldWall.cc
+                    ExternalPotential.cc
+                    ExternalPotentialLinear.cc
                     PairPotential.cc
                     PairPotentialLennardJones.cc
                     PairPotentialStep.cc
@@ -56,6 +58,8 @@ set(_hpmc_headers
     ExternalField.h
     ExternalFieldHarmonic.h
     ExternalFieldWall.h
+    ExternalPotential.h
+    ExternalPotentialLinear.h
     GSDHPMCSchema.h
     GPUHelpers.cuh
     GPUTree.h
