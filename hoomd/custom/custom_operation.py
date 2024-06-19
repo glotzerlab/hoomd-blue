@@ -143,7 +143,6 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
         if isinstance(mthd, property):
 
             @property
-            @functools.wraps(mthd)
             def getter(self):
                 return getattr(self._action, name)
 
@@ -153,6 +152,7 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
                 def setter(self, new_value):
                     setattr(self._action, name, new_value)
 
+            getter.__doc__ = mthd.__doc__
             return getter
 
         @functools.wraps(mthd)

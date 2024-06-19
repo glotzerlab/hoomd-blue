@@ -30,7 +30,6 @@ documentation for more information on warning filters.
 
   * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
 
-
 * ``hoomd.util.GPUNotAvailableError`` (since 4.5.0).
 
   * use ``hoomd.error.GPUNotAvailableError``.
@@ -51,3 +50,11 @@ documentation for more information on warning filters.
 * ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
 
   * Use ``box``.
+
+* ``HPMCIntegrator.external_potential`` (since 4.8.0).
+
+  * Use ``HPMCIntegrator.external_potentials`` (when possible)
+
+* ``hoomd.hpmc.external.user.CPPExternalPotential`` (since 4.8.0).
+
+  * Use ``hoomd.hpmc.external.Linear`` or a custom component (compiled).

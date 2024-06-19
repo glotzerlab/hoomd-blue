@@ -40,7 +40,7 @@ class LennardJones(Pair):
 
     .. code-block:: python
 
-        lennard_jones =  hoomd.hpmc.pair.LennardJones()
+        lennard_jones = hoomd.hpmc.pair.LennardJones()
         lennard_jones.params[('A', 'A')] = dict(epsilon=1, sigma=1, r_cut=2.5)
         simulation.operations.integrator.pair_potentials = [lennard_jones]
 
