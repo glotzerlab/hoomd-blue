@@ -18,12 +18,6 @@ on:
       python:
         type: string
         required: true
-      test_runner:
-        type: string
-        required: true
-      test_docker_options:
-        type: string
-        required: true
       validate:
         type: string
         required: true
@@ -55,13 +49,17 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       image: ${{ steps.set.outputs.image }}
-      cuda: ${{ steps.set.outputs.cuda }}
+      test_runner: ${{ steps.set.outputs.test_runner }}
+      test_docker_options: ${{ steps.set.outputs.test_docker_options }}
     steps:
     - name: Set outputs
       id: set
       run: |
         if [[ "${{ inputs.compiler_family }}" == "gcc" ]]
         then
+          echo 'test_runner="ubuntu-24.04"' >> "$GITHUB_OUTPUT"
+          echo 'test_docker_options=-e _noop' >> "$GITHUB_OUTPUT"
+
           case ${{ inputs.compiler_version }} in
             10|11)
               echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
@@ -72,6 +70,9 @@ jobs:
           esac
         elif [[ "${{ inputs.compiler_family }}" == "clang" ]]
         then
+          echo 'test_runner="ubuntu-24.04"' >> "$GITHUB_OUTPUT"
+          echo 'test_docker_options=-e _noop' >> "$GITHUB_OUTPUT"
+
           case "${{ inputs.compiler_version }}" in
             13|14|15)
               echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
@@ -83,6 +84,9 @@ jobs:
         elif [[ "${{ inputs.compiler_family }}" == "cuda" ]]
         then
           echo "cuda=cuda${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
+          echo 'test_runner=["self-hosted", "GPU"]' >> "$GITHUB_OUTPUT"
+          echo 'test_docker_options=--gpus=all' >> "$GITHUB_OUTPUT"
+
           case "${{ inputs.compiler_version }}" in
             125)
               echo "image=nvidia/cuda:12.5.0-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
@@ -205,10 +209,10 @@ jobs:
 
   test:
     needs: [prepare, build]
-    runs-on: ${{ fromJson(inputs.test_runner) }}
+    runs-on: ${{ fromJson(needs.prepare.outputs.test_runner) }}
     container:
       image: ${{ needs.prepare.outputs.image }}
-      options: ${{ inputs.test_docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ needs.prepare.outputs.test_docker_options }}
 
     steps:
     - name: Clean workspace

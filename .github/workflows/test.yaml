@@ -32,8 +32,6 @@ jobs:
 
       # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline.
       build_runner: ${{ needs.start_action_runners.outputs.active != '0' && '["self-hosted","jetstream2","CPU"]' || toJson('ubuntu-24.04') }}
-      test_runner: ${{ !matrix.test_runner == '' && toJson(matrix.test_runner) || toJson('ubuntu-24.04') }}
-      test_docker_options: ${{ matrix.test_docker_options }}
 
       # Default to false when unset
       validate: ${{ matrix.validate && 'true' || 'false'}}
