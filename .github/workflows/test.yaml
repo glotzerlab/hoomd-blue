@@ -21,7 +21,7 @@ jobs:
     secrets: inherit
 
   typical:
-    name: "${{ join(matrix.config, '-') }}"
+    name: "${{ join(matrix.config, '') }}"
     needs: start_action_runners
     uses: ./.github/workflows/build_and_test.yaml
     with:
@@ -40,30 +40,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - config: [clang, 18, py, 312, mpi, tbb]
+        - config: [clang, 18, -py, 312, -mpi, -tbb]
           validate: true
 
-        - config: [gcc, 14, py, 312]
+        - config: [gcc, 14, -py, 312]
           validate: true
 
-        - config: [gcc, 14, py, 312, nomd]
-        - config: [gcc, 14, py, 312, nohpmc]
-        - config: [gcc, 14, py, 312, nomd, nohpmc]
-        - config: [gcc, 10, py, 39]
+        - config: [gcc, 14, -py, 312, -nomd]
+        - config: [gcc, 14, -py, 312, -nohpmc]
+        - config: [gcc, 14, -py, 312, -nomd, -nohpmc]
+        - config: [gcc, 10, -py, 39]
 
-        - config: [cuda, 125, py, 312]
-          test_runner: [self-hosted,GPU]
-          test_docker_options: '--gpus=all'
+        - config: [cuda, 125, -py, 312, -mpi]
           validate: 'true'
 
-        # - config: [cuda120_gcc11_py310]
-        #   test_runner: [self-hosted,GPU]
-        #   test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
-        #   validate: 'true'
+        - config: [cuda, 125, -py, 312]
+          validate: 'true'
 
-        # - config: [cuda120_gcc11_py310, mpi, llvm, debug]
-        #   test_runner: [self-hosted,GPU]
-        #   test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
+        - config: [cuda, 125, -py, 312, -mpi, -debug]
 
 
   # release:
