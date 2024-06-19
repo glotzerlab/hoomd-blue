@@ -49,56 +49,48 @@ jobs:
         - config: [gcc, 14, -py, 312, -nomd]
         - config: [gcc, 14, -py, 312, -nohpmc]
         - config: [gcc, 14, -py, 312, -nomd, -nohpmc]
-        - config: [gcc, 10, -py, 39]
+        - config: [gcc, 10, -py, 39, -mpi, -tbb]
 
         - config: [cuda, 125, -py, 312, -mpi]
-          validate: 'true'
+          validate: true
 
         - config: [cuda, 125, -py, 312]
-          validate: 'true'
+          validate: true
 
         - config: [cuda, 125, -py, 312, -mpi, -debug]
 
 
-  # release:
-  #   if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-  #   name: "${{ join(matrix.config, '_') }}"
-  #   needs: start_action_runners
-  #   uses: ./.github/workflows/build_and_test.yaml
-  #   with:
-  #     config: ${{ join(matrix.config, '_') }}
-  #     image: glotzerlab/ci:2024.06.04-${{ matrix.config[0] }}
-  #     # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline
-  #     build_runner: ${{ needs.start_action_runners.outputs.active == '0' && toJson('ubuntu-latest') || '["self-hosted","jetstream2","CPU"]' }}
-  #     # Default to ubuntu-latest when unset
-  #     test_runner: ${{ matrix.test_runner == '' && toJson('ubuntu-latest') || toJson(matrix.test_runner) }}
-  #     test_docker_options: ${{ matrix.test_docker_options }}
-  #     # Default to false when unset
-  #     validate: ${{ matrix.validate == '' && 'false' || matrix.validate }}
+  release:
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    name: "${{ join(matrix.config, '') }}"
+    needs: start_action_runners
+    uses: ./.github/workflows/build_and_test.yaml
+    with:
+      compiler_family: ${{ matrix.config[0] }}
+      compiler_version: ${{ matrix.config[1] }}
+      python: ${{ matrix.config[3] }}
+      config: ${{ join(matrix.config, '_') }}
 
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #       - config: [clang18_py312, mpi]
-  #       - config: [clang17_py312, mpi]
-  #       - config: [clang16_py312, mpi, llvm]
-  #       - config: [clang15_py312, mpi, llvm]
-  #       - config: [clang14_py311, mpi, tbb, llvm]
-  #       - config: [clang13_py310, llvm]
-  #       - config: [clang12_py310, llvm]
-  #       - config: [clang11_py310, llvm]
-  #       - config: [gcc13_py312, mpi]
-  #       - config: [gcc12_py311]
-  #       - config: [gcc11_py310]
-  #       - config: [gcc10_py310]
-  #       - config: [cuda118_gcc11_py310, mpi, llvm]
-  #         test_runner: [self-hosted,GPU]
-  #         test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
+      # Use self-hosted runners or fall back to GitHub hosted runners when self-hosted are offline.
+      build_runner: ${{ needs.start_action_runners.outputs.active != '0' && '["self-hosted","jetstream2","CPU"]' || toJson('ubuntu-24.04') }}
 
-  #       - config: [cuda117_gcc11_py310, mpi, llvm]
-  #         test_runner: [self-hosted,GPU]
-  #         test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
+      # Default to false when unset
+      validate: ${{ matrix.validate && 'true' || 'false'}}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - config: [clang, 18, -py, 312, -mpi, -tbb]
+        - config: [clang, 17, -py, 312, -mpi, -tbb]
+        - config: [clang, 16, -py, 312, -mpi, -tbb]
+        - config: [clang, 15, -py, 311, -mpi, -tbb]
+        - config: [clang, 14, -py, 310, -mpi, -tbb]
+        - config: [clang, 13, -py, 39, -mpi, -tbb]
+        - config: [gcc, 13, -py, 312, -mpi, -tbb]
+        - config: [gcc, 12, -py, 311, -mpi, -tbb]
+        - config: [gcc, 11, -py, 310, -mpi, -tbb]
+        - config: [gcc, 10, -py, 310, -mpi, -tbb]
 
   tests_complete:
     name: Unit test
