@@ -21,6 +21,9 @@ on:
       validate:
         type: string
         required: true
+      release:
+        type: boolean
+        required: true
 
 defaults:
   run:
@@ -142,6 +145,10 @@ jobs:
       run: |
         echo "CC=${{ inputs.compiler_family == 'gcc' && 'gcc' || 'clang' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
         echo "CXX=${{ inputs.compiler_family == 'gcc' && 'g++' || 'clang++' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+
+    - name: Treat warnings as errors
+      if: ${{ !inputs.release }}
+      run: |
         echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
 
     - name: Configure

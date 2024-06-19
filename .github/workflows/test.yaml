@@ -36,6 +36,8 @@ jobs:
       # Default to false when unset
       validate: ${{ matrix.validate && 'true' || 'false'}}
 
+      release: false
+
     strategy:
       fail-fast: false
       matrix:
@@ -76,6 +78,8 @@ jobs:
 
       # Default to false when unset
       validate: ${{ matrix.validate && 'true' || 'false'}}
+
+      release: true
 
     strategy:
       fail-fast: false
