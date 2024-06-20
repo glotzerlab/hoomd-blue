@@ -44,10 +44,6 @@ env:
   _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
   # Require GPU tests in GPU builds.
   _HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_: 1
-  # import HOOMD out of the build directory
-  PYTHONPATH: ${{ github.workspace }}/install
-  CONDA_PREFIX: ${{ github.workspace }}/micromamba/envs/test
-  CMAKE_PREFIX_PATH: ${{ github.workspace }}/micromamba/envs/test
 
 jobs:
   prepare:
@@ -128,7 +124,7 @@ jobs:
         submodules: true
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@v1.9.0
+      uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822 # v1.9.0
       with:
         micromamba-version: '1.5.8-0'
         environment-name: test
@@ -138,7 +134,10 @@ jobs:
 
     - name: Configure conda environment variables
       run: |
-        echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
+        echo "CONDA_PREFIX=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "CMAKE_PREFIX_PATH=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
 
     - name: Set compiler
       if: ${{ inputs.compiler_family != 'cuda' }}
@@ -239,7 +238,7 @@ jobs:
         path: code
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@v1.9.0
+      uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822 # v1.9.0
       with:
         micromamba-version: '1.5.8-0'
         environment-name: test
@@ -249,7 +248,10 @@ jobs:
 
     - name: Configure conda environment variables
       run: |
-        echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
+        echo "CONDA_PREFIX=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "CMAKE_PREFIX_PATH=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
 
     - name: Download install
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
