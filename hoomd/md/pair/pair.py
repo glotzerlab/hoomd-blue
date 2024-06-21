@@ -1843,8 +1843,8 @@ class LJGauss(Pair):
 
         * ``epsilon`` (`float`, **required**) -
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float` > 0, **required**) -
-          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``sigma`` (`float`, **required**) -
+          Gaussian width :math:`\sigma > 0` :math:`[\mathrm{length}]`
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
