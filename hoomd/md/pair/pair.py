@@ -310,8 +310,8 @@ class ExpandedGaussian(Pair):
 
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float` > 0, **required**) - particle size
-          :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``sigma`` (`float`, **required**) - particle size
+          :math:`\sigma > 0` :math:`[\mathrm{length}]`
         * ``delta`` (`float`, **required**) - shift distance
           :math:`\delta` :math:`[\mathrm{length}]`
 
