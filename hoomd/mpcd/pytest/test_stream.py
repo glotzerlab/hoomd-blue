@@ -127,7 +127,6 @@ class TestStreamingMethod:
         have now.
         """
         if snap.communicator.rank == 0:
-            # snap.mpcd.position[0] = [0, -1, 1]
             snap.mpcd.position[0] = [0, 4, -1]
             snap.mpcd.velocity[0] = [1, -2, 3]
 
@@ -144,10 +143,8 @@ class TestStreamingMethod:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(snap.mpcd.velocity,
                                                  [[1.1, -2.0, 2.9]])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position,
-                # [[0.105, -1.2, 4.295]])
-                [[0.105, 3.8, -0.705]])
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 [[0.105, 3.8, -0.705]])
 
 
 class TestBulk:
