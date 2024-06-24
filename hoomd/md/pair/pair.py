@@ -257,7 +257,7 @@ class Gaussian(Pair):
 
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float` > 0, **required**) - particle size :math:`\sigma`
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma > 0`
           :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
