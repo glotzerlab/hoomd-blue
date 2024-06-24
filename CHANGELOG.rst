@@ -13,9 +13,18 @@ Change Log
 *Changed*
 
 * Miscellaneous documentation improvements
-  (`#1786 <https://github.com/glotzerlab/hoomd-blue/pull/1786>`__).
+  (`#1786 <https://github.com/glotzerlab/hoomd-blue/pull/1786>`__,
+  `#1800 <https://github.com/glotzerlab/hoomd-blue/pull/1800>`__,
+  `#1820 <https://github.com/glotzerlab/hoomd-blue/pull/1820>`__).
 * Provide an error message for invalid Ellipsoid shape parameters
   (`#1785 <https://github.com/glotzerlab/hoomd-blue/pull/1785>`__).
+* Provide the full CUDA error message when scanning devices
+  (`#1803 <https://github.com/glotzerlab/hoomd-blue/pull/1803>`__).
+
+*Fixed*
+
+* Issue a proper error message when `ALJ.shape` is not set for all particle types
+  (`#1808 <https://github.com/glotzerlab/hoomd-blue/pull/1808>`__).
 
 4.7.0 (2024-05-16)
 ^^^^^^^^^^^^^^^^^^
