@@ -331,20 +331,20 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero)
-		    {
+                    {
                     bf_torque.x = 0;
                     t.x = 0;
-		    }
+                    }
                 if (y_zero)
-		    {
+                    {
                     bf_torque.y = 0;
                     t.y = 0;
-		    }
+                    }
                 if (z_zero)
-		    {
+                    {
                     bf_torque.z = 0;
                     t.z = 0;
-		    }
+                    }
 
                 // use the d_invamping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r
