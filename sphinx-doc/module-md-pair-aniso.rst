@@ -15,6 +15,7 @@ md.pair.aniso
     AnisotropicPair
     Dipole
     GayBerne
+    Patchy
     PatchyExpandedGaussian
     PatchyExpandedLJ
     PatchyExpandedMie
@@ -33,6 +34,7 @@ md.pair.aniso
         AnisotropicPair,
         Dipole,
         GayBerne,
+        Patchy,
         PatchyExpandedGaussian,
         PatchyExpandedLJ,
         PatchyExpandedMie,
