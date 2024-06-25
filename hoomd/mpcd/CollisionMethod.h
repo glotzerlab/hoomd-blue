@@ -47,17 +47,11 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     //! Peek if a collision will occur on this timestep
     virtual bool peekCollide(uint64_t timestep) const;
 
-    //! Toggle the grid shifting on or off
-    /*!
-     * \param enable_grid_shift Flag to enable grid shifting if true
-     */
-    void enableGridShifting(bool enable_grid_shift)
+    //! Get the particle group that is coupled to the MPCD solvent through the collision step.
+    std::shared_ptr<ParticleGroup> getEmbeddedGroup()
         {
-        m_enable_grid_shift = enable_grid_shift;
+        return m_embed_group;
         }
-
-    //! Generates the random grid shift vector
-    void drawGridShift(uint64_t timestep);
 
     //! Sets a group of particles that is coupled to the MPCD solvent through the collision step
     /*!
@@ -72,20 +66,14 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
             }
         }
 
+    //! Get the period of the collision method
+    uint64_t getPeriod() const
+        {
+        return m_period;
+        }
+
     //! Set the period of the collision method
-    void setPeriod(unsigned int cur_timestep, unsigned int period);
-
-    /// Set the RNG instance
-    void setInstance(unsigned int instance)
-        {
-        m_instance = instance;
-        }
-
-    /// Get the RNG instance
-    unsigned int getInstance()
-        {
-        return m_instance;
-        }
+    void setPeriod(uint64_t cur_timestep, uint64_t period);
 
     //! Get the cell list used for collisions
     std::shared_ptr<mpcd::CellList> getCellList() const
@@ -115,22 +103,12 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     uint64_t m_period;        //!< Number of timesteps between collisions
     uint64_t m_next_timestep; //!< Timestep next collision should be performed
 
-    unsigned int m_instance = 0; //!< Unique ID for RNG seeding
-
     //! Check if a collision should occur and advance the timestep counter
     virtual bool shouldCollide(uint64_t timestep);
 
     //! Call the collision rule
     virtual void rule(uint64_t timestep) { }
-
-    bool m_enable_grid_shift; //!< Flag to enable grid shifting
     };
-
-namespace detail
-    {
-//! Export the MPCDCollisionMethod class to python
-void export_CollisionMethod(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_COLLISION_METHOD_H_

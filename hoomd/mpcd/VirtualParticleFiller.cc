@@ -10,51 +10,25 @@
 
 namespace hoomd
     {
+unsigned int mpcd::VirtualParticleFiller::s_filler_count = 0;
+
 mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<SystemDefinition> sysdef,
+                                                   const std::string& type,
                                                    Scalar density,
-                                                   unsigned int type,
                                                    std::shared_ptr<Variant> T)
     : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_density(density), m_type(type), m_T(T),
-      m_N_fill(0), m_first_tag(0)
+      m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_density(density), m_T(T)
     {
-    }
+    setType(type);
 
-void mpcd::VirtualParticleFiller::fill(uint64_t timestep)
-    {
-    if (!m_cl)
-        {
-        throw std::runtime_error("Cell list has not been set");
-        }
-
-    // update the fill volume
-    computeNumFill();
-
-    // in mpi, do a prefix scan on the tag offset in this range
-    // then shift the first tag by the current number of particles, which ensures a compact tag
-    // array
-    m_first_tag = 0;
+    // assign ID from count, but synchronize with root in case count got off somewhere
+    m_filler_id = s_filler_count++;
 #ifdef ENABLE_MPI
     if (m_exec_conf->getNRanks() > 1)
         {
-        // scan the number to fill to get the tag range I own
-        MPI_Exscan(&m_N_fill,
-                   &m_first_tag,
-                   1,
-                   MPI_UNSIGNED,
-                   MPI_SUM,
-                   m_exec_conf->getMPICommunicator());
+        bcast(m_filler_id, 0, m_exec_conf->getMPICommunicator());
         }
 #endif // ENABLE_MPI
-    m_first_tag += m_mpcd_pdata->getNGlobal() + m_mpcd_pdata->getNVirtualGlobal();
-
-    // add the new virtual particles locally
-    m_mpcd_pdata->addVirtualParticles(m_N_fill);
-
-    // draw the particles consistent with those tags
-    drawParticles(timestep);
-
-    m_mpcd_pdata->invalidateCellCache();
     }
 
 void mpcd::VirtualParticleFiller::setDensity(Scalar density)
@@ -67,32 +41,68 @@ void mpcd::VirtualParticleFiller::setDensity(Scalar density)
     m_density = density;
     }
 
-void mpcd::VirtualParticleFiller::setType(unsigned int type)
+std::string mpcd::VirtualParticleFiller::getType() const
     {
-    if (type >= m_mpcd_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << "Invalid type id specified for MPCD virtual particle filler"
-                                  << std::endl;
-        throw std::runtime_error("Invalid type id");
-        }
-    m_type = type;
+    return m_mpcd_pdata->getNameByType(m_type);
+    }
+
+void mpcd::VirtualParticleFiller::setType(const std::string& type)
+    {
+    m_type = m_mpcd_pdata->getTypeByName(type);
     }
 
 /*!
+ * \param N_fill Number of virtual particles to add on each rank
+ * \returns First tag to assign to a virtual particle on each rank.
+ */
+unsigned int mpcd::VirtualParticleFiller::computeFirstTag(unsigned int N_fill) const
+    {
+    // exclusive scan of number on each rank in MPI
+    unsigned int first_tag = 0;
+#ifdef ENABLE_MPI
+    if (m_exec_conf->getNRanks() > 1)
+        {
+        MPI_Exscan(&N_fill,
+                   &first_tag,
+                   1,
+                   MPI_UNSIGNED,
+                   MPI_SUM,
+                   m_exec_conf->getMPICommunicator());
+        }
+#endif // ENABLE_MPI
+
+    // shift the first tag based on the number of particles (real and virtual) already used
+    first_tag += m_mpcd_pdata->getNGlobal() + m_mpcd_pdata->getNVirtualGlobal();
+
+    return first_tag;
+    }
+
+namespace mpcd
+    {
+namespace detail
+    {
+/*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
+void export_VirtualParticleFiller(pybind11::module& m)
     {
     pybind11::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
         m,
         "VirtualParticleFiller")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            const std::string&,
                             Scalar,
-                            unsigned int,
                             std::shared_ptr<Variant>>())
-        .def("setDensity", &mpcd::VirtualParticleFiller::setDensity)
-        .def("setType", &mpcd::VirtualParticleFiller::setType)
-        .def("setTemperature", &mpcd::VirtualParticleFiller::setTemperature);
+        .def_property("density",
+                      &mpcd::VirtualParticleFiller::getDensity,
+                      &mpcd::VirtualParticleFiller::setDensity)
+        .def_property("type",
+                      &mpcd::VirtualParticleFiller::getType,
+                      &mpcd::VirtualParticleFiller::setType)
+        .def_property("kT",
+                      &mpcd::VirtualParticleFiller::getTemperature,
+                      &mpcd::VirtualParticleFiller::setTemperature);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

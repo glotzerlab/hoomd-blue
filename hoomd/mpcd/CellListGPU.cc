@@ -11,7 +11,10 @@
 
 namespace hoomd
     {
-mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef) : mpcd::CellList(sysdef)
+mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
+                               Scalar cell_size,
+                               bool shift)
+    : mpcd::CellList(sysdef, cell_size, shift)
     {
     m_tuner_cell.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
@@ -205,12 +208,17 @@ bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
     }
 #endif // ENABLE_MPI
 
-void mpcd::detail::export_CellListGPU(pybind11::module& m)
+namespace mpcd
+    {
+namespace detail
+    {
+void export_CellListGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU>>(
         m,
         "CellListGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, bool>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

@@ -126,15 +126,22 @@ class ForceAsFunctionOfTag(md.force.Custom):
                 tags = local_snapshot.particles.tag
                 force_arrays.force[:] = np.stack((tags * 1, tags * 2, tags * 3),
                                                  axis=-1)
-                energy = local_snapshot.particles.tag * -10
+                energy = local_snapshot.particles.tag.astype(np.float64) * -10.0
                 force_arrays.potential_energy[:] = energy
+                tags_float = tags.astype(np.float64)
                 force_arrays.torque[:] = np.stack(
-                    (tags * -3, tags * -2, tags * -1), axis=-1)
+                    (tags_float * -3.0, tags_float * -2.0, tags_float * -1.0),
+                    axis=-1)
                 if force_arrays.virial.shape[0] != 0:
-                    force_arrays.virial[:] = np.stack(
-                        (tags * 1, tags * -2, tags * -3, tags * 4, tags * -5,
-                         tags * 6),
-                        axis=-1)
+                    force_arrays.virial[:] = np.stack((
+                        tags_float * 1.0,
+                        tags_float * -2.0,
+                        tags_float * -3.0,
+                        tags_float * 4.0,
+                        tags_float * -5.0,
+                        tags_float * 6.0,
+                    ),
+                                                      axis=-1)
 
 
 @pytest.mark.cpu

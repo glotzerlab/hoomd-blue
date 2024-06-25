@@ -16,8 +16,8 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<SystemDefinit
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
                                                    int phase,
-                                                   uint16_t seed)
-    : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, seed)
+                                                   Scalar angle)
+    : mpcd::SRDCollisionMethod(sysdef, cur_timestep, period, phase, angle)
     {
     m_tuner_rotvec.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                           m_exec_conf,
@@ -102,6 +102,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
             new ArrayHandle<double>(m_factors, access_location::device, access_mode::read));
         }
 
+    const double angle_rad = m_angle * M_PI / 180.0;
     if (m_embed_group)
         {
         ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(),
@@ -123,7 +124,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
                               d_embed_cell_ids.data,
                               d_cell_vel.data,
                               d_rotvec.data,
-                              m_angle,
+                              angle_rad,
                               (m_T) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
@@ -141,7 +142,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
                               NULL,
                               d_cell_vel.data,
                               d_rotvec.data,
-                              m_angle,
+                              angle_rad,
                               (m_T) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
@@ -171,19 +172,22 @@ void mpcd::SRDCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
+void export_SRDCollisionMethodGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::SRDCollisionMethodGPU,
                      mpcd::SRDCollisionMethod,
                      std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            unsigned int,
-                            unsigned int,
-                            int,
-                            unsigned int>());
+        .def(
+            pybind11::
+                init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, Scalar>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

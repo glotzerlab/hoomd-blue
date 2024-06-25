@@ -56,7 +56,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     sysdef->setCommunicator(pdata_comm);
 
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
 
     std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);

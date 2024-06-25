@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release 4.6.0'
+title: 'Release 4.7.0'
 labels: ''
 assignees: 'joaander'
 
@@ -31,3 +31,4 @@ All releases:
 - [ ] Update conda-forge recipe.
 - [ ] Update *glotzerlab-software*.
 - [ ] Update *hoomd-component-template*.
+- [ ] Update *hpmc-energy-template*.

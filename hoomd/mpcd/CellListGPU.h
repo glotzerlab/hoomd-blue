@@ -25,7 +25,7 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     {
     public:
     //! Constructor
-    CellListGPU(std::shared_ptr<SystemDefinition> sysdef);
+    CellListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift);
 
     virtual ~CellListGPU();
 
@@ -55,13 +55,6 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     std::shared_ptr<Autotuner<1>> m_tuner_embed_migrate;
 #endif // ENABLE_MPI
     };
-
-namespace detail
-    {
-//! Export the CellListGPU class to python
-void export_CellListGPU(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_CELL_LIST_GPU_H_

@@ -358,12 +358,17 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
     m_needs_net_reduce = false;
     }
 
-void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
+namespace mpcd
+    {
+namespace detail
+    {
+void export_CellThermoComputeGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellThermoComputeGPU,
                      mpcd::CellThermoCompute,
                      std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::CellList>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

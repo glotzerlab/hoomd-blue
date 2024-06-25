@@ -18,7 +18,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "4.6.0")
+set(HOOMD_VERSION_RAW "4.7.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -104,6 +104,7 @@ else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
+option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
@@ -123,12 +124,6 @@ include (HOOMDMPISetup)
 include(HOOMDPythonSetup)
 
 include (hoomd-macros)
-
-if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
-    option(BUILD_MPCD "Build the mpcd package" on)
-else()
-    option(BUILD_MPCD "Build the mpcd package" off)
-endif()
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)
 if (Eigen3_FOUND)

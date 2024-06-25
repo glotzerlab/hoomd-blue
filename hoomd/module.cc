@@ -45,8 +45,17 @@
 
 // optional MPCD classes
 #ifdef BUILD_MPCD
-#include "hoomd/mpcd/ParticleData.h"
-#include "hoomd/mpcd/ParticleDataSnapshot.h"
+namespace hoomd
+    {
+namespace mpcd
+    {
+namespace detail
+    {
+void export_ParticleData(pybind11::module& pybind11);
+void export_ParticleDataSnapshot(pybind11::module& pybind11);
+    } // namespace detail
+    } // namespace mpcd
+    } // namespace hoomd
 #endif
 
 // include GPU classes

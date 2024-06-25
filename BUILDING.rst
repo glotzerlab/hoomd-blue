@@ -30,7 +30,7 @@ To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install sphinx furo nbsphinx ipython
+   $ <package-manager> install sphinx sphinx-copybutton furo nbsphinx ipython
 
 .. note::
 
@@ -77,16 +77,16 @@ Install prerequisites
 
 **General requirements:**
 
-- C++17 capable compiler (tested with ``gcc`` 9 - 13 and ``clang`` 10 - 16)
-- Python >= 3.8
-- NumPy >= 1.17.3
-- pybind11 >= 2.6
+- C++17 capable compiler (tested with ``gcc`` 10 - 14 and ``clang`` 13 - 18)
+- Python >= 3.9
+- NumPy >= 1.19
+- pybind11 >= 2.12
 - Eigen >= 3.2
 - CMake >= 3.15
 
 **For MPI parallel execution** (required when ``ENABLE_MPI=on``):
 
-- MPI (tested with OpenMPI, MVAPICH)
+- MPI (tested with OpenMPI)
 - cereal >= 1.1
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
@@ -109,9 +109,8 @@ Install prerequisites
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
-   1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The ``mpcd`` component is disabled on AMD GPUs.
-   3. Multi-GPU execution via unified memory is not available.
+  1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+  2. Multi-GPU execution via unified memory is not available.
 
 .. note::
 
@@ -130,6 +129,7 @@ Install prerequisites
 **To build the documentation:**
 
 - sphinx
+- sphinx-copybutton
 - furo
 - nbsphinx
 - ipython
@@ -145,7 +145,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.6.0.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.7.0.tar.gz`_.
 
 .. seealso::
 
@@ -158,7 +158,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-4.6.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.6.0/hoomd-4.6.0.tar.gz
+.. _Download hoomd-4.7.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.7.0/hoomd-4.7.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/
@@ -222,6 +222,8 @@ Other option changes take effect at any time:
 - ``BUILD_HPMC`` - When enabled, build the ``hoomd.hpmc`` module (default: ``on``).
 - ``BUILD_MD`` - When enabled, build the ``hoomd.md`` module (default: ``on``).
 - ``BUILD_METAL`` - When enabled, build the ``hoomd.metal`` module (default: ``on``).
+- ``BUILD_MPCD`` - When enabled, build the ``hoomd.mpcd`` module. ``hoomd.md`` must also be built.
+  (default: same as ``BUILD_MD``).
 - ``BUILD_TESTING`` - When enabled, build unit tests (default: ``on``).
 - ``CMAKE_BUILD_TYPE`` - Sets the build type (case sensitive) Options:
 

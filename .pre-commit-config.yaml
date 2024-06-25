@@ -11,13 +11,6 @@ exclude: (?x)(
 repos:
 - repo: local
   hooks:
-  - id: make_workflows
-    name: make_workflows
-    language: python
-    entry: python3 .github/workflows/make_workflows.py
-    pass_filenames: false
-    always_run: true
-    additional_dependencies: [jinja2==3.1.2, pyyaml==6.0.1]
   - id: check-maintainer
     name: Check for maintainer comments
     description: 'Enforce that `maintainer` comments are removed.'
@@ -93,7 +86,6 @@ repos:
     exclude: |
       (?x)(
         ^hoomd/extern/|
-        ^hoomd/mpcd/|
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format

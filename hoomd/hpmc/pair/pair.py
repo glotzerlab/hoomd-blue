@@ -17,6 +17,7 @@
 """
 
 import hoomd
+from hoomd.hpmc import _hpmc
 
 
 class Pair(hoomd.operation._HOOMDBaseObject):
@@ -34,9 +35,11 @@ class Pair(hoomd.operation._HOOMDBaseObject):
         `Pair` should not be instantiated directly by users.
     """
 
+    _ext_module = _hpmc
+
     def _make_cpp_obj(self):
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        cls = getattr(hoomd.hpmc._hpmc, self._cpp_class_name)
+        cls = getattr(self._ext_module, self._cpp_class_name)
         return cls(cpp_sys_def)
 
     def _attach_hook(self):

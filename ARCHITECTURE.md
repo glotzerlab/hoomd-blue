@@ -11,8 +11,8 @@ Each minor and major release of HOOMD-blue at a minimum supports:
 
 * x86_64 CPUs released in the four prior years.
 * NVIDIA GPUs released in the four prior years.
-* Compilers and software dependencies available on the oldest maintained Ubuntu LTS release.
-* The two most recent major **CUDA** toolkit versions
+* Compilers and software dependencies available on the two most recent Ubuntu LTS releases.
+* The most recent major **CUDA** toolkit version.
 
 ## Testing
 
