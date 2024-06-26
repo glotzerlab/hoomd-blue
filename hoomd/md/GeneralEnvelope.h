@@ -210,7 +210,7 @@ public:
 
 
             Scalar fi = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaI_minus_CosAlpha );
-            Scalar dfi_du = -params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * f_max_min_inv * fi * fi;
+            Scalar dfi_du = params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * f_max_min_inv * fi * fi;
             // normalize the modulator function
             fi = (fi - f_min) * f_max_min_inv;
 
@@ -221,7 +221,7 @@ public:
             // the overall modulation
             envelope = fi * fj;
 
-            vec3<Scalar> dfi_dni = dfi_du * rhat; // TODO add -rhat here and take out above (afuyeaad)
+            vec3<Scalar> dfi_dni = dfi_du * -rhat;
 
             torque_div_energy_i =
                 vec_to_scalar3( p_i.x * cross( vec3<Scalar>(a1), dfi_dni)) +
@@ -254,7 +254,7 @@ public:
 
             // //something wrong: this has to be a scalar
             // Scalar3 dfi_dui = dfi_dni();
-            Scalar dfi_dui = -dfi_du; // TODO: remove this negative when I take out the one at afuyeaad
+            Scalar dfi_dui = dfi_du;
 
             Scalar hi = -dot(dr, vec3<Scalar>(ni_world));
             vec3<Scalar> dhi = -ni_world;
