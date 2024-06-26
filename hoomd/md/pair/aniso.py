@@ -595,7 +595,7 @@ PATCHY_ARGS_DOC = r"""
         to be normalized. If a particle type does
         not have patches, set the patches to an empty list.
 
-        Type: `list` [`tuple` [`float`, `float`, `float`]] or `list[()]`
+        Type: `list` [`tuple` [`float`, `float`, `float`]] or `list` [()]
 
         Returns:
             A list of normalized vectors.
@@ -728,7 +728,7 @@ class PatchyExpandedLJ(Patchy):
         nl = ...
     """
     local_doc = r"""
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedLJ.params`.
 
           * ``epsilon`` (`float`) - energy parameter
             :math:`\varepsilon` :math:`[\mathrm{energy}]`
@@ -789,7 +789,7 @@ class PatchyGaussian(Patchy):
     """
 
     __doc__ = PATCHY_ARGS_DOC.replace(REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
-    _cpp_class_name = "AnisoPotentialPairPatchyGaussian"
+    _cpp_class_name = "AnisoPotentialPairPatchyGauss"
     _pair_params = {"epsilon": float, "sigma": float}
 
 class PatchyMie(Patchy):
