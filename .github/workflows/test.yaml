@@ -107,6 +107,27 @@ jobs:
           test_runner: [self-hosted,GPU]
           test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl'
 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      with:
+        submodules: true
+    - name: Set up Python
+      uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+      with:
+        python-version: "3.12"
+    - name: Setup uv
+      uses: glotzerlab/workflows/setup-uv@5cfac9da9cb78e16ae97a9119b6fd13c1c2d6f5e # 0.1.0
+    - name: Install dependencies
+      run: uv pip install -r sphinx-doc/requirements.txt
+    - name: Build Sphinx Docs
+      run: sphinx-build -b html sphinx-doc doc_build
+    - name: Link Checker
+      id: lychee
+      uses: lycheeverse/lychee-action@v1
+  
   tests_complete:
     name: Unit test
     if: always()
