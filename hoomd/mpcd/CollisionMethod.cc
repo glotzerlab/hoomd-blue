@@ -127,10 +127,14 @@ bool mpcd::CollisionMethod::shouldCollide(uint64_t timestep)
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_CollisionMethod(pybind11::module& m)
+void export_CollisionMethod(pybind11::module& m)
     {
     pybind11::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(
         m,
@@ -146,5 +150,6 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
         .def_property_readonly("period", &mpcd::CollisionMethod::getPeriod);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

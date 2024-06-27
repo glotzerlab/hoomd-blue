@@ -77,10 +77,14 @@ unsigned int mpcd::VirtualParticleFiller::computeFirstTag(unsigned int N_fill) c
     return first_tag;
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
+void export_VirtualParticleFiller(pybind11::module& m)
     {
     pybind11::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
         m,
@@ -99,5 +103,6 @@ void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
                       &mpcd::VirtualParticleFiller::getTemperature,
                       &mpcd::VirtualParticleFiller::setTemperature);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

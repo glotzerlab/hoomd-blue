@@ -63,12 +63,6 @@ class PYBIND11_EXPORT ParallelPlateGeometryFiller : public mpcd::ManualVirtualPa
     //! Draw particles within the fill volume
     virtual void drawParticles(uint64_t timestep);
     };
-
-namespace detail
-    {
-//! Export ParallelPlateGeometryFiller to python
-void export_ParallelPlateGeometryFiller(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_PARALLEL_PLATE_GEOMETRY_FILLER_H_

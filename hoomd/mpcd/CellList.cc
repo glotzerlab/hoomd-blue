@@ -839,7 +839,11 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell)
     return wrap;
     }
 
-void mpcd::detail::export_CellList(pybind11::module& m)
+namespace mpcd
+    {
+namespace detail
+    {
+void export_CellList(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, bool>())
@@ -861,5 +865,6 @@ void mpcd::detail::export_CellList(pybind11::module& m)
                       &mpcd::CellList::isGridShifting,
                       &mpcd::CellList::enableGridShifting);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

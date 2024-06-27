@@ -146,10 +146,14 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ParallelPlateGeometryFiller(pybind11::module& m)
+void export_ParallelPlateGeometryFiller(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParallelPlateGeometryFiller,
                      mpcd::VirtualParticleFiller,
@@ -163,5 +167,6 @@ void mpcd::detail::export_ParallelPlateGeometryFiller(pybind11::module& m)
                             std::shared_ptr<const mpcd::ParallelPlateGeometry>>())
         .def_property_readonly("geometry", &mpcd::ParallelPlateGeometryFiller::getGeometry);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

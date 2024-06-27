@@ -49,14 +49,6 @@ class NoForce
         }
 #endif // __HIPCC__
     };
-
-#ifndef __HIPCC__
-namespace detail
-    {
-void export_NoForce(pybind11::module& m);
-    } // end namespace detail
-#endif // __HIPCC__
-
     } // end namespace mpcd
     } // end namespace hoomd
 #undef HOSTDEVICE

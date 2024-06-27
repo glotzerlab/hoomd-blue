@@ -73,12 +73,6 @@ class PYBIND11_EXPORT Sorter : public Tuner
     //! Apply the sorting order
     virtual void applyOrder() const;
     };
-
-namespace detail
-    {
-//! Exports the mpcd::Sorter to python
-void export_Sorter(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_SORTER_H_

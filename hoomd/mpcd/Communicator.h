@@ -219,13 +219,6 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     MigrateSignal m_migrate_requests; //!< Signal to request migration
     bool m_force_migrate;             //!< If true, force particle migration
     };
-
-namespace detail
-    {
-//! Export mpcd::Communicator to python
-void export_Communicator(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_COMMUNICATOR_H_

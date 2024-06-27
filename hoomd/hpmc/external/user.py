@@ -29,6 +29,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.logging import log
 import numpy as np
+import warnings
 
 
 class CPPExternalPotential(ExternalField):
@@ -145,6 +146,12 @@ class CPPExternalPotential(ExternalField):
         param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
+
+        warnings.warn(
+            "CPPExternalPotential is deprecated since 4.8.0. "
+            "Use hpmc.external.linear or a custom component.",
+            FutureWarning,
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         if attr == 'code':

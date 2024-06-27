@@ -750,7 +750,7 @@ pybind11::list NeighborList::getExclusions()
  */
 void NeighborList::countExclusions()
     {
-    unsigned int MAX_COUNT_EXCLUDED = 16;
+    constexpr unsigned int MAX_COUNT_EXCLUDED = 16;
     unsigned int excluded_count[MAX_COUNT_EXCLUDED + 2];
     unsigned int num_excluded, max_num_excluded;
 

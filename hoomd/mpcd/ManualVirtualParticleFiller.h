@@ -56,12 +56,6 @@ class PYBIND11_EXPORT ManualVirtualParticleFiller : public VirtualParticleFiller
     //! Draw particles within the fill volume
     virtual void drawParticles(uint64_t timestep) { }
     };
-
-namespace detail
-    {
-//! Export the ManualVirtualParticleFiller to python
-void export_ManualVirtualParticleFiller(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_MANUAL_VIRTUAL_PARTICLE_FILLER_H_

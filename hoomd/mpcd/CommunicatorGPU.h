@@ -94,13 +94,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     /* Autotuners */
     std::shared_ptr<Autotuner<1>> m_flags_tuner; //!< Tuner for marking communication flags
     };
-
-namespace detail
-    {
-//! Export mpcd::CommunicatorGPU to python
-void export_CommunicatorGPU(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // ENABLE_HIP

@@ -14,7 +14,6 @@ namespace mpcd
     {
 namespace detail
     {
-
 void export_ConstantForce(pybind11::module& m)
     {
     pybind11::class_<ConstantForce, std::shared_ptr<ConstantForce>>(m, "ConstantForce")
@@ -33,7 +32,6 @@ void export_ConstantForce(pybind11::module& m)
                                             pybind11::cast<Scalar>(F[2])));
             });
     }
-
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
