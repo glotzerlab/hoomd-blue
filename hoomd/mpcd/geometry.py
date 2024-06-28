@@ -78,9 +78,56 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
-        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
-        simulation.operations.integrator.streaming_method = stream
+        import hoomd
+        import hoomd.mpcd
+        import numpy as np
+
+        def make_pos(density, H, Lx, Ly, Lz):
+            total_volume = Lx * Ly * Lz
+            N = int(density * total_volume)
+            posx = np.random.uniform(-Lx/2., +Lx/2., size=N)
+            posy = np.random.uniform(-H, +H, size=N)
+            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
+            pos = np.column_stack((posx, posy, posz))
+            return pos
+
+        kT = 1.0    # temperature
+        rho = 3.0   # density
+
+        Lx = 20.0   # box length
+        Ly = 20.0   # box width
+        Lz = 10.0   # box height
+        H = 3.0     # half distance between plates
+
+        pos = make_pos(rho, H, Lx, Ly, Lz)
+
+        snapshot = hoomd.Snapshot()
+        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
+
+        snapshot.mpcd.types = ["A"]
+        snapshot.mpcd.N = len(pos)
+        snapshot.mpcd.position[:] = pos
+
+        device = hoomd.device.CPU()
+        simulation = hoomd.Simulation(device=device, seed=42)
+        simulation.create_state_from_snapshot(snapshot)
+
+        integrator = hoomd.mpcd.Integrator(dt=0.1)
+        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
+
+        geometry = hoomd.mpcd.geometry.ParallelPlates(separation=2*H, no_slip=True)
+
+        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=geometry)
+
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=rho, kT=kT, geometry=geometry)
+
+        integrator.virtual_particle_fillers.append(filler)
+
+        simulation.operations.integrator = integrator
+
+        simulation.run(100)
 
     Stationary parallel plates with slip boundary condition.
 
@@ -95,10 +142,59 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(
-            separation=6.0, speed=1.0, no_slip=True)
-        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
-        simulation.operations.integrator.streaming_method = stream
+        import hoomd
+        import hoomd.mpcd
+        import numpy as np
+
+        def make_pos(density, H, Lx, Ly, Lz):
+            total_volume = Lx * Ly * Lz
+            N = int(density * total_volume)
+            posx = np.random.uniform(-Lx/2., +Lx/2., size=N)
+            posy = np.random.uniform(-H, +H, size=N)
+            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
+            pos = np.column_stack((posx, posy, posz))
+            return pos
+
+        kT = 1.0    # temperature
+        rho = 3.0   # density
+
+        Lx = 20.0   # box length
+        Ly = 20.0   # box width
+        Lz = 10.0   # box height
+        H = 3.0     # half distance between plates
+
+        pos = make_pos(rho, H, Lx, Ly, Lz)
+
+        snapshot = hoomd.Snapshot()
+        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
+
+        snapshot.mpcd.types = ["A"]
+        snapshot.mpcd.N = len(pos)
+        snapshot.mpcd.position[:] = pos
+
+        device = hoomd.device.CPU()
+        simulation = hoomd.Simulation(device=device, seed=42)
+        simulation.create_state_from_snapshot(snapshot)
+
+        integrator = hoomd.mpcd.Integrator(dt=0.1)
+        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
+
+        # Set up moving parallel plates geometry
+        geometry = hoomd.mpcd.geometry.ParallelPlates(separation=2*H, speed=1.0, no_slip=True)
+
+        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=geometry)
+
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=rho, kT=kT, geometry=geometry)
+
+        integrator.virtual_particle_fillers.append(filler)
+
+        simulation.operations.integrator = integrator
+
+        # Run the simulation
+        simulation.run(100)
+
 
     Attributes:
         separation (float): Distance between plates (*read only*).
@@ -145,9 +241,56 @@ class PlanarPore(Geometry):
 
     .. code-block:: python
 
-        pore = hoomd.mpcd.geometry.PlanarPore(separation=6.0, length=4.0)
-        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=pore)
-        simulation.operations.integrator.streaming_method = stream
+        import hoomd
+        import hoomd.mpcd
+        import numpy as np
+
+        def make_pos(density, H, L, Lx, Lz):
+            total_volume = Lx * (2*H) * Lz
+            N = int(density * total_volume)
+            posx = np.random.uniform(-L, +L, size=N)
+            posy = np.random.uniform(-H, +H, size=N)
+            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
+            pos = np.column_stack((posx, posy, posz))
+            return pos
+
+        kT = 1.0    # temperature
+        rho = 3.0   # density
+
+        Lx = 20.0   # box length
+        Lz = 10.0   # box width
+        H = 3.0     # half distance between pore walls
+        L = 5.0     # half length of the pore
+
+        pos = make_pos(rho, H, L, Lx, Lz)
+
+        snapshot = hoomd.Snapshot()
+        snapshot.configuration.box = [Lx, L*2 + 5, Lz, 0, 0, 0]
+
+        snapshot.mpcd.types = ["A"]
+        snapshot.mpcd.N = len(pos)
+        snapshot.mpcd.position[:] = pos
+
+        device = hoomd.device.CPU()
+        simulation = hoomd.Simulation(device=device, seed=42)
+        simulation.create_state_from_snapshot(snapshot)
+
+        integrator = hoomd.mpcd.Integrator(dt=0.1)
+        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
+
+        geometry = hoomd.mpcd.geometry.PlanarPore(separation=2*H, length=L, no_slip=True)
+
+        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=geometry)
+
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=rho, kT=kT, geometry=geometry)
+
+        integrator.virtual_particle_fillers.append(filler)
+
+        simulation.operations.integrator = integrator
+
+        simulation.run(100)
 
     Attributes:
         separation (float): Distance between pore walls (*read only*).
