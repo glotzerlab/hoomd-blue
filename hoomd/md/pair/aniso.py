@@ -615,16 +615,18 @@ class Patchy(AnisotropicPair):
 
     .. math::
 
-        U(r, \theta_i, \theta_j) = f(\theta_i) f(\theta_j) U_{LJ}(r)
+        U(r, \theta_i, \theta_j) = f(\theta_i, \alpha, \omega) f(\theta_j, \alpha, \omega) U_{\mathrm{pair}}(r)
 
     where :math:`f` is an orientation-dependent factor of the patchy spherical
     cap half-angle :math:`\alpha` and patch steepness :math:`\omega`.
 
     .. math::
-
-        f(\theta, \alpha, \omega) = \frac{1}{1 + \exp{\big ( -\omega (
-        \cos{\theta} - \cos{\alpha}) }\big ) }
-
+        \begin{align}
+        f(\theta, \alpha, \omega) &= \frac{\big(1+e^{-\omega (\cos{\theta} -
+        \cos{\alpha}) }\big)^{-1} - f_{min}}{f_{max} - f_{min}}\\
+        f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
+        f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
+        \end{align}
     """
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
