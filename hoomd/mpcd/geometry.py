@@ -133,10 +133,59 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        plates = hoomd.mpcd.geometry.ParallelPlates(
-            separation=6.0, no_slip=False)
-        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
-        simulation.operations.integrator.streaming_method = stream
+        import hoomd
+        import hoomd.mpcd
+        import numpy as np
+
+        def make_pos(density, H, Lx, Ly, Lz):
+            total_volume = Lx * Ly * Lz
+            N = int(density * total_volume)
+            posx = np.random.uniform(-Lx/2., +Lx/2., size=N)
+            posy = np.random.uniform(-H, +H, size=N)
+            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
+            pos = np.column_stack((posx, posy, posz))
+            return pos
+
+        kT = 1.0    # temperature
+        rho = 3.0   # density
+
+        Lx = 20.0   # box length
+        Ly = 20.0   # box width
+        Lz = 10.0   # box height
+        H = 3.0     # half distance between plates
+
+        pos = make_pos(rho, H, Lx, Ly, Lz)
+
+        snapshot = hoomd.Snapshot()
+        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
+
+        snapshot.mpcd.types = ["A"]
+        snapshot.mpcd.N = len(pos)
+        snapshot.mpcd.position[:] = pos
+
+        device = hoomd.device.CPU()
+        simulation = hoomd.Simulation(device=device, seed=42)
+        simulation.create_state_from_snapshot(snapshot)
+
+        integrator = hoomd.mpcd.Integrator(dt=0.1)
+        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
+
+        # Set up stationary parallel plates geometry with slip boundary condition
+        geometry = hoomd.mpcd.geometry.ParallelPlates(separation=2*H, no_slip=False)
+
+        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=geometry)
+
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=rho, kT=kT, geometry=geometry)
+
+        integrator.virtual_particle_fillers.append(filler)
+
+        simulation.operations.integrator = integrator
+
+        # Run the simulation
+        simulation.run(100)
+
 
     Moving parallel plates.
 
@@ -394,8 +443,7 @@ class CosineExpansionContraction(Geometry):
         simulation.create_state_from_snapshot(snapshot)
 
         integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide.../
-        StochasticRotationDynamics(period=1, angle=130, kT=kT)
+        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(period=1, angle=130, kT=kT)
 
         fx = 0.004
 
