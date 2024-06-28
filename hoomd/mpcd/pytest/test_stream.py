@@ -620,8 +620,8 @@ class TestCosineExpansionContraction:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-                expansion_separation=20.0,
-                contraction_separation=4.0,
+                expansion_separation=4.0,
+                contraction_separation=2.0,
                 wavenumber=2.0 * np.pi / 15.0),
         )
         sim.run(0)
