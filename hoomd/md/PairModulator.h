@@ -248,11 +248,9 @@ public:
             torque_i = make_scalar3(0,0,0);
             torque_j = make_scalar3(0,0,0);
 
-            //for loop over patchi and patchj, without double counting
-                // TODO: This is only for equal number of patches
             for (unsigned int patchi = 0; patchi < shape_i->envelope.size(); patchi++)
                 {
-                    for (unsigned int patchj = patchi; patchj < shape_j->envelope.size(); patchj++)
+                    for (unsigned int patchj = 0; patchj < shape_j->envelope.size(); patchj++)
                         {
                             Scalar3 this_force = make_scalar3(0,0,0);
                             Scalar3 grad_mods = make_scalar3(0,0,0);
