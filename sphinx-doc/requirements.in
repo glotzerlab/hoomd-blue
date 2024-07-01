@@ -1,7 +1,7 @@
 ipython==8.26.0
 nbconvert==7.16.4
 nbsphinx==0.9.4
-numpy==1.26.4
+numpy==2.0.0
 pandoc==2.3
 sphinx==7.3.7
 furo==2024.5.6
