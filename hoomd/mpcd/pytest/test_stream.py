@@ -249,51 +249,31 @@ class TestCosineChannel:
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, 5.95, -3.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 1, 0.])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.567225, 5.5, 0.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1, 0, 0])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.1, 2.1, -0.1])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [-1, -1, -1])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position,
+                [[0, 5.95, -3.0], [1.567225, 5.5, 0.0], [-0.1, 2.1, -0.1]])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity, [[0, 1, 0.], [-1, 0, 0], [-1, -1, -1]])
 
         # particle 0 hits the highest spot and is reflected back
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, 5.95, -3.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, -1, 0.])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.467225, 5.5, 0.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1, 0, 0])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.2, 2.0, -0.2])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [-1, -1, -1])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position,
+                [[0, 5.95, -3.0], [1.467225, 5.5, 0.0], [-0.2, 2.0, -0.2]])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity, [[0, -1, 0.], [-1, 0, 0], [-1, -1, -1]])
+
         # particle 2 collides diagonally
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, 5.85, -3.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, -1., 0.])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.367225, 5.5, 0.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1, 0, 0])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.11717, 2.08283, -0.11717])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [1, 1, 1])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position, [[0, 5.85, -3.0], [1.367225, 5.5, 0.0],
+                                     [-0.11717, 2.08283, -0.11717]])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity, [[0, -1., 0.], [-1, 0, 0], [1, 1, 1]])
 
     def test_step_slip(self, simulation_factory, snap):
         snap = self._make_particles(snap)
@@ -313,18 +293,12 @@ class TestCosineChannel:
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 [0, 5.95, -3.0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [0, 1, 0.])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [1.62764, 5.463246, 0])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [0.459737, -0.888055, 0])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[2],
-                                                 [-0.1, 2.1, -0.1])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[2],
-                                                 [-1, -1, -1])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position,
+                [[0, 5.95, -3.0], [1.62764, 5.463246, 0], [-0.1, 2.1, -0.1]])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity,
+                [[0, 1, 0.], [0.459737, -0.888055, 0], [-1, -1, -1]])
 
         # take one step,particle 0 hits the wall (same as for no_slip, because
         # it's vertical)
@@ -350,7 +324,7 @@ class TestCosineChannel:
                                                  [-1.150016, 0.823081, -1.])
 
     def test_check_mpcd_particles(self, simulation_factory, snap):
-        """Test box validation raises an error on run."""
+        """Test particle out of bounds."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
         ig = hoomd.mpcd.Integrator(dt=0.1)
@@ -607,7 +581,7 @@ class TestCosineExpansionContraction:
                 [-0.05819760480217273, 1.4130155833518931, -1.])
 
     def test_check_mpcd_particles(self, simulation_factory, snap):
-        """Test box validation raises an error on run."""
+        """Test particle out of bounds."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
         ig = hoomd.mpcd.Integrator(dt=0.1)
@@ -962,7 +936,7 @@ class TestPlanarPore:
                                                  [3.18, -4.17, 0])
 
     def test_check_mpcd_particles(self, simulation_factory, snap):
-        """Test box validation raises an error on run."""
+        """Test particle out of bounds."""
         snap = self._make_particles(snap)
         sim = simulation_factory(snap)
         ig = hoomd.mpcd.Integrator(dt=0.1)
