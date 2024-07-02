@@ -23,8 +23,8 @@ namespace hoomd
 namespace mpcd
     {
 
-// Use CPU class from another compilation unit
-extern template class BulkStreamingMethod<FORCE_CLASS>;
+// Explicit instantiation of GPU class
+template class BulkStreamingMethodGPU<FORCE_CLASS>;
 
 namespace detail
     {

@@ -22,8 +22,8 @@ namespace hoomd
 namespace mpcd
     {
 
-// Use CPU class from another compilation unit
-extern template class RejectionVirtualParticleFiller<GEOMETRY_CLASS>;
+// Explicit instantiation of GPU class
+template class RejectionVirtualParticleFillerGPU<GEOMETRY_CLASS>;
 
 namespace detail
     {

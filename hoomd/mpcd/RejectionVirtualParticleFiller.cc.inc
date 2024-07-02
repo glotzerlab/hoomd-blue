@@ -21,6 +21,10 @@ namespace hoomd
     {
 namespace mpcd
     {
+
+// Explicit instantiation of CPU class
+template class RejectionVirtualParticleFiller<GEOMETRY_CLASS>;
+
 namespace detail
     {
 void EXPORT_FUNCTION(pybind11::module& m)
