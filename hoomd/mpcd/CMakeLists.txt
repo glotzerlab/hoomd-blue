@@ -13,9 +13,7 @@ set(_mpcd_cc_sources
     Communicator.cc
     Integrator.cc
     ManualVirtualParticleFiller.cc
-    ParallelPlateGeometry.cc
     ParallelPlateGeometryFiller.cc
-    PlanarPoreGeometry.cc
     PlanarPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
@@ -40,9 +38,7 @@ set(_mpcd_headers
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
-    ParallelPlateGeometry.h
     ParallelPlateGeometryFiller.h
-    PlanarPoreGeometry.h
     PlanarPoreGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
@@ -51,6 +47,19 @@ set(_mpcd_headers
     )
 
 set(_mpcd_cu_sources "")
+
+set(_forces
+    BlockForce
+    ConstantForce
+    SineForce
+    NoForce
+    )
+
+set(_geometries
+    ParallelPlateGeometry
+    PlanarPoreGeometry
+    SphereGeometry
+    )
 
 if(ENABLE_HIP)
     list(APPEND _mpcd_cc_sources
@@ -102,22 +111,21 @@ if(ENABLE_HIP)
         )
 endif()
 
-# generate cc and cu templates for forces and streaming geometries
-set(_forces
-    BlockForce
-    ConstantForce
-    SineForce
-    NoForce
-    )
-set(_geometries
-    ParallelPlateGeometry
-    PlanarPoreGeometry
-    )
-foreach(_force ${_forces})
+# add cc and h file for geometries
+foreach(_geometry ${_geometries})
     # append force itself first
+    list(APPEND _mpcd_cc_sources ${_geometry}.cc)
+    list(APPEND _mpcd_headers ${_geometry}.h)
+endforeach()
+
+# add cc and h file for forces
+foreach(_force ${_forces})
     list(APPEND _mpcd_cc_sources ${_force}.cc)
     list(APPEND _mpcd_headers ${_force}.h)
+endforeach()
 
+# generate cc and cu templates for forces and streaming geometries
+foreach(_force ${_forces})
     # bulk geometry is special
     configure_file(
         BulkStreamingMethod.cc.inc
@@ -189,10 +197,10 @@ foreach(_geometry ${_geometries})
     endif()
 endforeach()
 
-# virtual particle fillers for the different geometries, skip those that are already done manually
-set(_manual_geometries ParallelPlateGeometry PlanarPoreGeometry)
+# virtual particle fillers for the different geometries
 foreach(_geometry ${_geometries})
-    if(${_geometry} IN_LIST _manual_geometries)
+    # skip fillers that are already done manually, guessed by filename
+    if(${_geometry}Filler.cc IN_LIST _mpcd_cc_sources)
         continue()
     endif()
 

@@ -180,7 +180,7 @@ namespace detail
 template<class Geometry> void export_RejectionVirtualParticleFillerGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    const std::string name = Geometry::getName() + "FillerGPU";
+    const std::string name = Geometry::getName() + "GeometryFillerGPU";
     py::class_<mpcd::RejectionVirtualParticleFillerGPU<Geometry>,
                std::shared_ptr<mpcd::RejectionVirtualParticleFillerGPU<Geometry>>>(
         m,

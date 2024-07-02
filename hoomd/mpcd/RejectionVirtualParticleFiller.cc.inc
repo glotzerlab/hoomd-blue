@@ -14,7 +14,7 @@
 #include "hoomd/mpcd/RejectionVirtualParticleFiller.h"
 
 #define GEOMETRY_CLASS @_geometry@
-#define EXPORT_FUNCTION export_RejectionVirtualParticleFiller@_geometry@
+#define EXPORT_FUNCTION export_@_geometry@Filler
 // clang-format on
 
 namespace hoomd
