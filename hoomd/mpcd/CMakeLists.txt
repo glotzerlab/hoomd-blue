@@ -40,6 +40,7 @@ set(_mpcd_headers
     ParticleDataUtilities.h
     ParallelPlateGeometryFiller.h
     PlanarPoreGeometryFiller.h
+    RejectionVirtualParticleFiller.h
     Sorter.h
     SRDCollisionMethod.h
     StreamingMethod.h
