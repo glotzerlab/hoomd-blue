@@ -92,6 +92,8 @@ if(ENABLE_HIP)
         ParallelPlateGeometryFillerGPU.h
         PlanarPoreGeometryFillerGPU.cuh
         PlanarPoreGeometryFillerGPU.h
+        RejectionVirtualParticleFillerGPU.cuh
+        RejectionVirtualParticleFillerGPU.h
         SorterGPU.cuh
         SorterGPU.h
         SRDCollisionMethodGPU.cuh
@@ -106,6 +108,7 @@ if(ENABLE_HIP)
         ParticleData.cu
         ParallelPlateGeometryFillerGPU.cu
         PlanarPoreGeometryFillerGPU.cu
+        RejectionVirtualParticleFillerGPU.cu
         SorterGPU.cu
         SRDCollisionMethodGPU.cu
         )
@@ -217,12 +220,12 @@ foreach(_geometry ${_geometries})
             @ONLY
         )
         configure_file(
-            RejectionVirtualParticleFillerGPU.cu.inc
-            RejectionVirtualParticleFiller${_geometry}GPU.cu
+            RejectionVirtualParticleFillerGPUDrawKernel.cu.inc
+            RejectionVirtualParticleFiller${_geometry}GPUDrawKernel.cu
             @ONLY
         )
         list(APPEND _mpcd_cc_sources RejectionVirtualParticleFiller${_geometry}GPU.cc)
-        list(APPEND _mpcd_cu_sources RejectionVirtualParticleFiller${_geometry}GPU.cu)
+        list(APPEND _mpcd_cu_sources RejectionVirtualParticleFiller${_geometry}GPUDrawKernel.cu)
     endif()
 endforeach()
 
