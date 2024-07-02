@@ -24,16 +24,10 @@ def test_cell_list(small_snap, simulation_factory):
         small_snap.configuration.box = [20, 30, 40, 0, 0, 0]
     sim = simulation_factory(small_snap)
 
-    cl = hoomd.mpcd.collide.CellList(cell_size=1.0)
-    assert cl.cell_size == 1.0
+    cl = hoomd.mpcd.collide.CellList()
 
     cl._attach(sim)
-    assert cl.cell_size == 1.0
     assert cl.num_cells == (20, 30, 40)
-
-    cl.cell_size = 2.0
-    assert cl.cell_size == 2.0
-    assert cl.num_cells == (10, 15, 20)
 
 
 @pytest.mark.parametrize(
