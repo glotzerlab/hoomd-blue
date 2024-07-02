@@ -562,71 +562,59 @@ class TestSphere:
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[0],
-                [2.95, 0.965, np.sqrt(6) + 0.025])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [1., 0.7, -0.5])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [-0.1, -0.1, -0.1])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1., -1., -1.])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2],
-                0.99 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[2],
-                0.25 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 [2., -2., -np.sqrt(8)])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 [0.8, -0.4, -0.5])
+            test_positions = np.zeros((4, 3))
+            test_positions[0] = [2.95, 0.965, np.sqrt(6) + 0.025]
+            test_positions[1] = [-0.1, -0.1, -0.1]
+            test_positions[2] = 0.99 * np.array([-1., -2., np.sqrt(11)])
+            test_positions[3] = [2., -2., -np.sqrt(8)]
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 test_positions)
+
+            test_velocities = np.zeros((4, 3))
+            test_velocities[0] = [1., 0.7, -0.5]
+            test_velocities[1] = [-1., -1., -1.]
+            test_velocities[2] = 0.25 * np.array([-1., -2., np.sqrt(11)])
+            test_velocities[3] = [0.8, -0.4, -0.5]
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 test_velocities)
 
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[0],
-                [2.95, 0.965, np.sqrt(6) + 0.025])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [-1., -0.7, 0.5])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [-0.2, -0.2, -0.2])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1., -1., -1.])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2],
-                0.985 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[2],
-                -0.25 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[3], [1.92, -1.96, -np.sqrt(8) + 0.05])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 [-0.8, 0.4, 0.5])
+            test_positions = np.zeros((4, 3))
+            test_positions[0] = [2.95, 0.965, np.sqrt(6) + 0.025]
+            test_positions[1] = [-0.2, -0.2, -0.2]
+            test_positions[2] = 0.985 * np.array([-1., -2., np.sqrt(11)])
+            test_positions[3] = [1.92, -1.96, -np.sqrt(8) + 0.05]
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 test_positions)
+
+            test_velocities = np.zeros((4, 3))
+            test_velocities[0] = [-1., -0.7, 0.5]
+            test_velocities[1] = [-1., -1., -1.]
+            test_velocities[2] = -0.25 * np.array([-1., -2., np.sqrt(11)])
+            test_velocities[3] = [-0.8, 0.4, 0.5]
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 test_velocities)
 
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[0],
-                [2.85, 0.895, np.sqrt(6) + 0.075])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [-1., -0.7, 0.5])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [-0.3, -0.3, -0.3])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1., -1., -1.])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2],
-                0.96 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[2],
-                -0.25 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[3], [1.84, -1.92, -np.sqrt(8) + 0.1])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 [-0.8, 0.4, 0.5])
+            test_positions = np.zeros((4, 3))
+            test_positions[0] = [2.85, 0.895, np.sqrt(6) + 0.075]
+            test_positions[1] = [-0.3, -0.3, -0.3]
+            test_positions[2] = 0.96 * np.array([-1., -2., np.sqrt(11)])
+            test_positions[3] = [1.84, -1.92, -np.sqrt(8) + 0.1]
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 test_positions)
+
+            test_velocities = np.zeros((4, 3))
+            test_velocities[0] = [-1., -0.7, 0.5]
+            test_velocities[1] = [-1., -1., -1.]
+            test_velocities[2] = -0.25 * np.array([-1., -2., np.sqrt(11)])
+            test_velocities[3] = [-0.8, 0.4, 0.5]
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 test_velocities)
 
     def test_step_slip(self, simulation_factory, snap):
         """Test step with slip boundary conditions."""
@@ -642,86 +630,77 @@ class TestSphere:
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[0],
-                [2.95, 0.965, np.sqrt(6) + 0.025])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 [1., 0.7, -0.5])
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [-0.1, -0.1, -0.1])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1., -1., -1.])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2],
-                0.99 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[2],
-                0.25 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 [2., -2., -np.sqrt(8)])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 [0.8, -0.4, -0.5])
+            test_positions = np.zeros((4, 3))
+            test_positions[0] = [2.95, 0.965, np.sqrt(6) + 0.025]
+            test_positions[1] = [-0.1, -0.1, -0.1]
+            test_positions[2] = 0.99 * np.array([-1., -2., np.sqrt(11)])
+            test_positions[3] = [2., -2., -np.sqrt(8)]
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 test_positions)
+
+            test_velocities = np.zeros((4, 3))
+            test_velocities[0] = [1., 0.7, -0.5]
+            test_velocities[1] = [-1., -1., -1.]
+            test_velocities[2] = 0.25 * np.array([-1., -2., np.sqrt(11)])
+            test_velocities[3] = [0.8, -0.4, -0.5]
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 test_velocities)
 
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            # point of contact
-            r1_before = np.array([3., 1., np.sqrt(6)])
-            # velocity before reflection
-            v1_before = np.array([1., 0.7, -0.5])
-            # velocity after reflection
-            v1_after = v1_before - 1 / 8. * np.dot(v1_before,
-                                                   r1_before) * r1_before
-            # position after reflection
-            r1_after = r1_before + v1_after * 0.05
-            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 r1_after)
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 v1_after)
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [-0.2, -0.2, -0.2])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1., -1., -1.])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2],
-                0.985 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[2],
-                -0.25 * np.array([-1., -2., np.sqrt(11)]))
-            r2_before = np.array([2., -2., -np.sqrt(8)])
-            v2_before = np.array([0.8, -0.4, -0.5])
-            v2_after = v2_before - 1. / 8. * np.dot(v2_before,
-                                                    r2_before) * r2_before
-            r2_after = r2_before + v2_after * 0.1
-            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 r2_after)
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 v2_after)
+            # calculate change for particle 0 by formulas
+            r0_before = np.array([3., 1., np.sqrt(6)])
+            v0_before = np.array([1., 0.7, -0.5])
+            v0_after = v0_before - 1 / 8. * np.dot(v0_before,
+                                                   r0_before) * r0_before
+            r0_after = r0_before + v0_after * 0.05
+
+            # calculate change for particle 3 by formulas
+            r3_before = np.array([2., -2., -np.sqrt(8)])
+            v3_before = np.array([0.8, -0.4, -0.5])
+            v3_after = v3_before - 1. / 8. * np.dot(v3_before,
+                                                    r3_before) * r3_before
+            r3_after = r3_before + v3_after * 0.1
+
+            test_positions = np.zeros((4, 3))
+            test_positions[0] = r0_after
+            test_positions[1] = [-0.2, -0.2, -0.2]
+            test_positions[2] = 0.985 * np.array([-1., -2., np.sqrt(11)])
+            test_positions[3] = r3_after
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 test_positions)
+
+            test_velocities = np.zeros((4, 3))
+            test_velocities[0] = v0_after
+            test_velocities[1] = [-1., -1., -1.]
+            test_velocities[2] = -0.25 * np.array([-1., -2., np.sqrt(11)])
+            test_velocities[3] = v3_after
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 test_velocities)
 
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             # one step streaming
-            r1_after += v1_after * 0.1
-            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
-                                                 r1_after)
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
-                                                 v1_after)
-            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
-                                                 [-0.3, -0.3, -0.3])
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
-                                                 [-1., -1., -1.])
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.position[2],
-                0.96 * np.array([-1., -2., np.sqrt(11)]))
-            np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity[2],
-                -0.25 * np.array([-1., -2., np.sqrt(11)]))
-            r2_after += v2_after * 0.1
-            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
-                                                 r2_after)
-            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
-                                                 v2_after)
+            r0_after += v0_after * 0.1
+            r3_after += v3_after * 0.1
+
+            test_positions = np.zeros((4, 3))
+            test_positions[0] = r0_after
+            test_positions[1] = [-0.3, -0.3, -0.3]
+            test_positions[2] = 0.96 * np.array([-1., -2., np.sqrt(11)])
+            test_positions[3] = r3_after
+            np.testing.assert_array_almost_equal(snap.mpcd.position,
+                                                 test_positions)
+
+            test_velocities = np.zeros((4, 3))
+            test_velocities[0] = v0_after
+            test_velocities[1] = [-1., -1., -1.]
+            test_velocities[2] = -0.25 * np.array([-1., -2., np.sqrt(11)])
+            test_velocities[3] = v3_after
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity,
+                                                 test_velocities)
 
     @pytest.mark.parametrize("R,expected_result", [(4.0, True), (3.8, False)])
     def test_check_mpcd_particles(self, simulation_factory, snap, R,
