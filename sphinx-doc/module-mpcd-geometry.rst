@@ -12,6 +12,8 @@ mpcd.geometry
     :nosignatures:
 
     Geometry
+    CosineChannel
+    CosineExpansionContraction
     ParallelPlates
     PlanarPore
 
@@ -20,6 +22,8 @@ mpcd.geometry
 .. automodule:: hoomd.mpcd.geometry
     :synopsis: Geometries.
     :members: Geometry,
+              CosineChannel,
+              CosineExpansionContraction,
               ParallelPlates,
               PlanarPore
     :show-inheritance:

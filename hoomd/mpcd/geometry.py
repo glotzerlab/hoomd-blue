@@ -56,6 +56,127 @@ class Geometry(_HOOMDBaseObject):
         self._param_dict.update(param_dict)
 
 
+class CosineChannel(Geometry):
+    r"""Serpentine (sinusoidal) channel.
+
+    Args:
+        amplitude (float): Amplitude of cosine.
+        wavenumber (float): Wavenumber of cosine.
+        separation (float): Distance between channel walls.
+        no_slip (bool): If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+    `CosineChannel` models a fluid confined in :math:`y` between two
+    walls described by a sinusoidal profile with equations
+
+    .. math::
+
+        y(x) = A \cos(k x) \pm H
+
+    where :math:`A` is the `amplitude`, :math:`k` is the `wavenumber`, and
+    :math:`2H` is the `separation`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        channel = hoomd.mpcd.geometry.CosineChannel(
+            amplitude=2.0,
+            separation=4.0,
+            wavenumber=2.0 * numpy.pi / 10.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=channel)
+        simulation.operations.integrator.streaming_method = stream
+
+    Attributes:
+        amplitude (float): Amplitude of cosine (*read only*).
+
+        wavenumber (float): Wavenumber of cosine (*read only*).
+
+        separation (float): Distance between walls (*read only*).
+
+
+    """
+
+    def __init__(self, amplitude, wavenumber, separation, no_slip=True):
+        super().__init__(no_slip)
+
+        param_dict = ParameterDict(
+            amplitude=float(amplitude),
+            wavenumber=float(wavenumber),
+            separation=float(separation),
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.CosineChannel(self.amplitude, self.wavenumber,
+                                            self.separation, self.no_slip)
+        super()._attach_hook()
+
+
+class CosineExpansionContraction(Geometry):
+    r"""Channel with sinusoidal expansion and contraction.
+
+    Args:
+        expansion_separation (float): Maximum distance between channel walls.
+        contraction_separation (float): Minimum distance between channel walls.
+        wavenumber (float): Wavenumber of cosine.
+        no_slip (bool): If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+    `CosineExpansionContraction` models a fluid confined in :math:`y` between
+    two walls described by a sinusoidal profile with equations
+
+    .. math::
+
+        y(x) = \pm\left[ \frac{H_{\rm e}-H_{\rm c}}{2}
+                         \left(1 + \cos(k x)\right) +  H_{\rm c} \right]
+
+    where :math:`2 H_{\rm e}` is the `expansion_separation`, :math:`2 H_{\rm c}`
+    is the `contraction_separation`, and :math:`k` is the `wavenumber`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        channel = hoomd.mpcd.geometry.CosineExpansionContraction(
+            expansion_separation=6.0,
+            contraction_separation=3.0,
+            wavenumber=2.0 * numpy.pi / 10.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=channel)
+        simulation.operations.integrator.streaming_method = stream
+
+    Attributes:
+        contraction_separation (float): Distance between channel walls at
+            the minimum contraction (*read only*).
+
+        expansion_separation (float): Distance between channel walls at the
+            maximum expansion (*read only*).
+
+        wavenumber (float): Wavenumber of cosine (*read only*).
+
+    """
+
+    def __init__(self,
+                 expansion_separation,
+                 contraction_separation,
+                 wavenumber,
+                 no_slip=True):
+        super().__init__(no_slip)
+
+        param_dict = ParameterDict(
+            expansion_separation=float(expansion_separation),
+            contraction_separation=float(contraction_separation),
+            wavenumber=float(wavenumber),
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.CosineExpansionContraction(
+            self.expansion_separation, self.contraction_separation,
+            self.wavenumber, self.no_slip)
+        super()._attach_hook()
+
+
 class ParallelPlates(Geometry):
     r"""Parallel-plate channel.
 
@@ -78,172 +199,27 @@ class ParallelPlates(Geometry):
 
     .. code-block:: python
 
-        import hoomd
-        import hoomd.mpcd
-        import numpy as np
-
-        def make_pos(density, H, Lx, Ly, Lz):
-            total_volume = Lx * Ly * Lz
-            N = int(density * total_volume)
-            posx = np.random.uniform(-Lx/2., +Lx/2., size=N)
-            posy = np.random.uniform(-H, +H, size=N)
-            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
-            pos = np.column_stack((posx, posy, posz))
-            return pos
-
-        kT = 1.0    # temperature
-        rho = 3.0   # density
-
-        Lx = 20.0   # box length
-        Ly = 20.0   # box width
-        Lz = 10.0   # box height
-        H = 3.0     # half distance between plates
-
-        pos = make_pos(rho, H, Lx, Ly, Lz)
-
-        snapshot = hoomd.Snapshot()
-        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
-
-        snapshot.mpcd.types = ["A"]
-        snapshot.mpcd.N = len(pos)
-        snapshot.mpcd.position[:] = pos
-
-        device = hoomd.device.CPU()
-        simulation = hoomd.Simulation(device=device, seed=42)
-        simulation.create_state_from_snapshot(snapshot)
-
-        integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
-
-        geometry = hoomd.mpcd.geometry.ParallelPlates(separation=2*H, no_slip=True)
-
-        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=geometry)
-
-        filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A", density=rho, kT=kT, geometry=geometry)
-
-        integrator.virtual_particle_fillers.append(filler)
-
-        simulation.operations.integrator = integrator
-
-        simulation.run(100)
+        plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        simulation.operations.integrator.streaming_method = stream
 
     Stationary parallel plates with slip boundary condition.
 
     .. code-block:: python
 
-        import hoomd
-        import hoomd.mpcd
-        import numpy as np
-
-        def make_pos(density, H, Lx, Ly, Lz):
-            total_volume = Lx * Ly * Lz
-            N = int(density * total_volume)
-            posx = np.random.uniform(-Lx/2., +Lx/2., size=N)
-            posy = np.random.uniform(-H, +H, size=N)
-            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
-            pos = np.column_stack((posx, posy, posz))
-            return pos
-
-        kT = 1.0    # temperature
-        rho = 3.0   # density
-
-        Lx = 20.0   # box length
-        Ly = 20.0   # box width
-        Lz = 10.0   # box height
-        H = 3.0     # half distance between plates
-
-        pos = make_pos(rho, H, Lx, Ly, Lz)
-
-        snapshot = hoomd.Snapshot()
-        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
-
-        snapshot.mpcd.types = ["A"]
-        snapshot.mpcd.N = len(pos)
-        snapshot.mpcd.position[:] = pos
-
-        device = hoomd.device.CPU()
-        simulation = hoomd.Simulation(device=device, seed=42)
-        simulation.create_state_from_snapshot(snapshot)
-
-        integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
-
-        # Set up stationary parallel plates geometry with slip boundary condition
-        geometry = hoomd.mpcd.geometry.ParallelPlates(separation=2*H, no_slip=False)
-
-        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=geometry)
-
-        filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A", density=rho, kT=kT, geometry=geometry)
-
-        integrator.virtual_particle_fillers.append(filler)
-
-        simulation.operations.integrator = integrator
-
-        # Run the simulation
-        simulation.run(100)
-
+        plates = hoomd.mpcd.geometry.ParallelPlates(
+            separation=6.0, no_slip=False)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        simulation.operations.integrator.streaming_method = stream
 
     Moving parallel plates.
 
     .. code-block:: python
 
-        import hoomd
-        import hoomd.mpcd
-        import numpy as np
-
-        def make_pos(density, H, Lx, Ly, Lz):
-            total_volume = Lx * Ly * Lz
-            N = int(density * total_volume)
-            posx = np.random.uniform(-Lx/2., +Lx/2., size=N)
-            posy = np.random.uniform(-H, +H, size=N)
-            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
-            pos = np.column_stack((posx, posy, posz))
-            return pos
-
-        kT = 1.0    # temperature
-        rho = 3.0   # density
-
-        Lx = 20.0   # box length
-        Ly = 20.0   # box width
-        Lz = 10.0   # box height
-        H = 3.0     # half distance between plates
-
-        pos = make_pos(rho, H, Lx, Ly, Lz)
-
-        snapshot = hoomd.Snapshot()
-        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
-
-        snapshot.mpcd.types = ["A"]
-        snapshot.mpcd.N = len(pos)
-        snapshot.mpcd.position[:] = pos
-
-        device = hoomd.device.CPU()
-        simulation = hoomd.Simulation(device=device, seed=42)
-        simulation.create_state_from_snapshot(snapshot)
-
-        integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
-
-        # Set up moving parallel plates geometry
-        geometry = hoomd.mpcd.geometry.ParallelPlates(separation=2*H, speed=1.0, no_slip=True)
-
-        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=geometry)
-
-        filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A", density=rho, kT=kT, geometry=geometry)
-
-        integrator.virtual_particle_fillers.append(filler)
-
-        simulation.operations.integrator = integrator
-
-        # Run the simulation
-        simulation.run(100)
-
+        plates = hoomd.mpcd.geometry.ParallelPlates(
+            separation=6.0, speed=1.0, no_slip=True)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
+        simulation.operations.integrator.streaming_method = stream
 
     Attributes:
         separation (float): Distance between plates (*read only*).
@@ -290,56 +266,9 @@ class PlanarPore(Geometry):
 
     .. code-block:: python
 
-        import hoomd
-        import hoomd.mpcd
-        import numpy as np
-
-        def make_pos(density, H, L, Lx, Lz):
-            total_volume = Lx * (2*H) * Lz
-            N = int(density * total_volume)
-            posx = np.random.uniform(-L, +L, size=N)
-            posy = np.random.uniform(-H, +H, size=N)
-            posz = np.random.uniform(-Lz/2., +Lz/2., size=N)
-            pos = np.column_stack((posx, posy, posz))
-            return pos
-
-        kT = 1.0    # temperature
-        rho = 3.0   # density
-
-        Lx = 20.0   # box length
-        Lz = 10.0   # box width
-        H = 3.0     # half distance between pore walls
-        L = 5.0     # half length of the pore
-
-        pos = make_pos(rho, H, L, Lx, Lz)
-
-        snapshot = hoomd.Snapshot()
-        snapshot.configuration.box = [Lx, L*2 + 5, Lz, 0, 0, 0]
-
-        snapshot.mpcd.types = ["A"]
-        snapshot.mpcd.N = len(pos)
-        snapshot.mpcd.position[:] = pos
-
-        device = hoomd.device.CPU()
-        simulation = hoomd.Simulation(device=device, seed=42)
-        simulation.create_state_from_snapshot(snapshot)
-
-        integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(kT=kT, period=1, angle=130)
-
-        geometry = hoomd.mpcd.geometry.PlanarPore(separation=2*H, length=L, no_slip=True)
-
-        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1, geometry=geometry)
-
-        filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A", density=rho, kT=kT, geometry=geometry)
-
-        integrator.virtual_particle_fillers.append(filler)
-
-        simulation.operations.integrator = integrator
-
-        simulation.run(100)
+        pore = hoomd.mpcd.geometry.PlanarPore(separation=6.0, length=4.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=pore)
+        simulation.operations.integrator.streaming_method = stream
 
     Attributes:
         separation (float): Distance between pore walls (*read only*).
@@ -360,268 +289,4 @@ class PlanarPore(Geometry):
     def _attach_hook(self):
         self._cpp_obj = _mpcd.PlanarPore(self.separation, self.length,
                                          self.no_slip)
-        super()._attach_hook()
-
-
-class CosineExpansionContraction(Geometry):
-    r"""Cosine Expansion-Contraction Geometry (Symmetric).
-
-    Args:
-        expansion_separation (float): Maximum distance between channel walls.
-        contraction_separation (float): Minimum distance between channel walls.
-        wavenumber (float): Wavenumber of cosine.
-        no_slip (bool): If True, surfaces have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
-
-    `CosineExpansionContraction` geometry represents a fluid confined between
-    two walls described by a sinusoidal profile with equations
-
-    .. math::
-        +/-(A cos(x*wavenumber) + A + {contraction\_separation}/2)
-
-    where
-
-    .. math::
-        A = 0.25*({expansion\_separation}-{contraction\_separation})
-
-    is the amplitude.
-    The channel is axis-symmetric around the origin in
-    *y* direction. The two symmetric cosine walls create a periodic series of
-
-    .. math::
-        p = wavenumber*Lx / 2\pi
-
-    constrictions and expansions.
-    The parameter :math:`expansion\_separation` gives the
-    channel width at its widest and :math:`contraction\_separation` is the
-    channel width at its narrowest point.
-
-    TODO:  Install sybil to test your examples in docs.
-
-    Example::
-
-        def make_pos(density,H_w,h_s,period,Lx,Lz):
-            A = (H_w-h_s)/2.
-            channel_volume = 2*(h_s + A)*Lz*Lx
-            N = int(density*channel_volume)
-            buffer = (2*H*Lx*Lz/channel_volume)*1.5
-
-            coords_x = np.random.uniform(-Lx/2.,+Lx/2.,size=int(N*buffer))
-            coords_z = np.random.uniform(-Lz/2.,+Lz/2.,size=int(N*buffer))
-            coords_y = np.random.uniform(-H,+H,size=int(N*buffer))
-
-            cutoff = A*np.cos(coords_x*2*np.pi/Lx*period)+A+h_s
-
-            coords_y_inside = coords_z[np.abs(coords_y)<cutoff-1e-5][0:N]
-            coords_x_inside = coords_x[np.abs(coords_y)<cutoff-1e-5][0:N]
-            coords_z_inside = coords_y[np.abs(coords_y)<cutoff-1e-5][0:N]
-
-            p = np.vstack((coords_x_inside,coords_y_inside,coords_z_inside)).T
-            return p
-
-        kT = 1.0    # temperature
-        rho = 3.0   # density
-
-        Lx = 20.0   # box length
-        Lz = 10.0    # box width
-        H = 5.0     # half largest distance between walls
-        h = 2.0     # half smallest distance between walls
-        p = 1        # periodicty of sine wall, integer > 0
-        Ly = 2*H+5
-
-        pos = make_pos(rho,H,h,p,Lx,Lz)
-
-        snapshot = hoomd.Snapshot()
-        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
-
-        snapshot.mpcd.types = ["A"]
-        snapshot.mpcd.N = len(pos)
-        snapshot.mpcd.position[:] = pos
-
-        device = hoomd.device.CPU()
-        simulation = hoomd.Simulation(device=device,seed=15)
-        simulation.create_state_from_snapshot(snapshot)
-
-        integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(period=1, angle=130, kT=kT)
-
-        fx = 0.004
-
-        geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
-            expansion_separation=2*H,
-            contraction_separation=2*h,
-            wavenumber=2.0 * np.pi / Lx,
-            no_slip=False)
-
-
-        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1,
-            geometry=geometry,
-            mpcd_particle_force=hoomd.mpcd.force.ConstantForce(force=(fx, 0, 0))
-        )
-
-        filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A", density=5.0, kT=kT, geometry=geometry)
-
-        integrator.virtual_particle_fillers.append(filler)
-
-        integrator.solvent_sorter = hoomd.mpcd.tune.ParticleSorter(trigger=20)
-        simulation.operations.integrator = integrator
-
-        simulation.run(100)
-
-    Attributes:
-        expansion_separation (float): Maximum distance between channel walls
-        (*read only*).
-        contraction_separation (float): Minimum distance between channel walls
-        (*read only*).
-        wavenumber (float): Wavenumber of cosine (*read only*).
-
-
-    """
-
-    def __init__(self,
-                 expansion_separation,
-                 contraction_separation,
-                 wavenumber,
-                 no_slip=True):
-        super().__init__(no_slip)
-
-        param_dict = ParameterDict(
-            expansion_separation=float(expansion_separation),
-            contraction_separation=float(contraction_separation),
-            wavenumber=float(wavenumber),
-        )
-        self._param_dict.update(param_dict)
-
-    def _attach_hook(self):
-        self._cpp_obj = _mpcd.CosineExpansionContraction(
-            self.expansion_separation, self.contraction_separation,
-            self.wavenumber, self.no_slip)
-        super()._attach_hook()
-
-
-class CosineChannel(Geometry):
-    r"""Cosine Channel Geometry (Anti-symmetric).
-
-    Args:
-        amplitude (float): Amplitude of cosine.
-        wavenumber (float): Wavenumber of cosine.
-        separation (float): Distance between channel walls.
-        no_slip (bool): If True, surfaces have no-slip boundary condition.
-            Otherwise, they have the slip boundary condition.
-
-    `CosineChannel` geometry represents a fluid confined between two
-    walls described by a sinusoidal profile with equations
-
-    .. math::
-        amplitude*cos(x*wavenumber) +/- {separation}/2
-
-    The channel is
-    anti-symmetric around the origin in *y* direction. The cosines of top and
-    bottom are running in parallel and create a "wavy" channel with
-
-
-    .. math::
-        p = wavenumber*L_{x} / 2\pi
-
-    repetitions.
-    The parameter :math:`separation` gives the
-    channel width.
-
-    TODO:  Install sybil to test your examples in docs.
-
-    Example::
-
-        def make_pos(density,A,h_narrow,repetitions,Lx,Lz):
-            Ly = 2*(A+h_narrow+5.0)
-            total_volume = Lz*Ly*Lx
-            N = int(density*total_volume)
-            posx = np.random.uniform(-Lx/2.,+Lx/2.,size=int(N))
-            posy = np.random.uniform(-Ly/2.,+Ly/2.,size=int(N))
-            posz = np.random.uniform(-Lz/2.,+Lz/2.,size=int(N))
-
-            pos = np.column_stack((posx,posy,posz))
-
-            pos = pos[np.abs(pos[:,1] - A*np.cos(2.0*np.pi*repetitions*../
-            pos[:,0]/Lx))<h_narrow]
-
-            return Ly,pos
-
-        kT = 1.0    # temperature
-        rho = 3.0   # density
-
-        Lx = 20.0   # box length
-        Lz = 10.0    # box width
-        A = 5.0     # amplitude of the wave
-        h = 1.0     # half smallest distance between walls
-        p = 1        # periodicty of sine wall, integer > 0
-
-
-        Ly, pos = make_pos(rho,A,h,p,Lx,Lz)
-
-        snapshot = hoomd.Snapshot()
-        snapshot.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
-
-        snapshot.mpcd.types = ["A"]
-        snapshot.mpcd.N = len(pos)
-        snapshot.mpcd.position[:] = pos
-
-        device = hoomd.device.CPU()
-        simulation = hoomd.Simulation(device=device,seed=15)
-        simulation.create_state_from_snapshot(snapshot)
-
-        integrator = hoomd.mpcd.Integrator(dt=0.1)
-        integrator.collision_method = hoomd.mpcd.collide../
-        .StochasticRotationDynamics(period=1, angle=130, kT=kT)
-
-        fx = 0.004
-
-        geometry=hoomd.mpcd.geometry.CosineChannel(
-            amplitude=A,
-            separation=2*h,
-            wavenumber=2.0 * np.pi / Lx,
-            no_slip=False)
-
-
-        integrator.streaming_method = hoomd.mpcd.stream.BounceBack(
-            period=1,
-            geometry=geometry,
-            mpcd_particle_force=hoomd.mpcd.force.ConstantForce(force=(fx, 0, 0))
-        )
-
-        filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A", density=5.0, kT=kT, geometry=geometry)
-
-        integrator.virtual_particle_fillers.append(filler)
-
-        integrator.solvent_sorter = hoomd.mpcd.tune.ParticleSorter(trigger=20)
-        simulation.operations.integrator = integrator
-
-        simulation.run(100)
-
-
-    Attributes:
-        amplitude (float): Amplitude of cosine (*read only*).
-
-        wavenumber (float): Wavenumber of cosine (*read only*).
-
-        separation (float): Distance between walls (*read only*).
-
-
-    """
-
-    def __init__(self, amplitude, wavenumber, separation, no_slip=True):
-        super().__init__(no_slip)
-
-        param_dict = ParameterDict(
-            amplitude=float(amplitude),
-            wavenumber=float(wavenumber),
-            separation=float(separation),
-        )
-        self._param_dict.update(param_dict)
-
-    def _attach_hook(self):
-        self._cpp_obj = _mpcd.CosineChannel(self.amplitude, self.wavenumber,
-                                            self.separation, self.no_slip)
         super()._attach_hook()
