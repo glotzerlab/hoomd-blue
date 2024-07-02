@@ -16,6 +16,7 @@ mpcd.geometry
     CosineExpansionContraction
     ParallelPlates
     PlanarPore
+    Sphere
 
 .. rubric:: Details
 
@@ -25,5 +26,6 @@ mpcd.geometry
               CosineChannel,
               CosineExpansionContraction,
               ParallelPlates,
-              PlanarPore
+              PlanarPore,
+              Sphere
     :show-inheritance:

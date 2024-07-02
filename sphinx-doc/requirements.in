@@ -5,6 +5,6 @@ numpy==1.26.4
 pandoc==2.3
 sphinx==7.3.7
 furo==2024.5.6
-tornado==6.4
+tornado==6.4.1
 sphinxcontrib-googleanalytics==0.4
 sphinx-copybutton==0.5.2

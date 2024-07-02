@@ -38,6 +38,7 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
                                 const Scalar kT,
                                 const uint64_t timestep,
                                 const uint16_t seed,
+                                const unsigned int filler_id,
                                 const unsigned int block_size);
 
     } // end namespace gpu

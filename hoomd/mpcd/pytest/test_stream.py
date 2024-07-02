@@ -61,10 +61,16 @@ def snap():
                         separation=8.0, length=6.0, no_slip=True)
             },
         ),
+        (
+            hoomd.mpcd.stream.BounceBack,
+            {
+                "geometry": hoomd.mpcd.geometry.Sphere(radius=4.0, no_slip=True)
+            },
+        ),
     ],
     ids=[
         "Bulk", "CosineChannel", "CosineExpansionContraction", "ParallelPlates",
-        "PlanarPore"
+        "PlanarPore", "Sphere"
     ],
 )
 class TestStreamingMethod:
@@ -981,3 +987,216 @@ class TestPlanarPore:
             geometry=hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=7.0),
         )
         assert not ig.streaming_method.check_mpcd_particles()
+
+
+class TestSphere:
+
+    def _make_particles(self, snap):
+        if snap.communicator.rank == 0:
+            snap.mpcd.N = 4
+
+            # particle 1: Hits the wall in the second streaming step, gets
+            # reflected accordingly
+            snap.mpcd.position[0] = [2.85, 0.895, np.sqrt(6) + 0.075]
+            snap.mpcd.velocity[0] = [1., 0.7, -0.5]
+
+            # particle 2: Always inside the sphere, so no reflection by the BC
+            snap.mpcd.position[1] = [0., 0., 0.]
+            snap.mpcd.velocity[1] = [-1., -1., -1.]
+
+            # particle 3: Hits the wall normally and gets reflected back.
+            snap.mpcd.position[2] = 0.965 * np.array([-1., -2., np.sqrt(11)])
+            snap.mpcd.velocity[2] = 0.25 * np.array([-1., -2., np.sqrt(11)])
+
+            # particle 4: Lands almost exactly on the sphere surface and needs
+            # to be backtracked one complete step
+            snap.mpcd.position[3] = [1.92, -1.96, -np.sqrt(8) + 0.05]
+            snap.mpcd.velocity[3] = [0.8, -0.4, -0.5]
+        return snap
+
+    def test_step_noslip(self, simulation_factory, snap):
+        """Test step with no-slip boundary conditions."""
+        snap = self._make_particles(snap)
+        sim = simulation_factory(snap)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.Sphere(radius=4.0))
+        ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
+        sim.operations.integrator = ig
+
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[0],
+                [2.95, 0.965, np.sqrt(6) + 0.025])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
+                                                 [1., 0.7, -0.5])
+            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
+                                                 [-0.1, -0.1, -0.1])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
+                                                 [-1., -1., -1.])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[2],
+                0.99 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity[2],
+                0.25 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
+                                                 [2., -2., -np.sqrt(8)])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
+                                                 [0.8, -0.4, -0.5])
+
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[0],
+                [2.95, 0.965, np.sqrt(6) + 0.025])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
+                                                 [-1., -0.7, 0.5])
+            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
+                                                 [-0.2, -0.2, -0.2])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
+                                                 [-1., -1., -1.])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[2],
+                0.985 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity[2],
+                -0.25 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[3], [1.92, -1.96, -np.sqrt(8) + 0.05])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
+                                                 [-0.8, 0.4, 0.5])
+
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[0],
+                [2.85, 0.895, np.sqrt(6) + 0.075])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
+                                                 [-1., -0.7, 0.5])
+            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
+                                                 [-0.3, -0.3, -0.3])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
+                                                 [-1., -1., -1.])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[2],
+                0.96 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity[2],
+                -0.25 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[3], [1.84, -1.92, -np.sqrt(8) + 0.1])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
+                                                 [-0.8, 0.4, 0.5])
+
+    def test_step_slip(self, simulation_factory, snap):
+        """Test step with slip boundary conditions."""
+        snap = self._make_particles(snap)
+        sim = simulation_factory(snap)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1,
+            geometry=hoomd.mpcd.geometry.Sphere(radius=4.0, no_slip=False),
+        )
+        ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
+        sim.operations.integrator = ig
+
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[0],
+                [2.95, 0.965, np.sqrt(6) + 0.025])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
+                                                 [1., 0.7, -0.5])
+            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
+                                                 [-0.1, -0.1, -0.1])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
+                                                 [-1., -1., -1.])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[2],
+                0.99 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity[2],
+                0.25 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
+                                                 [2., -2., -np.sqrt(8)])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
+                                                 [0.8, -0.4, -0.5])
+
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            # point of contact
+            r1_before = np.array([3., 1., np.sqrt(6)])
+            # velocity before reflection
+            v1_before = np.array([1., 0.7, -0.5])
+            # velocity after reflection
+            v1_after = v1_before - 1 / 8. * np.dot(v1_before,
+                                                   r1_before) * r1_before
+            # position after reflection
+            r1_after = r1_before + v1_after * 0.05
+            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
+                                                 r1_after)
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
+                                                 v1_after)
+            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
+                                                 [-0.2, -0.2, -0.2])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
+                                                 [-1., -1., -1.])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[2],
+                0.985 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity[2],
+                -0.25 * np.array([-1., -2., np.sqrt(11)]))
+            r2_before = np.array([2., -2., -np.sqrt(8)])
+            v2_before = np.array([0.8, -0.4, -0.5])
+            v2_after = v2_before - 1. / 8. * np.dot(v2_before,
+                                                    r2_before) * r2_before
+            r2_after = r2_before + v2_after * 0.1
+            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
+                                                 r2_after)
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
+                                                 v2_after)
+
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            # one step streaming
+            r1_after += v1_after * 0.1
+            np.testing.assert_array_almost_equal(snap.mpcd.position[0],
+                                                 r1_after)
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[0],
+                                                 v1_after)
+            np.testing.assert_array_almost_equal(snap.mpcd.position[1],
+                                                 [-0.3, -0.3, -0.3])
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[1],
+                                                 [-1., -1., -1.])
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.position[2],
+                0.96 * np.array([-1., -2., np.sqrt(11)]))
+            np.testing.assert_array_almost_equal(
+                snap.mpcd.velocity[2],
+                -0.25 * np.array([-1., -2., np.sqrt(11)]))
+            r2_after += v2_after * 0.1
+            np.testing.assert_array_almost_equal(snap.mpcd.position[3],
+                                                 r2_after)
+            np.testing.assert_array_almost_equal(snap.mpcd.velocity[3],
+                                                 v2_after)
+
+    @pytest.mark.parametrize("R,expected_result", [(4.0, True), (3.8, False)])
+    def test_check_mpcd_particles(self, simulation_factory, snap, R,
+                                  expected_result):
+        if snap.communicator.rank == 0:
+            snap.mpcd.position[0] = [0, 3.85, 0]
+        sim = simulation_factory(snap)
+        sm = hoomd.mpcd.stream.BounceBack(
+            period=1, geometry=hoomd.mpcd.geometry.Sphere(radius=R))
+        ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
+        sim.operations.integrator = ig
+
+        sim.run(0)
+        assert sm.check_mpcd_particles() is expected_result

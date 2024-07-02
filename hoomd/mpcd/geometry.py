@@ -290,3 +290,47 @@ class PlanarPore(Geometry):
         self._cpp_obj = _mpcd.PlanarPore(self.separation, self.length,
                                          self.no_slip)
         super()._attach_hook()
+
+
+class Sphere(Geometry):
+    r"""Spherical confinement.
+
+    Args:
+        radius (float): Radius of sphere.
+        no_slip (bool): If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+    `Sphere` confines particles inside a sphere of `radius` :math:`R`
+    centered at the origin.
+
+    .. rubric:: Examples:
+
+    Sphere with no-slip boundary condition.
+
+    .. code-block:: python
+
+        sphere = hoomd.mpcd.geometry.Sphere(radius=5.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=sphere)
+        simulation.operations.integrator.streaming_method = stream
+
+    Sphere with slip boundary condition.
+
+    .. code-block:: python
+
+        sphere = hoomd.mpcd.geometry.Sphere(radius=5.0, no_slip=False)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=sphere)
+        simulation.operations.integrator.streaming_method = stream
+
+    Attributes:
+        radius (float): Radius of sphere (*read only*).
+
+    """
+
+    def __init__(self, radius, no_slip=True):
+        super().__init__(no_slip)
+        param_dict = ParameterDict(radius=float(radius),)
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.Sphere(self.radius, self.no_slip)
+        super()._attach_hook()
