@@ -30,7 +30,9 @@ void export_Communicator(pybind11::module&);
 #endif // ENABLE_MPI
 void export_ConstantForce(pybind11::module&);
 void export_CosineChannelGeometry(pybind11::module&);
+void export_CosineChannelGeometryFiller(pybind11::module&);
 void export_CosineExpansionContractionGeometry(pybind11::module&);
+void export_CosineExpansionContractionGeometryFiller(pybind11::module&);
 void export_Integrator(pybind11::module&);
 void export_ManualVirtualParticleFiller(pybind11::module&);
 void export_NoForce(pybind11::module&);
@@ -52,6 +54,8 @@ void export_CellThermoComputeGPU(pybind11::module&);
 #ifdef ENABLE_MPI
 void export_CommunicatorGPU(pybind11::module&);
 #endif // ENABLE_MPI
+void export_CosineChannelGeometryFillerGPU(pybind11::module&);
+void export_CosineExpansionContractionGeometryFillerGPU(pybind11::module&);
 void export_ParallelPlateGeometryFillerGPU(pybind11::module&);
 void export_PlanarPoreGeometryFillerGPU(pybind11::module&);
 void export_SorterGPU(pybind11::module&);
@@ -187,7 +191,9 @@ PYBIND11_MODULE(_mpcd, m)
 #endif // ENABLE_MPI
     export_ConstantForce(m);
     export_CosineChannelGeometry(m);
+    export_CosineChannelGeometryFiller(m);
     export_CosineExpansionContractionGeometry(m);
+    export_CosineExpansionContractionGeometryFiller(m);
     export_Integrator(m);
     export_ManualVirtualParticleFiller(m);
     export_NoForce(m);
@@ -207,6 +213,8 @@ PYBIND11_MODULE(_mpcd, m)
 #ifdef ENABLE_MPI
     export_CommunicatorGPU(m);
 #endif // ENABLE_MPI
+    export_CosineChannelGeometryFillerGPU(m);
+    export_CosineExpansionContractionGeometryFillerGPU(m);
     export_ParallelPlateGeometryFillerGPU(m);
     export_PlanarPoreGeometryFillerGPU(m);
     export_SorterGPU(m);
