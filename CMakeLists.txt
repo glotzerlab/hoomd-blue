@@ -1,6 +1,10 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15...3.27 FATAL_ERROR)
 # >= 3.8 is required for CUDA language support
 # >= 3.9 is required for MPI::MPI_CXX target
+
+# Search for Python and other libraries in unix-like locations first and frameworks last.
+# This allows FindPython to find virtual environment Pythons before a homebrew or system Pythons.
+set(CMAKE_FIND_FRAMEWORK LAST)
 
 project (HOOMD LANGUAGES C CXX)
 
@@ -14,7 +18,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "4.4.1")
+set(HOOMD_VERSION_RAW "4.7.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -112,12 +116,13 @@ include (HOOMDHIPSetup)
 
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-include (hoomd-macros)
 
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
+
+include (hoomd-macros)
 
 if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     option(BUILD_MPCD "Build the mpcd package" on)
@@ -158,7 +163,7 @@ endif()
 
 #######################
 ## Get the compile date
-exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
+execute_process(COMMAND "date" "+%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 ################################
 # set up unit tests

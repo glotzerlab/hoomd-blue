@@ -25,7 +25,7 @@ repos:
     language: pygrep
     types_or: [python, c, c++, cuda, inc]
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.5.0'
+  rev: 'v4.6.0'
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -40,7 +40,7 @@ repos:
     - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
-  rev: v0.2.0
+  rev: v0.3.2
   hooks:
   - id: fix-license-header
     name: Fix license headers (Python)
@@ -71,7 +71,7 @@ repos:
     - --keep-after=.. include
     - --comment-prefix=..
 - repo: https://github.com/kynan/nbstripout
-  rev: 0.6.1
+  rev: 0.7.1
   hooks:
     - id: nbstripout
 - repo: https://github.com/google/yapf
@@ -79,7 +79,7 @@ repos:
   hooks:
   - id: yapf
 - repo: https://github.com/PyCQA/flake8
-  rev: '6.1.0'
+  rev: '7.1.0'
   hooks:
   - id: flake8
     additional_dependencies:
@@ -97,7 +97,7 @@ repos:
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v17.0.6
+  rev: v18.1.8
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

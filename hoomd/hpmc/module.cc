@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -33,9 +33,28 @@
 
 #include "modules.h"
 
-/*! \file module.cc
-    \brief Export classes to python
-*/
+namespace hoomd
+    {
+namespace hpmc
+    {
+namespace detail
+    {
+// Declare export methods in this file instead of in header files to avoid unecessary recompilations
+// of this file.
+
+void exportPairPotential(pybind11::module& m);
+
+void exportPairPotentialLennardJones(pybind11::module& m);
+
+void exportPairPotentialAngularStep(pybind11::module& m);
+
+void exportPairPotentialStep(pybind11::module& m);
+
+void exportPairPotentialUnion(pybind11::module& m);
+    } // namespace detail
+    } // namespace hpmc
+    } // namespace hoomd
+
 using namespace hoomd::hpmc;
 using namespace hoomd::hpmc::detail;
 using namespace std;
@@ -126,6 +145,12 @@ PYBIND11_MODULE(_hpmc, m)
     export_hpmc_clusters_counters(m);
 
     export_hpmc_nec_counters(m);
+
+    exportPairPotential(m);
+    exportPairPotentialLennardJones(m);
+    exportPairPotentialAngularStep(m);
+    exportPairPotentialStep(m);
+    exportPairPotentialUnion(m);
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

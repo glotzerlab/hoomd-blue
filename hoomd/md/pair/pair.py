@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Pair forces."""
@@ -12,7 +12,7 @@ from hoomd.md import force
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy as np
-from hoomd.data.typeconverter import OnlyFrom, nonnegative_real
+from hoomd.data.typeconverter import OnlyFrom, nonnegative_real, positive_real
 
 
 class Pair(force.Force):
@@ -257,7 +257,7 @@ class Gaussian(Pair):
 
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma > 0`
           :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -275,7 +275,7 @@ class Gaussian(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
+            TypeParameterDict(epsilon=float, sigma=positive_real, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -311,7 +311,7 @@ class ExpandedGaussian(Pair):
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) - particle size
-          :math:`\sigma` :math:`[\mathrm{length}]`
+          :math:`\sigma > 0` :math:`[\mathrm{length}]`
         * ``delta`` (`float`, **required**) - shift distance
           :math:`\delta` :math:`[\mathrm{length}]`
 
@@ -331,7 +331,7 @@ class ExpandedGaussian(Pair):
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
-                              sigma=float,
+                              sigma=positive_real,
                               delta=float,
                               len_keys=2))
         self._add_typeparam(params)
@@ -1844,7 +1844,7 @@ class LJGauss(Pair):
         * ``epsilon`` (`float`, **required**) -
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
-          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
+          Gaussian width :math:`\sigma > 0` :math:`[\mathrm{length}]`
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
@@ -1868,5 +1868,8 @@ class LJGauss(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, r0=float, len_keys=2))
+            TypeParameterDict(epsilon=float,
+                              sigma=positive_real,
+                              r0=float,
+                              len_keys=2))
         self._add_typeparam(params)

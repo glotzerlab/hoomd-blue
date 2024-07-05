@@ -32,6 +32,8 @@ env:
   OMPI_MCA_btl: "vader,self"
   # skip running the CPU tests in GPU builds
   _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
+  # Require GPU tests in GPU builds.
+  _HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_: 1
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
 
@@ -50,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.3
+      uses: glotzerlab/jetstream2-admin/start@v1.2.5
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
@@ -59,7 +61,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -82,7 +84,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
@@ -143,13 +145,13 @@ jobs:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v3.1.3
+      uses: actions/upload-artifact@v4.3.3
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v3.1.3
+      uses: actions/upload-artifact@v4.3.3
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -168,7 +170,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -188,13 +190,13 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
 
     - name: Download install
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -229,7 +231,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -249,13 +251,13 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
 
     - name: Download build
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -283,7 +285,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -299,13 +301,13 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
 
     - name: Download install
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -334,7 +336,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -362,7 +364,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
@@ -423,13 +425,13 @@ jobs:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v3.1.3
+      uses: actions/upload-artifact@v4.3.3
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v3.1.3
+      uses: actions/upload-artifact@v4.3.3
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -448,7 +450,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -477,13 +479,13 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
 
     - name: Download install
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -518,7 +520,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.10.09-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2024.03.01-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -547,13 +549,13 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.4
       with:
         path: code
         submodules: true
 
     - name: Download build
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build

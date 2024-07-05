@@ -17,7 +17,7 @@ if (ENABLE_HIP)
 set(_cuda_sources ${_${COMPONENT_NAME}_cu_sources})
 endif (ENABLE_HIP)
 
-pybind11_add_module(_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_cuda_sources} NO_EXTRAS)
+hoomd_add_module(_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_cuda_sources} NO_EXTRAS)
 # Alias into the HOOMD namespace so that plugins and symlinked components both work.
 add_library(HOOMD::_${COMPONENT_NAME} ALIAS _${COMPONENT_NAME})
 

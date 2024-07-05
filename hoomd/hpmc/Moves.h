@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -322,7 +322,7 @@ DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat
     }
 
     }; // end namespace hpmc
-    }  // namespace hoomd
+    } // namespace hoomd
 
 #undef DEVICE
 

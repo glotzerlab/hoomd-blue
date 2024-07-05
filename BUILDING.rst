@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Building from source
@@ -30,7 +30,7 @@ To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install sphinx furo nbsphinx ipython
+   $ <package-manager> install sphinx sphinx-copybutton furo nbsphinx ipython
 
 .. note::
 
@@ -80,13 +80,13 @@ Install prerequisites
 - C++17 capable compiler (tested with ``gcc`` 9 - 13 and ``clang`` 10 - 16)
 - Python >= 3.8
 - NumPy >= 1.17.3
-- pybind11 >= 2.2
+- pybind11 >= 2.6
 - Eigen >= 3.2
-- CMake >= 3.9
+- CMake >= 3.15
 
 **For MPI parallel execution** (required when ``ENABLE_MPI=on``):
 
-- MPI (tested with OpenMPI, MVAPICH)
+- MPI (tested with OpenMPI)
 - cereal >= 1.1
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
@@ -109,9 +109,9 @@ Install prerequisites
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
-   1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The ``mpcd`` component is disabled on AMD GPUs.
-   3. Multi-GPU execution via unified memory is not available.
+  1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+  2. The ``mpcd`` component is disabled on AMD GPUs.
+  3. Multi-GPU execution via unified memory is not available.
 
 .. note::
 
@@ -130,6 +130,7 @@ Install prerequisites
 **To build the documentation:**
 
 - sphinx
+- sphinx-copybutton
 - furo
 - nbsphinx
 - ipython
@@ -145,7 +146,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.4.1.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.7.0.tar.gz`_.
 
 .. seealso::
 
@@ -158,7 +159,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-4.4.1.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.4.1/hoomd-4.4.1.tar.gz
+.. _Download hoomd-4.7.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.7.0/hoomd-4.7.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/
@@ -200,9 +201,10 @@ Options that find libraries and executables only take effect on a clean invocati
 these options, first remove ``CMakeCache.txt`` from the build directory and then run ``cmake`` with
 these options on the command line.
 
-- ``PYTHON_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
+- ``Python_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
 
-  - Default: ``python3.X`` detected on ``$PATH``.
+  - Default: ``python3.x`` found by `CMake's FindPython
+    <https://cmake.org/cmake/help/latest/module/FindPython.html>`__.
 
 - ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` or ``hipcc`` to build with.
 

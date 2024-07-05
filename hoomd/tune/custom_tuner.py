@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomTuner.
@@ -15,6 +15,7 @@
 
 from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Tuner
+import warnings
 
 
 class _TunerProperty:
@@ -74,3 +75,11 @@ class _InternalCustomTuner(_InternalCustomOperation, Tuner):
 
     def tune(self, timestep):
         return self._action.act(timestep)
+        """
+        .. deprecated:: 4.5.0
+
+           Use `Simulation` to call the operation.
+        """
+        warnings.warn(
+            "`_InternalCustomTuner.tune` is deprecated,"
+            "use `Simulation` to call the operation.", FutureWarning)

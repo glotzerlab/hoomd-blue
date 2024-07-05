@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Long-range potentials evaluated using the PPPM method."""
@@ -270,10 +270,6 @@ class Coulomb(Force):
 
             # ensure that the pair force uses the same neighbor list
             self._pair_force.nlist = value
-
-    @property
-    def _children(self):
-        return [self.nlist]
 
 
 def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):

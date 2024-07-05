@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_WALL_H_
@@ -114,12 +114,12 @@ struct CylinderWall
 #ifndef __HIPCC__
     CylinderWall(Scalar r, pybind11::tuple origin, pybind11::tuple axis, bool inside = true)
         : CylinderWall(
-            r,
-            vec3<Scalar>(origin[0].cast<Scalar>(),
-                         origin[1].cast<Scalar>(),
-                         origin[2].cast<Scalar>()),
-            vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
-            inside)
+              r,
+              vec3<Scalar>(origin[0].cast<Scalar>(),
+                           origin[1].cast<Scalar>(),
+                           origin[2].cast<Scalar>()),
+              vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
+              inside)
         {
         }
 

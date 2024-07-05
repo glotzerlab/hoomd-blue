@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -93,8 +93,7 @@ class GSDUtils
         else if (retval != GSD_SUCCESS)
             {
             std::ostringstream s;
-            s << "GSD: "
-              << "Unknown error " << retval << " writing: " << fname;
+            s << "GSD: " << "Unknown error " << retval << " writing: " << fname;
             throw std::runtime_error(s.str());
             }
         }

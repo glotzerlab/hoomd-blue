@@ -1,6 +1,10 @@
 # CMakeLists.txt template for building a plugin as an external component.
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15...3.27 FATAL_ERROR)
+
+# Search for Python and other libraries in unix-like locations first and frameworks last.
+# This allows FindPython to find virtual environment Pythons before a homebrew or system Pythons.
+set(CMAKE_FIND_FRAMEWORK LAST)
 
 # Name the plugin project
 project(example_plugins LANGUAGES C CXX)

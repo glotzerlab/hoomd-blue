@@ -55,10 +55,9 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_FLAGS "-Wno-self-assign-overloaded")
     endif()
-    target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     add_dependencies(test_all ${CUR_TEST})
-    target_link_libraries(${CUR_TEST} _hoomd ${PYTHON_LIBRARIES})
+    target_link_libraries(${CUR_TEST} _hoomd pybind11::embed)
 
 endforeach (CUR_TEST)
 

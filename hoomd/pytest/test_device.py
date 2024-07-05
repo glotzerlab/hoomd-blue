@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -62,6 +62,7 @@ def test_gpu_specific_properties(device):
 
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
+    hoomd.device.GPU(gpu_id=0)
 
     c = device.compute_capability
     assert type(c) is tuple

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -18,6 +18,7 @@
 
 #include "ExternalField.h"
 #include "HPMCCounters.h"
+#include "PairPotential.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -182,7 +183,7 @@ class PatchEnergy : public Autotuned
 
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
-    };                                          // end class PatchEnergy
+    }; // end class PatchEnergy
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
@@ -408,11 +409,11 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_external_base;
         }
 
-    //! Compute the energy due to patch interactions
+    //! Compute the total energy from pair interactions.
     /*! \param timestep the current time step
      * \returns the total patch energy
      */
-    virtual float computePatchEnergy(uint64_t timestep)
+    virtual double computeTotalPairEnergy(uint64_t timestep)
         {
         // base class method returns 0
         return 0.0;
@@ -435,6 +436,110 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     std::shared_ptr<PatchEnergy> getPatchEnergy()
         {
         return m_patch;
+        }
+
+    /// Test if this has pairwise interactions.
+    bool hasPairInteractions()
+        {
+        return m_patch || m_pair_potentials.size() > 0;
+        }
+
+    /// Get pairwise interaction maximum non-additive r_cut.
+    LongReal getMaxPairEnergyRCutNonAdditive() const
+        {
+        LongReal r_cut = 0;
+        if (m_patch)
+            {
+            r_cut = m_patch->getRCut();
+            }
+        for (const auto& pair : m_pair_potentials)
+            {
+            r_cut = std::max(r_cut, pair->getMaxRCutNonAdditive());
+            }
+
+        return r_cut;
+        }
+
+    /// Get pairwise interaction maximum additive r_cut.
+    LongReal getMaxPairInteractionAdditiveRCut(unsigned int type) const
+        {
+        LongReal r_cut = 0;
+        if (m_patch)
+            {
+            r_cut = m_patch->getAdditiveCutoff(type);
+            }
+        for (const auto& pair : m_pair_potentials)
+            {
+            r_cut = std::max(r_cut, pair->getRCutAdditive(type));
+            }
+
+        return r_cut;
+        }
+
+    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(const LongReal r_squared,
+                                                                        const vec3<LongReal>& r_ij,
+                                                                        unsigned int type_i,
+                                                                        const quat<LongReal>& q_i,
+                                                                        LongReal d_i,
+                                                                        LongReal charge_i,
+                                                                        unsigned int type_j,
+                                                                        const quat<LongReal>& q_j,
+                                                                        LongReal d_j,
+                                                                        LongReal charge_j)
+        {
+        LongReal energy = 0;
+        if (m_patch)
+            {
+            LongReal r_cut
+                = m_patch->getRCut()
+                  + LongReal(0.5)
+                        * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j));
+            if (r_squared < r_cut * r_cut)
+                {
+                energy += m_patch->energy(vec3<float>(r_ij),
+                                          type_i,
+                                          quat<float>(q_i),
+                                          float(d_i),
+                                          float(charge_i),
+                                          type_j,
+                                          quat<float>(q_j),
+                                          float(d_j),
+                                          float(charge_j));
+                }
+            }
+        for (const auto& pair : m_pair_potentials)
+            {
+            if (r_squared < pair->getRCutSquaredTotal(type_i, type_j))
+                {
+                energy
+                    += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+                }
+            }
+
+        return energy;
+        }
+
+    /// Get the list of pair potentials.
+    std::vector<std::shared_ptr<PairPotential>>& getPairPotentials()
+        {
+        return m_pair_potentials;
+        }
+
+    /// Returns an array (indexed by type) of the AABB tree search radius needed.
+    const std::vector<LongReal>& getPairEnergySearchRadius()
+        {
+        const LongReal max_pair_interaction_r_cut = getMaxPairEnergyRCutNonAdditive();
+        const unsigned int n_types = m_pdata->getNTypes();
+        m_pair_energy_search_radius.resize(n_types);
+
+        for (unsigned int type = 0; type < n_types; type++)
+            {
+            m_pair_energy_search_radius[type]
+                = max_pair_interaction_r_cut
+                  + LongReal(0.5) * getMaxPairInteractionAdditiveRCut(type);
+            }
+
+        return m_pair_energy_search_radius;
         }
 
     protected:
@@ -480,6 +585,12 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
+    /// Pair potential evaluators.
+    std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
+
+    /// Cached pair energy search radius.
+    std::vector<LongReal> m_pair_energy_search_radius;
+
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
     hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
@@ -494,5 +605,5 @@ void export_IntegratorHPMC(pybind11::module& m);
 
     } // end namespace hpmc
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

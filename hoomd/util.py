@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Utilities."""
@@ -6,6 +6,7 @@
 import hoomd
 import io
 from collections.abc import Iterable, Mapping, MutableMapping
+from hoomd.error import GPUNotAvailableError  # noqa: F401
 
 
 def _to_camel_case(string):
@@ -250,19 +251,6 @@ class _SafeNamespaceDict(_NamespaceDict):
                            "replacing.".format(namespace))
         else:
             super().__setitem__(namespace, value)
-
-
-class GPUNotAvailableError(NotImplementedError):
-    """Error for when a GPU specific feature was requested without a GPU."""
-    pass
-
-
-class _NoGPU:
-    """Used in nonGPU builds of hoomd to raise errors for attempted use."""
-
-    def __init__(self, *args, **kwargs):
-        raise GPUNotAvailableError(
-            "This build of HOOMD-blue does not support GPUs.")
 
 
 def make_example_simulation(device=None, dimensions=3, particle_types=['A']):

@@ -106,7 +106,7 @@ if (ENABLE_HIP)
     set(_cuda_sources ${_mpcd_cu_sources})
 endif (ENABLE_HIP)
 
-pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_cuda_sources} ${_mpcd_headers} NO_EXTRAS)
+hoomd_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_cuda_sources} ${_mpcd_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_mpcd ALIAS _mpcd)
 

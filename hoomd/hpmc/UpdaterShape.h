@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_SHAPE_H
@@ -385,7 +385,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 }
 
             } // end loop over particle types
-        }     // end loop over n_sweeps
+        } // end loop over n_sweeps
     m_exec_conf->msg->notice(4) << "UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 

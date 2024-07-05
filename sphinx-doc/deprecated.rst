@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Deprecated
@@ -24,3 +24,30 @@ documentation for more information on warning filters.
   * All TBB code will be removed in the 5.0 release.
 
 * ``HPMCIntegrator.depletant_fugacity > 0`` (since 4.4.0).
+* ``hpmc.pair.user.CPPPotentialBase``, ``hpmc.pair.user.CPPPotential``,
+  ``hpmc.pair.user.CPPPotentialUnion``, ``hpmc.integrate.HPMCIntegrator.pair_potential``
+  (since 4.5.0).
+
+  * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
+
+
+* ``hoomd.util.GPUNotAvailableError`` (since 4.5.0).
+
+  * use ``hoomd.error.GPUNotAvailableError``.
+
+* ``_InternalCustomUpdater.update`` (since 4.5.0)
+* ``_InternalCustomTuner.tune`` (since 4.5.0)
+* ``_InternalCustomWriter.write`` (since 4.5.0)
+* ``HDF5Log.write`` (since 4.5.0)
+* Single-process multi-GPU code path (since 4.5.0)
+* ``gpu_ids`` argument to ``GPU`` (since 4.5.0)
+
+  * Use ``gpu_id``.
+
+* ``GPU.devices`` (since 4.5.0)
+
+  * Use ``device``.
+
+* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
+
+  * Use ``box``.

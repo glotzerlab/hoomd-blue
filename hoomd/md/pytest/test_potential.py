@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence, Mapping
@@ -182,6 +182,7 @@ def _invalid_params():
 
     gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
     gauss_invalid_dicts = _make_invalid_param_dict(gauss_valid_dict)
+    gauss_invalid_dicts.append({'sigma': 0, 'epsilon': 0.05})
     invalid_params_list.extend(
         _make_invalid_params(gauss_invalid_dicts, md.pair.Gaussian, {}))
 
@@ -192,6 +193,11 @@ def _invalid_params():
     }
     expanded_gaussian_invalid_dicts = _make_invalid_param_dict(
         expanded_gaussian_valid_dict)
+    expanded_gaussian_invalid_dicts.append({
+        'sigma': 0,
+        'epsilon': 0.05,
+        'delta': 0.1
+    })
     invalid_params_list.extend(
         _make_invalid_params(expanded_gaussian_invalid_dicts,
                              md.pair.ExpandedGaussian, {}))
@@ -316,6 +322,7 @@ def _invalid_params():
 
     ljgauss_valid_dict = {'r0': 1.8, 'epsilon': 2.0, 'sigma': 0.02}
     ljgauss_invalid_dicts = _make_invalid_param_dict(ljgauss_valid_dict)
+    ljgauss_invalid_dicts.append({'r0': 1.8, 'epsilon': 0.2, 'sigma': 0})
     invalid_params_list.extend(
         _make_invalid_params(ljgauss_invalid_dicts, hoomd.md.pair.LJGauss, {}))
     table_valid_dict = {

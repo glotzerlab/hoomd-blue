@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_SRD_COLLISION_METHOD_GPU_CUH_
@@ -45,7 +45,7 @@ cudaError_t srd_rotate(Scalar4* d_vel,
                        const unsigned int N_tot,
                        const unsigned int block_size);
 
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_GPU_CUH_

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Sphinx configuration."""
@@ -27,8 +27,13 @@ os.environ['SPHINX'] = '1'
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
     'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
-    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting'
+    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting',
+    'sphinx_copybutton'
 ]
+
+if os.getenv("READTHEDOCS"):
+    extensions.append("sphinxcontrib.googleanalytics")
+    googleanalytics_id = "G-ZR0DNZD21E"
 
 napoleon_include_special_with_doc = True
 
@@ -60,11 +65,11 @@ master_doc = 'index'
 
 project = 'HOOMD-blue'
 year = datetime.date.today().year
-copyright = f'2009-{ year } The Regents of the University of Michigan'
+copyright = f'2009-{year} The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '4.4.1'
-release = '4.4.1'
+version = '4.7.0'
+release = '4.7.0'
 
 language = 'en'
 
@@ -80,7 +85,8 @@ html_static_path = ['_static']
 html_logo = 'hoomdblue-logo-vertical.svg'
 html_theme_options = {
     'sidebar_hide_name': True,
-    'top_of_page_button': None,
+    'top_of_page_buttons': [],
+    "navigation_with_keys": True,
     "dark_css_variables": {
         "color-brand-primary": "#5187b2",
         "color-brand-content": "#5187b2",
@@ -94,6 +100,10 @@ html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']
 IGNORE_CLASSES = []
+
+copybutton_prompt_text = "$ "
+copybutton_remove_prompts = True
+copybutton_line_continuation_character = "\\"
 
 
 def autodoc_process_bases(app, name, obj, options, bases):

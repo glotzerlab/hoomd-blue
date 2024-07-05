@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -57,9 +57,9 @@ void add_particles(unsigned int old_nparticles,
                    const mpcd::detail::pdata_element* d_in,
                    const unsigned int mask,
                    const unsigned int block_size);
-    }  // end namespace gpu
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace gpu
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // ENABLE_MPI
 
 #endif // MPCD_PARTICLE_DATA_CUH_

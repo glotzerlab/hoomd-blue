@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Credits
@@ -40,6 +40,7 @@ The following people have contributed to HOOMD-blue:
 * Cong Qiao, Brandeis University
 * Corwin Kerr, University of Michigan
 * Charlotte Zhao, University of Michigan
+* Calvin Pozderac, Ohio State University
 * Dan Evans, University of Michigan
 * David LeBard, Temple University
 * Elizabeth R Chen, University of Michigan
@@ -64,6 +65,7 @@ The following people have contributed to HOOMD-blue:
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan
+* Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan
 * Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
@@ -73,6 +75,7 @@ The following people have contributed to HOOMD-blue:
 * Kody Takada, University of Michigan
 * Kristi Pepa, University of Michigan
 * Kwanghwi Je, University of Michigan
+* Kieran Nehil-Puleo, Vanderbilt University
 * Lin Yang, Iowa State University
 * Ludwig Schneider, Georg-August Univeristy Goettingen
 * Luis Y. Rivera-Rivera, University of Michigan
@@ -86,6 +89,7 @@ The following people have contributed to HOOMD-blue:
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
+* Nicholas Cal Craven, Vanderbilt University
 * Pablo Zubieta, PME, The University of Chicago
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
@@ -122,3 +126,4 @@ The following people have contributed to HOOMD-blue:
 * Åsmund Ervik, SINTEF
 * Nathan Barrett, Pritzker School of Molecular Engineering
 * Domagoj Fijan, University of Michigan
+* Cristina Butu, Columbia University

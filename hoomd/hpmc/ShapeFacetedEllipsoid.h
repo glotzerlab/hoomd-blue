@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -65,6 +65,11 @@ struct FacetedEllipsoidParams : ShapeParams
         c = v["c"].cast<ShortReal>();
         pybind11::tuple origin_tuple = v["origin"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
+
+        if (a <= 0.0f || b <= 0.0f || c <= 0.0f)
+            {
+            throw std::domain_error("All semimajor axes must be nonzero!");
+            }
 
         if (pybind11::len(offsets) != pybind11::len(normals))
             throw std::runtime_error("Number of normals unequal number of offsets");

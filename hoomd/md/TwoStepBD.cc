@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
@@ -182,11 +182,20 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero)
+                    {
                     bf_torque.x = 0;
+                    t.x = 0;
+                    }
                 if (y_zero)
+                    {
                     bf_torque.y = 0;
+                    t.y = 0;
+                    }
                 if (z_zero)
+                    {
                     bf_torque.z = 0;
+                    t.z = 0;
+                    }
 
                 // use the damping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r

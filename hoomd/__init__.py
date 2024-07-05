@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD-blue python package.
@@ -59,8 +59,8 @@ outside the hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
 
 from hoomd import version
 from hoomd import trigger
-from hoomd import variant
 from hoomd.box import Box, box_like
+from hoomd import variant
 from hoomd import data
 from hoomd import filter
 from hoomd import device

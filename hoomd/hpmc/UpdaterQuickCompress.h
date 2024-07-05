@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -8,6 +8,7 @@
 #include <hoomd/RandomNumbers.h>
 #include <hoomd/Updater.h>
 #include <hoomd/Variant.h>
+#include <hoomd/VectorVariant.h>
 
 #include "IntegratorHPMC.h"
 
@@ -19,9 +20,9 @@ namespace hpmc
     {
 /** Quick compression algorithm
 
-    Quickly compress HPMC systems to a target box volume. The quick compression algorithm performs
-    random box moves to compress the box and *temporarily* allows overlaps. Local trial moves
-    remove these overlaps over time.
+    Quickly compress HPMC systems to a (time-varying) target box volume. The quick compression
+   algorithm performs random box moves to compress the box and *temporarily* allows overlaps. Local
+   trial moves remove these overlaps over time.
 */
 class UpdaterQuickCompress : public Updater
     {
@@ -39,7 +40,7 @@ class UpdaterQuickCompress : public Updater
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,
-                         std::shared_ptr<BoxDim> target_box);
+                         std::shared_ptr<VectorVariantBox> target_box);
 
     /// Destructor
     virtual ~UpdaterQuickCompress();
@@ -59,6 +60,18 @@ class UpdaterQuickCompress : public Updater
         @param timestep timestep at which update is being evaluated
     */
     virtual void update(uint64_t timestep);
+
+    /// Get whether unsafe (overlap-allowed) resizes are enabled
+    double getAllowUnsafeResize()
+        {
+        return m_allow_unsafe_resize;
+        }
+
+    /// Set whether unsafe (overlap-allowed) resizes are enabled
+    void setAllowUnsafeResize(bool allow_unsafe_resize)
+        {
+        m_allow_unsafe_resize = allow_unsafe_resize;
+        }
 
     /// Get the maximum number of overlaps allowed per particle
     double getMaxOverlapsPerParticle()
@@ -89,13 +102,13 @@ class UpdaterQuickCompress : public Updater
         }
 
     /// Get the target box
-    std::shared_ptr<BoxDim> getTargetBox()
+    std::shared_ptr<VectorVariantBox> getTargetBox()
         {
         return m_target_box;
         }
 
     /// Set the target box
-    void setTargetBox(std::shared_ptr<BoxDim> target_box)
+    void setTargetBox(std::shared_ptr<VectorVariantBox> target_box)
         {
         m_target_box = target_box;
         }
@@ -129,7 +142,7 @@ class UpdaterQuickCompress : public Updater
     double m_min_scale;
 
     /// The target box dimensions
-    std::shared_ptr<BoxDim> m_target_box;
+    std::shared_ptr<VectorVariantBox> m_target_box;
 
     /// Unique ID for RNG seeding
     unsigned int m_instance = 0;
@@ -137,11 +150,14 @@ class UpdaterQuickCompress : public Updater
     /// hold backup copy of particle positions
     GPUArray<Scalar4> m_pos_backup;
 
+    /// Flag whether unsafe box resizes are allowed
+    bool m_allow_unsafe_resize = false;
+
     /// Perform the box scale move
-    void performBoxScale(uint64_t timestep);
+    void performBoxScale(uint64_t timestep, const BoxDim& target_box);
 
     /// Get the new box to set
-    BoxDim getNewBox(uint64_t timestep);
+    BoxDim getNewBox(uint64_t timestep, const BoxDim& target_box);
 
     /// Store the last HPMC counters
     hpmc_counters_t m_last_move_counters;

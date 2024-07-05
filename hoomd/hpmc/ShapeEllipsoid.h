@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -66,6 +66,11 @@ struct EllipsoidParams : ShapeParams
         x = v["a"].cast<ShortReal>();
         y = v["b"].cast<ShortReal>();
         z = v["c"].cast<ShortReal>();
+
+        if (x <= 0.0f || y <= 0.0f || z <= 0.0f)
+            {
+            throw std::domain_error("All semimajor axes must be nonzero!");
+            }
         }
 
     /// Convert parameters to a python dictionary

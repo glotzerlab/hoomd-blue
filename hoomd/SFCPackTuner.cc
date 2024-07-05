@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SFCPackTuner.cc
@@ -671,8 +671,7 @@ void SFCPackTuner::writeTraversalOrder(const std::string& fname,
         unsigned int jb = (idx - ib * m_grid * m_grid) / m_grid;
         unsigned int kb = (idx - ib * m_grid * m_grid - jb * m_grid);
 
-        f << i + 1 << " B " << ib << " " << jb << " " << kb << " "
-          << "B" << endl;
+        f << i + 1 << " B " << ib << " " << jb << " " << kb << " " << "B" << endl;
         idx++;
         }
 
