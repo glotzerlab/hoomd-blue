@@ -194,6 +194,8 @@ def test_multiple_pair_potentials(mc_simulation_factory):
                                                sigma=1.0,
                                                delta=1.0,
                                                r_cut=2.5)
+    expected_1 = eg(1.5, 1.0, 1.0, 1.0)
+    expected_2 = eg(1.5, 2.0, 1.0, 1.0)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory(1.5)
@@ -202,14 +204,12 @@ def test_multiple_pair_potentials(mc_simulation_factory):
     ]
     simulation.run(0)
 
-    assert expanded_gauss_1.energy == pytest.approx(expected=eg(
-        1.5, 1.0, 1.0, 1.0),
+    assert expanded_gauss_1.energy == pytest.approx(expected=expected_1,
                                                     rel=1e-5)
-    assert expanded_gauss_2.energy == pytest.approx(expected=eg(
-        1.5, 2.0, 1.0, 1.0),
+    assert expanded_gauss_2.energy == pytest.approx(expected=expected_2,
                                                     rel=1e-5)
     assert simulation.operations.integrator.pair_energy == pytest.approx(
-        expected=eg(1.5, 1.0, 1.0, 1.0) + eg(1.5, 2.0, 1.0, 1.0), rel=1e-5)
+        expected=expected_1 + expected_2, rel=1e-5)
 
 
 def test_logging():
