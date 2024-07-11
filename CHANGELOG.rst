@@ -26,7 +26,7 @@ Change Log
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 * ``hpmc.pair.ExpandedGaussian`` computes the expanded Gaussian pair potential in HPMC
   (`#1817 <https://github.com/glotzerlab/hoomd-blue/pull/1817>`__).
- 
+
 *Changed*
 
 * Miscellaneous documentation improvements
