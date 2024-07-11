@@ -76,16 +76,16 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
     /*!
      * \param expansion_separation Channel width at narrowest point
        \param contraction_separation Channel width at widest point
-       \param wavenumber Wavenumber of the cosine
+       \param repeat_length Repeating length of the cosine
      * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
     HOSTDEVICE CosineExpansionContractionGeometry(Scalar expansion_separation,
                                                   Scalar contraction_separation,
-                                                  Scalar wavenumber,
+                                                  Scalar repeat_length,
                                                   bool no_slip)
         : m_H_wide(Scalar(0.5) * expansion_separation),
-          m_H_narrow(Scalar(0.5) * contraction_separation), m_wavenumber(wavenumber),
-          m_no_slip(no_slip)
+          m_H_narrow(Scalar(0.5) * contraction_separation),
+          m_wavenumber(Scalar(2.0) * Scalar(M_PI) / repeat_length), m_no_slip(no_slip)
         {
         }
 
