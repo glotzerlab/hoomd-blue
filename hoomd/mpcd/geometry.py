@@ -61,7 +61,7 @@ class CosineChannel(Geometry):
 
     Args:
         amplitude (float): Amplitude of cosine.
-        wavenumber (float): Wavenumber of cosine.
+        repeat_length (float): Wavenumber of cosine.
         separation (float): Distance between channel walls.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
