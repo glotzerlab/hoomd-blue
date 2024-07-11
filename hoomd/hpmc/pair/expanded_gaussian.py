@@ -14,6 +14,7 @@
 import hoomd
 
 from .pair import Pair
+from hoomd.data.typeconverter import positive_real
 
 
 @hoomd.logging.modify_namespace(('hpmc', 'pair', 'ExpandedGaussian'))
@@ -92,7 +93,7 @@ class ExpandedGaussian(Pair):
             'params', 'particle_types',
             hoomd.data.parameterdicts.TypeParameterDict(
                 epsilon=float,
-                sigma=float,
+                sigma=positive_real,
                 delta=float,
                 r_cut=default_r_cut,
                 r_on=float(default_r_on),
