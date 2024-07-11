@@ -14,6 +14,7 @@ mpcd.geometry
     Geometry
     ParallelPlates
     PlanarPore
+    Sphere
 
 .. rubric:: Details
 
@@ -21,5 +22,6 @@ mpcd.geometry
     :synopsis: Geometries.
     :members: Geometry,
               ParallelPlates,
-              PlanarPore
+              PlanarPore,
+              Sphere
     :show-inheritance:

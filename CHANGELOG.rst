@@ -56,11 +56,16 @@ Removed:
 * Test with gcc14, clang17, and clang18. No longer test with clang10, clang11, or clang12.
   (`#1798 <https://github.com/glotzerlab/hoomd-blue/pull/1798>`__,
   `#1816 <https://github.com/glotzerlab/hoomd-blue/pull/1816>`__).
+* Ensure that Gaussian-type pair potentials have positive sigma values
+  (`#1810 <https://github.com/glotzerlab/hoomd-blue/pull/1810>`__).
 
 *Fixed*
 
 * Issue a proper error message when ``ALJ.shape`` is not set for all particle types
   (`#1808 <https://github.com/glotzerlab/hoomd-blue/pull/1808>`__).
+* Correctly apply brownian torque when elements of the inertia tensor are 0
+  (`#1825 <https://github.com/glotzerlab/hoomd-blue/pull/1825>`__).
+
 
 *Deprecated*
 
