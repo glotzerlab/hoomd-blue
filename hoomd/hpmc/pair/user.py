@@ -216,9 +216,6 @@ class CPPPotential(CPPPotentialBase):
         `CPPPotential` is **experimental** and subject to change in future minor
         releases.
 
-    Example:
-        See :doc:`howto/cpppotential`.
-
     Attributes:
         code (str): The C++ code that defines the body of the patch energy
             function. After running zero or more steps, this property cannot be
@@ -346,9 +343,6 @@ class CPPPotentialUnion(CPPPotentialBase):
     .. deprecated:: 4.7.0
 
         ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
-
-    See Also:
-        :doc:`howto/cpppotential`.
 
     .. py:attribute:: positions
 
