@@ -20,7 +20,7 @@ beautifulsoup4==4.12.3
     #   nbconvert
 bleach==6.1.0
     # via nbconvert
-certifi==2024.2.2
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -42,7 +42,7 @@ idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==8.25.0
+ipython==8.26.0
     # via -r requirements.in
 jedi==0.19.1
     # via ipython
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.4
     # via -r requirements.in
-numpy==1.26.4
+numpy==2.0.0
     # via -r requirements.in
 packaging==24.0
     # via
