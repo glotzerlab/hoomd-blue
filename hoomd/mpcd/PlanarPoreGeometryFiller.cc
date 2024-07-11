@@ -171,7 +171,7 @@ void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::PlanarPoreGeometryFiller, timestep, seed),
+            hoomd::Seed(hoomd::RNGIdentifier::VirtualParticleFiller, timestep, seed),
             hoomd::Counter(tag, m_filler_id));
 
         // advanced past end of this box range, take the next

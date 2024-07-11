@@ -23,6 +23,10 @@ namespace hoomd
     {
 namespace mpcd
     {
+
+// Explicit instantiation of CPU class
+template class BounceBackStreamingMethod<GEOMETRY_CLASS, FORCE_CLASS>;
+
 namespace detail
     {
 void EXPORT_FUNCTION(pybind11::module& m)

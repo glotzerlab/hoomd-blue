@@ -15,13 +15,50 @@ Change Log
 * ``hoomd.mpcd`` reimplements the MPCD method for simulating hydrodynamic interactions.
   See the migrating page for an overview and individual class and method documentation for more
   information (`#1784 <https://github.com/glotzerlab/hoomd-blue/pull/1784>`__).
+* Support numpy 2.0
+  (`#1797 <https://github.com/glotzerlab/hoomd-blue/pull/1797>`__)
+* ``hoomd.hpmc.external.External`` provides an abstract interface to external potentials
+  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hoomd.hpmc.external.Linear`` computes linear potential as a function of the distance from a point to a plane
+  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``HPMCIntegrator.external_potentials`` sets the list of external potentials applied to the system
+  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 
 *Changed*
 
 * Miscellaneous documentation improvements
-  (`#1786 <https://github.com/glotzerlab/hoomd-blue/pull/1786>`__).
+  (`#1786 <https://github.com/glotzerlab/hoomd-blue/pull/1786>`__,
+  `#1800 <https://github.com/glotzerlab/hoomd-blue/pull/1800>`__,
+  `#1820 <https://github.com/glotzerlab/hoomd-blue/pull/1820>`__).
 * Provide an error message for invalid Ellipsoid shape parameters
   (`#1785 <https://github.com/glotzerlab/hoomd-blue/pull/1785>`__).
+* Provide the full CUDA error message when scanning devices
+  (`#1803 <https://github.com/glotzerlab/hoomd-blue/pull/1803>`__).
+* Test with gcc14, clang17, and clang18. No longer test with clang10, clang11, or clang12.
+  (`#1798 <https://github.com/glotzerlab/hoomd-blue/pull/1798>`__,
+  `#1816 <https://github.com/glotzerlab/hoomd-blue/pull/1816>`__).
+* Ensure that Gaussian-type pair potentials have positive sigma values
+  (`#1810 <https://github.com/glotzerlab/hoomd-blue/pull/1810>`__).
+
+*Fixed*
+
+* Issue a proper error message when ``ALJ.shape`` is not set for all particle types
+  (`#1808 <https://github.com/glotzerlab/hoomd-blue/pull/1808>`__).
+* Correctly apply brownian torque when elements of the inertia tensor are 0
+  (`#1825 <https://github.com/glotzerlab/hoomd-blue/pull/1825>`__).
+
+
+*Deprecated*
+
+* ``HPMCIntegrator.external_potential`` - use ``HPMCIntegrator.external_potentials``
+  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hoomd.hpmc.external.user.CPPExternalPotential`` - use ``hoomd.hpmc.external.Linear`` or write a custom component in C++
+  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+
+*Removed*
+
+* Support for Python 3.8
+  (`#1797 <https://github.com/glotzerlab/hoomd-blue/pull/1797>`__).
 
 4.7.0 (2024-05-16)
 ^^^^^^^^^^^^^^^^^^

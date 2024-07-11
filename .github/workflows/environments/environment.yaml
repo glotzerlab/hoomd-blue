@@ -1,0 +1,21 @@
+channels:
+- conda-forge/label/numpy_rc
+- conda-forge
+dependencies:
+- cereal
+- cmake
+- eigen
+- gsd
+- h5py
+- ninja
+- numpy>=2.0.0rc1
+- mpi4py
+- openmpi
+- pybind11
+- pytest
+- python==3.12
+- rowan
+- sybil
+- tbb
+- tbb-devel
+- uv
