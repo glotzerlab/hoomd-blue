@@ -74,14 +74,14 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
     //! Constructor
     /*!
      * \param amplitude Amplitude of the cosine
-     * \param wavenumber Wavenumber of the cosine
+     * \param repeat_length Repeating length of the cosine
      * \param separation Separation between channel walls
      * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
     HOSTDEVICE
-    CosineChannelGeometry(Scalar amplitude, Scalar wavenumber, Scalar separation, bool no_slip)
-        : m_amplitude(amplitude), m_wavenumber(wavenumber), m_H(Scalar(0.5) * separation),
-          m_no_slip(no_slip)
+    CosineChannelGeometry(Scalar amplitude, Scalar repeat_length, Scalar separation, bool no_slip)
+        : m_amplitude(amplitude), m_wavenumber(Scalar(2.0) * Scalar(M_PI) / repeat_length),
+          m_H(Scalar(0.5) * separation), m_no_slip(no_slip)
         {
         }
 

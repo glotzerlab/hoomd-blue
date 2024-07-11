@@ -61,7 +61,7 @@ class CosineChannel(Geometry):
 
     Args:
         amplitude (float): Amplitude of cosine.
-        repeat_length (float): Wavenumber of cosine.
+        repeat_length (float): Repeating length of cosine.
         separation (float): Distance between channel walls.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
@@ -71,10 +71,10 @@ class CosineChannel(Geometry):
 
     .. math::
 
-        y(x) = A \cos(k x) \pm H
+        y(x) = A \cos((2\pi/\lambda) x) \pm H
 
-    where :math:`A` is the `amplitude`, :math:`k` is the `wavenumber`, and
-    :math:`2H` is the `separation`.
+    where :math:`A` is the `amplitude`, :math:`\lambda` is the `repeat_length`,
+    and :math:`2H` is the `separation`.
 
     .. rubric:: Example:
 
@@ -83,32 +83,32 @@ class CosineChannel(Geometry):
         channel = hoomd.mpcd.geometry.CosineChannel(
             amplitude=2.0,
             separation=4.0,
-            wavenumber=2.0 * numpy.pi / 10.0)
+            repeat_length=10.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=channel)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
         amplitude (float): Amplitude of cosine (*read only*).
 
-        wavenumber (float): Wavenumber of cosine (*read only*).
+        repeat_length (float): Repeating length of cosine. (*read only*).
 
         separation (float): Distance between walls (*read only*).
 
 
     """
 
-    def __init__(self, amplitude, wavenumber, separation, no_slip=True):
+    def __init__(self, amplitude, repeat_length, separation, no_slip=True):
         super().__init__(no_slip)
 
         param_dict = ParameterDict(
             amplitude=float(amplitude),
-            wavenumber=float(wavenumber),
+            repeat_length=float(repeat_length),
             separation=float(separation),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.CosineChannel(self.amplitude, self.wavenumber,
+        self._cpp_obj = _mpcd.CosineChannel(self.amplitude, self.repeat_length,
                                             self.separation, self.no_slip)
         super()._attach_hook()
 
@@ -119,7 +119,7 @@ class CosineExpansionContraction(Geometry):
     Args:
         expansion_separation (float): Maximum distance between channel walls.
         contraction_separation (float): Minimum distance between channel walls.
-        wavenumber (float): Wavenumber of cosine.
+        repeat_length (float): Repeating length of cosine.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
 
@@ -129,10 +129,10 @@ class CosineExpansionContraction(Geometry):
     .. math::
 
         y(x) = \pm\left[ \frac{H_{\rm e}-H_{\rm c}}{2}
-                         \left(1 + \cos(k x)\right) +  H_{\rm c} \right]
+                         \left(1+\cos((2\pi/\lambda) x)\right)+H_{\rm c} \right]
 
     where :math:`2 H_{\rm e}` is the `expansion_separation`, :math:`2 H_{\rm c}`
-    is the `contraction_separation`, and :math:`k` is the `wavenumber`.
+    is the `contraction_separation`, and :math:`\lambda` is the `repeat_length`.
 
     .. rubric:: Example:
 
@@ -141,7 +141,7 @@ class CosineExpansionContraction(Geometry):
         channel = hoomd.mpcd.geometry.CosineExpansionContraction(
             expansion_separation=6.0,
             contraction_separation=3.0,
-            wavenumber=2.0 * numpy.pi / 10.0)
+            repeat_length=10.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=channel)
         simulation.operations.integrator.streaming_method = stream
 
@@ -152,28 +152,28 @@ class CosineExpansionContraction(Geometry):
         expansion_separation (float): Distance between channel walls at the
             maximum expansion (*read only*).
 
-        wavenumber (float): Wavenumber of cosine (*read only*).
+        repeat_length (float): Repeating length of cosine. (*read only*).
 
     """
 
     def __init__(self,
                  expansion_separation,
                  contraction_separation,
-                 wavenumber,
+                 repeat_length,
                  no_slip=True):
         super().__init__(no_slip)
 
         param_dict = ParameterDict(
             expansion_separation=float(expansion_separation),
             contraction_separation=float(contraction_separation),
-            wavenumber=float(wavenumber),
+            repeat_length=float(repeat_length),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _mpcd.CosineExpansionContraction(
             self.expansion_separation, self.contraction_separation,
-            self.wavenumber, self.no_slip)
+            self.repeat_length, self.no_slip)
         super()._attach_hook()
 
 

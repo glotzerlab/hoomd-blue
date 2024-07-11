@@ -1,7 +1,6 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import numpy as np
 import pytest
 
 import hoomd
@@ -23,43 +22,41 @@ def snap():
 class TestCosineChannel:
 
     def test_default_init(self, simulation_factory, snap):
-        wavenumber = 2.0 * np.pi / 10.0
         geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                 wavenumber=wavenumber,
+                                                 repeat_length=10.0,
                                                  separation=4.0)
         assert geom.amplitude == 4.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert geom.separation == 4.0
         assert geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
         assert geom.amplitude == 4.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert geom.separation == 4.0
         assert geom.no_slip
 
     def test_nondefault_init(self, simulation_factory, snap):
-        wavenumber = 2.0 * np.pi / 10.0
         geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                 wavenumber=wavenumber,
+                                                 repeat_length=10.0,
                                                  separation=4.0,
                                                  no_slip=False)
         assert geom.amplitude == 4.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert geom.separation == 4.0
         assert not geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
         assert geom.amplitude == 4.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert geom.separation == 4.0
         assert not geom.no_slip
 
     def test_pickling(self, simulation_factory, snap):
         geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                 wavenumber=2.0 * np.pi / 10.0,
+                                                 repeat_length=10.0,
                                                  separation=4.0)
         pickling_check(geom)
 
@@ -71,49 +68,46 @@ class TestCosineChannel:
 class TestCosineExpansionContraction:
 
     def test_default_init(self, simulation_factory, snap):
-        wavenumber = 2.0 * np.pi / 10.0
         geom = hoomd.mpcd.geometry.CosineExpansionContraction(
             expansion_separation=4,
             contraction_separation=2,
-            wavenumber=wavenumber)
+            repeat_length=10.0)
 
         assert geom.expansion_separation == 4.0
         assert geom.contraction_separation == 2.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
         assert geom.expansion_separation == 4.0
         assert geom.contraction_separation == 2.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert geom.no_slip
 
     def test_nondefault_init(self, simulation_factory, snap):
-        wavenumber = 2.0 * np.pi / 10.0
         geom = hoomd.mpcd.geometry.CosineExpansionContraction(
             expansion_separation=4,
             contraction_separation=2,
-            wavenumber=wavenumber,
+            repeat_length=10.0,
             no_slip=False)
         assert geom.expansion_separation == 4.0
         assert geom.contraction_separation == 2.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert not geom.no_slip
 
         sim = simulation_factory(snap)
         geom._attach(sim)
         assert geom.expansion_separation == 4.0
         assert geom.contraction_separation == 2.0
-        assert geom.wavenumber == wavenumber
+        assert geom.repeat_length == 10.0
         assert not geom.no_slip
 
     def test_pickling(self, simulation_factory, snap):
-        wavenumber = 2.0 * np.pi / 10.0
         geom = hoomd.mpcd.geometry.CosineExpansionContraction(
             expansion_separation=4,
             contraction_separation=2,
-            wavenumber=wavenumber)
+            repeat_length=10.0)
 
         pickling_check(geom)
 

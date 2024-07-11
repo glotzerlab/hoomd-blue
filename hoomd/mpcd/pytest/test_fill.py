@@ -1,7 +1,6 @@
 # Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import numpy
 import pytest
 
 import hoomd
@@ -25,13 +24,13 @@ def snap():
     [
         (hoomd.mpcd.geometry.CosineChannel, {
             "amplitude": 4.0,
-            "wavenumber": 2.0 * numpy.pi / 20.0,
+            "repeat_length": 20.0,
             "separation": 2.0
         }),
         (hoomd.mpcd.geometry.CosineExpansionContraction, {
             "expansion_separation": 8.0,
             "contraction_separation": 4.0,
-            "wavenumber": 2.0 * numpy.pi / 20.0,
+            "repeat_length": 20.0,
         }),
         (hoomd.mpcd.geometry.ParallelPlates, {
             "separation": 8.0

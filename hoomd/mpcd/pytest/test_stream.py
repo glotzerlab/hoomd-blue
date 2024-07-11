@@ -29,9 +29,7 @@ def snap():
             {
                 "geometry":
                     hoomd.mpcd.geometry.CosineChannel(
-                        amplitude=4.0,
-                        wavenumber=2.0 * np.pi / 20.0,
-                        separation=2.0),
+                        amplitude=4.0, repeat_length=20.0, separation=2.0),
             },
         ),
         (
@@ -41,7 +39,7 @@ def snap():
                     hoomd.mpcd.geometry.CosineExpansionContraction(
                         expansion_separation=8.0,
                         contraction_separation=4.0,
-                        wavenumber=2.0 * np.pi / 20.0,
+                        repeat_length=20.0,
                         no_slip=True)
             },
         ),
@@ -237,8 +235,7 @@ class TestCosineChannel:
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                       wavenumber=2.0 * np.pi
-                                                       / 20.0,
+                                                       repeat_length=20.0,
                                                        separation=4.0,
                                                        no_slip=True),
         )
@@ -281,8 +278,7 @@ class TestCosineChannel:
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                       wavenumber=2.0 * np.pi
-                                                       / 20.0,
+                                                       repeat_length=20.0,
                                                        separation=4.0,
                                                        no_slip=False),
         )
@@ -333,8 +329,7 @@ class TestCosineChannel:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                       wavenumber=2.0 * np.pi
-                                                       / 20.0,
+                                                       repeat_length=20.0,
                                                        separation=4.0),
         )
         sim.run(0)
@@ -343,8 +338,7 @@ class TestCosineChannel:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=10.0,
-                                                       wavenumber=2.0 * np.pi
-                                                       / 20.0,
+                                                       repeat_length=20.0,
                                                        separation=4.0),
         )
         sim.run(0)
@@ -353,8 +347,7 @@ class TestCosineChannel:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                       wavenumber=2.0 * np.pi
-                                                       / 20.0,
+                                                       repeat_length=20.0,
                                                        separation=4.0),
         )
         assert ig.streaming_method.check_mpcd_particles()
@@ -362,8 +355,7 @@ class TestCosineChannel:
         ig.streaming_method = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
-                                                       wavenumber=2.0 * np.pi
-                                                       / 20.0,
+                                                       repeat_length=20.0,
                                                        separation=2.0),
         )
         sim.run(0)
@@ -390,7 +382,7 @@ class TestCosineExpansionContraction:
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
                 expansion_separation=8.0,
                 contraction_separation=4.0,
-                wavenumber=2.0 * np.pi / 15.0,
+                repeat_length=15.0,
                 no_slip=True),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -497,7 +489,7 @@ class TestCosineExpansionContraction:
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
                 expansion_separation=8.0,
                 contraction_separation=4.0,
-                wavenumber=2.0 * np.pi / 15.0,
+                repeat_length=15.0,
                 no_slip=False),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -592,7 +584,7 @@ class TestCosineExpansionContraction:
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
                 expansion_separation=8.0,
                 contraction_separation=4.0,
-                wavenumber=2.0 * np.pi / 15.0),
+                repeat_length=15.0),
         )
         sim.run(0)
         assert ig.streaming_method.check_mpcd_particles()
@@ -602,7 +594,7 @@ class TestCosineExpansionContraction:
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
                 expansion_separation=4.0,
                 contraction_separation=2.0,
-                wavenumber=2.0 * np.pi / 15.0),
+                repeat_length=15.0),
         )
         sim.run(0)
         assert not ig.streaming_method.check_mpcd_particles()
@@ -612,7 +604,7 @@ class TestCosineExpansionContraction:
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
                 expansion_separation=8.0,
                 contraction_separation=4.0,
-                wavenumber=2.0 * np.pi / 15.0),
+                repeat_length=15.0),
         )
         sim.run(0)
         assert ig.streaming_method.check_mpcd_particles()
@@ -622,7 +614,7 @@ class TestCosineExpansionContraction:
             geometry=hoomd.mpcd.geometry.CosineExpansionContraction(
                 expansion_separation=4.0,
                 contraction_separation=2.0,
-                wavenumber=2.0 * np.pi / 15.0),
+                repeat_length=15.0),
         )
         assert not ig.streaming_method.check_mpcd_particles()
 
