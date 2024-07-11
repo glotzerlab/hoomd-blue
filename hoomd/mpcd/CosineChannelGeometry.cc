@@ -21,7 +21,7 @@ void export_CosineChannelGeometry(pybind11::module& m)
         CosineChannelGeometry::getName().c_str())
         .def(pybind11::init<Scalar, Scalar, Scalar, bool>())
         .def_property_readonly("amplitude", &CosineChannelGeometry::getAmplitude)
-        .def_property_readonly("wavenumber", &CosineChannelGeometry::getWavenumber)
+        .def_property_readonly("repeat_length", &CosineChannelGeometry::getRepeatLength)
         .def_property_readonly("separation", &CosineChannelGeometry::getSeparation)
         .def_property_readonly("no_slip", &CosineChannelGeometry::getNoSlip);
     }

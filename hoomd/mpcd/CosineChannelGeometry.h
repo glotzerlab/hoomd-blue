@@ -277,10 +277,10 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
         return m_amplitude;
         }
 
-    //! Get channel wavenumber
-    HOSTDEVICE Scalar getWavenumber() const
+    //! Get channel repeat length
+    HOSTDEVICE Scalar getRepeatLength() const
         {
-        return m_wavenumber;
+        return Scalar(2.0) * Scalar(M_PI) / m_wavenumber;
         }
 
     //! Get channel separation width

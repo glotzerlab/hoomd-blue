@@ -25,7 +25,8 @@ void export_CosineExpansionContractionGeometry(pybind11::module& m)
                                &CosineExpansionContractionGeometry::getExpansionSeparation)
         .def_property_readonly("contraction_separation",
                                &CosineExpansionContractionGeometry::getContractionSeparation)
-        .def_property_readonly("wavenumber", &CosineExpansionContractionGeometry::getWavenumber)
+        .def_property_readonly("repeat_length",
+                               &CosineExpansionContractionGeometry::getRepeatLength)
         .def_property_readonly("no_slip", &CosineExpansionContractionGeometry::getNoSlip);
     }
     } // end namespace detail

@@ -61,7 +61,7 @@ class CosineChannel(Geometry):
 
     Args:
         amplitude (float): Amplitude of cosine.
-        repeat_length (float): Repeating length of cosine.
+        repeat_length (float): Repeat length (period) of cosine.
         separation (float): Distance between channel walls.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
@@ -71,9 +71,9 @@ class CosineChannel(Geometry):
 
     .. math::
 
-        y(x) = A \cos((2\pi/\lambda) x) \pm H
+        y(x) = A \cos\left(\frac{2 \pi x}{L}\right) \pm H
 
-    where :math:`A` is the `amplitude`, :math:`\lambda` is the `repeat_length`,
+    where :math:`A` is the `amplitude`, :math:`L` is the `repeat_length`,
     and :math:`2H` is the `separation`.
 
     .. rubric:: Example:
@@ -90,7 +90,7 @@ class CosineChannel(Geometry):
     Attributes:
         amplitude (float): Amplitude of cosine (*read only*).
 
-        repeat_length (float): Repeating length of cosine. (*read only*).
+        repeat_length (float): Repeat length (period) of cosine. (*read only*).
 
         separation (float): Distance between walls (*read only*).
 
@@ -119,7 +119,7 @@ class CosineExpansionContraction(Geometry):
     Args:
         expansion_separation (float): Maximum distance between channel walls.
         contraction_separation (float): Minimum distance between channel walls.
-        repeat_length (float): Repeating length of cosine.
+        repeat_length (float): Repeat length (period) of cosine.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
             Otherwise, they have the slip boundary condition.
 
@@ -128,11 +128,12 @@ class CosineExpansionContraction(Geometry):
 
     .. math::
 
-        y(x) = \pm\left[ \frac{H_{\rm e}-H_{\rm c}}{2}
-                         \left(1+\cos((2\pi/\lambda) x)\right)+H_{\rm c} \right]
+        y(x) = \pm\left( \frac{H_{\rm e}-H_{\rm c}}{2}
+                         \left[1+\cos\left(\frac{2 \pi x}{L}\right)\right]
+                         + H_{\rm c} \right)
 
     where :math:`2 H_{\rm e}` is the `expansion_separation`, :math:`2 H_{\rm c}`
-    is the `contraction_separation`, and :math:`\lambda` is the `repeat_length`.
+    is the `contraction_separation`, and :math:`L` is the `repeat_length`.
 
     .. rubric:: Example:
 
@@ -152,7 +153,7 @@ class CosineExpansionContraction(Geometry):
         expansion_separation (float): Distance between channel walls at the
             maximum expansion (*read only*).
 
-        repeat_length (float): Repeating length of cosine. (*read only*).
+        repeat_length (float): Repeat length (period) of cosine. (*read only*).
 
     """
 

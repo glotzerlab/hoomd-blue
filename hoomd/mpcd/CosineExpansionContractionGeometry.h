@@ -316,10 +316,10 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
         return Scalar(2.0) * m_H_narrow;
         }
 
-    //! Get channel wavenumber
-    HOSTDEVICE Scalar getWavenumber() const
+    //! Get channel repeat length
+    HOSTDEVICE Scalar getRepeatLength() const
         {
-        return m_wavenumber;
+        return Scalar(2.0) * Scalar(M_PI) / m_wavenumber;
         }
 
     //! Get the wall boundary condition
