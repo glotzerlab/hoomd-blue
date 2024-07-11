@@ -30,6 +30,7 @@ Define :math:`U_{\\mathrm{pair},ij}` for use with `HPMCIntegrator
 from . import user
 from .pair import Pair
 from .lennard_jones import LennardJones
+from .expanded_gaussian import ExpandedGaussian
 from .union import Union
 from .angular_step import AngularStep
 from .step import Step
