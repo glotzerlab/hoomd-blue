@@ -7,14 +7,15 @@ Change Log
 4.x
 ---
 
-4.8.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^
+4.8.0 (2024-07-11)
+^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 * ``hoomd.mpcd`` reimplements the MPCD method for simulating hydrodynamic interactions.
   See the migrating page for an overview and individual class and method documentation for more
   information (`#1784 <https://github.com/glotzerlab/hoomd-blue/pull/1784>`__).
+* MPCD tutorial.
 * Support numpy 2.0
   (`#1797 <https://github.com/glotzerlab/hoomd-blue/pull/1797>`__)
 * ``hoomd.hpmc.external.External`` provides an abstract interface to external potentials
@@ -23,7 +24,9 @@ Change Log
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 * ``HPMCIntegrator.external_potentials`` sets the list of external potentials applied to the system
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
-
+* ``hpmc.pair.ExpandedGaussian`` computes the expanded Gaussian pair potential in HPMC
+  (`#1817 <https://github.com/glotzerlab/hoomd-blue/pull/1817>`__).
+ 
 *Changed*
 
 * Miscellaneous documentation improvements
@@ -39,6 +42,8 @@ Change Log
   `#1816 <https://github.com/glotzerlab/hoomd-blue/pull/1816>`__).
 * Ensure that Gaussian-type pair potentials have positive sigma values
   (`#1810 <https://github.com/glotzerlab/hoomd-blue/pull/1810>`__).
+* Demonstrate ``Step`` and ``AngularStep`` in the tutorial "Modelling Patchy Particles".
+* Fixed typos in all tutorials.
 
 *Fixed*
 
