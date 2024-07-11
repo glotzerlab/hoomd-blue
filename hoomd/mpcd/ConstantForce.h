@@ -72,14 +72,6 @@ class __attribute__((visibility("default"))) ConstantForce
     private:
     Scalar3 m_F; //!< Constant force
     };
-
-#ifndef __HIPCC__
-namespace detail
-    {
-void export_ConstantForce(pybind11::module& m);
-    } // end namespace detail
-#endif // __HIPCC__
-
     } // end namespace mpcd
     } // end namespace hoomd
 #undef HOSTDEVICE

@@ -68,10 +68,14 @@ void mpcd::PlanarPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
     m_tuner->end();
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_PlanarPoreGeometryFillerGPU(pybind11::module& m)
+void export_PlanarPoreGeometryFillerGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::PlanarPoreGeometryFillerGPU,
                      mpcd::PlanarPoreGeometryFiller,
@@ -84,5 +88,6 @@ void mpcd::detail::export_PlanarPoreGeometryFillerGPU(pybind11::module& m)
                             std::shared_ptr<Variant>,
                             std::shared_ptr<const mpcd::PlanarPoreGeometry>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

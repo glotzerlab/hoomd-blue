@@ -191,13 +191,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         m_force_compute = true;
         }
     };
-
-namespace detail
-    {
-//! Export the CellThermoCompute class to python
-void export_CellThermoCompute(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // #define MPCD_CELL_THERMO_COMPUTE_H_

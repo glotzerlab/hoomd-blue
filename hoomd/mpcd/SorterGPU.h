@@ -47,12 +47,6 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     //! Apply the sorting order on the GPU
     virtual void applyOrder() const;
     };
-
-namespace detail
-    {
-//! Exports the mpcd::SorterGPU to python
-void export_SorterGPU(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_SORTER_GPU_H_

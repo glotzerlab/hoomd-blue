@@ -13,11 +13,12 @@ set(_mpcd_cc_sources
     Communicator.cc
     Integrator.cc
     ManualVirtualParticleFiller.cc
+    ParallelPlateGeometry.cc
     ParallelPlateGeometryFiller.cc
+    PlanarPoreGeometry.cc
     PlanarPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
-    StreamingGeometry.cc
     StreamingMethod.cc
     VirtualParticleFiller.cc
     )
@@ -45,7 +46,6 @@ set(_mpcd_headers
     PlanarPoreGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
-    StreamingGeometry.h
     StreamingMethod.h
     VirtualParticleFiller.h
     )
@@ -163,6 +163,30 @@ foreach(_force ${_forces})
             list(APPEND _mpcd_cu_sources BounceBackStreamingMethod${_geometry}${_force}GPU.cu)
         endif()
     endforeach()
+endforeach()
+
+# BounceBackNVE for the different geometries (no force involved)
+foreach(_geometry ${_geometries})
+    configure_file(
+        BounceBackNVE.cc.inc
+        BounceBackNVE${_geometry}.cc
+        @ONLY
+        )
+    list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}.cc)
+    if(ENABLE_HIP)
+        configure_file(
+            BounceBackNVEGPU.cc.inc
+            BounceBackNVE${_geometry}GPU.cc
+            @ONLY
+        )
+        configure_file(
+            BounceBackNVEGPU.cu.inc
+            BounceBackNVE${_geometry}GPU.cu
+            @ONLY
+        )
+        list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}GPU.cc)
+        list(APPEND _mpcd_cu_sources BounceBackNVE${_geometry}GPU.cu)
+    endif()
 endforeach()
 
 if(ENABLE_HIP)

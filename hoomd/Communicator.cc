@@ -254,9 +254,9 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
         /*
          * communicate rank information (phase 1)
          */
-        unsigned int n_send_groups[m_comm.m_n_unique_neigh];
-        unsigned int n_recv_groups[m_comm.m_n_unique_neigh];
-        unsigned int offs[m_comm.m_n_unique_neigh];
+        std::vector<unsigned int> n_send_groups(m_comm.m_n_unique_neigh);
+        std::vector<unsigned int> n_recv_groups(m_comm.m_n_unique_neigh);
+        std::vector<unsigned int> offs(m_comm.m_n_unique_neigh);
         unsigned int n_recv_tot = 0;
 
             {
@@ -272,8 +272,8 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -299,7 +299,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                           &req[nreq++]);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
@@ -601,8 +601,8 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -628,7 +628,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                           &req[nreq++]);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
