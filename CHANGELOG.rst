@@ -20,11 +20,16 @@ Change Log
   (`#1785 <https://github.com/glotzerlab/hoomd-blue/pull/1785>`__).
 * Provide the full CUDA error message when scanning devices
   (`#1803 <https://github.com/glotzerlab/hoomd-blue/pull/1803>`__).
+* Ensure that Gaussian-type pair potentials have positive sigma values
+  (`#1810 <https://github.com/glotzerlab/hoomd-blue/pull/1810>`__).
 
 *Fixed*
 
 * Issue a proper error message when `ALJ.shape` is not set for all particle types
   (`#1808 <https://github.com/glotzerlab/hoomd-blue/pull/1808>`__).
+* Correctly apply brownian torque when elements of the inertia tensor are 0
+  (`#1825 <https://github.com/glotzerlab/hoomd-blue/pull/1825>`__).
+
 
 4.7.0 (2024-05-16)
 ^^^^^^^^^^^^^^^^^^
