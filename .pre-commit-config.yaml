@@ -28,9 +28,6 @@ repos:
   - id: check-yaml
     exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
   - id: check-case-conflict
-  - id: fix-encoding-pragma
-    args:
-    - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
   rev: v0.3.2

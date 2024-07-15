@@ -20,7 +20,7 @@ Serial CPU and single GPU builds
 *linux-64*, *osx-64*, and *osx-arm64* platforms. Install the ``hoomd`` package from the conda-forge_
 channel into a conda environment::
 
-    $ mamba install hoomd=4.7.0
+    $ mamba install hoomd=4.8.0
 
 .. _conda-forge: https://conda-forge.org/docs/user/introduction.html
 
@@ -28,11 +28,11 @@ channel into a conda environment::
 package. Override this and force the GPU enabled package installation with::
 
     $ export CONDA_OVERRIDE_CUDA="12.0"
-    $ mamba install "hoomd=4.7.0=*gpu*" "cuda-version=12.0"
+    $ mamba install "hoomd=4.8.0=*gpu*" "cuda-version=12.0"
 
 Similarly, you can force CPU only package installation with::
 
-    $ mamba install "hoomd=4.7.0=*cpu*"
+    $ mamba install "hoomd=4.8.0=*cpu*"
 
 .. note::
 
@@ -42,7 +42,7 @@ Similarly, you can force CPU only package installation with::
 .. note::
 
     Run time compilation is no longer available on conda-forge builds starting with HOOMD-blue
-    4.7.0.
+    4.8.0.
 
 .. tip::
 

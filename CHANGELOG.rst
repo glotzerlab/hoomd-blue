@@ -26,22 +26,25 @@ Removed:
 4.x
 ---
 
-4.8.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^
+4.8.0 (2024-07-11)
+^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 * ``hoomd.mpcd`` reimplements the MPCD method for simulating hydrodynamic interactions.
   See the migrating page for an overview and individual class and method documentation for more
   information (`#1784 <https://github.com/glotzerlab/hoomd-blue/pull/1784>`__).
+* MPCD tutorial.
 * Support numpy 2.0
   (`#1797 <https://github.com/glotzerlab/hoomd-blue/pull/1797>`__)
 * ``hoomd.hpmc.external.External`` provides an abstract interface to external potentials
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
-* ``hoomd.hpmc.external.Linear`` computes linear potential as a function of the distance from a point to a plane
-  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hoomd.hpmc.external.Linear`` computes the potential as a linear function of the distance from a
+  point to a plane (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 * ``HPMCIntegrator.external_potentials`` sets the list of external potentials applied to the system
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hpmc.pair.ExpandedGaussian`` computes the expanded Gaussian pair potential in HPMC
+  (`#1817 <https://github.com/glotzerlab/hoomd-blue/pull/1817>`__).
 
 *Changed*
 
@@ -58,12 +61,14 @@ Removed:
   `#1816 <https://github.com/glotzerlab/hoomd-blue/pull/1816>`__).
 * Ensure that Gaussian-type pair potentials have positive sigma values
   (`#1810 <https://github.com/glotzerlab/hoomd-blue/pull/1810>`__).
+* Demonstrate ``Step`` and ``AngularStep`` in the tutorial "Modelling Patchy Particles".
+* Fixed typographical errors in all tutorials.
 
 *Fixed*
 
-* Issue a proper error message when ``ALJ.shape`` is not set for all particle types
+* Issue the proper error message when ``ALJ.shape`` is not set for all particle types
   (`#1808 <https://github.com/glotzerlab/hoomd-blue/pull/1808>`__).
-* Correctly apply brownian torque when elements of the inertia tensor are 0
+* Correctly apply Brownian torque when elements of the inertia tensor are 0
   (`#1825 <https://github.com/glotzerlab/hoomd-blue/pull/1825>`__).
 
 
@@ -71,8 +76,8 @@ Removed:
 
 * ``HPMCIntegrator.external_potential`` - use ``HPMCIntegrator.external_potentials``
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
-* ``hoomd.hpmc.external.user.CPPExternalPotential`` - use ``hoomd.hpmc.external.Linear`` or write a custom component in C++
-  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hoomd.hpmc.external.user.CPPExternalPotential`` - use ``hoomd.hpmc.external.Linear`` or write a
+  custom component in C++ (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 
 *Removed*
 
