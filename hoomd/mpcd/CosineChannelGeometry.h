@@ -252,9 +252,9 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             // The reflected vector is given by v_reflected = -2*(v_normal*v_incoming)*v_normal +
             // v_incoming Calculate components by hand to avoid sqrt in normalization of the normal
             // of the surface.
-            vel_new.x = vel.x - 2 * B * (B * vel.x + vel.y) / (B * B + 1);
+            vel_new.x = vel.x - Scalar(2.0) * B * (B * vel.x + vel.y) / (B * B + Scalar(1.0));
             vel_new.z = vel.z;
-            vel_new.y = vel.y - 2 * (B * vel.x + vel.y) / (B * B + 1);
+            vel_new.y = vel.y - Scalar(2.0) * (B * vel.x + vel.y) / (B * B + Scalar(1.0));
             }
         vel = vel_new;
 
