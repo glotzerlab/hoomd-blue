@@ -231,7 +231,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
 
         // Remaining integration time dt is amount of time spent traveling distance out of bounds.
         Scalar3 pos_new = make_scalar3(x0, y0, z0);
-        dt = fast::sqrt(dot((pos - pos_new), (pos - pos_new)) / dot(vel, vel));
+        dt = slow::sqrt(dot((pos - pos_new), (pos - pos_new)) / dot(vel, vel));
         pos = pos_new;
 
         /* update velocity according to boundary conditions.
