@@ -166,7 +166,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                 n = (m_amplitude * c + sign * m_H) - vel.y / vel.x * (x0 - pos.x) - pos.y; // f
                 n2 = -m_wavenumber * m_amplitude * s - vel.y / vel.x;                      // df
                 x0 = x0 - n / n2; // x = x - f/df
-                delta = fabs(0
+                delta = fabs(
                              - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
                                 - vel.y / vel.x * (x0 - pos.x) - pos.y));
                 ++counter;
