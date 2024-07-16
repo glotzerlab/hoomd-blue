@@ -147,7 +147,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             }
         else if (vel.y == 0) // exactly horizontal z-collision
             {
-            x0 = 1 / m_wavenumber * fast::acos((pos.y - sign * m_H) / m_amplitude);
+            x0 = fast::acos((pos.y - sign * m_H) / m_amplitude) / m_wavenumber;
             y0 = pos.y;
             z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
             }
