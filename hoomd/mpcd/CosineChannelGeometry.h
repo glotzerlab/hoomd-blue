@@ -211,7 +211,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                     // because we know that point1 outside of the channel and point2 is inside of
                     // the channel, we only need to check the halfway point3 - if it is inside,
                     // replace point2, if it is outside, replace point1
-                    if (isOutside(point3) == false)
+                    if (!isOutside(point3))
                         {
                         point2 = point3;
                         }
