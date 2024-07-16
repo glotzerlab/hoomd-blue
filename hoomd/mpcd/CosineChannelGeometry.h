@@ -187,8 +187,9 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             // Newton's method sometimes failes to converge (close to saddle points, df'==0, bad
             // initial guess,overshoot,..) catch all of them here and do bisection if Newthon's
             // method didn't work
-            Scalar lower_x = fmin(pos.x - dt * vel.x, pos.x);
-            Scalar upper_x = fmax(pos.x - dt * vel.x, pos.x);
+            const Scalar x_back = pos.x - dt*vel.x;
+            Scalar lower_x = fmin(x_back, pos.x);
+            Scalar upper_x = fmax(x_back, pos.x);
 
             // found intersection is NOT in between old and new point, ie intersection is
             // wrong/inaccurate. do bisection to find intersection - slower but more robust than
