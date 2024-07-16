@@ -150,7 +150,7 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
         // excatly horizontal z-collision, has a solution:
         if (vel.y == 0)
             {
-            x0 = 1 / m_wavenumber * fast::acos((pos.y - A - m_H_narrow) / sign * A);
+            x0 = fast::acos((pos.y - A - m_H_narrow) / sign * A) / m_wavenumber;
             y0 = pos.y;
             z0 = -(pos.x - dt * vel.x - x0) * vel.z / vel.x + (pos.z - dt * vel.z);
             }
@@ -166,9 +166,8 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
             }
         else // not horizontal or vertical collision - do Newthon's method
             {
-            delta = fabs(0
-                         - (sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow)
-                            - vel.y / vel.x * (x0 - pos.x) - pos.y));
+            delta = fabs(-(sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow)
+                           - vel.y / vel.x * (x0 - pos.x) - pos.y));
 
             unsigned int counter = 0;
             while (delta > target_precision && counter < max_iteration)
@@ -177,18 +176,17 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
                 n = sign * (A * c + A + m_H_narrow) - vel.y / vel.x * (x0 - pos.x) - pos.y; // f
                 n2 = -sign * m_wavenumber * A * s - vel.y / vel.x;                          // df
                 x0 = x0 - n / n2; // x = x - f/df
-                delta = fabs(0
-                             - (sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow)
-                                - vel.y / vel.x * (x0 - pos.x) - pos.y));
+                delta = fabs(-(sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow)
+                               - vel.y / vel.x * (x0 - pos.x) - pos.y));
                 ++counter;
                 }
-            /* The new z position is calculated from the wall equation to guarantee that the new
+            /* The new y position is calculated from the wall equation to guarantee that the new
              * particle positon is exactly at the wall and not accidentally slightly inside of the
              * wall because of nummerical presicion.
              */
             y0 = sign * (A * fast::cos(x0 * m_wavenumber) + A + m_H_narrow);
 
-            /* The new y position can be calculated from the fact that the last position outside of
+            /* The new z position can be calculated from the fact that the last position outside of
              * the wall, the current position inside of the  wall, and the new position exactly at
              * the wall are on a straight line.
              */
@@ -197,8 +195,9 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
             // Newton's method sometimes failes to converge (close to saddle points, df'==0,
             // overshoot, bad initial guess,..) catch all of them here and do bisection if Newthon's
             // method didn't work
-            Scalar lower_x = fmin(pos.x - dt * vel.x, pos.x);
-            Scalar upper_x = fmax(pos.x - dt * vel.x, pos.x);
+            const Scalar x_back = pos.x - dt * vel.x;
+            Scalar lower_x = fmin(x_back, pos.x);
+            Scalar upper_x = fmax(x_back, pos.x);
 
             // found intersection is NOT in between old and new point, ie intersection is
             // wrong/inaccurate. do bisection to find intersection - slower but more robust than
@@ -240,7 +239,7 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
 
         // Remaining integration time dt is amount of time spent traveling distance out of bounds.
         Scalar3 pos_new = make_scalar3(x0, y0, z0);
-        dt = fast::sqrt(dot((pos - pos_new), (pos - pos_new)) / dot(vel, vel));
+        dt = slow::sqrt(dot((pos - pos_new), (pos - pos_new)) / dot(vel, vel));
         pos = pos_new;
 
         /* update velocity according to boundary conditions.
@@ -261,9 +260,9 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
             // The reflected vector is given by v_reflected = -2*(v_normal*v_incoming)*v_normal +
             // v_incoming Calculate components by hand to avoid sqrt in normalization of the normal
             // of the surface.
-            vel_new.x = vel.x - 2 * B * (B * vel.x + vel.y) / (B * B + 1);
+            vel_new.x = vel.x - Scalar(2.0) * B * (B * vel.x + vel.y) / (B * B + Scalar(1.0));
             vel_new.z = vel.z;
-            vel_new.y = vel.y - 2 * (B * vel.x + vel.y) / (B * B + 1);
+            vel_new.y = vel.y - Scalar(2.0) * (B * vel.x + vel.y) / (B * B + Scalar(1.0));
             }
         vel = vel_new;
 

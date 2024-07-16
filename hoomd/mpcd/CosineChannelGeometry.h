@@ -153,9 +153,8 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             }
         else
             {
-            Scalar delta = fabs(0
-                                - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
-                                   - vel.y / vel.x * (x0 - pos.x) - pos.y));
+            Scalar delta = fabs(-((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
+                                  - vel.y / vel.x * (x0 - pos.x) - pos.y));
 
             Scalar n, n2;
             Scalar s, c;
@@ -166,19 +165,18 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
                 n = (m_amplitude * c + sign * m_H) - vel.y / vel.x * (x0 - pos.x) - pos.y; // f
                 n2 = -m_wavenumber * m_amplitude * s - vel.y / vel.x;                      // df
                 x0 = x0 - n / n2; // x = x - f/df
-                delta = fabs(
-                             - ((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
-                                - vel.y / vel.x * (x0 - pos.x) - pos.y));
+                delta = fabs(-((m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H)
+                               - vel.y / vel.x * (x0 - pos.x) - pos.y));
                 ++counter;
                 }
 
-            /* The new z position is calculated from the wall equation to guarantee that the new
+            /* The new y position is calculated from the wall equation to guarantee that the new
              * particle positon is exactly at the wall and not accidentally slightly inside of the
              * wall because of nummerical presicion.
              */
             y0 = (m_amplitude * fast::cos(x0 * m_wavenumber) + sign * m_H);
 
-            /* The new y position can be calculated from the fact that the last position outside of
+            /* The new z position can be calculated from the fact that the last position outside of
              * the wall, the current position inside of the  wall, and the new position exactly at
              * the wall are on a straight line.
              */
@@ -187,7 +185,7 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
             // Newton's method sometimes failes to converge (close to saddle points, df'==0, bad
             // initial guess,overshoot,..) catch all of them here and do bisection if Newthon's
             // method didn't work
-            const Scalar x_back = pos.x - dt*vel.x;
+            const Scalar x_back = pos.x - dt * vel.x;
             Scalar lower_x = fmin(x_back, pos.x);
             Scalar upper_x = fmax(x_back, pos.x);
 
