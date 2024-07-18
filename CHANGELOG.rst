@@ -26,6 +26,16 @@ Removed:
 4.x
 ---
 
+4.8.1 (2024-07-18)
+^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Prevent illegal instruction when accessing 0 length snapshot arrays
+  (`#1846 <https://github.com/glotzerlab/hoomd-blue/pull/1846>`__)
+* Fix MPCD compiler warning.
+  (`#1845 <https://github.com/glotzerlab/hoomd-blue/pull/1845>`__)
+
 4.8.0 (2024-07-11)
 ^^^^^^^^^^^^^^^^^^
 
