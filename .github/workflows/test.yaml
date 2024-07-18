@@ -127,7 +127,7 @@ jobs:
     - name: Link Checker
       id: lychee
       uses: lycheeverse/lychee-action@v1
-  
+
   tests_complete:
     name: Unit test
     if: always()
