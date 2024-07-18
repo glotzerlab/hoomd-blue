@@ -121,7 +121,7 @@ jobs:
     - name: Setup uv
       uses: glotzerlab/workflows/setup-uv@5cfac9da9cb78e16ae97a9119b6fd13c1c2d6f5e # 0.1.0
     - name: Install dependencies
-      run: uv pip install -r sphinx-doc/requirements.txt
+      run: uv pip install -r sphinx-doc/requirements.txt --system
     - name: Build Sphinx Docs
       run: sphinx-build -b html sphinx-doc doc_build
     - name: Link Checker
