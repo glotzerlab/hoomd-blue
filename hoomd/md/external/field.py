@@ -33,9 +33,9 @@ class Field(force.Force):
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cls = getattr(_md, self._cpp_class_name)
+            cls = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cls = getattr(_md, self._cpp_class_name + "GPU")
+            cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
 
