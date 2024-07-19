@@ -42,8 +42,8 @@ import pathlib
 import os
 import signal
 
-# Work around /usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf error on
-# Purdue Anvil.
+# Work around /usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf
+# error on Purdue Anvil.
 if os.environ.get('RCAC_CLUSTER') == 'anvil':
     sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
 
