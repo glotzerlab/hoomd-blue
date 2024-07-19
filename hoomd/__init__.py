@@ -44,7 +44,8 @@ import signal
 
 # Work around /usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf error on
 # Purdue Anvil.
-sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
+if os.environ.get('RCAC_CLUSTER') == 'anvil':
+    sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
 
 if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
         and 'SPHINX' not in os.environ):
