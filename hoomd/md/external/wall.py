@@ -180,6 +180,10 @@ class WallPotential(force.Force):
         potentials.
     """
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def __init__(self, walls):
         self._walls = None
         self.walls = hoomd.wall._WallsMetaList(walls, _to_md_cpp_wall)

@@ -37,6 +37,10 @@ class Constraint(Force):
         for `isinstance` or `issubclass` checks.
     """
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):

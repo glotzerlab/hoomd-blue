@@ -47,6 +47,10 @@ class AnisotropicPair(Pair):
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, default_r_cut=None, mode="none"):
