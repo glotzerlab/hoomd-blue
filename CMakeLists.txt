@@ -104,7 +104,13 @@ else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
+
+if (ENABLE_GPU AND HOOMD_GPU_PLATFORM STREQUAL "HIP")
+message("Defaulting BUILD_MPCD=off due to HIP GPU platform.")
+option(BUILD_MPCD "Build the mpcd package" off)
+else()
 option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
+endif()
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
