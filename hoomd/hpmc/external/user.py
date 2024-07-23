@@ -148,7 +148,7 @@ class CPPExternalPotential(ExternalField):
         self.code = code
 
         warnings.warn(
-            "CPPExternalPotential is deprecated since 4.8.2. "
+            "CPPExternalPotential is deprecated since 4.8.0. "
             "Use hpmc.external.linear or a custom component.",
             FutureWarning,
             stacklevel=2)

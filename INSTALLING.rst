@@ -42,7 +42,7 @@ Similarly, you can force CPU only package installation with::
 .. note::
 
     Run time compilation is no longer available on conda-forge builds starting with HOOMD-blue
-    4.8.2.
+    4.7.0.
 
 .. tip::
 
