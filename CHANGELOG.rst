@@ -7,6 +7,20 @@ Change Log
 4.x
 ---
 
+4.8.2 (2024-07-23)
+^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Correct citation to Langevin piston paper
+  (`#1849 <https://github.com/glotzerlab/hoomd-blue/pull/1849>`__).
+* External walls, external fields, and constrains can now be implemented via external plugins
+  (`#1849 <https://github.com/glotzerlab/hoomd-blue/pull/1849>`__).
+* Prevent compile errors with default settings except for ``-DENABLE_GPU=on -DHOOMD_GPU_PLATFORM=HIP``
+  (`#1851 <https://github.com/glotzerlab/hoomd-blue/pull/1851>`__).
+* Prevent ``/usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf`` error on Purdue Anvil
+  (`#1850 <https://github.com/glotzerlab/hoomd-blue/pull/1850>`__).
+
 4.8.1 (2024-07-18)
 ^^^^^^^^^^^^^^^^^^
 
