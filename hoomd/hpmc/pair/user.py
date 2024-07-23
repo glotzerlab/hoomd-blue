@@ -76,7 +76,7 @@ class CPPPotentialBase(AutotunedObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.8.1/hoomd/VectorMath.h
+            v4.8.2/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -340,7 +340,7 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
-    .. deprecated:: 4.8.1
+    .. deprecated:: 4.4.0
 
         ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
 

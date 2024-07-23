@@ -279,7 +279,7 @@ class ConstantPressure(Thermostatted):
     See Also:
         * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
           <http://dx.doi.org/10.1063/1.467468>`__
-        * `S. E. Feller, Y. Zhang, R. W. Pastor 1995
+        * `S. E. Feller, Y. Zhang, R. W. Pastor, B. R. Brooks 1995
           <https://doi.org/10.1063/1.470648>`_
         * `M. E. Tuckerman et. al. 2006
           <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
