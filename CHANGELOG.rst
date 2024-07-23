@@ -16,7 +16,7 @@ Fixed:
   (`#1849 <https://github.com/glotzerlab/hoomd-blue/pull/1849>`__).
 * External walls, external fields, and constrains can now be implemented via external plugins
   (`#1849 <https://github.com/glotzerlab/hoomd-blue/pull/1849>`__).
-* Prevent compile errors with default settings except for ``-DENABLE_GPU=on -DHOOMD_GPU_PLATFORM=HIP``
+* Prevent compile errors with ``-DENABLE_GPU=on -DHOOMD_GPU_PLATFORM=HIP``
   (`#1851 <https://github.com/glotzerlab/hoomd-blue/pull/1851>`__).
 * Prevent ``/usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf`` error on Purdue Anvil
   (`#1850 <https://github.com/glotzerlab/hoomd-blue/pull/1850>`__).
