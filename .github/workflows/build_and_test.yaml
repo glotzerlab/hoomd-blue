@@ -1,0 +1,328 @@
+name: Build and test
+
+on:
+  workflow_call:
+    inputs:
+      compiler_family:
+        type: string
+        required: true
+      compiler_version:
+        type: string
+        required: true
+      config:
+        type: string
+        required: true
+      build_runner:
+        type: string
+        required: true
+      python:
+        type: string
+        required: true
+      validate:
+        type: string
+        required: true
+      release:
+        type: boolean
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # prevent deadlocked MPI tests from causing the job to cancel
+  MPIEXEC_TIMEOUT: 3000
+  # allow mpirun to execute as root in the tests
+  OMPI_ALLOW_RUN_AS_ROOT: 1
+  OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+  # allow openmpi to oversubscribe cores
+  PRTE_MCA_rmaps_default_mapping_policy: ":oversubscribe"
+  OMPI_MCA_rmaps_base_oversubscribe: "true"
+  # prevent errors from mis-configured openib systems
+  OMPI_MCA_btl: "vader,self"
+  # skip running the CPU tests in GPU builds
+  _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
+  # Require GPU tests in GPU builds.
+  _HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_: 1
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.set.outputs.image }}
+      test_runner: ${{ steps.set.outputs.test_runner }}
+      test_docker_options: ${{ steps.set.outputs.test_docker_options }}
+    steps:
+    - name: Set outputs
+      id: set
+      run: |
+        if [[ "${{ inputs.compiler_family }}" == "gcc" ]]
+        then
+          echo 'test_runner="ubuntu-24.04"' >> "$GITHUB_OUTPUT"
+          echo 'test_docker_options=-e _noop' >> "$GITHUB_OUTPUT"
+
+          case ${{ inputs.compiler_version }} in
+            10|11)
+              echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
+            12|13|14)
+              echo "image=glotzerlab/ci:ubuntu-24.04" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+          esac
+        elif [[ "${{ inputs.compiler_family }}" == "clang" ]]
+        then
+          echo 'test_runner="ubuntu-24.04"' >> "$GITHUB_OUTPUT"
+          echo 'test_docker_options=-e _noop' >> "$GITHUB_OUTPUT"
+
+          case "${{ inputs.compiler_version }}" in
+            13|14|15)
+              echo "image=glotzerlab/ci:ubuntu-22.04" >> "$GITHUB_OUTPUT";;
+            16|17|18)
+              echo "image=glotzerlab/ci:ubuntu-24.04" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+            esac
+        elif [[ "${{ inputs.compiler_family }}" == "cuda" ]]
+        then
+          echo "cuda=cuda${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
+          echo 'test_runner=["self-hosted", "GPU"]' >> "$GITHUB_OUTPUT"
+          echo 'test_docker_options=--gpus=all' >> "$GITHUB_OUTPUT"
+
+          case "${{ inputs.compiler_version }}" in
+            125)
+              echo "image=nvidia/cuda:12.5.0-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+            esac
+        else
+          echo "Invalid compiler family"
+          exit 1
+        fi
+
+  build:
+    needs: prepare
+    runs-on: ${{ fromJson(inputs.build_runner) }}
+    container:
+      image: ${{ needs.prepare.outputs.image }}
+
+    steps:
+    - name: "Show inputs"
+      run: echo "${{ toJson(inputs) }}"
+    - name: Clean workspace
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
+    - name: Clean HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+    - name: Install git
+      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') }}
+      run: |
+        apt-get update
+        apt-get install git --yes
+    - name: Checkout
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        path: code
+        submodules: true
+
+    - name: Create Python Environment
+      uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822 # v1.9.0
+      with:
+        micromamba-version: '1.5.8-0'
+        environment-name: test
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        post-cleanup: all
+        micromamba-root-path: ${{ github.workspace }}/micromamba
+
+    - name: Configure conda environment variables
+      run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
+        echo "CONDA_PREFIX=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "CMAKE_PREFIX_PATH=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
+
+    - name: Set compiler
+      if: ${{ inputs.compiler_family != 'cuda' }}
+      run: |
+        echo "CC=${{ inputs.compiler_family == 'gcc' && 'gcc' || 'clang' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+        echo "CXX=${{ inputs.compiler_family == 'gcc' && 'g++' || 'clang++' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+
+    - name: Treat warnings as errors
+      if: ${{ !inputs.release }}
+      run: |
+        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
+
+    - name: Configure
+      run: |
+        if [[ ${BUILD_DEBUG} == "true" ]]; then BUILD_TYPE="Debug"; else BUILD_TYPE="Release"; fi
+        echo "BUILD_TYPE=${BUILD_TYPE}"
+        cmake -S code -B build -GNinja \
+                               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+                               -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
+                               -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
+                               -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
+                               -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
+                               -DBUILD_MD=${BUILD_MD:-"ON"} \
+                               -DBUILD_MPCD=${BUILD_MD:-"ON"} \
+                               -DBUILD_METAL=${BUILD_MD:-"ON"} \
+                               -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
+                               -DCUDA_ARCH_LIST="60;70" \
+                               -DENABLE_DEBUG_JIT=ON \
+                               -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
+                               -DPLUGINS=""
+      env:
+        ENABLE_GPU: ${{ contains(inputs.config, 'cuda') }}
+        ENABLE_MPI: ${{ contains(inputs.config, 'mpi') }}
+        ENABLE_TBB: ${{ contains(inputs.config, 'tbb') }}
+        ENABLE_LLVM: ${{ contains(inputs.config, 'llvm') }}
+        BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
+        BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
+        BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
+
+    - name: Build
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
+      working-directory: build
+
+    - name: Configure plugins
+      run : |
+        if [[ ${BUILD_DEBUG} == "true" ]]; then BUILD_TYPE="Debug"; else BUILD_TYPE="Release"; fi
+        echo "BUILD_TYPE=${BUILD_TYPE}"
+        CMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install cmake -S code/example_plugins -B build-example-plugins -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+      env:
+        BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
+
+    - name: Build plugins
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
+      working-directory: build-example-plugins
+
+    - name: Remove object files
+      run: find build -type f -name '*.o' -delete
+
+    - name: 'Tar build'
+      run: tar --use-compress-program='zstd -10 -T0' -cvf build.tar build
+
+    - name: 'Tar install'
+      run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
+
+    - name: 'Upload build'
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      with:
+        name: build-${{ inputs.config }}-${{ github.sha }}
+        path: build.tar
+        retention-days: 7
+    - name: 'Upload install'
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      with:
+        name: install-${{ inputs.config }}-${{ github.sha }}
+        path: install.tar
+        retention-days: 7
+
+  test:
+    needs: [prepare, build]
+    runs-on: ${{ fromJson(needs.prepare.outputs.test_runner) }}
+    container:
+      image: ${{ needs.prepare.outputs.image }}
+      options: ${{ needs.prepare.outputs.test_docker_options }}
+
+    steps:
+    - name: Clean workspace
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
+    - name: Clean HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+    - name: Install git
+      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') }}
+      run: |
+        apt-get update
+        apt-get install git --yes
+    - name: Checkout
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        path: code
+
+    - name: Create Python Environment
+      uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822 # v1.9.0
+      with:
+        micromamba-version: '1.5.8-0'
+        environment-name: test
+        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
+        post-cleanup: all
+        micromamba-root-path: ${{ github.workspace }}/micromamba
+
+    - name: Configure conda environment variables
+      run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
+        echo "CONDA_PREFIX=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "CMAKE_PREFIX_PATH=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
+        echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
+
+    - name: Download install
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      with:
+        name: install-${{ inputs.config }}-${{ github.sha }}
+    - name: Untar install
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
+
+    # Install cupy from PyPI to avoid pulling in CUDA from conda-forge. This would conflict
+    # with the CUDA provided by the NVIDIA container image.
+    # cupy 12.3.0 is the latest version that supports our oldest test GPUs - however, 12.3.0 does
+    # not support numpy 2.0. Uncomment the next block after the old GPUs are removed from the
+    # test runner pool.
+    # - name: Install cupy
+    #   if: ${{ contains(inputs.config, 'cuda') }}
+    #   run: uv pip install --no-deps fastrlock==0.8.2 cupy-cuda12x==12.3.0
+
+    ### Python unit tests
+    - name: Run pytest (serial)
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1
+
+    - name: Run pytest (mpi)
+      if: ${{ contains(inputs.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+
+    - name: Run pytest (serial without cupy)
+      if: ${{ contains(inputs.config, 'cuda') }}
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
+      env:
+        _HOOMD_DISALLOW_CUPY_: 1
+
+    - name: Run pytest (mpi without cupy)
+      if: ${{ contains(inputs.config, 'cuda') && contains(inputs.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      env:
+        _HOOMD_DISALLOW_CUPY_: 1
+
+    ### Validation tests
+    - name: Run pytest -m validate (serial)
+      if: ${{ !contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
+      run: python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
+
+    - name: Run pytest -m validate (mpi)
+      if: ${{ contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
+
+    - name: Run howto guides (serial)
+      if: ${{ contains(inputs.config, 'llvm') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}  # some examples require LLVM
+      run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
+      working-directory: code/sphinx-doc/howto
+
+    ## C++ unit tests
+    # Ubuntu 24.04 provides a new libstdc++ than conda-forge (as of 2024-06). For unknown reasons,
+    # the HOOMD ctest tests find libstdc++ in the conda environment. Set LD_LIBRARY_PATH to force
+    # the use of the system library.
+    - name: Use the ubuntu-provided standard libraries
+      run: |
+        echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+
+    - name: Download build
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      with:
+        name: build-${{ inputs.config }}-${{ github.sha }}
+    - name: Untar build
+      run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
+
+    - name: Run ctest
+      run: >-
+        ctest
+        --test-dir .
+        --output-on-failure
+        --test-output-size-failed 1048576
+        --test-output-size-passed 1048576
+      working-directory: build

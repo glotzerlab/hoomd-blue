@@ -14,7 +14,6 @@ namespace mpcd
     {
 namespace detail
     {
-
 void export_BlockForce(pybind11::module& m)
     {
     pybind11::class_<BlockForce, std::shared_ptr<BlockForce>>(m, "BlockForce")
@@ -23,7 +22,6 @@ void export_BlockForce(pybind11::module& m)
         .def_property("separation", &BlockForce::getSeparation, &BlockForce::setSeparation)
         .def_property("width", &BlockForce::getWidth, &BlockForce::setWidth);
     }
-
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

@@ -127,14 +127,6 @@ class __attribute__((visibility("default"))) BlockForce
     Scalar m_H_plus_w;  //!< Upper bound on upper block
     Scalar m_H_minus_w; //!< Lower bound on upper block
     };
-
-#ifndef __HIPCC__
-namespace detail
-    {
-void export_BlockForce(pybind11::module& m);
-    } // end namespace detail
-#endif // __HIPCC__
-
     } // end namespace mpcd
     } // end namespace hoomd
 #undef HOSTDEVICE

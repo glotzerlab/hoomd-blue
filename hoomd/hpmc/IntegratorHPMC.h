@@ -17,6 +17,7 @@
 #include "hoomd/Integrator.h"
 
 #include "ExternalField.h"
+#include "ExternalPotential.h"
 #include "HPMCCounters.h"
 #include "PairPotential.h"
 
@@ -409,6 +410,21 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_external_base;
         }
 
+    /// Compute the total energy due to potentials in m_external_potentials
+    /** Does NOT include external energies in the soon to be removed m_external_base.
+     */
+    double computeTotalExternalEnergy(bool trial = false)
+        {
+        double total_energy = 0.0;
+
+        for (const auto& external : m_external_potentials)
+            {
+            total_energy += external->totalEnergy(trial);
+            }
+
+        return total_energy;
+        }
+
     //! Compute the total energy from pair interactions.
     /*! \param timestep the current time step
      * \returns the total patch energy
@@ -519,10 +535,44 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return energy;
         }
 
+    /*** Evaluate the total energy of all external fields interacting with one particle.
+
+        @param type_i Type index of the particle.
+        @param r_i Posiion of the particle in the box.
+        @param q_i Orientation of the particle.
+        @param charge_i Charge of the particle.
+        @param trial Set to false when evaluating the energy of a current configuration. Set to
+               true when evaluating a trial move.
+        @returns Energy of the external interaction (possibly INFINITY).
+
+        Note: Potentials that may return INFINITY should assume valid old configurations and return
+        0 when trial is false. This avoids computing INFINITY - INFINITY -> NaN.
+    */
+    inline LongReal computeOneExternalEnergy(unsigned int type_i,
+                                             const vec3<LongReal>& r_i,
+                                             const quat<LongReal>& q_i,
+                                             LongReal charge_i,
+                                             bool trial = true)
+        {
+        LongReal energy = 0;
+        for (const auto& external : m_external_potentials)
+            {
+            energy += external->particleEnergy(type_i, r_i, q_i, charge_i, trial);
+            }
+
+        return energy;
+        }
+
     /// Get the list of pair potentials.
     std::vector<std::shared_ptr<PairPotential>>& getPairPotentials()
         {
         return m_pair_potentials;
+        }
+
+    /// Get the list of external potentials.
+    std::vector<std::shared_ptr<ExternalPotential>>& getExternalPotentials()
+        {
+        return m_external_potentials;
         }
 
     /// Returns an array (indexed by type) of the AABB tree search radius needed.
@@ -562,6 +612,18 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
                                     //! used in a more general setting.
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
+
+    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
+
+    /// Pair potential evaluators.
+    std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
+
+    /// External potential evaluators
+    std::vector<std::shared_ptr<ExternalPotential>> m_external_potentials;
+
+    /// Cached pair energy search radius.
+    std::vector<LongReal> m_pair_energy_search_radius;
+
     //! Update the nominal width of the cells
     /*! This method is virtual so that derived classes can set appropriate widths
         (for example, some may want max diameter while others may want a buffer distance).
@@ -582,14 +644,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
 #endif
-
-    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
-
-    /// Pair potential evaluators.
-    std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
-
-    /// Cached pair energy search radius.
-    std::vector<LongReal> m_pair_energy_search_radius;
 
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start

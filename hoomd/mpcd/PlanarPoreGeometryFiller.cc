@@ -171,7 +171,7 @@ void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::PlanarPoreGeometryFiller, timestep, seed),
+            hoomd::Seed(hoomd::RNGIdentifier::VirtualParticleFiller, timestep, seed),
             hoomd::Counter(tag, m_filler_id));
 
         // advanced past end of this box range, take the next
@@ -204,10 +204,14 @@ void mpcd::PlanarPoreGeometryFiller::drawParticles(uint64_t timestep)
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_PlanarPoreGeometryFiller(pybind11::module& m)
+void export_PlanarPoreGeometryFiller(pybind11::module& m)
     {
     pybind11::class_<mpcd::PlanarPoreGeometryFiller,
                      mpcd::VirtualParticleFiller,
@@ -219,5 +223,6 @@ void mpcd::detail::export_PlanarPoreGeometryFiller(pybind11::module& m)
                             std::shared_ptr<const mpcd::PlanarPoreGeometry>>())
         .def_property_readonly("geometry", &mpcd::PlanarPoreGeometryFiller::getGeometry);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd
