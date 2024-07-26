@@ -232,6 +232,128 @@ class Cylinder(WallGeometry):
         }
 
 
+class Cone(WallGeometry):
+    r"""A truncated cone shape wall.
+
+    Args:
+        radius1 (float):
+            The radius of the smaller circle face of the cylinder
+            :math:`[\mathrm{length}]`.
+        radius2 (float):
+            The radius of the larger circle face of the cylinder
+            :math:`[\mathrm{length}]`.
+        distance (float):
+            The distance between two radius, radius1 and radius2
+            :math:`[\mathrm{length}]`.
+        axis (`tuple` [`float`, `float`, `float`]):
+            A vector perpendicular to the circular faces.
+        origin (`tuple` [`float`, `float`, `float`], optional):
+            The origin of the Cone defined as the center of the circle along
+            the cylinder's axis :math:`[\mathrm{length}]`.
+        inside (`bool`, optional):
+            Whether positive signed distances are inside or outside the
+            Cone.
+        open (`bool`, optional):
+            Whether to include the surface of the Cone in the space.
+            ``True`` means do not include the surface, defaults to ``True``.
+
+    Cone walls in HOOMD span the ``distance`` in the direction given by
+    the ``axis`` attribute.
+
+    The signed distance from the wall surface is
+
+    .. math::
+
+        d = \left( R - \lvert \left( \vec{r} - \vec{r}_o \right)
+            - \left( \left( \vec{r} - \vec{r}_o \right) \cdot \hat{n}
+            \right) \hat{n} \rvert \right)
+
+    for ``inside=True``, where :math:`r` is the particle position,
+    :math:`\vec{r}_o` is the origin of the cylinder, :math:`\hat{n}` is the
+    cylinder's unit axis, and :math:`R` is the cylinder's radius. The distance
+    is negated when ``inside=False``.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``axis=(0,0,1)``. Otherwise, the wall force will push particles off the
+        xy plane.
+
+    Note:
+        `Cone` objects are immutable.
+
+    Attributes:
+        radius1 (float):
+            The radius of the smaller circle face of the cylinder
+            :math:`[\mathrm{length}]`.
+        radius2 (float):
+            The radius of the larter circle face of the cylinder
+            :math:`[\mathrm{length}]`.
+        distance (float):
+            The distance between two radius, radius1 and radius2
+            :math:`[\mathrm{length}]`.
+        origin (`tuple` [`float`, `float`, `float`]):
+            The origin of the Cone defined as the center of the circle along
+            the cylinder's axis :math:`[\mathrm{length}]`.
+        axis (`tuple` [`float`, `float`, `float`]):
+            A vector perpendicular to the circular faces.
+        inside (bool):
+            Whether positive signed distances are inside or outside the
+            Cone.
+        open (`bool`, optional):
+            Whether to include the surface of the Cone in the space.
+            ``True`` means do not include the surface.
+    """
+
+    def __init__(self,
+                 radius1,
+                 radius2,
+                 distance,
+                 axis,
+                 origin=(0.0, 0.0, 0.0),
+                 inside=True,
+                 open=True):
+        param_dict = ParameterDict(radius1=float,
+                                   radius2=float,
+                                   distance=float,
+                                   origin=(float, float, float),
+                                   axis=(float, float, float),
+                                   inside=bool,
+                                   open=bool)
+        param_dict["radius1"] = radius1
+        param_dict["radius2"] = radius2
+        param_dict["distance"] = distance
+        param_dict["origin"] = origin
+        param_dict["axis"] = axis
+        param_dict["inside"] = inside
+        param_dict["open"] = open
+        self._param_dict = param_dict
+
+    def __str__(self):
+        """A string representation of the Cylinder."""
+        return self.__repr__()
+
+    def __repr__(self):
+        """A string representation of the Cone."""
+        return f"Cone(radius1={self.radius1}, radius2={self.radius2},distance={self.distance},origin={self.origin}, "
+        f"axis={self.axis}, inside={self.inside}, open={self.open})"
+
+    def to_dict(self):
+        """Convert the wall geometry to a dictionary defining the cylinder.
+
+        Returns:
+            dict: The geometry in a Python dictionary.
+        """
+        return {
+            "radius1": self.radius1,
+            "radius2": self.radius2,
+            "distance": self.distance,
+            "origin": self.origin,
+            "axis": self.axis,
+            "inside": self.inside,
+            "open": self.open
+        }
+
+
 class Plane(WallGeometry):
     r"""A plane.
 
