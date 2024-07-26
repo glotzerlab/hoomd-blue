@@ -242,7 +242,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].z += (Fab.z + Fac.z + Fad.z);
             h_force.data[idx_a].w
                 += prefactor_4 * (1 - cosinus); // the missing minus sign comes from the fact that
-                                               // we have to compare the normal directions
+                                                // we have to compare the normal directions
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += rigidity_virial[j];
             }

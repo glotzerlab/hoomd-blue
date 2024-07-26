@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
 #include "BendingRigidityMeshForceComputeGPU.cuh"
+#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
 
 #include <assert.h>
@@ -275,8 +275,8 @@ hipError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
                        box,
                        blist,
                        blist_idx,
-                       bpos_list, 
-		       n_bonds_list,
+                       bpos_list,
+                       n_bonds_list,
                        d_params,
                        n_bond_type,
                        d_flags);

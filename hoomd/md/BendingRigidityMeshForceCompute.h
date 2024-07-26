@@ -87,8 +87,8 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
     protected:
     Scalar* m_K; //!< K parameter for multiple mesh triangle types
 
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing 
-						 //the bending energy
+    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing
+                                                 // the bending energy
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
