@@ -97,6 +97,61 @@ struct __attribute__((visibility("default"))) CylinderWall
     bool open;
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of quat<Scalar>
 
+//! ConeWall Constructor
+/*! \param r1 Radius of the circle 1
+    \param r2 Radius of the circle 2
+    \param d distance between two circles
+    \param origin The x,y,z coordinates of a point on the cylinder axis
+    \param axis A x,y,z vector along the cylinder axis used to define the axis
+    \param quatAxisToZRot (Calculated not input) The quaternion which rotates the simulation space
+   such that the axis of the cylinder is parallel to the z' axis \param inside Determines which half
+   space is evaluated.
+*/
+struct __attribute__((visibility("default"))) ConeWall
+    {
+    ConeWall(Scalar rad1 = 0.0,
+             Scalar rad2 = 0.0,
+             Scalar dist = 0.0,
+             Scalar3 orig = make_scalar3(0.0, 0.0, 0.0),
+             Scalar3 zorient = make_scalar3(0.0, 0.0, 1.0),
+             bool ins = true,
+             bool open_ = true)
+        : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r1(rad1), r2(rad2), d(dist), inside(ins), open(open_)
+        {
+        vec3<Scalar> zVec = axis;
+        vec3<Scalar> zNorm(0.0, 0.0, 1.0);
+
+        // method source: http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
+        // easily simplified due to zNorm being a normalized vector
+        Scalar normVec = sqrt(dot(zVec, zVec));
+        Scalar realPart = normVec + dot(zNorm, zVec);
+        vec3<Scalar> w;
+
+        if (realPart < Scalar(1.0e-6) * normVec)
+            {
+            realPart = Scalar(0.0);
+            w = vec3<Scalar>(0.0, -1.0, 0.0);
+            }
+        else
+            {
+            w = cross(zNorm, zVec);
+            realPart = Scalar(realPart);
+            }
+        quatAxisToZRot = quat<Scalar>(realPart, w);
+        Scalar norm = fast::rsqrt(norm2(quatAxisToZRot));
+        quatAxisToZRot = conj(norm * quatAxisToZRot);
+        }
+    quat<Scalar>
+        quatAxisToZRot; // need to order datatype in descending order of type size for Fermi
+    vec3<Scalar> origin;
+    vec3<Scalar> axis;
+    Scalar r1;
+    Scalar r2;
+    Scalar d;
+    bool inside;
+    bool open;
+    } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of quat<Scalar>
+
 //! PlaneWall Constructor
 /*! \param origin The x,y,z coordinates of a point on the cylinder axis
     \param normal The x,y,z normal vector of the plane (normalized upon input)

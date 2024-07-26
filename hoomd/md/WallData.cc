@@ -79,6 +79,50 @@ void export_wall_data(pybind11::module& m)
         .def_property_readonly("inside", [](const CylinderWall& wall) { return wall.inside; })
         .def_property_readonly("open", [](const CylinderWall& wall) { return wall.open; });
 
+pybind11::class_<ConeWall>(m, "ConeWall")
+        .def(pybind11::init(
+                 [](hoomd::Scalar radius1,
+                    hoomd::Scalar radius2,
+                    hoomd::Scalar distance,
+                    pybind11::tuple origin,
+                    pybind11::tuple z_orientation,
+                    bool inside,
+                    bool open)
+                 {
+                     return ConeWall(
+                         radius1,
+                         radius2,
+                         distance,
+                         hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
+                                             origin[1].cast<hoomd::Scalar>(),
+                                             origin[2].cast<hoomd::Scalar>()),
+                         hoomd::make_scalar3(z_orientation[0].cast<hoomd::Scalar>(),
+                                             z_orientation[1].cast<hoomd::Scalar>(),
+                                             z_orientation[2].cast<hoomd::Scalar>()),
+                         inside,
+                         open);
+                 }),
+             pybind11::arg("radius1"),
+             pybind11::arg("radius2"),
+             pybind11::arg("distance"),
+             pybind11::arg("origin"),
+             pybind11::arg("axis"),
+             pybind11::arg("inside"),
+             pybind11::arg("open"))
+        .def_property_readonly("radius1", [](const ConeWall& wall) { return wall.r; })
+        .def_property_readonly("radius2", [](const ConeWall& wall) { return wall.r; })
+        .def_property_readonly("distance", [](const ConeWall& wall) { return wall.r; })
+        .def_property_readonly(
+            "origin",
+            [](const ConeWall& wall)
+            { return pybind11::make_tuple(wall.origin.x, wall.origin.y, wall.origin.z); })
+        .def_property_readonly(
+            "axis",
+            [](const ConeWall& wall)
+            { return pybind11::make_tuple(wall.axis.x, wall.axis.y, wall.axis.z); })
+        .def_property_readonly("inside", [](const ConeWall& wall) { return wall.inside; })
+        .def_property_readonly("open", [](const ConeWall& wall) { return wall.open; });
+
     pybind11::class_<PlaneWall>(m, "PlaneWall")
         .def(pybind11::init(
                  [](pybind11::tuple origin, pybind11::tuple normal, bool open)
