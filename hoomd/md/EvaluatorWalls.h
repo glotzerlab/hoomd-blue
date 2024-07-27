@@ -30,6 +30,7 @@
 // sets the max numbers for each wall geometry type
 const unsigned int MAX_N_SWALLS = 20;
 const unsigned int MAX_N_CWALLS = 20;
+const unsigned int MAX_N_COWALLS = 20;
 const unsigned int MAX_N_PWALLS = 60;
 
 namespace hoomd
@@ -40,12 +41,14 @@ struct HOOMD_PYBIND11_EXPORT wall_type
     {
     unsigned int numSpheres; // these data types come first, since the structs are aligned already
     unsigned int numCylinders;
+    unsigned int numCones;
     unsigned int numPlanes;
     SphereWall Spheres[MAX_N_SWALLS];
     CylinderWall Cylinders[MAX_N_CWALLS];
+    ConeWall Cones[MAX_N_COWALLS];
     PlaneWall Planes[MAX_N_PWALLS];
 
-    wall_type() : numSpheres(0), numCylinders(0), numPlanes(0) { }
+    wall_type() : numSpheres(0), numCylinders(0), numCones(0), numPlanes(0) { }
 
     // The following methods are to test the ArrayView<> templated class.
 
@@ -67,6 +70,16 @@ struct HOOMD_PYBIND11_EXPORT wall_type
     CylinderWall& getCylinder(size_t index)
         {
         return Cylinders[index];
+        }
+
+    unsigned int getNumCones()
+        {
+        return numCones;
+        }
+
+    CylinderWall& getCone(size_t index)
+        {
+        return Cones[index];
         }
 
     unsigned int& getNumPlanes()
@@ -93,6 +106,18 @@ DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const C
     {
     auto s = rotate(wall.quatAxisToZRot, wall.origin - position);
     s.z = 0.0;
+    return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
+    }
+
+/// Function for getting the force direction for particle on the wall with r_extrap
+DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const ConeWall& wall)
+    {
+    auto s = rotate(wall.quatAxisToZRot, wall.origin - position);
+    // s.z = 0.0;
+    vec3<Scalar> rotatingaxis(-s.y,s.x,0);
+    rotatingaxis = rotatingaxis * fast::rsqrt(s.y * s.y + s.x * s.x)
+    quat<Scalar> quatRot(fast::cos(angle/2), fast::sin(angle/2) * rotatingaxis.x, fast::sin(angle/2) * rotatingaxis.y, 0)
+    wall.angle
     return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
     }
 

@@ -329,7 +329,7 @@ class Cone(WallGeometry):
         self._param_dict = param_dict
 
     def __str__(self):
-        """A string representation of the Cylinder."""
+        """A string representation of the Cone."""
         return self.__repr__()
 
     def __repr__(self):
