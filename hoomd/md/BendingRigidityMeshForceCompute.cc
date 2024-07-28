@@ -3,16 +3,10 @@
 
 #include "BendingRigidityMeshForceCompute.h"
 
-#include <float.h>
 #include <iostream>
-#include <math.h>
-#include <sstream>
 #include <stdexcept>
 
 using namespace std;
-
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
 
 /*! \file BendingRigidityMeshForceCompute.cc
     \brief Contains code for the BendingRigidityMeshForceCompute class
@@ -99,18 +93,15 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         access_location::host,
         access_mode::read);
 
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
     assert(h_bonds.data);
 
-    // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -120,7 +111,6 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         rigidity_virial[i] = Scalar(0.0);
 
-    // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
@@ -139,8 +129,6 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         if (btag_c == btag_d)
             continue;
 
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[btag_a];
         unsigned int idx_b = h_rtag.data[btag_b];
         unsigned int idx_c = h_rtag.data[btag_c];
@@ -182,7 +170,6 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         z2.y = dad.z * dab.x - dad.x * dab.z;
         z2.z = dad.x * dab.y - dad.y * dab.x;
 
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar n1 = fast::rsqrt(z1.x * z1.x + z1.y * z1.y + z1.z * z1.z);
         Scalar n2 = fast::rsqrt(z2.x * z2.x + z2.y * z2.y + z2.z * z2.z);
         Scalar z1z2 = z1.x * z2.x + z1.y * z2.y + z1.z * z2.z;
