@@ -98,6 +98,7 @@ void export_PotentialExternalPeriodic(pybind11::module& m);
 void export_PotentialExternalElectricField(pybind11::module& m);
 
 void export_PotentialExternalWallLJ(pybind11::module& m);
+void export_PotentialExternalWallExpandedLJ(pybind11::module& m);
 void export_PotentialExternalWallYukawa(pybind11::module& m);
 void export_PotentialExternalWallForceShiftedLJ(pybind11::module& m);
 void export_PotentialExternalWallMie(pybind11::module& m);
@@ -241,6 +242,7 @@ void export_PotentialExternalPeriodicGPU(pybind11::module& m);
 void export_PotentialExternalElectricFieldGPU(pybind11::module& m);
 
 void export_PotentialExternalWallLJGPU(pybind11::module& m);
+void export_PotentialExternalWallExpandedLJGPU(pybind11::module& m);
 void export_PotentialExternalWallYukawaGPU(pybind11::module& m);
 void export_PotentialExternalWallForceShiftedLJGPU(pybind11::module& m);
 void export_PotentialExternalWallMieGPU(pybind11::module& m);
@@ -392,6 +394,7 @@ PYBIND11_MODULE(_md, m)
     export_wall_field(m);
 
     export_PotentialExternalWallLJ(m);
+    export_PotentialExternalWallExpandedLJ(m);
     export_PotentialExternalWallYukawa(m);
     export_PotentialExternalWallForceShiftedLJ(m);
     export_PotentialExternalWallMie(m);
@@ -480,6 +483,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalElectricFieldGPU(m);
 
     export_PotentialExternalWallLJGPU(m);
+    export_PotentialExternalWallExpandedLJGPU(m);
     export_PotentialExternalWallYukawaGPU(m);
     export_PotentialExternalWallForceShiftedLJGPU(m);
     export_PotentialExternalWallMieGPU(m);

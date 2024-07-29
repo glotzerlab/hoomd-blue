@@ -216,6 +216,27 @@ distVectorWallToPoint(const CylinderWall& wall, const vec3<Scalar>& position, bo
     return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), dx));
     };
 
+//! Wall vector to point for a cone wall geometry
+/* Returns 0 vector when all normal directions are equal
+ */
+DEVICE inline Scalar3
+distVectorWallToPoint(const ConeWall& wall, const vec3<Scalar>& position, bool& in_active_space)
+    {
+    const vec3<Scalar> dist_from_origin = position - wall.origin;
+    vec3<Scalar> rotated_distance = rotate(wall.quatAxisToZRot, dist_from_origin);
+    // rotated_distance.z = 0.0;
+    const Scalar euclidean_dist = sqrt(dot(rotated_distance, rotated_distance));
+    if (euclidean_dist == 0.0)
+        {
+        in_active_space = wall.open;
+        return make_scalar3(0.0, 0.0, 0.0);
+        }
+    in_active_space = ((euclidean_dist < wall.r) && wall.inside)
+                      || ((euclidean_dist > wall.r) && !(wall.inside));
+    const vec3<Scalar> dx = (1 - (wall.r / euclidean_dist)) * rotated_distance;
+    return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), dx));
+    };
+
 //! Wall vector to point for a plane wall geometry
 DEVICE inline Scalar3
 distVectorWallToPoint(const PlaneWall& wall, const vec3<Scalar>& position, bool& in_active_space)
@@ -247,6 +268,19 @@ DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& positi
 //! Distance of point to inside cylinder wall geometry, not really distance, +- based on if it's
 //! inside or not
 DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
+    {
+    vec3<Scalar> t = position;
+    t -= wall.origin;
+    vec3<Scalar> shiftedPos = rotate(wall.quatAxisToZRot, t);
+    Scalar rxy2 = shiftedPos.x * shiftedPos.x + shiftedPos.y * shiftedPos.y;
+    Scalar d = wall.r - sqrt(rxy2);
+    d = wall.inside ? d : -d;
+    return d;
+    };
+
+//! Distance of point to inside cone wall geometry, not really distance, +- based on if it's
+//! inside or not
+DEVICE inline Scalar distWall(const ConeWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t -= wall.origin;

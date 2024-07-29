@@ -483,7 +483,7 @@ foreach(_evaluator ${_external_evaluators})
     endif()
 endforeach()
 
-set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse)
+set(_wall_evaluators LJ ExpandedLJ Yukawa ForceShiftedLJ Mie Gauss Morse)
 
 foreach(_evaluator ${_wall_evaluators})
     configure_file(export_PotentialExternalWall.cc.inc

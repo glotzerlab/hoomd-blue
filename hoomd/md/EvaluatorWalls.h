@@ -115,9 +115,9 @@ DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const C
     auto s = rotate(wall.quatAxisToZRot, wall.origin - position);
     // s.z = 0.0;
     vec3<Scalar> rotatingaxis(-s.y,s.x,0);
-    rotatingaxis = rotatingaxis * fast::rsqrt(s.y * s.y + s.x * s.x)
-    quat<Scalar> quatRot(fast::cos(angle/2), fast::sin(angle/2) * rotatingaxis.x, fast::sin(angle/2) * rotatingaxis.y, 0)
-    wall.angle
+    rotatingaxis = rotatingaxis * fast::rsqrt(s.y * s.y + s.x * s.x);
+    quat<Scalar> quatRot(fast::cos(wall.angle/2), - fast::sin(wall.angle/2) * rotatingaxis.x, fast::sin(wall.angle/2) * rotatingaxis.y, 0);
+
     return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
     }
 
@@ -344,6 +344,32 @@ template<class evaluator> class EvaluatorWalls
                     extrapEvaluator(F, energy, drv, rextrapsq, r);
                     }
                 }
+            // vec3<Scalar> intermediate_distance_vector;
+            for (unsigned int k = 0; k < m_field.numCones; k++)
+                {
+                drv = distVectorWallToPoint(m_field.Cones[k], position, in_active_space);
+                rsq = dot(drv, drv);
+                if (in_active_space && rsq >= rextrapsq)
+                    {
+                    callEvaluator(F, energy, drv);
+                    }
+                else
+                    {
+                    Scalar r = fast::sqrt(rsq);
+                    if (rsq == 0.0)
+                        {
+                        in_active_space = true; // just in case
+                        drv = onWallForceDirection(position, m_field.Cones[k]);
+                        }
+                    else
+                        {
+                        drv *= 1 / r;
+                        }
+                    r = (in_active_space) ? m_params.rextrap - r : m_params.rextrap + r;
+                    drv *= (in_active_space) ? r : -r;
+                    extrapEvaluator(F, energy, drv, rextrapsq, r);
+                    }
+                }
             for (unsigned int k = 0; k < m_field.numPlanes; k++)
                 {
                 drv = distVectorWallToPoint(m_field.Planes[k], position, in_active_space);
@@ -383,6 +409,14 @@ template<class evaluator> class EvaluatorWalls
             for (unsigned int k = 0; k < m_field.numCylinders; k++)
                 {
                 drv = distVectorWallToPoint(m_field.Cylinders[k], position, in_active_space);
+                if (in_active_space)
+                    {
+                    callEvaluator(F, energy, drv);
+                    }
+                }
+            for (unsigned int k = 0; k < m_field.numCones; k++)
+                {
+                drv = distVectorWallToPoint(m_field.Cones[k], position, in_active_space);
                 if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);

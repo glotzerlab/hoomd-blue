@@ -151,6 +151,9 @@ def _to_md_cpp_wall(wall):
     if isinstance(wall, hoomd.wall.Cylinder):
         return _md.CylinderWall(wall.radius, wall.origin.to_base(),
                                 wall.axis.to_base(), wall.inside, wall.open)
+    if isinstance(wall, hoomd.wall.Cone):
+        return _md.ConeWall(wall.radius1, wall.radius2, distance, wall.origin.to_base(),
+                            wall.axis.to_base(), wall.inside, wall.open)
     if isinstance(wall, hoomd.wall.Plane):
         return _md.PlaneWall(wall.origin.to_base(), wall.normal.to_base(),
                              wall.open)
@@ -164,6 +167,7 @@ class _WallArrayViewFactory:
         self.func_name = {
             hoomd.wall.Sphere: "get_sphere_list",
             hoomd.wall.Cylinder: "get_cylinder_list",
+            hoomd.wall.Cone: "get_cone_list",
             hoomd.wall.Plane: "get_plane_list"
         }[wall_type]
 
@@ -197,6 +201,9 @@ class WallPotential(force.Force):
             hoomd.wall.Cylinder:
                 _ArrayViewWrapper(
                     _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Cylinder)),
+            hoomd.wall.Cone:
+                _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Cone)),
             hoomd.wall.Plane:
                 _ArrayViewWrapper(
                     _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
@@ -224,6 +231,10 @@ class WallPotential(force.Force):
                     _ArrayViewWrapper(
                         _WallArrayViewFactory(self._cpp_obj,
                                               hoomd.wall.Cylinder)),
+                hoomd.wall.Cone:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Cone)),
                 hoomd.wall.Plane:
                     _ArrayViewWrapper(
                         _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
@@ -279,6 +290,54 @@ class LJ(WallPotential):
                                                         sigma=float,
                                                         r_cut=float,
                                                         r_extrap=0.0,
+                                                        len_keys=1))
+        self._add_typeparam(params)
+
+
+class ExpandedLJ(WallPotential):
+    r"""Expanded Lennard-Jones wall force.
+
+    Args:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the force.
+
+    Wall force evaluated using the Expanded Lennard-Jones force. See `hoomd.md.pair.ExpandedLJ`
+    for the functional form of the force and parameter definitions.
+
+    Example::
+
+        walls = [hoomd.wall.Sphere(radius=4.0)]
+        expanded_lj = hoomd.md.external.wall.ExpandedLJ(walls=walls)
+        expanded_lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0, "delta": 1.0}
+        expanded_lj.params[['A','B']] = {"epsilon": 2.0, "sigma": 1.0, "delta": 1.0}
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``delta`` (`float`, **required**) -
+          radial shift :math:`\Delta` :math:`[\mathrm{length}]`.
+
+        Type: `TypeParameter` [``particle_types``, `dict`]
+    """
+
+    _cpp_class_name = "WallsPotentialExpandedLJ"
+
+    def __init__(self, walls):
+
+        # initialize the base class
+        super().__init__(walls)
+
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        delta=float,
                                                         len_keys=1))
         self._add_typeparam(params)
 
