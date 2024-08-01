@@ -59,6 +59,7 @@ void mpcd::ParallelPlateGeometryFillerGPU::drawParticles(uint64_t timestep)
                                    (*m_T)(timestep),
                                    timestep,
                                    seed,
+                                   m_filler_id,
                                    m_tuner->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

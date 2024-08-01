@@ -29,8 +29,11 @@ def snap():
             "separation": 8.0,
             "length": 10.0
         }),
+        (hoomd.mpcd.geometry.Sphere, {
+            "radius": 4.0
+        }),
     ],
-    ids=["ParallelPlates", "PlanarPore"],
+    ids=["ParallelPlates", "PlanarPore", "Sphere"],
 )
 class TestGeometryFiller:
 

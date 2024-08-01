@@ -20,7 +20,7 @@ hoomd.data
     ImproperLocalAccessBase
     PairLocalAccessBase
     ParticleLocalAccessBase
-    hoomd.data.typeparam.TypeParameter
+    typeparam.TypeParameter
 
 .. rubric:: Details
 

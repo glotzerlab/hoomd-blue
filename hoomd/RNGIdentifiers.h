@@ -55,8 +55,7 @@ struct RNGIdentifier
     static const uint8_t ATCollisionMethod = 29;
     static const uint8_t CollisionMethod = 30;
     static const uint8_t SRDCollisionMethod = 31;
-    static const uint8_t ParallelPlateGeometryFiller = 32;
-    static const uint8_t PlanarPoreGeometryFiller = 33;
+    static const uint8_t VirtualParticleFiller = 32;
     static const uint8_t UpdaterQuickCompress = 34;
     static const uint8_t ParticleGroupThermalize = 35;
     static const uint8_t HPMCDepletantsAccept = 36;
