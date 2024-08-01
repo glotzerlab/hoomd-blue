@@ -398,7 +398,7 @@ classes is automated through previously described classes.
 
 HOOMD-blue version 3 allows for much more interaction with Python objects within
 its C++ core. One feature is custom actions (see the tutorial
-https://hoomd-blue.readthedocs.io/en/latest/tutorial/03-Custom-Actions-In-Python/00-index.html
+https://hoomd-blue.readthedocs.io/en/latest/tutorial/04-Custom-Actions-In-Python/00-index.html
 or API documentation for more introductory information). When using custom
 actions internally for HOOMD, the classes `hoomd.custom._InternalAction` and one
 of the `hoomd.custom._InternalOperation` subclasses are to be used. They allow
