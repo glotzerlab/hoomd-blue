@@ -118,8 +118,10 @@ jobs:
       id: lychee
       uses: lycheeverse/lychee-action@v1
       with:
-        args: -n --exclude-path hoomd/extern -- './**/*.md' './**/*.html' './**/*.rst'
+        args: -n --exclude-path hoomd/extern --exclude https://glotzerlab.engin.umich.edu -- './**/*.md' './**/*.html' './**/*.rst'
         fail: true
+        format: json
+        
 
   tests_complete:
     name: Unit test
