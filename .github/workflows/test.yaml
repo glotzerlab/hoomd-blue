@@ -118,7 +118,7 @@ jobs:
       id: lychee
       uses: lycheeverse/lychee-action@v1
       with:
-        args: -n --exclude-path hoomd/extern
+        args: -n --exclude-path hoomd/extern --
         fail: true
 
   tests_complete:
