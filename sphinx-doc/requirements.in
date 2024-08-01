@@ -3,7 +3,7 @@ nbconvert==7.16.4
 nbsphinx==0.9.4
 numpy==2.0.1
 pandoc==2.3
-sphinx==7.4.3
+sphinx==7.4.7
 furo==2024.7.18
 tornado==6.4.1
 sphinxcontrib-googleanalytics==0.4
