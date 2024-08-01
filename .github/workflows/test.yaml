@@ -117,6 +117,9 @@ jobs:
     - name: Link Checker
       id: lychee
       uses: lycheeverse/lychee-action@v1
+      with:
+        args: -n --exclude-path hoomd/extern
+        fail: true
 
   tests_complete:
     name: Unit test
