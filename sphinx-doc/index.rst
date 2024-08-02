@@ -64,11 +64,13 @@ Related tools
 - `Molecular Simulation Design Framework (MoSDeF)`_ tools:
 
   - `mbuild`_: Assemble reusable components into complex molecular systems.
-  - `foyer`_: perform atom-typing and define classical molecular modeling force fields.
+  - `foyer`_: Perform atom-typing and define classical molecular modeling force fields.
+  - `gmso`_: A flexible and mutable data structure for chemical topologies that writes HOOMD-blue formats.
 
 .. _Molecular Simulation Design Framework (MoSDeF): https://mosdef.org/
 .. _mbuild: https://mbuild.mosdef.org/
 .. _foyer: https://foyer.mosdef.org/
+.. _gmso: https://gmso.mosdef.org/
 
 Example scripts
 ===============

@@ -112,7 +112,7 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::ParallelPlateGeometryFiller, timestep, seed),
+            hoomd::Seed(hoomd::RNGIdentifier::VirtualParticleFiller, timestep, seed),
             hoomd::Counter(tag, m_filler_id));
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom

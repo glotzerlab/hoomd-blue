@@ -24,8 +24,8 @@ namespace hoomd
 namespace mpcd
     {
 
-// Use CPU class from another compilation unit
-extern template class BounceBackStreamingMethod<GEOMETRY_CLASS, FORCE_CLASS>;
+// Explicit instantiation of GPU class
+template class BounceBackStreamingMethodGPU<GEOMETRY_CLASS, FORCE_CLASS>;
 
 namespace detail
     {

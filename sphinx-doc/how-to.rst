@@ -15,5 +15,5 @@ How-to
     howto/minimize-potential-energy
     howto/prevent-particles-from-moving
     howto/compute-the-free-energy-of-solids
-    howto/cpppotential
+    howto/custom-hpmc-potential
     howto/tune-mc-move-sizes-binary-system
