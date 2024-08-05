@@ -6,8 +6,6 @@
 
 #include <memory>
 
-#include <vector>
-
 /*! \file BendingRigidityMeshForceCompute.h
     \brief Declares a class for computing bending rigidity energy forces
 */
