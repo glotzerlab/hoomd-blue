@@ -23,28 +23,6 @@ namespace hoomd
     {
 namespace md
     {
-struct rigidity_params
-    {
-    Scalar k;
-
-#ifndef __HIPCC__
-    rigidity_params() : k(0) { }
-
-    rigidity_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        v["k"] = k;
-        return v;
-        }
-#endif
-    }
-#if HOOMD_LONGREAL_SIZE == 32
-    __attribute__((aligned(4)));
-#else
-    __attribute__((aligned(8)));
-#endif
 
 //! Computes rigidity energy forces on the mesh
 /*! BendingRigidity energy forces are computed on every particle in a mesh.
@@ -53,6 +31,29 @@ struct rigidity_params
 */
 class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
     {
+    struct rigidity_params
+        {
+        Scalar k;
+    
+#ifndef __HIPCC__
+        rigidity_params() : k(0) { }
+    
+        rigidity_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }
+    
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["k"] = k;
+            return v;
+            }
+#endif
+        }
+#if HOOMD_LONGREAL_SIZE == 32
+        __attribute__((aligned(4)));
+#else
+        __attribute__((aligned(8)));
+#endif
+
     public:
     //! Constructs the compute
     BendingRigidityMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
