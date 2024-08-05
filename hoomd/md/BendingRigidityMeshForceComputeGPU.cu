@@ -103,10 +103,8 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
 
         Scalar K = __ldg(d_params + cur_bond_type);
 
-        // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_idx_b];
         Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
         Scalar3 aa_pos, cc_pos;
@@ -114,14 +112,12 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         if (cur_bond_pos < 2)
             {
             aa_pos = pos;
-            // get the c-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 cc_postype = d_pos[cur_idx_c];
             cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
             }
         else
             {
             cc_pos = pos;
-            // get the a-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 aa_postype = d_pos[cur_idx_a];
             aa_pos = make_scalar3(aa_postype.x, aa_postype.y, aa_postype.z);
             }
@@ -136,9 +132,6 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         dac = box.minImage(dac);
         dad = box.minImage(dad);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
         Scalar3 z1;
         z1.x = dab.y * dac.z - dab.z * dac.y;
         z1.y = dab.z * dac.x - dab.x * dac.z;
@@ -149,7 +142,6 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         z2.y = dad.z * dab.x - dad.x * dab.z;
         z2.z = dad.x * dab.y - dad.y * dab.x;
 
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar n1 = fast::rsqrt(z1.x * z1.x + z1.y * z1.y + z1.z * z1.z);
         Scalar n2 = fast::rsqrt(z2.x * z2.x + z2.y * z2.y + z2.z * z2.z);
         Scalar z1z2 = z1.x * z2.x + z1.y * z2.y + z1.z * z2.z;
