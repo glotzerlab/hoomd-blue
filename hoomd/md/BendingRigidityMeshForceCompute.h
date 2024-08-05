@@ -40,10 +40,10 @@ struct rigidity_params
         }
 #endif
     }
-#ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+#ifdef HOOMD_LONGREAL_SIZE == 32
+    __attribute__((aligned(4)));
 #else
-    __attribute__((aligned(16)));
+    __attribute__((aligned(8)));
 #endif
 
 //! Computes rigidity energy forces on the mesh
