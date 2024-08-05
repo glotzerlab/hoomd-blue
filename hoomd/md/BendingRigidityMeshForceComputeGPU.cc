@@ -35,14 +35,6 @@ BendingRigidityMeshForceComputeGPU::BendingRigidityMeshForceComputeGPU(
                             this->m_exec_conf);
     m_params.swap(params);
 
-    // allocate flags storage on the GPU
-    GPUArray<unsigned int> flags(1, this->m_exec_conf);
-    m_flags.swap(flags);
-
-    // reset flags
-    ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
-    h_flags.data[0] = 0;
-
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
                                    "bending_rigidity"));
@@ -95,9 +87,7 @@ void BendingRigidityMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_params(m_params, access_location::device, access_mode::read);
 
-    // access the flags array for overwriting
-    ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
-
+    // run the kernel on the GPU
     m_tuner->begin();
     kernel::gpu_compute_bending_rigidity_force(d_force.data,
                                                d_virial.data,
@@ -112,24 +102,10 @@ void BendingRigidityMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                d_gpu_n_meshbond.data,
                                                d_params.data,
                                                m_mesh_data->getMeshBondData()->getNTypes(),
-                                               m_tuner->getParam()[0],
-                                               d_flags.data);
+                                               m_tuner->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-        {
         CHECK_CUDA_ERROR();
-
-        // check the flags for any errors
-        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-
-        if (h_flags.data[0] & 1)
-            {
-            this->m_exec_conf->msg->error()
-                << "bending rigidity: bond out of bounds (" << h_flags.data[0] << ")" << std::endl
-                << std::endl;
-            throw std::runtime_error("Error in meshbond calculation");
-            }
-        }
     m_tuner->end();
     }
 

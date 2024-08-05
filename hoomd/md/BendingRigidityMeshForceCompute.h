@@ -40,7 +40,7 @@ struct rigidity_params
         }
 #endif
     }
-#ifdef HOOMD_LONGREAL_SIZE == 32
+#if HOOMD_LONGREAL_SIZE == 32
     __attribute__((aligned(4)));
 #else
     __attribute__((aligned(8)));
@@ -68,19 +68,6 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
 
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
-
-#ifdef ENABLE_MPI
-    //! Get ghost particle fields requested by this pair potential
-    /*! \param timestep Current time step
-     */
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
-        {
-        CommFlags flags = CommFlags(0);
-        flags[comm_flag::tag] = 1;
-        flags |= ForceCompute::getRequestedCommFlags(timestep);
-        return flags;
-        }
-#endif
 
     protected:
     Scalar* m_K; //!< K parameter for multiple mesh triangle types

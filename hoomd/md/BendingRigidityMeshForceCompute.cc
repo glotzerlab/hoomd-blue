@@ -104,9 +104,6 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
-    PDataFlags flags = m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor];
-
     Scalar rigidity_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         rigidity_virial[i] = Scalar(0.0);
@@ -204,21 +201,18 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
 
         Fad = prefactor * Fad;
 
-        if (compute_virial)
-            {
-            rigidity_virial[0]
-                = Scalar(1. / 2.) * (dab.x * Fab.x + dac.x * Fac.x + dad.x * Fad.x); // xx
-            rigidity_virial[1]
-                = Scalar(1. / 2.) * (dab.y * Fab.x + dac.y * Fac.x + dad.y * Fad.x); // xy
-            rigidity_virial[2]
-                = Scalar(1. / 2.) * (dab.z * Fab.x + dac.z * Fac.x + dad.z * Fad.x); // xz
-            rigidity_virial[3]
-                = Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y + dad.y * Fad.y); // yy
-            rigidity_virial[4]
-                = Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y + dad.z * Fad.y); // yz
-            rigidity_virial[5]
-                = Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z + dad.z * Fad.z); // zz
-            }
+        rigidity_virial[0]
+            = Scalar(1. / 2.) * (dab.x * Fab.x + dac.x * Fac.x + dad.x * Fad.x); // xx
+        rigidity_virial[1]
+            = Scalar(1. / 2.) * (dab.y * Fab.x + dac.y * Fac.x + dad.y * Fad.x); // xy
+        rigidity_virial[2]
+            = Scalar(1. / 2.) * (dab.z * Fab.x + dac.z * Fac.x + dad.z * Fad.x); // xz
+        rigidity_virial[3]
+            = Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y + dad.y * Fad.y); // yy
+        rigidity_virial[4]
+            = Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y + dad.z * Fad.y); // yz
+        rigidity_virial[5]
+	    = Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z + dad.z * Fad.z); // zz
 
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // do not update ghost particles
@@ -234,15 +228,12 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_a] += rigidity_virial[j];
             }
 
-        if (compute_virial)
-            {
-            rigidity_virial[0] = Scalar(1. / 2.) * dab.x * Fab.x; // xx
-            rigidity_virial[1] = Scalar(1. / 2.) * dab.y * Fab.x; // xy
-            rigidity_virial[2] = Scalar(1. / 2.) * dab.z * Fab.x; // xz
-            rigidity_virial[3] = Scalar(1. / 2.) * dab.y * Fab.y; // yy
-            rigidity_virial[4] = Scalar(1. / 2.) * dab.z * Fab.y; // yz
-            rigidity_virial[5] = Scalar(1. / 2.) * dab.z * Fab.z; // zz
-            }
+        rigidity_virial[0] = Scalar(1. / 2.) * dab.x * Fab.x; // xx
+        rigidity_virial[1] = Scalar(1. / 2.) * dab.y * Fab.x; // xy
+        rigidity_virial[2] = Scalar(1. / 2.) * dab.z * Fab.x; // xz
+        rigidity_virial[3] = Scalar(1. / 2.) * dab.y * Fab.y; // yy
+        rigidity_virial[4] = Scalar(1. / 2.) * dab.z * Fab.y; // yz
+        rigidity_virial[5] = Scalar(1. / 2.) * dab.z * Fab.z; // zz
 
         if (idx_b < m_pdata->getN())
             {
@@ -254,15 +245,12 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_b] += rigidity_virial[j];
             }
 
-        if (compute_virial)
-            {
-            rigidity_virial[0] = Scalar(1. / 2.) * dac.x * Fac.x; // xx
-            rigidity_virial[1] = Scalar(1. / 2.) * dac.y * Fac.x; // xy
-            rigidity_virial[2] = Scalar(1. / 2.) * dac.z * Fac.x; // xz
-            rigidity_virial[3] = Scalar(1. / 2.) * dac.y * Fac.y; // yy
-            rigidity_virial[4] = Scalar(1. / 2.) * dac.z * Fac.y; // yz
-            rigidity_virial[5] = Scalar(1. / 2.) * dac.z * Fac.z; // zz
-            }
+        rigidity_virial[0] = Scalar(1. / 2.) * dac.x * Fac.x; // xx
+        rigidity_virial[1] = Scalar(1. / 2.) * dac.y * Fac.x; // xy
+        rigidity_virial[2] = Scalar(1. / 2.) * dac.z * Fac.x; // xz
+        rigidity_virial[3] = Scalar(1. / 2.) * dac.y * Fac.y; // yy
+        rigidity_virial[4] = Scalar(1. / 2.) * dac.z * Fac.y; // yz
+        rigidity_virial[5] = Scalar(1. / 2.) * dac.z * Fac.z; // zz
 
         if (idx_c < m_pdata->getN())
             {
@@ -274,15 +262,12 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += rigidity_virial[j];
             }
 
-        if (compute_virial)
-            {
-            rigidity_virial[0] = Scalar(1. / 2.) * dad.x * Fad.x; // xx
-            rigidity_virial[1] = Scalar(1. / 2.) * dad.y * Fad.x; // xy
-            rigidity_virial[2] = Scalar(1. / 2.) * dad.z * Fad.x; // xz
-            rigidity_virial[3] = Scalar(1. / 2.) * dad.y * Fad.y; // yy
-            rigidity_virial[4] = Scalar(1. / 2.) * dad.z * Fad.y; // yz
-            rigidity_virial[5] = Scalar(1. / 2.) * dad.z * Fad.z; // zz
-            }
+        rigidity_virial[0] = Scalar(1. / 2.) * dad.x * Fad.x; // xx
+        rigidity_virial[1] = Scalar(1. / 2.) * dad.y * Fad.x; // xy
+        rigidity_virial[2] = Scalar(1. / 2.) * dad.z * Fad.x; // xz
+        rigidity_virial[3] = Scalar(1. / 2.) * dad.y * Fad.y; // yy
+        rigidity_virial[4] = Scalar(1. / 2.) * dad.z * Fad.y; // yz
+        rigidity_virial[5] = Scalar(1. / 2.) * dad.z * Fad.z; // zz
 
         if (idx_d < m_pdata->getN())
             {

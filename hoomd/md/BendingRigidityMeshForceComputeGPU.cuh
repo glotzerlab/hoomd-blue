@@ -35,8 +35,7 @@ hipError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
                                               const unsigned int* n_bonds_list,
                                               Scalar* d_params,
                                               const unsigned int n_bond_type,
-                                              int block_size,
-                                              unsigned int* d_flags);
+                                              int block_size);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

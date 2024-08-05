@@ -35,7 +35,6 @@ namespace kernel
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
 __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
                                                           Scalar* d_virial,
@@ -49,8 +48,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
                                                           const unsigned int* bpos_list,
                                                           const unsigned int* n_bonds_list,
                                                           Scalar* d_params,
-                                                          const unsigned int n_bond_type,
-                                                          unsigned int* d_flags)
+                                                          const unsigned int n_bond_type)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -220,7 +218,6 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
     \param block_size Block size to use when performing calculations
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
@@ -238,8 +235,7 @@ hipError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
                                               const unsigned int* n_bonds_list,
                                               Scalar* d_params,
                                               const unsigned int n_bond_type,
-                                              int block_size,
-                                              unsigned int* d_flags)
+                                              int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -270,8 +266,7 @@ hipError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
                        bpos_list,
                        n_bonds_list,
                        d_params,
-                       n_bond_type,
-                       d_flags);
+                       n_bond_type);
 
     return hipSuccess;
     }
