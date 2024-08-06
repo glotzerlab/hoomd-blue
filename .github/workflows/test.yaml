@@ -118,10 +118,10 @@ jobs:
       id: lychee
       uses: lycheeverse/lychee-action@v1
       with:
-        args: -n --exclude-path hoomd/extern sphinx-doc/_templates/page.html doc_build/module
+        args: -n --exclude-path hoomd/extern sphinx-doc/_templates/page.html doc_build/*module*.html
               --exclude https://glotzerlab.engin.umich.edu 
               --exclude doi.org 
-              --exclude gitlab.com --
+              --exclude gitlab.com
               './**/*.md' './**/*.html' './**/*.rst'
         fail: true
         
