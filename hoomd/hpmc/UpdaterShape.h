@@ -334,7 +334,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 {
                 Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
                 Scalar Z = slow::exp(log_boltz);
-
+//test push
 #ifdef ENABLE_MPI
                 if (m_multi_phase)
                     {
