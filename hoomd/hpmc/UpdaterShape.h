@@ -319,8 +319,25 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             m_mc->setParam(typ_i, shape_param_new);
 
             // check if at least one overlap was caused
-            bool overlaps = static_cast<bool>(m_mc->countOverlaps(true));
+            unsigned int overlaps_int = m_mc->countOverlaps(true);
+
+            #ifdef ENABLE_MPI
+                    bool overlaps = false;
+                    if (m_multi_phase)
+                    {
+                        std::vector<unsigned int> overlaps_gather;
+                        all_gather_v(overlaps_int,overlaps_gather, m_exec_conf->getHOOMDWorldMPICommunicator());
+                        // check if overlaps occur in either box and reject and retreat if they do
+                        overlaps_int = std::accumulate(overlaps_gather.begin(),overlaps_gather.end(),0)
+                        if(overlaps_int > 0)
+                        {
+                            bool overlaps = static_cast<bool>(overlaps_int);
+                        }
+                    }
             // automatically reject if there are overlaps
+            #else
+                bool overlaps = static_cast<bool>(overlaps_int);
+            #endif
             if (overlaps)
                 {
                 m_exec_conf->msg->notice(5)
@@ -334,7 +351,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 {
                 Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
                 Scalar Z = slow::exp(log_boltz);
-//test push
+
 #ifdef ENABLE_MPI
                 if (m_multi_phase)
                     {
