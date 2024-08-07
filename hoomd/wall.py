@@ -236,19 +236,16 @@ class Cone(WallGeometry):
     r"""A truncated cone shape wall.
 
     Args:
-        radius1 (float):
-            The radius of the smaller circle face of the cylinder
+        radius (float):
+            The radius of the circle face of the cone
             :math:`[\mathrm{length}]`.
-        radius2 (float):
-            The radius of the larger circle face of the cylinder
-            :math:`[\mathrm{length}]`.
-        distance (float):
-            The distance between two radius, radius1 and radius2
+        height (float):
+            The height of the cone
             :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):
             A vector perpendicular to the circular faces.
         origin (`tuple` [`float`, `float`, `float`], optional):
-            The origin of the Cone defined as the center of the circle along
+            The origin of the Cone defined as the tip of the cone along
             the cylinder's axis :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
             Whether positive signed distances are inside or outside the
@@ -282,17 +279,14 @@ class Cone(WallGeometry):
         `Cone` objects are immutable.
 
     Attributes:
-        radius1 (float):
-            The radius of the smaller circle face of the cylinder
+        radius (float):
+            The radius of the  circle face of the cylinder
             :math:`[\mathrm{length}]`.
-        radius2 (float):
-            The radius of the larter circle face of the cylinder
-            :math:`[\mathrm{length}]`.
-        distance (float):
-            The distance between two radius, radius1 and radius2
+        height (float):
+            The height of the cone
             :math:`[\mathrm{length}]`.
         origin (`tuple` [`float`, `float`, `float`]):
-            The origin of the Cone defined as the center of the circle along
+            The origin of the Cone defined as the tip of the cone along
             the cylinder's axis :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):
             A vector perpendicular to the circular faces.
@@ -305,23 +299,20 @@ class Cone(WallGeometry):
     """
 
     def __init__(self,
-                 radius1,
-                 radius2,
-                 distance,
+                 radius,
+                 height,
                  axis,
                  origin=(0.0, 0.0, 0.0),
                  inside=True,
                  open=True):
-        param_dict = ParameterDict(radius1=float,
-                                   radius2=float,
-                                   distance=float,
+        param_dict = ParameterDict(radius=float,
+                                   height=float,
                                    origin=(float, float, float),
                                    axis=(float, float, float),
                                    inside=bool,
                                    open=bool)
-        param_dict["radius1"] = radius1
-        param_dict["radius2"] = radius2
-        param_dict["distance"] = distance
+        param_dict["radius"] = radius
+        param_dict["height"] = height
         param_dict["origin"] = origin
         param_dict["axis"] = axis
         param_dict["inside"] = inside
@@ -334,7 +325,7 @@ class Cone(WallGeometry):
 
     def __repr__(self):
         """A string representation of the Cone."""
-        return f"Cone(radius1={self.radius1}, radius2={self.radius2},distance={self.distance},origin={self.origin}, "
+        return f"Cone(radius={self.radius},height={self.height},origin={self.origin}, "
         f"axis={self.axis}, inside={self.inside}, open={self.open})"
 
     def to_dict(self):
@@ -344,9 +335,8 @@ class Cone(WallGeometry):
             dict: The geometry in a Python dictionary.
         """
         return {
-            "radius1": self.radius1,
-            "radius2": self.radius2,
-            "distance": self.distance,
+            "radius": self.radius,
+            "height": self.height,
             "origin": self.origin,
             "axis": self.axis,
             "inside": self.inside,

@@ -81,18 +81,16 @@ void export_wall_data(pybind11::module& m)
 
 pybind11::class_<ConeWall>(m, "ConeWall")
         .def(pybind11::init(
-                 [](hoomd::Scalar radius1,
-                    hoomd::Scalar radius2,
-                    hoomd::Scalar distance,
+                 [](hoomd::Scalar radius,
+                    hoomd::Scalar height,
                     pybind11::tuple origin,
                     pybind11::tuple z_orientation,
                     bool inside,
                     bool open)
                  {
                      return ConeWall(
-                         radius1,
-                         radius2,
-                         distance,
+                         radius,
+                         height,
                          hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
                                              origin[1].cast<hoomd::Scalar>(),
                                              origin[2].cast<hoomd::Scalar>()),
@@ -102,16 +100,14 @@ pybind11::class_<ConeWall>(m, "ConeWall")
                          inside,
                          open);
                  }),
-             pybind11::arg("radius1"),
-             pybind11::arg("radius2"),
-             pybind11::arg("distance"),
+             pybind11::arg("radius"),
+             pybind11::arg("height"),
              pybind11::arg("origin"),
              pybind11::arg("axis"),
              pybind11::arg("inside"),
              pybind11::arg("open"))
-        .def_property_readonly("radius1", [](const ConeWall& wall) { return wall.r; })
-        .def_property_readonly("radius2", [](const ConeWall& wall) { return wall.r; })
-        .def_property_readonly("distance", [](const ConeWall& wall) { return wall.r; })
+        .def_property_readonly("radius", [](const ConeWall& wall) { return wall.r; })
+        .def_property_readonly("height", [](const ConeWall& wall) { return wall.r; })
         .def_property_readonly(
             "origin",
             [](const ConeWall& wall)

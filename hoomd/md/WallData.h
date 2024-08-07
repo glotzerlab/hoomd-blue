@@ -98,25 +98,24 @@ struct __attribute__((visibility("default"))) CylinderWall
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of quat<Scalar>
 
 //! ConeWall Constructor
-/*! \param r1 Radius of the circle 1
-    \param r2 Radius of the circle 2
-    \param d distance between two circles
-    \param origin The x,y,z coordinates of a point on the cylinder axis
-    \param axis A x,y,z vector along the cylinder axis used to define the axis
+/*! \param r Radius of the circle
+    \param a angle between the cone axis and the side
+    \param h height
+    \param origin The x,y,z coordinates of a point on the cone axis
+    \param axis A x,y,z vector along the cone axis used to define the axis
     \param quatAxisToZRot (Calculated not input) The quaternion which rotates the simulation space
-   such that the axis of the cylinder is parallel to the z' axis \param inside Determines which half
+   such that the axis of the cone is parallel to the z' axis \param inside Determines which half
    space is evaluated.
 */
 struct __attribute__((visibility("default"))) ConeWall
     {
-    ConeWall(Scalar rad1 = 0.0,
-             Scalar rad2 = 0.0,
-             Scalar dist = 0.0,
+    ConeWall(Scalar rad = 0.0,
+             Scalar height = 0.0,
              Scalar3 orig = make_scalar3(0.0, 0.0, 0.0),
              Scalar3 zorient = make_scalar3(0.0, 0.0, 1.0),
              bool ins = true,
              bool open_ = true)
-        : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r1(rad1), r2(rad2), d(dist), inside(ins), open(open_)
+        : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r(rad), h(height), inside(ins), open(open_)
         {
         vec3<Scalar> zVec = axis;
         vec3<Scalar> zNorm(0.0, 0.0, 1.0);
@@ -141,16 +140,15 @@ struct __attribute__((visibility("default"))) ConeWall
         Scalar norm = fast::rsqrt(norm2(quatAxisToZRot));
         quatAxisToZRot = conj(norm * quatAxisToZRot);
         
-        angle = fast::atan((r2 - r1)/d)
+        angle = fast::atan(r/h)
         }
     quat<Scalar>
         quatAxisToZRot; // need to order datatype in descending order of type size for Fermi
     Scalar angle;
     vec3<Scalar> origin;
     vec3<Scalar> axis;
-    Scalar r1;
-    Scalar r2;
-    Scalar d;
+    Scalar r;
+    Scalar h;
     bool inside;
     bool open;
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of quat<Scalar>
