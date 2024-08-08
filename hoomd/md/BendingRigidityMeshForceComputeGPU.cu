@@ -56,21 +56,18 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
     if (idx >= N)
         return;
 
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_bonds = n_bonds_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
-    // initialize the virial to 0
     Scalar virial[6];
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
-    // loop over all angles
+    // loop over all bonds
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
