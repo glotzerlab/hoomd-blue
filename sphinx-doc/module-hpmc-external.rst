@@ -4,8 +4,24 @@
 hoomd.hpmc.external
 -------------------
 
+.. rubric:: Overview
+
+.. py:currentmodule:: hoomd.hpmc.external
+
+.. autosummary::
+    :nosignatures:
+
+    External
+    Linear
+
+
+.. rubric:: Details
+
 .. automodule:: hoomd.hpmc.external
     :synopsis: External potentials for HPMC.
+    :show-inheritance:
+    :members: External,
+              Linear
 
 .. rubric:: Modules
 

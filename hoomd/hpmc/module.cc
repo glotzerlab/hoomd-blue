@@ -41,10 +41,15 @@ namespace detail
     {
 // Declare export methods in this file instead of in header files to avoid unecessary recompilations
 // of this file.
+void exportExternalPotential(pybind11::module& m);
+
+void exportExternalPotentialLinear(pybind11::module& m);
 
 void exportPairPotential(pybind11::module& m);
 
 void exportPairPotentialLennardJones(pybind11::module& m);
+
+void exportPairPotentialExpandedGaussian(pybind11::module& m);
 
 void exportPairPotentialAngularStep(pybind11::module& m);
 
@@ -146,8 +151,12 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_hpmc_nec_counters(m);
 
+    exportExternalPotential(m);
+    exportExternalPotentialLinear(m);
+
     exportPairPotential(m);
     exportPairPotentialLennardJones(m);
+    exportPairPotentialExpandedGaussian(m);
     exportPairPotentialAngularStep(m);
     exportPairPotentialStep(m);
     exportPairPotentialUnion(m);

@@ -11,13 +11,6 @@ exclude: (?x)(
 repos:
 - repo: local
   hooks:
-  - id: make_workflows
-    name: make_workflows
-    language: python
-    entry: python3 .github/workflows/make_workflows.py
-    pass_filenames: false
-    always_run: true
-    additional_dependencies: [jinja2==3.1.2, pyyaml==6.0.1]
   - id: check-maintainer
     name: Check for maintainer comments
     description: 'Enforce that `maintainer` comments are removed.'
@@ -25,7 +18,7 @@ repos:
     language: pygrep
     types_or: [python, c, c++, cuda, inc]
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.5.0'
+  rev: 'v4.6.0'
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -35,9 +28,6 @@ repos:
   - id: check-yaml
     exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
   - id: check-case-conflict
-  - id: fix-encoding-pragma
-    args:
-    - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
   rev: v0.3.2
@@ -79,7 +69,7 @@ repos:
   hooks:
   - id: yapf
 - repo: https://github.com/PyCQA/flake8
-  rev: '7.0.0'
+  rev: '7.1.0'
   hooks:
   - id: flake8
     additional_dependencies:
@@ -96,7 +86,7 @@ repos:
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v18.1.2
+  rev: v18.1.8
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

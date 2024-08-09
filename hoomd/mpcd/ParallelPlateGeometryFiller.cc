@@ -95,7 +95,7 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::ParallelPlateGeometryFiller, timestep, seed),
+            hoomd::Seed(hoomd::RNGIdentifier::VirtualParticleFiller, timestep, seed),
             hoomd::Counter(tag, m_filler_id));
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
@@ -129,10 +129,14 @@ void mpcd::ParallelPlateGeometryFiller::drawParticles(uint64_t timestep)
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ParallelPlateGeometryFiller(pybind11::module& m)
+void export_ParallelPlateGeometryFiller(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParallelPlateGeometryFiller,
                      mpcd::VirtualParticleFiller,
@@ -146,5 +150,6 @@ void mpcd::detail::export_ParallelPlateGeometryFiller(pybind11::module& m)
                             std::shared_ptr<const mpcd::ParallelPlateGeometry>>())
         .def_property_readonly("geometry", &mpcd::ParallelPlateGeometryFiller::getGeometry);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

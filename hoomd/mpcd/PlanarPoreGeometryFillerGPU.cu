@@ -32,7 +32,10 @@ namespace kernel
  * \param first_tag First tag of filled particles
  * \param first_idx First (local) particle index of filled particles
  * \param vel_factor Scale factor for uniform normal velocities consistent with particle mass /
- * temperature \param timestep Current timestep \param seed User seed to PRNG for drawing velocities
+ * temperature
+ * \param timestep Current timestep
+ * \param seed User seed to PRNG for drawing velocities
+ * \param filler_id ID for this filler
  *
  * \b Implementation:
  *
@@ -54,7 +57,8 @@ __global__ void slit_pore_draw_particles(Scalar4* d_pos,
                                          const unsigned int first_idx,
                                          const Scalar vel_factor,
                                          const uint64_t timestep,
-                                         const uint16_t seed)
+                                         const uint16_t seed,
+                                         const unsigned int filler_id)
     {
     // num_boxes should be 6, so this will all fit in shmem
     extern __shared__ char s_data[];
@@ -100,8 +104,8 @@ __global__ void slit_pore_draw_particles(Scalar4* d_pos,
 
     // initialize random number generator for positions and velocity
     hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::PlanarPoreGeometryFiller, timestep, seed),
-        hoomd::Counter(tag));
+        hoomd::Seed(hoomd::RNGIdentifier::VirtualParticleFiller, timestep, seed),
+        hoomd::Counter(tag, filler_id));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
@@ -133,6 +137,7 @@ __global__ void slit_pore_draw_particles(Scalar4* d_pos,
  * \param kT Temperature for fill particles
  * \param timestep Current timestep
  * \param seed User seed to PRNG for drawing velocities
+ * \param filler_id ID for this filler
  * \param block_size Number of threads per block
  *
  * \sa kernel::slit_pore_draw_particles
@@ -152,6 +157,7 @@ cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
                                      const Scalar kT,
                                      const uint64_t timestep,
                                      const uint16_t seed,
+                                     const unsigned int filler_id,
                                      const unsigned int block_size)
     {
     if (N_tot == 0)
@@ -181,7 +187,8 @@ cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
                                                                              first_idx,
                                                                              vel_factor,
                                                                              timestep,
-                                                                             seed);
+                                                                             seed,
+                                                                             filler_id);
 
     return cudaSuccess;
     }

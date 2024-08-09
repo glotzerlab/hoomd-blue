@@ -109,12 +109,6 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     //! Call the collision rule
     virtual void rule(uint64_t timestep) { }
     };
-
-namespace detail
-    {
-//! Export the MPCDCollisionMethod class to python
-void export_CollisionMethod(pybind11::module& m);
-    } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_COLLISION_METHOD_H_

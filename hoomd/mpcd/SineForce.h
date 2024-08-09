@@ -98,14 +98,6 @@ class __attribute__((visibility("default"))) SineForce
     Scalar m_F; //!< Force constant
     Scalar m_k; //!< Wavenumber for force in y
     };
-
-#ifndef __HIPCC__
-namespace detail
-    {
-void export_SineForce(pybind11::module& m);
-    } // end namespace detail
-#endif // __HIPCC__
-
     } // end namespace mpcd
     } // end namespace hoomd
 #undef HOSTDEVICE

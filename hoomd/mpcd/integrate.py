@@ -184,7 +184,7 @@ class Integrator(_MDIntegrator):
             half_step_hook,
         )
 
-        self._cell_list = CellList(cell_size=1.0, shift=True)
+        self._cell_list = CellList()
 
         virtual_particle_fillers = ([] if virtual_particle_fillers is None else
                                     virtual_particle_fillers)
@@ -211,9 +211,8 @@ class Integrator(_MDIntegrator):
     def cell_list(self):
         """hoomd.mpcd.collide.CellList: Collision cell list.
 
-        A `CellList` is automatically created with each `Integrator`
-        using typical defaults of cell size 1 and random grid shifting enabled.
-        You can change this parameter configuration if desired.
+        A `CellList` is automatically created with each `Integrator` using the
+        default settings.
 
         """
         return self._cell_list

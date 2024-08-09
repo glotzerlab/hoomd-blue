@@ -151,13 +151,18 @@ void mpcd::Sorter::applyOrder() const
     m_mpcd_pdata->swapTags();
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_Sorter(pybind11::module& m)
+void export_Sorter(pybind11::module& m)
     {
     pybind11::class_<mpcd::Sorter, Tuner, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

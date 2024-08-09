@@ -8,7 +8,6 @@
  */
 
 #include "BounceBackNVEGPU.cuh"
-#include "StreamingGeometry.h"
 
 namespace hoomd
     {
@@ -16,16 +15,6 @@ namespace mpcd
     {
 namespace gpu
     {
-//! Template instantiation of slit geometry streaming
-template cudaError_t
-nve_bounce_step_one<mpcd::ParallelPlateGeometry>(const bounce_args_t& args,
-                                                 const mpcd::ParallelPlateGeometry& geom);
-
-//! Template instantiation of slit pore geometry streaming
-template cudaError_t
-nve_bounce_step_one<mpcd::PlanarPoreGeometry>(const bounce_args_t& args,
-                                              const mpcd::PlanarPoreGeometry& geom);
-
 namespace kernel
     {
 //! Kernel for applying second step of velocity Verlet algorithm with bounce back

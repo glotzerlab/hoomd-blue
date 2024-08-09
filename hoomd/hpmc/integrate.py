@@ -168,7 +168,9 @@ potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` and the
 
 Similarly, potential classes in :doc:`module-hpmc-external` evaluate
 :math:`U_{\mathrm{external},i}`. Assign a class instance to
-`HPMCIntegrator.external_potential` to apply it during integration.
+`external_potential <HPMCIntegrator.external_potential>` or add instances to
+`external_potentials <HPMCIntegrator.external_potentials>` to apply during
+integration.
 
 .. rubric:: Shape overlap tests
 
@@ -416,6 +418,10 @@ class HPMCIntegrator(Integrator):
             hoomd.hpmc.pair.Pair,
             hoomd.data.syncedlist._PartialGetAttr('_cpp_obj'))
 
+        self._external_potentials = hoomd.data.syncedlist.SyncedList(
+            hoomd.hpmc.external.External,
+            hoomd.data.syncedlist._PartialGetAttr('_cpp_obj'))
+
     def _attach_hook(self):
         """Initialize the reflected c++ class.
 
@@ -460,6 +466,9 @@ class HPMCIntegrator(Integrator):
         self._pair_potentials._sync(self._simulation,
                                     self._cpp_obj.pair_potentials)
 
+        self._external_potentials._sync(self._simulation,
+                                        self._cpp_obj.external_potentials)
+
         super()._attach_hook()
 
     def _detach_hook(self):
@@ -468,6 +477,7 @@ class HPMCIntegrator(Integrator):
         if self._pair_potential is not None:
             self._pair_potential._detach()
         self._pair_potentials._unsync()
+        self._external_potentials._unsync()
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -480,15 +490,20 @@ class HPMCIntegrator(Integrator):
     def pair_potentials(self):
         """list[hoomd.hpmc.pair.Pair]: Pair potentials to apply.
 
+        Defines the pairwise particle interaction energy
+        :math:`U_{\\mathrm{pair},ij}` as the sum over all potentials in the
+        list.
+
         .. rubric:: Example
 
         .. invisible-code-block: python
 
-            lennard_jones =  hoomd.hpmc.pair.LennardJones()
+            lennard_jones = hoomd.hpmc.pair.LennardJones()
             lennard_jones.params[('A', 'A')] = dict(
                 epsilon=1, sigma=1, r_cut=2.5)
 
-        .. code-block: python
+        .. code-block:: python
+
             simulation.operations.integrator.pair_potentials = [lennard_jones]
         """
         return self._pair_potentials
@@ -497,6 +512,33 @@ class HPMCIntegrator(Integrator):
     def pair_potentials(self, value):
         self._pair_potentials.clear()
         self._pair_potentials.extend(value)
+
+    @property
+    def external_potentials(self):
+        """list[hoomd.hpmc.external.External]: External potentials to apply.
+
+        Defines the external energy :math:`U_{\\mathrm{external},i}` as the
+        sum over all potentials in the list.
+
+        .. rubric:: Example
+
+        .. invisible-code-block: python
+
+            linear = hoomd.hpmc.external.Linear(
+                plane_origin=(0, 0, 0),
+                plane_normal=(0, 0, -1))
+            linear.alpha['A'] = 1.234
+
+        .. code-block:: python
+
+            simulation.operations.integrator.external_potentials = [linear]
+        """
+        return self._external_potentials
+
+    @external_potentials.setter
+    def external_potentials(self, value):
+        self._external_potentials.clear()
+        self._external_potentials.extend(value)
 
     @log(category='sequence', requires_run=True)
     def map_overlaps(self):
@@ -580,6 +622,10 @@ class HPMCIntegrator(Integrator):
         Defines the pairwise particle interaction energy
         :math:`U_{\mathrm{pair},ij}`. Defaults to `None`. May be set to an
         object from :doc:`module-hpmc-pair`.
+
+        .. deprecated:: 4.5.0
+
+            Use `pair_potentials`.
         """
         warnings.warn(
             "pair_potential is deprecated since 4.5.0. "
@@ -612,11 +658,25 @@ class HPMCIntegrator(Integrator):
 
         Defines the external energy :math:`U_{\mathrm{external},i}`. Defaults to
         `None`. May be set to an object from :doc:`module-hpmc-external`.
+
+        .. deprecated:: 4.8.0
+
+            Use `external_potentials`.
         """
+        warnings.warn(
+            "external_potential is deprecated since 4.8.0. "
+            "Use external_potentials (when possible).",
+            FutureWarning,
+            stacklevel=2)
         return self._external_potential
 
     @external_potential.setter
     def external_potential(self, new_external_potential):
+        warnings.warn(
+            "external_potential is deprecated since 4.8.0. "
+            "Use external_potentials (when possible).",
+            FutureWarning,
+            stacklevel=4)
         if not isinstance(new_external_potential,
                           hoomd.hpmc.external.field.ExternalField):
             msg = 'External potentials should be an instance of '
@@ -635,6 +695,12 @@ class HPMCIntegrator(Integrator):
         :math:`[\\mathrm{energy}]`."""
         timestep = self._simulation.timestep
         return self._cpp_obj.computeTotalPairEnergy(timestep)
+
+    @log(requires_run=True)
+    def external_energy(self):
+        """float: Total external energy contributed by all external potentials \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.computeTotalExternalEnergy(False)
 
 
 class Sphere(HPMCIntegrator):
@@ -770,6 +836,7 @@ class ConvexPolygon(HPMCIntegrator):
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
+
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
@@ -788,9 +855,9 @@ class ConvexPolygon(HPMCIntegrator):
               present because `ConvexPolygon` shares data structures with
               `ConvexSpheropolygon` :math:`[\\mathrm{length}]`.
 
-          Warning:
-              HPMC does not check that all vertex requirements are met.
-              Undefined behavior **will result** when they are violated.
+            Warning:
+                HPMC does not check that all vertex requirements are met.
+                Undefined behavior **will result** when they are violated.
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
@@ -981,6 +1048,7 @@ class SimplePolygon(HPMCIntegrator):
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
+
             The shape parameters for each particle type. The dictionary has the
             following keys:
 

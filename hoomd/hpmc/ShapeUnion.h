@@ -1124,13 +1124,13 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
                                                            r,
                                                            dim,
                                                            detail::SamplingMethod::accurate);
-    typename Shape::depletion_storage_type temp[ntemp];
+    std::vector<typename Shape::depletion_storage_type> temp(ntemp);
     unsigned int nelem = initializeDepletionTemporaryStorage(shape_i,
                                                              shape_j,
                                                              r_ij,
                                                              r,
                                                              dim,
-                                                             temp,
+                                                             temp.data(),
                                                              V,
                                                              detail::SamplingMethod::accurate);
 
@@ -1143,7 +1143,7 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
                                             p,
                                             dim,
                                             nelem,
-                                            temp,
+                                            temp.data(),
                                             detail::SamplingMethod::accurate))
         return false;
 

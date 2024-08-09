@@ -29,12 +29,10 @@ class CellList(Compute):
     """Collision cell list.
 
     Args:
-        cell_size (float): Size of a collision cell.
         shift (bool): When True, randomly shift underlying collision cells.
 
-    The MPCD `CellList` bins particles into cubic cells of edge length
-    `cell_size`. Currently, the simulation box must be orthorhombic, and its
-    edges must be a multiple of `cell_size`.
+    The MPCD `CellList` bins particles into cubic cells of edge length 1.0.
+    The simulation box must be orthorhombic, and its edges must be an integer.
 
     When the total mean-free path of the MPCD particles is small, the cells
     should be randomly shifted in order to ensure Galilean invariance of the
@@ -52,14 +50,6 @@ class CellList(Compute):
         cell_list = simulation.operations.integrator.cell_list
 
     Attributes:
-        cell_size (float): Edge length of a collision cell.
-
-            .. rubric:: Example:
-
-            .. code-block:: python
-
-                cell_list.cell_size = 1.0
-
         shift (bool): When True, randomly shift underlying collision cells.
 
             .. rubric:: Example:
@@ -70,13 +60,10 @@ class CellList(Compute):
 
     """
 
-    def __init__(self, cell_size, shift=True):
+    def __init__(self, shift=True):
         super().__init__()
 
-        param_dict = ParameterDict(
-            cell_size=float(cell_size),
-            shift=bool(shift),
-        )
+        param_dict = ParameterDict(shift=bool(shift),)
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
@@ -88,8 +75,7 @@ class CellList(Compute):
         else:
             cpp_class = _mpcd.CellList
 
-        self._cpp_obj = cpp_class(sim.state._cpp_sys_def, self.cell_size,
-                                  self.shift)
+        self._cpp_obj = cpp_class(sim.state._cpp_sys_def, 1.0, self.shift)
 
         super()._attach_hook()
 
