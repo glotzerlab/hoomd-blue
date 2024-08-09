@@ -34,12 +34,12 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
     struct rigidity_params
         {
         Scalar k;
-    
+
 #ifndef __HIPCC__
         rigidity_params() : k(0) { }
-    
+
         rigidity_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }
-    
+
         pybind11::dict asDict()
             {
             pybind11::dict v;
@@ -84,7 +84,7 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    GPUArray<Scalar> m_params;             //!< Parameters
+    GPUArray<Scalar> m_params;                   //!< Parameters
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing
                                                  // the bending energy
 
