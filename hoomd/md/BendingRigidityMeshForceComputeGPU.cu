@@ -5,11 +5,6 @@
 #include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
 
-#include <assert.h>
-
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file BendingRigidityMeshForceComputeGPU.cu
     \brief Defines GPU kernel code for calculating the bending rigidity forces. Used by
    BendingRigidityMeshForceComputeComputeGPU.
