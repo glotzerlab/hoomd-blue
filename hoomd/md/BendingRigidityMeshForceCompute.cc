@@ -23,20 +23,18 @@ namespace md
 BendingRigidityMeshForceCompute::BendingRigidityMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_K(NULL), m_mesh_data(meshdef)
+    : ForceCompute(sysdef), m_mesh_data(meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing BendingRigidityMeshForceCompute" << endl;
 
     // allocate the parameters
-    m_K = new Scalar[m_mesh_data->getMeshBondData()->getNTypes()];
+    GPUArray<Scalar> params(m_mesh_data->getMeshBondData()->getNTypes(), m_exec_conf);
+    m_params.swap(params);
     }
 
 BendingRigidityMeshForceCompute::~BendingRigidityMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying BendingRigidityMeshForceCompute" << endl;
-
-    delete[] m_K;
-    m_K = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -46,7 +44,8 @@ BendingRigidityMeshForceCompute::~BendingRigidityMeshForceCompute()
 */
 void BendingRigidityMeshForceCompute::setParams(unsigned int type, Scalar K)
     {
-    m_K[type] = K;
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
+    h_params.data[type] = K;
 
     // check for some silly errors a user could make
     if (K <= 0)
@@ -68,8 +67,9 @@ pybind11::dict BendingRigidityMeshForceCompute::getParams(std::string type)
         m_exec_conf->msg->error() << "mesh.rigidity: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in BendingRigidityMeshForceCompute");
         }
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
     pybind11::dict params;
-    params["k"] = m_K[typ];
+    params["k"] = h_params.data[typ];
     return params;
     }
 
@@ -87,6 +87,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
 
     ArrayHandle<typename MeshBond::members_t> h_bonds(
         m_mesh_data->getMeshBondData()->getMembersArray(),
@@ -194,7 +195,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
 
         unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
 
-        Scalar prefactor = 0.5 * m_K[meshbond_type];
+        Scalar prefactor = 0.5 *  h_params.data[meshbond_type];
 
         Scalar prefactor_4 = 0.25 * prefactor;
 

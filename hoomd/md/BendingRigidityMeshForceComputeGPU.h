@@ -42,7 +42,6 @@ class PYBIND11_EXPORT BendingRigidityMeshForceComputeGPU : public BendingRigidit
 
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner
-    GPUArray<Scalar> m_params;             //!< Parameters stored on the GPU
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

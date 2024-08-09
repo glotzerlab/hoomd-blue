@@ -33,7 +33,7 @@ BendingRigidityMeshForceComputeGPU::BendingRigidityMeshForceComputeGPU(
     // allocate and zero device memory
     GPUArray<Scalar> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
                             this->m_exec_conf);
-    m_params.swap(params);
+    this->m_params.swap(params);
 
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,

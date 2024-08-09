@@ -84,8 +84,7 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K; //!< K parameter for multiple mesh triangle types
-
+    GPUArray<Scalar> m_params;             //!< Parameters
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing
                                                  // the bending energy
 
