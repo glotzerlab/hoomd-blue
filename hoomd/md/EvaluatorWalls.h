@@ -114,15 +114,17 @@ DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const C
     {
     // auto s = rotate(wall.quatAxisToZRot, wall.origin - position);
     // s.z = 0.0;
+    auto s = wall.origin - position;
     vec3<Scalar> rotatingaxis(-s.y,s.x,0);
     rotatingaxis = rotatingaxis * fast::rsqrt(s.y * s.y + s.x * s.x);
-    quat<Scalar> quatSideToZRot(fast::cos(wall.angle/2), - fast::sin(wall.angle/2) * rotatingaxis.x, fast::sin(wall.angle/2) * rotatingaxis.y, 0);
-    // quat<Scalar> quatSideToZRot = quat<Scalar>::fromAxisAngle(rotatingaxis, wall.angle);
-    quat<Scalar> quatCombined = wall.quatAxisToZRot * quatAxisToZRot;
-    auto s = rotate(quatCombined, position);
+    // quat<Scalar> quatSideToZRot(fast::cos(wall.angle/2), - fast::sin(wall.angle/2) * rotatingaxis.x, fast::sin(wall.angle/2) * rotatingaxis.y, 0.0);
+    quat<Scalar> quatSideToZRot = quat<Scalar>::fromAxisAngle(rotatingaxis, wall.angle);
+    quat<Scalar> quatCombined = wall.quatAxisToZRot * quatSideToZRot;
+    auto d = rotate(quatCombined, position);
+    d.z = 0.0;
 
-    return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
-    return vec_to_scalar3(rotate(conj(quatCombined), s) / wall.r);
+    // return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
+    return vec_to_scalar3(rotate(conj(quatCombined), d) / wall.r);
     }
 
 /// Function for getting the force direction for particle on the wall with r_extrap

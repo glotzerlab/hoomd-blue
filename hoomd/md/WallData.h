@@ -99,7 +99,6 @@ struct __attribute__((visibility("default"))) CylinderWall
 
 //! ConeWall Constructor
 /*! \param r Radius of the circle
-    \param a angle between the cone axis and the side
     \param h height
     \param origin The x,y,z coordinates of a point on the cone axis
     \param axis A x,y,z vector along the cone axis used to define the axis
