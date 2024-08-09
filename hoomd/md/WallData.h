@@ -139,7 +139,7 @@ struct __attribute__((visibility("default"))) ConeWall
         Scalar norm = fast::rsqrt(norm2(quatAxisToZRot));
         quatAxisToZRot = conj(norm * quatAxisToZRot);
         
-        angle = fast::atan(r/h)
+        angle = atan(r/h);
         }
     quat<Scalar>
         quatAxisToZRot; // need to order datatype in descending order of type size for Fermi

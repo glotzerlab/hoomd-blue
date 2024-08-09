@@ -77,7 +77,7 @@ struct HOOMD_PYBIND11_EXPORT wall_type
         return numCones;
         }
 
-    CylinderWall& getCone(size_t index)
+    ConeWall& getCone(size_t index)
         {
         return Cones[index];
         }
@@ -124,7 +124,10 @@ DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const C
     d.z = 0.0;
 
     // return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
-    return vec_to_scalar3(rotate(conj(quatCombined), d) / wall.r);
+    vec3<Scalar> vecforcedir = rotate(conj(quatCombined), d);
+    Scalar normVec = fast::rsqrt(dot(vecforcedir, vecforcedir));
+    // return vec_to_scalar3(rotate(conj(quatCombined), d) / wall.r);
+    return vec_to_scalar3(vecforcedir * normVec);
     }
 
 /// Function for getting the force direction for particle on the wall with r_extrap

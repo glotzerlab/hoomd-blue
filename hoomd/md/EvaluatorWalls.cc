@@ -61,7 +61,7 @@ void export_wall_field(pybind11::module& m)
                      wall_list.numCones,
                      std::function<void(const ArrayView<ConeWall>*)>(
                          [&wall_list](const ArrayView<ConeWall>* view) -> void
-                         { wall_list.numCylinders = static_cast<unsigned int>(view->size); }));
+                         { wall_list.numCones = static_cast<unsigned int>(view->size); }));
              })
         .def("get_plane_list",
              [](wall_type& wall_list)
