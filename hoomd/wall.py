@@ -8,7 +8,7 @@ image and are not replicated across the periodic boundary conditions. Points on
 one side of the surface have a positive signed distance to that surface, and
 points on the other side have a negative signed distance.
 
-Define individual walls with `Cylinder`, `Plane`, and `Sphere`. Create lists of
+Define individual walls with `Cylinder`,`Cone`, `Plane`, and `Sphere`. Create lists of
 these `WallGeometry` objects to describe more complex geometries. Use walls to
 confine particles to specific regions of space in HPMC and MD simulations.
 
@@ -246,7 +246,7 @@ class Cone(WallGeometry):
             A vector perpendicular to the circular faces.
         origin (`tuple` [`float`, `float`, `float`], optional):
             The origin of the Cone defined as the tip of the cone along
-            the cylinder's axis :math:`[\mathrm{length}]`.
+            the Cone's axis :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
             Whether positive signed distances are inside or outside the
             Cone.
@@ -266,8 +266,8 @@ class Cone(WallGeometry):
             \right) \hat{n} \rvert \right)
 
     for ``inside=True``, where :math:`r` is the particle position,
-    :math:`\vec{r}_o` is the origin of the cylinder, :math:`\hat{n}` is the
-    cylinder's unit axis, and :math:`R` is the cylinder's radius. The distance
+    :math:`\vec{r}_o` is the origin of the cone tip, :math:`\hat{n}` is the
+    cone's unit axis, and :math:`R` is the cone's circle radius. The distance
     is negated when ``inside=False``.
 
     Warning:
@@ -287,7 +287,7 @@ class Cone(WallGeometry):
             :math:`[\mathrm{length}]`.
         origin (`tuple` [`float`, `float`, `float`]):
             The origin of the Cone defined as the tip of the cone along
-            the cylinder's axis :math:`[\mathrm{length}]`.
+            the Cone's axis :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):
             A vector perpendicular to the circular faces.
         inside (bool):
@@ -329,7 +329,7 @@ class Cone(WallGeometry):
         f"axis={self.axis}, inside={self.inside}, open={self.open})"
 
     def to_dict(self):
-        """Convert the wall geometry to a dictionary defining the cylinder.
+        """Convert the wall geometry to a dictionary defining the cone.
 
         Returns:
             dict: The geometry in a Python dictionary.
@@ -474,6 +474,10 @@ class _WallsMetaList(MutableSequence):
                 SyncedList(Sphere, to_synced_list=to_cpp, attach_members=False),
             Cylinder:
                 SyncedList(Cylinder,
+                           to_synced_list=to_cpp,
+                           attach_members=False),
+            Cone:
+                SyncedList(Cone,
                            to_synced_list=to_cpp,
                            attach_members=False),
             Plane:

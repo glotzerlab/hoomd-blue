@@ -152,7 +152,7 @@ def _to_md_cpp_wall(wall):
         return _md.CylinderWall(wall.radius, wall.origin.to_base(),
                                 wall.axis.to_base(), wall.inside, wall.open)
     if isinstance(wall, hoomd.wall.Cone):
-        return _md.ConeWall(wall.radius1, wall.radius2, distance, wall.origin.to_base(),
+        return _md.ConeWall(wall.radius, wall.height, wall.origin.to_base(),
                             wall.axis.to_base(), wall.inside, wall.open)
     if isinstance(wall, hoomd.wall.Plane):
         return _md.PlaneWall(wall.origin.to_base(), wall.normal.to_base(),
