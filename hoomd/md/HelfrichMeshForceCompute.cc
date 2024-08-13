@@ -35,13 +35,15 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_K = new Scalar[m_mesh_data->getMeshBondData()->getNTypes()];
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
+    GlobalArray<Scalar3> tmp_sigma_dash(m_pdata->getMaxN(), m_exec_conf);
+
+    std::cout << m_pdata->getMaxN() << " " << m_pdata->getN() << " " <<  m_pdata->getNGhosts() << std::endl;
 
     m_sigma_dash.swap(tmp_sigma_dash);
     TAG_ALLOCATION(m_sigma_dash);
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
+    GlobalArray<Scalar> tmp_sigma(m_pdata->getMaxN(), m_exec_conf);
 
     m_sigma.swap(tmp_sigma);
     TAG_ALLOCATION(m_sigma);
@@ -439,7 +441,6 @@ void HelfrichMeshForceCompute::computeSigma()
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
         const typename MeshBond::members_t& bond = h_bonds.data[i];
 
         unsigned int btag_a = bond.tag[0];
@@ -454,8 +455,6 @@ void HelfrichMeshForceCompute::computeSigma()
         if (btag_c == btag_d)
             continue;
 
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[btag_a];
         unsigned int idx_b = h_rtag.data[btag_b];
         unsigned int idx_c = h_rtag.data[btag_c];
@@ -466,7 +465,6 @@ void HelfrichMeshForceCompute::computeSigma()
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
 
-        // calculate d\vec{r}
         Scalar3 dab;
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
@@ -492,17 +490,12 @@ void HelfrichMeshForceCompute::computeSigma()
         dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
         dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
 
-        // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
         dad = box.minImage(dad);
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -570,16 +563,22 @@ void HelfrichMeshForceCompute::computeSigma()
 
         Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
-        h_sigma.data[idx_a] += sigma_a;
-        h_sigma.data[idx_b] += sigma_a;
 
-        h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
-        h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
-        h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
+        if (idx_a < m_pdata->getN())
+	   {
+	   h_sigma.data[idx_a] += sigma_a;
+           h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
+           h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
+           h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
+	   }
 
-        h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
-        h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
-        h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
+        if (idx_b < m_pdata->getN())
+	   {
+           h_sigma.data[idx_b] += sigma_a;
+           h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
+           h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
+           h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
+	   }
         }
     }
 
