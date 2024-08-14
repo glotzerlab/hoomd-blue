@@ -948,7 +948,9 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     this->computeOneExternalEnergy(typ_i, pos_i, shape_i.orientation, h_charge.data[i], true);
                 }
 
-            bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff);
+            Scalar kbT = IntegratorHPMC::getTimestepkbT(timestep)
+
+            bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff / kbT);
 
             // The trial move is valid, so check if it is invalidated by depletants
             unsigned int seed_i_new = hoomd::detail::generate_u32(rng_i);
