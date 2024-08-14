@@ -26,13 +26,14 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
-                   ManifoldZCylinder.cc
+		   ManifoldCuboid.cc
                    ManifoldDiamond.cc
                    ManifoldEllipsoid.cc
                    ManifoldGyroid.cc
-                   ManifoldXYPlane.cc
                    ManifoldPrimitive.cc
                    ManifoldSphere.cc
+                   ManifoldXYPlane.cc
+                   ManifoldZCylinder.cc
                    MolecularForceCompute.cc
                    MuellerPlatheFlow.cc
                    NeighborListBinned.cc
@@ -131,13 +132,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
-                ManifoldZCylinder.h
+		ManifoldCuboid.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
                 ManifoldGyroid.h
-                ManifoldXYPlane.h
                 ManifoldPrimitive.h
                 ManifoldSphere.h
+                ManifoldXYPlane.h
+                ManifoldZCylinder.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 MuellerPlatheFlowEnum.h
@@ -281,6 +283,7 @@ endif (ENABLE_HIP)
 
 # generate pybind11 export cc files
 set(_manifolds Cylinder
+	       Cuboid
                Diamond
                Ellipsoid
                Gyroid

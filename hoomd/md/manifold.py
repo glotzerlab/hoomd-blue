@@ -56,6 +56,41 @@ class Manifold(_HOOMDBaseObject):
         raise MutabilityError(attr)
 
 
+class Cuboid(Manifold):
+    r"""Cuboid manifold.
+
+    Args:
+        a (`tuple` [`float`, `float`, `float`]): edge lengths of the cuboid
+            :math:`[\mathrm{length}]`.
+        P (`tuple` [`float`, `float`, `float`]): point defining position of
+            the cuboid center (default origin) :math:`[\mathrm{length}]`.
+
+    `Cuboid` defines a cuboid:
+
+    Example::
+
+        cuboid1 = manifold.Cuboid(a=(10,10,10))
+        cuboid2 = manifold.Cuboid(a=(5,6,7),P=(1,1,1))
+    """
+
+    def __init__(self, a, P=(0, 0, 0)):
+        # initialize the base class
+        param_dict = ParameterDict(
+            a=(float, float, float),
+            P=(float, float, float),
+        )
+        param_dict['P'] = P
+        param_dict['a'] = a
+
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _md.ManifoldCuboid(
+            _hoomd.make_scalar3(self.a[0], self.a[1], self.a[2]), 
+            _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
+
+        super()._attach(self._simulation)
+
 class Cylinder(Manifold):
     r"""Cylinder manifold.
 

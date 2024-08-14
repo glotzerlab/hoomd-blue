@@ -41,6 +41,7 @@ void export_ForceComposite(pybind11::module& m);
 void export_PPPMForceCompute(pybind11::module& m);
 void export_wall_data(pybind11::module& m);
 void export_wall_field(pybind11::module& m);
+void export_WallForceConstraintComputeCuboid(pybind11::module& m);
 void export_WallForceConstraintComputeCylinder(pybind11::module& m);
 void export_WallForceConstraintComputeDiamond(pybind11::module& m);
 void export_WallForceConstraintComputeEllipsoid(pybind11::module& m);
@@ -151,6 +152,7 @@ void export_TwoStepRATTLENVEPlane(pybind11::module& m);
 void export_TwoStepRATTLENVEPrimitive(pybind11::module& m);
 void export_TwoStepRATTLENVESphere(pybind11::module& m);
 
+void export_ManifoldCuboid(pybind11::module& m);
 void export_ManifoldDiamond(pybind11::module& m);
 void export_ManifoldEllipsoid(pybind11::module& m);
 void export_ManifoldGyroid(pybind11::module& m);
@@ -315,6 +317,7 @@ PYBIND11_MODULE(_md, m)
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
+    export_WallForceConstraintComputeCuboid(m);
     export_WallForceConstraintComputeCylinder(m);
     export_WallForceConstraintComputeDiamond(m);
     export_WallForceConstraintComputeEllipsoid(m);
@@ -563,11 +566,12 @@ PYBIND11_MODULE(_md, m)
 #endif
 
     // manifolds
-    export_ManifoldZCylinder(m);
+    export_ManifoldCuboid(m);
     export_ManifoldDiamond(m);
     export_ManifoldEllipsoid(m);
     export_ManifoldGyroid(m);
-    export_ManifoldXYPlane(m);
     export_ManifoldPrimitive(m);
     export_ManifoldSphere(m);
+    export_ManifoldXYPlane(m);
+    export_ManifoldZCylinder(m);
     }
