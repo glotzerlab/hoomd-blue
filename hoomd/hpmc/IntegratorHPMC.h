@@ -15,6 +15,7 @@
 
 #include "hoomd/CellList.h"
 #include "hoomd/Integrator.h"
+#include <hoomd/Variant.h>
 
 #include "ExternalField.h"
 #include "ExternalPotential.h"
