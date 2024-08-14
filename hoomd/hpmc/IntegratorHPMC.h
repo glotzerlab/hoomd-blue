@@ -331,6 +331,21 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         {
         return m_nselect;
         }
+    
+    //! Set kbT variant
+    /*! \param kbT new k_BT variant to set
+     */
+    void setkbT(std::shared_ptr<Variant> kbT)
+        {
+        m_kbT = kbT;
+        }
+
+    //! Get kbT variant
+    //! \returns current value of kbT parameter
+    std::shared_ptr<Variant> getkbT()
+        {
+        return m_kbT;
+        }
 
     //! Get performance in moves per second
     virtual double getMPS()
