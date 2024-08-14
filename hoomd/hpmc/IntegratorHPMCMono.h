@@ -948,7 +948,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     this->computeOneExternalEnergy(typ_i, pos_i, shape_i.orientation, h_charge.data[i], true);
                 }
 
-            Scalar kbT = IntegratorHPMC::getTimestepkbT(timestep)
+            Scalar kbT = IntegratorHPMC::getTimestepkbT(timestep);
 
             bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff / kbT);
 
