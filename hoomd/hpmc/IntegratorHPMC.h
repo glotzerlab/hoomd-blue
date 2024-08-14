@@ -346,6 +346,16 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         {
         return m_kbT;
         }
+    
+    /** Evaluate the kbT variant at the given timestep.
+
+        @param timestep The simulation timestep.
+        @returns The value of the kbT variant at the given timestep.
+    */
+    Scalar getTimestepkbT(uint64_t timestep)
+        {
+        return m_kbT->operator()(timestep);
+        }
 
     //! Get performance in moves per second
     virtual double getMPS()
@@ -627,6 +637,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
                                     //! used in a more general setting.
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
+
+    std::shared_ptr<Variant> m_kbT; //!< kbT variant
 
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
