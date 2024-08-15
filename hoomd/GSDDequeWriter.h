@@ -31,7 +31,7 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
 
     void analyze(uint64_t timestep) override;
 
-    void dump();
+    void dump(uint64_t start, unit64_t end, bool empty_buffer);
 
     int getMaxQueueSize() const;
     void setMaxQueueSize(int new_max_size);

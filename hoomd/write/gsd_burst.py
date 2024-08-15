@@ -114,11 +114,18 @@ class Burst(GSD):
                                               self.mode, self.write_at_start,
                                               sim.timestep)
 
-    def dump(self):
-        """Write all currently stored frames to the file and empties the buffer.
+    def dump(self, start=0, end=0, empty_buffer=True):
+        """Write stored frames in range to the file and empties the buffer.
 
         This method alllows for custom writing of frames at user specified
         conditions.
+
+        Args:
+            start (int): The first frame to write. Defaults to 0.
+            end (int): The last frame to write, must be positive integer.
+                Defaults to 0 (last frame).
+            empty_buffer (bool): When ``True`` the buffer is emptied after
+                writing. Defaults to ``True``.
 
         .. rubric:: Example:
 
@@ -127,7 +134,7 @@ class Burst(GSD):
             burst.dump()
         """
         if self._attached:
-            self._cpp_obj.dump()
+            self._cpp_obj.dump(start, end, empty_buffer)
 
     def __len__(self):
         """Get the current length of the internal frame buffer.

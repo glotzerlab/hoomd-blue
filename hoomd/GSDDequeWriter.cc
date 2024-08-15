@@ -59,14 +59,30 @@ void GSDDequeWriter::analyze(uint64_t timestep)
         }
     }
 
-void GSDDequeWriter::dump()
+void GSDDequeWriter::dump(uint64_t start, uint64_t end, bool empty_buffer)
     {
-    for (auto i {static_cast<long int>(m_frame_queue.size()) - 1}; i >= 0; --i)
+    auto buffer_length = static_cast<long int>(m_frame_queue.size());
+    if (end == 0)
+        {
+        end = buffer_length;
+        }
+    if end > buffer_length
+        {
+        throw std::runtime_error("End index is out of range.");
+        }
+    if (start < 0 || start >= buffer_length)
+        {
+        throw std::runtime_error("Start index is out of range.");
+        }
+    for (auto i= end - 1; i >= start; --i)
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
-    m_frame_queue.clear();
-    m_log_queue.clear();
+    if (empty_buffer)
+        {
+        m_frame_queue.clear();
+        m_log_queue.clear();
+        }
     }
 
 int GSDDequeWriter::getMaxQueueSize() const
