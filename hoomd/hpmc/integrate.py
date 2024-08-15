@@ -767,12 +767,11 @@ class Sphere(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -868,12 +867,11 @@ class ConvexPolygon(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -981,12 +979,11 @@ class ConvexSpheropolygon(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1082,12 +1079,11 @@ class SimplePolygon(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1218,12 +1214,11 @@ class Polyhedron(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1322,12 +1317,11 @@ class ConvexPolyhedron(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1450,12 +1444,11 @@ class FacetedEllipsoid(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1533,12 +1526,11 @@ class Sphinx(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1632,12 +1624,11 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1721,12 +1712,11 @@ class Ellipsoid(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1832,12 +1822,11 @@ class SphereUnion(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1972,12 +1961,11 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -2123,12 +2111,11 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4,
-                 kbT=1.0):
+                 nselect=4):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect, kbT)
+                         nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
