@@ -380,7 +380,7 @@ class HPMCIntegrator(Integrator):
         param_dict = ParameterDict(
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect),
-            kbT=float(kbT))
+            kbT=hoomd.variant.Variant)
         self._param_dict.update(param_dict)
         self._pair_potential = None
         self._external_potential = None
@@ -767,11 +767,12 @@ class Sphere(HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4):
+                 nselect=4,
+                 kbT=hoomd.variant.Variant):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect)
+                         nselect, kbT)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
