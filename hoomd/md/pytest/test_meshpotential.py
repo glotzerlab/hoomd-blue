@@ -30,36 +30,55 @@ _Tether_args = {
 _Tether_arg_list = [(hoomd.md.mesh.bond.Tether, dict(zip(_Tether_args, val)))
                     for val in zip(*_Tether_args.values())]
 
+_BendingRigidity_args = {
+    'k': [2.0, 10.0, 300.0],
+}
+_BendingRigidity_arg_list = [(hoomd.md.mesh.bending.BendingRigidity,
+                              dict(zip(_BendingRigidity_args, val)))
+                             for val in zip(*_BendingRigidity_args.values())]
 
-def get_mesh_bond_and_args():
-    return _harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
+
+def get_mesh_potential_and_args():
+    return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
+            + _BendingRigidity_arg_list)
 
 
-def get_mesh_bond_args_forces_and_energies():
-    harmonic_forces = [[[-28.395, 16.393861, 0], [0, -32.787722, 0],
-                        [28.395, 16.393861, 0]],
-                       [[-27.4125, 15.826614, 0], [0, -31.653229, 0],
-                        [27.4125, 15.826614, 0]],
-                       [[-24.93, 14.393342, 0], [0, -28.786684, 0],
-                        [24.93, 14.393342, 0]]]
-    harmonic_energies = [17.9172, 20.0385, 20.7168]
-    FENE_forces = [[[-165.834803, 95.744768, 0], [0, -191.489537, 0],
-                    [165.834803, 95.744768, 0]],
-                   [[-9.719869, 5.611769, 0], [0., -11.223537, 0],
-                    [9.719869, 5.611769, 0]],
-                   [[33.483261, -19.331569, 0], [0, 38.663139, 0],
-                    [-33.483261, -19.331569, 0]]]
-    FENE_energies = [82.0225, 48.6153, 33.4625]
-    Tether_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                     [[-0.036666, 0.021169, 0], [0, -0.042339, 0],
-                      [0.036666, 0.021169, 0]],
-                     [[-5.358389, 3.093667, 0], [0, -6.187334, 0],
-                      [5.358389, 3.093667, 0]]]
-    Tether_energies = [0, 0.000463152, 0.1472802]
+def get_mesh_potential_args_forces_and_energies():
+    harmonic_forces = [[[37.86, 0., -26.771063], [-37.86, 0., -26.771063],
+                        [0., 37.86, 26.771063], [0., -37.86, 26.771063]],
+                       [[36.55, 0., -25.844753], [-36.55, 0., -25.844753],
+                        [0., 36.55, 25.844753], [0., -36.55, 25.844753]],
+                       [[33.24, 0., -23.504229], [-33.24, 0., -23.504229],
+                        [0., 33.24, 23.504229], [0., -33.24, 23.504229]]]
+    harmonic_energies = [35.83449, 40.077075, 41.43366]
+    FENE_forces = [[[221.113071, 0.,
+                     -156.350552], [-221.113071, 0., -156.350552],
+                    [0., 221.113071, 156.350552], [0., -221.113071,
+                                                   156.350552]],
+                   [[12.959825, 0., -9.16398], [-12.959825, 0., -9.16398],
+                    [0., 12.959825, 9.16398], [0., -12.959825, 9.16398]],
+                   [[-44.644347, 0., 31.568321], [44.644347, 0., 31.568321],
+                    [0., -44.644347, -31.568321], [0., 44.644347, -31.568321]]]
+    FENE_energies = [163.374213, 97.189301, 67.058202]
+    Tether_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                     [[0.048888, 0., -0.034569], [-0.048888, 0., -0.034569],
+                      [0., 0.048888, 0.034569], [0., -0.048888, 0.034569]],
+                     [[7.144518, 0., -5.051937], [-7.144518, 0., -5.051937],
+                      [0., 7.144518, 5.051937], [0., -7.144518, 5.051937]]]
+    Tether_energies = [0, 0.000926, 0.294561]
+
+    BendingRigidity_forces = [[[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]]]
+    BendingRigidity_energies = [8, 40, 1200]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     Tether_args_and_vals = []
+    BendingRigidity_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
             (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
@@ -67,103 +86,73 @@ def get_mesh_bond_args_forces_and_energies():
             (*_FENE_arg_list[i], FENE_forces[i], FENE_energies[i]))
         Tether_args_and_vals.append(
             (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
-    return harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
+        BendingRigidity_args_and_vals.append(
+            (*_BendingRigidity_arg_list[i], BendingRigidity_forces[i],
+             BendingRigidity_energies[i]))
+    return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
+            + BendingRigidity_args_and_vals)
 
 
 @pytest.fixture(scope='session')
-def triplet_snapshot_factory(device):
+def tetrahedron_snapshot_factory(device):
 
-    def make_snapshot(d=1.0,
-                      theta_deg=60,
-                      particle_types=['A'],
-                      dimensions=3,
-                      L=20):
-        theta_rad = theta_deg * (np.pi / 180)
-        s = hoomd.Snapshot(device.communicator)
-        N = 3
-        if s.communicator.rank == 0:
-            box = [L, L, L, 0, 0, 0]
-            if dimensions == 2:
-                box[2] = 0
-            s.configuration.box = box
-            s.particles.N = N
-
-            base_positions = np.array(
-                [[-d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0],
-                 [0.0, 0.0, 0.0],
-                 [d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0]])
-            # move particles slightly in direction of MPI decomposition which
-            # varies by simulation dimension
-            nudge_dimension = 2 if dimensions == 3 else 1
-            base_positions[:, nudge_dimension] += 0.1
-            s.particles.position[:] = base_positions
-            s.particles.types = particle_types
-        return s
-
-    return make_snapshot
-
-
-@pytest.fixture(scope='session')
-def mesh_snapshot_factory(device):
-
-    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
-        phi_rad = phi_deg * (np.pi / 180)
-        # the central particles are along the x-axis, so phi is determined from
-        # the angle in the yz plane.
-
+    def make_snapshot(d=1.0, particle_types=['A'], L=20):
         s = hoomd.Snapshot(device.communicator)
         N = 4
         if s.communicator.rank == 0:
             box = [L, L, L, 0, 0, 0]
             s.configuration.box = box
             s.particles.N = N
-            s.particles.types = particle_types
-            # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [
-                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
-                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
-                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
-            ]
 
+            base_positions = np.array([[1.0, 0.0, -1.0 / np.sqrt(2.0)],
+                                       [-1.0, 0.0, -1.0 / np.sqrt(2.0)],
+                                       [0.0, 1.0, 1.0 / np.sqrt(2.0)],
+                                       [0.0, -1.0, 1.0 / np.sqrt(2.0)]])
+            # move particles slightly in direction of MPI decomposition which
+            # varies by simulation dimension
+            s.particles.position[:] = 0.5 * d * base_positions
+            s.particles.types = particle_types
         return s
 
     return make_snapshot
 
 
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
-                         get_mesh_bond_and_args())
-def test_before_attaching(mesh_bond_cls, potential_kwargs):
+@pytest.mark.parametrize("mesh_potential_cls, potential_kwargs",
+                         get_mesh_potential_and_args())
+def test_before_attaching(mesh_potential_cls, potential_kwargs):
     mesh = hoomd.mesh.Mesh()
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["mesh"] = potential_kwargs
+    mesh_potential = mesh_potential_cls(mesh)
+    mesh_potential.params["mesh"] = potential_kwargs
 
-    assert mesh is mesh_bond_potential.mesh
+    assert mesh is mesh_potential.mesh
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+        np.testing.assert_allclose(mesh_potential.params["mesh"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
     mesh1 = hoomd.mesh.Mesh()
-    mesh_bond_potential.mesh = mesh1
-    assert mesh1 is mesh_bond_potential.mesh
+    mesh_potential.mesh = mesh1
+    assert mesh1 is mesh_potential.mesh
 
 
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
-                         get_mesh_bond_and_args())
-def test_after_attaching(triplet_snapshot_factory, simulation_factory,
-                         mesh_bond_cls, potential_kwargs):
-    snap = triplet_snapshot_factory(d=0.969, L=5)
+@pytest.mark.parametrize("mesh_potential_cls, potential_kwargs",
+                         get_mesh_potential_and_args())
+def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
+                         mesh_potential_cls, potential_kwargs):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.triangulation = dict(type_ids=[0], triangles=[[0, 1, 2]])
+    type_ids = [0, 0, 0, 0]
+    triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["mesh"] = potential_kwargs
+    mesh_potential = mesh_potential_cls(mesh)
+    mesh_potential.params["mesh"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
-    integrator.forces.append(mesh_bond_potential)
+    integrator.forces.append(mesh_potential)
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
@@ -173,32 +162,34 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+        np.testing.assert_allclose(mesh_potential.params["mesh"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
     mesh1 = hoomd.mesh.Mesh()
     with pytest.raises(RuntimeError):
-        mesh_bond_potential.mesh = mesh1
+        mesh_potential.mesh = mesh1
 
 
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
-                         get_mesh_bond_and_args())
-def test_multiple_types(triplet_snapshot_factory, simulation_factory,
-                        mesh_bond_cls, potential_kwargs):
+@pytest.mark.parametrize("mesh_potential_cls, potential_kwargs",
+                         get_mesh_potential_and_args())
+def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
+                        mesh_potential_cls, potential_kwargs):
 
-    sim = simulation_factory(triplet_snapshot_factory(d=0.969, L=5))
+    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
 
     mesh = hoomd.mesh.Mesh()
     mesh.types = ["mesh", "patch"]
-    mesh.triangulation = dict(type_ids=[0], triangles=[[0, 1, 2]])
+    type_ids = [0, 0, 0, 1]
+    triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params.default = potential_kwargs
+    mesh_potential = mesh_potential_cls(mesh)
+    mesh_potential.params.default = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
-    integrator.forces.append(mesh_bond_potential)
+    integrator.forces.append(mesh_potential)
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
@@ -208,35 +199,39 @@ def test_multiple_types(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+        np.testing.assert_allclose(mesh_potential.params["mesh"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
-        np.testing.assert_allclose(mesh_bond_potential.params["patch"][key],
+        np.testing.assert_allclose(mesh_potential.params["patch"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
     mesh1 = hoomd.mesh.Mesh()
     with pytest.raises(RuntimeError):
-        mesh_bond_potential.mesh = mesh1
+        mesh_potential.mesh = mesh1
 
 
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs, force, energy",
-                         get_mesh_bond_args_forces_and_energies())
-def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
-                             mesh_bond_cls, potential_kwargs, force, energy):
-
-    snap = triplet_snapshot_factory(d=0.969, L=5)
+@pytest.mark.parametrize("mesh_potential_cls, potential_kwargs, force, energy",
+                         get_mesh_potential_args_forces_and_energies())
+def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
+                             mesh_potential_cls, potential_kwargs, force,
+                             energy):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.triangulation = dict(type_ids=[0], triangles=[[0, 1, 2]])
+    mesh.types = ["mesh", "patch"]
+    type_ids = [0, 0, 0, 1]
+    triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["mesh"] = potential_kwargs
+    mesh_potential = mesh_potential_cls(mesh)
+    mesh_potential.params["mesh"] = potential_kwargs
+    mesh_potential.params["patch"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
-    integrator.forces.append(mesh_bond_potential)
+    integrator.forces.append(mesh_potential)
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
@@ -256,8 +251,9 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
         np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
 
 
-def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
-    sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
+def test_auto_detach_simulation(simulation_factory,
+                                tetrahedron_snapshot_factory):
+    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
     mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
 
