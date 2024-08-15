@@ -42,7 +42,7 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
         else
             {
             analyze(timestep);
-            dump();
+            dump(0, 0, true);
             }
         }
     }
