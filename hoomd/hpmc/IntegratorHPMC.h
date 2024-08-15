@@ -333,29 +333,29 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_nselect;
         }
     
-    //! Set kbT variant
-    /*! \param kbT new k_BT variant to set
+    //! Set kT variant
+    /*! \param kT new k_BT variant to set
      */
-    void setkbT(std::shared_ptr<Variant> kbT)
+    void setkT(std::shared_ptr<Variant> kT)
         {
-        m_kbT = kbT;
+        m_kT = kT;
         }
 
-    //! Get kbT variant
-    //! \returns current value of kbT parameter
-    std::shared_ptr<Variant> getkbT()
+    //! Get kT variant
+    //! \returns current value of kT parameter
+    std::shared_ptr<Variant> getkT()
         {
-        return m_kbT;
+        return m_kT;
         }
     
-    /** Evaluate the kbT variant at the given timestep.
+    /** Evaluate the kT variant at the given timestep.
 
         @param timestep The simulation timestep.
-        @returns The value of the kbT variant at the given timestep.
+        @returns The value of the kT variant at the given timestep.
     */
-    Scalar getTimestepkbT(uint64_t timestep)
+    Scalar getTimestepkT(uint64_t timestep)
         {
-        return m_kbT->operator()(timestep);
+        return m_kT->operator()(timestep);
         }
 
     //! Get performance in moves per second
@@ -639,7 +639,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
 
-    std::shared_ptr<Variant> m_kbT; //!< kbT variant
+    std::shared_ptr<Variant> m_kT; //!< kT variant
 
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
