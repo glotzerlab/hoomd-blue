@@ -145,7 +145,9 @@ def test_len(sim, tmp_path):
     assert len(burst_writer) == 0
 
 
-def test_burst_dump(sim, tmp_path):
+@pytest.mark.parametrize("start, end", [(0, 0), (0, 1), (0, 2), (0, 3), (1, 2),
+                                        (1, 3), (2, 3)])
+def test_burst_dump(sim, tmp_path, start, end):
     filename = tmp_path / "temporary_test_file.gsd"
 
     burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
@@ -164,11 +166,15 @@ def test_burst_dump(sim, tmp_path):
             # First frame is always written
             assert len(traj) == 1
 
-    burst_writer.dump()
+    burst_writer.dump(start=start, end=end)
     burst_writer.flush()
+    full_solution = [0, 1, 2, 3]
     if sim.device.communicator.rank == 0:
+        if end == 0:
+            end = len(full_solution)
         with gsd.hoomd.open(name=filename, mode='r') as traj:
-            assert [frame.configuration.step for frame in traj] == [0, 3, 5, 7]
+            assert [frame.configuration.step for frame in traj
+                    ] == full_solution[start:end]
 
 
 def test_burst_max_size(sim, tmp_path):
@@ -242,3 +248,36 @@ def test_write_burst_log(sim, tmp_path):
         with gsd.hoomd.open(name=filename, mode='r') as traj:
             for frame, sim_ke in zip(traj[1:], kinetic_energies):
                 assert frame.log[key] == sim_ke
+
+
+@pytest.mark.parametrize("empty_buffer", [True, False])
+def test_burst_dump_empty_buffer(sim, tmp_path, empty_buffer):
+    filename = tmp_path / "temporary_test_file.gsd"
+    burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
+    burst_writer = hoomd.write.Burst(trigger=burst_trigger,
+                                     filename=filename,
+                                     mode='wb',
+                                     dynamic=['property', 'momentum'],
+                                     max_burst_size=3,
+                                     write_at_start=True)
+    sim.operations.writers.append(burst_writer)
+    sim.run(8)
+    burst_writer.flush()
+    if sim.device.communicator.rank == 0:
+        assert Path(filename).exists()
+        with gsd.hoomd.open(filename, "r") as traj:
+            # First frame is always written
+            assert len(traj) == 1
+
+    burst_writer.dump(empty_buffer=empty_buffer)
+    burst_writer.flush()
+    if sim.device.communicator.rank == 0:
+        with gsd.hoomd.open(name=filename, mode='r') as traj:
+            assert len(traj) == 4
+
+    sim.run(4)
+    burst_writer.dump()
+    burst_writer.flush()
+    if sim.device.communicator.rank == 0:
+        with gsd.hoomd.open(name=filename, mode='r') as traj:
+            assert len(traj) == 6 if empty_buffer else 8
