@@ -66,15 +66,16 @@ void GSDDequeWriter::dump(uint64_t start, uint64_t end, bool empty_buffer)
         {
         end = buffer_length;
         }
-    if end > buffer_length
-        {
-        throw std::runtime_error("End index is out of range.");
-        }
+    if end
+        > buffer_length
+            {
+            throw std::runtime_error("End index is out of range.");
+            }
     if (start < 0 || start >= buffer_length)
         {
         throw std::runtime_error("Start index is out of range.");
         }
-    for (auto i= end - 1; i >= start; --i)
+    for (auto i = end - 1; i >= start; --i)
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
