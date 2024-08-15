@@ -43,15 +43,6 @@ BendingRigidityMeshForceComputeGPU::BendingRigidityMeshForceComputeGPU(
 
 BendingRigidityMeshForceComputeGPU::~BendingRigidityMeshForceComputeGPU() { }
 
-void BendingRigidityMeshForceComputeGPU::setParams(unsigned int type, Scalar K)
-    {
-    BendingRigidityMeshForceCompute::setParams(type, K);
-
-    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
-    // update the local copy of the memory
-    h_params.data[type] = K;
-    }
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */

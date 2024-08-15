@@ -17,7 +17,6 @@ md.mesh.bending
 
 .. automodule:: hoomd.md.mesh.bending
     :synopsis: Bending potentials applied to a mesh data structure.
-    :members: BendingRigidity
-
     :no-inherited-members:
     :show-inheritance:
+    :members: BendingRigidity

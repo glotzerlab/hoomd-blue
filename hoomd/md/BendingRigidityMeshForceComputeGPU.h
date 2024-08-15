@@ -37,9 +37,6 @@ class PYBIND11_EXPORT BendingRigidityMeshForceComputeGPU : public BendingRigidit
     //! Destructor
     ~BendingRigidityMeshForceComputeGPU();
 
-    //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K);
-
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner
 
