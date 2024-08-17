@@ -68,11 +68,11 @@ void GSDDequeWriter::dump(uint64_t start, uint64_t end, bool empty_buffer)
         }
     if (end > buffer_length)
         {
-        throw std::runtime_error("End index is out of range.");
+        throw std::runtime_error("Burst.dump's end index is out of range.");
         }
     if (start < 0 || start >= buffer_length)
         {
-        throw std::runtime_error("Start index is out of range.");
+        throw std::runtime_error("Burst.dump's start index is out of range.");
         }
     for (auto i = end - 1; i >= start; --i)
         {
