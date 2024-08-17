@@ -72,7 +72,14 @@ void GSDDequeWriter::dump(long int start, long int end, bool empty_buffer)
         }
     if (end < 0)
         {
-        end = buffer_length;
+        end = buffer_length - start;
+        start = 0;
+        }
+    else
+        {
+        auto temp_end = end;
+        end = buffer_length - start;
+        start = buffer_length - temp_end;
         }
     for (auto i = end - 1; i >= start; --i)
         {
