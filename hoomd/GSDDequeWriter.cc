@@ -61,7 +61,7 @@ void GSDDequeWriter::analyze(uint64_t timestep)
 
 void GSDDequeWriter::dump(uint64_t start, uint64_t end, bool empty_buffer)
     {
-    auto buffer_length = static_cast<long int>(m_frame_queue.size());
+    auto buffer_length = static_cast<uint64_t>(m_frame_queue.size());
     if (end == 0)
         {
         end = buffer_length;
