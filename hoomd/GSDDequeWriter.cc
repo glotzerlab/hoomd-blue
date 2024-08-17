@@ -74,7 +74,7 @@ void GSDDequeWriter::dump(uint64_t start, uint64_t end, bool empty_buffer)
         {
         throw std::runtime_error("Burst.dump's start index is out of range.");
         }
-    for (auto i  {static_cast<long int>(end - 1)}; i >= static_cast<long int>(start); --i)
+    for (auto i {static_cast<long int>(end - 1)}; i >= static_cast<long int>(start); --i)
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
