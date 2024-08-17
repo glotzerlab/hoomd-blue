@@ -145,8 +145,8 @@ def test_len(sim, tmp_path):
     assert len(burst_writer) == 0
 
 
-@pytest.mark.parametrize("start, end", [(0, 0), (0, 1), (0, 2), (0, 3), (1, 2),
-                                        (1, 3), (2, 3)])
+@pytest.mark.parametrize("start, end", [(0,-1), (0, 0), (0, 1), (0, 2), (1, 1),
+                                        (2, 2), (1,2), (1,-1), (2,-1) ])
 def test_burst_dump(sim, tmp_path, start, end):
     filename = tmp_path / "temporary_test_file.gsd"
 
@@ -168,13 +168,13 @@ def test_burst_dump(sim, tmp_path, start, end):
 
     burst_writer.dump(start=start, end=end)
     burst_writer.flush()
-    full_solution = [0, 1, 2, 3]
+    dumped_frames = [3, 5, 7]
     if sim.device.communicator.rank == 0:
-        if end == 0:
-            end = len(full_solution)
+        if end == -1:
+            end = len(dumped_frames)
         with gsd.hoomd.open(name=filename, mode='r') as traj:
             assert [frame.configuration.step for frame in traj
-                    ] == full_solution[start:end]
+                    ] == [0]+dumped_frames[start:end]
 
 
 def test_burst_max_size(sim, tmp_path):

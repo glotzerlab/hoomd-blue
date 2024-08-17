@@ -42,7 +42,7 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
         else
             {
             analyze(timestep);
-            dump(0, 0, true);
+            dump(0, -1, true);
             }
         }
     }
@@ -69,6 +69,10 @@ void GSDDequeWriter::dump(long int start, long int end, bool empty_buffer)
     if (start < 0 || start >= buffer_length)
         {
         throw std::runtime_error("Burst.dump's start index is out of range.");
+        }
+    if (end < 0)
+        {
+        end = buffer_length;
         }
     for (auto i = end - 1; i >= start; --i)
         {
