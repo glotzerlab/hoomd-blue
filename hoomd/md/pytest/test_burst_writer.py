@@ -145,8 +145,8 @@ def test_len(sim, tmp_path):
     assert len(burst_writer) == 0
 
 
-@pytest.mark.parametrize("start, end", [(0,-1), (0, 0), (0, 1), (0, 2), (1, 1),
-                                        (2, 2), (1,2), (1,-1), (2,-1) ])
+@pytest.mark.parametrize("start, end", [(0, -1), (0, 0), (0, 1), (0, 2), (1, 1),
+                                        (2, 2), (1, 2), (1, -1), (2, -1)])
 def test_burst_dump(sim, tmp_path, start, end):
     filename = tmp_path / "temporary_test_file.gsd"
 
@@ -174,7 +174,7 @@ def test_burst_dump(sim, tmp_path, start, end):
             end = len(dumped_frames)
         with gsd.hoomd.open(name=filename, mode='r') as traj:
             assert [frame.configuration.step for frame in traj
-                    ] == [0]+dumped_frames[start:end]
+                    ] == [0] + dumped_frames[start:end]
 
 
 def test_burst_max_size(sim, tmp_path):
