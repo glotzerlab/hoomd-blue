@@ -280,4 +280,4 @@ def test_burst_dump_empty_buffer(sim, tmp_path, empty_buffer):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='r') as traj:
-            assert len(traj) == 6 if empty_buffer else 8
+            assert len(traj) == (6 if empty_buffer else 8)
