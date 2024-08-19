@@ -252,13 +252,14 @@ def test_write_burst_log(sim, tmp_path):
 
 @pytest.mark.parametrize("empty_buffer", [True, False])
 def test_burst_dump_empty_buffer(sim, tmp_path, empty_buffer):
+    max_burst_size = 3
     filename = tmp_path / "temporary_test_file.gsd"
     burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
     burst_writer = hoomd.write.Burst(trigger=burst_trigger,
                                      filename=filename,
                                      mode='wb',
                                      dynamic=['property', 'momentum'],
-                                     max_burst_size=3,
+                                     max_burst_size=max_burst_size,
                                      write_at_start=True)
     sim.operations.writers.append(burst_writer)
     sim.run(8)
@@ -273,11 +274,11 @@ def test_burst_dump_empty_buffer(sim, tmp_path, empty_buffer):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='r') as traj:
-            assert len(traj) == 4
+            assert len(traj) == 1 + max_burst_size
 
     sim.run(4)
     burst_writer.dump()
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='r') as traj:
-            assert len(traj) == (6 if empty_buffer else 8)
+            assert len(traj) == (6 if empty_buffer else 1 + 2 * max_burst_size)
