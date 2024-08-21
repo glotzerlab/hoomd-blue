@@ -124,9 +124,9 @@ class Burst(GSD):
             start (int): The first frame to write. Defaults to 0.
             end (int): The last frame to write, must be positive integer.
                 Defaults to -1 (last frame).
-            clear_entire_buffer (bool): When ``True`` the buffer is emptied after
-            writing. If ``False`` only frames in the buffer until end frame will be
-            deleted. Defaults to ``True``.
+            clear_entire_buffer (bool): When ``True`` the buffer is emptied
+            after writing. If ``False`` only frames in the buffer until end
+            frame will be deleted. Defaults to ``True``.
 
         .. rubric:: Example:
 
