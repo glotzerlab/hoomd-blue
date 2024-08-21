@@ -59,7 +59,7 @@ void GSDDequeWriter::analyze(uint64_t timestep)
         }
     }
 
-void GSDDequeWriter::dump(long int start, long int end, bool empty_buffer)
+void GSDDequeWriter::dump(long int start, long int end, bool clear_entire_buffer)
     {
     auto buffer_length = static_cast<long int>(m_frame_queue.size());
     if (end > buffer_length)
@@ -85,10 +85,14 @@ void GSDDequeWriter::dump(long int start, long int end, bool empty_buffer)
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
-    if (empty_buffer)
+    if (clear_entire_buffer)
         {
         m_frame_queue.clear();
         m_log_queue.clear();
+        } else
+        {
+        m_frame_queue.erase(m_frame_queue.begin() + start, m_frame_queue.begin() + end);
+        m_log_queue.erase(m_log_queue.begin() + start, m_log_queue.begin() + end);
         }
     }
 
