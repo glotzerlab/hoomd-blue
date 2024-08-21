@@ -70,18 +70,18 @@ void GSDDequeWriter::dump(long int start, long int end, bool clear_entire_buffer
         {
         throw std::runtime_error("Burst.dump's start index is out of range.");
         }
+    long int iterator_start, iterator_end;
     if (end < 0)
         {
-        end = buffer_length - start;
-        start = 0;
+        iterator_end = buffer_length - start;
+        iterator_start = 0;
         }
     else
         {
-        auto temp_end = end;
-        end = buffer_length - start;
-        start = buffer_length - temp_end;
+        iterator_end = buffer_length - start;
+        iterator_start = buffer_length - end;
         }
-    for (auto i = end - 1; i >= start; --i)
+    for (auto i = iterator_end - 1; i >= iterator_start; --i)
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
@@ -89,10 +89,11 @@ void GSDDequeWriter::dump(long int start, long int end, bool clear_entire_buffer
         {
         m_frame_queue.clear();
         m_log_queue.clear();
-        } else
+        }
+    else
         {
-        m_frame_queue.erase(m_frame_queue.begin() + start, m_frame_queue.begin() + end);
-        m_log_queue.erase(m_log_queue.begin() + start, m_log_queue.begin() + end);
+        m_frame_queue.erase(m_frame_queue.begin() + iterator_start, m_frame_queue.end());
+        m_log_queue.erase(m_log_queue.begin() + iterator_start, m_log_queue.end());
         }
     }
 
