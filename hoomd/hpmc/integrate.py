@@ -382,6 +382,8 @@ class HPMCIntegrator(Integrator):
             nselect=int(nselect),
             kT=hoomd.variant.Variant)
         self._param_dict.update(param_dict)
+        self.kT=kT
+
         self._pair_potential = None
         self._external_potential = None
 
@@ -768,7 +770,7 @@ class Sphere(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -869,7 +871,7 @@ class ConvexPolygon(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -982,7 +984,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1083,7 +1085,7 @@ class SimplePolygon(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1219,7 +1221,7 @@ class Polyhedron(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1323,7 +1325,7 @@ class ConvexPolyhedron(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1451,7 +1453,7 @@ class FacetedEllipsoid(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1534,7 +1536,7 @@ class Sphinx(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1633,7 +1635,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1722,7 +1724,7 @@ class Ellipsoid(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1833,7 +1835,7 @@ class SphereUnion(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -1973,7 +1975,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
@@ -2124,7 +2126,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                  default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4,
-                 kT=hoomd.variant.Variant):
+                 kT=1.0):
 
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
