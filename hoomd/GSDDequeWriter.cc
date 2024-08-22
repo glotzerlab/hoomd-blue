@@ -14,11 +14,13 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
                                int queue_size,
                                std::string mode,
                                bool write_at_init,
+                               bool clear_whole_buffer_after_dump,
                                uint64_t timestep)
     : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size)
     {
     setLogWriter(logger);
     bool file_empty = true;
+    m_clear_whole_buffer_after_dump = true;
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -42,9 +44,10 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
         else
             {
             analyze(timestep);
-            dump(0, -1, true);
+            dump(0, -1);
             }
         }
+    m_clear_whole_buffer_after_dump = clear_whole_buffer_after_dump;
     }
 
 void GSDDequeWriter::analyze(uint64_t timestep)
@@ -59,7 +62,7 @@ void GSDDequeWriter::analyze(uint64_t timestep)
         }
     }
 
-void GSDDequeWriter::dump(long int start, long int end, bool clear_entire_buffer)
+void GSDDequeWriter::dump(long int start, long int end)
     {
     auto buffer_length = static_cast<long int>(m_frame_queue.size());
     if (end > buffer_length)
@@ -85,7 +88,7 @@ void GSDDequeWriter::dump(long int start, long int end, bool clear_entire_buffer
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
-    if (clear_entire_buffer)
+    if (m_clear_whole_buffer_after_dump)
         {
         m_frame_queue.clear();
         m_log_queue.clear();
@@ -135,6 +138,7 @@ void export_GSDDequeWriter(pybind11::module& m)
                             pybind11::object,
                             int,
                             std::string,
+                            bool,
                             bool,
                             uint64_t>())
         .def_property("max_burst_size",

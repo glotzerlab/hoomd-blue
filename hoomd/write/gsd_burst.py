@@ -80,6 +80,16 @@ class Burst(GSD):
             .. code-block:: python
 
                 write_at_start = burst.write_at_start
+
+        clear_whole_buffer_after_dump (bool): When ``True`` the buffer is
+        emptied after calling `dump` each time. If ``False`` only frames in the
+        buffer until the end frame will be deleted. Defaults to ``True``.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                    burst.clear_buffer_after_dump = False
     """
 
     def __init__(self,
@@ -90,7 +100,8 @@ class Burst(GSD):
                  dynamic=None,
                  logger=None,
                  max_burst_size=-1,
-                 write_at_start=False):
+                 write_at_start=False,
+                 clear_whole_buffer_after_dump=True):
         super().__init__(trigger=trigger,
                          filename=filename,
                          filter=filter,
@@ -102,19 +113,19 @@ class Burst(GSD):
             ParameterDict(max_burst_size=int, write_at_start=bool))
         self._param_dict.update({
             "max_burst_size": max_burst_size,
-            "write_at_start": write_at_start
+            "write_at_start": write_at_start,
+            "clear_whole_buffer_after_dump": clear_whole_buffer_after_dump
         })
 
     def _attach_hook(self):
         sim = self._simulation
-        self._cpp_obj = _hoomd.GSDDequeWriter(sim.state._cpp_sys_def,
-                                              self.trigger, self.filename,
-                                              sim.state._get_group(self.filter),
-                                              self.logger, self.max_burst_size,
-                                              self.mode, self.write_at_start,
-                                              sim.timestep)
+        self._cpp_obj = _hoomd.GSDDequeWriter(
+            sim.state._cpp_sys_def, self.trigger, self.filename,
+            sim.state._get_group(self.filter), self.logger, self.max_burst_size,
+            self.mode, self.write_at_start, self.clear_whole_buffer_after_dump,
+            sim.timestep)
 
-    def dump(self, start=0, end=-1, clear_entire_buffer=True):
+    def dump(self, start=0, end=-1):
         """Write stored frames in range to the file and empties the buffer.
 
         This method alllows for custom writing of frames at user specified
@@ -124,9 +135,6 @@ class Burst(GSD):
             start (int): The first frame to write. Defaults to 0.
             end (int): The last frame to write.
                 Defaults to -1 (last frame).
-            clear_entire_buffer (bool): When ``True`` the buffer is emptied
-            after writing. If ``False`` only frames in the buffer until end
-            frame will be deleted. Defaults to ``True``.
 
         .. rubric:: Example:
 
@@ -135,7 +143,7 @@ class Burst(GSD):
             burst.dump()
         """
         if self._attached:
-            self._cpp_obj.dump(start, end, clear_entire_buffer)
+            self._cpp_obj.dump(start, end)
 
     def __len__(self):
         """Get the current length of the internal frame buffer.

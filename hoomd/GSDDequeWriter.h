@@ -26,12 +26,13 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
                    int queue_size,
                    std::string mode,
                    bool write_on_init,
+                   bool clear_whole_buffer_after_dump,
                    uint64_t timestep);
     ~GSDDequeWriter() = default;
 
     void analyze(uint64_t timestep) override;
 
-    void dump(long int start, long int end, bool clear_entire_buffer);
+    void dump(long int start, long int end);
 
     int getMaxQueueSize() const;
     void setMaxQueueSize(int new_max_size);
@@ -40,6 +41,7 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
 
     protected:
     int m_queue_size;
+    bool m_clear_whole_buffer_after_dump;
     std::deque<GSDDumpWriter::GSDFrame> m_frame_queue;
     std::deque<pybind11::dict> m_log_queue;
     };
