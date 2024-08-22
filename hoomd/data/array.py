@@ -720,7 +720,7 @@ A __cuda_array_interface__ to internal HOOMD-blue data on the GPU.
 
 The HOOMDGPUArray object exposes a GPU data buffer using
 `__cuda_array_interface__
-<https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_.
+<https://nvidia.github.io/numba-cuda/user/cuda_array_interface.html>`_.
 This class provides buffer access through a context manager to prevent invalid
 memory accesses (`hoomd.State.gpu_local_snapshot`). To avoid errors, use arrays
 only within the relevant context manager. For example:
