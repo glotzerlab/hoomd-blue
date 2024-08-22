@@ -47,7 +47,7 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
             dump(0, -1);
             }
         }
-    m_clear_whole_buffer_after_dump = clear_whole_buffer_after_dump;
+    setClearWholeBufferAfterDump(clear_whole_buffer_after_dump);
     }
 
 void GSDDequeWriter::analyze(uint64_t timestep)
@@ -124,6 +124,16 @@ void GSDDequeWriter::setMaxQueueSize(int new_max_size)
         }
     }
 
+bool GSDDequeWriter::getClearWholeBufferAfterDump() const
+    {
+    return m_clear_whole_buffer_after_dump;
+    }
+
+void GSDDequeWriter::setClearWholeBufferAfterDump(bool clear_whole_buffer_after_dump)
+    {
+    m_clear_whole_buffer_after_dump = clear_whole_buffer_after_dump;
+    }
+
 namespace detail
     {
 void export_GSDDequeWriter(pybind11::module& m)
@@ -144,6 +154,9 @@ void export_GSDDequeWriter(pybind11::module& m)
         .def_property("max_burst_size",
                       &GSDDequeWriter::getMaxQueueSize,
                       &GSDDequeWriter::setMaxQueueSize)
+        .def_property("clear_whole_buffer_after_dump",
+                      &GSDDequeWriter::getClearWholeBufferAfterDump,
+                      &GSDDequeWriter::setClearWholeBufferAfterDump)
         .def("__len__", &GSDDequeWriter::getCurrentQueueSize)
         .def("dump", &GSDDequeWriter::dump);
     }

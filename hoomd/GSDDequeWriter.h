@@ -36,6 +36,8 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
 
     int getMaxQueueSize() const;
     void setMaxQueueSize(int new_max_size);
+    bool getClearWholeBufferAfterDump() const;
+    void setClearWholeBufferAfterDump(bool clear_whole_buffer_after_dump);
 
     size_t getCurrentQueueSize() const;
 
