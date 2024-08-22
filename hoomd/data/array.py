@@ -755,7 +755,7 @@ Note:
     Packages like Numba and PyTorch can use `HOOMDGPUArray` without CuPy
     installed. Any package that supports version 2 of the
     `__cuda_array_interface__
-    <https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_
+    <https://nvidia.github.io/numba-cuda/user/cuda_array_interface.html>`_
     should support the direct use of `HOOMDGPUArray` objects.
 
 """

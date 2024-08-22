@@ -122,12 +122,10 @@ jobs:
         args: -n
               --exclude-path 'sphinx-doc/_templates/page.html'
               --exclude-path 'hoomd/extern'
+              --exclude https://glotzerlab.engin.umich.edu
               --exclude doi.org 
               './**/*.md' './**/*.html' './**/*.rst'
         fail: true
-              # --exclude-path 'doc_build/*module*.html'
-              # --exclude https://glotzerlab.engin.umich.edu 
-        
 
   tests_complete:
     name: Unit test
