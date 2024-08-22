@@ -237,11 +237,8 @@ public:
                 vec_to_scalar3( p_j.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
                 vec_to_scalar3( p_j.z * cross( vec3<Scalar>(b3), dfj_dnj));
 
-            // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( shape_j.m_norm_patch_local_dir.z * cross( vec3<Scalar>(b3), dr)));
-
             torque_div_energy_j *= Scalar(-1) * fi;
 
-            // term2 = self.iso.energy(magdr) * (
 
             // THIS PART in here:
             //     dfj_duj * duj_dr * self.patch.fi(dr, self.ni_world) + dfi_dui * dui_dr * self.patch.fj(dr, self.nj_world)
