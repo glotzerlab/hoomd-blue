@@ -12,6 +12,7 @@ hoomd.hpmc.pair
     :nosignatures:
 
     AngularStep
+    ExpandedGaussian
     LennardJones
     Pair
     Step
@@ -23,6 +24,7 @@ hoomd.hpmc.pair
     :synopsis: Pair potentials for HPMC.
     :show-inheritance:
     :members: AngularStep,
+              ExpandedGaussian,
               LennardJones,
               Pair,
               Step,

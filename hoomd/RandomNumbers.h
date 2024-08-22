@@ -459,10 +459,7 @@ template<typename Real> class GammaDistribution
      * \param alpha
      * \param b
      */
-    DEVICE explicit GammaDistribution(const Real alpha, const Real b) : m_alpha(alpha), m_b(b)
-        {
-        m_c = fast::rsqrt(m_alpha - Real(1. / 3.)) / Real(3.);
-        }
+    DEVICE explicit GammaDistribution(const Real alpha, const Real b) : m_alpha(alpha), m_b(b) { }
 
     //! Draw a random number from the gamma distribution
     /*!
@@ -486,14 +483,17 @@ template<typename Real> class GammaDistribution
             return 0;
 #endif
             }
-        else if (m_alpha < Real(1.0))
+
+        Real alpha = m_alpha;
+        if (m_alpha < Real(1.0))
             {
-            Real x = GammaDistribution(m_alpha + Real(1.0), m_b)(rng);
-            return x * fast::pow(detail::generate_canonical<Real>(rng), Real(1.0) / m_alpha);
+            // when m_alpha < 1, handle specially (see below)
+            alpha += Real(1.0);
             }
+        Real d = alpha - Real(1. / 3.);
+        Real c = fast::rsqrt(d) / Real(3.);
 
         Real v;
-        Real d = m_alpha - Real(1. / 3.);
         while (1)
             {
             // first draw a valid Marsaglia v value using the normal distribution
@@ -501,7 +501,7 @@ template<typename Real> class GammaDistribution
             do
                 {
                 x = m_normal(rng);
-                v = Real(1.0) + m_c * x;
+                v = Real(1.0) + c * x;
                 } while (v <= Real(0.));
             v = v * v * v;
 
@@ -516,14 +516,19 @@ template<typename Real> class GammaDistribution
                 break;
             }
 
-        // convert the Gamma(alpha,1) to Gamma(alpha,beta)
-        return d * v * m_b;
+        // convert the Gamma(alpha,1) to Gamma(alpha,b)
+        v *= d * m_b;
+        if (m_alpha < Real(1.0))
+            {
+            // finish special case
+            v *= fast::pow(detail::generate_canonical<Real>(rng), Real(1.0) / m_alpha);
+            }
+        return v;
         }
 
     private:
     Real m_alpha; //!< Gamma distribution alpha parameter
     Real m_b;     //!< Gamma-distribution b-parameter
-    Real m_c;     //!< c-parameter for Marsaglia and Tsang method
 
     NormalDistribution<Real> m_normal; //!< Normal variate generator
     };

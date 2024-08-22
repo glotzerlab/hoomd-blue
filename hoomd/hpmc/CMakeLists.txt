@@ -41,6 +41,7 @@ set(_hpmc_sources   module.cc
                     ExternalPotentialLinear.cc
                     PairPotential.cc
                     PairPotentialLennardJones.cc
+                    PairPotentialExpandedGaussian.cc
                     PairPotentialStep.cc
                     PairPotentialUnion.cc
                     PairPotentialAngularStep.cc
@@ -85,6 +86,7 @@ set(_hpmc_headers
     OBBTree.h
     PairPotential.h
     PairPotentialLennardJones.h
+    PairPotentialExpandedGaussian.h
     PairPotentialStep.h
     PairPotentialUnion.h
     PairPotentialAngularStep.h
