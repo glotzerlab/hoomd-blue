@@ -9,7 +9,7 @@ License
 Libraries
 ---------
 
-**HOOMD:** HOOMD-blue is a continuation of the HOOMD project (https://www.ameslab.gov/work-us/open-source-software). The code from the original project is used under the following license::
+**HOOMD:** HOOMD-blue is a continuation of the HOOMD project. The code from the original project is used under the following license::
 
     Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
     Source Software License
