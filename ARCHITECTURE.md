@@ -19,19 +19,15 @@ Each minor and major release of HOOMD-blue at a minimum supports:
 ### Continuous integration
 
 [Github Actions] performs continuous integration testing on HOOMD-blue. GitHub
-Actions compiles HOOMD-blue, runs the unit tests, and and reports the
+Actions compiles HOOMD-blue, runs the unit tests, and reports the
 status to GitHub pull requests. A number of parallel builds test a variety of
 compiler and build configurations as defined above.
 
 Visit the [workflows] page to find recent builds. The pipeline configuration
-files are in [.github/workflows/] and are built from Jinja templates in
-[.github/workflows/templates/] using `make_workflows.py` which is automatically
-run by `pre-commit`. To make changes to the workflows, edit the templates.
+files are in `.github/workflows/`.
 
 [GitHub Actions]: https://docs.github.com/en/actions
 [workflows]: https://github.com/glotzerlab/hoomd-blue/actions
-[.github/workflows/]: .github/workflows/
-[.github/workflows/templates/]: .github/workflows/templates/
 
 ## Build system
 
