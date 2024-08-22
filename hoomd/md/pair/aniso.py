@@ -607,7 +607,7 @@ class Patchy(AnisotropicPair):
     Patchy potentials compute the  potential between particles with
     angular patches with an implementation based on
     `Beltran-Villegas et. al.`_. With distance between particles
-    :math:r` and minimal angles between respective particle direction and
+    :math:`r` and minimal angles between respective particle direction and
     the displacement vector :math:`\theta_i`, :math:`\theta_j` the patchy potential
     computes:
 
