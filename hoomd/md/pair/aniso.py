@@ -627,6 +627,24 @@ class Patchy(AnisotropicPair):
         f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
         f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
         \end{align}
+
+    For multiple patches, every combination of patch and 
+    We use PatchyLJ as the example.
+    
+    Example::
+
+        patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list, default_r_cut = 3.0)
+        patchy.params[('A', 'A')] = dict(pair_params = {'epsilon': 1, 'sigma': 1},
+                                         envelope_params = {'alpha': , 'omega': })
+        patchy.patches['A'] = [(1,0,0), (0,1,0)]
+        patch1.patches['B']
+        
+
+    To make specific patches
+
+    Example::
+
+        
     """
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
