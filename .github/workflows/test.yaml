@@ -123,7 +123,7 @@ jobs:
               --exclude-path 'sphinx-doc/_templates/page.html'
               --exclude-path 'hoomd/extern'
               --exclude https://glotzerlab.engin.umich.edu
-              --exclude doi.org 
+              --exclude doi.org
               './**/*.md' './**/*.html' './**/*.rst'
         fail: true
 
