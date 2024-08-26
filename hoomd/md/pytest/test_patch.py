@@ -119,15 +119,10 @@ def test_before_attaching(patch_cls, patch_args, params, patches_A, patches_B, p
     for key in params:
         assert potential.params[('A','A')][key] == pytest.approx(params[key])
     for i,patch in enumerate(patches_A):
-        # patch is returned normalized, so normalize it before checking
-        nn = numpy.array(patch)
-        patch = tuple(nn / numpy.linalg.norm(nn))
-        assert potential.patches['A'][i] == pytest.approx(nn)
+        # only normalized after attaching
+        assert potential.patches['A'][i] == pytest.approx(patch)
     for i,patch in enumerate(patches_B):
-        # patch is returned normalized, so normalize it before checking
-        nn = numpy.array(patch)
-        patch = tuple(nn / numpy.linalg.norm(nn))
-        assert potential.patches['B'][i] == pytest.approx(nn)
+        assert potential.patches['B'][i] == pytest.approx(patch)
 
 
 @pytest.mark.parametrize('patch_cls, patch_args, params, patches_A, patches_B, positions, orientations, force, energy, torques',
@@ -149,13 +144,13 @@ def test_after_attaching(patchy_snapshot_factory, simulation_factory,
     for i,patch in enumerate(patches_A):
         # patch is returned normalized, so normalize it before checking
         nn = numpy.array(patch)
-        patch = tuple(nn / numpy.linalg.norm(nn))
-        assert potential.patches['A'][i] == pytest.approx(nn)
+        patch = nn / numpy.linalg.norm(nn)
+        assert potential.patches['A'][i] == pytest.approx(patch)
     for i,patch in enumerate(patches_B):
         # patch is returned normalized, so normalize it before checking
         nn = numpy.array(patch)
         patch = tuple(nn / numpy.linalg.norm(nn))
-        assert potential.patches['B'][i] == pytest.approx(nn)
+        assert potential.patches['B'][i] == pytest.approx(patch)
 
 
 @pytest.mark.parametrize('patch_cls, patch_args, params, patches_A, patches_B, positions, orientations, force, energy, torques',
