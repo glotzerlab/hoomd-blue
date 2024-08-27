@@ -40,8 +40,9 @@ class Burst(GSD):
             has 0 frames: write one frame with the current state of the system
             when `hoomd.Simulation.run` is called. Defaults to ``False``.
         clear_whole_buffer_after_dump (bool): When ``True`` the buffer is
-            emptied after calling `dump` each time. When ``False``, `dump` removes
-            frames from the buffer unil the ``end`` index. Defaults to ``True``.
+            emptied after calling `dump` each time. When ``False``, `dump`
+            removes frames from the buffer unil the ``end`` index. Defaults
+            to ``True``.
 
     Warning:
         `Burst` errors when attempting to create a file or writing to one with
@@ -85,8 +86,8 @@ class Burst(GSD):
                 write_at_start = burst.write_at_start
 
         clear_whole_buffer_after_dump (bool): When ``True`` the buffer is
-            emptied after calling `dump` each time. When ``False``, `dump` removes
-            frames from the buffer unil the ``end`` index.
+            emptied after calling `dump` each time. When ``False``, `dump`
+            removes frames from the buffer unil the ``end`` index.
 
             .. rubric:: Example:
 
