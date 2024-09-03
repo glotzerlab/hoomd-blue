@@ -281,7 +281,9 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     double p = hoomd::detail::generate_canonical<double>(rng);
 
-    if (allowed && p < exp(-delta_beta_H) * exp(-delta_U_pair) * exp(-delta_U_external))
+    Scalar kT = m_mc->getTimestepkT(timestep);
+
+    if (allowed && p < exp(-(delta_beta_H + delta_U_pair + delta_U_external) / kT))
         {
         return true;
         }
