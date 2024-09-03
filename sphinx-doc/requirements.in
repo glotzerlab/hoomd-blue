@@ -1,10 +1,10 @@
-ipython==8.26.0
+ipython==8.27.0
 nbconvert==7.16.4
-nbsphinx==0.9.4
-numpy==2.0.1
-pandoc==2.3
+nbsphinx==0.9.5
+numpy==2.1.0
+pandoc==2.4
 sphinx==7.4.7
-furo==2024.7.18
+furo==2024.8.6
 tornado==6.4.1
 sphinxcontrib-googleanalytics==0.4
 sphinx-copybutton==0.5.2
