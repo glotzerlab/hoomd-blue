@@ -201,13 +201,13 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
 
     - name: 'Upload build'
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
         path: install.tar
