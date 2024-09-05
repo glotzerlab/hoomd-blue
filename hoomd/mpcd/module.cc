@@ -34,6 +34,7 @@ void export_ManualVirtualParticleFiller(pybind11::module&);
 void export_NoForce(pybind11::module&);
 void export_ParallelPlateGeometry(pybind11::module&);
 void export_ParallelPlateGeometryFiller(pybind11::module&);
+void export_ConcentricCylindersGeometry(pybind11::module&);
 void export_PlanarPoreGeometry(pybind11::module&);
 void export_PlanarPoreGeometryFiller(pybind11::module&);
 void export_Sorter(pybind11::module&);
@@ -73,6 +74,11 @@ void export_BounceBackStreamingMethodParallelPlateGeometryBlockForce(pybind11::m
 void export_BounceBackStreamingMethodParallelPlateGeometryConstantForce(pybind11::module&);
 void export_BounceBackStreamingMethodParallelPlateGeometryNoForce(pybind11::module&);
 void export_BounceBackStreamingMethodParallelPlateGeometrySineForce(pybind11::module&);
+// concentric cylinders
+void export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForce(pybind11::module&);
+void export_BounceBackStreamingMethodConcentricCylindersGeometryConstantForce(pybind11::module&);
+void export_BounceBackStreamingMethodConcentricCylindersGeometryNoForce(pybind11::module&);
+void export_BounceBackStreamingMethodConcentricCylindersGeometrySineForce(pybind11::module&);
 // planar pore
 void export_BounceBackStreamingMethodPlanarPoreGeometryBlockForce(pybind11::module&);
 void export_BounceBackStreamingMethodPlanarPoreGeometryConstantForce(pybind11::module&);
@@ -89,6 +95,11 @@ void export_BounceBackStreamingMethodParallelPlateGeometryBlockForceGPU(pybind11
 void export_BounceBackStreamingMethodParallelPlateGeometryConstantForceGPU(pybind11::module&);
 void export_BounceBackStreamingMethodParallelPlateGeometryNoForceGPU(pybind11::module&);
 void export_BounceBackStreamingMethodParallelPlateGeometrySineForceGPU(pybind11::module&);
+// concentric cylinders
+void export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForceGPU(pybind11::module&);
+void export_BounceBackStreamingMethodConcentricCylindersGeometryConstantForceGPU(pybind11::module&);
+void export_BounceBackStreamingMethodConcentricCylindersGeometryNoForceGPU(pybind11::module&);
+void export_BounceBackStreamingMethodConcentricCylindersGeometrySineForceGPU(pybind11::module&);
 // planar pore
 void export_BounceBackStreamingMethodPlanarPoreGeometryBlockForceGPU(pybind11::module&);
 void export_BounceBackStreamingMethodPlanarPoreGeometryConstantForceGPU(pybind11::module&);
@@ -102,10 +113,12 @@ void export_BounceBackStreamingMethodSphereGeometrySineForceGPU(pybind11::module
 #endif // ENABLE_HIP
 
 void export_BounceBackNVEParallelPlateGeometry(pybind11::module&);
+void export_BounceBackNVEConcentricCylindersGeometry(pybind11::module&);
 void export_BounceBackNVEPlanarPoreGeometry(pybind11::module&);
 void export_BounceBackNVESphereGeometry(pybind11::module&);
 #ifdef ENABLE_HIP
 void export_BounceBackNVEParallelPlateGeometryGPU(pybind11::module&);
+void export_BounceBackNVEConcentricCylindersGeometryGPU(pybind11::module&);
 void export_BounceBackNVEPlanarPoreGeometryGPU(pybind11::module&);
 void export_BounceBackNVESphereGeometryGPU(pybind11::module&);
 #endif // ENABLE_HIP
@@ -124,7 +137,11 @@ namespace gpu
 /*!
  * The kernel namespace contains the kernels that do the work of a kernel driver
  * in the gpu namespace. They are not part of the public interface for the MPCD component,
- * and are subject to change without notice.
+ * and are subject to change without notice.   // sphere
+    export_BounceBackStreamingMethodSphereGeometryBlockForce(m);
+    export_BounceBackStreamingMethodSphereGeometryConstantForce(m);
+    export_BounceBackStreamingMethodSphereGeometryNoForce(m);
+    export_BounceBackStreamingMethodSphereGeometrySineForce(m);
  */
 namespace kernel
     {
@@ -159,6 +176,7 @@ PYBIND11_MODULE(_mpcd, m)
     export_NoForce(m);
     export_ParallelPlateGeometry(m);
     export_ParallelPlateGeometryFiller(m);
+    export_ConcentricCylindersGeometry(m);
     export_PlanarPoreGeometry(m);
     export_PlanarPoreGeometryFiller(m);
     export_Sorter(m);
@@ -182,7 +200,11 @@ PYBIND11_MODULE(_mpcd, m)
 
     export_BulkStreamingMethodBlockForce(m);
     export_BulkStreamingMethodConstantForce(m);
-    export_BulkStreamingMethodNoForce(m);
+    export_BulkStreamingMethodNoForce(m); // sphere
+    export_BounceBackStreamingMethodSphereGeometryBlockForce(m);
+    export_BounceBackStreamingMethodSphereGeometryConstantForce(m);
+    export_BounceBackStreamingMethodSphereGeometryNoForce(m);
+    export_BounceBackStreamingMethodSphereGeometrySineForce(m);
     export_BulkStreamingMethodSineForce(m);
 #ifdef ENABLE_HIP
     export_BulkStreamingMethodBlockForceGPU(m);
@@ -196,6 +218,11 @@ PYBIND11_MODULE(_mpcd, m)
     export_BounceBackStreamingMethodParallelPlateGeometryConstantForce(m);
     export_BounceBackStreamingMethodParallelPlateGeometryNoForce(m);
     export_BounceBackStreamingMethodParallelPlateGeometrySineForce(m);
+    // concentric cylinders
+    export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForce(m);
+    export_BounceBackStreamingMethodConcentricCylindersGeometryConstantForce(m);
+    export_BounceBackStreamingMethodConcentricCylindersGeometryNoForce(m);
+    export_BounceBackStreamingMethodConcentricCylindersGeometrySineForce(m);
     // planar pore
     export_BounceBackStreamingMethodPlanarPoreGeometryBlockForce(m);
     export_BounceBackStreamingMethodPlanarPoreGeometryConstantForce(m);
@@ -212,6 +239,11 @@ PYBIND11_MODULE(_mpcd, m)
     export_BounceBackStreamingMethodParallelPlateGeometryConstantForceGPU(m);
     export_BounceBackStreamingMethodParallelPlateGeometryNoForceGPU(m);
     export_BounceBackStreamingMethodParallelPlateGeometrySineForceGPU(m);
+    // concentric cylinders
+    export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForceGPU(m);
+    export_BounceBackStreamingMethodConcentricCylindersGeometryConstantForceGPU(m);
+    export_BounceBackStreamingMethodConcentricCylindersGeometryNoForceGPU(m);
+    export_BounceBackStreamingMethodConcentricCylindersGeometrySineForceGPU(m);
     // planar pore
     export_BounceBackStreamingMethodPlanarPoreGeometryBlockForceGPU(m);
     export_BounceBackStreamingMethodPlanarPoreGeometryConstantForceGPU(m);
@@ -225,10 +257,12 @@ PYBIND11_MODULE(_mpcd, m)
 #endif // ENABLE_HIP
 
     export_BounceBackNVEParallelPlateGeometry(m);
+    export_BounceBackNVEConcentricCylindersGeometry(m);
     export_BounceBackNVEPlanarPoreGeometry(m);
     export_BounceBackNVESphereGeometry(m);
 #ifdef ENABLE_HIP
     export_BounceBackNVEParallelPlateGeometryGPU(m);
+    export_BounceBackNVEConcentricCylindersGeometryGPU(m);
     export_BounceBackNVEPlanarPoreGeometryGPU(m);
     export_BounceBackNVESphereGeometryGPU(m);
 #endif // ENABLE_HIP
