@@ -14,6 +14,7 @@ set(files __init__.py
           test_shape_utils.py
           test_move_size_tuner.py
           test_pair_lennard_jones.py
+          test_pair_expanded_gaussian.py
           test_pair_step.py
           test_pair_user.py
           test_pair_union.py

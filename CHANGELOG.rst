@@ -7,22 +7,49 @@ Change Log
 4.x
 ---
 
-4.8.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^
+4.8.2 (2024-07-23)
+^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Correct citation to Langevin piston paper
+  (`#1849 <https://github.com/glotzerlab/hoomd-blue/pull/1849>`__).
+* External walls, external fields, and constrains can now be implemented via external plugins
+  (`#1849 <https://github.com/glotzerlab/hoomd-blue/pull/1849>`__).
+* Prevent compile errors with ``-DENABLE_GPU=on -DHOOMD_GPU_PLATFORM=HIP``
+  (`#1851 <https://github.com/glotzerlab/hoomd-blue/pull/1851>`__).
+* Prevent ``/usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf`` error on Purdue Anvil
+  (`#1850 <https://github.com/glotzerlab/hoomd-blue/pull/1850>`__).
+
+4.8.1 (2024-07-18)
+^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Prevent illegal instruction when accessing 0 length snapshot arrays
+  (`#1846 <https://github.com/glotzerlab/hoomd-blue/pull/1846>`__)
+* Fix MPCD compiler warning.
+  (`#1845 <https://github.com/glotzerlab/hoomd-blue/pull/1845>`__)
+
+4.8.0 (2024-07-11)
+^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 * ``hoomd.mpcd`` reimplements the MPCD method for simulating hydrodynamic interactions.
   See the migrating page for an overview and individual class and method documentation for more
   information (`#1784 <https://github.com/glotzerlab/hoomd-blue/pull/1784>`__).
+* MPCD tutorial.
 * Support numpy 2.0
   (`#1797 <https://github.com/glotzerlab/hoomd-blue/pull/1797>`__)
 * ``hoomd.hpmc.external.External`` provides an abstract interface to external potentials
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
-* ``hoomd.hpmc.external.Linear`` computes linear potential as a function of the distance from a point to a plane
-  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hoomd.hpmc.external.Linear`` computes the potential as a linear function of the distance from a
+  point to a plane (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 * ``HPMCIntegrator.external_potentials`` sets the list of external potentials applied to the system
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hpmc.pair.ExpandedGaussian`` computes the expanded Gaussian pair potential in HPMC
+  (`#1817 <https://github.com/glotzerlab/hoomd-blue/pull/1817>`__).
 
 *Changed*
 
@@ -39,12 +66,14 @@ Change Log
   `#1816 <https://github.com/glotzerlab/hoomd-blue/pull/1816>`__).
 * Ensure that Gaussian-type pair potentials have positive sigma values
   (`#1810 <https://github.com/glotzerlab/hoomd-blue/pull/1810>`__).
+* Demonstrate ``Step`` and ``AngularStep`` in the tutorial "Modelling Patchy Particles".
+* Fixed typographical errors in all tutorials.
 
 *Fixed*
 
-* Issue a proper error message when ``ALJ.shape`` is not set for all particle types
+* Issue the proper error message when ``ALJ.shape`` is not set for all particle types
   (`#1808 <https://github.com/glotzerlab/hoomd-blue/pull/1808>`__).
-* Correctly apply brownian torque when elements of the inertia tensor are 0
+* Correctly apply Brownian torque when elements of the inertia tensor are 0
   (`#1825 <https://github.com/glotzerlab/hoomd-blue/pull/1825>`__).
 
 
@@ -52,8 +81,8 @@ Change Log
 
 * ``HPMCIntegrator.external_potential`` - use ``HPMCIntegrator.external_potentials``
   (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
-* ``hoomd.hpmc.external.user.CPPExternalPotential`` - use ``hoomd.hpmc.external.Linear`` or write a custom component in C++
-  (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
+* ``hoomd.hpmc.external.user.CPPExternalPotential`` - use ``hoomd.hpmc.external.Linear`` or write a
+  custom component in C++ (`#1811 <https://github.com/glotzerlab/hoomd-blue/pull/1811>`__).
 
 *Removed*
 

@@ -222,25 +222,25 @@ void GSDReader::readParticles()
 
     // the snapshot already has default values, if a chunk is not found, the value
     // is already at the default, and the failed read is not a problem
-    readChunk(&m_snapshot->particle_data.type[0], m_frame, "particles/typeid", N * 4, N);
-    readChunk(&m_snapshot->particle_data.mass[0], m_frame, "particles/mass", N * 4, N);
-    readChunk(&m_snapshot->particle_data.charge[0], m_frame, "particles/charge", N * 4, N);
-    readChunk(&m_snapshot->particle_data.diameter[0], m_frame, "particles/diameter", N * 4, N);
-    readChunk(&m_snapshot->particle_data.body[0], m_frame, "particles/body", N * 4, N);
-    readChunk(&m_snapshot->particle_data.inertia[0],
+    readChunk(m_snapshot->particle_data.type.data(), m_frame, "particles/typeid", N * 4, N);
+    readChunk(m_snapshot->particle_data.mass.data(), m_frame, "particles/mass", N * 4, N);
+    readChunk(m_snapshot->particle_data.charge.data(), m_frame, "particles/charge", N * 4, N);
+    readChunk(m_snapshot->particle_data.diameter.data(), m_frame, "particles/diameter", N * 4, N);
+    readChunk(m_snapshot->particle_data.body.data(), m_frame, "particles/body", N * 4, N);
+    readChunk(m_snapshot->particle_data.inertia.data(),
               m_frame,
               "particles/moment_inertia",
               N * 12,
               N);
-    readChunk(&m_snapshot->particle_data.pos[0], m_frame, "particles/position", N * 12, N);
-    readChunk(&m_snapshot->particle_data.orientation[0],
+    readChunk(m_snapshot->particle_data.pos.data(), m_frame, "particles/position", N * 12, N);
+    readChunk(m_snapshot->particle_data.orientation.data(),
               m_frame,
               "particles/orientation",
               N * 16,
               N);
-    readChunk(&m_snapshot->particle_data.vel[0], m_frame, "particles/velocity", N * 12, N);
-    readChunk(&m_snapshot->particle_data.angmom[0], m_frame, "particles/angmom", N * 16, N);
-    readChunk(&m_snapshot->particle_data.image[0], m_frame, "particles/image", N * 12, N);
+    readChunk(m_snapshot->particle_data.vel.data(), m_frame, "particles/velocity", N * 12, N);
+    readChunk(m_snapshot->particle_data.angmom.data(), m_frame, "particles/angmom", N * 16, N);
+    readChunk(m_snapshot->particle_data.image.data(), m_frame, "particles/image", N * 12, N);
     }
 
 /*! Read the same data chunks for topology
@@ -253,8 +253,8 @@ void GSDReader::readTopology()
     if (N > 0)
         {
         m_snapshot->bond_data.resize(N);
-        readChunk(&m_snapshot->bond_data.type_id[0], m_frame, "bonds/typeid", N * 4, N);
-        readChunk(&m_snapshot->bond_data.groups[0], m_frame, "bonds/group", N * 8, N);
+        readChunk(m_snapshot->bond_data.type_id.data(), m_frame, "bonds/typeid", N * 4, N);
+        readChunk(m_snapshot->bond_data.groups.data(), m_frame, "bonds/group", N * 8, N);
         }
 
     N = 0;
@@ -263,8 +263,8 @@ void GSDReader::readTopology()
     if (N > 0)
         {
         m_snapshot->angle_data.resize(N);
-        readChunk(&m_snapshot->angle_data.type_id[0], m_frame, "angles/typeid", N * 4, N);
-        readChunk(&m_snapshot->angle_data.groups[0], m_frame, "angles/group", N * 12, N);
+        readChunk(m_snapshot->angle_data.type_id.data(), m_frame, "angles/typeid", N * 4, N);
+        readChunk(m_snapshot->angle_data.groups.data(), m_frame, "angles/group", N * 12, N);
         }
 
     N = 0;
@@ -273,8 +273,8 @@ void GSDReader::readTopology()
     if (N > 0)
         {
         m_snapshot->dihedral_data.resize(N);
-        readChunk(&m_snapshot->dihedral_data.type_id[0], m_frame, "dihedrals/typeid", N * 4, N);
-        readChunk(&m_snapshot->dihedral_data.groups[0], m_frame, "dihedrals/group", N * 16, N);
+        readChunk(m_snapshot->dihedral_data.type_id.data(), m_frame, "dihedrals/typeid", N * 4, N);
+        readChunk(m_snapshot->dihedral_data.groups.data(), m_frame, "dihedrals/group", N * 16, N);
         }
 
     N = 0;
@@ -283,8 +283,8 @@ void GSDReader::readTopology()
     if (N > 0)
         {
         m_snapshot->improper_data.resize(N);
-        readChunk(&m_snapshot->improper_data.type_id[0], m_frame, "impropers/typeid", N * 4, N);
-        readChunk(&m_snapshot->improper_data.groups[0], m_frame, "impropers/group", N * 16, N);
+        readChunk(m_snapshot->improper_data.type_id.data(), m_frame, "impropers/typeid", N * 4, N);
+        readChunk(m_snapshot->improper_data.groups.data(), m_frame, "impropers/group", N * 16, N);
         }
 
     N = 0;
@@ -297,7 +297,11 @@ void GSDReader::readTopology()
         for (unsigned int i = 0; i < N; i++)
             m_snapshot->constraint_data.val[i] = Scalar(data[i]);
 
-        readChunk(&m_snapshot->constraint_data.groups[0], m_frame, "constraints/group", N * 8, N);
+        readChunk(m_snapshot->constraint_data.groups.data(),
+                  m_frame,
+                  "constraints/group",
+                  N * 8,
+                  N);
         }
 
     if (m_handle.header.schema_version >= gsd_make_version(1, 1))
@@ -308,8 +312,8 @@ void GSDReader::readTopology()
         if (N > 0)
             {
             m_snapshot->pair_data.resize(N);
-            readChunk(&m_snapshot->pair_data.type_id[0], m_frame, "pairs/typeid", N * 4, N);
-            readChunk(&m_snapshot->pair_data.groups[0], m_frame, "pairs/group", N * 8, N);
+            readChunk(m_snapshot->pair_data.type_id.data(), m_frame, "pairs/typeid", N * 4, N);
+            readChunk(m_snapshot->pair_data.groups.data(), m_frame, "pairs/group", N * 8, N);
             }
         }
     }

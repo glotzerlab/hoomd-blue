@@ -1418,7 +1418,12 @@ pybind11::object BondedGroupData<group_size, Group, name, has_type_mapping>::Sna
     assert(has_type_mapping);
     auto self_cpp
         = self.cast<BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot*>();
-    return pybind11::array(self_cpp->type_id.size(), &self_cpp->type_id[0], self);
+
+    if (self_cpp->type_id.size() == 0)
+        {
+        return pybind11::array(pybind11::dtype::of<unsigned int>(), 0, nullptr);
+        }
+    return pybind11::array(self_cpp->type_id.size(), self_cpp->type_id.data(), self);
     }
 
 /*! \returns a numpy array that wraps the value data element.
@@ -1432,7 +1437,12 @@ pybind11::object BondedGroupData<group_size, Group, name, has_type_mapping>::Sna
     assert(!has_type_mapping);
     auto self_cpp
         = self.cast<BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot*>();
-    return pybind11::array(self_cpp->val.size(), &self_cpp->val[0], self);
+
+    if (self_cpp->val.size() == 0)
+        {
+        return pybind11::array(pybind11::dtype::of<Scalar>(), 0, nullptr);
+        }
+    return pybind11::array(self_cpp->val.size(), self_cpp->val.data(), self);
     }
 
 /*! \returns a numpy array that wraps the groups data element.
@@ -1449,7 +1459,12 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedT
     std::vector<size_t> dims(2);
     dims[0] = self_cpp->groups.size();
     dims[1] = group_size;
-    return pybind11::array(dims, (unsigned int*)&self_cpp->groups[0], self);
+
+    if (dims[0] == 0)
+        {
+        return pybind11::array(pybind11::dtype::of<unsigned int>(), dims, nullptr);
+        }
+    return pybind11::array(dims, (unsigned int*)self_cpp->groups.data(), self);
     }
 
 /*! \returns A python list of type names
