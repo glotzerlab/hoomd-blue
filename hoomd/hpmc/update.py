@@ -634,6 +634,31 @@ class Shape(Updater):
         return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
 
 
+class VirtualMoves(Updater):
+    """Apply virtual move Monte Carlo moves.
+
+    See Whitelam and Geissler (2007).
+    """
+
+    def __init__(self, trigger=1):
+        super().__init__(trigger)
+        param_dict = ParameterDict()
+        self._param_dict.update(param_dict)
+        self.instance = 0
+
+    def _attach_hook(self):
+        self._simulation._warn_if_seed_unset()
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        cpp_cls_name = "UpdaterVirtualMoveMonteCarlo"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
+        self._cpp_obj = cpp_cls(
+            self._simulation.state._cpp_sys_def, self.trigger, integrator._cpp_obj
+        )
+
+
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
