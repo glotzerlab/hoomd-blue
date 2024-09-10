@@ -112,6 +112,7 @@ set(_hpmc_headers
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     UpdaterShape.h
+    UpdaterVirtualMoveMonteCarlo.h
     XenoCollide2D.h
     XenoCollide3D.h
     XenoSweep3D.h

@@ -634,15 +634,15 @@ class Shape(Updater):
         return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
 
 
-class VirtualMoves(Updater):
+class VirtualClusterMoves(Updater):
     """Apply virtual move Monte Carlo moves.
 
     See Whitelam and Geissler (2007).
     """
 
-    def __init__(self, trigger=1):
+    def __init__(self, trigger=1, attempts_per_particle=1):
         super().__init__(trigger)
-        param_dict = ParameterDict()
+        param_dict = ParameterDict(attempts_per_particle=float(attempts_per_particle))
         self._param_dict.update(param_dict)
         self.instance = 0
 
@@ -651,7 +651,7 @@ class VirtualMoves(Updater):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
-        cpp_cls_name = "UpdaterVirtualMoveMonteCarlo"
+        cpp_cls_name = "UpdaterVMMC"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
         self._cpp_obj = cpp_cls(
