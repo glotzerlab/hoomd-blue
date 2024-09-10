@@ -303,6 +303,7 @@ inline HOSTDEVICE void sincos(float x, float& s, float& c)
     }
 
 //! Compute both of sin of x and cos of x with double precision
+#ifndef HOOMD_LLVMJIT_BUILD
 inline HOSTDEVICE void sincos(double x, double& s, double& c)
     {
 #if defined(__HIP_DEVICE_COMPILE__)
@@ -337,6 +338,7 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     fast::sincos(M_PI * x, s, c);
 #endif
     }
+#endif
 
 //! Compute the pow of x,y with single precison via exp(log) refactoring - NOTE: UNDEFINED FOR
 //! NEGATIVE BASES
