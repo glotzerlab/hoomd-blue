@@ -178,6 +178,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     const LongReal min_core_radius = m_mc->getMinCoreDiameter() * LongReal(0.5);
     const auto& pair_energy_search_radius = m_mc->getPairEnergySearchRadius();
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_d(m_mc->m_d, access_location::host, access_mode::read);
     const BoxDim box = m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
@@ -204,13 +205,13 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     for (unsigned int i_trial; i_trial < m_attempts_per_particle; i_trial++)
         {
 
-        for (unsigned int current_particle = 0; current_particle < m_pdata->getN(); current_particle++)
+        for (unsigned int current_seed = 0; current_seed < m_pdata->getN(); current_seed++)
             {
             // set of all "linker" particles that attempt to create links to "linkee" particles
             std::set<unsigned int> linkers;
 
             // seed particle that starts the virtual move
-            unsigned int seed_idx = m_mc->m_update_order[current_particle];
+            unsigned int seed_idx = m_mc->m_update_order[current_seed];
             linkers.insert(seed_idx);
 
             // get position and orientation of seed
@@ -245,6 +246,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 Scalar4 postype_linker = h_postype.data[i_linker];
                 vec3<Scalar> pos_linker = vec3<Scalar>(postype_linker);
                 int type_linker = __scalar_as_int(postype_linker.w);
+                Shape shape_linker(quat<LongReal>(h_orientation.data[i_linker]), m_mc->m_params[type_linker]);
 
                 // linker must be an active particle
                 #ifdef ENABLE_MPI
@@ -280,7 +282,45 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     // stackless search
                     for (unsigned int current_node_index = 0; current_node_index < m_mc->m_aabb_tree.getNumNodes(); current_node_index++)
                         {
-                        // a lot of stuff
+                        if (aabb.overlaps(m_mc->m_aabb_tree.getNodeAABB(current_node_index)))
+                            {
+                            if (m_mc->m_aabb_tree.isNodeLeaf(current_node_index))
+                                {
+                                for (unsigned int current_linkee = 0; current_linkee < m_mc->m_aabb_tree.getNodeNumParticles(current_node_index); current_linkee++)
+                                    {
+                                    unsigned int j_linkee = m_mc->m_aabb_tree.getNodeParticle(current_node_index, current_linkee);
+                                    Scalar4 postype_linkee;
+                                    quat<LongReal> orientation_linkee;
+                                    if ( j_linkee != i_linker )
+                                        {
+                                        postype_linkee = h_postype.data[j_linkee];
+                                        orientation_linkee = quat<LongReal>(h_orientation.data[j_linkee]);
+                                        }
+                                    else
+                                        {
+                                        // skip since particle i is already in the cluster
+                                        continue;
+                                        }
+
+                                    vec3<Scalar> r_linker_linkee = vec3<Scalar>(postype_linkee) - pos_linker_image;
+                                    unsigned int type_linkee = __scalar_as_int(postype_linkee.w);
+                                    Shape shape_linkee(orientation_linkee, m_mc->params[type_linkee]);
+                                    LongReal r_squared = dot(r_linker_linkee, r_linker_linkee);
+                                    LongReal max_overlap_distance = m_mc->m_shape_circumsphere_radius[type_linker] + m_mc->m_shape_circumsphere_radius[type_linkee];
+                                    if (h_overlaps.data[m_mc->m_overlap_idx(type_linker, type_linkee)]
+                                        && r_squared < max_overlap_distance * max_overlap_distance
+                                        && test_overlap(r_linker_linkee, shape_linker, shape_linkee, counters.overlap_err_count))
+                                        {
+                                        overlap = true;
+                                        // if linker and linkee overlap, j is added to the cluster with unit probability
+                                        linkers.insert(j_linkee);
+                                        // in the notation from the paper, we now have p_ij = 1 for the forward move
+                                        // the 3rd product (over links in the cluster, eqn 13 from the paper) remains unchanged
+                                        // now we can skip ahead to the calculation of p_ij for the reverse move
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
