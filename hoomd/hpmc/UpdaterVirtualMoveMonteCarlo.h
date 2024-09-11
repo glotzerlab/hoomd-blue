@@ -179,6 +179,8 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     const auto& pair_energy_search_radius = m_mc->getPairEnergySearchRadius();
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_d(m_mc->m_d, access_location::host, access_mode::read);
     const BoxDim box = m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
@@ -201,6 +203,9 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     // update the image list
     m_mc->updateImageList();
 
+    // access interaction matrix
+    ArrayHandle<unsigned int> h_overlaps(m_mc->m_overlaps, access_location::host, access_mode::read);
+
 
     for (unsigned int i_trial; i_trial < m_attempts_per_particle; i_trial++)
         {
@@ -209,6 +214,8 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             {
             // set of all "linker" particles that attempt to create links to "linkee" particles
             std::set<unsigned int> linkers;
+            std::vector<std::pair<unsigned int, unsigned int>> links;
+            LongReal p_link_probability_ratio = 1.0;
 
             // seed particle that starts the virtual move
             unsigned int seed_idx = m_mc->m_update_order[current_seed];
@@ -312,11 +319,18 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         && test_overlap(r_linker_linkee, shape_linker, shape_linkee, counters.overlap_err_count))
                                         {
                                         overlap = true;
-                                        // if linker and linkee overlap, j is added to the cluster with unit probability
+                                        // if linker and linkee overlap (hard), j is added to the cluster with unit probability
                                         linkers.insert(j_linkee);
-                                        // in the notation from the paper, we now have p_ij = 1 for the forward move
-                                        // the 3rd product (over links in the cluster, eqn 13 from the paper) remains unchanged
-                                        // now we can skip ahead to the calculation of p_ij for the reverse move
+                                        links.push_back(std::make_pair(i_linker, j_linkee));
+                                        // r_linker_linkee is the pair separation after applying the virtual move to the linker but not the linkee
+                                        // and the energy calculated is really epsilon_I (using notation from the paper, I = independent bc i moves independently)
+                                        // we obviously don't need to calculate the energy u_ij(i', j) b/c it's infinite here, but we do still need the energy in the real configuration (applying inverse of virtual move to r_linker_linkee) and in the reverse move (applying inverse of virtual move twice to linker_linkee)
+                                        vec3<Scalar> r_real_config_linker_linkee = r_linker_linkee + -virtual_move;
+                                        LongReal r_real_config_squared = dot(r_real_config_linker_linkee, r_real_config_linker_linkee);
+                                        double u_ij = m_mc->computeOnePairEnergy(r_real_config_squared, r_real_config_linker_linkee, type_linker, shape_linker.orientation, h_diameter.data[i_linker], h_charge.data[i_linker], type_linkee, shape_linkee.orientation, h_diameter.data[j_linkee], h_charge.data[j_linkee]);
+                                        vec3<Scalar> r_reverse_linker_linkee = r_linker_linkee - virtual_move - virtual_move;
+                                        LongReal r_reverse_squared = dot(r_reverse_linker_linkee, r_reverse_linker_linkee);
+                                        double u_ij_reverse = m_mc->computeOnePairEnergy(r_reverse_squared, r_reverse_linker_linkee, type_linker, shape_linker.orientation, h_diameter.data[i_linker], h_charge.data[i_linker], type_linkee, shape_linkee.orientation, h_diameter.data[j_linkee], h_charge.data[j_linkee]);
                                         }
                                     }
                                 }
