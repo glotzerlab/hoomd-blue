@@ -66,7 +66,8 @@ void mpcd::ParallelPlateGeometryFiller::computeNumFill()
      * This is done by round the walls onto the cell grid away from zero, and then including the
      * max shift of this cell edge.
      */
-    const Scalar max_shift = m_cl->getMaxGridShift().y;
+    const Scalar max_shift = m_cl->getMaxGridShift().y * global_box.getL().y;
+    std::cout << max_shift << std::endl;
     const Scalar global_lo = global_box.getLo().y;
     if (box.getHi().y >= H)
         {

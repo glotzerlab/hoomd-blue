@@ -63,7 +63,8 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
         throw std::runtime_error("Cell size must be constant");
         }
     const Scalar cell_size = cell_size_vector.y;
-    const Scalar3 max_shift = m_cl->getMaxGridShift();
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+    const Scalar3 max_shift = m_cl->getMaxGridShift() * global_box.getL();
 
     // check if fill-relevant variables have changed (can't use signal because cell list build may
     // not have triggered yet)
@@ -74,9 +75,6 @@ void mpcd::PlanarPoreGeometryFiller::computeNumFill()
     // only recompute if needed
     if (!m_needs_recompute)
         return;
-
-    // as a precaution, validate the global box with the current cell list
-    const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // box and slit geometry
     const BoxDim& box = m_pdata->getBox();

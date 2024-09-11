@@ -27,7 +27,7 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     auto pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef, 2.0, false);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, make_uint3(10, 10, 10), false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit channel with half width 5
@@ -111,7 +111,7 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
      * Change the cell size so that we lie exactly on a boundary.
      */
     pdata->removeVirtualParticles();
-    cl->setCellSize(1.0);
+    cl->setGlobalDim(make_uint3(20, 20, 20));
     filler->fill(2);
     // volume to fill is now from 5->5.5 on + side, same other parameters
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (20 * 20 / 2) * 2);
@@ -134,7 +134,7 @@ void parallel_plate_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     /*
      * Test the average properties of the virtual particles.
      */
-    cl->setCellSize(2.0);
+    cl->setGlobalDim(make_uint3(10, 10, 10));
     unsigned int N_lo(0), N_hi(0);
     Scalar3 v_lo = make_scalar3(0, 0, 0);
     Scalar3 v_hi = make_scalar3(0, 0, 0);

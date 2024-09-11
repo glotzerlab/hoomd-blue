@@ -182,32 +182,27 @@ class PYBIND11_EXPORT CellList : public Compute
             }
         }
 
-    //! Get the maximum permitted grid shift
+    //! Get the maximum permitted grid shift (fractional coordinates)
     const Scalar3 getMaxGridShift()
         {
         computeDimensions();
         return m_max_grid_shift;
         }
 
-    // Get the grid shift vector
+    // Get the grid shift vector (fractional coordinates)
     const Scalar3& getGridShift() const
         {
         return m_grid_shift;
         }
 
-    //! Set the grid shift vector
+    //! Set the grid shift vector (fractional coordinates)
     void setGridShift(const Scalar3& shift)
         {
         const Scalar3 max_grid_shift = getMaxGridShift();
         if (std::fabs(shift.x) > max_grid_shift.x || std::fabs(shift.y) > max_grid_shift.y
             || std::fabs(shift.z) > max_grid_shift.z)
             {
-            m_exec_conf->msg->error()
-                << "mpcd: Specified cell list grid shift (" << shift.x << ", " << shift.y << ", "
-                << shift.z << ")" << std::endl
-                << "exceeds maximum allowed (" << max_grid_shift.x << ", " << max_grid_shift.y
-                << ", " << max_grid_shift.z << ")" << std::endl;
-            throw std::runtime_error("Error setting MPCD grid shift");
+            throw std::runtime_error("MPCD grid shift out of range");
             }
 
         m_grid_shift = shift;

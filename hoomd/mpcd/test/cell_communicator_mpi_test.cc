@@ -155,7 +155,7 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, make_uint3(6, 6, 6), false);
     cl->computeDimensions();
 
     // Don't really care what's in this array, just want to make sure errors get thrown
@@ -191,20 +191,20 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm.communicate(props, pack_op); });
 
     // cut the cell size down, which should make it so that the system can be decomposed again
-    cl->setCellSize(0.5);
+    cl->setGlobalDim(make_uint3(12, 12, 12));
     cl->compute(3);
     props.resize(cl->getNCells());
     comm.communicate(props, pack_op);
 
     // shrink the box size to the minimum that can be decomposed
     cl->setNExtraCells(0);
-    cl->setCellSize(2.0);
+    cl->setGlobalDim(make_uint3(3, 3, 3));
     cl->compute(4);
     props.resize(cl->getNCells());
     comm.communicate(props, pack_op);
 
     // now shrink further to ensure failure
-    cl->setCellSize(3.0);
+    cl->setGlobalDim(make_uint3(2, 2, 2));
     cl->compute(5);
     props.resize(cl->getNCells());
     UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm.communicate(props, pack_op); });

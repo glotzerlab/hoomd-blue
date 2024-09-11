@@ -27,7 +27,7 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     auto pdata = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef, 2.0, false);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, make_uint3(10, 10, 10), false);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);
 
     // create slit pore channel with half width 5, half length 8
@@ -125,7 +125,7 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
      * Now, all sides of the U have thickness 0.5.
      */
     pdata->removeVirtualParticles();
-    cl->setCellSize(1.0);
+    cl->setGlobalDim(make_uint3(20, 20, 20));
     filler->fill(2);
     UP_ASSERT_EQUAL(pdata->getNVirtual(),
                     (unsigned int)(4 * 2 * (0.5 * 4.5 + 0.5 * 16 + 0.5 * 4.5) * 20));
@@ -152,7 +152,7 @@ void planar_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
      * Test the average fill properties of the virtual particles.
      */
     filler->setDensity(2.0);
-    cl->setCellSize(2.0);
+    cl->setGlobalDim(make_uint3(10, 10, 10));
     unsigned int N_avg(0);
     Scalar3 v_avg = make_scalar3(0, 0, 0);
     Scalar T_avg(0);

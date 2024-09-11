@@ -88,7 +88,7 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
         }
 
     // bin particle with grid shift
-    const Scalar3 fractional_pos_i = global_box.makeFraction(pos_i - grid_shift);
+    const Scalar3 fractional_pos_i = global_box.makeFraction(pos_i) - grid_shift;
     int3 global_bin = make_int3((int)std::floor(fractional_pos_i.x * global_cell_dim.x),
                                 (int)std::floor(fractional_pos_i.y * global_cell_dim.y),
                                 (int)std::floor(fractional_pos_i.z * global_cell_dim.z));
@@ -122,6 +122,28 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
     int3 bin = make_int3(global_bin.x - origin_idx.x,
                          global_bin.y - origin_idx.y,
                          global_bin.z - origin_idx.z);
+    // these checks guard against round-off errors with domain decomposition
+    if (!periodic.x)
+        {
+        if (bin.x == -1)
+            bin.x = 0;
+        else if (bin.x == (int)cell_indexer.getW())
+            bin.x = cell_indexer.getW() - 1;
+        }
+    if (!periodic.y)
+        {
+        if (bin.y == -1)
+            bin.y = 0;
+        else if (bin.y == (int)cell_indexer.getH())
+            bin.y = cell_indexer.getH() - 1;
+        }
+    if (!periodic.z)
+        {
+        if (bin.z == -1)
+            bin.z = 0;
+        else if (bin.z == (int)cell_indexer.getD())
+            bin.z = cell_indexer.getD() - 1;
+        }
 
     // validate and make sure no particles blew out of the box
     if ((bin.x < 0 || bin.x >= (int)cell_indexer.getW())

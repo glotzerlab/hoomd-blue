@@ -24,8 +24,11 @@ namespace mpcd
 class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     {
     public:
-    //! Constructor
+    //! Constructor by size (deprecated)
     CellListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift);
+
+    //! Constructor by dimension
+    CellListGPU(std::shared_ptr<SystemDefinition> sysdef, const uint3& global_cell_dim, bool shift);
 
     virtual ~CellListGPU();
 
