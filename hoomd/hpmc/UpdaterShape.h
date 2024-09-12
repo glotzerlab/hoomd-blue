@@ -305,7 +305,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             assert(h_det.data[typ_i] != 0 && h_det_old.data[typ_i] != 0);
 
             // compute log_boltz factor
-            log_boltz = m_move_function->computeLogBoltmann(
+            log_boltz = m_move_function->computeLogBoltzmann(
                 timestep,             // current timestep
                 h_ntypes.data[typ_i], // number of particles of type typ_i,
                 typ_i,                // the type id
