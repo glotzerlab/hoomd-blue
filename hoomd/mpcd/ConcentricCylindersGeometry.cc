@@ -20,9 +20,9 @@ void export_ConcentricCylindersGeometry(pybind11::module& m)
         m,
         ConcentricCylindersGeometry::getName().c_str())
         .def(pybind11::init<Scalar, Scalar, Scalar, bool>())
-        .def_property_readonly("R0", &ConcentricCylindersGeometry::getR0)
-        .def_property_readonly("R1", &ConcentricCylindersGeometry::getR1)
-        .def_property_readonly("speed", &ConcentricCylindersGeometry::getSpeed)
+        .def_property_readonly("inner_radius", &ConcentricCylindersGeometry::getR0)
+        .def_property_readonly("outer_radius", &ConcentricCylindersGeometry::getR1)
+        .def_property_readonly("angular_speed", &ConcentricCylindersGeometry::getAngularSpeed)
         .def_property_readonly("no_slip", &ConcentricCylindersGeometry::getNoSlip);
     }
     } // end namespace detail

@@ -32,11 +32,11 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
     /*!
      * \param R0 Inner radius of the cylinder
      * \param R1 Outer radius of the cylinder
-     * \param speed Speed of the outer cylinder
+     * \param angular_speed Angular speed of the outer cylinder
      * \param no_slip Boundary condition at the wall (slip or no-slip)
      */
-    HOSTDEVICE ConcentricCylindersGeometry(Scalar R0, Scalar R1, Scalar speed, bool no_slip)
-        : m_R0(R0), m_R02(R0 * R0), m_R1(R1), m_R12(R1 * R1), m_V(speed), m_no_slip(no_slip)
+    HOSTDEVICE ConcentricCylindersGeometry(Scalar R0, Scalar R1, Scalar angular_speed, bool no_slip)
+        : m_R0_sq(R0 * R0), m_R1_sq(R1 * R1), m_w(angular_speed), m_no_slip(no_slip)
         {
         }
 
@@ -54,11 +54,11 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
      */
     HOSTDEVICE bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
         {
-        const Scalar r = pos.x * pos.x + pos.y * pos.y;
+        const Scalar rsq = pos.x * pos.x + pos.y * pos.y;
         /*
          * Check if particle is in bounds
          */
-        const signed char sign = (char)((r < m_R02) - (r > m_R12));
+        const signed char sign = (char)((rsq < m_R0_sq) - (rsq > m_R1_sq));
         // exit immediately if no collision is found or particle is not moving normal to the wall
         // (since no new collision could have occurred if there is no normal motion)
         if (sign == 0 || vel.x * vel.x + vel.y * vel.y == Scalar(0))
@@ -71,10 +71,10 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
          * Find the time remaining when the particle is collided with wall. This time is computed
          * by backtracking the position, dot(pos, pos) = R^2.
          */
-        const Scalar R = (sign == 1) ? m_R02 : m_R12;
+        const Scalar Rsq = (sign == 1) ? m_R0_sq : m_R1_sq;
         const Scalar a = vel.x * vel.x + vel.y * vel.y;
         const Scalar b = -Scalar(2) * (pos.x * vel.x + pos.y * vel.y);
-        const Scalar c = pos.x * pos.x + pos.y * pos.y - R * R;
+        const Scalar c = pos.x * pos.x + pos.y * pos.y - Rsq;
         dt = (-b + sign * (slow::sqrt(b * b - Scalar(4) * a * c))) / (Scalar(2) * a);
 
         // backtrack the particle for dt to get to point of contact
@@ -82,34 +82,20 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
 
         // update velocity according to boundary conditions
         // no-slip requires reflection of the tangential components.
-        if (sign == 1)
+        if (m_no_slip)
             {
-            // no-slip requires reflection of the tangential components.
-            if (m_no_slip)
+            vel = -vel;
+            if (sign == -1)
                 {
-                vel = -vel;
-                }
-            // slip requires reflection of the normal components.
-            else
-                {
-                vel.x -= Scalar(2) * pos.x * pos.x * vel.x / (R * R);
-                vel.y -= Scalar(2) * pos.y * pos.y * vel.y / (R * R);
+                vel.x += Scalar(2) * m_w * -pos.y;
+                vel.y += Scalar(2) * m_w * pos.x;
                 }
             }
-
-        if (sign == -1)
+        // slip requires reflection of the normal components
+        else
             {
-            if (m_no_slip)
-                {
-                vel.x = -vel.x + Scalar(2) * m_V * -pos.y;
-                vel.y = -vel.y + Scalar(2) * m_V * pos.x;
-                vel.z = -vel.z;
-                }
-            else
-                {
-                vel.x -= Scalar(2) * pos.x * pos.x * vel.x / (R * R);
-                vel.y -= Scalar(2) * pos.y * pos.y * vel.y / (R * R);
-                }
+            vel.x -= Scalar(2) * pos.x * pos.x * vel.x / (Rsq);
+            vel.y -= Scalar(2) * pos.y * pos.y * vel.y / (Rsq);
             }
 
         return true;
@@ -122,8 +108,8 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
      */
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
-        const Scalar r = pos.x * pos.x + pos.y * pos.y;
-        return (r > m_R12 || r < m_R02);
+        const Scalar rsq = pos.x * pos.x + pos.y * pos.y;
+        return (rsq > m_R1_sq || rsq < m_R0_sq);
         }
 
     //! Get inner radius of the cylinder
@@ -132,7 +118,7 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
      */
     HOSTDEVICE Scalar getR0() const
         {
-        return m_R0;
+        return slow::sqrt(m_R0_sq);
         }
 
     //! Get outer radius of the cylinder
@@ -141,16 +127,16 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
      */
     HOSTDEVICE Scalar getR1() const
         {
-        return m_R1;
+        return slow::sqrt(m_R1_sq);
         }
 
     //! Get the speed of the outer cylinder
     /*!
      * \returns Speed of the outer cylinder
      */
-    HOSTDEVICE Scalar getSpeed() const
+    HOSTDEVICE Scalar getAngularSpeed() const
         {
-        return m_V;
+        return m_w;
         }
 
     //! Get the wall boundary condition
@@ -171,11 +157,9 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
 #endif // __HIPCC__
 
     private:
-    const Scalar m_R0;    //!< Inner radius of the cylinder
-    const Scalar m_R02;   //!< Square of inner radius
-    const Scalar m_R1;    //!< Outer radius of the cylinder
-    const Scalar m_R12;   //!< Square of outer radius
-    const Scalar m_V;     //!< Velocity of the wall
+    const Scalar m_R0_sq; //!< Square of inner radius
+    const Scalar m_R1_sq; //!< Square of outer radius
+    const Scalar m_w;     //!< Angular velocity of the outer wall
     const bool m_no_slip; //!< Boundary condition
     };
 

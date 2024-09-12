@@ -56,6 +56,77 @@ class Geometry(_HOOMDBaseObject):
         self._param_dict.update(param_dict)
 
 
+class ConcentricCylinders(Geometry):
+    r"""Concentric-cylinders channel.
+
+    Args:
+        R0 (float): Inner radius of the cylinders.
+        R1 (float): Outer radius of the cylinders
+        angular_speed (float): Angular speed of the outer cylinder in the
+            counterclockwise direction.
+        no_slip (bool): If True, surfaces have no-slip boundary condition.
+            Otherwise, they have the slip boundary condition.
+
+    `ConcentricCylinders` confines particles between two cylinders
+    centered around the origin. The inner cylinder are stationary, but the
+    outer cylinder may put into motion with 'angular_speed'.
+
+    .. rubric:: Examples:
+
+    Stationary concentric cylinders with no-slip boundary condition.
+
+    .. code-block:: python
+
+        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0, R1=5.0)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
+        simulation.operations.integrator.streaming_method = stream
+
+    Stationary concentric cylinders with slip boundary condition.
+
+    .. code-block:: python
+
+        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
+            R0=2.0, R1=5.0, no_slip=False)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
+        simulation.operations.integrator.streaming_method = stream
+
+    Moving outer cylinder.
+
+    .. code-block:: python
+
+        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
+            R0=2.0, R1=5.0, angular_speed=1.0, no_slip=True)
+        stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
+        simulation.operations.integrator.streaming_method = stream
+
+    Attributes:
+        R0 (float): Inner radius of the cylinder (*read only*).
+
+        R1 (float): Outer radius of the cylinder (*read only*).
+
+        angular_speed (float): Angular outer cylinder speed (*read only*).
+
+            `speed` will have no effect if `no_slip` is False because the slip
+            surface cannot generate shear stress.
+
+    """
+
+    def __init__(self, R0, R1, angular_speed=0.0, no_slip=True):
+        super().__init__(no_slip)
+        param_dict = ParameterDict(
+            R0=float(R0),
+            R1=float(R1),
+            angular_speed=float(angular_speed),
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _mpcd.ConcentricCylinders(self.R0, self.R1,
+                                                  self.angular_speed,
+                                                  self.no_slip)
+        super()._attach_hook()
+
+
 class ParallelPlates(Geometry):
     r"""Parallel-plate channel.
 

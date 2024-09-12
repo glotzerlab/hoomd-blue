@@ -19,6 +19,48 @@ def snap():
     return snap_
 
 
+class ConcentricCylinders:
+
+    def test_default_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0, R1=4.0)
+        assert geom.R0 == 2.0
+        assert geom.R1 == 4.0
+        assert geom.angular_speed == 0.0
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.R0 == 2.0
+        assert geom.R1 == 4.0
+        assert geom.angular_speed == 0.0
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0,
+                                                       R1=5.0,
+                                                       angular_speed=1.0,
+                                                       no_slip=False)
+        assert geom.R0 == 2.0
+        assert geom.R1 == 5.0
+        assert geom.angular_speed == 1.0
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.R0 == 2.0
+        assert geom.R1 == 5.0
+        assert geom.angular_speed == 1.0
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0, R1=4.0)
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
+
+
 class TestParallelPlates:
 
     def test_default_init(self, simulation_factory, snap):

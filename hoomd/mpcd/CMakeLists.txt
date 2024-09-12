@@ -57,8 +57,8 @@ set(_forces
     )
 
 set(_geometries
-    ParallelPlateGeometry
     ConcentricCylindersGeometry
+    ParallelPlateGeometry
     PlanarPoreGeometry
     SphereGeometry
     )
