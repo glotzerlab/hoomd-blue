@@ -14,6 +14,8 @@
 #include "HPMCCounters.h"
 #include "IntegratorHPMCMono.h"
 
+#include "dset/dset.h"
+
 
 namespace hoomd {
 
@@ -206,6 +208,10 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_mc->m_overlaps, access_location::host, access_mode::read);
 
+    // counters
+    ArrayHandle<hpmc_counters_t> h_counters(m_mc->m_count_total, access_location::host, access_mode::readwrite);
+    hpmc_counters_t& counters = h_counters.data[0];
+
 
     for (unsigned int i_trial; i_trial < m_attempts_per_particle; i_trial++)
         {
@@ -215,7 +221,15 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             // set of all "linker" particles that attempt to create links to "linkee" particles
             std::set<unsigned int> linkers;
             std::vector<std::pair<unsigned int, unsigned int>> links;
-            LongReal p_link_probability_ratio = 1.0;
+            std::vector<std::pair<unsigned int, unsigned int>> potential_intracluster_links;
+            DisjointSets cluster;  // tags of particles in the cluster
+            LongReal p_link_probability_ratio = 1.0;  // 3rd product in eqn 13 from the paper
+            LongReal p_failed_link_probability_ratio = 1.0;  // 1st product in eqn 13 from the paper
+            LongReal p_n_o = 1.0;  // product of boltzmann factors in new state for particles that go from non-interacting to interacting after the cluster move
+            std::vector<double> u_ij_potential_links;
+            std::vector<double> u_ij_forward_potential_links;
+            std::vector<double> u_ij_reverse_potential_links;
+
 
             // seed particle that starts the virtual move
             unsigned int seed_idx = m_mc->m_update_order[current_seed];
@@ -264,9 +278,6 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     }
                 #endif
 
-                
-                bool overlap = false;
-
                 // search for all particles that might touch this one
                 LongReal R_query = m_mc->m_shape_circumsphere_radius[type_linker];
 
@@ -277,13 +288,16 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     R_query = std::max(R_query, pair_energy_search_radius[type_linker] - min_core_radius);
                     }
                 hoomd::detail::AABB aabb_linker_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
+                hoomd::detail::AABB aabb_linker_local_forward = hoomd::detail::AABB(virtual_move, R_query);
+                hoomd::detail::AABB aabb_linker_local_reverse = hoomd::detail::AABB(-virtual_move, R_query);
+                hoomd::detail::AABB _aabb = hoomd::detail::merge(aabb_linker_local, aabb_linker_local_forward);
+                hoomd::detail::AABB aabb = hoomd::detail::merge(_aabb, aabb_linker_local_reverse);
 
                 // loop over all images
                 const unsigned int n_images = (unsigned int)m_mc->m_image_list.size();
                 for (unsigned int current_image = 0; current_image < n_images; current_image++)
                     {
                     vec3<Scalar> pos_linker_image = pos_linker + m_mc->m_image_list[current_image];
-                    hoomd::detail::AABB aabb = aabb_linker_local;
                     aabb.translate(pos_linker_image);
 
                     // stackless search
@@ -309,127 +323,202 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         continue;
                                         }
 
-                                    vec3<Scalar> r_linker_linkee = vec3<Scalar>(postype_linkee) - pos_linker_image;
                                     unsigned int type_linkee = __scalar_as_int(postype_linkee.w);
                                     Shape shape_linkee(orientation_linkee, m_mc->params[type_linkee]);
-                                    LongReal r_squared = dot(r_linker_linkee, r_linker_linkee);
                                     LongReal max_overlap_distance = m_mc->m_shape_circumsphere_radius[type_linker] + m_mc->m_shape_circumsphere_radius[type_linkee];
-                                    if (h_overlaps.data[m_mc->m_overlap_idx(type_linker, type_linkee)]
-                                        && r_squared < max_overlap_distance * max_overlap_distance
-                                        && test_overlap(r_linker_linkee, shape_linker, shape_linkee, counters.overlap_err_count))
+
+                                    // at this point we can test for a link between the linker and linkee
+                                    // add j to the cluster with probability p_ij = 1 - exp(E_C - E_I) (hard overlap: p_ij = 1)
+                                    // so we need E_C (current pair energy) and E_I (pair energy after applying virtual move to i)
+                                    // we only need E_C if E_I, so we can check for overlaps first
+
+                                    // pair separation in current real configuration
+                                    vec3<Scalar> r_linker_linkee = vec3<Scalar>(postype_linkee) - pos_linker_image;
+                                    LongReal r_squared = dot(r_linker_linkee, r_linker_linkee);
+
+                                    // pair separation after applying virtual move to linker (i)
+                                    vec3<Scalar> r_linker_linkee_after_move = vec3<Scalar>(postype_linkee) - pos_linker_image + virtual_move;
+                                    LongReal r_squared_after_move = dot(r_linker_linkee_after_move, r_linker_linkee_after_move);
+
+                                    // pair separation after applying reverse virtual move to linker (i)
+                                    vec3<Scalar> r_linker_linkee_after_reverse_move = vec3<Scalar>(postype_linkee) - pos_linker_image - virtual_move;
+                                    LongReal r_squared_after_reverse_move = dot(r_linker_linkee_after_reverse_move, r_linker_linkee_after_reverse_move);
+
+                                    bool overlap_after_move = 
+                                        h_overlaps.data[m_mc->m_overlap_idx(type_linker, type_linkee)]
+                                        && r_squared_after_move < max_overlap_distance * max_overlap_distance
+                                        && test_overlap(r_linker_linkee_after_move, shape_linker, shape_linkee, counters.overlap_err_count);
+                                    if (overlap_after_move)
                                         {
-                                        overlap = true;
-                                        // if linker and linkee overlap (hard), j is added to the cluster with unit probability
+                                        // do everything needed for when there is a link, which is:
+                                        //     1) numerator of p_link_probability_ratio remains unchanged (actually multiplied by 1.0)
+                                        //     2) add j to the list of potential linkers
+                                        //     3) calculate u_ij after applying the reverse move to particle i (TODO: must we do that here?) and calculate p_ij_reverse
+                                        linkers.insert(j_linkee);
+                                        cluster.unite(i_linker, j_linkee);
+                                        links.push_back(std::make_pair(i_linker, j_linkee));
+                                        double u_ij = 
+                                            m_mc->computeOnePairEnergy(
+                                                    r_squared,
+                                                    r_linker_linkee,
+                                                    type_linker,
+                                                    shape_linker.orientation,
+                                                    h_diameter.data[i_linker],
+                                                    h_charge.data[i_linker],
+                                                    type_linkee,
+                                                    shape_linkee.orientation,
+                                                    h_diameter.data[j_linkee],
+                                                    h_charge.data[j_linkee]);
+                                        // TODO: both forward and reverse moves can induce overlaps for nonconvex particles. handle that case.
+                                        double u_ij_after_reverse_move =
+                                            m_mc->computeOnePairEnergy(r_squared_after_reverse_move,
+                                                    r_linker_linkee_after_reverse_move,
+                                                    type_linker,
+                                                    shape_linker.orientation,
+                                                    h_diameter.data[i_linker],
+                                                    h_charge.data[i_linker],
+                                                    type_linkee,
+                                                    shape_linkee.orientation,
+                                                    h_diameter.data[j_linkee],
+                                                    h_charge.data[j_linkee]);
+                                        Scalar p_ij_reverse = 1 - exp(u_ij - u_ij_after_reverse_move);
+                                        p_link_probability_ratio *= p_ij_reverse;
+                                        continue;
+                                        }
+
+                                    // if no overlap, we have to calculate u_ij, u_ij_after_move and u_ij_after_reverse move
+                                    // We also need to check for overlaps in the reverse move, before calculating u_ij_after_reverse_move 
+                                    // Calculate u_ij_after_move first to determine if there is a link
+                                    double u_ij_after_move =
+                                        m_mc->computeOnePairEnergy(r_squared_after_move,
+                                                r_linker_linkee_after_move,
+                                                type_linker,
+                                                shape_linker.orientation,
+                                                h_diameter.data[i_linker],
+                                                h_charge.data[i_linker],
+                                                type_linkee,
+                                                shape_linkee.orientation,
+                                                h_diameter.data[j_linkee],
+                                                h_charge.data[j_linkee]);
+                                    double u_ij = 
+                                        m_mc->computeOnePairEnergy(
+                                                r_squared,
+                                                r_linker_linkee,
+                                                type_linker,
+                                                shape_linker.orientation,
+                                                h_diameter.data[i_linker],
+                                                h_charge.data[i_linker],
+                                                type_linkee,
+                                                shape_linkee.orientation,
+                                                h_diameter.data[j_linkee],
+                                                h_charge.data[j_linkee]);
+                                    LongReal p_ij_forward = 1 - exp(u_ij - u_ij_after_move);
+                                    Scalar r = hoomd::UniformDistribution<Scalar>()(rng_i);
+                                    bool link_formed = r <= p_ij_forward;
+                                    if (link_formed)
+                                        {
+                                        // do all the stuff we need to do
+                                        cluster.unite(i_linker, j_linkee);
                                         linkers.insert(j_linkee);
                                         links.push_back(std::make_pair(i_linker, j_linkee));
-                                        // r_linker_linkee is the pair separation after applying the virtual move to the linker but not the linkee
-                                        // and the energy calculated is really epsilon_I (using notation from the paper, I = independent bc i moves independently)
-                                        // we obviously don't need to calculate the energy u_ij(i', j) b/c it's infinite here, but we do still need the energy in the real configuration (applying inverse of virtual move to r_linker_linkee) and in the reverse move (applying inverse of virtual move twice to linker_linkee)
-                                        vec3<Scalar> r_real_config_linker_linkee = r_linker_linkee + -virtual_move;
-                                        LongReal r_real_config_squared = dot(r_real_config_linker_linkee, r_real_config_linker_linkee);
-                                        double u_ij = m_mc->computeOnePairEnergy(r_real_config_squared, r_real_config_linker_linkee, type_linker, shape_linker.orientation, h_diameter.data[i_linker], h_charge.data[i_linker], type_linkee, shape_linkee.orientation, h_diameter.data[j_linkee], h_charge.data[j_linkee]);
-                                        vec3<Scalar> r_reverse_linker_linkee = r_linker_linkee - virtual_move - virtual_move;
-                                        LongReal r_reverse_squared = dot(r_reverse_linker_linkee, r_reverse_linker_linkee);
-                                        double u_ij_reverse = m_mc->computeOnePairEnergy(r_reverse_squared, r_reverse_linker_linkee, type_linker, shape_linker.orientation, h_diameter.data[i_linker], h_charge.data[i_linker], type_linkee, shape_linkee.orientation, h_diameter.data[j_linkee], h_charge.data[j_linkee]);
+                                        p_link_probability_ratio /= p_ij_forward;
+                                        Scalar p_ij_reverse;
+                                        bool overlap_after_reverse_move = 
+                                            h_overlaps.data[m_mc->m_overlap_idx(type_linker, type_linkee)]
+                                            && r_squared_after_reverse_move < max_overlap_distance * max_overlap_distance
+                                            && test_overlap(r_linker_linkee_after_reverse_move, shape_linker, shape_linkee, counters.overlap_err_count);
+                                        if (overlap_after_reverse_move)
+                                            {
+                                            p_ij_reverse = 1.0;
+                                            }
+                                        else
+                                            {
+                                            double u_ij_after_reverse_move =
+                                                m_mc->computeOnePairEnergy(r_squared_after_reverse_move,
+                                                        r_linker_linkee_after_reverse_move,
+                                                        type_linker,
+                                                        shape_linker.orientation,
+                                                        h_diameter.data[i_linker],
+                                                        h_charge.data[i_linker],
+                                                        type_linkee,
+                                                        shape_linkee.orientation,
+                                                        h_diameter.data[j_linkee],
+                                                        h_charge.data[j_linkee]);
+                                            p_ij_reverse = 1.0 - exp(u_ij - u_ij_after_reverse_move);
+                                            }
+                                        p_link_probability_ratio *= p_ij_reverse;
                                         }
-                                    }
-                                }
+                                    else
+                                        {
+                                        // if these don't form a link, we still need their pair energies (all 3 mentioned above), but 
+                                        // we cannot do anything with them yet until we determine whether or not j ends up in the cluster
+                                        // if it does; then we have to account for the probabilities of not finding links
+                                        // if j doesn't end up in the cluster then there's nothing left to do
+                                        double u_ij_after_reverse_move =
+                                            m_mc->computeOnePairEnergy(r_squared_after_reverse_move,
+                                                    r_linker_linkee_after_reverse_move,
+                                                    type_linker,
+                                                    shape_linker.orientation,
+                                                    h_diameter.data[i_linker],
+                                                    h_charge.data[i_linker],
+                                                    type_linkee,
+                                                    shape_linkee.orientation,
+                                                    h_diameter.data[j_linkee],
+                                                    h_charge.data[j_linkee]);
+                                        potential_intracluster_links.push_back(std::make_pair(i_linker, j_linkee));
+                                        u_ij_potential_links.push_back(u_ij);
+                                        u_ij_forward_potential_links.push_back(u_ij_after_move);
+                                        u_ij_reverse_potential_links.push_back(u_ij_after_reverse_move);
+                                        }
+                                    }  // end loop over linkees
+                                }  // end if (m_mc->m_aabb_tree.isNodeLeaf(current_node_index))
+                            }  // end if (aabb.overlaps(m_mc->m_aabb_tree.getNodeAABB(current_node_index)))
+                        else
+                            {
+                            // skip ahead
+                            current_node_index += m_mc->m_aabb_tree.getNodeSkip(current_node_index);
                             }
+                        }  // end loop over nodes in AABBTree
+                    }  // end loop over images
+                }  // end loop over linkers
+
+            // find which of the potential cluster members ended up in the cluster
+            for (unsigned int i; i < potential_intracluster_links.size(); i++)
+                {
+                unsigned int linker_i = potential_intracluster_links[i].first;
+                unsigned int linker_j = potential_intracluster_links[i].second;
+                if (cluster.same(linker_i, linker_j))
+                    {
+                    // failed intracluster link
+                    Scalar q_ij_forward = exp(u_ij_potential_links[i] - u_ij_forward_potential_links[i]);
+                    Scalar q_ij_reverse = exp(u_ij_potential_links[i] - u_ij_reverse_potential_links[i]);
+                    p_failed_link_probability_ratio *= q_ij_reverse / q_ij_forward;
+                    }
+                }
+
+            // now we can accept or reject the move
+            LongReal p_acc = p_n_o * p_failed_link_probability_ratio * p_link_probability_ratio;
+            Scalar r = hoomd::UniformDistribution<Scalar>()(rng_i);
+            bool accept_cluster_move = r <= p_acc;
+            if(accept_cluster_move)
+                {
+                // apply the cluster moves to all of the particles
+                for(unsigned int idx; idx < m_pdata->getN(); idx++)
+                    {
+                    if (cluster.same(seed_idx, idx))
+                        {
+                        Scalar4 postype_idx = h_postype.data[idx];
+                        vec3<Scalar> new_pos = vec3<Scalar>(postype_idx) + virtual_move;
+                        h_postype.data[idx] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, postype_idx.w);
                         }
                     }
-
-
-
-
-
-
-
                 }
-            }
-        }
-    }
 
 
-template< class Shape >
-void UpdaterVMMC<Shape>::attemptOneClusterMove(uint64_t timestep)
-   {
+            }  // end loop over seed particles
+        }  // end loop over trials
+    }  // end update()
 
-
-
-
-    /////////////////// Outline of algorithm ///////////////////
-
-    // select a random particle as seed
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterVMMC, timestep, seed), ndim);
-    unsigned int seed_idx = hoomd::UniformIntDistribution(m_pdata->getNGlobal())(rng);
-
-    // generate a trial move
-    // TODO: select translation or rotation
-    Scalar4 postype_seed = h_postype.data[seed_idx];
-    vec3<Scalar> pos_seed = vec3<Scalar>(postype_seed);
-    vec3<Scalar> move_map;
-    move_translate(move_map, rng, h_d.data[seed_idx], ndim);
-
-    // generate the cluster by looping over neighbors of seed_idx and add to cluster probabilistically
-    // recursively loop over all neighbors of particles added to cluster to grow cluster
-    // for each pair i,j we need to calculate the pair energies u_ij(x_i, x_j) and u_ij(x'_i, x_j), where
-    // x_i is the position and orientation of particle i in the old configuration and x'_i is the position and orientation of particle i after applying the trial move to it
-    // if the move generates a hard particle overlap (u_ij(x'_i, x_j) -> \infty), then j is added to the cluster with probability 1.0
-    //
-    // the quantities that we ultimately to compute the acceptance criterion are
-    // mu = original state, nu = new state
-    // p_ij(a -> b) = probability of forming a link between i and j moving from state a to state b
-    // q_ij(a -> b) \def 1 - p_ij(a -> b) probability of NOT forming a link between i and j going from a -> b
-    //   1) p_ij(mu -> nu) for all identified links in the cluster
-    //   2) p_ij(nu -> mu) for all identified links in the cluster (calculated by performing the reverse virtual move on i); note that this uses the same links as the forward move
-    //   2) q_ij(nu -> mu) for all identified links in the cluster
-    std::vector<bool> in_cluster_forward_move(m_pdata->getN(), false);
-    generateCluster(in_cluster_forward_move);
-
-    // move the cluster
-    for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
-        {
-        if(in_cluster_forward_move[idx])
-            {
-            // move particle by move_map
-            }
-        }
-
-    // find cluster in new configuration (can have different members than the cluster from the forward move)
-    std::vector<bool> in_cluster_reverse_move(m_pdata->getN(), false);
-    generateCluster(in_cluster_reverse_move);
-
-    bool accept_move = acceptMove();
-    // evaluate acceptance based on m_energy_* arrays
-    // TODO: update counters appropriately
-    if (!accept_move)
-        {
-        restoreState();
-        }
-    else
-        {
-        // recalculate AABBTree if move is accepted
-        m_mc->invalidateAABBTree();
-        }
-    }
-
-
-template< class Shape >
-bool UpdaterVMMC<Shape>::acceptMove()
-    {
-    }
-
-
-template< class Shape >
-void UpdaterVMMC<Shape>::generateCluster(std::vector<bool> &in_cluster)
-    {
-    }
-
-
-template< class Shape >
-void UpdaterVMMC<Shape>::restoreState()
-    {
-    }
 
 namespace detail {
 
