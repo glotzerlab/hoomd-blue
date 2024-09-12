@@ -265,6 +265,11 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return m_overlaps;
             }
 
+        virtual const std::vector<LongReal> getShapeCircumsphereRadius()
+            {
+            return m_shape_circumsphere_radius;
+            }
+
         //! Get the indexer for the interaction matrix
         virtual const Index2D& getOverlapIndexer()
             {
@@ -283,6 +288,16 @@ class IntegratorHPMCMono : public IntegratorHPMC
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
             return ghost_width;
+            }
+
+        virtual Scalar getNominalWidth()
+            {
+            return m_nominal_width;
+            }
+
+        virtual detail::UpdateOrder getUpdateOrder()
+            {
+            return m_update_order;
             }
 
         #ifdef ENABLE_MPI

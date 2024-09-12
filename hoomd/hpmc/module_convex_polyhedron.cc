@@ -17,6 +17,7 @@
 
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
+#include "UpdaterVirtualMoveMonteCarlo.h"
 
 #include "ShapeMoves.h"
 #include "ShapeUtils.h"
@@ -43,6 +44,7 @@ void export_convex_polyhedron(pybind11::module& m)
     export_ComputeSDF<ShapeConvexPolyhedron>(m, "ComputeSDFConvexPolyhedron");
     export_UpdaterMuVT<ShapeConvexPolyhedron>(m, "UpdaterMuVTConvexPolyhedron");
     export_UpdaterClusters<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterVirtualMoveMonteCarlo<ShapeConvexPolyhedron>(m, "UpdaterVMMCConvexPolyhedron");
 
     export_MassProperties<ShapeConvexPolyhedron>(m, "MassPropertiesConvexPolyhedron");
 
