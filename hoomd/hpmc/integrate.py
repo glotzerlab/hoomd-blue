@@ -382,7 +382,7 @@ class HPMCIntegrator(Integrator):
             nselect=int(nselect),
             kT=hoomd.variant.Variant)
         self._param_dict.update(param_dict)
-        self.kT=kT
+        self.kT = kT
 
         self._pair_potential = None
         self._external_potential = None
