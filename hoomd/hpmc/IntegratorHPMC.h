@@ -332,7 +332,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         {
         return m_nselect;
         }
-    
+
     //! Set kT variant
     /*! \param kT new k_BT variant to set
      */
@@ -347,7 +347,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         {
         return m_kT;
         }
-    
+
     /** Evaluate the kT variant at the given timestep.
 
         @param timestep The simulation timestep.

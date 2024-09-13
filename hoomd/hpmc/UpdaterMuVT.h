@@ -1538,8 +1538,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 // apply criterion on rank zero
                 Scalar kT = m_mc->getTimestepkT(timestep);
                 Scalar arg = log(V_new / V) * (Scalar)(ndof + 1)
-                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1) + (lnb
-                             + other_lnb) / kT;
+                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1)
+                             + (lnb + other_lnb) / kT;
 
                 accept = hoomd::detail::generate_canonical<double>(rng) < exp(arg);
                 accept &= !(has_overlaps || other_result);
