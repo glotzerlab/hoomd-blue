@@ -24,10 +24,11 @@ class MySphere(hpmc.integrate.HPMCIntegrator):
                  default_d=0.1,
                  default_a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4):
+                 nselect=4,
+                 kT=1.0):
         # initialize base class
         super().__init__(default_d, default_a, translation_move_probability,
-                         nselect)
+                         nselect, kT)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
