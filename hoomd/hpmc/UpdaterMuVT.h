@@ -1093,7 +1093,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 if (nonzero)
                     {
-                    lnboltzmann += lnb;
+                    Scalar kT = m_mc->getTimestepkT(timestep);
+                    lnboltzmann += lnb / kT;
                     }
 
 #ifdef ENABLE_MPI
@@ -1274,7 +1275,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
             Scalar lnb(0.0);
             if (tryRemoveParticle(timestep, tag, lnb))
                 {
-                lnboltzmann += lnb;
+                Scalar kT = m_mc->getTimestepkT(timestep);
+                lnboltzmann += lnb / kT;
                 }
             else
                 {
@@ -1534,9 +1536,10 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                          &stat);
 
                 // apply criterion on rank zero
+                Scalar kT = m_mc->getTimestepkT(timestep);
                 Scalar arg = log(V_new / V) * (Scalar)(ndof + 1)
-                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1) + lnb
-                             + other_lnb;
+                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1) + (lnb
+                             + other_lnb) / kT;
 
                 accept = hoomd::detail::generate_canonical<double>(rng) < exp(arg);
                 accept &= !(has_overlaps || other_result);
