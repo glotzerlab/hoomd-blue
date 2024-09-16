@@ -454,7 +454,7 @@ class MuVT(Updater):
 
     @log(category='sequence', requires_run=True)
     def insert_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle \
+        """tuple[int, int]: Count of the accepted and rejected particle \
         insertion moves.
 
         None when not attached
@@ -464,8 +464,8 @@ class MuVT(Updater):
 
     @log(category='sequence', requires_run=True)
     def remove_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle removal \
-        moves.
+        """tuple[int, int]: Count of the accepted and rejected particle \
+        removal moves.
 
         None when not attached
         """
@@ -474,7 +474,7 @@ class MuVT(Updater):
 
     @log(category='sequence', requires_run=True)
     def exchange_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle \
+        """tuple[int, int]: Count of the accepted and rejected particle \
         exchange moves.
 
         None when not attached
@@ -484,7 +484,7 @@ class MuVT(Updater):
 
     @log(category='sequence', requires_run=True)
     def volume_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle volume \
+        """tuple[int, int]: Count of the accepted and rejected particle volume \
         moves.
 
         None when not attached
