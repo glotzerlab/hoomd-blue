@@ -8,7 +8,6 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
-                   # AnisoPotentialPairJanus.cc
                    AlchemyData.cc
                    BendingRigidityMeshForceCompute.cc
                    BondTablePotential.cc

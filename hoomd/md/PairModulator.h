@@ -151,27 +151,12 @@ public:
                           const Scalar _rcutsq,
                           const param_type& _params)
         : dr(_dr),
-          rsq(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z),
+          rsq(dot(_dr, _dr)),
           rcutsq(_rcutsq),
           quat_i(_quat_i),
           quat_j(_quat_j),
           params(_params)
         { }
-
-    //! If diameter is used
-    DEVICE static bool needsDiameter()
-        {
-            return (PairEvaluator::needsDiameter() || DirectionalEnvelope::needsDiameter());
-        }
-
-    //! Accept the optional diameter values
-    /*!
-      \param di Diameter of particle i
-      \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj)
-        {
-        }
 
     //! Whether pair potential requires charges
     DEVICE static bool needsCharge()
@@ -212,7 +197,7 @@ public:
     //! Whether the pair potential needs particle tags.
     HOSTDEVICE static bool needsTags()
         {
-            return false;
+        return (PairEvaluator::needsTags() || DirectionalEnvelope::needsTags());
         }
 
     //! No modulated potential needs tags

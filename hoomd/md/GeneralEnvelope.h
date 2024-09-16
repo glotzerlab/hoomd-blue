@@ -31,10 +31,6 @@ namespace md
   The GeneralEnvelope creates the pair potential modulator.
 */
 
-        static inline std::string vecString(vec3<Scalar> a) {
-            return std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + '\n';
-        }
-
 
 class GeneralEnvelope
 {
@@ -154,16 +150,6 @@ public:
             exp_negOmega_times_CosThetaI_minus_CosAlpha = fast::exp(-params.omega*(costhetai - params.cosalpha));
             exp_negOmega_times_CosThetaJ_minus_CosAlpha = fast::exp(-params.omega*(costhetaj - params.cosalpha));
         }
-
-    //! uses diameter
-    DEVICE static bool needsDiameter() { return false; }
-
-    //! Accept the optional diameter values
-    /*!
-      \param di Diameter of particle i
-      \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! whether pair potential requires charges
     DEVICE static bool needsCharge() { return false; }
