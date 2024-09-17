@@ -7,6 +7,7 @@ set(files __init__.py
           test_external_field.py
           test_external_user.py
           test_external_wall.py
+          test_kt.py
           test_muvt.py
           test_boxmc.py
           test_shape.py
