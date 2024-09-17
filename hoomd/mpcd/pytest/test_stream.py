@@ -200,7 +200,8 @@ class ConcentricCylinders:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0, R1=5.0))
+            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radiuss=2.0,
+                                                             outer_radius=5.0))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
@@ -213,7 +214,7 @@ class ConcentricCylinders:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, -1.0]])
 
-        # take another step where one particle will now hit the outer wall
+        # take another step where first particle will now hit the outer wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -222,7 +223,7 @@ class ConcentricCylinders:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[1.0, 1.0, -1.0], [1.0, 1.0, -1.0]])
 
-        # take another step, reflecting the second particle
+        # take another step where second particle will now hit the inner wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -240,8 +241,8 @@ class ConcentricCylinders:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0,
-                                                             R1=5.0,
+            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                             outer_radius=5.0,
                                                              no_slip=False),
         )
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
@@ -256,7 +257,7 @@ class ConcentricCylinders:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, -1.0]])
 
-        # take another step where one particle will now hit the outer wall
+        # take another step where first particle will now hit the outer wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -266,7 +267,7 @@ class ConcentricCylinders:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[0.28, -0.28, 1.0], [1.0, 1.0, -1.0]])
 
-        # take another step, reflecting perpendicular motion of second particle
+        # take another step where second partile will now hit the inner wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
@@ -285,8 +286,8 @@ class ConcentricCylinders:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0,
-                                                             R1=5.0,
+            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                             outer_radius=5.0,
                                                              angular_speed=1,
                                                              no_slip=True),
         )
@@ -313,8 +314,8 @@ class ConcentricCylinders:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0,
-                                                             R1=5.0,
+            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                             outer_radius=5.0,
                                                              angular_speed=1,
                                                              no_slip=False),
         )

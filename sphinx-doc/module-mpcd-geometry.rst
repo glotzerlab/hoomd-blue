@@ -12,6 +12,7 @@ mpcd.geometry
     :nosignatures:
 
     Geometry
+    ConcentricCylinders
     ParallelPlates
     PlanarPore
     Sphere
@@ -21,6 +22,7 @@ mpcd.geometry
 .. automodule:: hoomd.mpcd.geometry
     :synopsis: Geometries.
     :members: Geometry,
+              ConcentricCylinders,
               ParallelPlates,
               PlanarPore,
               Sphere

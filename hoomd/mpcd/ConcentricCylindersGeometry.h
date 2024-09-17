@@ -59,9 +59,9 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
          * Check if particle is in bounds
          */
         const signed char sign = (char)((rsq < m_R0_sq) - (rsq > m_R1_sq));
-        // exit immediately if no collision is found or particle is not moving normal to the wall
-        // (since no new collision could have occurred if there is no normal motion)
-        if (sign == 0 || vel.x * vel.x + vel.y * vel.y == Scalar(0))
+        // exit immediately if no collision is found or particle is stationary in xy plane
+        const Scalar vxy_sq = vel.x * vel.x + vel.y * vel.y;
+        if (sign == 0 || vxy_sq == Scalar(0))
             {
             dt = Scalar(0);
             return false;
@@ -72,10 +72,9 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
          * by backtracking the position, dot(pos, pos) = R^2.
          */
         const Scalar Rsq = (sign == 1) ? m_R0_sq : m_R1_sq;
-        const Scalar a = vel.x * vel.x + vel.y * vel.y;
         const Scalar b = -Scalar(2) * (pos.x * vel.x + pos.y * vel.y);
         const Scalar c = pos.x * pos.x + pos.y * pos.y - Rsq;
-        dt = (-b + sign * (slow::sqrt(b * b - Scalar(4) * a * c))) / (Scalar(2) * a);
+        dt = (-b + sign * (slow::sqrt(b * b - Scalar(4) * vxy_sq * c))) / (Scalar(2) * vxy_sq);
 
         // backtrack the particle for dt to get to point of contact
         pos -= vel * dt;
@@ -85,17 +84,27 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
         if (m_no_slip)
             {
             vel = -vel;
+            // if the particle hits the moving outside wall, then vel = -vel + 2V_t.
+            /*
+             * t = [-y/R, x/R, 0] is the tangential unit vector at the point of contact r, which is
+             * the particle position that has been backtracked to the surface in the previous step.
+             * Therefore, V_t = m_w * R * t = m_w * [-pos.y, pos.x, 0].
+             */
             if (sign == -1)
                 {
                 vel.x += Scalar(2) * m_w * -pos.y;
                 vel.y += Scalar(2) * m_w * pos.x;
                 }
             }
-        // slip requires reflection of the normal components
+        // slip requires reflection of the normal components.
+        /*
+         * n = r/R is the normal unit vector at the point of contact r, which is the particle
+         * position. Therefore, V_n = dot(v, n) * n = vel * pos * pos / Rsq.
+         */
         else
             {
-            vel.x -= Scalar(2) * pos.x * pos.x * vel.x / (Rsq);
-            vel.y -= Scalar(2) * pos.y * pos.y * vel.y / (Rsq);
+            vel.x -= Scalar(2) * pos.x * pos.x * vel.x / Rsq;
+            vel.y -= Scalar(2) * pos.y * pos.y * vel.y / Rsq;
             }
 
         return true;
@@ -116,7 +125,7 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
     /*!
      * \returns Inner radius of the cylinder
      */
-    HOSTDEVICE Scalar getR0() const
+    HOSTDEVICE Scalar getInnerRadius() const
         {
         return slow::sqrt(m_R0_sq);
         }
@@ -125,7 +134,7 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
     /*!
      * \returns Outer radius of the cylinder
      */
-    HOSTDEVICE Scalar getR1() const
+    HOSTDEVICE Scalar getOuterRadius() const
         {
         return slow::sqrt(m_R1_sq);
         }

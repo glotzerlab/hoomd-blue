@@ -60,8 +60,8 @@ class ConcentricCylinders(Geometry):
     r"""Concentric-cylinders channel.
 
     Args:
-        R0 (float): Inner radius of the cylinders.
-        R1 (float): Outer radius of the cylinders
+        inner_radius (float): Radius of inner cylinders.
+        outer_radius (float): Radius of outer cylinders
         angular_speed (float): Angular speed of the outer cylinder in the
             counterclockwise direction.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
@@ -77,7 +77,8 @@ class ConcentricCylinders(Geometry):
 
     .. code-block:: python
 
-        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(R0=2.0, R1=5.0)
+        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+          outer_radius=5.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
         simulation.operations.integrator.streaming_method = stream
 
@@ -86,7 +87,7 @@ class ConcentricCylinders(Geometry):
     .. code-block:: python
 
         cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
-            R0=2.0, R1=5.0, no_slip=False)
+            inner_radius=2.0, outer_radius=5.0, no_slip=False)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
         simulation.operations.integrator.streaming_method = stream
 
@@ -95,33 +96,38 @@ class ConcentricCylinders(Geometry):
     .. code-block:: python
 
         cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
-            R0=2.0, R1=5.0, angular_speed=1.0, no_slip=True)
+            inner_radius=2.0, outer_radius=5.0, angular_speed=1.0, no_slip=True)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
         simulation.operations.integrator.streaming_method = stream
 
     Attributes:
-        R0 (float): Inner radius of the cylinder (*read only*).
+        inner_radius (float): Radius of inner cylinder (*read only*).
 
-        R1 (float): Outer radius of the cylinder (*read only*).
+        outer_radius (float): Radius of outer cylinder (*read only*).
 
         angular_speed (float): Angular outer cylinder speed (*read only*).
 
-            `speed` will have no effect if `no_slip` is False because the slip
-            surface cannot generate shear stress.
+            `angular_speed` will have no effect if `no_slip` is False because
+            the slip surface cannot generate shear stress.
 
     """
 
-    def __init__(self, R0, R1, angular_speed=0.0, no_slip=True):
+    def __init__(self,
+                 inner_radius,
+                 outer_radius,
+                 angular_speed=0.0,
+                 no_slip=True):
         super().__init__(no_slip)
         param_dict = ParameterDict(
-            R0=float(R0),
-            R1=float(R1),
+            inner_radius=float(inner_radius),
+            outer_radius=float(outer_radius),
             angular_speed=float(angular_speed),
         )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.ConcentricCylinders(self.R0, self.R1,
+        self._cpp_obj = _mpcd.ConcentricCylinders(self.inner_radius,
+                                                  self.outer_radius,
                                                   self.angular_speed,
                                                   self.no_slip)
         super()._attach_hook()
