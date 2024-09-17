@@ -171,11 +171,8 @@ public:
     */
     DEVICE void setCharge(Scalar qi, Scalar qj)
         {
-            // store qi and qj for later
-            // if (PairEvaluator::needsCharge())
-            //     pairEval.setCharge(qi, qj);
-            // if (DirectionalEnvelope::needsCharge())
-            //     envelEval.setCharge(qi, qj);
+        m_charge_i = qi;
+        m_charge_j = qj;
         }
 
     //! Whether the pair potential uses shape.
@@ -203,6 +200,8 @@ public:
     //! No modulated potential needs tags
     HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj)
         {
+        m_tag_i = tagi;
+        m_tag_j = tagj;        
         }
 
     HOSTDEVICE static bool constexpr implementsEnergyShift()
