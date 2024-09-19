@@ -36,13 +36,13 @@ executing==2.0.1
     # via stack-data
 fastjsonschema==2.19.1
     # via nbformat
-furo==2024.5.6
+furo==2024.8.6
     # via -r sphinx-doc/requirements.in
 idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==8.26.0
+ipython==8.27.0
     # via -r sphinx-doc/requirements.in
 jedi==0.19.1
     # via ipython
@@ -84,15 +84,15 @@ nbformat==5.10.4
     #   nbclient
     #   nbconvert
     #   nbsphinx
-nbsphinx==0.9.4
+nbsphinx==0.9.5
     # via -r sphinx-doc/requirements.in
-numpy==2.0.0
+numpy==2.1.0
     # via -r sphinx-doc/requirements.in
 packaging==24.0
     # via
     #   nbconvert
     #   sphinx
-pandoc==2.3
+pandoc==2.4
     # via -r sphinx-doc/requirements.in
 pandocfilters==1.5.1
     # via nbconvert
@@ -141,7 +141,7 @@ snowballstemmer==2.2.0
     # via sphinx
 soupsieve==2.5
     # via beautifulsoup4
-sphinx==7.4.3
+sphinx==7.4.7
     # via
     #   -r sphinx-doc/requirements.in
     #   furo
