@@ -24,6 +24,15 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use ``box``.
 
+* ``hpmc.pair.user.CPPPotentialBase``, ``hpmc.pair.user.CPPPotential``,
+  ``hpmc.pair.user.CPPPotentialUnion``, ``hpmc.integrate.HPMCIntegrator.pair_potential``
+
+  * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
+
+* ``hoomd.hpmc.external.user.CPPExternalPotential``
+
+  * Use ``hoomd.hpmc.external.Linear`` or a custom component (compiled).
+
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
