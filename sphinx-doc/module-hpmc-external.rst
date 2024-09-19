@@ -28,6 +28,5 @@ hoomd.hpmc.external
 .. toctree::
    :maxdepth: 1
 
-   module-hpmc-external-user
    module-hpmc-external-field
    module-hpmc-external-wall

@@ -172,8 +172,9 @@ def test_insertion_removal(device, simulation_factory,
     assert muvt.N["B"] > 0
 
 
+# TODO: update test to run without LLVM
 @pytest.mark.cpu
-@pytest.mark.skipif(not hoomd.version.llvm_enabled, reason="LLVM not enabled")
+@pytest.mark.skipif(True, reason="LLVM not enabled")
 def test_jit_remove_insert(device, simulation_factory,
                            one_particle_snapshot_factory):
     """Test that MuVT considers cpp potential when removing/adding particles."""

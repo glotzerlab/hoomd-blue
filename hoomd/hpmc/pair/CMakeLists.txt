@@ -5,7 +5,6 @@ set(files __init__.py
         step.py
         union.py
         angular_step.py
-        user.py
  )
 
 install(FILES ${files}

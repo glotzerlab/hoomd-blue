@@ -157,7 +157,6 @@ jobs:
                                -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                                -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                                -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
-                               -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
                                -DBUILD_MD=${BUILD_MD:-"ON"} \
                                -DBUILD_MPCD=${BUILD_MD:-"ON"} \
                                -DBUILD_METAL=${BUILD_MD:-"ON"} \
@@ -170,7 +169,6 @@ jobs:
         ENABLE_GPU: ${{ contains(inputs.config, 'cuda') }}
         ENABLE_MPI: ${{ contains(inputs.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(inputs.config, 'tbb') }}
-        ENABLE_LLVM: ${{ contains(inputs.config, 'llvm') }}
         BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
@@ -297,7 +295,7 @@ jobs:
       run: mpirun --timeout 3000 -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
     - name: Run howto guides (serial)
-      if: ${{ contains(inputs.config, 'llvm') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}  # some examples require LLVM
+      if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
       working-directory: code/sphinx-doc/howto
 

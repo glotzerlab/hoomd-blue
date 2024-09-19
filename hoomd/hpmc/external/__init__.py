@@ -23,7 +23,6 @@ Note:
     replaced by similar classes that do support ``external_potentials``.
 """
 
-from . import user
 from . import field
 from . import wall
 from .external import External

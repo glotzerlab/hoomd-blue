@@ -10,7 +10,8 @@ import hoomd.hpmc.pytest.conftest
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
 
-llvm_disabled = not hoomd.version.llvm_enabled
+# TODO: reimplement test without LLVM
+llvm_disabled = True
 
 
 def test_before_attaching():

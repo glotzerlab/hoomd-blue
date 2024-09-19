@@ -310,9 +310,6 @@ used under the following license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`LLVM <https://llvm.org>`_, used under the
-`Apache 2.0 license <http://www.apache.org/licenses/LICENSE-2.0.html>`_.
-
 `nano-signal-slot <https://github.com/glotzerlab/nano-signal-slot>`_, used under
 the following license::
 

@@ -92,7 +92,7 @@ Check to see whether tuning is complete with the `is_tuning_complete
 
 The optimal parameters can depend on the number of particles in the simulation and the density, and
 may vary weakly with other system properties. To maintain peak performance, call
-`tune_kernel_parmeters <hoomd.Operations.tune_kernel_parameters>` to tune the parameters again after
+`tune_kernel_parameters <hoomd.Operations.tune_kernel_parameters>` to tune the parameters again after
 making a change to your system.
 
 `AutotunedObject` provides a settable dictionary parameter with the current kernel parameters in
@@ -122,26 +122,13 @@ very limited and only applies to implicit depletants in `hpmc.integrate.HPMCInte
 ``ENABLE_TBB`` CMake option (see :doc:`building`). At runtime, `hoomd.version.tbb_enabled` indicates
 whether the build supports threaded execution.
 
-.. _Run time compilation:
-
-Run time compilation
---------------------
-
-Some operations allow the user to provide arbitrary C++ code that HOOMD-blue compiles at run time
-and executes during the simulation. `hpmc.pair.user` and `hpmc.external.user` enable users to apply
-arbitrary pair and external potentials to particles in HPMC simulations. `hpmc.pair.user`
-supports both CPUs and NVIDIA GPUs while `hpmc.external.user` only supports CPUs. Run time
-compilation must be enabled at compile time with the ``ENABLE_LLVM`` CMake option (see
-:doc:`building`). At runtime, `hoomd.version.llvm_enabled` indicates whether the build supports run
-time compilation.
-
 Mixed precision
 ---------------
 
 HOOMD-blue performs computations with mixed floating point precision. There is a **high precision**
 type and a **reduced precision** type. All particle properties are stored in the high precision
 type, and most operations also perform all computations with high precision. Operations that do not
-mention "Mixed precision" in their documentation perform all calculations in high percision. Some
+mention "Mixed precision" in their documentation perform all calculations in high precision. Some
 operations use reduced precision when possible to improve performance, as detailed in the
 documentation for each operation.
 
