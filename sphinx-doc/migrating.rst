@@ -16,6 +16,12 @@ HOOMD-blue v5 removes functionalities deprecated in v4.x releases:
 * ``_InternalCustomTuner.tune``
 * ``_InternalCustomWriter.write``
 * ``HDF5Log.write``
+* ``hoomd.snapshot.from_gsd_snapshot``
+
+  * Use `hoomd.Snapshot.from_gsd_frame`.
+* ``hoomd.util.GPUNotAvailableError``
+
+  * use ``hoomd.error.GPUNotAvailableError``.
 
 
 Migrating to HOOMD v4
