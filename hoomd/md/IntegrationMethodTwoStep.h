@@ -114,7 +114,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep : public Autotuned
      */
     virtual void integrateStepTwo(uint64_t timestep) { }
 
-    //! Calculates force which keeps paricles on manifold in RATTLE integrators
+    //! Calculates force which keeps particles on manifold in RATTLE integrators
     /*! \param timestep Current time step
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }
