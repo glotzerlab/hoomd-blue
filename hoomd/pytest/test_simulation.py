@@ -459,10 +459,10 @@ def test_operations_setting(tmp_path, simulation_factory,
     operations = hoomd.Operations()
     # Add some operations to test the setting
     operations += hoomd.update.BoxResize(trigger=40,
-                                         box1=hoomd.Box.cube(10),
-                                         box2=hoomd.Box.cube(20),
-                                         variant=hoomd.variant.Ramp(
-                                             0, 1, 0, 100))
+                                         box=hoomd.variant.box.Interpolate(hoomd.Box.cube(10),
+                                         hoomd.Box.cube(20),
+                                         hoomd.variant.Ramp(
+                                            0, 1, 0, 100)))
     operations += hoomd.write.GSD(filename=tmp_path / "foo.gsd", trigger=10)
     operations += hoomd.write.Table(10, logger=hoomd.logging.Logger(['scalar']))
     operations.tuners.clear()
@@ -473,10 +473,10 @@ def test_operations_setting(tmp_path, simulation_factory,
     # Check setting after scheduling
     new_operations = hoomd.Operations()
     new_operations += hoomd.update.BoxResize(trigger=80,
-                                             box1=hoomd.Box.cube(300),
-                                             box2=hoomd.Box.cube(20),
-                                             variant=hoomd.variant.Ramp(
-                                                 0, 1, 0, 100))
+                                             box=hoomd.variant.box.Interpolate(hoomd.Box.cube(300),
+                                             hoomd.Box.cube(20),
+                                             hoomd.variant.Ramp(
+                                                 0, 1, 0, 100)))
     new_operations += hoomd.write.GSD(filename=tmp_path / "bar.gsd", trigger=20)
     new_operations += hoomd.write.Table(20,
                                         logger=hoomd.logging.Logger(['scalar']))

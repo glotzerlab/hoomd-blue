@@ -14,10 +14,6 @@ documentation for more information on warning filters.
 4.x
 ---
 
-* ``hoomd.snapshot.from_gsd_snapshot`` (since 4.0.0).
-
-  * Use `hoomd.Snapshot.from_gsd_frame`.
-
 * ``Device.num_cpu_threads > 1`` (since 4.4.0).
 
   * Set ``num_cpu_threads = 1``.
@@ -30,14 +26,6 @@ documentation for more information on warning filters.
 
   * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
 
-* ``hoomd.util.GPUNotAvailableError`` (since 4.5.0).
-
-  * use ``hoomd.error.GPUNotAvailableError``.
-
-* ``_InternalCustomUpdater.update`` (since 4.5.0)
-* ``_InternalCustomTuner.tune`` (since 4.5.0)
-* ``_InternalCustomWriter.write`` (since 4.5.0)
-* ``HDF5Log.write`` (since 4.5.0)
 * Single-process multi-GPU code path (since 4.5.0)
 * ``gpu_ids`` argument to ``GPU`` (since 4.5.0)
 
@@ -46,10 +34,6 @@ documentation for more information on warning filters.
 * ``GPU.devices`` (since 4.5.0)
 
   * Use ``device``.
-
-* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
-
-  * Use ``box``.
 
 * ``HPMCIntegrator.external_potential`` (since 4.8.0).
 

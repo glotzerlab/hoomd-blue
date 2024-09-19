@@ -101,16 +101,14 @@ _power = 2
 
 
 @pytest.fixture(scope='function')
-def variant():
-    return hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp)
+def box_variant(sys):
+    sys1, _, sys2 = sys
+    return hoomd.variant.box.Interpolate(sys1[0], sys2[0], hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp))
 
 
 @pytest.fixture(scope='function')
-def box_resize(sys, trigger, variant):
-    sys1, _, sys2 = sys
-    b = hoomd.update.BoxResize(box1=sys1[0],
-                               box2=sys2[0],
-                               variant=variant,
+def box_resize(trigger, box_variant):
+    b = hoomd.update.BoxResize(box=box_variant,
                                trigger=trigger)
     return b
 
@@ -138,9 +136,9 @@ def test_trigger(box_resize, trigger):
         assert trigger.compute(timestep) == box_resize.trigger.compute(timestep)
 
 
-def test_variant(box_resize, variant):
+def test_variant(box_resize, box_variant):
     for timestep in range(_t_start + _t_ramp):
-        assert variant(timestep) == box_resize.variant(timestep)
+        assert box_variant(timestep) == box_resize.box(timestep)
 
 
 def test_get_box(simulation_factory, get_snapshot, sys, box_resize):
@@ -179,15 +177,13 @@ def filters(request):
     return request.param
 
 
-def test_position_scale(device, get_snapshot, sys, variant, trigger, filters,
+def test_position_scale(device, get_snapshot, sys, box_variant, trigger, filters,
                         simulation_factory):
     filter_scale, filter_noscale = filters
     sys1, make_sys_halfway, sys2 = sys
     sys_halfway = make_sys_halfway(_power)
 
-    box_resize = hoomd.update.BoxResize(box1=sys1[0],
-                                        box2=sys2[0],
-                                        variant=variant,
+    box_resize = hoomd.update.BoxResize(box=box_variant,
                                         trigger=trigger,
                                         filter=filter_scale)
 
@@ -207,12 +203,9 @@ def test_position_scale(device, get_snapshot, sys, variant, trigger, filters,
     assert_positions(sim, sys2[1], filter_scale)
 
 
-def test_get_filter(device, get_snapshot, sys, variant, trigger, filters):
+def test_get_filter(device, get_snapshot, box_variant, trigger, filters):
     filter_scale, _ = filters
-    sys1, _, sys2 = sys
-    box_resize = hoomd.update.BoxResize(box1=sys1[0],
-                                        box2=sys2[0],
-                                        variant=variant,
+    box_resize = hoomd.update.BoxResize(box=box_variant,
                                         trigger=trigger,
                                         filter=filter_scale)
 
@@ -227,12 +220,6 @@ def test_update_filters(device, get_snapshot, sys, filters):
     hoomd.update.BoxResize.update(sim.state, sys2[0], filter=filter_scale)
 
 
-def test_pickling(simulation_factory, two_particle_snapshot_factory,
-                  box_resize):
-    sim = simulation_factory(two_particle_snapshot_factory())
-    operation_pickling_check(box_resize, sim)
-
-
 def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
     filt = hoomd.filter.All()
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -240,9 +227,7 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
     box1 = hoomd.Box.cube(L=10)
     box2 = hoomd.Box.cube(L=12)
     var = hoomd.variant.Ramp(10, 12, 0, 100)
-    box_op = hoomd.update.BoxResize(box1=box1,
-                                    box2=box2,
-                                    variant=var,
+    box_op = hoomd.update.BoxResize(box=hoomd.variant.box.Interpolate(box1, box2, var),
                                     trigger=trig)
     sim.operations.add(box_op)
     assert len(sim.operations.updaters) == 1
@@ -270,49 +255,6 @@ def test_new_api(simulation_factory, two_particle_snapshot_factory):
     assert box_resize.box is inverse_volume_ramp
 
 
-def test_invalid_api(variant, trigger):
-    box_variant = hoomd.variant.box.InverseVolumeRamp(
-        initial_box=hoomd.Box.cube(6),
-        final_volume=100,
-        t_start=1_000,
-        t_ramp=21_000)
-
-    box1 = hoomd.Box.cube(10)
-    box2 = hoomd.Box.cube(20)
-
-    with pytest.raises(ValueError):
+def test_invalid_api(trigger):
+    with pytest.raises(TypeError):
         hoomd.update.BoxResize(trigger=trigger)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, box1=box1)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, box1=box1, box2=box2)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, box2=box2, variant=variant)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger,
-                               box1=box1,
-                               box2=box2,
-                               variant=variant,
-                               box=box_variant)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, box1=box1, box=box_variant)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger, box2=box2, box=box_variant)
-    with pytest.raises(ValueError):
-        hoomd.update.BoxResize(trigger=trigger,
-                               variant=variant,
-                               box=box_variant)
-
-    box_resize = hoomd.update.BoxResize(trigger=trigger, box=box_variant)
-    with pytest.raises(RuntimeError):
-        box_resize.box1
-    with pytest.raises(RuntimeError):
-        box_resize.box2
-    with pytest.raises(RuntimeError):
-        box_resize.variant
-    with pytest.raises(RuntimeError):
-        box_resize.box1 = box1
-    with pytest.raises(RuntimeError):
-        box_resize.box2 = box2
-    with pytest.raises(RuntimeError):
-        box_resize.variant = variant

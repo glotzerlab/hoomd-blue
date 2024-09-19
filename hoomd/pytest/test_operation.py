@@ -173,9 +173,9 @@ def test_operation_lifetime(simulation_factory, two_particle_snapshot_factory):
     def drop_sim(attach=False):
         sim = simulation_factory(two_particle_snapshot_factory())
         # Use operation available regardless of build
-        box_resize = hoomd.update.BoxResize(10, hoomd.Box.cube(4),
+        box_resize = hoomd.update.BoxResize(10, hoomd.variant.box.Interpolate(hoomd.Box.cube(4),
                                             hoomd.Box.cube(5),
-                                            hoomd.variant.Ramp(0, 1, 0, 10_000))
+                                            hoomd.variant.Ramp(0, 1, 0, 10_000)))
         sim.operations.updaters.append(box_resize)
         if attach:
             sim.run(0)
