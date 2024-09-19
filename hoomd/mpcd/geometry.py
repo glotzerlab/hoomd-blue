@@ -68,8 +68,9 @@ class ConcentricCylinders(Geometry):
             Otherwise, they have the slip boundary condition.
 
     `ConcentricCylinders` confines particles between two cylinders
-    centered around the origin. The inner cylinder are stationary, but the
-    outer cylinder may put into motion with 'angular_speed'.
+    centered around the origin. The inner cylinder is stationary, but the
+    outer cylinder can rotate counterclockwise about the *z* axis with
+    constant `angular_speed`.
 
     .. rubric:: Examples:
 

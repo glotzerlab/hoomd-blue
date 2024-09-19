@@ -74,7 +74,7 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
         const Scalar Rsq = (sign == 1) ? m_R0_sq : m_R1_sq;
         const Scalar b = -Scalar(2) * (pos.x * vel.x + pos.y * vel.y);
         const Scalar c = pos.x * pos.x + pos.y * pos.y - Rsq;
-        dt = (-b + sign * (slow::sqrt(b * b - Scalar(4) * vxy_sq * c))) / (Scalar(2) * vxy_sq);
+        dt = (-b + sign * slow::sqrt(b * b - Scalar(4) * vxy_sq * c)) / (Scalar(2) * vxy_sq);
 
         // backtrack the particle for dt to get to point of contact
         pos -= vel * dt;

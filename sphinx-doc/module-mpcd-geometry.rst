@@ -11,8 +11,8 @@ mpcd.geometry
 .. autosummary::
     :nosignatures:
 
-    Geometry
     ConcentricCylinders
+    Geometry
     ParallelPlates
     PlanarPore
     Sphere
@@ -21,8 +21,8 @@ mpcd.geometry
 
 .. automodule:: hoomd.mpcd.geometry
     :synopsis: Geometries.
-    :members: Geometry,
-              ConcentricCylinders,
+    :members: ConcentricCylinders,
+              Geometry,
               ParallelPlates,
               PlanarPore,
               Sphere
