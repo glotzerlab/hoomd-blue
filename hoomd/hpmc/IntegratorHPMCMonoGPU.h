@@ -1697,6 +1697,38 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     this->m_exec_conf->endMultiGPU();
                     }
 
+                    {
+                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell,
+                                                                   access_location::device,
+                                                                   access_mode::read);
+                    ArrayHandle<unsigned int> d_reject(m_reject,
+                                                       access_location::device,
+                                                       access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_reject_out(m_reject_out,
+                                                           access_location::device,
+                                                           access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_condition(m_condition,
+                                                          access_location::device,
+                                                          access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type,
+                                                                access_location::device,
+                                                                access_mode::read);
+
+                    this->m_exec_conf->beginMultiGPU();
+                    m_tuner_convergence->begin();
+                    gpu::hpmc_check_convergence(d_trial_move_type.data,
+                                                d_reject_out_of_cell.data,
+                                                d_reject.data,
+                                                d_reject_out.data,
+                                                d_condition.data,
+                                                this->m_pdata->getGPUPartition(),
+                                                m_tuner_convergence->getParam()[0]);
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+                    m_tuner_convergence->end();
+                    this->m_exec_conf->endMultiGPU();
+                    }
+
                 // flip reject flags
                 std::swap(m_reject, m_reject_out);
 
