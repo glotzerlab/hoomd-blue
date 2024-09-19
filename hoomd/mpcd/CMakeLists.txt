@@ -57,6 +57,8 @@ set(_forces
     )
 
 set(_geometries
+    CosineChannelGeometry
+    CosineExpansionContractionGeometry
     ParallelPlateGeometry
     PlanarPoreGeometry
     SphereGeometry

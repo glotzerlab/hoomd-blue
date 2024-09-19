@@ -306,9 +306,9 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - ``deprecated.init.read_xml``
      - `Simulation.create_state_from_gsd`
    * - ``deprecated.init.create_random``
-     - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
+     - `mBuild <https://github.com/mosdef-hub/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
    * - ``deprecated.init.create_random_polymers``
-     - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
+     - `mBuild <https://github.com/mosdef-hub/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
 
 :py:mod:`hoomd.hpmc`:
 
