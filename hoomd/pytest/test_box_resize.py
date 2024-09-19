@@ -5,7 +5,6 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 import hoomd
-from hoomd.conftest import operation_pickling_check
 from hoomd.error import MutabilityError
 
 _n_points = 10
@@ -103,13 +102,14 @@ _power = 2
 @pytest.fixture(scope='function')
 def box_variant(sys):
     sys1, _, sys2 = sys
-    return hoomd.variant.box.Interpolate(sys1[0], sys2[0], hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp))
+    return hoomd.variant.box.Interpolate(
+        sys1[0], sys2[0], hoomd.variant.Power(0., 1., _power, _t_start,
+                                              _t_ramp))
 
 
 @pytest.fixture(scope='function')
 def box_resize(trigger, box_variant):
-    b = hoomd.update.BoxResize(box=box_variant,
-                               trigger=trigger)
+    b = hoomd.update.BoxResize(box=box_variant, trigger=trigger)
     return b
 
 
@@ -177,8 +177,8 @@ def filters(request):
     return request.param
 
 
-def test_position_scale(device, get_snapshot, sys, box_variant, trigger, filters,
-                        simulation_factory):
+def test_position_scale(device, get_snapshot, sys, box_variant, trigger,
+                        filters, simulation_factory):
     filter_scale, filter_noscale = filters
     sys1, make_sys_halfway, sys2 = sys
     sys_halfway = make_sys_halfway(_power)
@@ -227,7 +227,8 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
     box1 = hoomd.Box.cube(L=10)
     box2 = hoomd.Box.cube(L=12)
     var = hoomd.variant.Ramp(10, 12, 0, 100)
-    box_op = hoomd.update.BoxResize(box=hoomd.variant.box.Interpolate(box1, box2, var),
+    box_op = hoomd.update.BoxResize(box=hoomd.variant.box.Interpolate(
+        box1, box2, var),
                                     trigger=trig)
     sim.operations.add(box_op)
     assert len(sim.operations.updaters) == 1

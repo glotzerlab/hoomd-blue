@@ -23,7 +23,7 @@ For some functionalities, you will need to update your scripts to use a new API:
 * ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
 
   * Use ``box``.
-  
+
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
