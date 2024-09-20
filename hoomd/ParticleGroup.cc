@@ -730,12 +730,12 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate a random velocity, excluding constituent particles
+        // Generate a random velocity, excluding constituent particles of rigid bodies
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
-        // check if particles are constituent particles
-        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != NO_BODY)
+        // check if particles are constituent particles of a rigid body
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] < MIN_FLOPPY)
             {
             h_vel.data[j].x = 0;
             h_vel.data[j].y = 0;
@@ -757,7 +757,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] >= MIN_FLOPPY)
             {
             if (I.x > 0)
                 p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
