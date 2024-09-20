@@ -16,9 +16,9 @@ and can compute the pressure during constant volume simulations (`hpmc.compute.S
 
 HPMC can also apply external and pair potentials to the particles. Use
 `hpmc.external.field.Harmonic` to restrain particles to a lattice (e.g. for Frenkel-Ladd
-calculations) or `hpmc.external.user.CPPExternalPotential` to implement arbitrary external fields
-(e.g. gravity). Use `hpmc.pair.user` to define arbitrary pairwise interactions between particles.
-At runtime, `hoomd.version.hpmc_built` indicates whether the build supports HPMC simulations.
+calculations) or `hpmc.external.Linear` to apply gravity. Use a class from `hpmc.pair` to define
+pairwise interactions between particles. At runtime, `hoomd.version.hpmc_built` indicates whether
+the build supports HPMC simulations.
 
 .. seealso::
 
@@ -111,16 +111,6 @@ At runtime, `hoomd.version.mpi_enabled` indicates whether the build supports MPI
 .. seealso::
 
     Tutorial: :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
-
-Threading
----------
-
-Some operations in HOOMD-blue can use multiple CPU threads in a single process. Control this with
-the `device.Device.num_cpu_threads` property. In this release, threading support in HOOMD-blue is
-very limited and only applies to implicit depletants in `hpmc.integrate.HPMCIntegrator`, and
-`hpmc.pair.user.CPPPotentialUnion`. Threading must must be enabled at compile time with the
-``ENABLE_TBB`` CMake option (see :doc:`building`). At runtime, `hoomd.version.tbb_enabled` indicates
-whether the build supports threaded execution.
 
 Mixed precision
 ---------------
