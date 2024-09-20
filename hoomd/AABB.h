@@ -290,8 +290,7 @@ struct
 
 #endif
         }
-    }
-    __attribute__((aligned(32)));
+    } __attribute__((aligned(32)));
 
 //! Check if one AABB contains another
 /*! \param a First AABB

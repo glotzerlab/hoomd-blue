@@ -57,14 +57,13 @@ def setup_sybil_tests(namespace):
 
 
 if sybil is not None:
-    pytest_collect_file = sybil.Sybil(
-        parsers=[
-            sybil.parsers.rest.PythonCodeBlockParser(),
-            sybil.parsers.rest.SkipParser(),
-        ],
-        pattern='*.py',
-        setup=setup_sybil_tests,
-        fixtures=['tmp_path']).pytest()
+    pytest_collect_file = sybil.Sybil(parsers=[
+        sybil.parsers.rest.PythonCodeBlockParser(),
+        sybil.parsers.rest.SkipParser(),
+    ],
+                                      pattern='*.py',
+                                      setup=setup_sybil_tests,
+                                      fixtures=['tmp_path']).pytest()
 
 
 @pytest.fixture(scope='session', params=devices)
