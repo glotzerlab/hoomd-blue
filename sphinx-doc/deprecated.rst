@@ -33,7 +33,3 @@ documentation for more information on warning filters.
 * ``HPMCIntegrator.external_potential`` (since 4.8.0).
 
   * Use ``HPMCIntegrator.external_potentials`` (when possible)
-
-* ``hoomd.hpmc.external.user.CPPExternalPotential`` (since 4.8.0).
-
-  * Use ``hoomd.hpmc.external.Linear`` or a custom component (compiled).

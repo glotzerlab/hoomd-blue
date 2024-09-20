@@ -31,7 +31,7 @@ For some functionalities, you will need to update your scripts to use a new API:
 
 * ``hoomd.hpmc.external.user.CPPExternalPotential``
 
-  * Use ``hoomd.hpmc.external.Linear`` or a custom component (compiled).
+  * Use `hoomd.hpmc.external.Linear` or a custom component (compiled).
 
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -289,9 +289,9 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.md.update.constraint_ellipsoid``
      - `hoomd.md.manifold.Ellipsoid`
    * - ``hoomd.jit.patch``
-     - `hoomd.hpmc.pair.user`
+     - ``hoomd.hpmc.pair.user``
    * - ``hoomd.jit.external``
-     - `hoomd.hpmc.external.user`
+     - ``hoomd.hpmc.external.user``
 
 Removed functionality
 ^^^^^^^^^^^^^^^^^^^^^
