@@ -25,7 +25,7 @@ def test_valid_setattr(device, attr, value):
     """Test that kT can get and set attributes."""
     mc = hoomd.hpmc.integrate.Sphere()
 
-    setattr(mc, attr, 1.0)
+    # default value
     assert getattr(mc, attr).value == 1.0
 
     setattr(mc, attr, value)
@@ -46,6 +46,38 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     sim.operations.integrator = mc
 
     # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    setattr(mc, attr, value)
+    assert getattr(mc, attr) == value
+
+
+@pytest.mark.serial
+@pytest.mark.cpu
+@pytest.mark.parametrize("attr,value", valid_attrs)
+def test_after_attaching(attr, value, valid_args, simulation_factory,
+                         lattice_snapshot_factory):
+    integrator, args, n_dimensions = valid_args
+    snap = lattice_snapshot_factory(particle_types=['A'],
+                                    dimensions=n_dimensions)
+    sim = simulation_factory(snap)
+
+    # Need to unpack union integrators
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator()
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
+    mc = integrator()
+    mc.shape["A"] = args
+    sim.operations.add(mc)
+
+    # default value
+    assert getattr(mc, attr).value == 1.0
+
     sim.run(0)
 
     setattr(mc, attr, value)
