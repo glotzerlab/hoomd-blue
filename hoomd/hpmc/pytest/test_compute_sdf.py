@@ -6,13 +6,10 @@ from __future__ import division
 import hoomd
 import pytest
 import numpy
+import math
 import hoomd.hpmc.pytest.conftest
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
-
-# TODO: reimplement test without LLVM
-llvm_disabled = True
-
 
 def test_before_attaching():
     xmax = 0.02
@@ -242,7 +239,6 @@ def test_values(simulation_factory, lattice_snapshot_factory):
         assert numpy.sum(invalid) == 0
 
 
-@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 @pytest.mark.cpu  # SDF runs on the CPU only, no need to test on the GPU
 def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     """Test that adding patches changes the pressure calculation.
@@ -256,7 +252,7 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     xmax = 0.02
     dx = 1e-3
     r_core = 0.5  # radius of hard core
-    r_patch = 0.5001  # if r_ij < 2*r_patch, particles interact
+    r_patch = 1.0001  # if r_ij < r_patch, particles interact
     epsilon = 2.0  # strength of square well attraction
     sim = simulation_factory(two_particle_snapshot_factory(d=1.001101081081081))
     sim.seed = 0
@@ -277,17 +273,9 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
         assert (sdf_result[1] == norm_factor)
         assert (numpy.count_nonzero(sdf_result) == 1)
 
-    # add pair potential
-    square_well = r'''float rsq = dot(r_ij, r_ij);
-                    float rcut = param_array[1];
-                    if (rsq > 2*rcut)
-                        return 0.0f;
-                    else
-                        return -param_array[0];'''
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2.5 * r_patch,
-                                              code=square_well,
-                                              param_array=[epsilon, r_patch])
-    mc.pair_potential = patch
+    square_well = hoomd.hpmc.pair.Step()
+    square_well.params[('A', 'A')] = {'epsilon': [-epsilon], 'r': [r_patch]}
+    mc.pair_potentials.append(square_well)
 
     # for a soft overlap with a negative change in energy, the weight of the
     # overlap is zero, so we still expect all zeros in the sdf array
@@ -300,7 +288,7 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # change sign of epsilon, so that now there is a positive energy soft
     # overlap in bin 0
     epsilon *= -1
-    patch.param_array[0] = epsilon
+    square_well.params[('A', 'A')] = {'epsilon': [-epsilon], 'r': [r_patch]}
     sim.run(1)
     neg_mayerF = 1 - numpy.exp(epsilon)
     sdf_result = sdf.sdf_compression
@@ -312,7 +300,7 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # in the configuration and there will be a change in energy on expansions
     # the change in energy is < 0 so the weight should be 0 and
     # sdf_expansion should be all zeros
-    patch.param_array[1] += 2 * dx
+    square_well.params[('A', 'A')] = {'epsilon': [-epsilon], 'r': [r_patch + 2*dx]}
     sim.run(1)
     sdf_result = sdf.sdf_expansion
     if sim.device.communicator.rank == 0:
@@ -322,7 +310,7 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # positive and the weight is nonzero and one of the sdf_expansion counts
     # is nonzero
     epsilon *= -1
-    patch.param_array[0] = epsilon
+    square_well.params[('A', 'A')] = {'epsilon': [-epsilon], 'r': [r_patch + 2*dx]}
     sim.run(1)
     neg_mayerF = 1 - numpy.exp(-epsilon)
     sdf_result = sdf.sdf_expansion
