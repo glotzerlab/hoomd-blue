@@ -1661,13 +1661,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
             Scalar charge = m_pdata->getCharge(tag);
             if (is_local)
                 {
-                lnboltzmann += field->energy(box,
-                                             type,
-                                             pos,
-                                             quat<float>(orientation),
-                                             float(diameter), // diameter i
-                                             float(charge)    // charge i
-                );
+                if (field)
+                    {
+                    lnboltzmann += field->energy(box,
+                                                 type,
+                                                 pos,
+                                                 quat<float>(orientation),
+                                                 float(diameter), // diameter i
+                                                 float(charge)    // charge i
+                    );
+                    }
                 lnboltzmann
                     += m_mc->computeOneExternalEnergy(type, pos, orientation, charge, false);
                 }
@@ -1968,13 +1971,16 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
             lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
 
             const BoxDim& box = this->m_pdata->getGlobalBox();
-            lnboltzmann -= field->energy(box,
-                                         type,
-                                         pos,
-                                         quat<float>(orientation),
-                                         1.0, // diameter i
-                                         0.0  // charge i
-            );
+            if (field)
+                {
+                lnboltzmann -= field->energy(box,
+                                             type,
+                                             pos,
+                                             quat<float>(orientation),
+                                             1.0, // diameter i
+                                             0.0  // charge i
+                );
+                }
 
             lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
             }
