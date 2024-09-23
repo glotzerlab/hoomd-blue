@@ -14,11 +14,11 @@
 import hoomd
 
 from .pair import Pair
-
+from hoomd.data.typeconverter import positive_real
 
 @hoomd.logging.modify_namespace(('hpmc', 'pair', 'LJGauss'))
 class LJGauss(Pair):
-    """Lennard-Jones pair potential (HPMC).
+    """Lennard-Jones-Gauss pair potential (HPMC).
 
     Args:
         default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
@@ -41,7 +41,7 @@ class LJGauss(Pair):
     .. code-block:: python
 
         lj_gauss = hoomd.hpmc.pair.LJGauss()
-        lj_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
+        lj_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6, r_cut=2.5)
         simulation.operations.integrator.pair_potentials = [lj_gauss]
 
     .. py:attribute:: params
