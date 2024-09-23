@@ -5,6 +5,7 @@
 
 import hoomd
 import pytest
+import numpy as np
 
 valid_constructor_args = [
     {},
@@ -48,10 +49,10 @@ def test_attaching(mc_simulation_factory):
     simulation.run(0)
 
     assert simulation.operations.integrator._attached
-    assert lennard_jones._attached
+    assert lj_gauss._attached
 
     simulation.operations.integrator.pair_potentials.remove(lj_gauss)
-    assert not lennard_jones._attached
+    assert not lj_gauss._attached
 
 
 invalid_parameters = [
@@ -81,7 +82,7 @@ def test_invalid_params_on_attach(mc_simulation_factory, parameters):
             hoomd.error.TypeConversionError,
             KeyError,
     )):
-        lennard_jones.params[('A', 'A')] = parameters
+        lj_gauss.params[('A', 'A')] = parameters
 
 
 def xplor_factor(r, r_on, r_cut):
@@ -104,7 +105,7 @@ def ljg(r, epsilon, sigma, r0):
 # (pair params,
 #  distance between particles,
 #  expected energy)
-lennard_jones_test_parameters = [
+lj_gauss_test_parameters = [
     (
         dict(epsilon=0.0, sigma=0.02, r0=1.5, r_cut=2.5),
         'none',
@@ -169,7 +170,7 @@ lennard_jones_test_parameters = [
 
 
 @pytest.mark.parametrize('params, mode, d, expected_energy',
-                         lennard_jones_test_parameters)
+                         lj_gauss_test_parameters)
 @pytest.mark.cpu
 def test_energy(mc_simulation_factory, params, mode, d, expected_energy):
     """Test that LJGauss computes the correct energies for 1 pair."""
