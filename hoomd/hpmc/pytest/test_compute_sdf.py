@@ -6,10 +6,10 @@ from __future__ import division
 import hoomd
 import pytest
 import numpy
-import math
 import hoomd.hpmc.pytest.conftest
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
+
 
 def test_before_attaching():
     xmax = 0.02
@@ -300,7 +300,10 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # in the configuration and there will be a change in energy on expansions
     # the change in energy is < 0 so the weight should be 0 and
     # sdf_expansion should be all zeros
-    square_well.params[('A', 'A')] = {'epsilon': [-epsilon], 'r': [r_patch + 2*dx]}
+    square_well.params[('A', 'A')] = {
+        'epsilon': [-epsilon],
+        'r': [r_patch + 2 * dx]
+    }
     sim.run(1)
     sdf_result = sdf.sdf_expansion
     if sim.device.communicator.rank == 0:
@@ -310,7 +313,10 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # positive and the weight is nonzero and one of the sdf_expansion counts
     # is nonzero
     epsilon *= -1
-    square_well.params[('A', 'A')] = {'epsilon': [-epsilon], 'r': [r_patch + 2*dx]}
+    square_well.params[('A', 'A')] = {
+        'epsilon': [-epsilon],
+        'r': [r_patch + 2 * dx]
+    }
     sim.run(1)
     neg_mayerF = 1 - numpy.exp(-epsilon)
     sdf_result = sdf.sdf_expansion

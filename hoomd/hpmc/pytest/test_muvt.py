@@ -173,8 +173,8 @@ def test_insertion_removal(device, simulation_factory,
 
 
 def test_pair_remove_insert(device, simulation_factory,
-                           one_particle_snapshot_factory):
-    """Test that MuVT considers pair potentials when removing/adding particles."""
+                            one_particle_snapshot_factory):
+    """Test that MuVT considers pair potentials."""
     sim = simulation_factory(
         one_particle_snapshot_factory(
             particle_types=["A"],
@@ -189,9 +189,9 @@ def test_pair_remove_insert(device, simulation_factory,
     mc.shape["A"] = dict(diameter=2 * sphere_radius)
 
     # apply a potential gradient
-    linear = hoomd.hpmc.external.Linear(plane_normal = (1, 0, 0))
+    linear = hoomd.hpmc.external.Linear(plane_normal=(1, 0, 0))
     linear.alpha['A'] = 100
-    
+
     mc.external_potentials.append(linear)
 
     sim.operations.integrator = mc
@@ -214,7 +214,6 @@ def test_pair_remove_insert(device, simulation_factory,
         n_left = numpy.sum(pos[:, 0] < 0)
         n_right = numpy.sum(pos[:, 0] >= 0)
         assert n_left < n_right
-
 
     # We should have inserted particles successfully
     assert muvt.insert_moves[0] > 0
