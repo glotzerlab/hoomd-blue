@@ -42,7 +42,10 @@ def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
 def test_attaching(mc_simulation_factory):
     """Test that LJGauss attaches."""
     lj_gauss = hoomd.hpmc.pair.LJGauss()
-    lj_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.5, r_cut=2.5)
+    lj_gauss.params[('A', 'A')] = dict(epsilon=1.0,
+                                       sigma=0.02,
+                                       r0=1.5,
+                                       r_cut=2.5)
 
     simulation = mc_simulation_factory()
     simulation.operations.integrator.pair_potentials = [lj_gauss]
@@ -70,7 +73,10 @@ invalid_parameters = [
 def test_invalid_params_on_attach(mc_simulation_factory, parameters):
     """Test that LJGauss validates parameters."""
     lj_gauss = hoomd.hpmc.pair.LJGauss()
-    lj_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.5, r_cut=2.5)
+    lj_gauss.params[('A', 'A')] = dict(epsilon=1.0,
+                                       sigma=0.02,
+                                       r0=1.5,
+                                       r_cut=2.5)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory()
@@ -99,7 +105,8 @@ def xplor_factor(r, r_on, r_cut):
 
 def ljg(r, epsilon, sigma, r0):
     """Compute lj-guass energy"""
-    return (1 / r**12 - 2 / r**6) - epsilon * np.exp(-(r - r0)**2 / 2 / sigma**2)
+    return (1 / r**12
+            - 2 / r**6) - epsilon * np.exp(-(r - r0)**2 / 2 / sigma**2)
 
 
 # (pair params,
@@ -181,24 +188,27 @@ def test_energy(mc_simulation_factory, params, mode, d, expected_energy):
     simulation.operations.integrator.pair_potentials = [lj_gauss]
     simulation.run(0)
 
-    assert lj_gauss.energy == pytest.approx(expected=expected_energy,
-                                                 rel=1e-5)
+    assert lj_gauss.energy == pytest.approx(expected=expected_energy, rel=1e-5)
 
 
 @pytest.mark.cpu
 def test_multiple_pair_potentials(mc_simulation_factory):
     """Test that energy operates correctly with multiple pair potentials."""
     lj_gauss_1 = hoomd.hpmc.pair.LJGauss()
-    lj_gauss_1.params[('A', 'A')] = dict(epsilon=0.0, sigma=0.02, r0=1.5, r_cut=2.5)
+    lj_gauss_1.params[('A', 'A')] = dict(epsilon=0.0,
+                                         sigma=0.02,
+                                         r0=1.5,
+                                         r_cut=2.5)
 
     lj_gauss_2 = hoomd.hpmc.pair.LJGauss()
-    lj_gauss_2.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.0, r_cut=2.5)
+    lj_gauss_2.params[('A', 'A')] = dict(epsilon=1.0,
+                                         sigma=0.02,
+                                         r0=1.0,
+                                         r_cut=2.5)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory(1.0)
-    simulation.operations.integrator.pair_potentials = [
-        lj_gauss_1, lj_gauss_2
-    ]
+    simulation.operations.integrator.pair_potentials = [lj_gauss_1, lj_gauss_2]
     simulation.run(0)
 
     assert lj_gauss_1.energy == pytest.approx(expected=-1.0, rel=1e-5)

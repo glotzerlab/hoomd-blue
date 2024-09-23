@@ -92,9 +92,9 @@ class PairPotentialLJGauss : public hpmc::PairPotential
         {
         ParamType()
             {
-            epsilon=0;
-            sigma_2=0;
-            r0=0;
+            epsilon = 0;
+            sigma_2 = 0;
+            r0 = 0;
             r_cut_squared = 0;
             r_on_squared = 0;
             }

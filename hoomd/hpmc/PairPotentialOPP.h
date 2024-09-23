@@ -92,9 +92,9 @@ class PairPotentialOPP : public hpmc::PairPotential
         {
         ParamType()
             {
-            C1=0;
-            C2=0;
-            eta1=0;
+            C1 = 0;
+            C2 = 0;
+            eta1 = 0;
             eta2 = 0;
             k = 0;
             phi = 0;
@@ -104,7 +104,7 @@ class PairPotentialOPP : public hpmc::PairPotential
             {
             auto r_cut(v["r_cut"].cast<LongReal>());
             auto r_on(v["r_on"].cast<LongReal>());
-            
+
             C1 = v["C1"].cast<LongReal>();
             C2 = v["C2"].cast<LongReal>();
             eta1 = v["eta1"].cast<LongReal>();

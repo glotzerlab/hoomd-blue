@@ -16,6 +16,7 @@ import hoomd
 from .pair import Pair
 from hoomd.data.typeconverter import positive_real
 
+
 @hoomd.logging.modify_namespace(('hpmc', 'pair', 'LJGauss'))
 class LJGauss(Pair):
     """Lennard-Jones-Gauss pair potential (HPMC).

@@ -14,13 +14,13 @@ PairPotentialLJGauss::PairPotentialLJGauss(std::shared_ptr<SystemDefinition> sys
     }
 
 LongReal PairPotentialLJGauss::energy(const LongReal r_squared,
-                                           const vec3<LongReal>& r_ij,
-                                           const unsigned int type_i,
-                                           const quat<LongReal>& q_i,
-                                           const LongReal charge_i,
-                                           const unsigned int type_j,
-                                           const quat<LongReal>& q_j,
-                                           const LongReal charge_j) const
+                                      const vec3<LongReal>& r_ij,
+                                      const unsigned int type_i,
+                                      const quat<LongReal>& q_i,
+                                      const LongReal charge_i,
+                                      const unsigned int type_j,
+                                      const quat<LongReal>& q_j,
+                                      const LongReal charge_j) const
     {
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
@@ -40,10 +40,9 @@ LongReal PairPotentialLJGauss::energy(const LongReal r_squared,
         LongReal r_cut_6_inverse = r_cut_2_inverse * r_cut_2_inverse * r_cut_2_inverse;
         LongReal r_cut_minus_r0 = fast::sqrt(param.r_cut_squared) - param.r0;
 
-        energy 
-            -= r_cut_6_inverse * (r_cut_6_inverse - LongReal(2.0))
-                 - (param.epsilon * fast::exp(-LongReal(0.5) * r_cut_minus_r0 * r_cut_minus_r0 / param.sigma_2));
-
+        energy -= r_cut_6_inverse * (r_cut_6_inverse - LongReal(2.0))
+                  - (param.epsilon
+                     * fast::exp(-LongReal(0.5) * r_cut_minus_r0 * r_cut_minus_r0 / param.sigma_2));
         }
 
     if (m_mode == xplor && r_squared > param.r_on_squared)
@@ -57,7 +56,7 @@ LongReal PairPotentialLJGauss::energy(const LongReal r_squared,
                                 - LongReal(3.0) * param.r_on_squared);
         energy *= numerator / denominator;
         }
-    
+
     return energy;
     }
 
@@ -87,15 +86,13 @@ namespace detail
     {
 void exportPairPotentialLJGauss(pybind11::module& m)
     {
-    pybind11::class_<PairPotentialLJGauss,
-                     PairPotential,
-                     std::shared_ptr<PairPotentialLJGauss>>(m, "PairPotentialLJGauss")
+    pybind11::class_<PairPotentialLJGauss, PairPotential, std::shared_ptr<PairPotentialLJGauss>>(
+        m,
+        "PairPotentialLJGauss")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialLJGauss::setParamsPython)
         .def("getParams", &PairPotentialLJGauss::getParamsPython)
-        .def_property("mode",
-                      &PairPotentialLJGauss::getMode,
-                      &PairPotentialLJGauss::setMode);
+        .def_property("mode", &PairPotentialLJGauss::getMode, &PairPotentialLJGauss::setMode);
     }
     } // end namespace detail
     } // end namespace hpmc

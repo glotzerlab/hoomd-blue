@@ -14,13 +14,13 @@ PairPotentialOPP::PairPotentialOPP(std::shared_ptr<SystemDefinition> sysdef)
     }
 
 LongReal PairPotentialOPP::energy(const LongReal r_squared,
-                                           const vec3<LongReal>& r_ij,
-                                           const unsigned int type_i,
-                                           const quat<LongReal>& q_i,
-                                           const LongReal charge_i,
-                                           const unsigned int type_j,
-                                           const quat<LongReal>& q_j,
-                                           const LongReal charge_j) const
+                                  const vec3<LongReal>& r_ij,
+                                  const unsigned int type_i,
+                                  const quat<LongReal>& q_i,
+                                  const LongReal charge_i,
+                                  const unsigned int type_j,
+                                  const quat<LongReal>& q_j,
+                                  const LongReal charge_j) const
     {
     unsigned int param_index = m_type_param_index(type_i, type_j);
     const auto& param = m_params[param_index];
@@ -39,8 +39,8 @@ LongReal PairPotentialOPP::energy(const LongReal r_squared,
         {
         LongReal r_cut = fast::sqrt(param.r_cut_squared);
         LongReal r_cut_eta1_arg = param.C1 * fast::pow(r_cut, -param.eta1);
-        LongReal r_cut_eta2_arg = param.C2 * fast::pow(r_cut, -param.eta2)
-                                * fast::cos(param.k * r_cut - param.phi);
+        LongReal r_cut_eta2_arg
+            = param.C2 * fast::pow(r_cut, -param.eta2) * fast::cos(param.k * r_cut - param.phi);
         energy -= r_cut_eta1_arg + r_cut_eta2_arg;
         }
 
@@ -55,7 +55,7 @@ LongReal PairPotentialOPP::energy(const LongReal r_squared,
                                 - LongReal(3.0) * param.r_on_squared);
         energy *= numerator / denominator;
         }
-    
+
     return energy;
     }
 
@@ -85,15 +85,13 @@ namespace detail
     {
 void exportPairPotentialOPP(pybind11::module& m)
     {
-    pybind11::class_<PairPotentialOPP,
-                     PairPotential,
-                     std::shared_ptr<PairPotentialOPP>>(m, "PairPotentialOPP")
+    pybind11::class_<PairPotentialOPP, PairPotential, std::shared_ptr<PairPotentialOPP>>(
+        m,
+        "PairPotentialOPP")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialOPP::setParamsPython)
         .def("getParams", &PairPotentialOPP::getParamsPython)
-        .def_property("mode",
-                      &PairPotentialOPP::getMode,
-                      &PairPotentialOPP::setMode);
+        .def_property("mode", &PairPotentialOPP::getMode, &PairPotentialOPP::setMode);
     }
     } // end namespace detail
     } // end namespace hpmc

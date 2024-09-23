@@ -42,9 +42,13 @@ def mc_simulation_factory(simulation_factory, two_particle_snapshot_factory):
 def test_attaching(mc_simulation_factory):
     """Test that OPP attaches."""
     opp = hoomd.hpmc.pair.OPP()
-    opp.params[('A', 'A')] = dict(
-        C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0
-    )
+    opp.params[('A', 'A')] = dict(C1=1.,
+                                  C2=1.,
+                                  eta1=15,
+                                  eta2=3,
+                                  k=1.0,
+                                  phi=np.pi,
+                                  r_cut=3.0)
 
     simulation = mc_simulation_factory()
     simulation.operations.integrator.pair_potentials = [opp]
@@ -57,33 +61,51 @@ def test_attaching(mc_simulation_factory):
     assert not opp._attached
 
 
-invalid_parameters = [
-    {},
-    dict(C1=1.),
-    dict(C1=1., C2=1.),
-    dict(C1=1., C2=1., eta1=15),
-    dict(C1=1., C2=1., eta1=15, eta2=3),
-    dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0),
-    dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi),
-    dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut='invalid'),
-    dict(
-        C1=1., C2=1., eta1=15, eta2=3, 
-        k=1.0, phi=np.pi, r_cut=3.0, r_on='invalid'
-        ),
-    dict(
-        C1=1., C2=1., eta1=15, eta2=3, 
-        k=1.0, phi=np.pi, r_cut=3.0, r_on=2.0, invalid=10
-        )
-]
+invalid_parameters = [{},
+                      dict(C1=1.),
+                      dict(C1=1., C2=1.),
+                      dict(C1=1., C2=1., eta1=15),
+                      dict(C1=1., C2=1., eta1=15, eta2=3),
+                      dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0),
+                      dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi),
+                      dict(C1=1.,
+                           C2=1.,
+                           eta1=15,
+                           eta2=3,
+                           k=1.0,
+                           phi=np.pi,
+                           r_cut='invalid'),
+                      dict(C1=1.,
+                           C2=1.,
+                           eta1=15,
+                           eta2=3,
+                           k=1.0,
+                           phi=np.pi,
+                           r_cut=3.0,
+                           r_on='invalid'),
+                      dict(C1=1.,
+                           C2=1.,
+                           eta1=15,
+                           eta2=3,
+                           k=1.0,
+                           phi=np.pi,
+                           r_cut=3.0,
+                           r_on=2.0,
+                           invalid=10)]
+
 
 @pytest.mark.parametrize("parameters", invalid_parameters)
 @pytest.mark.cpu
 def test_invalid_params_on_attach(mc_simulation_factory, parameters):
     """Test that OPP validates parameters."""
     opp = hoomd.hpmc.pair.OPP()
-    opp.params[('A', 'A')] = dict(
-        C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0
-    )
+    opp.params[('A', 'A')] = dict(C1=1.,
+                                  C2=1.,
+                                  eta1=15,
+                                  eta2=3,
+                                  k=1.0,
+                                  phi=np.pi,
+                                  r_cut=3.0)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory()
@@ -177,7 +199,8 @@ lj_gauss_test_parameters = [
         dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0),
         'shift',
         2.0,
-        vopp(r=2.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi) - vopp(r=3.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi),
+        vopp(r=2.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi)
+        - vopp(r=3.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi),
     ),
     (
         dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0),
@@ -186,25 +209,56 @@ lj_gauss_test_parameters = [
         0,
     ),
     (
-        dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0, r_on=1.0),
+        dict(C1=1.,
+             C2=1.,
+             eta1=15,
+             eta2=3,
+             k=1.0,
+             phi=np.pi,
+             r_cut=3.0,
+             r_on=1.0),
         'xplor',
         1.5,
-        vopp(r=1.5, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi) * xplor_factor(1.5, 1.0, 3.0),
+        vopp(r=1.5, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi)
+        * xplor_factor(1.5, 1.0, 3.0),
     ),
     (
-        dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0, r_on=2.0),
+        dict(C1=1.,
+             C2=1.,
+             eta1=15,
+             eta2=3,
+             k=1.0,
+             phi=np.pi,
+             r_cut=3.0,
+             r_on=2.0),
         'xplor',
         2.5,
-        vopp(r=2.5, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi) * xplor_factor(2.5, 2.0, 3.0),
+        vopp(r=2.5, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi)
+        * xplor_factor(2.5, 2.0, 3.0),
     ),
     (
-        dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0, r_on=3.5),
+        dict(C1=1.,
+             C2=1.,
+             eta1=15,
+             eta2=3,
+             k=1.0,
+             phi=np.pi,
+             r_cut=3.0,
+             r_on=3.5),
         'xplor',
         1.5,
-        vopp(r=1.5, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi) - vopp(r=3.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi),
+        vopp(r=1.5, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi)
+        - vopp(r=3.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi),
     ),
     (
-        dict(C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0, r_on=3.5),
+        dict(C1=1.,
+             C2=1.,
+             eta1=15,
+             eta2=3,
+             k=1.0,
+             phi=np.pi,
+             r_cut=3.0,
+             r_on=3.5),
         'xplor',
         3.2,
         0,
@@ -224,31 +278,36 @@ def test_energy(mc_simulation_factory, params, mode, d, expected_energy):
     simulation.operations.integrator.pair_potentials = [opp]
     simulation.run(0)
 
-    assert opp.energy == pytest.approx(expected=expected_energy,
-                                                 rel=1e-5)
+    assert opp.energy == pytest.approx(expected=expected_energy, rel=1e-5)
 
 
 @pytest.mark.cpu
 def test_multiple_pair_potentials(mc_simulation_factory):
     """Test that energy operates correctly with multiple pair potentials."""
     opp_1 = hoomd.hpmc.pair.OPP()
-    opp_1.params[('A', 'A')] = dict(
-        C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0
-    )
+    opp_1.params[('A', 'A')] = dict(C1=1.,
+                                    C2=1.,
+                                    eta1=15,
+                                    eta2=3,
+                                    k=1.0,
+                                    phi=np.pi,
+                                    r_cut=3.0)
 
     opp_2 = hoomd.hpmc.pair.OPP()
-    opp_2.params[('A', 'A')] = dict(
-        C1=5., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi, r_cut=3.0
-    )
+    opp_2.params[('A', 'A')] = dict(C1=5.,
+                                    C2=1.,
+                                    eta1=15,
+                                    eta2=3,
+                                    k=1.0,
+                                    phi=np.pi,
+                                    r_cut=3.0)
 
     expected_1 = vopp(1.0, C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi)
     expected_2 = vopp(1.0, C1=5., C2=1., eta1=15, eta2=3, k=1.0, phi=np.pi)
 
     # Some parameters are validated only after attaching.
     simulation = mc_simulation_factory(1.0)
-    simulation.operations.integrator.pair_potentials = [
-        opp_1, opp_2
-    ]
+    simulation.operations.integrator.pair_potentials = [opp_1, opp_2]
     simulation.run(0)
 
     assert opp_1.energy == pytest.approx(expected=expected_1, rel=1e-5)
