@@ -87,7 +87,7 @@ void exportPairPotentialOPP(pybind11::module& m)
     {
     pybind11::class_<PairPotentialOPP,
                      PairPotential,
-                     std::shared_ptr<PairPotentialOPP>>(m, "PairPotentialLJGauss")
+                     std::shared_ptr<PairPotentialOPP>>(m, "PairPotentialOPP")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PairPotentialOPP::setParamsPython)
         .def("getParams", &PairPotentialOPP::getParamsPython)
