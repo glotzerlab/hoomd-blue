@@ -172,6 +172,7 @@ def test_insertion_removal(device, simulation_factory,
     assert muvt.N["B"] > 0
 
 
+@pytest.mark.cpu
 def test_pair_remove_insert(device, simulation_factory,
                             one_particle_snapshot_factory):
     """Test that MuVT considers pair potentials."""
