@@ -222,7 +222,7 @@ class TestConcentricCylinders:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radiuss=2.0,
+            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
                                                              outer_radius=5.0))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
@@ -232,7 +232,7 @@ class TestConcentricCylinders:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position, [[-4.0, -3.1, 0.2], [-2.15, -0.15, 0.00]])
+                snap.mpcd.position, [[-4.0, -3.0, 0.1], [-2.15, -0.15, 0.00]])
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, -1.0]])
 
@@ -285,7 +285,7 @@ class TestConcentricCylinders:
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
                 snap.mpcd.position,
-                [[-3.972, -3.028, 0.2], [-2.05, 0.05, -0.10]])
+                [[-3.972, -3.028, 0.2], [-2.05, -0.05, -0.10]])
             np.testing.assert_array_almost_equal(
                 snap.mpcd.velocity, [[0.28, -0.28, 1.0], [1.0, 1.0, -1.0]])
 
@@ -321,11 +321,9 @@ class TestConcentricCylinders:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.mpcd.position,
-                [[-3.86666667, -2.925, 0.0], [-2.05, -0.05, -0.10]])
+                snap.mpcd.position, [[-3.60, -3.3, 0.0], [-2.05, -0.05, -0.10]])
             np.testing.assert_array_almost_equal(
-                snap.mpcd.velocity,
-                [[2.66666667, 1.5, -1.0], [-1.0, -1.0, 1.0]])
+                snap.mpcd.velocity, [[8.0, -6.0, -1.0], [-1.0, -1.0, 1.0]])
 
     def test_step_moving_wall_slip(self, simulation_factory, snap):
         """Test step with moving wall and slip condition."""
@@ -363,7 +361,8 @@ class TestConcentricCylinders:
         sim = simulation_factory(snap)
         sm = hoomd.mpcd.stream.BounceBack(
             period=1,
-            geometry=hoomd.mpcd.geometry.ConcentricCylinders(R0=R0, R1=R1))
+            geometry=hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=R0,
+                                                             outer_radius=R1))
         ig = hoomd.mpcd.Integrator(dt=0.1, streaming_method=sm)
         sim.operations.integrator = ig
 
