@@ -27,7 +27,6 @@ Define :math:`U_{\\mathrm{pair},ij}` for use with `HPMCIntegrator
     simulation.operations.integrator.pair_potentials = [pair]
 """
 
-from . import user
 from .pair import Pair
 from .lennard_jones import LennardJones
 from .expanded_gaussian import ExpandedGaussian

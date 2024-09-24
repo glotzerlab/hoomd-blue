@@ -324,7 +324,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
             minimum_buffer (`float`, optional): The smallest buffer value to
                 allow (defaults to 0).
             n_bins (`int`, optional): The number of bins in the range to test
-                (defaults to 2).
+                (defaults to 5).
             n_rounds (`int`, optional): The number of rounds to perform the
                 optimization over (defaults to 1).
 

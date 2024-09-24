@@ -30,8 +30,6 @@ defaults:
     shell: bash
 
 env:
-  # prevent deadlocked MPI tests from causing the job to cancel
-  MPIEXEC_TIMEOUT: 3000
   # allow mpirun to execute as root in the tests
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -159,20 +157,17 @@ jobs:
                                -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                                -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                                -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
-                               -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
                                -DBUILD_MD=${BUILD_MD:-"ON"} \
                                -DBUILD_MPCD=${BUILD_MD:-"ON"} \
                                -DBUILD_METAL=${BUILD_MD:-"ON"} \
                                -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                                -DCUDA_ARCH_LIST="60;70" \
-                               -DENABLE_DEBUG_JIT=ON \
                                -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
                                -DPLUGINS=""
       env:
         ENABLE_GPU: ${{ contains(inputs.config, 'cuda') }}
         ENABLE_MPI: ${{ contains(inputs.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(inputs.config, 'tbb') }}
-        ENABLE_LLVM: ${{ contains(inputs.config, 'llvm') }}
         BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
@@ -203,13 +198,13 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
 
     - name: 'Upload build'
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
         path: install.tar
@@ -275,7 +270,7 @@ jobs:
 
     - name: Run pytest (mpi)
       if: ${{ contains(inputs.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun --timeout 3000 -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
 
     - name: Run pytest (serial without cupy)
       if: ${{ contains(inputs.config, 'cuda') }}
@@ -285,7 +280,7 @@ jobs:
 
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(inputs.config, 'cuda') && contains(inputs.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun --timeout 3000 -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -296,10 +291,10 @@ jobs:
 
     - name: Run pytest -m validate (mpi)
       if: ${{ contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
+      run: mpirun --timeout 3000 -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
     - name: Run howto guides (serial)
-      if: ${{ contains(inputs.config, 'llvm') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}  # some examples require LLVM
+      if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
       working-directory: code/sphinx-doc/howto
 

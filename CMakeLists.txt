@@ -94,7 +94,6 @@ SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
 set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
-option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
 # Components
 option(BUILD_MD "Build the md package" on)
@@ -216,3 +215,13 @@ install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
+
+# enable compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if (NOT WIN32)
+  file(CREATE_LINK
+    "${CMAKE_BINARY_DIR}/compile_commands.json"
+    "${CMAKE_SOURCE_DIR}/compile_commands.json"
+    SYMBOLIC
+  )
+endif()

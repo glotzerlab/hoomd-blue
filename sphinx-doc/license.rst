@@ -9,7 +9,7 @@ License
 Libraries
 ---------
 
-**HOOMD:** HOOMD-blue is a continuation of the HOOMD project (http://www.ameslab.gov/hoomd/). The code from the original project is used under the following license::
+**HOOMD:** HOOMD-blue is a continuation of the HOOMD project. The code from the original project is used under the following license::
 
     Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
     Source Software License
@@ -122,7 +122,7 @@ following license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`CUB <http://nvlabs.github.io/cub/>`_, used under the following license::
+`CUB <https://nvidia.github.io/cccl/cub/>`_, used under the following license::
 
     Copyright (c) 2011, Duane Merrill.  All rights reserved.
     Copyright (c) 2011-2016, NVIDIA CORPORATION.  All rights reserved.
@@ -310,9 +310,6 @@ used under the following license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`LLVM <https://llvm.org>`_, used under the
-`Apache 2.0 license <http://www.apache.org/licenses/LICENSE-2.0.html>`_.
-
 `nano-signal-slot <https://github.com/glotzerlab/nano-signal-slot>`_, used under
 the following license::
 
@@ -467,37 +464,6 @@ following license::
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
     IN THE SOFTWARE.
-
-HOOMD-blue uses headers from `jitify <https://github.com/NVIDIA/jitify>`_ under
-the following license::
-
-    BSD 3-Clause License
-
-    Copyright (c) 2017-2020, NVIDIA CORPORATION. All rights reserved.
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions
-    are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of NVIDIA CORPORATION nor the names of its
-      contributors may be used to endorse or promote products derived
-      from this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
-    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-    OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 HOOMD uses the ECL code for connected components under the following license::
 

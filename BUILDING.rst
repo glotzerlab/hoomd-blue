@@ -48,7 +48,7 @@ Install prerequisites
 ---------------------
 
 **HOOMD-blue** requires a number of tools and libraries to build. The options ``ENABLE_MPI``,
-``ENABLE_GPU``, ``ENABLE_TBB``, and ``ENABLE_LLVM`` each require additional libraries when enabled.
+``ENABLE_GPU``, and ``ENABLE_TBB`` each require additional libraries when enabled.
 
 .. note::
 
@@ -120,11 +120,6 @@ Install prerequisites
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
 - Intel Threading Building Blocks >= 4.3
-
-**For runtime code generation** (required when ``ENABLE_LLVM=on``):
-
-- LLVM >= 10.0
-- libclang-cpp >= 10.0
 
 **To build the documentation:**
 
@@ -236,7 +231,6 @@ Other option changes take effect at any time:
 
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
-- ``ENABLE_LLVM`` - Enable run time code generation with LLVM.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
 - ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``HOOMD_SHORTREAL_SIZE`` - Size in bits of the ``ShortReal`` type (default: ``32``).

@@ -44,9 +44,6 @@ Attributes:
 
     install_dir (str): The installation directory.
 
-    llvm_enabled (bool): ``True`` when this build supports LLVM run time
-        compilation.
-
     metal_built (bool): ``True`` when the ``metal`` component is built.
 
     md_built (bool): ``True`` when the `md` component is built.
@@ -71,7 +68,6 @@ from hoomd.version_config import (
     git_branch,
     git_sha1,
     hpmc_built,
-    llvm_enabled,
     md_built,
     metal_built,
     mpcd_built,

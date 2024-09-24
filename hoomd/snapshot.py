@@ -13,7 +13,6 @@
 
 import hoomd
 from hoomd import _hoomd
-import warnings
 
 
 class _ConfigurationData:
@@ -522,15 +521,3 @@ class Snapshot:
 
         snap._broadcast_box()
         return snap
-
-    @classmethod
-    def from_gsd_snapshot(cls, gsd_snap, communicator):
-        """Constructs a `hoomd.Snapshot` from a ``gsd.hoomd.Snapshot`` object.
-
-        .. deprecated:: 4.0.0
-
-            Use `from_gsd_frame`.
-        """
-        warnings.warn("gsd.hoomd.Snapshot is deprecated, use gsd.hoomd.Frame",
-                      FutureWarning)
-        return cls.from_gsd_frame(gsd_snap, communicator)

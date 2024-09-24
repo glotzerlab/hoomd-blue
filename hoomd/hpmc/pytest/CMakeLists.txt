@@ -5,7 +5,6 @@ set(files __init__.py
           test_compute_free_volume.py
           test_compute_sdf.py
           test_external_field.py
-          test_external_user.py
           test_external_wall.py
           test_kt.py
           test_muvt.py
@@ -17,9 +16,7 @@ set(files __init__.py
           test_pair_lennard_jones.py
           test_pair_expanded_gaussian.py
           test_pair_step.py
-          test_pair_user.py
           test_pair_union.py
-          test_pair_union_user.py
           test_pair_angular_step.py
           test_quick_compress.py
           test_scale.py

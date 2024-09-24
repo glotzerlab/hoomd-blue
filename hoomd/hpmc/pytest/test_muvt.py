@@ -173,10 +173,9 @@ def test_insertion_removal(device, simulation_factory,
 
 
 @pytest.mark.cpu
-@pytest.mark.skipif(not hoomd.version.llvm_enabled, reason="LLVM not enabled")
-def test_jit_remove_insert(device, simulation_factory,
-                           one_particle_snapshot_factory):
-    """Test that MuVT considers cpp potential when removing/adding particles."""
+def test_pair_remove_insert(device, simulation_factory,
+                            one_particle_snapshot_factory):
+    """Test that MuVT considers pair potentials."""
     sim = simulation_factory(
         one_particle_snapshot_factory(
             particle_types=["A"],
@@ -190,18 +189,11 @@ def test_jit_remove_insert(device, simulation_factory,
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.0, default_a=0.0)
     mc.shape["A"] = dict(diameter=2 * sphere_radius)
 
-    # code returns infinity if the particle center goes past box center
+    # apply a potential gradient
+    linear = hoomd.hpmc.external.Linear(plane_normal=(1, 0, 0))
+    linear.alpha['A'] = 100
 
-    center_wall = """
-        if (r_i.x < 0. || r_i.x > box.getL().x/2)
-            return INFINITY;
-        else
-            return 0.0f;
-    """
-    cpp_external_potential = hoomd.hpmc.external.user.CPPExternalPotential(
-        code=center_wall)
-
-    mc.external_potential = cpp_external_potential
+    mc.external_potentials.append(linear)
 
     sim.operations.integrator = mc
 
@@ -209,7 +201,7 @@ def test_jit_remove_insert(device, simulation_factory,
                                   transfer_types=["A"])
     muvt.fugacity["A"] = 1e6
     sim.operations.updaters.append(muvt)
-    sim.run(1000)
+    sim.run(3000)
     snapshot = sim.state.get_snapshot()
 
     if snapshot.communicator.rank == 0:
@@ -219,13 +211,15 @@ def test_jit_remove_insert(device, simulation_factory,
         # We should have added more than one particle to the box
         assert len(pos) > 1
 
-        # insert to top of box and remove high energy bottom particle
-        assert numpy.min(pos[:, 0]) >= 0.0
+        # ensure that more particles are inserted on the left than the right
+        n_left = numpy.sum(pos[:, 0] < 0)
+        n_right = numpy.sum(pos[:, 0] >= 0)
+        assert n_left < n_right
 
     # We should have inserted particles successfully
     assert muvt.insert_moves[0] > 0
 
-    # We should have successfully removed the high energy particle
+    # We should have successfully removed high energy particles
     assert muvt.remove_moves[0] > 0
 
 

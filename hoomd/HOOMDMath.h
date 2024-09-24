@@ -19,20 +19,15 @@
 #include "hoomd/extern/cudacpu_vector_types.h"
 #endif
 
-// bring in math.h
 #ifndef __HIPCC__
-
-// define HOOMD_LLVMJIT_BUILD to prevent the need for python and pybind includes
-// this simplifies LLVM code generation
-#ifndef HOOMD_LLVMJIT_BUILD
 // include python.h first to silence _XOPEN_SOURCE redefinition warnings
 #include <Python.h>
 #include <pybind11/pybind11.h>
 #endif
 
+// bring in math.h
 #include <cmath>
 #include <math.h>
-#endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
 // HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
@@ -220,12 +215,10 @@ HOSTDEVICE inline int __scalar_as_int(Scalar b)
 
 //! Export relevant hoomd math functions to python
 #ifndef __HIPCC__
-#ifndef HOOMD_LLVMJIT_BUILD
 namespace detail
     {
 void export_hoomd_math_functions(pybind11::module& m);
     }
-#endif
 #endif
 
 //! Fastmath routines

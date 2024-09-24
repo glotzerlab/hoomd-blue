@@ -115,78 +115,6 @@ struct hpmc_patch_args_t
 
     } // end namespace detail
 
-//! Functor that computes patch interactions between particles
-/*! PatchEnergy allows cutoff energetic interactions to be included in an HPMC simulation. This
-    abstract base class defines the API for the patch energy object, consisting of cutoff radius
-    and the pair energy evaluation fuction.
-
-    Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
-    when needed during the HPMC trial moves.
-*/
-class PatchEnergy : public Autotuned
-    {
-    public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Autotuned(), m_sysdef(sysdef) { }
-    virtual ~PatchEnergy() { }
-
-#ifdef ENABLE_HIP
-    //! A struct that contains the kernel arguments
-    typedef detail::hpmc_patch_args_t gpu_args_t;
-#endif
-
-    //! Returns the non-additive distance from the center of the particle beyond which energies are
-    //! always zero
-    virtual Scalar getRCut()
-        {
-        return 0;
-        }
-
-    //! Returns the additive part of the cutoff distance
-    virtual Scalar getAdditiveCutoff(unsigned int type)
-        {
-        return 0;
-        }
-
-    //! evaluate the energy of the patch interaction
-    /*! \param r_ij Vector pointing from particle i to j
-        \param type_i Integer type index of particle i
-        \param d_i Diameter of particle i
-        \param charge_i Charge of particle i
-        \param q_i Orientation quaternion of particle i
-        \param type_j Integer type index of particle j
-        \param q_j Orientation quaternion of particle j
-        \param d_j Diameter of particle j
-        \param charge_j Charge of particle j
-        \returns Energy of the patch interaction.
-    */
-    virtual float energy(const vec3<float>& r_ij,
-                         unsigned int type_i,
-                         const quat<float>& q_i,
-                         float d_i,
-                         float charge_i,
-                         unsigned int type_j,
-                         const quat<float>& q_j,
-                         float d_j,
-                         float charge_j)
-        {
-        return 0;
-        }
-
-#ifdef ENABLE_HIP
-    //! Asynchronously launch the JIT kernel
-    /*! \param args Kernel arguments
-        \param hStream stream to execute on
-        */
-    virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
-        {
-        throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
-        }
-#endif
-
-    protected:
-    std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
-    }; // end class PatchEnergy
-
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
     IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
@@ -468,32 +396,16 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         m_past_first_run = true;
         }
 
-    //! Set the patch energy
-    virtual void setPatchEnergy(std::shared_ptr<PatchEnergy> patch)
-        {
-        m_patch = patch;
-        }
-
-    //! Get the patch energy
-    std::shared_ptr<PatchEnergy> getPatchEnergy()
-        {
-        return m_patch;
-        }
-
     /// Test if this has pairwise interactions.
     bool hasPairInteractions()
         {
-        return m_patch || m_pair_potentials.size() > 0;
+        return m_pair_potentials.size() > 0;
         }
 
     /// Get pairwise interaction maximum non-additive r_cut.
     LongReal getMaxPairEnergyRCutNonAdditive() const
         {
         LongReal r_cut = 0;
-        if (m_patch)
-            {
-            r_cut = m_patch->getRCut();
-            }
         for (const auto& pair : m_pair_potentials)
             {
             r_cut = std::max(r_cut, pair->getMaxRCutNonAdditive());
@@ -506,10 +418,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     LongReal getMaxPairInteractionAdditiveRCut(unsigned int type) const
         {
         LongReal r_cut = 0;
-        if (m_patch)
-            {
-            r_cut = m_patch->getAdditiveCutoff(type);
-            }
         for (const auto& pair : m_pair_potentials)
             {
             r_cut = std::max(r_cut, pair->getRCutAdditive(type));
@@ -530,25 +438,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
                                                                         LongReal charge_j)
         {
         LongReal energy = 0;
-        if (m_patch)
-            {
-            LongReal r_cut
-                = m_patch->getRCut()
-                  + LongReal(0.5)
-                        * (m_patch->getAdditiveCutoff(type_i) + m_patch->getAdditiveCutoff(type_j));
-            if (r_squared < r_cut * r_cut)
-                {
-                energy += m_patch->energy(vec3<float>(r_ij),
-                                          type_i,
-                                          quat<float>(q_i),
-                                          float(d_i),
-                                          float(charge_i),
-                                          type_j,
-                                          quat<float>(q_j),
-                                          float(d_j),
-                                          float(charge_j));
-                }
-            }
         for (const auto& pair : m_pair_potentials)
             {
             if (r_squared < pair->getRCutSquaredTotal(type_i, type_j))
@@ -640,8 +529,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     bool m_past_first_run; //!< Flag to test if the first run() has started
 
     std::shared_ptr<Variant> m_kT; //!< kT variant
-
-    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
     /// Pair potential evaluators.
     std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;

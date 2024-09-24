@@ -2733,8 +2733,6 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("getInteractionMatrix", &IntegratorHPMCMono<Shape>::getInteractionMatrixPy)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
-          .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
-          .def("getPatchEnergy", &IntegratorHPMCMono<Shape>::getPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
           .def("getDepletantNtrial", &IntegratorHPMCMono<Shape>::getNtrialPy)

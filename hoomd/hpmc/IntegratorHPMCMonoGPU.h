@@ -157,10 +157,6 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
 
         // Tune patch kernels and cell list in addition to those in `m_autotuners`.
         m_cl->startAutotuning();
-        if (this->m_patch)
-            {
-            this->m_patch->startAutotuning();
-            }
         }
 
     //! Take one timestep forward
@@ -804,17 +800,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateGPUAdvice()
 template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timestep)
     {
     IntegratorHPMC::update(timestep);
-
-    if (this->m_patch)
-        {
-        ArrayHandle<Scalar> h_additive_cutoff(m_additive_cutoff,
-                                              access_location::host,
-                                              access_mode::overwrite);
-        for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
-            {
-            h_additive_cutoff.data[itype] = this->m_patch->getAdditiveCutoff(itype);
-            }
-        }
 
     // rng for shuffle and grid shift
     hoomd::RandomGenerator rng(
@@ -1711,87 +1696,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     m_tuner_depletants_accept->end();
                     this->m_exec_conf->endMultiGPU();
                     }
-
-                if (this->m_patch)
-                    {
-                    // access data for proposed moves
-                    ArrayHandle<Scalar4> d_trial_postype(m_trial_postype,
-                                                         access_location::device,
-                                                         access_mode::read);
-                    ArrayHandle<Scalar4> d_trial_orientation(m_trial_orientation,
-                                                             access_location::device,
-                                                             access_mode::read);
-                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type,
-                                                                access_location::device,
-                                                                access_mode::read);
-
-                    // access the particle data
-                    ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(),
-                                                   access_location::device,
-                                                   access_mode::read);
-                    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
-                                                       access_location::device,
-                                                       access_mode::read);
-
-                    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
-                                                 access_location::device,
-                                                 access_mode::read);
-                    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                                   access_location::device,
-                                                   access_mode::read);
-                    ArrayHandle<Scalar> d_additive_cutoff(m_additive_cutoff,
-                                                          access_location::device,
-                                                          access_mode::read);
-
-                    /*
-                     *  evaluate energy of old and new configuration simultaneously against the old
-                     * and the new configuration
-                     */
-                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(),
-                                                                    access_location::device,
-                                                                    access_mode::read);
-                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell,
-                                                                   access_location::device,
-                                                                   access_mode::read);
-                    ArrayHandle<unsigned int> d_reject(m_reject,
-                                                       access_location::device,
-                                                       access_mode::read);
-                    ArrayHandle<unsigned int> d_reject_out(m_reject_out,
-                                                           access_location::device,
-                                                           access_mode::readwrite);
-
-                    // future optimization opportunity: put patch on its own stream
-                    PatchEnergy::gpu_args_t patch_args(d_postype.data,
-                                                       d_orientation.data,
-                                                       d_trial_postype.data,
-                                                       d_trial_orientation.data,
-                                                       d_trial_move_type.data,
-                                                       this->m_cl->getCellIndexer(),
-                                                       this->m_cl->getDim(),
-                                                       ghost_width,
-                                                       this->m_pdata->getN(),
-                                                       this->m_sysdef->getSeed(),
-                                                       this->m_exec_conf->getRank(),
-                                                       timestep,
-                                                       i,
-                                                       this->m_pdata->getNTypes(),
-                                                       box,
-                                                       d_excell_idx.data,
-                                                       d_excell_size.data,
-                                                       m_excell_list_indexer,
-                                                       this->m_patch->getRCut(),
-                                                       d_additive_cutoff.data,
-                                                       d_update_order_by_ptl.data,
-                                                       d_reject.data,
-                                                       d_reject_out.data,
-                                                       d_charge.data,
-                                                       d_diameter.data,
-                                                       d_reject_out_of_cell.data,
-                                                       this->m_pdata->getGPUPartition());
-
-                    // compute patch energy on default stream
-                    this->m_patch->computePatchEnergyGPU(patch_args, 0);
-                    } // end patch energy
 
                     {
                     ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell,
