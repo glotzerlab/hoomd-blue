@@ -127,6 +127,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ForceComposite.h
                 ForceDistanceConstraintGPU.h
                 ForceDistanceConstraint.h
+                GeneralEnvelope.h
                 HarmonicAngleForceComputeGPU.h
                 HarmonicAngleForceCompute.h
                 HarmonicDihedralForceComputeGPU.h

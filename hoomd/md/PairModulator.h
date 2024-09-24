@@ -107,7 +107,7 @@ public:
 #ifndef __HIPCC__
 
         shape_type(pybind11::object shape_params, bool managed)
-            : envelope(pybind11::len(shape_params), managed)
+            : envelope(static_cast<unsigned int>(pybind11::len(shape_params)), managed)
             {
                 pybind11::list shape_param = shape_params;
                 for (size_t i = 0; i < pybind11::len(shape_param); i++)
@@ -192,17 +192,10 @@ public:
     }
 
     //! Whether the pair potential needs particle tags.
-    HOSTDEVICE static bool needsTags()
-        {
-        return (PairEvaluator::needsTags() || DirectionalEnvelope::needsTags());
-        }
+    HOSTDEVICE static bool needsTags() { return false; }
 
     //! No modulated potential needs tags
-    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj)
-        {
-        m_tag_i = tagi;
-        m_tag_j = tagj;        
-        }
+    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) {      }
 
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
@@ -245,6 +238,7 @@ public:
                             Scalar envelope(Scalar(0));
 
                             PairEvaluator pair_eval(rsq, rcutsq, params.pairP);
+                            pair_eval.setCharge(m_charge_i, m_charge_j);
 
                             // compute pair potential
                             if (!pair_eval.evalForceAndEnergy(force_divr, this_pair_eng, energy_shift))
@@ -253,6 +247,7 @@ public:
                                 }
 
                             DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP, shape_i->envelope[patchi], shape_j->envelope[patchj]);
+                            envel_eval.setCharge(m_charge_i, m_charge_j);
 
                             // compute envelope
                             // this_torque_i and this_torque_j get populated with the
@@ -323,6 +318,8 @@ protected:
     const param_type& params;
     const shape_type* shape_i;
     const shape_type* shape_j;
+
+    Scalar m_charge_i, m_charge_j;
 
     // PairEvaluator pairEval;           //!< An isotropic pair evaluator
     // DirectionalEnvelope envelEval;    //!< A directional envelope evaluator

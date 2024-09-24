@@ -100,17 +100,17 @@ public:
         // TODO decide which is faster on GPU and CPU. // use 250_000 particles to saturate GPU // benchmark on brett
         // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
 // #else
-        : dr(_dr), R_i(rotmat3<ShortReal>((quat<ShortReal>)_quat_i)), R_j(rotmat3<ShortReal>((quat<ShortReal>)_quat_j)), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
+        : dr(_dr), R_i(rotmat3<LongReal>((quat<LongReal>)_quat_i)), R_j(rotmat3<LongReal>((quat<LongReal>)_quat_j)), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
 // #endif
         {
             // compute current particle direction vectors
 
             // rotate from particle to world frame
-            vec3<ShortReal> ex(1,0,0);
-            vec3<ShortReal> ey(0,1,0);
-            vec3<ShortReal> ez(0,0,1);
+            vec3<LongReal> ex(1,0,0);
+            vec3<LongReal> ey(0,1,0);
+            vec3<LongReal> ez(0,0,1);
 
-            //TODO Real --> ShortReal could help
+            //DONE Real --> ShortReal could help, not doing
 
             // DONE try converting to rotation matrices
 
@@ -121,11 +121,11 @@ public:
             a1 = R_i * ex;
             a2 = R_i * ey;
             a3 = R_i * ez;
-            ni_world = R_i * (vec3<ShortReal>)p_i;
+            ni_world = R_i * (vec3<LongReal>)p_i;
             b1 = R_j * ex;
             b2 = R_j * ey;
             b3 = R_j * ez;
-            nj_world = R_j * (vec3<ShortReal>)p_j;
+            nj_world = R_j * (vec3<LongReal>)p_j;
 // #else
 //             a1 = rotate(qi, ex);
 //             a2 = rotate(qi, ey);
@@ -151,7 +151,7 @@ public:
             exp_negOmega_times_CosThetaJ_minus_CosAlpha = fast::exp(-params.omega*(costhetaj - params.cosalpha));
         }
 
-    //! whether pair potential requires charges
+    //! Whether envelope requires charges
     DEVICE static bool needsCharge() { return false; }
 
     //! Accept the optional charge values
@@ -159,16 +159,11 @@ public:
       \param qi Charge of particle i
       \param qj Charge of particle j
     */
-    DEVICE void setCharge(Scalar qi, Scalar qj) { }
-
-    //! Whether the pair potential needs particle tags.
-    DEVICE static bool needsTags() { return false; }
-
-    //! Accept the optional tags
-    /*! \param tag_i Tag of particle i
-        \param tag_j Tag of particle j
-    */
-    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
+    DEVICE void setCharge(Scalar qi, Scalar qj)
+    {
+    m_charge_i = qi;
+    m_charge_j = qj;
+    }
 
     //! Evaluate the force and energy
     /*
@@ -271,8 +266,8 @@ private:
     quat<Scalar> qi;
     quat<Scalar> qj;
 // #else
-    rotmat3<ShortReal> R_i;
-    rotmat3<ShortReal> R_j;
+    rotmat3<LongReal> R_i;
+    rotmat3<LongReal> R_j;
 // #endif
 
     const param_type& params;
@@ -281,6 +276,7 @@ private:
     vec3<Scalar> a1, a2, a3;
     vec3<Scalar> b1, b2, b3;
 
+    Scalar m_charge_i, m_charge_j;
 
     Scalar drsq;
     Scalar magdr;
