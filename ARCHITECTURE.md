@@ -43,7 +43,7 @@ config files. It manages the linked libraries and additional include directories
 appropriate visibility in `target_link_libraries` to pass these dependencies on to external
 components. HOOMD-blue itself produces a CMake config file to use with `find_package`.
 
-HOOMD has many optional dependencies (e.g. LLVM) and developers can build with or without components
+HOOMD has many optional dependencies and developers can build with or without components
 or features (e.g. HPMC). These are set in CMake `ENABLE_*` and `BUILD_*` variables and passed
 into the C++ code as preprocessor definitions. New code must observe these definitions so that
 the code compiles correctly (or is excluded as needed) when a given option is set or not set.

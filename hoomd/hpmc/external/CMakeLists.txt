@@ -1,7 +1,6 @@
 set(files __init__.py
         external.py
         linear.py
-        user.py
         field.py
         wall.py
  )

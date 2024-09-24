@@ -569,7 +569,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                                 // check for hard overlaps
                                 // if there is one for a given scale value, there is no need to
-                                // check for any soft overlaps from m_mc.m_patch
+                                // check for any soft overlaps from the pair potentials
                                 bool hard_overlap = detail::test_scaled_overlap<Shape>(
                                     r_ij,
                                     orientation_i,
@@ -630,7 +630,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                                 // check for hard overlaps
                                 // if there is one for a given scale value, there is no need to
-                                // check for any soft overlaps from m_mc.m_patch
+                                // check for any soft overlaps from the pair potentials
                                 bool hard_overlap = detail::test_scaled_overlap<Shape>(
                                     r_ij,
                                     orientation_i,

@@ -38,12 +38,6 @@ else()
     set(_mpcd_built "False")
 endif()
 
-if (ENABLE_LLVM)
-    set(_llvm_enabled "True")
-else()
-    set(_llvm_enabled "False")
-endif()
-
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
@@ -339,7 +333,6 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files box.py
           communicator.py
-          _compile.py
           conftest.py
           device.py
           __init__.py

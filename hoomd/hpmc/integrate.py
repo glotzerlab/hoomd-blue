@@ -162,9 +162,8 @@ External potentials apply to each particle individually:
 
 Potential classes in :doc:`module-hpmc-pair` evaluate
 :math:`U_{\mathrm{pair},ij}`. HPMC sums all the `Pair <hoomd.hpmc.pair.Pair>`
-potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` and the
-`CPPPotentialBase <hoomd.hpmc.pair.user.CPPPotentialBase>` potential in
-`pair_potential <HPMCIntegrator.pair_potential>` during integration.
+potentials in `pair_potentials <HPMCIntegrator.pair_potentials>` during
+integration.
 
 Similarly, potential classes in :doc:`module-hpmc-external` evaluate
 :math:`U_{\mathrm{external},i}`. Assign a class instance to
@@ -381,7 +380,6 @@ class HPMCIntegrator(Integrator):
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect))
         self._param_dict.update(param_dict)
-        self._pair_potential = None
         self._external_potential = None
 
         # Set standard typeparameters for hpmc integrators
@@ -459,10 +457,6 @@ class HPMCIntegrator(Integrator):
             self._external_potential._attach(self._simulation)
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
 
-        if self._pair_potential is not None:
-            self._pair_potential._attach(self._simulation)
-            self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
-
         self._pair_potentials._sync(self._simulation,
                                     self._cpp_obj.pair_potentials)
 
@@ -474,8 +468,6 @@ class HPMCIntegrator(Integrator):
     def _detach_hook(self):
         if self._external_potential is not None:
             self._external_potential._detach()
-        if self._pair_potential is not None:
-            self._pair_potential._detach()
         self._pair_potentials._unsync()
         self._external_potentials._unsync()
 
@@ -614,43 +606,6 @@ class HPMCIntegrator(Integrator):
             return self._cpp_obj.getCounters(1)
         else:
             raise DataAccessError("counters")
-
-    @property
-    def pair_potential(self):
-        r"""The user-defined pair potential.
-
-        Defines the pairwise particle interaction energy
-        :math:`U_{\mathrm{pair},ij}`. Defaults to `None`. May be set to an
-        object from :doc:`module-hpmc-pair`.
-
-        .. deprecated:: 4.5.0
-
-            Use `pair_potentials`.
-        """
-        warnings.warn(
-            "pair_potential is deprecated since 4.5.0. "
-            "Use pair_potentials.",
-            FutureWarning,
-            stacklevel=2)
-        return self._pair_potential
-
-    @pair_potential.setter
-    def pair_potential(self, new_potential):
-        warnings.warn(
-            "pair_potential is deprecated since 4.5.0. "
-            "Use pair_potentials.",
-            FutureWarning,
-            stacklevel=4)
-
-        if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
-            raise TypeError(
-                "Pair potentials should be an instance of CPPPotentialBase")
-        if self._attached:
-            new_potential._attach(self._simulation)
-            self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
-            if self._pair_potential is not None:
-                self._pair_potential._detach()
-        self._pair_potential = new_potential
 
     @property
     def external_potential(self):

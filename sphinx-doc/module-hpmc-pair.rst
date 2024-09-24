@@ -29,10 +29,3 @@ hoomd.hpmc.pair
               Pair,
               Step,
               Union
-
-.. rubric:: Modules
-
-.. toctree::
-   :maxdepth: 1
-
-   module-hpmc-pair-user

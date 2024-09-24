@@ -15,7 +15,6 @@ Note:
     `external_potential <hpmc.integrate.HPMCIntegrator.external_potential>`
     attribute.
 
-    * `user.CPPExternalPotential`
     * `field.Harmonic`
     * `wall.WallPotential`
 
@@ -23,7 +22,6 @@ Note:
     replaced by similar classes that do support ``external_potentials``.
 """
 
-from . import user
 from . import field
 from . import wall
 from .external import External

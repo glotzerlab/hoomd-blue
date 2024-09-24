@@ -20,6 +20,4 @@ cuda_include_path = "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
 
 cuda_devrt_library = "${CUDA_cudadevrt_LIBRARY}"
 
-llvm_enabled = ${_llvm_enabled}
-
 build_dir = "${HOOMD_BINARY_DIR}"

@@ -12,7 +12,6 @@ set(_hpmc_gpu_shapes ShapeSphere
                  )
 
 option(ENABLE_HPMC_SPHINX_GPU "Enable sphinx on the GPU" OFF)
-option(ENABLE_DEBUG_JIT "Enable printing of debug info of JIT compilation on GPU" off)
 if (ENABLE_HPMC_SPHINX_GPU)
     set(_hpmc_gpu_shapes ${_hpmc_gpu_shapes} ShapeSphinx)
 endif()
@@ -68,7 +67,6 @@ set(_hpmc_headers
     HPMCMiscFunctions.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
-    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPUMoves.cuh
     IntegratorHPMCMonoGPUTypes.cuh
     IntegratorHPMCMonoGPUDepletants.cuh
@@ -213,87 +211,4 @@ add_subdirectory(nec)
 
 if (BUILD_TESTING)
     add_subdirectory(test)
-endif()
-
-if (ENABLE_LLVM)
-    set(PACKAGE_NAME jit)
-
-    # find and configure LLVM
-    find_package(LLVM REQUIRED CONFIG)
-
-    if (LLVM_FOUND)
-        find_library(llvm_library LLVM
-                     HINTS ${LLVM_LIBRARY_DIRS}
-                     NO_DEFAULT_PATH)
-
-        find_library(clang_library clang-cpp
-                     HINTS ${LLVM_LIBRARY_DIRS}
-                     NO_DEFAULT_PATH)
-    endif()
-    find_package_message(LLVM "Found LLVM: ${LLVM_DIR} ${llvm_library} ${clang_library} ${LLVM_INCLUDE_DIRS} ${LLVM_DEFINITIONS} (version ${LLVM_PACKAGE_VERSION})" "[${LLVM_DIR},${llvm_library},${clang_library}]")
-
-    # set files to compile
-    set(_${PACKAGE_NAME}_sources
-         module-${PACKAGE_NAME}.cc
-         PatchEnergyJIT.cc
-         GPUEvalFactory.cc
-         PatchEnergyJITGPU.cc
-         PatchEnergyJITUnion.cc
-         PatchEnergyJITUnionGPU.cc
-       )
-
-    set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc ClangCompiler.cc)
-
-    set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
-                                 PatchEnergyJITUnion.h
-                                 PatchEnergyJITGPU.h
-                                 PatchEnergyJITUnionGPU.h
-                                 ExternalFieldJIT.h
-                                 EvalFactory.h
-                                 Evaluator.cuh
-                                 EvaluatorUnionGPU.cuh
-                                 ExternalFieldEvalFactory.h
-                                 GPUEvalFactory.h
-                                 KaleidoscopeJIT.h
-                                 ClangCompiler.h
-       )
-
-    hoomd_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} ${_${PACKAGE_NAME}_llvm_sources} NO_EXTRAS)
-    # alias into the HOOMD namespace so that plugins and symlinked components both work
-    add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
-
-    if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
-        target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
-    endif ()
-
-    target_include_directories(_${PACKAGE_NAME} PUBLIC ${LLVM_INCLUDE_DIRS})
-    target_compile_definitions(_${PACKAGE_NAME} PUBLIC ${LLVM_DEFINITIONS})
-    target_compile_definitions(_${PACKAGE_NAME} PUBLIC HOOMD_LLVM_INSTALL_PREFIX=\"${LLVM_INSTALL_PREFIX}\")
-
-    target_include_directories(_${PACKAGE_NAME} PUBLIC
-                               $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
-                               $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
-
-    target_link_libraries(_${PACKAGE_NAME} PUBLIC ${llvm_library} ${clang_library} _hoomd )
-
-    # set installation RPATH
-    if(APPLE)
-    set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
-    else()
-    set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
-    endif()
-
-    # install the library
-    install(TARGETS _${PACKAGE_NAME}
-            LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
-            )
-
-    # install headers in installation target
-    install(FILES ${_${PACKAGE_NAME}_headers}
-            DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
-           )
-
-    if (ENABLE_DEBUG_JIT)
-        target_compile_definitions(_jit PRIVATE ENABLE_DEBUG_JIT)
-    endif()
 endif()

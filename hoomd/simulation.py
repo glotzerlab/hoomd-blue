@@ -295,15 +295,9 @@ class Simulation(metaclass=Loggable):
             snapshot = Snapshot.from_gsd_frame(snapshot,
                                                self._device.communicator)
             self._state = State(self, snapshot, domain_decomposition)
-        elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
-            # snapshot is gsd.hoomd.Snapshot (gsd 2.x)
-            snapshot = Snapshot.from_gsd_snapshot(snapshot,
-                                                  self._device.communicator)
-            self._state = State(self, snapshot, domain_decomposition)
         else:
             raise TypeError(
-                "Snapshot must be a hoomd.Snapshot, gsd.hoomd.Snapshot, "
-                "or gsd.hoomd.Frame")
+                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Frame")
 
         step = 0
         if self.timestep is not None:
