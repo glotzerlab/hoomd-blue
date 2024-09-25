@@ -133,7 +133,7 @@ def xplor_factor(r, r_on, r_cut):
 
 
 def vopp(r, C1, C2, eta1, eta2, k, phi):
-    """Compute opp energy"""
+    """Compute opp energy."""
     return C1 * r**(-eta1) + C2 * r**(-eta2) * np.cos(k * r - phi)
 
 

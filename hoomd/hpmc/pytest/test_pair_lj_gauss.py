@@ -104,7 +104,7 @@ def xplor_factor(r, r_on, r_cut):
 
 
 def ljg(r, epsilon, sigma, r0):
-    """Compute lj-guass energy"""
+    """Compute lj-gauss energy."""
     return (1 / r**12
             - 2 / r**6) - epsilon * np.exp(-(r - r0)**2 / 2 / sigma**2)
 

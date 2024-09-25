@@ -52,20 +52,20 @@ class OPP(Pair):
 
         * ``C1`` (`float`, **required**) -
           Energy scale of the first term :math:`C_1`
-          :math:`[\mathrm{energy}]`
+          :math:`[\\mathrm{energy}]`.
         * ``C2`` (`float`, **required**) -
           Energy scale of the second term :math:`C_2`
-          :math:`[\mathrm{energy}]`
+          :math:`[\\mathrm{energy}]`
         * ``eta1`` (`float`, **required**) -
           The inverse power to take :math:`r` to in the first term,
-          :math:`\eta_1` :math:`[\mathrm{dimensionless}]`.
+          :math:`\\eta_1` :math:`[\\mathrm{dimensionless}]`.
         * ``eta2`` (`float`, **required**) -
           The inverse power to take :math:`r` to in the second term
-          :math:`\eta_2` :math:`[\mathrm{dimensionless}]`.
+          :math:`\\eta_2` :math:`[\\mathrm{dimensionless}]`.
         * ``k`` (`float`, **required**) -
-          oscillation frequency :math:`k` :math:`[\mathrm{length}^{-1}]`
+          oscillation frequency :math:`k` :math:`[\\mathrm{length}^{-1}]`
         * ``phi`` (`float`, **required**) -
-          potential phase shift :math:`\phi` :math:`[\mathrm{dimensionless}]`
+          potential phase shift :math:`\\phi` :math:`[\\mathrm{dimensionless}]`
         * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`.
           Defaults to the value given in ``default_r_cut`` on construction.
         * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`.

@@ -42,7 +42,9 @@ class LJGauss(Pair):
     .. code-block:: python
 
         lj_gauss = hoomd.hpmc.pair.LJGauss()
-        lj_gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6, r_cut=2.5)
+        lj_gauss.params[('A', 'A')] = dict(
+          epsilon=1.0, sigma=0.02, r0=1.6, r_cut=2.5
+        )
         simulation.operations.integrator.pair_potentials = [lj_gauss]
 
     .. py:attribute:: params
@@ -55,7 +57,8 @@ class LJGauss(Pair):
           Gaussian width :math:`\\sigma`
           :math:`[\\mathrm{length}]`.
         * ``r0`` (`float`, **required**) -
-          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
+          Gaussian center :math:`r_0`
+          :math:`[\\mathrm{length}]`.
         * ``r_cut`` (`float`): Cutoff radius :math:`[\\mathrm{length}]`.
           Defaults to the value given in ``default_r_cut`` on construction.
         * ``r_on`` (`float`): XPLOR on radius :math:`[\\mathrm{length}]`.
