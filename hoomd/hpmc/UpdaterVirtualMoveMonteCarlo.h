@@ -218,6 +218,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
 
             // while(linkers.size(); take particle i from linkers, loop over neighbors of i
             // loop over neighbors of cluster members to find new cluster members
+            bool skip_to_next_seed = false;
             while (linkers.size())
                 {
                 /* m_exec_conf->msg->notice(5) << "VMMC linker set size " << linkers.size() << std::endl; */
@@ -235,8 +236,10 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 if (m_sysdef->isDomainDecomposed())
                     {
                     if (!isActive(make_scalar3(postype_linker.x, postype_linker.y, postype_linker.z), box, ghost_fraction))
-                        // TODO: continue to the next seed instead of next linker
-                        continue;
+                        {
+                        skip_to_next_seed = true;
+                        break;
+                        }
                     }
                 #endif
 
@@ -475,6 +478,10 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                         }  // end loop over nodes in AABBTree
                     }  // end loop over images
                 }  // end loop over linkers
+            if (skip_to_next_seed)
+                {
+                continue;
+                }
 
             // find which of the potential cluster members ended up in the cluster
             m_exec_conf->msg->notice(5) << "Finding failed intracluster links" << std::endl;
