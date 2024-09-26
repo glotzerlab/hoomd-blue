@@ -10,7 +10,7 @@ namespace hoomd
 namespace hpmc
     {
 
-/*** Compute Lennard-Jones energy between two particles.
+/*** Compute Lennard-Jones-Gauss energy between two particles.
 
 For use with HPMC simulations.
 */
@@ -87,7 +87,7 @@ class PairPotentialLJGauss : public hpmc::PairPotential
         xplor
         };
 
-    /// Type pair parameters of LJ potential
+    /// Type pair parameters of LJG potential
     struct ParamType
         {
         ParamType()
