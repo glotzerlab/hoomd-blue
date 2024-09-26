@@ -14,6 +14,7 @@
 #endif
 
 #include "hoomd/BoxDim.h"
+#include "hoomd/MPIConfiguration.h"
 #include "hoomd/VectorMath.h"
 // pybind11
 #include <pybind11/pybind11.h>
@@ -68,7 +69,7 @@ class PYBIND11_EXPORT ParticleDataSnapshot
 
 #ifdef ENABLE_MPI
     //! Broadcast the snapshot using MPI
-    void bcast(unsigned int root, MPI_Comm mpi_comm);
+    void bcast(unsigned int root, MPI_Comm mpi_comm, std::shared_ptr<MPIConfiguration> mpi_config);
 #endif
 
     //! Replicate the snapshot data

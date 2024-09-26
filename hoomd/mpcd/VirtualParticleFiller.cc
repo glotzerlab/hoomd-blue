@@ -26,7 +26,7 @@ mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<SystemDefinit
 #ifdef ENABLE_MPI
     if (m_exec_conf->getNRanks() > 1)
         {
-        bcast(m_filler_id, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_filler_id, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
         }
 #endif // ENABLE_MPI
     }
