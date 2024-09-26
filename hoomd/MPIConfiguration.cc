@@ -3,6 +3,8 @@
 
 #include "MPIConfiguration.h"
 
+#include "VectorMath.h"
+
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
@@ -36,6 +38,59 @@ MPIConfiguration::MPIConfiguration(
     int rank;
     MPI_Comm_rank(m_mpi_comm, &rank);
     m_rank = rank;
+
+        // create scalar2 data type for MPI
+        {
+        int blocklengths[] = {1, 1};
+        MPI_Datatype types[] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR};
+        MPI_Aint offsets[] = {offsetof(Scalar2, x), offsetof(Scalar2, y)};
+
+        MPI_Datatype tmp;
+        MPI_Type_create_struct(2, blocklengths, offsets, types, &tmp);
+        MPI_Type_create_resized(tmp, 0, sizeof(Scalar2), &m_mpi_scalar2);
+        MPI_Type_commit(&m_mpi_scalar2);
+        }
+
+        // create scalar3 data type for MPI
+        {
+        int blocklengths[] = {1, 1, 1};
+        MPI_Datatype types[] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR};
+        MPI_Aint offsets[] = {offsetof(Scalar3, x), offsetof(Scalar3, y), offsetof(Scalar3, z)};
+
+        MPI_Datatype tmp;
+        MPI_Type_create_struct(3, blocklengths, offsets, types, &tmp);
+        MPI_Type_create_resized(tmp, 0, sizeof(Scalar3), &m_mpi_scalar3);
+        MPI_Type_commit(&m_mpi_scalar3);
+        }
+
+        // create vec3<Scalar> data type for MPI
+        {
+        int blocklengths[] = {1, 1, 1};
+        MPI_Datatype types[] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR};
+        MPI_Aint offsets[]
+            = {offsetof(vec3<Scalar>, x), offsetof(vec3<Scalar>, y), offsetof(vec3<Scalar>, z)};
+
+        MPI_Datatype tmp;
+        MPI_Type_create_struct(3, blocklengths, offsets, types, &tmp);
+        MPI_Type_create_resized(tmp, 0, sizeof(vec3<Scalar>), &m_mpi_vec3_scalar);
+        MPI_Type_commit(&m_mpi_vec3_scalar);
+        }
+
+        // create scalar4 data type for MPI
+        {
+        int blocklengths[] = {1, 1, 1, 1};
+        MPI_Datatype types[]
+            = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR};
+        MPI_Aint offsets[] = {offsetof(Scalar4, x),
+                              offsetof(Scalar4, y),
+                              offsetof(Scalar4, z),
+                              offsetof(Scalar4, w)};
+
+        MPI_Datatype tmp;
+        MPI_Type_create_struct(4, blocklengths, offsets, types, &tmp);
+        MPI_Type_create_resized(tmp, 0, sizeof(Scalar4), &m_mpi_scalar4);
+        MPI_Type_commit(&m_mpi_scalar4);
+        }
 #endif
     }
 
@@ -81,6 +136,28 @@ unsigned int MPIConfiguration::getNRanks() const
     return 1;
 #endif
     }
+
+#ifdef ENABLE_MPI
+MPI_Datatype MPIConfiguration::getScalar2Datatype() const
+    {
+    return m_mpi_scalar2;
+    }
+
+MPI_Datatype MPIConfiguration::getScalar3Datatype() const
+    {
+    return m_mpi_scalar3;
+    }
+
+MPI_Datatype MPIConfiguration::getVec3ScalarDatatype() const
+    {
+    return m_mpi_vec3_scalar;
+    }
+
+MPI_Datatype MPIConfiguration::getScalar4Datatype() const
+    {
+    return m_mpi_scalar4;
+    }
+#endif // ENABLE_MPI
 
 namespace detail
     {
