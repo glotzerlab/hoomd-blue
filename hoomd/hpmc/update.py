@@ -658,6 +658,18 @@ class VirtualClusterMoves(Updater):
             self._simulation.state._cpp_sys_def, self.trigger, integrator._cpp_obj
         )
 
+    @log(category='sequence', requires_run=True)
+    def move_counts(self):
+        return self._cpp_obj.getCounters(1).counts
+
+    @log(category='scalar', requires_run=True)
+    def acceptance_rate(self):
+        acc, rej = self._cpp_obj.getCounters(1).counts
+        if acc + rej == 0:
+            return 0.0
+        else:
+            return acc / (acc + rej)
+
 
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.

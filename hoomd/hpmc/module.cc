@@ -24,6 +24,7 @@
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
+#include "UpdaterVirtualMoveMonteCarlo.h"
 
 #include "GPUTree.h"
 
@@ -148,6 +149,7 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_hpmc_muvt_counters(m);
     export_hpmc_clusters_counters(m);
+    export_hpmc_virtual_moves_counters(m);
 
     export_hpmc_nec_counters(m);
 

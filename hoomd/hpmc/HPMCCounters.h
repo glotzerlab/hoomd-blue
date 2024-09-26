@@ -367,6 +367,32 @@ struct hpmc_clusters_counters_t
         }
     };
 
+struct hpmc_virtual_moves_counters_t
+    {
+    unsigned long long int accept_count;
+    unsigned long long int reject_count;
+
+    //! Construct a zero set of counters
+    DEVICE hpmc_virtual_moves_counters_t()
+        {
+        accept_count = 0;
+        reject_count = 0;
+        }
+
+    std::pair<unsigned long long int, unsigned long long int> getCounts()
+        {
+        return std::make_pair(accept_count, reject_count);
+        }
+    };
+
+DEVICE inline hpmc_virtual_moves_counters_t operator-(const hpmc_virtual_moves_counters_t& a, hpmc_virtual_moves_counters_t& b)
+    {
+    hpmc_virtual_moves_counters_t result;
+    result.accept_count = a.accept_count - b.accept_count;
+    result.reject_count = a.reject_count - b.reject_count;
+    return result;
+    }
+
 //! Take the difference of two sets of counters
 DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t& a,
                                                  const hpmc_implicit_counters_t& b)

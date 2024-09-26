@@ -67,6 +67,22 @@ class UpdaterVMMC : public Updater
             }
 
 
+        /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
+            \return The current state of the acceptance counters
+        */
+        hpmc_virtual_moves_counters_t getCounters(unsigned int mode)
+            {
+            hpmc_virtual_moves_counters_t result;
+            if (mode == 0)
+                result = m_count_total;
+            else if (mode == 1)
+                result = m_count_total - m_count_run_start;
+            else
+                result = m_count_total - m_count_step_start;
+            return result;
+            }
+
+
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_attempts_per_particle;  //!< Number of attempted moves per particle each time update() is called
@@ -82,10 +98,9 @@ class UpdaterVMMC : public Updater
         // TODO: what all do we need to keep track of with counters?
         // 1. Number of cluster moves attempted and rejected
         // 2. Size of clusters?
-        hpmc_clusters_counters_t m_count_total;                 //!< Total count since initialization
-        hpmc_clusters_counters_t m_count_run_start;             //!< Count saved at run() start
-        hpmc_clusters_counters_t m_count_step_start;            //!< Count saved at the start of the last step
-
+        hpmc_virtual_moves_counters_t m_count_total;
+        hpmc_virtual_moves_counters_t m_count_run_start;
+        hpmc_virtual_moves_counters_t m_count_step_start;
     };
 
 template< class Shape >
@@ -149,6 +164,8 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     // if no particles, exit early
     if (! m_pdata->getN()) return;
     m_exec_conf->msg->notice(4) << "VMMC update() " << std::endl;
+
+    m_count_step_start = m_count_total;
 
     // get stuff needed for the calculation
     const LongReal min_core_radius = m_mc->getMinCoreDiameter() * LongReal(0.5);
@@ -515,6 +532,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             m_exec_conf->msg->notice(4) << "VMMC p_acc: " << p_acc << std::endl;
             if(accept_cluster_move)
                 {
+                m_count_total.accept_count++;
                 unsigned int cluster_size = 0;
                 for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                     {
@@ -537,6 +555,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 }
             else
                 {
+                m_count_total.reject_count++;
                 m_exec_conf->msg->notice(3) << "VMMC move rejected " << p_acc << std::endl;
                 }
 
@@ -556,8 +575,15 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
                             std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>
                             >()) 
+        .def("getCounters", &UpdaterVMMC<Shape>::getCounters)
         /* .def_property("attempts_per_particle", &UpdaterVMMC<Shape>::getAttemptsPerParticle, &UpdaterVMMC<Shape>::setAttemptsPerParticle) */
     ;
+    }
+
+inline void export_hpmc_virtual_moves_counters(pybind11::module &m)
+    {
+pybind11::class_<hpmc_virtual_moves_counters_t>(m, "hpmc_virtual_moves_counters_t")
+    .def_property_readonly("counts", &hpmc_virtual_moves_counters_t::getCounts);
     }
 
 
