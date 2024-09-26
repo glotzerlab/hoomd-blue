@@ -302,6 +302,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
             // loop over neighbors
             unsigned int nreq = 0;
             m_reqs.resize(2 * m_n_unique_neigh);
+            const MPI_Datatype mpi_pdata_element = m_mpcd_pdata->getElementMPIDatatype();
             unsigned int sendidx = 0;
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                 {
@@ -313,7 +314,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
                     {
                     MPI_Isend(h_sendbuf.data + sendidx,
                               m_n_send_ptls[ineigh],
-                              m_pdata_element,
+                              mpi_pdata_element,
                               neighbor,
                               1,
                               m_mpi_comm,
@@ -327,7 +328,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
                     {
                     MPI_Irecv(h_recvbuf.data + m_offsets[ineigh],
                               m_n_recv_ptls[ineigh],
-                              m_pdata_element,
+                              mpi_pdata_element,
                               neighbor,
                               1,
                               m_mpi_comm,
