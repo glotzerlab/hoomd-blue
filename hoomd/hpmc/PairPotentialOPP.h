@@ -10,7 +10,7 @@ namespace hoomd
 namespace hpmc
     {
 
-/*** Compute Lennard-Jones energy between two particles.
+/*** Compute oscillating pair potential energy between two particles.
 
 For use with HPMC simulations.
 */
@@ -87,7 +87,7 @@ class PairPotentialOPP : public hpmc::PairPotential
         xplor
         };
 
-    /// Type pair parameters of LJ potential
+    /// Type pair parameters of OPP potential
     struct ParamType
         {
         ParamType()
