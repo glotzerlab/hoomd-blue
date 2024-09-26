@@ -14,12 +14,9 @@
 #include "hoomd/HOOMDMPI.h"
 #endif // ENABLE_MPI
 
-#include <thrust/execution_policy.h>
-#include <thrust/scan.h>
-#include <thrust/sort.h>
-
 #include <pybind11/stl.h>
 
+#include <algorithm>
 #include <iomanip>
 #include <random>
 using namespace std;
@@ -135,9 +132,8 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
 
         // assign each particle to a rank
         unsigned int num_types = 0;
-        std::vector<int> num_per_rank;           // number per rank
-        std::vector<int> rank_displacements;     // displacement of particles per rank
-        std::vector<unsigned int> particle_rank; // rank each particle belongs to
+        std::vector<int> num_per_rank;       // number per rank
+        std::vector<int> rank_displacements; // displacement of particles per rank
         std::vector<detail::pdata_element> particles;
         if (rank == root)
             {
@@ -148,7 +144,6 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
 
             // global particle number is snapshot size, also allocate temporary data for sending
             N_global = snapshot.size;
-            particle_rank.resize(N_global);
             particles.resize(N_global);
 
             // temporary data for counts per rank
@@ -224,10 +219,9 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
                 particle.vel
                     = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
                 particle.tag = snap_idx;
-                particle.comm_flag = 0;
+                particle.comm_flag = rank; // hijack the comm flag to sort by rank
 
                 // fill up per-processor data structures
-                particle_rank[snap_idx] = rank;
                 particles[snap_idx] = particle;
                 ++num_per_rank[rank];
                 }
@@ -239,16 +233,18 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
             m_type_mapping = snapshot.type_mapping;
             num_types = static_cast<unsigned int>(m_type_mapping.size());
 
+            // exclusive scan of displacements
+            rank_displacements[0] = 0;
+            for (size_t i = 1; i < num_per_rank.size(); ++i)
+                {
+                rank_displacements[i] = rank_displacements[i - 1] + num_per_rank[i - 1];
+                }
+
             // sort particles by rank
-            thrust::exclusive_scan(thrust::host,
-                                   num_per_rank.begin(),
-                                   num_per_rank.end(),
-                                   rank_displacements.begin(),
-                                   0);
-            thrust::sort_by_key(thrust::host,
-                                particle_rank.begin(),
-                                particle_rank.end(),
-                                particles.begin());
+            std::sort(particles.begin(),
+                      particles.end(),
+                      [](const mpcd::detail::pdata_element& a, const mpcd::detail::pdata_element& b)
+                      { return a.comm_flag < b.comm_flag; });
             }
 
         // broadcast global number of particles
