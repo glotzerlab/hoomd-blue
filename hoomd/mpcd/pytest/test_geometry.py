@@ -19,7 +19,7 @@ def snap():
     return snap_
 
 
-class ConcentricCylinders:
+class TestConcentricCylinders:
 
     def test_default_init(self, simulation_factory, snap):
         geom = hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,

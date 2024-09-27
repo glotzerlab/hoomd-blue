@@ -28,6 +28,16 @@ def snap():
             hoomd.mpcd.stream.BounceBack,
             {
                 "geometry":
+                    hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                            outer_radius=5.0,
+                                                            angular_speed=0.0,
+                                                            no_slip=True),
+            },
+        ),
+        (
+            hoomd.mpcd.stream.BounceBack,
+            {
+                "geometry":
                     hoomd.mpcd.geometry.CosineChannel(
                         amplitude=4.0, repeat_length=20.0, separation=2.0),
             },
@@ -67,8 +77,8 @@ def snap():
         ),
     ],
     ids=[
-        "Bulk", "CosineChannel", "CosineExpansionContraction", "ParallelPlates",
-        "PlanarPore", "Sphere"
+        "Bulk", "ConcentricCylinders", "CosineChannel",
+        "CosineExpansionContraction", "ParallelPlates", "PlanarPore", "Sphere"
     ],
 )
 class TestStreamingMethod:

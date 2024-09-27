@@ -57,11 +57,11 @@ class Geometry(_HOOMDBaseObject):
 
 
 class ConcentricCylinders(Geometry):
-    r"""Concentric-cylinders channel.
+    r"""Concentric cylinders.
 
     Args:
-        inner_radius (float): Radius of inner cylinders.
-        outer_radius (float): Radius of outer cylinders
+        inner_radius (float): Radius of inner cylinder.
+        outer_radius (float): Radius of outer cylinder.
         angular_speed (float): Angular speed of the outer cylinder in the
             counterclockwise direction.
         no_slip (bool): If True, surfaces have no-slip boundary condition.
@@ -106,7 +106,7 @@ class ConcentricCylinders(Geometry):
 
         outer_radius (float): Radius of outer cylinder (*read only*).
 
-        angular_speed (float): Angular outer cylinder speed (*read only*).
+        angular_speed (float): Angular speed of outer cylinder (*read only*).
 
             `angular_speed` will have no effect if `no_slip` is False because
             the slip surface cannot generate shear stress.
