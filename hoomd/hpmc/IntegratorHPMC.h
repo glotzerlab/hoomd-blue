@@ -264,26 +264,16 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Set kT variant
     /*! \param kT new k_BT variant to set
      */
-    void setkT(std::shared_ptr<Variant> kT)
+    void setKT(std::shared_ptr<Variant> kT)
         {
         m_kT = kT;
         }
 
     //! Get kT variant
     //! \returns current value of kT parameter
-    std::shared_ptr<Variant> getkT()
+    std::shared_ptr<Variant> getKT()
         {
         return m_kT;
-        }
-
-    /** Evaluate the kT variant at the given timestep.
-
-        @param timestep The simulation timestep.
-        @returns The value of the kT variant at the given timestep.
-    */
-    Scalar getTimestepkT(uint64_t timestep)
-        {
-        return m_kT->operator()(timestep);
         }
 
     //! Get performance in moves per second

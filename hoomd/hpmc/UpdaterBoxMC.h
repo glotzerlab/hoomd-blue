@@ -324,6 +324,7 @@ class UpdaterBoxMC : public Updater
                                  Scalar yz,
                                  uint64_t timestep,
                                  Scalar boltzmann,
+                                 Scalar logVterm,
                                  hoomd::RandomGenerator& rng);
     //!< attempt specified box change and undo if overlaps generated
     inline bool safe_box(const Scalar newL[3], const unsigned int& Ndim);

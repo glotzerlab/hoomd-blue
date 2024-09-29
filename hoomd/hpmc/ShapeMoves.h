@@ -493,7 +493,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         Scalar e_ddot_e = (eps * eps).trace();
         Scalar e_ddot_e_last = (eps_last * eps_last).trace();
 
-        Scalar kT = m_mc->getTimestepkT(timestep);
+        const Scalar kT = (*m_mc->getKT())(timestep);
 
         return (N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume[type_id]) / kT
                + inertia_term - 3 * N * slow::log(1 / kT);
@@ -634,7 +634,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
         Scalar old_energy = computeEnergy(timestep, N, type_id, shape_old, iold);
         Scalar new_energy = computeEnergy(timestep, N, type_id, shape_new, inew);
 
-        Scalar kT = m_mc->getTimestepkT(timestep);
+        const Scalar kT = (*m_mc->getKT())(timestep);
 
         return (old_energy - new_energy) / kT + inertia_term - 3 * N * slow::log(1 / kT);
         }

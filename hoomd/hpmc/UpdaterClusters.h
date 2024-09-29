@@ -1694,7 +1694,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             delta_U[p] = delU;
             }
 
-        Scalar kT = m_mc->getTimestepkT(timestep);
+        const Scalar kT = (*m_mc->getKT())(timestep);
 
         #ifdef ENABLE_TBB_TASK
         this->m_exec_conf->getTaskArena()->execute([&]{

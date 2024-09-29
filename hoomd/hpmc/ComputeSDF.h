@@ -486,7 +486,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     const LongReal min_core_radius = m_mc->getMinCoreDiameter() * LongReal(0.5);
     const auto& pair_energy_search_radius = m_mc->getPairEnergySearchRadius();
 
-    Scalar kT = m_mc->getTimestepkT(timestep); // use const?
+    const Scalar kT = (*m_mc->getKT())(timestep);
 
     // loop through N particles
     // At the top of this loop, we initialize min_bin to the size of the sdf histogram

@@ -861,6 +861,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
+    const Scalar kT = (*m_mc->getKT())(timestep);
+
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
     // initialize random number generator
@@ -1093,7 +1095,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 if (nonzero)
                     {
-                    Scalar kT = m_mc->getTimestepkT(timestep);
                     lnboltzmann += lnb / kT;
                     }
 
@@ -1275,7 +1276,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
             Scalar lnb(0.0);
             if (tryRemoveParticle(timestep, tag, lnb))
                 {
-                Scalar kT = m_mc->getTimestepkT(timestep);
                 lnboltzmann += lnb / kT;
                 }
             else
@@ -1536,7 +1536,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                          &stat);
 
                 // apply criterion on rank zero
-                Scalar kT = m_mc->getTimestepkT(timestep);
                 Scalar arg = log(V_new / V) * (Scalar)(ndof + 1)
                              + log(V_new_other / V_other) * (Scalar)(other_ndof + 1)
                              + (lnb + other_lnb) / kT;

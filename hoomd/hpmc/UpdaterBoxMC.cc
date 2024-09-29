@@ -227,6 +227,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                            Scalar yz,
                                            uint64_t timestep,
                                            double delta_beta_H,
+                                           double log_V_term,
                                            hoomd::RandomGenerator& rng)
     {
     // Make a backup copy of position data
@@ -281,9 +282,9 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     double p = hoomd::detail::generate_canonical<double>(rng);
 
-    Scalar kT = m_mc->getTimestepkT(timestep);
+    const Scalar kT = (*m_mc->getKT())(timestep);
 
-    if (allowed && p < exp(-(delta_beta_H + delta_U_pair + delta_U_external) / kT))
+    if (allowed && p < exp(-(delta_beta_H + delta_U_pair + delta_U_external) / kT) + log_V_term)
         {
         return true;
         }
@@ -498,7 +499,8 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        double delta_beta_H = P * dV - Nglobal * log(Vnew / Vold);
+        double delta_beta_H = P * dV;
+        double log_V_term = Nglobal * log(Vnew / Vold);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -509,6 +511,7 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[2],
                                        timestep,
                                        delta_beta_H,
+                                       log_V_term,
                                        rng);
 
         if (accept)
@@ -581,7 +584,8 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     else
         {
         // Calculate Boltzmann factor
-        double delta_beta_H = P * (new_V - V) - (Nglobal + 1) * log(new_V / V);
+        double delta_beta_H = P * (new_V - V);
+        double log_V_term = (Nglobal + 1) * log(new_V / V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -592,6 +596,7 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[2],
                                        timestep,
                                        delta_beta_H,
+                                       log_V_term,
                                        rng);
 
         if (accept)
@@ -668,7 +673,8 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
             Vnew *= newL[2];
             }
         // Calculate Boltzmann factor
-        double delta_beta_H = P * dV - Nglobal * log(Vnew / V);
+        double delta_beta_H = P * dV;
+        double log_V_term = Nglobal * log(Vnew / V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -679,6 +685,7 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[2],
                                        timestep,
                                        delta_beta_H,
+                                       log_V_term,
                                        rng);
 
         if (accept)
@@ -729,6 +736,7 @@ void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
                                           newShear[1],
                                           newShear[2],
                                           timestep,
+                                          Scalar(0.0),
                                           Scalar(0.0),
                                           rng);
     if (trial_success)
@@ -791,6 +799,7 @@ void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
                                           newShear[1],
                                           newShear[2],
                                           timestep,
+                                          Scalar(0.0),
                                           Scalar(0.0),
                                           rng);
     if (trial_success)
