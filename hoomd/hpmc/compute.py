@@ -458,3 +458,28 @@ class SDF(Compute):
             return rho + compression_contribution + expansion_contribution
         else:
             return None
+
+    @log(requires_run=True)
+    def P(self):  # noqa: N802 - allow function name
+        """float: pressure in NVT simulations \
+        :math:`\\left[ \\mathrm{energy}^{-1}  \\mathrm{length}^{-d} \\right]`.
+
+        Uses a polynomial curve fit of degree 5 to estimate
+        :math:`s_\\mathrm{comp}(0+)` (and :math:`s_\\mathrm{exp}(0-)` if
+        required) and computes the pressure via:
+
+        .. math::
+            P = \\beta \\beta P
+
+        where :math:`\\beta = \\frac{1}{kT}`.
+
+        Attention:
+            In MPI parallel execution, `P` is available on rank 0 only.
+            `P` is `None` on ranks >= 1.
+        """
+        integrator = self._simulation.operations.integrator
+
+        if self.betaP is not None:
+            return self.betaP * integrator.kT
+        else:
+            return None
