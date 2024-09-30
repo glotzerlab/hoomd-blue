@@ -371,17 +371,43 @@ struct hpmc_virtual_moves_counters_t
     {
     unsigned long long int accept_count;
     unsigned long long int reject_count;
+    unsigned long long int total_num_particles_in_clusters;
+    unsigned long long int total_num_moves_attempted;
+    
 
     //! Construct a zero set of counters
     DEVICE hpmc_virtual_moves_counters_t()
         {
         accept_count = 0;
         reject_count = 0;
+        total_num_particles_in_clusters = 0;
+        total_num_moves_attempted = 0;
         }
 
     std::pair<unsigned long long int, unsigned long long int> getCounts()
         {
         return std::make_pair(accept_count, reject_count);
+        }
+
+    DEVICE double getAverageClusterSize()
+        {
+        if (accept_count + reject_count)
+            {
+            return (double)total_num_particles_in_clusters / ((double)accept_count + (double)reject_count);
+            }
+        else
+            {
+            return 0.0;
+            }
+        }
+    DEVICE unsigned long long int getTotalNumParticlesInClusters()
+        {
+        return total_num_particles_in_clusters;
+        }
+
+    DEVICE unsigned long long int getTotalNumMovesAttempted()
+        {
+        return total_num_moves_attempted;
         }
     };
 
@@ -390,6 +416,8 @@ DEVICE inline hpmc_virtual_moves_counters_t operator-(const hpmc_virtual_moves_c
     hpmc_virtual_moves_counters_t result;
     result.accept_count = a.accept_count - b.accept_count;
     result.reject_count = a.reject_count - b.reject_count;
+    result.total_num_particles_in_clusters = a.total_num_particles_in_clusters - b.total_num_particles_in_clusters;
+    result.total_num_moves_attempted = a.total_num_moves_attempted - b.total_num_moves_attempted;
     return result;
     }
 

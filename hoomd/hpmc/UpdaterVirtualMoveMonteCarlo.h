@@ -60,6 +60,16 @@ class UpdaterVMMC : public Updater
             return m_attempts_per_particle;
             }
 
+        void setBetaFicticious(LongReal beta_ficticious)
+            {
+            m_beta_ficticious = beta_ficticious;
+            }
+
+        LongReal getBetaFicticious()
+            {
+            return m_beta_ficticious;
+            }
+
         /// Reset statistics counters
         virtual void resetStats()
             {
@@ -86,6 +96,8 @@ class UpdaterVMMC : public Updater
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_attempts_per_particle;  //!< Number of attempted moves per particle each time update() is called
+        LongReal m_beta_ficticious;  //!< Ficticious inverse temperature for creating links between particles
+        LongReal m_translation_move_probability;
 
         hoomd::detail::AABBTree m_aabb_tree_old;              //!< Locality lookup for old configuration
         detail::UpdateOrder m_update_order;
@@ -94,6 +106,7 @@ class UpdaterVMMC : public Updater
         GlobalVector<Scalar4> m_orientation_backup;    //!< Old local orientations
         GlobalVector<int3> m_image_backup;             //!< Old local images
         LongReal m_maximum_move_size;
+        Scalar m_maximum_rotate_size;
 
         // TODO: what all do we need to keep track of with counters?
         // 1. Number of cluster moves attempted and rejected
@@ -108,7 +121,7 @@ UpdaterVMMC<Shape>::UpdaterVMMC(
         std::shared_ptr<SystemDefinition> sysdef,
         std::shared_ptr<Trigger> trigger,
         std::shared_ptr<IntegratorHPMCMono<Shape> > mc
-        ) : Updater(sysdef, trigger), m_mc(mc), m_attempts_per_particle(1), m_update_order(m_pdata->getN()), m_maximum_move_size(0.1)
+        ) : Updater(sysdef, trigger), m_mc(mc), m_attempts_per_particle(1), m_beta_ficticious(1.0), m_update_order(m_pdata->getN()), m_maximum_move_size(0.1), m_maximum_rotate_size(0.2)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterVMMC" << std::endl;
 
@@ -144,7 +157,7 @@ UpdaterVMMC<Shape>::~UpdaterVMMC()
     4. Do the reverse move virtually on particle i, and repeat the cluster-making process
         - This step gives you all of the information you need for evaluating the acceptance criterion
     5. Accept the total move according to acceptance criterion.
-    
+
     So in a coarser-grained level of detail, it's:
     1. Calculate stuff based on current configuration and trial moves to find cluster
     2. Move cluster
@@ -230,8 +243,25 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             // TODO: enable rotations
             hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterVMMC, timestep, seed),
                                          hoomd::Counter(seed_idx, m_exec_conf->getRank(), i_trial));
+            unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
+            bool move_type_translate = move_type_select < m_translation_move_probability;
             vec3<Scalar> virtual_move(0, 0, 0);
-            move_translate(virtual_move, rng_i, m_maximum_move_size, ndim);
+            quat<Scalar> virtual_rotate_move(1.0, vec3<Scalar>(0, 0, 0));
+            if (move_type_translate)
+                {
+                move_translate(virtual_move, rng_i, m_maximum_move_size, ndim);
+                }
+            else
+                {
+                if (ndim == 2)
+                    {
+                    move_rotate<2>(virtual_rotate_move, rng_i, m_maximum_rotate_size);
+                    }
+                else
+                    {
+                    move_rotate<3>(virtual_rotate_move, rng_i, m_maximum_rotate_size);
+                    }
+                }
 
             // while(linkers.size(); take particle i from linkers, loop over neighbors of i
             // loop over neighbors of cluster members to find new cluster members
@@ -269,6 +299,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     // subtract minimum AABB extent from search radius
                     R_query = std::max(R_query, pair_energy_search_radius[type_linker] - min_core_radius);
                     }
+                // TODO: do we *always* have to expand the box by the forward and reverse moves? could we save some time if we only search the reverse moves when necessary?
                 hoomd::detail::AABB aabb_linker_local_no_moves = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
                 hoomd::detail::AABB aabb_linker_local_forward = hoomd::detail::AABB(virtual_move, R_query);
                 hoomd::detail::AABB aabb_linker_local_reverse = hoomd::detail::AABB(-virtual_move, R_query);
@@ -280,6 +311,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 m_exec_conf->msg->notice(5) << "VMMC testing " << n_images << " images " << std::endl;
                 for (unsigned int current_image = 0; current_image < n_images; current_image++)
                     {
+                    // create an AABB centered on the particle in the current box image
                     hoomd::detail::AABB aabb = aabb_linker_local;
                     vec3<Scalar> pos_linker_image = pos_linker + image_list[current_image];
                     aabb.translate(pos_linker_image);
@@ -309,12 +341,12 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                     Shape shape_linkee(orientation_linkee, mc_params[type_linkee]);
                                     LongReal max_overlap_distance = m_mc->getShapeCircumsphereRadius()[type_linker] + m_mc->getShapeCircumsphereRadius()[type_linkee];
 
-                                    // at this point we can test for a link between the linker and linkee
-                                    // add j to the cluster with probability p_ij = 1 - exp(E_C - E_I) (hard overlap: p_ij = 1)
+                                    // at this point we test for a link between the linker and linkee
+                                    // add j to the cluster with probability p_ij = 1 - exp(E_C - E_I) (hard overlap makes E_I go to infinity and p_ij = 1)
                                     // so we need E_C (current pair energy) and E_I (pair energy after applying virtual move to i)
                                     // we only need E_C if E_I, so we can check for overlaps first
 
-                                    // pair separation in current real configuration
+                                    // pair separation in current real (i.e. non-virtual) configuration
                                     vec3<Scalar> r_linker_linkee = vec3<Scalar>(postype_linkee) - pos_linker_image;
                                     LongReal r_squared = dot(r_linker_linkee, r_linker_linkee);
 
@@ -327,7 +359,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                     LongReal r_squared_after_reverse_move = dot(r_linker_linkee_after_reverse_move, r_linker_linkee_after_reverse_move);
 
                                     m_exec_conf->msg->notice(5) << "Checking overlap between pair: " << i_linker << " and " << j_linkee << std::endl;
-                                    bool overlap_after_move = 
+                                    bool overlap_after_move =
                                         h_overlaps.data[m_mc->getOverlapIndexer()(type_linker, type_linkee)]
                                         && r_squared_after_move < max_overlap_distance * max_overlap_distance
                                         && test_overlap(r_linker_linkee_after_move, shape_linker, shape_linkee, counters.overlap_err_count);
@@ -340,7 +372,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         //     3) calculate u_ij after applying the reverse move to particle i (TODO: must we do that here?) and calculate p_ij_reverse
                                         linkers.insert(j_linkee);
                                         cluster.unite(i_linker, j_linkee);
-                                        double u_ij = 
+                                        double u_ij =
                                             m_mc->computeOnePairEnergy(
                                                     r_squared,
                                                     r_linker_linkee,
@@ -365,9 +397,9 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                     h_diameter.data[j_linkee],
                                                     h_charge.data[j_linkee]);
                                         // TODO: include beta
-                                        Scalar p_ij_reverse = 1 - exp(u_ij - u_ij_after_reverse_move);
-                                        m_exec_conf->msg->notice(5) 
-                                            << "p_ij_reverse = 1 - exp(" 
+                                        Scalar p_ij_reverse = std::max(0.0, 1 - exp(m_beta_ficticious*(u_ij - u_ij_after_reverse_move)));
+                                        m_exec_conf->msg->notice(5)
+                                            << "p_ij_reverse = 1 - exp("
                                             << u_ij
                                             << " - "
                                             << u_ij_after_reverse_move
@@ -381,7 +413,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                     m_exec_conf->msg->notice(5) << " No overlap found between: " << i_linker << " and " << j_linkee << std::endl;
 
                                     // if no overlap, we have to calculate u_ij, u_ij_after_move and u_ij_after_reverse move
-                                    // We also need to check for overlaps in the reverse move, before calculating u_ij_after_reverse_move 
+                                    // We also need to check for overlaps in the reverse move, before calculating u_ij_after_reverse_move
                                     // Calculate u_ij_after_move first to determine if there is a link
                                     double u_ij_after_move =
                                         m_mc->computeOnePairEnergy(r_squared_after_move,
@@ -394,7 +426,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                 shape_linkee.orientation,
                                                 h_diameter.data[j_linkee],
                                                 h_charge.data[j_linkee]);
-                                    double u_ij = 
+                                    double u_ij =
                                         m_mc->computeOnePairEnergy(
                                                 r_squared,
                                                 r_linker_linkee,
@@ -419,11 +451,11 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                             }
                                         else
                                             {
-                                            p_n_o *= std::min(1.0, exp(-u_ij_after_move));
+                                            p_n_o *= std::min(1.0, exp(m_beta_ficticious * u_ij_after_move));
                                             continue;
                                             }
                                         }
-                                    LongReal p_ij_forward = 1 - exp(u_ij - u_ij_after_move);
+                                    LongReal p_ij_forward = std::max(0.0, 1 - exp(m_beta_ficticious * (u_ij - u_ij_after_move)));
                                     Scalar r = hoomd::UniformDistribution<Scalar>()(rng_i);
                                     bool link_formed = r <= p_ij_forward;
                                     m_exec_conf->msg->notice(5) << "p_ij_forward = " << p_ij_forward << "; random number = " << r << "; link_formed = " << link_formed << std::endl;
@@ -434,7 +466,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         linkers.insert(j_linkee);
                                         p_link_probability_ratio /= p_ij_forward;
                                         Scalar p_ij_reverse;
-                                        bool overlap_after_reverse_move = 
+                                        bool overlap_after_reverse_move =
                                             h_overlaps.data[m_mc->getOverlapIndexer()(type_linker, type_linkee)]
                                             && r_squared_after_reverse_move < max_overlap_distance * max_overlap_distance
                                             && test_overlap(r_linker_linkee_after_reverse_move, shape_linker, shape_linkee, counters.overlap_err_count);
@@ -455,7 +487,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                         shape_linkee.orientation,
                                                         h_diameter.data[j_linkee],
                                                         h_charge.data[j_linkee]);
-                                            p_ij_reverse = 1.0 - exp(u_ij - u_ij_after_reverse_move);
+                                            p_ij_reverse = std::max(0.0, 1.0 - exp(m_beta_ficticious * (u_ij - u_ij_after_reverse_move)));
                                             m_exec_conf->msg->notice(5) << "p_ij_reverse = "  << p_ij_reverse << std::endl;
                                             }
                                         p_link_probability_ratio *= p_ij_reverse;
@@ -463,7 +495,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         }
                                     else
                                         {
-                                        // if these don't form a link, we still need their pair energies (all 3 mentioned above), but 
+                                        // if these don't form a link, we still need their pair energies (all 3 mentioned above), but
                                         // we cannot do anything with them yet until we determine whether or not j ends up in the cluster
                                         // if it does; then we have to account for the probabilities of not finding links
                                         // if j doesn't end up in the cluster then there's nothing left to do
@@ -510,8 +542,8 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 if (cluster.same(linker_i, linker_j))
                     {
                     // failed intracluster link
-                    Scalar q_ij_forward = exp(u_ij_potential_links[i] - u_ij_forward_potential_links[i]);
-                    Scalar q_ij_reverse = exp(u_ij_potential_links[i] - u_ij_reverse_potential_links[i]);
+                    Scalar q_ij_forward = exp(m_beta_ficticious * (u_ij_potential_links[i] - u_ij_forward_potential_links[i]));
+                    Scalar q_ij_reverse = exp(m_beta_ficticious * (u_ij_potential_links[i] - u_ij_reverse_potential_links[i]));
                     m_exec_conf->msg->notice(5) << "q_ij forward and reverse = " << q_ij_forward << ", " << q_ij_reverse << std::endl;
                     p_failed_link_probability_ratio *= q_ij_reverse / q_ij_forward;
                     }
@@ -523,6 +555,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
 
 
             // now we can accept or reject the move
+            m_count_total.total_num_moves_attempted++;
             m_exec_conf->msg->notice(4) << "p_n_o = " << p_n_o << std::endl;
             m_exec_conf->msg->notice(4) << "failed_link_probability_ratio = " << p_failed_link_probability_ratio << std::endl;
             m_exec_conf->msg->notice(4) << "p_link_probability_ratio = " << p_link_probability_ratio << std::endl;
@@ -530,17 +563,18 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             Scalar r = hoomd::UniformDistribution<Scalar>()(rng_i);
             bool accept_cluster_move = r <= p_acc;
             m_exec_conf->msg->notice(4) << "VMMC p_acc: " << p_acc << std::endl;
+            unsigned int cluster_size = 0;
+            for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+                {
+                if (cluster.same(seed_idx, idx))
+                    {
+                    cluster_size++;
+                    }
+                }
+            m_count_total.total_num_particles_in_clusters += (unsigned long long int)cluster_size;
             if(accept_cluster_move)
                 {
                 m_count_total.accept_count++;
-                unsigned int cluster_size = 0;
-                for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
-                    {
-                    if (cluster.same(seed_idx, idx))
-                        {
-                        cluster_size++;
-                        }
-                    }
                 m_exec_conf->msg->notice(3) << "VMMC move accepted, moving " << cluster_size << " particles as a cluster" << std::endl;
                 // apply the cluster moves to all of the particles
                 for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
@@ -574,16 +608,20 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
                             std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>
-                            >()) 
+                            >())
         .def("getCounters", &UpdaterVMMC<Shape>::getCounters)
-        /* .def_property("attempts_per_particle", &UpdaterVMMC<Shape>::getAttemptsPerParticle, &UpdaterVMMC<Shape>::setAttemptsPerParticle) */
+        .def_property("beta_ficticious", &UpdaterVMMC<Shape>::getBetaFicticious, &UpdaterVMMC<Shape>::setBetaFicticious)
     ;
     }
 
 inline void export_hpmc_virtual_moves_counters(pybind11::module &m)
     {
 pybind11::class_<hpmc_virtual_moves_counters_t>(m, "hpmc_virtual_moves_counters_t")
-    .def_property_readonly("counts", &hpmc_virtual_moves_counters_t::getCounts);
+    .def_property_readonly("counts", &hpmc_virtual_moves_counters_t::getCounts)
+    .def_property_readonly("average_cluster_size", &hpmc_virtual_moves_counters_t::getAverageClusterSize)
+    .def_property_readonly("total_num_particles_in_clusters", &hpmc_virtual_moves_counters_t::getTotalNumParticlesInClusters)
+    .def_property_readonly("total_num_moves_attempted", &hpmc_virtual_moves_counters_t::getTotalNumMovesAttempted)
+    ;
     }
 
 

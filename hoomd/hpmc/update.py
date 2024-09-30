@@ -640,9 +640,10 @@ class VirtualClusterMoves(Updater):
     See Whitelam and Geissler (2007).
     """
 
-    def __init__(self, trigger=1, attempts_per_particle=1):
+    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0):
         super().__init__(trigger)
-        param_dict = ParameterDict(attempts_per_particle=float(attempts_per_particle))
+        param_dict = ParameterDict(attempts_per_particle=float(attempts_per_particle),
+                                   beta_ficticious=float(beta_ficticious))
         self._param_dict.update(param_dict)
         self.instance = 0
 
@@ -669,6 +670,10 @@ class VirtualClusterMoves(Updater):
             return 0.0
         else:
             return acc / (acc + rej)
+
+    @log(category='scalar', requires_run=True)
+    def average_cluster_size(self):
+        return self._cpp_obj.getCounters(1).average_cluster_size
 
 
 class Clusters(Updater):

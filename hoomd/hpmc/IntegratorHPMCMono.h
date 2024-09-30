@@ -1030,6 +1030,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             } // end loop over all particles
         } // end loop over nselect
 
+
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
