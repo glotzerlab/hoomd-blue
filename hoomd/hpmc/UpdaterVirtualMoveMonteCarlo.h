@@ -70,6 +70,16 @@ class UpdaterVMMC : public Updater
             return m_beta_ficticious;
             }
 
+        void setTranslationMoveProbability(LongReal p)
+            {
+            m_translation_move_probability = p;
+            }
+
+        LongReal getTranslationMoveProbability()
+            {
+            return m_translation_move_probability;
+            }
+
         /// Reset statistics counters
         virtual void resetStats()
             {
@@ -245,11 +255,12 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                          hoomd::Counter(seed_idx, m_exec_conf->getRank(), i_trial));
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
             bool move_type_translate = move_type_select < m_translation_move_probability;
-            vec3<Scalar> virtual_move(0, 0, 0);
+            vec3<Scalar> virtual_translate_move(0, 0, 0);
+            vec3<Scalar> center_of_rotation = vec3<Scalar>(h_postype.data[seed_idx]);
             quat<Scalar> virtual_rotate_move(1.0, vec3<Scalar>(0, 0, 0));
             if (move_type_translate)
                 {
-                move_translate(virtual_move, rng_i, m_maximum_move_size, ndim);
+                move_translate(virtual_translate_move, rng_i, m_maximum_move_size, ndim);
                 }
             else
                 {
@@ -275,6 +286,10 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 // get position and orientation of linker
                 Scalar4 postype_linker = h_postype.data[i_linker];
                 vec3<Scalar> pos_linker = vec3<Scalar>(postype_linker);
+
+                vec3<Scalar> rotated_r_center_of_rotation_linker = rotate(virtual_rotate_move, pos_linker - center_of_rotation);
+                vec3<Scalar> reverse_rotated_r_center_of_rotation_linker = rotate(conj(virtual_rotate_move), pos_linker - center_of_rotation);
+
                 int type_linker = __scalar_as_int(postype_linker.w);
                 Shape shape_linker(quat<LongReal>(h_orientation.data[i_linker]), mc_params[type_linker]);
 
@@ -301,17 +316,19 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     }
                 // TODO: do we *always* have to expand the box by the forward and reverse moves? could we save some time if we only search the reverse moves when necessary?
                 hoomd::detail::AABB aabb_linker_local_no_moves = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
-                hoomd::detail::AABB aabb_linker_local_forward = hoomd::detail::AABB(virtual_move, R_query);
-                hoomd::detail::AABB aabb_linker_local_reverse = hoomd::detail::AABB(-virtual_move, R_query);
+                hoomd::detail::AABB aabb_linker_local_forward = hoomd::detail::AABB(virtual_translate_move + (center_of_rotation + rotated_r_center_of_rotation_linker), R_query);
+                hoomd::detail::AABB aabb_linker_local_reverse = hoomd::detail::AABB(-virtual_translate_move + (center_of_rotation + reverse_rotated_r_center_of_rotation_linker), R_query);
                 hoomd::detail::AABB _aabb = hoomd::detail::merge(aabb_linker_local_no_moves, aabb_linker_local_forward);
                 hoomd::detail::AABB aabb_linker_local = hoomd::detail::merge(_aabb, aabb_linker_local_reverse);
+
+                // TODO: think about what to do for large rotations that put particles outside of the box
 
                 // loop over all images
                 const unsigned int n_images = (unsigned int)image_list.size();
                 m_exec_conf->msg->notice(5) << "VMMC testing " << n_images << " images " << std::endl;
                 for (unsigned int current_image = 0; current_image < n_images; current_image++)
                     {
-                    // create an AABB centered on the particle in the current box image
+                    // create an AABB centered on the linker particle in the current box image
                     hoomd::detail::AABB aabb = aabb_linker_local;
                     vec3<Scalar> pos_linker_image = pos_linker + image_list[current_image];
                     aabb.translate(pos_linker_image);
@@ -351,18 +368,22 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                     LongReal r_squared = dot(r_linker_linkee, r_linker_linkee);
 
                                     // pair separation after applying virtual move to linker (i)
-                                    vec3<Scalar> r_linker_linkee_after_move = vec3<Scalar>(postype_linkee) - (pos_linker_image + virtual_move);
+                                    vec3<Scalar> r_linker_linkee_after_move = vec3<Scalar>(postype_linkee)
+                                        - (image_list[current_image] + virtual_translate_move  + center_of_rotation + rotated_r_center_of_rotation_linker);
                                     LongReal r_squared_after_move = dot(r_linker_linkee_after_move, r_linker_linkee_after_move);
 
                                     // pair separation after applying reverse virtual move to linker (i)
-                                    vec3<Scalar> r_linker_linkee_after_reverse_move = vec3<Scalar>(postype_linkee) - (pos_linker_image - virtual_move);
+                                    vec3<Scalar> r_linker_linkee_after_reverse_move = vec3<Scalar>(postype_linkee)
+                                        - (image_list[current_image] - virtual_translate_move + (center_of_rotation + reverse_rotated_r_center_of_rotation_linker));
                                     LongReal r_squared_after_reverse_move = dot(r_linker_linkee_after_reverse_move, r_linker_linkee_after_reverse_move);
 
                                     m_exec_conf->msg->notice(5) << "Checking overlap between pair: " << i_linker << " and " << j_linkee << std::endl;
+                                    Shape shape_linker_after_move(quat<LongReal>(h_orientation.data[i_linker]) * virtual_rotate_move, mc_params[type_linker]);
+                                    Shape shape_linker_after_reverse_move(quat<LongReal>(h_orientation.data[i_linker]) * conj(virtual_rotate_move), mc_params[type_linker]);
                                     bool overlap_after_move =
                                         h_overlaps.data[m_mc->getOverlapIndexer()(type_linker, type_linkee)]
                                         && r_squared_after_move < max_overlap_distance * max_overlap_distance
-                                        && test_overlap(r_linker_linkee_after_move, shape_linker, shape_linkee, counters.overlap_err_count);
+                                        && test_overlap(r_linker_linkee_after_move, shape_linker_after_move, shape_linkee, counters.overlap_err_count);
                                     if (overlap_after_move)
                                         {
                                         m_exec_conf->msg->notice(5) << "Overlap found between: " << i_linker << " and " << j_linkee << std::endl;
@@ -389,7 +410,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                             m_mc->computeOnePairEnergy(r_squared_after_reverse_move,
                                                     r_linker_linkee_after_reverse_move,
                                                     type_linker,
-                                                    shape_linker.orientation,
+                                                    shape_linker_after_reverse_move.orientation,
                                                     h_diameter.data[i_linker],
                                                     h_charge.data[i_linker],
                                                     type_linkee,
@@ -419,7 +440,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         m_mc->computeOnePairEnergy(r_squared_after_move,
                                                 r_linker_linkee_after_move,
                                                 type_linker,
-                                                shape_linker.orientation,
+                                                shape_linker_after_move.orientation,
                                                 h_diameter.data[i_linker],
                                                 h_charge.data[i_linker],
                                                 type_linkee,
@@ -469,7 +490,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         bool overlap_after_reverse_move =
                                             h_overlaps.data[m_mc->getOverlapIndexer()(type_linker, type_linkee)]
                                             && r_squared_after_reverse_move < max_overlap_distance * max_overlap_distance
-                                            && test_overlap(r_linker_linkee_after_reverse_move, shape_linker, shape_linkee, counters.overlap_err_count);
+                                            && test_overlap(r_linker_linkee_after_reverse_move, shape_linker_after_move, shape_linkee, counters.overlap_err_count);
                                         if (overlap_after_reverse_move)
                                             {
                                             p_ij_reverse = 1.0;
@@ -480,7 +501,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                 m_mc->computeOnePairEnergy(r_squared_after_reverse_move,
                                                         r_linker_linkee_after_reverse_move,
                                                         type_linker,
-                                                        shape_linker.orientation,
+                                                        shape_linker_after_reverse_move.orientation,
                                                         h_diameter.data[i_linker],
                                                         h_charge.data[i_linker],
                                                         type_linkee,
@@ -503,7 +524,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                             m_mc->computeOnePairEnergy(r_squared_after_reverse_move,
                                                     r_linker_linkee_after_reverse_move,
                                                     type_linker,
-                                                    shape_linker.orientation,
+                                                    shape_linker_after_reverse_move.orientation,
                                                     h_diameter.data[i_linker],
                                                     h_charge.data[i_linker],
                                                     type_linkee,
@@ -582,8 +603,11 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     if (cluster.same(seed_idx, idx))
                         {
                         Scalar4 postype_idx = h_postype.data[idx];
-                        vec3<Scalar> new_pos = vec3<Scalar>(postype_idx) + virtual_move;
+                        vec3<Scalar> new_pos = virtual_translate_move + center_of_rotation
+                            + rotate(virtual_rotate_move, vec3<Scalar>(postype_idx) - center_of_rotation);
                         h_postype.data[idx] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, postype_idx.w);
+                        quat<Scalar> orientation(h_orientation.data[idx]);
+                        h_orientation.data[idx] = quat_to_scalar4(orientation * virtual_rotate_move);
                         }
                     }
                 }
@@ -611,6 +635,7 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
                             >())
         .def("getCounters", &UpdaterVMMC<Shape>::getCounters)
         .def_property("beta_ficticious", &UpdaterVMMC<Shape>::getBetaFicticious, &UpdaterVMMC<Shape>::setBetaFicticious)
+        .def_property("translation_move_probability", &UpdaterVMMC<Shape>::getTranslationMoveProbability, &UpdaterVMMC<Shape>::setTranslationMoveProbability)
     ;
     }
 
