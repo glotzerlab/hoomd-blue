@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.5
     # via -r sphinx-doc/requirements.in
-numpy==2.1.0
+numpy==2.1.1
     # via -r sphinx-doc/requirements.in
 packaging==24.0
     # via
