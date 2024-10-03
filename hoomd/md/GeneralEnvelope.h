@@ -27,16 +27,17 @@ namespace hoomd
 namespace md
     {
 
-/** GeneralEnvelope creates the pair potential modulator.
+/** GeneralEnvelope is an angle-dependent multiplier on an isotropic pair force to make it directional.
 
-    Defines the envelope \f( f_i, f_j \f):
+    Defines the envelopes \f( f_i, f_j \f):
     
     \f{align*}
     f_i(\vec{dr}, \vec{n}_i, \alpha) = \Big(1 + e^{-\omega (\frac{-\vec{dr} \cdot \vec{n_i}}{|\vec{dr}|} - \cos{\alpha})}\Big)^{-1}\\
     f_j(\vec{dr}, \vec{n}_j, \alpha) = \Big(1 + e^{-\omega (\frac{\vec{dr} \cdot \vec{n_j}}{|\vec{dr}|} - \cos{\alpha})}\Big)^{-1}
     \f}
 
-    
+    where \f$ \vec{n}_i, \vec{n}_j \f$ are the patch directions in the world frame,
+    \f$ \alpha \f$ is the patch half-angle, and \f$ \omega \f$ is the patch steepness.
 */
 class GeneralEnvelope
 {
@@ -47,7 +48,7 @@ public:
             {
             }
 #ifndef __HIPCC__
-        param_type(pybind11::dict params) // param dict can take any python type
+        param_type(pybind11::dict params) //<! param dict can take any python type
             {
                 cosalpha = fast::cos(params["alpha"].cast<Scalar>());
                 omega = params["omega"].cast<Scalar>();
@@ -95,9 +96,9 @@ public:
     };
 
     
-/**  Computes the patch energies 
+/**  Constructor
 
-     \param _dr Displacement vector between particle centers of mass, pointing from  
+     \param _dr Displacement vector from particle j to particle i
      \param _quat_i Quaternion of i^{th} particle
      \param _quat_j Quaternion of j^{th} particle
      \param _rcutsq Squared distance at which the potential goes to 0
