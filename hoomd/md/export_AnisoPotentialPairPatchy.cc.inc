@@ -7,7 +7,7 @@
 // clang-format off
 #include "hoomd/md/AnisoPotentialPair.h"
 #include "hoomd/md/PairModulator.h"
-#include "hoomd/md/GeneralEnvelope.h"
+#include "hoomd/md/PatchEnvelope.h"
 
 #include "hoomd/md/EvaluatorPair@_evaluator@.h"
 #define EVALUATOR_CLASS EvaluatorPair@_evaluator@
@@ -23,7 +23,7 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_AnisoPotentialPair<PairModulator<EVALUATOR_CLASS, GeneralEnvelope>>(m, "AnisoPotentialPairPatchy@_evaluator@");
+    export_AnisoPotentialPair<PairModulator<EVALUATOR_CLASS, PatchEnvelope>>(m, "AnisoPotentialPairPatchy@_evaluator@");
     }
 
     } // end namespace detail

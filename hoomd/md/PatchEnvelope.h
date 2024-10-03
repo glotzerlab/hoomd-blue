@@ -28,7 +28,7 @@ namespace hoomd
 namespace md
     {
 
-/** GeneralEnvelope is an angle-dependent multiplier on an isotropic pair force to make it directional.
+/** PatchEnvelope is an angle-dependent multiplier on an isotropic pair force to make it directional.
 
     Defines the envelopes \f( f_i, f_j \f):
     
@@ -40,7 +40,7 @@ namespace md
     where \f$ \vec{n}_i, \vec{n}_j \f$ are the patch directions in the world frame,
     \f$ \alpha \f$ is the patch half-angle, and \f$ \omega \f$ is the patch steepness.
 */
-class GeneralEnvelope
+class PatchEnvelope
 {
 public:
     struct param_type
@@ -107,7 +107,7 @@ public:
      \param shape_i The patch location on the i^{th} particle
      \param shape_j The patch location on the j^{th} particle
 */
-    DEVICE GeneralEnvelope( // TODO replace GeneralEnvelope with PatchesEnvelope
+    DEVICE PatchEnvelope( // TODO replace GeneralEnvelope with PatchesEnvelope
         const Scalar3& _dr,
         const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
         const Scalar4& _quat_j,
