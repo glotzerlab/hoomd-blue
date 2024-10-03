@@ -46,7 +46,7 @@ class PatchEnvelope
     public:
     struct param_type
         {
-        param_type() { }
+        param_type() : cosalpha(0), omega(0) { }
 #ifndef __HIPCC__
         param_type(pybind11::dict params) //<! param dict can take any python type
             {
@@ -108,8 +108,8 @@ class PatchEnvelope
          \param shape_j The patch location on the j^{th} particle
     */
     DEVICE PatchEnvelope(const Scalar3& _dr,
-                         const Scalar4& q_i,
-                         const Scalar4& q_j,
+                         const Scalar4& _q_i,
+                         const Scalar4& _q_j,
                          const Scalar _rcutsq,
                          const param_type& _params,
                          const shape_type& shape_i,
@@ -128,9 +128,12 @@ class PatchEnvelope
         // b1, b2, b3 are orientation vectors of particle b in world frame
         // ni_world is patch direction of particle i in world frame
 
+        auto q_i = quat<LongReal>(_q_i);
+        auto q_j = quat<LongReal>(_q_j);
+
 #ifndef __HIPCC__
-        auto R_i = rotmat3<LongReal>(quat<LongReal>(q_i));
-        auto R_j = rotmat3<LongReal>(quat<LongReal>(q_j));
+        auto R_i = rotmat3<LongReal>(q_i);
+        auto R_j = rotmat3<LongReal>(q_j);
         a1 = R_i * ex;
         a2 = R_i * ey;
         a3 = R_i * ez;
