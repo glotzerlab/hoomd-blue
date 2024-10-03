@@ -226,7 +226,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_params; //!< Pair parameters per type pair
     std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
-        m_shape_params;           //!< Shape parameters per type
+        m_shape_params; //!< Shape parameters per type
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;

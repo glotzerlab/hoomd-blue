@@ -191,10 +191,10 @@ class EvaluatorPairGB
     //! Evaluate the force and energy
     /*! \param force Output parameter to write the computed force.
         \param pair_eng Output parameter to write the computed pair energy.
-        \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
-        \param torque_i The torque exerted on the i^th particle.
-        \param torque_j The torque exerted on the j^th particle.
-        \return True if they are evaluated or false if they are not because we are beyond the cutoff.
+        \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the
+       cutoff. \param torque_i The torque exerted on the i^th particle. \param torque_j The torque
+       exerted on the j^th particle. \return True if they are evaluated or false if they are not
+       because we are beyond the cutoff.
     */
     HOSTDEVICE bool evaluate(Scalar3& force,
                              Scalar& pair_eng,

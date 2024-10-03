@@ -23,7 +23,9 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_AnisoPotentialPair<PairModulator<EVALUATOR_CLASS, PatchEnvelope>>(m, "AnisoPotentialPairPatchy@_evaluator@");
+    export_AnisoPotentialPair<PairModulator<EVALUATOR_CLASS, PatchEnvelope>>(
+        m,
+        "AnisoPotentialPairPatchy@_evaluator@");
     }
 
     } // end namespace detail

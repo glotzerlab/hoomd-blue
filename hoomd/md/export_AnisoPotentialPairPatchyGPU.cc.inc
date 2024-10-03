@@ -23,7 +23,9 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_AnisoPotentialPairGPU<PairModulator<EVALUATOR_CLASS, PatchEnvelope>>(m, "AnisoPotentialPairPatchy@_evaluator@GPU");
+    export_AnisoPotentialPairGPU<PairModulator<EVALUATOR_CLASS, PatchEnvelope>>(
+        m,
+        "AnisoPotentialPairPatchy@_evaluator@GPU");
     }
 
     } // end namespace detail

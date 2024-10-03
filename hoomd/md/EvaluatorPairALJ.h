@@ -178,8 +178,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             }
 
         param_type(pybind11::dict params, bool managed)
-            : epsilon(params["epsilon"].cast<Scalar>()),
-              sigma_i(params["sigma_i"].cast<Scalar>()),
+            : epsilon(params["epsilon"].cast<Scalar>()), sigma_i(params["sigma_i"].cast<Scalar>()),
               sigma_j(params["sigma_j"].cast<Scalar>()),
               contact_sigma_i(params["sigma_i"].cast<Scalar>()
                               * params["contact_ratio_i"].cast<Scalar>()),

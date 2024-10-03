@@ -601,6 +601,7 @@ PATCHY_ARGS_DOC = r"""
             A list of normalized vectors.
 """
 
+
 class Patchy(AnisotropicPair):
     r"""Pair potential made directional by an envelope.
 
@@ -628,9 +629,9 @@ class Patchy(AnisotropicPair):
         f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
         \end{align}
 
-    For multiple patches, every combination of patch and 
+    For multiple patches, every combination of patch and
     We use PatchyLJ as the example.
-    
+
     Example::
 
         patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list, default_r_cut = 3.0)
@@ -638,27 +639,30 @@ class Patchy(AnisotropicPair):
                                          envelope_params = {'alpha': , 'omega': })
         patchy.patches['A'] = [(1,0,0), (0,1,0)]
         patch1.patches['B']
-        
+
 
     To make specific patches
 
-    todo write example        
+    todo write example
     """
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
-            super().__init__(nlist, default_r_cut, mode)
-            params = TypeParameter(
-                'params', 'particle_types',
-                TypeParameterDict({
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(
+                {
                     "pair_params": self._pair_params,
-                    "envelope_params": {"alpha": OnlyTypes(float,
-                                                           postprocess = self._check_0_pi),
-                                        "omega": float,
-                                        }},
-                                  len_keys=2))
-            envelope = TypeParameter('patches', 'particle_types',
-                                     TypeParameterDict([(float, float, float)], len_keys=1))
-            self._extend_typeparam((params,envelope))
+                    "envelope_params": {
+                        "alpha": OnlyTypes(float, postprocess=self._check_0_pi),
+                        "omega": float,
+                    }
+                },
+                len_keys=2))
+        envelope = TypeParameter(
+            'patches', 'particle_types',
+            TypeParameterDict([(float, float, float)], len_keys=1))
+        self._extend_typeparam((params, envelope))
 
     @staticmethod
     def _check_0_pi(input):
@@ -667,6 +671,7 @@ class Patchy(AnisotropicPair):
         else:
             raise ValueError(f"Value {input} is not between 0 and pi")
         # can we get the keys here to check for A A being ni=nj
+
 
 class PatchyLJ(Patchy):
     r"""
@@ -692,9 +697,10 @@ class PatchyLJ(Patchy):
     """
 
     __doc__ = "Directional version of LJ.\n" + PATCHY_ARGS_DOC.replace(
-    REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyLJ"
     _pair_params = {"epsilon": float, "sigma": float}
+
 
 class PatchyExpandedGaussian(Patchy):
     r"""
@@ -720,14 +726,15 @@ class PatchyExpandedGaussian(Patchy):
 
     """
     __doc__ = "Directional version of ExpandedGaussian.\n" + PATCHY_ARGS_DOC.replace(
-    REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
+
 
 class PatchyExpandedLJ(Patchy):
     r"""
     Example::
-    
+
         lj_params = dict(epsilon = 1, sigma = 1)
         envelope_params = dict(alpha = np.pi/2, omega = 20)
 
@@ -752,11 +759,11 @@ class PatchyExpandedLJ(Patchy):
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
-    
+
 class PatchyExpandedMie(Patchy):
     r"""
     Example::
-    
+
         expanded_mie_params = {'epsilon': 1, 'sigma': 1, 'n': 10, 'm': 15, 'delta': 1}
         envelope_params = {'alpha': np.pi/3, 'omega': 20}
 
@@ -783,12 +790,19 @@ class PatchyExpandedMie(Patchy):
     __doc__ = "Directional version of ExpandedMie.\n" + PATCHY_ARGS_DOC.replace(
         REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
-    _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float, "delta": float}
+    _pair_params = {
+        "epsilon": float,
+        "sigma": float,
+        "n": float,
+        "m": float,
+        "delta": float
+    }
+
 
 class PatchyGaussian(Patchy):
     r"""
     Example::
-    
+
         gauss_params = dict(epsilon = 1, sigma = 1)
         envelope_params = dict(alpha = np.pi/4, omega = 30)
 
@@ -818,10 +832,11 @@ class PatchyGaussian(Patchy):
     _cpp_class_name = "AnisoPotentialPairPatchyGauss"
     _pair_params = {"epsilon": float, "sigma": float}
 
+
 class PatchyMie(Patchy):
     r"""
     Example::
-    
+
         mie_params = {'epsilon': 1, 'sigma': 1, 'n': 10, 'm': 15}
         envelope_params = {'alpha': np.pi/3, 'omega': 20}
 
@@ -847,6 +862,7 @@ class PatchyMie(Patchy):
         REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
+
 
 class PatchyYukawa(Patchy):
     r"""
@@ -874,6 +890,7 @@ class PatchyYukawa(Patchy):
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
 
+
 class PatchyTable(Patchy):
     r"""
     TODO: example
@@ -896,6 +913,8 @@ class PatchyTable(Patchy):
     __doc__ = "Directional version of Table.\n" + PATCHY_ARGS_DOC.replace(
         REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyTable"
-    _pair_params = {"r_min": float,
-                  "U": NDArrayValidator(np.float64),
-                  "F": NDArrayValidator(np.float64)}
+    _pair_params = {
+        "r_min": float,
+        "U": NDArrayValidator(np.float64),
+        "F": NDArrayValidator(np.float64)
+    }
