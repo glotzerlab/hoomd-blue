@@ -16,9 +16,10 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ManagedArray.h"
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
-//! compiler
+/** need to declare these class methods with __device__ qualifiers when building in nvcc
+    HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+    compiler
+*/
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__

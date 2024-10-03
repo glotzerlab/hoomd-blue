@@ -27,11 +27,17 @@ namespace hoomd
 namespace md
     {
 
-/*
-  The GeneralEnvelope creates the pair potential modulator.
+/** GeneralEnvelope creates the pair potential modulator.
+
+    Defines the envelope \f( f_i, f_j \f):
+    
+    \f{align*}
+    f_i(\vec{dr}, \vec{n}_i, \alpha) = \Big(1 + e^{-\omega (\frac{-\vec{dr} \cdot \vec{n_i}}{|\vec{dr}|} - \cos{\alpha})}\Big)^{-1}\\
+    f_j(\vec{dr}, \vec{n}_j, \alpha) = \Big(1 + e^{-\omega (\frac{\vec{dr} \cdot \vec{n_j}}{|\vec{dr}|} - \cos{\alpha})}\Big)^{-1}
+    \f}
+
+    
 */
-
-
 class GeneralEnvelope
 {
 public:
@@ -88,6 +94,17 @@ public:
         Scalar3 m_norm_patch_local_dir;
     };
 
+    
+/**  Computes the patch energies 
+
+     \param _dr Displacement vector between particle centers of mass, pointing from  
+     \param _quat_i Quaternion of i^{th} particle
+     \param _quat_j Quaternion of j^{th} particle
+     \param _rcutsq Squared distance at which the potential goes to 0
+     \param _params Per type pair parameters of this potential
+     \param shape_i The patch location on the i^{th} particle
+     \param shape_j The patch location on the j^{th} particle
+*/
     DEVICE GeneralEnvelope( // TODO replace GeneralEnvelope with PatchesEnvelope
         const Scalar3& _dr,
         const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
