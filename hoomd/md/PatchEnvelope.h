@@ -100,27 +100,22 @@ public:
 /**  Constructor
 
      \param _dr Displacement vector from particle j to particle i
-     \param _quat_i Quaternion of i^{th} particle
-     \param _quat_j Quaternion of j^{th} particle
+     \param q_i Quaternion of i^{th} particle
+     \param q_j Quaternion of j^{th} particle
      \param _rcutsq Squared distance at which the potential goes to 0
      \param _params Per type pair parameters of this potential
      \param shape_i The patch location on the i^{th} particle
      \param shape_j The patch location on the j^{th} particle
 */
-    DEVICE PatchEnvelope( // TODO replace GeneralEnvelope with PatchesEnvelope
+    DEVICE PatchEnvelope(
         const Scalar3& _dr,
-        const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
-        const Scalar4& _quat_j,
+        const Scalar4& q_i,
+        const Scalar4& q_j,
         const Scalar _rcutsq,
         const param_type& _params,
         const shape_type& shape_i,
         const shape_type& shape_j)
-// #ifdef __HIPCC__
-        // TODO decide which is faster on GPU and CPU. // use 250_000 particles to saturate GPU // benchmark on brett
-        // : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
-// #else
-        : dr(_dr), R_i(rotmat3<LongReal>((quat<LongReal>)_quat_i)), R_j(rotmat3<LongReal>((quat<LongReal>)_quat_j)), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
-// #endif
+        : dr(_dr), params(_params), p_i(shape_i.m_norm_patch_local_dir), p_j(shape_j.m_norm_patch_local_dir)
         {
             // compute current particle direction vectors
 
@@ -129,12 +124,13 @@ public:
             vec3<LongReal> ey(0,1,0);
             vec3<LongReal> ez(0,0,1);
 
-            //DONE Real --> ShortReal could help, not doing
-
             // a1, a2, a3 are orientation vectors of particle a in world frame
             // b1, b2, b3 are orientation vectors of particle b in world frame
             // ni_world is patch direction of particle i in world frame
-// #ifdef __HIPCC__
+
+#ifndef __HIPCC__
+            auto R_i = rotmat3<LongReal>(quat<LongReal>(q_i));
+            auto R_j = rotmat3<LongReal>(quat<LongReal>(q_j));
             a1 = R_i * ex;
             a2 = R_i * ey;
             a3 = R_i * ez;
@@ -143,16 +139,16 @@ public:
             b2 = R_j * ey;
             b3 = R_j * ez;
             nj_world = R_j * (vec3<LongReal>)p_j;
-// #else
-//             a1 = rotate(qi, ex);
-//             a2 = rotate(qi, ey);
-//             a3 = rotate(qi, ez);
-//             ni_world = rotate(qi, p_i);
-//             b1 = rotate(qj, ex);
-//             b2 = rotate(qj, ey);
-//             b3 = rotate(qj, ez);
-//             nj_world = rotate(qj, p_j);
-// #endif
+#else
+            a1 = rotate(q_i, ex);
+            a2 = rotate(q_i, ey);
+            a3 = rotate(q_i, ez);
+            ni_world = rotate(q_i, p_i);
+            b1 = rotate(q_j, ex);
+            b2 = rotate(q_j, ey);
+            b3 = rotate(q_j, ez);
+            nj_world = rotate(q_j, p_j);
+#endif
             
             // compute distance
             drsq = dot(dr, dr);
@@ -164,8 +160,8 @@ public:
             Scalar costhetai = -dot(vec3<Scalar>(rhat), ni_world); // negative because dr = dx = pi - pj
             Scalar costhetaj = dot(vec3<Scalar>(rhat), nj_world);
 
-            exp_negOmega_times_CosThetaI_minus_CosAlpha = fast::exp(-params.omega*(costhetai - params.cosalpha));
-            exp_negOmega_times_CosThetaJ_minus_CosAlpha = fast::exp(-params.omega*(costhetaj - params.cosalpha));
+            exp_neg_omega_times_cos_theta_i_minus_cos_alpha = fast::exp(-params.omega*(costhetai - params.cosalpha));
+            exp_neg_omega_times_cos_theta_j_minus_cos_alpha = fast::exp(-params.omega*(costhetaj - params.cosalpha));
         }
 
     //! Whether envelope requires charges
@@ -193,8 +189,8 @@ public:
     */
     DEVICE bool evaluate(Scalar3& force,
                          Scalar& envelope,
-                         Scalar3& torque_div_energy_i, //torque_modulator
-                         Scalar3& torque_div_energy_j) //torque_modulator
+                         Scalar3& torque_div_energy_i,
+                         Scalar3& torque_div_energy_j)
         {
             // common calculations
 
@@ -206,13 +202,13 @@ public:
             f_max_min_inv = 1 / (f_max - f_min);
 
 
-            Scalar fi = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaI_minus_CosAlpha );
-            Scalar dfi_du = params.omega * exp_negOmega_times_CosThetaI_minus_CosAlpha * f_max_min_inv * fi * fi;
+            Scalar fi = Scalar(1.0) / ( Scalar(1.0) + exp_neg_omega_times_cos_theta_i_minus_cos_alpha );
+            Scalar dfi_du = params.omega * exp_neg_omega_times_cos_theta_i_minus_cos_alpha * f_max_min_inv * fi * fi;
             // normalize the modulator function
             fi = (fi - f_min) * f_max_min_inv;
 
-            Scalar fj = Scalar(1.0) / ( Scalar(1.0) + exp_negOmega_times_CosThetaJ_minus_CosAlpha );
-            Scalar dfj_du = params.omega * exp_negOmega_times_CosThetaJ_minus_CosAlpha * f_max_min_inv * fj * fj;
+            Scalar fj = Scalar(1.0) / ( Scalar(1.0) + exp_neg_omega_times_cos_theta_j_minus_cos_alpha );
+            Scalar dfj_du = params.omega * exp_neg_omega_times_cos_theta_j_minus_cos_alpha * f_max_min_inv * fj * fj;
             fj = (fj - f_min) * f_max_min_inv;
 
             // the overall modulation
@@ -221,23 +217,23 @@ public:
             vec3<Scalar> dfi_dni = dfi_du * -rhat;
 
             torque_div_energy_i =
-                vec_to_scalar3( p_i.x * cross( vec3<Scalar>(a1), dfi_dni)) +
-                vec_to_scalar3( p_i.y * cross( vec3<Scalar>(a2), dfi_dni)) +
-                vec_to_scalar3( p_i.z * cross( vec3<Scalar>(a3), dfi_dni));
+                vec_to_scalar3( p_i.x * cross(a1, dfi_dni)) +
+                vec_to_scalar3( p_i.y * cross(a2, dfi_dni)) +
+                vec_to_scalar3( p_i.z * cross(a3, dfi_dni));
 
             torque_div_energy_i *= Scalar(-1) * fj;
 
             vec3<Scalar> dfj_dnj = dfj_du * rhat; // still positive
 
             torque_div_energy_j =
-                vec_to_scalar3( p_j.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
-                vec_to_scalar3( p_j.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
-                vec_to_scalar3( p_j.z * cross( vec3<Scalar>(b3), dfj_dnj));
+                vec_to_scalar3( p_j.x * cross(b1, dfj_dnj)) +
+                vec_to_scalar3( p_j.y * cross(b2, dfj_dnj)) +
+                vec_to_scalar3( p_j.z * cross(b3, dfj_dnj));
 
             torque_div_energy_j *= Scalar(-1) * fi;
 
-            /// find df/dr = df/du * du/dr
-            /// find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
+            // find df/dr = df/du * du/dr (using chain rule)
+            // find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
             Scalar lo = magdr;
             vec3<Scalar> dlo = rhat;
 
@@ -251,7 +247,7 @@ public:
             Scalar dfj_duj = dfj_du;
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
             dhi = nj_world;
-            /// lo and dlo are the same as above
+            // lo and dlo are the same as above
             vec3<Scalar> duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
 
             force = -vec_to_scalar3(dfj_duj*duj_dr * fi + dfi_dui*dui_dr * fj);
@@ -263,20 +259,12 @@ public:
     //! Get the name of the potential
     static std::string getName()
         {
-            return std::string("generalenvelope");
+            return std::string("patchenvelope");
         }
 #endif
 
 private:
     vec3<Scalar> dr;
-
-// #ifdef __HIPCC__
-    quat<Scalar> qi;
-    quat<Scalar> qj;
-// #else
-    rotmat3<LongReal> R_i;
-    rotmat3<LongReal> R_j;
-// #endif
 
     const param_type& params;
     vec3<Scalar> ni_world, nj_world;
@@ -290,8 +278,8 @@ private:
     Scalar magdr;
     vec3<Scalar> rhat;
 
-    Scalar exp_negOmega_times_CosThetaI_minus_CosAlpha;
-    Scalar exp_negOmega_times_CosThetaJ_minus_CosAlpha;
+    Scalar exp_neg_omega_times_cos_theta_i_minus_cos_alpha;
+    Scalar exp_neg_omega_times_cos_theta_j_minus_cos_alpha;
 };
 
     } // end namespace md
