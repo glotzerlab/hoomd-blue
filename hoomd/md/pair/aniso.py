@@ -670,21 +670,6 @@ class Patchy(AnisotropicPair):
             raise ValueError(f"Value {input} is not between 0 and pi")
         # can we get the keys here to check for A A being ni=nj
 
-
-    @log(category="object")
-    def type_shapes(self):
-        """Get all the types of shapes in the current simulation.
-
-        Example:
-
-            >>> patchy.type_shapes
-
-        Returns:
-            A list of dictionaries, one for each particle type in the system.
-        """
-        return super()._return_type_shapes()
-
-
 class PatchyLJ(Patchy):
     r"""
     Example::
