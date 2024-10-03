@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __GENERAL_ENVELOPE_H__
@@ -11,9 +11,9 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
-// compiler
+/** need to declare these class methods with __device__ qualifiers when building in nvcc
+    DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+*/  compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -112,8 +112,6 @@ public:
 
             //DONE Real --> ShortReal could help, not doing
 
-            // DONE try converting to rotation matrices
-
             // a1, a2, a3 are orientation vectors of particle a in world frame
             // b1, b2, b3 are orientation vectors of particle b in world frame
             // ni_world is patch direction of particle i in world frame
@@ -167,7 +165,6 @@ public:
 
     //! Evaluate the force and energy
     /*
-      // TODO update this
       \Param force Output parameter to write the computed force.
       \param envelope Output parameter to write the amount of modulation of the isotropic part
       \param torque_div_energy_i The torque exterted on the i^th particle, divided by energy of interaction.
@@ -220,30 +217,22 @@ public:
 
             torque_div_energy_j *= Scalar(-1) * fi;
 
-
-            // THIS PART in here:
-            //     dfj_duj * duj_dr * self.patch.fi(dr, self.ni_world) + dfi_dui * dui_dr * self.patch.fj(dr, self.nj_world)
-
-            
-            // find df/dr = df/du * du/dr
-            // find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
+            /// find df/dr = df/du * du/dr
+            /// find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
             Scalar lo = magdr;
             vec3<Scalar> dlo = rhat;
 
-            // //something wrong: this has to be a scalar
-            // Scalar3 dfi_dui = dfi_dni();
             Scalar dfi_dui = dfi_du;
 
             Scalar hi = -dot(dr, vec3<Scalar>(ni_world));
             vec3<Scalar> dhi = -ni_world;
-            // // quotient rule
+            /// quotient rule
             vec3<Scalar> dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
-            //           dui_dr = removedrhat * ( magdr* -ni_world - -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
 
             Scalar dfj_duj = dfj_du;
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
             dhi = nj_world;
-            // // lo and dlo are the same as above
+            /// lo and dlo are the same as above
             vec3<Scalar> duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
 
             force = -vec_to_scalar3(dfj_duj*duj_dr * fi + dfi_dui*dui_dr * fj);

@@ -254,20 +254,14 @@ public:
                             //   torque envelopes and are missing the factor of pair energy
                             envel_eval.evaluate(grad_mods, envelope, this_torque_i, this_torque_j);
 
-                            // modulate forces
-
-                            // second term has the negative sign for force calculation in force_divr
-
-                            // term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
-
-                            //                        [term2         ]   [term1                 ]
+                            /// modulate forces
                             this_force.x = this_pair_eng*grad_mods.x + dr.x*force_divr*envelope;
                             this_force.y = this_pair_eng*grad_mods.y + dr.y*force_divr*envelope;
                             this_force.z = this_pair_eng*grad_mods.z + dr.z*force_divr*envelope;
 
-                            // modulate torques
-                            // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
-                            this_torque_i.x *= this_pair_eng; // here, the "anisotropic" part can't have distance dependence
+                            /// modulate torques
+                            /// U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
+                            this_torque_i.x *= this_pair_eng;
                             this_torque_i.y *= this_pair_eng;
                             this_torque_i.z *= this_pair_eng;
 
