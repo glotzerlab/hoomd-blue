@@ -680,7 +680,8 @@ class PatchyLJ(Patchy):
         lj_params = dict(epsilon = 1, sigma = 1)
         envelope_params = dict(alpha = np.pi/2, omega = 20)
 
-        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list, default_r_cut = 3.0)
+        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list,
+                                                default_r_cut = 3.0)
         patchylj.params[('A', 'A')] = dict(pair_params = lj_params,
                                            envelope_params = envelope_params)
         patchylj.patches['A'] = [(1,0,0)]
@@ -709,13 +710,17 @@ class PatchyExpandedGaussian(Patchy):
         gauss_params = dict(epsilon = 1, sigma = 1, delta = 0.5)
         envelope_params = dict(alpha = np.pi/2, omega = 40)
 
-        patchy_expanded_gaussian = hoomd.md.pair.aniso.PatchyExpandedGaussian(nlist = neighbor_list, default_r_cut = 3.0)
-        patchy_expanded_gaussian.params[('A', 'A')] = dict(pair_params = gauss_params,
-                                                           envelope_params = envelope_params)
+        patchy_expanded_gaussian = hoomd.md.pair.aniso.PatchyExpandedGaussian(
+            nlist = neighbor_list,
+            default_r_cut = 3.0)
+        patchy_expanded_gaussian.params[('A', 'A')] = dict(
+            pair_params = gauss_params,
+            envelope_params = envelope_params)
         patchy_expanded_gaussian.patches['A'] = [(1,0,0), (1,1,1)]
     """
     local_doc = r"""
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedGaussian.params`.
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedGaussian.params`.
 
           * ``epsilon`` (`float`, **required**) - energy parameter
             :math:`\varepsilon` :math:`[\mathrm{energy}]`
@@ -744,7 +749,8 @@ class PatchyExpandedLJ(Patchy):
         patchylj.patches['A'] = [(1,0,0)]
     """
     local_doc = r"""
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedLJ.params`.
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedLJ.params`.
 
           * ``epsilon`` (`float`) - energy parameter
             :math:`\varepsilon` :math:`[\mathrm{energy}]`
@@ -764,16 +770,20 @@ class PatchyExpandedMie(Patchy):
     r"""
     Example::
 
-        expanded_mie_params = {'epsilon': 1, 'sigma': 1, 'n': 10, 'm': 15, 'delta': 1}
+        expanded_mie_params = {'epsilon': 1, 'sigma': 1,
+                               'n': 10, 'm': 15, 'delta': 1}
         envelope_params = {'alpha': np.pi/3, 'omega': 20}
 
-        patchy_expanded_mie = hoomd.md.pair.aniso.PatchyExpandedMie(nlist = neighbor_list, default_r_cut = 3.0)
-        patchy_expanded_mie.params[('A', 'A')] = dict(pair_params = expanded_mie_params
-                                                      envelope_params = envelope_params)
+        patchy_expanded_mie = hoomd.md.pair.aniso.PatchyExpandedMie(
+            nlist = neighbor_list, default_r_cut = 3.0)
+        patchy_expanded_mie.params[('A', 'A')] = dict(
+            pair_params = expanded_mie_params
+            envelope_params = envelope_params)
         patchy_expanded_mie.patches['A'] = [(1,0,0)]
     """
     local_doc = r"""
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedMie.params`.
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedMie.params`.
 
           * ``epsilon`` (`float`, **required**) -
             :math:`\epsilon` :math:`[\mathrm{energy}]`.
