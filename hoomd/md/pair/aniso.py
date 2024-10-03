@@ -642,9 +642,7 @@ class Patchy(AnisotropicPair):
 
     To make specific patches
 
-    Example::
-
-        
+    todo write example        
     """
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
