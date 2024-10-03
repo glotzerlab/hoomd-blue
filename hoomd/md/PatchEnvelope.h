@@ -164,14 +164,8 @@ public:
             exp_neg_omega_times_cos_theta_j_minus_cos_alpha = fast::exp(-params.omega*(costhetaj - params.cosalpha));
         }
 
-    //! Whether envelope requires charges
     DEVICE static bool needsCharge() { return false; }
 
-    //! Accept the optional charge values
-    /*!
-      \param qi Charge of particle i
-      \param qj Charge of particle j
-    */
     DEVICE void setCharge(Scalar qi, Scalar qj)
     {
     m_charge_i = qi;
@@ -256,7 +250,6 @@ public:
         }
 
 #ifndef _HIPCC_
-    //! Get the name of the potential
     static std::string getName()
         {
             return std::string("patchenvelope");
