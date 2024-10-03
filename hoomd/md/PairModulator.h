@@ -1,9 +1,7 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*
-  This class aplies the DirectionalEnvelope to the PairEvaluator, turning the isotropic pair potential into an anisotropic potential.
-*/
+
 
 #ifndef __PAIR_MODULATOR_H__
 #define __PAIR_MODULATOR_H__
@@ -33,7 +31,15 @@ namespace hoomd
 namespace md
     {
 
-//! Class to modulate an isotropic pair potential by an envelope to create an anisotropic pair potential.
+/** Class to modulate an isotropic pair potential by an envelope to create an anisotropic pair potential.
+    
+    Applies the DirectionalEnvelope to the PairEvaluator, accounting for multiple DirectionalEnvelopes per particle.
+
+    The energy is defined as \f$ U_{ij}(r) = f_i f_j U(r) \f$ where each \f$ f = f(\vec{dr}, \vec{n}) \f$.
+
+    \tparam PairEvaluator An isotropic pair evaluator.
+    \tparam DirectionalEnvelope An envelope like PatchEnvelope.
+*/
 template <typename PairEvaluator, typename DirectionalEnvelope>
 class PairModulator
 {
@@ -45,56 +51,53 @@ public:
             {
             }
 
-        param_type(typename PairEvaluator::param_type _pairP, typename DirectionalEnvelope::param_type _envelP)
-            {
-                pairP = _pairP;
-                envelP = _envelP;
-            }
+        // param_type(typename PairEvaluator::param_type _pair_p, typename DirectionalEnvelope::param_type _envel_p)
+        //     {
+        //         pair_p = _pair_p;
+        //         envel_p = _envel_p;
+        //     }
 #ifndef __HIPCC__
         param_type(pybind11::dict params, bool managed)
             {
-                pairP = typename PairEvaluator::param_type(params["pair_params"], managed);
-                envelP = typename DirectionalEnvelope::param_type(params["envelope_params"]);
+                pair_p = typename PairEvaluator::param_type(params["pair_params"], managed);
+                envel_p = typename DirectionalEnvelope::param_type(params["envelope_params"]);
             }
 
         pybind11::dict toPython()
             {
                 pybind11::dict v;
 
-                v["pair_params"] = pairP.asDict();
-                v["envelope_params"] = envelP.toPython();
+                v["pair_params"] = pair_p.asDict();
+                v["envelope_params"] = envel_p.toPython();
 
                 return v;
             }
 #endif
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
             {
-                pairP.load_shared(ptr, available_bytes);
+                pair_p.load_shared(ptr, available_bytes);
             }
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
             {
-                pairP.allocate_shared(ptr, available_bytes);
+                pair_p.allocate_shared(ptr, available_bytes);
             }
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {
-                pairP.set_memory_hint();
+                pair_p.set_memory_hint();
             }
 #endif
-        typename PairEvaluator::param_type pairP;
-        typename DirectionalEnvelope::param_type envelP;
+        typename PairEvaluator::param_type pair_p;
+        typename DirectionalEnvelope::param_type envel_p;
     };
 
-// Nullary structure required by AnisoPotentialPair.
+
     struct shape_type
     {
-        //! Load dynamic data members into shared memory and increase pointer
-        /*! \param ptr Pointer to load data to (will be incremented)
-          \param available_bytes Size of remaining shared memory allocation
-        */
+
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {
             envelope.load_shared(ptr, available_bytes);
 }
@@ -107,13 +110,11 @@ public:
 
 #ifndef __HIPCC__
 
-        shape_type(pybind11::object shape_params, bool managed)
-            : envelope(static_cast<unsigned int>(pybind11::len(shape_params)), managed)
+        shape_type(pybind11::list shape_param, bool managed)
+            : envelope(static_cast<unsigned int>(pybind11::len(shape_param)), managed)
             {
-                pybind11::list shape_param = shape_params;
                 for (size_t i = 0; i < pybind11::len(shape_param); i++)
                     {
-
                         envelope[int(i)] = typename DirectionalEnvelope::shape_type(shape_param[i]);
                     }
             }
@@ -130,7 +131,6 @@ public:
 #endif
 
 #ifdef ENABLE_HIP
-        //! Attach managed memory to CUDA stream
         void set_memory_hint() const {
             envelope.set_memory_hint();
 }
@@ -140,63 +140,49 @@ public:
 
     //! Constructs the pair potential evaluator
     /*!
-      \param _dr Displacement vector pointing from particle rj to ri
+      \param _dr Displacement vector pointing from particle j to particle i
       \param _rcutsq Squared distance at which the potential is set to 0
-      \param _quat_i Quaternion of the ith particle
-      \param _quat_j Quaternion of the jth particle
+      \param _q_i Quaternion of the i^{th} particle
+      \param _q_j Quaternion of the j^{th} particle
       \param _params Per type pair parameters of the potential
     */
     DEVICE PairModulator( const Scalar3& _dr,
-                          const Scalar4& _quat_i,
-                          const Scalar4& _quat_j,
+                          const Scalar4& _q_i,
+                          const Scalar4& _q_j,
                           const Scalar _rcutsq,
                           const param_type& _params)
         : dr(_dr),
           rsq(dot(_dr, _dr)),
           rcutsq(_rcutsq),
-          quat_i(_quat_i),
-          quat_j(_quat_j),
+          q_i(_q_i),
+          q_j(_q_j),
           params(_params)
         { }
 
-    //! Whether pair potential requires charges
     DEVICE static bool needsCharge()
         {
             return (PairEvaluator::needsCharge() || DirectionalEnvelope::needsCharge());
         }
 
-    //! Accept the optional charge values
-    /*!
-      \param qi Charge of particle i
-      \param qj Charge of particle j
-    */
     DEVICE void setCharge(Scalar qi, Scalar qj)
         {
         m_charge_i = qi;
         m_charge_j = qj;
         }
 
-    //! Whether the pair potential uses shape.
     DEVICE static bool needsShape()
         {
             return true;
         }
 
-    //! Accept the optional tags
-    /*!
-      \param tag_i Tag of particle i
-      \param tag_j Tag of particle j
-    */
     DEVICE void setShape(const shape_type* _shapei, const shape_type* _shapej) {
         shape_i = _shapei;
         shape_j = _shapej;
     }
 
-    //! Whether the pair potential needs particle tags.
     HOSTDEVICE static bool needsTags() { return false; }
 
-    //! No modulated potential needs tags
-    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) {      }
+    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
 
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
@@ -208,8 +194,8 @@ public:
       \param force Output parameter to write the computed force.
       \param pair_eng Output parameter to write the computed pair energy.
       \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
-      \param torque_i The torque exerted on the ith particle.
-      \param torque_j The torque exerted on the jth particle.
+      \param torque_i The torque exerted on the i^{th particle.
+      \param torque_j The torque exerted on the j^{th} particle.
       \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
       in PotentialPair.
       \return True if force and energy are evaluated, false if not because r>rcut.
@@ -226,19 +212,19 @@ public:
             torque_i = make_scalar3(0,0,0);
             torque_j = make_scalar3(0,0,0);
 
-            for (unsigned int patchi = 0; patchi < shape_i->envelope.size(); patchi++)
+            for (unsigned int envelope_i = 0; envelope_i < shape_i->envelope.size(); envelope_i++)
                 {
-                    for (unsigned int patchj = 0; patchj < shape_j->envelope.size(); patchj++)
+                    for (unsigned int envelope_j = 0; envelope_j < shape_j->envelope.size(); envelope_j++)
                         {
                             Scalar3 this_force = make_scalar3(0,0,0);
-                            Scalar3 grad_mods = make_scalar3(0,0,0);
+                            Scalar3 grad_envelopes = make_scalar3(0,0,0);
                             Scalar this_pair_eng = Scalar(0);
                             Scalar3 this_torque_i = make_scalar3(0,0,0);
                             Scalar3 this_torque_j = make_scalar3(0,0,0);
                             Scalar force_divr(Scalar(0));
                             Scalar envelope(Scalar(0));
 
-                            PairEvaluator pair_eval(rsq, rcutsq, params.pairP);
+                            PairEvaluator pair_eval(rsq, rcutsq, params.pair_p);
                             pair_eval.setCharge(m_charge_i, m_charge_j);
 
                             // compute pair potential
@@ -247,21 +233,21 @@ public:
                                     return false;
                                 }
 
-                            DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP, shape_i->envelope[patchi], shape_j->envelope[patchj]);
+                            DirectionalEnvelope envel_eval(dr, q_i, q_j, rcutsq, params.envel_p, shape_i->envelope[envelope_i], shape_j->envelope[envelope_j]);
                             envel_eval.setCharge(m_charge_i, m_charge_j);
 
                             // compute envelope
                             // this_torque_i and this_torque_j get populated with the
                             //   torque envelopes and are missing the factor of pair energy
-                            envel_eval.evaluate(grad_mods, envelope, this_torque_i, this_torque_j);
+                            envel_eval.evaluate(grad_envelopes, envelope, this_torque_i, this_torque_j);
 
                             /// modulate forces
-                            this_force.x = this_pair_eng*grad_mods.x + dr.x*force_divr*envelope;
-                            this_force.y = this_pair_eng*grad_mods.y + dr.y*force_divr*envelope;
-                            this_force.z = this_pair_eng*grad_mods.z + dr.z*force_divr*envelope;
+                            this_force.x = this_pair_eng*grad_envelopes.x + dr.x*force_divr*envelope;
+                            this_force.y = this_pair_eng*grad_envelopes.y + dr.y*force_divr*envelope;
+                            this_force.z = this_pair_eng*grad_envelopes.z + dr.z*force_divr*envelope;
 
-                            /// modulate torques
-                            /// U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
+                            // modulate torques
+                            // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
                             this_torque_i.x *= this_pair_eng;
                             this_torque_i.y *= this_pair_eng;
                             this_torque_i.z *= this_pair_eng;
@@ -285,10 +271,6 @@ public:
 
 
 #ifndef __HIPCC__
-    //! Get the name of this potential
-    /*!
-      \returns The potential name.
-    */
     static std::string getName()
         {
             return PairEvaluator::getName() + "_" + DirectionalEnvelope::getName();
@@ -308,16 +290,13 @@ protected:
     Scalar3 dr;
     Scalar rsq;
     Scalar rcutsq;
-    const Scalar4& quat_i;
-    const Scalar4& quat_j;
+    const Scalar4& q_i;
+    const Scalar4& q_j;
     const param_type& params;
     const shape_type* shape_i;
     const shape_type* shape_j;
 
     Scalar m_charge_i, m_charge_j;
-
-    // PairEvaluator pairEval;           //!< An isotropic pair evaluator
-    // DirectionalEnvelope envelEval;    //!< A directional envelope evaluator
 
 };
 
