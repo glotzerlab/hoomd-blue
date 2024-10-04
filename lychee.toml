@@ -1,0 +1,10 @@
+require_https = true
+exclude_path = [
+    'sphinx-doc/_templates/page.html',
+    'sphinx-doc/tutorial',
+    'hoomd/extern'
+]
+
+# Many of the OnDemand services report 500 when lychee attempts to connect.
+# Many sites use cloudflare to prevent bot access. These URLs return 403.
+accept = ["200", "429", "500", "403"]

@@ -30,36 +30,22 @@ repos:
   - id: check-case-conflict
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
-  rev: v0.3.2
+  rev: v0.4.0
   hooks:
   - id: fix-license-header
-    name: Fix license headers (Python)
+    name: Fix license headers
     exclude: |
       (?x)(
           ^hoomd/extern/|
           ^sphinx-doc/tutorial/|
           ^sphinx-doc/howto/
           )
-    types_or: [python]
+    types_or: [python, c, c++, cuda, inc, rst]
     args:
     - --license-file=LICENSE
     - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
     - --keep-before=#!
-  - id: fix-license-header
-    name: Fix license headers (C)
-    types_or: [c, c++, cuda, inc]
-    args:
-    - --license-file=LICENSE
-    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
-    - --comment-prefix=//
-  - id: fix-license-header
-    name: Fix license headers (reStructuredText)
-    types_or: [rst]
-    args:
-    - --license-file=LICENSE
-    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
     - --keep-after=.. include
-    - --comment-prefix=..
 - repo: https://github.com/kynan/nbstripout
   rev: 0.7.1
   hooks:

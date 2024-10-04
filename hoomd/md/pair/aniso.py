@@ -156,7 +156,7 @@ class GayBerne(AnisotropicPair):
     energy-well depth. The potential comes from the following paper `Allen et.
     al. 2006`_.
 
-    .. _Allen et. al. 2006: http://dx.doi.org/10.1080/00268970601075238
+    .. _Allen et. al. 2006: https://dx.doi.org/10.1080/00268970601075238
 
     .. math::
         U(\vec r, \vec e_i, \vec e_j) =

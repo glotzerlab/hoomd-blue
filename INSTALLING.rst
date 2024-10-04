@@ -52,4 +52,4 @@ Similarly, you can force CPU only package installation with::
     channel selection so that all packages are installed from the conda-forge_ channel.
 
 .. _miniforge: https://github.com/conda-forge/miniforge
-.. _miniconda: http://conda.pydata.org/miniconda.html
+.. _miniconda: https://conda.pydata.org/miniconda.html

@@ -164,7 +164,7 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
 
     // ------
     // while (origin ray does not intersect candidate) choose new candidate
-    // In 2D, this step is not necessary (http://xenocollide.snethen.com/mpr2d.html). By choosing
+    // In 2D, this step is not necessary (https://xenocollide.snethen.com/mpr2d.html). By choosing
     // the correct normal above, we have a proper portal by construction. The 3D version of this
     // code will need to implement the loop, however. See the book.
 

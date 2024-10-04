@@ -30,7 +30,7 @@
 </div>
 <div class="bottom-of-page">
   <div class="left-details">
-    <p>Development of {{ project }} is led by the <a href="https://glotzerlab.engin.umich.edu">Glotzer Group</a> at the <a href="https://umich.edu">University of Michigan</a> (supported by NSF DMR 1808342) with many <a href="credits.html">external contributions</a>.
+    <p>Development of {{ project }} is led by the <a href="https://glotzerlab.engin.umich.edu">Glotzer Group</a> at the <a href="https://umich.edu">University of Michigan</a> (supported by NSF DMR 1808342) with many <a href="{{ pathto('credits') }}">external contributions</a>.
     </p>
 
     {%- if show_copyright %}
@@ -63,7 +63,7 @@
     {%- endif %}
   </div>
   <div class="right-details">
-    <a class="muted-link" href="http://umich.edu">
+    <a class="muted-link" href="https://umich.edu">
     <img src="{{ pathto('_static/umich-block-M.svg', 1) }}" alt="University of Michigan logo" style="width: 84px; float: right;" />
     </a>
 

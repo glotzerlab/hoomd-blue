@@ -51,6 +51,10 @@ void exportPairPotentialLennardJones(pybind11::module& m);
 
 void exportPairPotentialExpandedGaussian(pybind11::module& m);
 
+void exportPairPotentialLJGauss(pybind11::module& m);
+
+void exportPairPotentialOPP(pybind11::module& m);
+
 void exportPairPotentialAngularStep(pybind11::module& m);
 
 void exportPairPotentialStep(pybind11::module& m);
@@ -157,6 +161,8 @@ PYBIND11_MODULE(_hpmc, m)
     exportPairPotential(m);
     exportPairPotentialLennardJones(m);
     exportPairPotentialExpandedGaussian(m);
+    exportPairPotentialLJGauss(m);
+    exportPairPotentialOPP(m);
     exportPairPotentialAngularStep(m);
     exportPairPotentialStep(m);
     exportPairPotentialUnion(m);
