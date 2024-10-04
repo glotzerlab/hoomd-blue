@@ -655,7 +655,8 @@ class Patchy(AnisotropicPair):
         pair_params = {'epsilon': 10, 'sigma': 1}
 
         patchy.params.default = dict(pair_params = pair_params,
-                                     envelope_params = {'alpha': math.pi/4, 'omega': 30})
+                                     envelope_params = {'alpha': math.pi/4,
+                                                        'omega': 30})
         patchy.patches.default = []
         simulation.operations.integrator.forces = [patchy]
 
@@ -679,12 +680,13 @@ class Patchy(AnisotropicPair):
           * ``omega`` (`float`) - patch steepness :math:`\omega`
 
 
-        * ``pair_params`` (`dict`, **required**) - passed to isotropic potential (see subclasses).
+        * ``pair_params`` (`dict`, **required**) -
+          passed to isotropic potential (see subclasses).
 
         .. rubric:: Example:
 
         .. code-block:: python
-    
+
             envelope_params = {'alpha': math.pi/4, 'omega': 30}
             patchy.params[('A', 'A')] = dict(pair_params = pair_params,
                                              envelope_params = envelope_params)
@@ -762,8 +764,7 @@ class PatchyLJ(Patchy):
     """
 
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
     _cpp_class_name = "AnisoPotentialPairPatchyLJ"
     _pair_params = {"epsilon": float, "sigma": float}
 
@@ -800,8 +801,7 @@ class PatchyExpandedGaussian(Patchy):
 
     """
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
@@ -836,8 +836,7 @@ class PatchyExpandedLJ(Patchy):
 
     """
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
@@ -878,8 +877,7 @@ class PatchyExpandedMie(Patchy):
 
     """
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
     _pair_params = {
         "epsilon": float,
@@ -924,8 +922,7 @@ class PatchyGaussian(Patchy):
 
     """
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
 
     _cpp_class_name = "AnisoPotentialPairPatchyGauss"
     _pair_params = {"epsilon": float, "sigma": float}
@@ -962,8 +959,7 @@ class PatchyMie(Patchy):
 
     """
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
     _cpp_class_name = "AnisoPotentialPairPatchyMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
 
@@ -995,7 +991,6 @@ class PatchyYukawa(Patchy):
 
     """
     __doc__ += "\n" + _PATCHY_ARGS_DOC + _example_doc + _PATCHY_ATTRIBUTE_DOC.replace(
-        _REPLACE_PAIR_PARAM_DOC,
-        _local_doc)
+        _REPLACE_PAIR_PARAM_DOC, _local_doc)
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
