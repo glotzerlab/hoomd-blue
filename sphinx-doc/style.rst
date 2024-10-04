@@ -29,7 +29,7 @@ and formatted by **yapf**.
 Tools
 ^^^^^
 
-* Linter: `flake8 <http://flake8.pycqa.org/en/latest/>`_
+* Linter: `flake8 <https://flake8.pycqa.org/en/latest/>`_
 
   * With these plugins:
 

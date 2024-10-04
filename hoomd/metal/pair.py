@@ -35,8 +35,8 @@ class eam(force._force):
     other than those in the potential file.
 
     Two file formats are supported: *Alloy* and *FS*. They are described in LAMMPS documentation
-    (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
-    and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
+    (commands eam/alloy and eam/fs) here: https://lammps.sandia.gov/doc/pair_eam.html
+    and are also described here: https://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
 
     .. attention::
         EAM is **NOT** supported in MPI parallel simulations.

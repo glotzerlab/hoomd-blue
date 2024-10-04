@@ -136,7 +136,7 @@ DEVICE inline bool isActive(Scalar3 pos, const BoxDim& box, Scalar3 ghost_fracti
 //! Helper function to generate a random element of SO(3)
 // see Shoemake, Uniform random rotations, Graphics Gems III, p.142-132
 // and
-// http://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
+// https://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
 template<class RNG>
 DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim)
     {

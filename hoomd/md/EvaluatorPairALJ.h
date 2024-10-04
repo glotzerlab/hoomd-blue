@@ -1015,7 +1015,7 @@ HOSTDEVICE inline void edgeEdgeDistance(const vec3<Scalar>& e00,
     // This math is identical to DEM's but is simplified to reduce the number
     // of dot products and clarify the purpose of the calculations that are
     // present.
-    // in the style of http://paulbourke.net/geometry/pointlineplane/
+    // in the style of https://paulbourke.net/geometry/pointlineplane/
     const vec3<Scalar> r0(e01 - e00);
     const vec3<Scalar> r1(e11 - e10);
     const Scalar r0sq(dot(r0, r0));

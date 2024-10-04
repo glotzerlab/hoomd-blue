@@ -235,7 +235,7 @@ class StochasticRotationDynamics(CollisionMethod):
 
     This class implements the stochastic rotation dynamics (SRD) collision
     rule for MPCD proposed by `Malevanets and Kapral
-    <http://doi.org/10.1063/1.478857>`_. Every :attr:`~CollisionMethod.period`
+    <https://doi.org/10.1063/1.478857>`_. Every :attr:`~CollisionMethod.period`
     steps, the particles are binned into cells. The particle velocities are then
     rotated by `angle` around an axis randomly drawn from the unit sphere. The
     rotation is done relative to the average velocity, so this rotation rule

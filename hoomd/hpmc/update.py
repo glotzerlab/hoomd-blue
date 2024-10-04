@@ -646,7 +646,7 @@ class Clusters(Updater):
             perform cluster moves.
 
     The GCA as described in Liu and Lujten (2004),
-    http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
+    https://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
     interactions and depletants. Implicit depletants are supported and simulated
     on-the-fly, as if they were present in the actual system.
 
@@ -655,7 +655,7 @@ class Clusters(Updater):
     cannot be used because it would create a chiral mirror image of the
     particle, and only line reflections are employed. In general, line
     reflections are not rejection free because of periodic boundary conditions,
-    as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    as discussed in Sinkovits et al. (2012), https://doi.org/10.1063/1.3694271 .
     However, we restrict the line reflections to axes parallel to the box axis,
     which makes those moves rejection-free for anisotropic particles, but the
     algorithm is then no longer ergodic for those and needs to be combined with
