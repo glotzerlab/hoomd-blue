@@ -640,11 +640,13 @@ class VirtualClusterMoves(Updater):
     See Whitelam and Geissler (2007).
     """
 
-    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0, translation_move_probability=0.5):
+    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0, translation_move_probability=0.5, maximum_trial_rotation=3.14,maximum_trial_translation=1.0):
         super().__init__(trigger)
-        param_dict = ParameterDict(attempts_per_particle=float(attempts_per_particle),
+        param_dict = ParameterDict(attempts_per_particle=int(attempts_per_particle),
                                    beta_ficticious=float(beta_ficticious),
                                    translation_move_probability=float(translation_move_probability),
+                                   maximum_trial_rotation=float(maximum_trial_rotation),
+                                   maximum_trial_translation=float(maximum_trial_translation),
                                    )
         self._param_dict.update(param_dict)
         self.instance = 0
@@ -662,12 +664,24 @@ class VirtualClusterMoves(Updater):
         )
 
     @log(category='sequence', requires_run=True)
-    def move_counts(self):
-        return self._cpp_obj.getCounters(1).counts
+    def translate_counts(self):
+        return self._cpp_obj.getCounters(1).translate_counts
+
+    @log(category='sequence', requires_run=True)
+    def rotate_counts(self):
+        return self._cpp_obj.getCounters(1).rotate_counts
 
     @log(category='scalar', requires_run=True)
-    def acceptance_rate(self):
-        acc, rej = self._cpp_obj.getCounters(1).counts
+    def translate_acceptance_rate(self):
+        acc, rej = self._cpp_obj.getCounters(1).translate_counts
+        if acc + rej == 0:
+            return 0.0
+        else:
+            return acc / (acc + rej)
+
+    @log(category='scalar', requires_run=True)
+    def rotate_acceptance_rate(self):
+        acc, rej = self._cpp_obj.getCounters(1).rotate_counts
         if acc + rej == 0:
             return 0.0
         else:
@@ -676,6 +690,14 @@ class VirtualClusterMoves(Updater):
     @log(category='scalar', requires_run=True)
     def average_cluster_size(self):
         return self._cpp_obj.getCounters(1).average_cluster_size
+
+    @log(category='scalar', requires_run=False)
+    def maximum_trial_rotation(self):
+        return self._cpp_obj.getMaximumTrialRotation
+
+    @log(category='scalar', requires_run=True)
+    def total_num_particles_in_clusters(self):
+        return self._cpp_obj.getCounters(1).total_num_particles_in_clusters
 
 
 class Clusters(Updater):

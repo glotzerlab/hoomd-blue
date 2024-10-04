@@ -369,31 +369,40 @@ struct hpmc_clusters_counters_t
 
 struct hpmc_virtual_moves_counters_t
     {
-    unsigned long long int accept_count;
-    unsigned long long int reject_count;
+    unsigned long long int translate_accept_count;
+    unsigned long long int translate_reject_count;
+    unsigned long long int rotate_accept_count;
+    unsigned long long int rotate_reject_count;
     unsigned long long int total_num_particles_in_clusters;
     unsigned long long int total_num_moves_attempted;
-    
+
 
     //! Construct a zero set of counters
     DEVICE hpmc_virtual_moves_counters_t()
         {
-        accept_count = 0;
-        reject_count = 0;
+        translate_accept_count = 0;
+        translate_reject_count = 0;
+        rotate_accept_count = 0;
+        rotate_reject_count = 0;
         total_num_particles_in_clusters = 0;
         total_num_moves_attempted = 0;
         }
 
-    std::pair<unsigned long long int, unsigned long long int> getCounts()
+    std::pair<unsigned long long int, unsigned long long int> getTranslateCounts()
         {
-        return std::make_pair(accept_count, reject_count);
+        return std::make_pair(translate_accept_count, translate_reject_count);
+        }
+
+    std::pair<unsigned long long int, unsigned long long int> getRotateCounts()
+        {
+        return std::make_pair(rotate_accept_count, translate_reject_count);
         }
 
     DEVICE double getAverageClusterSize()
         {
-        if (accept_count + reject_count)
+        if (translate_accept_count + translate_reject_count + rotate_accept_count + rotate_reject_count)
             {
-            return (double)total_num_particles_in_clusters / ((double)accept_count + (double)reject_count);
+            return (double)total_num_particles_in_clusters / ((double)translate_accept_count + (double)translate_reject_count + (double)rotate_accept_count + (double)rotate_reject_count);
             }
         else
             {
@@ -414,8 +423,10 @@ struct hpmc_virtual_moves_counters_t
 DEVICE inline hpmc_virtual_moves_counters_t operator-(const hpmc_virtual_moves_counters_t& a, hpmc_virtual_moves_counters_t& b)
     {
     hpmc_virtual_moves_counters_t result;
-    result.accept_count = a.accept_count - b.accept_count;
-    result.reject_count = a.reject_count - b.reject_count;
+    result.translate_accept_count = a.translate_accept_count - b.translate_accept_count;
+    result.translate_reject_count = a.translate_reject_count - b.translate_reject_count;
+    result.rotate_accept_count = a.rotate_accept_count - b.rotate_accept_count;
+    result.rotate_reject_count = a.rotate_reject_count - b.rotate_reject_count;
     result.total_num_particles_in_clusters = a.total_num_particles_in_clusters - b.total_num_particles_in_clusters;
     result.total_num_moves_attempted = a.total_num_moves_attempted - b.total_num_moves_attempted;
     return result;
