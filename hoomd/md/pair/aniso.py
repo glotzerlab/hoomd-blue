@@ -630,7 +630,7 @@ class Patchy(AnisotropicPair):
     the displacement vector :math:`\theta_i`, :math:`\theta_j` the patchy potential
     computes:
 
-    .. _Beltran-Villegas et. al.: http://dx.doi.org/10.1039/C3SM53136H
+    .. _Beltran-Villegas et. al.: https://dx.doi.org/10.1039/C3SM53136H
 
     .. math::
 
