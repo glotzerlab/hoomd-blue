@@ -154,7 +154,7 @@ template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBa
 
     /*
         algorithm taken from
-        http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
+        https://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
     */
     void compute()
         {

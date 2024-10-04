@@ -119,12 +119,7 @@ jobs:
       id: lychee
       uses: lycheeverse/lychee-action@2b973e86fc7b1f6b36a93795fe2c9c6ae1118621  # v1.10.0
       with:
-        args: -n
-              --exclude-path 'sphinx-doc/_templates/page.html'
-              --exclude-path 'hoomd/extern'
-              --exclude https://glotzerlab.engin.umich.edu
-              --exclude doi.org
-              './**/*.md' './**/*.html' './**/*.rst'
+        args: -n './**/*.md' './**/*.html' './**/*.rst'
         fail: true
 
   tests_complete:

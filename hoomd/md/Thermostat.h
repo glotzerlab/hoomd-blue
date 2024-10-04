@@ -113,8 +113,8 @@ class Thermostat
 
 /** Implement the MTTK thermostat.
 
-    See: G. J. Martyna, D. J. Tobias, M. L. Klein 1994 <http://dx.doi.org/10.1063/1.467468> and
-    J. Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>.
+    See: G. J. Martyna, D. J. Tobias, M. L. Klein 1994 <https://dx.doi.org/10.1063/1.467468> and
+    J. Cao, G. J. Martyna 1996 <https://dx.doi.org/10.1063/1.470959>.
 */
 class MTTKThermostat : public Thermostat
     {

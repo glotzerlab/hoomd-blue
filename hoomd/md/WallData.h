@@ -68,7 +68,7 @@ struct __attribute__((visibility("default"))) CylinderWall
         vec3<Scalar> zVec = axis;
         vec3<Scalar> zNorm(0.0, 0.0, 1.0);
 
-        // method source: http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
+        // method source: https://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
         // easily simplified due to zNorm being a normalized vector
         Scalar normVec = sqrt(dot(zVec, zVec));
         Scalar realPart = normVec + dot(zNorm, zVec);

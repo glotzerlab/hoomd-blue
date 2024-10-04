@@ -30,7 +30,7 @@
 
 // Developed by:       Theoretical and Computational Biophysics Group
 //             University of Illinois at Urbana-Champaign
-//            http://www.ks.uiuc.edu/
+//            https://www.ks.uiuc.edu/
 
 namespace hoomd
     {
