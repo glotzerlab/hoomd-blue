@@ -284,7 +284,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     const Scalar kT = (*m_mc->getKT())(timestep);
 
-    if (allowed && p < exp(-(delta_beta_H + delta_U_pair + delta_U_external) / kT) + log_V_term)
+    if (allowed && p < (exp(-(delta_U_pair + delta_U_external) / kT) * exp(- delta_beta_H  + log_V_term)))
         {
         return true;
         }
