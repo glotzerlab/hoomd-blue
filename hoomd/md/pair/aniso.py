@@ -27,7 +27,7 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyTypes, OnlyIf, NDArrayValidator, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
 
 
@@ -566,9 +566,10 @@ class ALJ(AnisotropicPair):
         return self._return_type_shapes()
 
 
-REPLACE_PAIR_PARAM_DOC = "        * ``pair_params`` (`dict`, **required**) - passed to isotropic potential."
+_REPLACE_PAIR_PARAM_DOC = "        * ``pair_params`` (`dict`, **required**) - " \
+    "passed to isotropic potential."
 
-PATCHY_ARGS_DOC = r"""
+_PATCHY_ARGS_DOC = r"""
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
@@ -616,7 +617,9 @@ class Patchy(AnisotropicPair):
 
     .. math::
 
-        U(r, \theta_i, \theta_j) = f(\theta_i, \alpha, \omega) f(\theta_j, \alpha, \omega) U_{\mathrm{pair}}(r)
+        U(r, \theta_i, \theta_j) = f(\theta_i, \alpha, \omega)
+        f(\theta_j, \alpha, \omega)
+        U_{\mathrm{pair}}(r)
 
     where :math:`f` is an orientation-dependent factor of the patchy spherical
     cap half-angle :math:`\alpha` and patch steepness :math:`\omega`.
@@ -634,7 +637,8 @@ class Patchy(AnisotropicPair):
 
     Example::
 
-        patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list, default_r_cut = 3.0)
+        patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list,
+                                              default_r_cut = 3.0)
         patchy.params[('A', 'A')] = dict(pair_params = {'epsilon': 1, 'sigma': 1},
                                          envelope_params = {'alpha': , 'omega': })
         patchy.patches['A'] = [(1,0,0), (0,1,0)]
@@ -674,7 +678,8 @@ class Patchy(AnisotropicPair):
 
 
 class PatchyLJ(Patchy):
-    r"""
+    """Directional version of LJ."""
+    _example_doc = r"""
     Example::
 
         lj_params = dict(epsilon = 1, sigma = 1)
@@ -687,7 +692,7 @@ class PatchyLJ(Patchy):
         patchylj.patches['A'] = [(1,0,0)]
     """
 
-    local_doc = r"""
+    _local_doc = r"""
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
 
           * ``epsilon`` (`float`, **required**) - energy parameter
@@ -697,14 +702,15 @@ class PatchyLJ(Patchy):
 
     """
 
-    __doc__ = "Directional version of LJ.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyLJ"
     _pair_params = {"epsilon": float, "sigma": float}
 
 
 class PatchyExpandedGaussian(Patchy):
-    r"""
+    """Directional version of ExpandedGaussian."""
+    _example_doc = r"""
     Example::
 
         gauss_params = dict(epsilon = 1, sigma = 1, delta = 0.5)
@@ -718,7 +724,7 @@ class PatchyExpandedGaussian(Patchy):
             envelope_params = envelope_params)
         patchy_expanded_gaussian.patches['A'] = [(1,0,0), (1,1,1)]
     """
-    local_doc = r"""
+    _local_doc = r"""
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedGaussian.params`.
 
@@ -730,25 +736,27 @@ class PatchyExpandedGaussian(Patchy):
             :math:`\delta` :math:`[\mathrm{length}]`
 
     """
-    __doc__ = "Directional version of ExpandedGaussian.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
 
 class PatchyExpandedLJ(Patchy):
-    r"""
+    """Directional version of ExpandedLJ."""
+    _example_doc = r"""
     Example::
 
         lj_params = dict(epsilon = 1, sigma = 1)
         envelope_params = dict(alpha = np.pi/2, omega = 20)
 
-        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list, default_r_cut = 3.0)
+        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list,
+                                                default_r_cut = 3.0)
         patchylj.params[('A', 'A')] = dict(pair_params = lj_params,
                                            envelope_params = envelope_params)
         patchylj.patches['A'] = [(1,0,0)]
     """
-    local_doc = r"""
+    _local_doc = r"""
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedLJ.params`.
 
@@ -760,14 +768,15 @@ class PatchyExpandedLJ(Patchy):
             :math:`\Delta` :math:`[\mathrm{length}]`
 
     """
-    __doc__ = "Directional version of ExpandedLJ.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
 
 class PatchyExpandedMie(Patchy):
-    r"""
+    """Directional version of ExpandedMie."""
+    _example_doc = r"""
     Example::
 
         expanded_mie_params = {'epsilon': 1, 'sigma': 1,
@@ -781,7 +790,7 @@ class PatchyExpandedMie(Patchy):
             envelope_params = envelope_params)
         patchy_expanded_mie.patches['A'] = [(1,0,0)]
     """
-    local_doc = r"""
+    _local_doc = r"""
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedMie.params`.
 
@@ -797,8 +806,8 @@ class PatchyExpandedMie(Patchy):
             :math:`\Delta` :math:`[\mathrm{length}]`.
 
     """
-    __doc__ = "Directional version of ExpandedMie.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
     _pair_params = {
         "epsilon": float,
@@ -810,19 +819,22 @@ class PatchyExpandedMie(Patchy):
 
 
 class PatchyGaussian(Patchy):
-    r"""
+    """Directional version of Gaussian."""
+    _example_doc = r"""
     Example::
 
         gauss_params = dict(epsilon = 1, sigma = 1)
         envelope_params = dict(alpha = np.pi/4, omega = 30)
 
-        patchy_gaussian = hoomd.md.pair.aniso.PatchyGaussian(nlist = neighbor_list, default_r_cut = 3.0)
+        patchy_gaussian = hoomd.md.pair.aniso.PatchyGaussian(nlist = neighbor_list,
+                                                             default_r_cut = 3.0)
         patchy_gaussian.params[('A', 'A')] = dict(pair_params = gauss_params,
                                                   envelope_params = envelope_params)
         patchy_gaussian.patches['A'] = [(1,0,0)]
     """
-    local_doc = r"""
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.ExpandedMie.params`.
+    _local_doc = r"""
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedMie.params`.
 
           * ``epsilon`` (`float`, **required**) -
             :math:`\epsilon` :math:`[\mathrm{energy}]`.
@@ -837,25 +849,27 @@ class PatchyGaussian(Patchy):
 
     """
 
-    __doc__ = "Directional version of Gaussian.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyGauss"
     _pair_params = {"epsilon": float, "sigma": float}
 
 
 class PatchyMie(Patchy):
-    r"""
+    """Directional version of Mie."""
+    _example_doc = r"""
     Example::
 
         mie_params = {'epsilon': 1, 'sigma': 1, 'n': 10, 'm': 15}
         envelope_params = {'alpha': np.pi/3, 'omega': 20}
 
-        patchy_mie = hoomd.md.pair.aniso.PatchyMie(nlist = neighbor_list, default_r_cut = 3.0)
+        patchy_mie = hoomd.md.pair.aniso.PatchyMie(nlist = neighbor_list,
+                                                   default_r_cut = 3.0)
         patchy_mie.params[('A', 'A')] = dict(pair_params = mie_params
                                              envelope_params = envelope_params)
         patchy_mie.patches['A'] = [(1,0,0)]
     """
-    local_doc = r"""
+    _local_doc = r"""
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Mie.params`.
 
           * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
@@ -868,25 +882,27 @@ class PatchyMie(Patchy):
             :math:`[\mathrm{dimensionless}]`
 
     """
-    __doc__ = "Directional version of Mie.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
 
 
 class PatchyYukawa(Patchy):
-    r"""
+    """Directional version of Yukawa."""
+    _example_doc = r"""
     Example::
 
         yukawa_params = {'epsilon': 1, 'kappa': 10}
         envelope_params = {'alpha': np.pi/4, 'omega':25}
 
-        patchy_yukawa = hoomd.md.pair.aniso.PatchyYukawa(nlist = neighbor_list, default_r_cut = 5.0)
+        patchy_yukawa = hoomd.md.pair.aniso.PatchyYukawa(nlist = neighbor_list,
+                                                         default_r_cut = 5.0)
         patchy_yukawa.params[('A', 'A')] = dict(pair_params = yukawa_params
                                                 envelope_params = envelope_params)
         patchy_yukawa.patches['A'] = [(1,0,0)]
     """
-    local_doc = r"""
+    _local_doc = r"""
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Yukawa.params`.
 
           * ``epsilon`` (`float`, **required**) - energy parameter
@@ -895,7 +911,7 @@ class PatchyYukawa(Patchy):
             :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
 
     """
-    __doc__ = "Directional version of Yukawa.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
+    __doc__ += "\n" + _PATCHY_ARGS_DOC.replace(_REPLACE_PAIR_PARAM_DOC,
+                                               _local_doc) + _example_doc
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
