@@ -22,7 +22,6 @@ md.pair.aniso
     PatchyGaussian
     PatchyLJ
     PatchyMie
-    PatchyTable
     PatchyYukawa
 
 .. rubric:: Details
@@ -41,6 +40,5 @@ md.pair.aniso
         PatchyGaussian,
         PatchyLJ,
         PatchyMie,
-        PatchyTable,
         PatchyYukawa,
     :show-inheritance:

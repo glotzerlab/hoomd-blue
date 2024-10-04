@@ -899,32 +899,3 @@ class PatchyYukawa(Patchy):
         REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
-
-
-class PatchyTable(Patchy):
-    r"""
-    TODO: example
-    """
-    local_doc = r"""
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Table.params`.
-
-          * ``r_min`` (`float`, **required**) - the minimum distance to apply
-            the tabulated potential, corresponding to the first element of the
-            energy and force arrays :math:`[\\mathrm{length}]`.
-
-          * ``U`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
-            the tabulated energy values :math:`[\\mathrm{energy}]`.
-
-          * ``F`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
-            the tabulated force values :math:`[\\mathrm{force}]`. Must have the
-            same length as ``U``.
-
-"""
-    __doc__ = "Directional version of Table.\n" + PATCHY_ARGS_DOC.replace(
-        REPLACE_PAIR_PARAM_DOC, local_doc) + __doc__
-    _cpp_class_name = "AnisoPotentialPairPatchyTable"
-    _pair_params = {
-        "r_min": float,
-        "U": NDArrayValidator(np.float64),
-        "F": NDArrayValidator(np.float64)
-    }
