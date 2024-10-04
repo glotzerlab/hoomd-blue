@@ -14,6 +14,7 @@ import hoomd
 import atexit
 import os
 import numpy
+import math
 try:
     import sybil
     import sybil.parsers.rest
@@ -45,6 +46,7 @@ def setup_sybil_tests(namespace):
     # Common imports.
     namespace['numpy'] = numpy
     namespace['hoomd'] = hoomd
+    namespace['math'] = math
 
     namespace['gpu_not_available'] = _n_available_gpu == 0
 

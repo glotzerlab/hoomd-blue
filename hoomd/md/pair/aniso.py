@@ -17,6 +17,14 @@ energies and virials in the same manner as `hoomd.md.pair.Pair`
 
 `AnisotropicPair` does not support the ``'xplor'`` shifting mode or the ``r_on``
 parameter.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(
+        dt=0.001,
+        integrate_rotational_dof = True)
+
 """
 
 from collections.abc import Sequence
@@ -590,16 +598,22 @@ _PATCHY_ARGS_DOC = r"""
 
         * ``pair_params`` (`dict`, **required**) - passed to isotropic potential.
 
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
     .. py:attribute:: patches
 
-        The patch directions are specified as vectors that do not have
-        to be normalized. If a particle type does
-        not have patches, set the patches to an empty list.
+        List of vectors pointing to patch centers. Unnormalized vectors are normalized.
+        If a particle type does not have patches, set the patches to an empty list.
 
         Type: `list` [`tuple` [`float`, `float`, `float`]] or `list` [()]
 
-        Returns:
-            A list of normalized vectors.
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            patchy.patches['A'] = [(1,0,0), (1,1,1)]
+
 """
 
 
@@ -632,22 +646,62 @@ class Patchy(AnisotropicPair):
         f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
         \end{align}
 
-    For multiple patches, every combination of patch and
-    We use PatchyLJ as the example.
-
-    Example::
-
+    .. invisible-code-block: python
+        neighbor_list = hoomd.md.nlist.Cell(buffer = 0.4)
         patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list,
                                               default_r_cut = 3.0)
-        patchy.params[('A', 'A')] = dict(pair_params = {'epsilon': 1, 'sigma': 1},
-                                         envelope_params = {'alpha': , 'omega': })
-        patchy.patches['A'] = [(1,0,0), (0,1,0)]
-        patch1.patches['B']
+        pair_params = {'epsilon': 10, 'sigma': 1}
 
+        patchy.params.default = dict(pair_params = pair_params,
+                                     envelope_params = {'alpha': math.pi/4, 'omega': 30})
+        patchy.patches.default = []
+        simulation.operations.integrator.forces = [patchy]
+
+    For multiple patches, every combination of patch and
+    We use PatchyLJ as the example.
 
     To make specific patches
 
     todo write example
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters. A dictionary of dictionaries that
+        are passed on to the envelope and to the pair potential.
+
+        The dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * ``alpha`` (`float`) - patch half-angle :math:`\alpha` :math:`[\mathrm{rad}]`
+          * ``omega`` (`float`) - patch steepness :math:`\omega`
+
+
+        * ``pair_params`` (`dict`, **required**) - passed to isotropic potential (see subclasses).
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+    
+            envelope_params = {'alpha': math.pi/4, 'omega': 30}
+            patchy.params[('A', 'A')] = dict(pair_params = pair_params,
+                                             envelope_params = envelope_params)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: patches
+
+        List of vectors pointing to patch centers. Unnormalized vectors are normalized.
+        If a particle type does not have patches, set the patches to an empty list.
+
+        Type: `list` [`tuple` [`float`, `float`, `float`]] or `list` [()]
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            patchy.patches['A'] = [(1,0,0), (1,1,1)]
     """
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
