@@ -38,7 +38,7 @@ template<class Shape> class ComputeFreeVolume : public Compute
                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                       std::shared_ptr<CellList> cl);
     //! Destructor
-    virtual ~ComputeFreeVolume() {};
+    virtual ~ComputeFreeVolume() { };
 
     //! Get the number of MC samples to perform
     unsigned int getNumSamples()

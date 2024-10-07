@@ -189,10 +189,6 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
         {
         shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
         }
-    else if (nverts == 2)
-        {
-        throw std::runtime_error("Shape definition not supported for 2-vertex spheropolyhedra");
-        }
     else
         {
         shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius

@@ -100,9 +100,9 @@ void randpts(vector<Scalar>& x,
 
     while (i < N)
         {
-        Scalar xi = rand() / (Scalar(RAND_MAX)) * box - 0.5 * box;
-        Scalar yi = rand() / (Scalar(RAND_MAX)) * box - 0.5 * box;
-        Scalar zi = rand() / (Scalar(RAND_MAX)) * box - 0.5 * box;
+        Scalar xi = rand() / (Scalar(RAND_MAX))*box - 0.5 * box;
+        Scalar yi = rand() / (Scalar(RAND_MAX))*box - 0.5 * box;
+        Scalar zi = rand() / (Scalar(RAND_MAX))*box - 0.5 * box;
 
         int overlap = 0;
         for (unsigned int j = 0; j < i; j++)

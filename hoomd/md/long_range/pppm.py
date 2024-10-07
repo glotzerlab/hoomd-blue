@@ -117,9 +117,9 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     .. _J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980:
       https://doi.org/10.1063/1.464397
 
-    .. _D. LeBard et. al. 2012: http://dx.doi.org/10.1039/c1sm06787g
+    .. _D. LeBard et. al. 2012: https://dx.doi.org/10.1039/c1sm06787g
 
-    .. _Salin, G and Caillol, J. 2000: http://dx.doi.org/10.1063/1.1326477
+    .. _Salin, G and Caillol, J. 2000: https://dx.doi.org/10.1063/1.1326477
     """
     real_space_force = hoomd.md.pair.Ewald(nlist)
 

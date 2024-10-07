@@ -32,8 +32,8 @@ template<class evaluator> struct AlchemyPackage
     std::vector<ArrayHandle<Scalar>> force_handles = {};
     std::vector<std::bitset<evaluator::num_alchemical_parameters>> compute_mask = {};
 
-    AlchemyPackage(std::nullptr_t) {};
-    AlchemyPackage() {};
+    AlchemyPackage(std::nullptr_t) { };
+    AlchemyPackage() { };
     };
 
 //! Template class for computing alchemical pair potentials

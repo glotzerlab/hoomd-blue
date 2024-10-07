@@ -703,7 +703,7 @@ template<class Real> struct rotmat3;
         - rotate(quat, vec3)
 
     For more info on this representation and its relation to rotation, see:
-    http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
+    https://people.csail.mit.edu/bkph/articles/Quaternions.pdf
 
 
     \note normalize is purposefully **NOT** defined. It would hide hide a sqrt. In high
@@ -843,7 +843,7 @@ template<class Real> DEVICE inline quat<Real>& operator-=(quat<Real>& a, const q
     \param b Second quat
 
     Multiplication is quaternion multiplication, defined as the cross product minus the dot product.
-    (Ref. http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Quaternions_briefly)
+    (Ref. https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Quaternions_briefly)
     When quaternions are being used for rotation, the composition of two rotation operations can be
     replaced by the quaternion product of the second rotation quaternion times the first.
     Note that quaternion multiplication is non-commutative.
@@ -903,7 +903,7 @@ template<class Real> DEVICE inline quat<Real> conj(const quat<Real>& a)
 
 //! Construct a quaternion from a rotation matrix
 /*! \note The rotation matrix must have positive determinant
- http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+ https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
  */
 template<class Real> DEVICE inline quat<Real>::quat(const rotmat3<Real>& r)
     {
@@ -951,10 +951,10 @@ template<class Real> DEVICE inline vec3<Real> rotate(const quat<Real>& a, const 
 
     // note: this version below probably results in fewer math operations. Need to double check that
     // it works when testing. I guesstimate only 20 clock ticks to rotate a vector with this code.
-    // it comes from http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
+    // it comes from https://people.csail.mit.edu/bkph/articles/Quaternions.pdf
     return (a.s * a.s - dot(a.v, a.v)) * b + 2 * a.s * cross(a.v, b) + 2 * dot(a.v, b) * a.v;
 
-    // from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+    // from https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
     // a suggested method for 15 mults and 15 adds, also in the above pdf:
     // return b + cross( (Real(2) * a.v), (cross(a.v,b) + (a.s * b)) );
     }
@@ -975,10 +975,10 @@ template<class Real> DEVICE inline vec2<Real> rotate(const quat<Real>& a, const 
 
     // note: this version below probably results in fewer math operations. Need to double check that
     // it works when testing. I guesstimate only 20 clock ticks to rotate a vector with this code.
-    // it comes from http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
+    // it comes from https://people.csail.mit.edu/bkph/articles/Quaternions.pdf
     b3 = (a.s * a.s - dot(a.v, a.v)) * b3 + 2 * a.s * cross(a.v, b3) + 2 * dot(a.v, b3) * a.v;
 
-    // from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+    // from https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
     // a suggested method for 15 mults and 15 adds, also in the above pdf:
     // b3 = b3 + cross( (Real(2) * a.v), (cross(a.v,b3) + (a.s * b3)) );
     return vec2<Real>(b3.x, b3.y);
@@ -1034,7 +1034,7 @@ template<class Real> struct rotmat2
         This is a convenience function for easy initialization of rotmat2s from quats. The rotmat2
        will initialize to the same rotation as the quaternion.
 
-        formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+        formula from https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
 
     */
     DEVICE explicit rotmat2(const quat<Real>& q)
@@ -1050,7 +1050,7 @@ template<class Real> struct rotmat2
     //! Default construct an identity matrix
     DEVICE rotmat2() : row0(vec2<Real>(1, 0)), row1(vec2<Real>(0, 1)) { }
 
-    //! Construct a rotmat2 from a float. formula from http://en.wikipedia.org/wiki/Rotation_matrix
+    //! Construct a rotmat2 from a float. formula from https://en.wikipedia.org/wiki/Rotation_matrix
     /*! \param theta angle to represent
 
         This is a convenience function for easy initialization of rotmat2s from angles. The rotmat2
@@ -1132,7 +1132,7 @@ template<class Real> struct rotmat3
     */
     DEVICE explicit rotmat3(const quat<Real>& q)
         {
-        // formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+        // formula from https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
         Real a = q.s, b = q.v.x, c = q.v.y, d = q.v.z;
 
         row0.x = a * a + b * b - c * c - d * d;

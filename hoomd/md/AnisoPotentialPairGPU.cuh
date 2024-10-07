@@ -70,7 +70,7 @@ struct a_pair_args_t
           d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes), block_size(_block_size),
           shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
-          devprop(_devprop), update_shape_param(_update_shape_param) {};
+          devprop(_devprop), update_shape_param(_update_shape_param) { };
 
     Scalar4* d_force;             //!< Force to write out
     Scalar4* d_torque;            //!< Torque to write out

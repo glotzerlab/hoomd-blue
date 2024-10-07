@@ -45,7 +45,7 @@ class PYBIND11_EXPORT MPIConfiguration
     );
 
     //! Destructor
-    virtual ~MPIConfiguration() {};
+    virtual ~MPIConfiguration() { };
 
 #ifdef ENABLE_MPI
     MPI_Comm operator()() const

@@ -58,7 +58,7 @@ class PYBIND11_EXPORT ParticleDataSnapshot
     ParticleDataSnapshot(unsigned int N);
 
     //! Destructor
-    ~ParticleDataSnapshot() {};
+    ~ParticleDataSnapshot() { };
 
     //! Resize the snapshot
     void resize(unsigned int N);

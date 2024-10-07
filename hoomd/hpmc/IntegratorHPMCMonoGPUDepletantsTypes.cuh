@@ -37,7 +37,7 @@ struct hpmc_implicit_args_t
         : depletant_type_a(_depletant_type_a), d_implicit_count(_d_implicit_count),
           implicit_counters_pitch(_implicit_counters_pitch), repulsive(_repulsive),
           d_n_depletants(_d_n_depletants), max_n_depletants(_max_n_depletants),
-          depletants_per_thread(_depletants_per_thread), streams(_streams) {};
+          depletants_per_thread(_depletants_per_thread), streams(_streams) { };
 
     const unsigned int depletant_type_a;        //!< Particle type of first depletant
     hpmc_implicit_counters_t* d_implicit_count; //!< Active cell acceptance/rejection counts

@@ -441,7 +441,7 @@ class Stencil(NeighborList):
     particles per cell. In contrast with `Cell`, `Stencil` allows the user to
     choose the cell width: `cell_width` instead of fixing it to the largest
     cutoff radius (`P.J. in't Veld et al. 2008
-    <http://dx.doi.org/10.1016/j.cpc.2008.03.005>`_):
+    <https://dx.doi.org/10.1016/j.cpc.2008.03.005>`_):
 
     .. image:: stencil_schematic.png
         :width: 300 px
@@ -468,7 +468,7 @@ class Stencil(NeighborList):
         nl_s = nlist.Stencil(cell_width=1.5)
 
     Important:
-        `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
+        `M.P. Howard et al. 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
         describes this neighbor list implementation. Cite it if you utilize
         `Stencil` in your research.
 
@@ -542,7 +542,7 @@ class Tree(NeighborList):
     for large, sparse systems.
 
     Important:
-        `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
+        `M.P. Howard et al. 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
         describes the original implementation of this algorithm for HOOMD-blue.
         `M.P. Howard et al. 2019
         <https://doi.org/10.1016/j.commatsci.2019.04.004>`_ describes the

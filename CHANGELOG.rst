@@ -2653,7 +2653,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
    blocks.
 -  ``analyze.log`` can now register python callback functions as sources
    for logged quantities.
--  The GSD file format (http://gsd.readthedocs.io) is fully implemented
+-  The GSD file format (https://gsd.readthedocs.io) is fully implemented
    in hoomd
 
    -  ``dump.gsd`` writes GSD trajectories and restart files (use
@@ -2688,7 +2688,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
    -  Convenience functions for common lattices: sq, hex, sc, bcc, fcc.
 
 -  Dump and initialize commands for the GTAR file format
-   (http://libgetar.readthedocs.io).
+   (https://libgetar.readthedocs.io).
 
    -  GTAR can store trajectory data in zip, tar, sqlite, or bare
       directories
@@ -3241,7 +3241,7 @@ Version 0.11.0 (2012-07-27)
 12. Added *–msg-file* command line option which redirects the message
     output to a file
 13. New pair potential *pair.force_shifted_lj* : Implements
-    http://dx.doi.org/10.1063/1.3558787
+    https://dx.doi.org/10.1063/1.3558787
 
 *Bug fixes*
 
