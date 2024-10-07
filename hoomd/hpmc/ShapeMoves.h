@@ -31,7 +31,7 @@ template<typename Shape> class ShapeMoveBase
         m_step_size.resize(m_ntypes, 0);
         }
 
-    virtual ~ShapeMoveBase() {};
+    virtual ~ShapeMoveBase() { };
 
     //! prepare is called at the beginning of every update()
     virtual void prepare(uint64_t timestep) { }

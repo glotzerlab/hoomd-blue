@@ -40,7 +40,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
                              std::shared_ptr<Variant> T,
                              Scalar tolerance);
 
-    virtual ~TwoStepRATTLELangevinGPU() {};
+    virtual ~TwoStepRATTLELangevinGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

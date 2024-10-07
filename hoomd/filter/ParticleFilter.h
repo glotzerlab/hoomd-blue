@@ -36,7 +36,7 @@ class PYBIND11_EXPORT ParticleFilter
     {
     public:
     /// constructs a base ParticleFilter (does nothing)
-    ParticleFilter() {};
+    ParticleFilter() { };
     virtual ~ParticleFilter() { }
 
     /** Test if a particle meets the selection criteria.

@@ -30,7 +30,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     //! Construct a cell list
     CellListGPU(std::shared_ptr<SystemDefinition> sysdef);
 
-    virtual ~CellListGPU() {};
+    virtual ~CellListGPU() { };
 
     //! Request a multi-GPU cell list
     virtual void setPerDevice(bool per_device)

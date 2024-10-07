@@ -13,7 +13,7 @@ class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
     {
     public:
     /// Constructs the selector
-    ParticleFilterAll() : ParticleFilter() {};
+    ParticleFilterAll() : ParticleFilter() { };
     virtual ~ParticleFilterAll() { }
 
     /** Args:
