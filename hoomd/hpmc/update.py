@@ -640,13 +640,14 @@ class VirtualClusterMoves(Updater):
     See Whitelam and Geissler (2007).
     """
 
-    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0, translation_move_probability=0.5, maximum_trial_rotation=3.14,maximum_trial_translation=1.0):
+    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0, translation_move_probability=0.5, maximum_trial_rotation=0.5,maximum_trial_translation=1.0, maximum_trial_center_of_rotation_shift=1.0):
         super().__init__(trigger)
         param_dict = ParameterDict(attempts_per_particle=int(attempts_per_particle),
                                    beta_ficticious=float(beta_ficticious),
                                    translation_move_probability=float(translation_move_probability),
                                    maximum_trial_rotation=float(maximum_trial_rotation),
                                    maximum_trial_translation=float(maximum_trial_translation),
+                                   maximum_trial_center_of_rotation_shift=float(maximum_trial_center_of_rotation_shift),
                                    )
         self._param_dict.update(param_dict)
         self.instance = 0
