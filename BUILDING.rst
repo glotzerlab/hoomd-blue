@@ -73,7 +73,7 @@ The sections below provide details on each of these steps.
 Install prerequisites
 ---------------------
 
-You will need to install a number of tools and libraries to build **HOOMD-blue**. The options 
+You will need to install a number of tools and libraries to build **HOOMD-blue**. The options
 ``ENABLE_MPI``, ``ENABLE_GPU``, ``ENABLE_TBB``, and ``ENABLE_LLVM`` each require additional
 libraries when enabled.
 
