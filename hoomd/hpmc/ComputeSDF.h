@@ -115,7 +115,7 @@ template<class Shape> class ComputeSDF : public Compute
                double dx);
 
     //! Destructor
-    virtual ~ComputeSDF() {};
+    virtual ~ComputeSDF() { };
 
     //! Get the maximum value in the rightmost histogram bin
     double getXMax()

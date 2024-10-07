@@ -76,7 +76,7 @@ class PYBIND11_EXPORT AutotunerBase
         }
 
     /// Set autother parameters from a Python tuple.
-    virtual void setParameterPython(pybind11::tuple parameter) {};
+    virtual void setParameterPython(pybind11::tuple parameter) { };
 #endif
 
 #ifdef ENABLE_HIP

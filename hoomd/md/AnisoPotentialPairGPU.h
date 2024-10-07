@@ -41,7 +41,7 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
     AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<NeighborList> nlist);
     //! Destructor
-    virtual ~AnisoPotentialPairGPU() {};
+    virtual ~AnisoPotentialPairGPU() { };
 
     virtual void
     setParams(unsigned int typ1, unsigned int typ2, const typename evaluator::param_type& param);

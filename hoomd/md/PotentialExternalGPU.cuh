@@ -40,7 +40,7 @@ struct external_potential_args_t
                               const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
           box(_box), N(_N), d_pos(_d_pos), d_orientation(_d_orientation), d_charge(_d_charge),
-          block_size(_block_size), devprop(_devprop) {};
+          block_size(_block_size), devprop(_devprop) { };
 
     Scalar4* d_force;               //!< Force to write out
     Scalar4* d_torque;              //!< Torque to write out

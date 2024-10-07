@@ -44,7 +44,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
                         Manifold manifold,
                         Scalar tolerance);
 
-    virtual ~TwoStepRATTLENVEGPU() {};
+    virtual ~TwoStepRATTLENVEGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

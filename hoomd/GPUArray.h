@@ -272,7 +272,7 @@ template<class T, class Derived> class GPUArrayBase
 
     private:
     // Make constructor private to prevent mistakes
-    GPUArrayBase() {};
+    GPUArrayBase() { };
     friend Derived;
     };
 

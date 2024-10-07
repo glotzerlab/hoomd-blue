@@ -43,7 +43,7 @@ class PYBIND11_EXPORT Tuner : public Updater
     public:
     //! Constructs the compute and associates it with the ParticleData
     Tuner(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
-    virtual ~Tuner() {};
+    virtual ~Tuner() { };
     };
 
 namespace detail
