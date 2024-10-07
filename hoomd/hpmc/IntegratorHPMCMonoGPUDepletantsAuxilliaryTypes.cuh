@@ -39,7 +39,7 @@ struct hpmc_auxilliary_args_t
           d_n_depletants_ntrial(_d_n_depletants_ntrial), d_deltaF_int(_d_deltaF_int),
           streams_phase1(_streams_phase1), streams_phase2(_streams_phase2), max_len(_max_len),
           d_req_len(_d_req_len), add_ghosts(_add_ghosts), n_ghosts(_n_ghosts),
-          gpu_partition_rank(_gpu_partition_rank) {};
+          gpu_partition_rank(_gpu_partition_rank) { };
 
     const unsigned int* d_tag;  //!< Particle tags
     const Scalar4* d_vel;       //!< Particle velocities (.x component is the auxilliary variable)

@@ -47,7 +47,7 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
     PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
                               std::shared_ptr<NeighborList> nlist);
     //! Destructor
-    virtual ~PotentialPairDPDThermoGPU() {};
+    virtual ~PotentialPairDPDThermoGPU() { };
 
     protected:
     std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle

@@ -69,7 +69,7 @@ struct hpmc_free_volume_args_t
           select(_select), timestep(_timestep), dim(_dim), box(_box), block_size(_block_size),
           stride(_stride), group_size(_group_size), max_n(_max_n),
           d_n_overlap_all(_d_n_overlap_all), ghost_width(_ghost_width),
-          d_check_overlaps(_d_check_overlaps), overlap_idx(_overlap_idx), devprop(_devprop) {};
+          d_check_overlaps(_d_check_overlaps), overlap_idx(_overlap_idx), devprop(_devprop) { };
 
     unsigned int n_sample;                //!< Number of depletants particles to generate
     unsigned int type;                    //!< Type of depletant particle

@@ -47,7 +47,7 @@ template<int group_size> struct bond_args_t
           d_pos(_d_pos), d_charge(_d_charge), box(_box), d_gpu_bondlist(_d_gpu_bondlist),
           gpu_table_indexer(_gpu_table_indexer), d_gpu_bond_pos(_d_gpu_bond_pos),
           d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size),
-          devprop(_devprop) {};
+          devprop(_devprop) { };
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out

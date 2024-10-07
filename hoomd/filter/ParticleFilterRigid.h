@@ -49,7 +49,7 @@ class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
     {
     public:
     /// constructs a ParticleFilterRigid
-    ParticleFilterRigid(RigidBodySelection flag) : m_current_selection {flag} {};
+    ParticleFilterRigid(RigidBodySelection flag) : m_current_selection {flag} { };
 
     ParticleFilterRigid(pybind11::tuple flags) : m_current_selection(RigidBodySelection::NONE)
         {

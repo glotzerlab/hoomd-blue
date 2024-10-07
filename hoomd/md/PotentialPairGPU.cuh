@@ -71,7 +71,7 @@ struct pair_args_t
           size_neigh_list(_size_neigh_list), ntypes(_ntypes), block_size(_block_size),
           shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
-          devprop(_devprop) {};
+          devprop(_devprop) { };
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
