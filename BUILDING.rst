@@ -4,41 +4,67 @@
 Building from source
 ====================
 
-To build the **HOOMD-blue** Python package from source:
+To build the **HOOMD-blue** from source:
 
-1. `Install prerequisites`_::
+1. `Install prerequisites`_:
 
-   $ <package-manager> install cmake eigen git python numpy pybind11
+   .. code-block:: bash
 
-2. `Obtain the source`_::
+       micromamba install cmake eigen git python numpy pybind11
 
-   $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
+2. `Obtain the source`_:
 
-3. `Configure`_::
+   .. code-block:: bash
 
-   $ cmake -B build/hoomd -S hoomd-blue
+       git clone --recursive git@github.com:glotzerlab/hoomd-blue.git
 
-4. `Build the package`_::
+3. Change to the repository directory:
 
-   $ cmake --build build/hoomd
+   .. code-block:: bash
 
-5. `Install the package`_ (optional)::
+       cd hoomd-blue
 
-   $ cmake --install build/hoomd
+3. `Configure`_:
+
+   .. code-block:: bash
+
+       cmake -B build -S . -GNinja
+
+4. `Build the package`_:
+
+   .. code-block:: bash
+
+       cd build
+
+   .. code-block:: bash
+
+       ninja
+
+6. `Run tests`_:
+
+   .. code-block:: bash
+
+       python3 -m pytest hoomd
+
+5. `Install the package`_ (optional):
+
+   .. code-block:: bash
+
+       ninja install
 
 To build the documentation from source (optional):
 
-1. `Install prerequisites`_::
+1. `Install prerequisites`_:
 
-   $ <package-manager> install sphinx sphinx-copybutton furo nbsphinx ipython
+   .. code-block:: bash
 
-.. note::
+       micromamba install sphinx sphinx-copybutton furo nbsphinx ipython
 
-   ``nbsphinx`` requires ``pandoc>=1.12.1``, which you may need to install separately.
+2. `Build the documentation`_:
 
-2. `Build the documentation`_::
+   .. code-block:: bash
 
-   $ sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation
+       sphinx-build -b html sphinx-doc html
 
 The sections below provide details on each of these steps.
 
@@ -47,70 +73,69 @@ The sections below provide details on each of these steps.
 Install prerequisites
 ---------------------
 
-**HOOMD-blue** requires a number of tools and libraries to build. The options ``ENABLE_MPI``,
-``ENABLE_GPU``, ``ENABLE_TBB``, and ``ENABLE_LLVM`` each require additional libraries when enabled.
+You will need to install a number of tools and libraries to build **HOOMD-blue**. The options
+``ENABLE_MPI``, ``ENABLE_GPU``, ``ENABLE_TBB``, and ``ENABLE_LLVM`` each require additional
+libraries when enabled.
+
+Install the required dependencies:
+
+.. code-block:: bash
+
+   micromamba install cmake eigen git python numpy pybind11
+
+Install additional packages needed to run the unit tests:
+
+.. code-block:: bash
+
+   micromamba install pytest
+
+Install additional packages needed to build the documentation:
+
+.. code-block:: bash
+
+   micromamba install sphinx sphinx-copybutton furo nbsphinx ipython
 
 .. note::
 
-    This documentation is generic. Replace ``<package-manager>`` with your package or module
-    manager. You may need to adjust package names and/or install additional packages, such as
-    ``-dev`` packages that provide headers needed to build hoomd.
+    This guide assumes that you use the micromamba_ package manager. Adjust the commands
+    appropriately for the package manager of your choice.
 
-.. tip::
+.. warning::
 
-    Create a `virtual environment`_, one place where you can install dependencies and
-    **HOOMD-blue**::
+    When using a ``conda-forge`` environment for development, make sure that the environment does
+    not contain ``clang``, ``gcc``, or any other compiler or linker. These interfere with the native
+    compilers on your system and will result in compiler errors when building, linker errors when
+    running, or segmentation faults.
 
-        $ python3 -m venv hoomd-venv
-
-    You will need to activate your environment before configuring **HOOMD-blue**::
-
-        $ source hoomd-venv/bin/activate
-
-.. note::
-
-    Some package managers (such as *pip*) and many clusters are missing some or all of **pybind11**,
-    **eigen**, and **cereal**. ``install-prereq-headers.py`` will install these packages into your
-    virtual environment::
-
-    $ python3 hoomd-blue/install-prereq-headers.py
+.. _micromamba: https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html
 
 **General requirements:**
 
-- C++17 capable compiler (tested with ``gcc`` 10 - 14 and ``clang`` 13 - 18)
-- Python >= 3.9
-- NumPy >= 1.19
-- pybind11 >= 2.12
-- Eigen >= 3.2
-- CMake >= 3.15
+- **C++17** capable compiler
+- **CMake**
+- **NumPy**
+- **pybind11**
+- **Python**
+- **Eigen**
 
 **For MPI parallel execution** (required when ``ENABLE_MPI=on``):
 
-- MPI (tested with OpenMPI)
-- cereal >= 1.1
+- A **MPI** library (tested with OpenMPI)
+- **cereal**
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
 
-- NVIDIA CUDA Toolkit >= 9.0
+- **NVIDIA CUDA Toolkit**
 
   *OR*
 
-- AMD ROCm >= 3.5.0 with additional dependencies:
-
-  - HIP [with ``hipcc`` and ``hcc`` as backend]
-  - rocFFT
-  - rocPRIM
-  - rocThrust
-  - hipCUB, included for NVIDIA GPU targets, but required as an
-    external dependency when building for AMD GPUs
-  - roctracer-dev
-  - Linux kernel >= 3.5.0
-  - CMake >= 3.21
-
-  For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
-
-  1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-  2. Multi-GPU execution via unified memory is not available.
+- AMD ROCm
+- HIP [with ``hipcc`` and ``hcc`` as backend]
+- rocFFT
+- rocPRIM
+- rocThrust
+- hipCUB
+- roctracer-dev
 
 .. note::
 
@@ -119,46 +144,45 @@ Install prerequisites
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
-- Intel Threading Building Blocks >= 4.3
+- **Intel Threading Building Blocks**
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 10.0
-- libclang-cpp >= 10.0
+- **LLVM**
+- **libclang-cpp**
 
 **To build the documentation:**
 
-- sphinx
-- sphinx-copybutton
-- furo
-- nbsphinx
-- ipython
-
-.. _virtual environment: https://docs.python.org/3/library/venv.html
+- **sphinx**
+- **sphinx-copybutton**
+- **furo**
+- **nbsphinx**
+- **ipython**
 
 .. _Obtain the source:
 
 Obtain the source
 -----------------
 
-Clone using Git_::
+Clone using Git_:
 
-   $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
+.. code-block:: bash
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-4.8.2.tar.gz`_.
+   git clone --recursive git@github.com:glotzerlab/hoomd-blue.git
+
+Release tarballs are also available as `GitHub release`_ assets.
 
 .. seealso::
 
     See the `git book`_ to learn how to work with Git repositories.
 
-.. warning::
+.. important::
 
     **HOOMD-blue** uses Git submodules. Clone with the ``--recursive`` to clone the submodules.
 
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-4.8.2.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v4.8.2/hoomd-4.8.2.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/
@@ -168,35 +192,19 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
 Configure
 ---------
 
-Use CMake_ to configure a **HOOMD-blue** build in the given directory. Pass
-``-D<option-name>=<value>`` to ``cmake`` to set options on the command line. When modifying code,
-you only need to repeat the build step to update your build - it will automatically reconfigure
-as needed.
+Use CMake_ to configure the **HOOMD-blue** build directory:
 
-.. tip::
+.. code-block:: bash
 
-    Use Ninja_ to perform incremental builds in less time::
+    cd {{ path/to/hoomd-blue/repository }}
 
-        $ cmake -B build/hoomd -S hoomd-blue -GNinja
+.. code-block:: bash
 
-.. tip::
+    cmake -B build -S . -GNinja
 
-    Place your build directory in ``/tmp`` or ``/scratch`` for faster builds. CMake_ performs
-    out-of-source builds, so the build directory can be anywhere on the filesystem.
+Pass ``-D<option-name>=<value>`` to ``cmake`` to set options on the command line.
 
-.. tip::
-
-    Pass the following options to ``cmake`` to optimize the build for your processor:
-    ``-DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native``.
-
-.. important::
-
-    When using a virtual environment, activate the environment and set the cmake prefix path
-    before running CMake_: ``$ export CMAKE_PREFIX_PATH=<path-to-environment>``.
-
-**HOOMD-blue**'s cmake configuration accepts a number of options.
-
-Options that find libraries and executables only take effect on a clean invocation of CMake. To set
+Options that find libraries and executables take effect only on a clean invocation of CMake. To set
 these options, first remove ``CMakeCache.txt`` from the build directory and then run ``cmake`` with
 these options on the command line.
 
@@ -271,6 +279,11 @@ These options control CUDA compilation via ``nvcc``:
 
 - ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to compile.
 
+.. tip::
+
+    Pass the following options to CMake_ to optimize the build for your processor:
+    ``-DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native``
+
 .. _CMake: https://cmake.org/
 .. _Ninja: https://ninja-build.org/
 
@@ -279,35 +292,72 @@ These options control CUDA compilation via ``nvcc``:
 Build the package
 -----------------
 
-The command ``cmake --build build/hoomd`` will build the **HOOMD-blue** Python package in the given
-build directory. After the build completes, the build directory will contain a functioning Python
-package.
+After configuring, build **HOOMD-blue** with:
+
+.. code-block:: bash
+
+    cd build
+
+.. code-block:: bash
+
+    ninja
+
+The ``build`` directory now contains a fully functional **HOOMD-blue** package.
+Execute ``ninja`` again any time you modify the code, test scripts, or CMake scripts.
+
+.. tip::
+
+    ``ninja`` will automatically execute ``cmake`` as needed. You do **NOT** need to execute
+    ``cmake`` yourself every time you build **HOOMD-blue**.
+
+Run tests
+---------
+
+Use `pytest`_ to execute unit tests:
+
+.. code-block:: bash
+
+   python3 -m pytest hoomd
+
+.. _pytest: https://docs.pytest.org/
 
 .. _Install the package:
 
 Install the package
 -------------------
 
-The command ``cmake --install build/hoomd`` installs the given **HOOMD-blue** build to
-``${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}``. CMake autodetects these paths, but you can
-set them manually in CMake.
+Execute:
+
+.. code-block:: bash
+
+    ninja install
+
+to install **HOOMD-blue** into your Python environment.
+
+.. warning::
+
+    This will *overwrite* any **HOOMD-blue** that you may have installed by other means.
+
+To use the compiled **HOOMD-blue** without modifying your environment, set ``PYTHONPATH``::
+
+    export PYTHONPATH={{ path/to/hoomd-blue/repository/build }}
 
 .. _Build the documentation:
 
 Build the documentation
 -----------------------
 
-Run `Sphinx`_ to build the documentation with the command
-``sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation``. Open the file
-:file:`build/hoomd-documentation/index.html` in your web browser to view the documentation.
+Run `Sphinx`_ to build HTML documentation:
+
+.. code-block:: bash
+
+    sphinx-build -b html sphinx-doc html
+
+Open the file :file:`html/index.html` in your web browser to view the documentation.
 
 .. tip::
 
-    When iteratively modifying the documentation, the sphinx options ``-a -n -W -T --keep-going``
-    are helpful to produce docs with consistent links in the side panel and to see more useful error
-    messages::
-
-        $ sphinx-build -a -n -W -T --keep-going -b html \
-            hoomd-blue/sphinx-doc build/hoomd-documentation
+    Add the sphinx options ``-a -n -W -T --keep-going`` to produce docs with consistent links in
+    the side panel and provide more useful error messages.
 
 .. _Sphinx: https://www.sphinx-doc.org/
