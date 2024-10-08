@@ -461,11 +461,11 @@ class SDF(Compute):
 
     @log(requires_run=True)
     def P(self):  # noqa: N802 - allow function name
-        """float: pressure in NVT simulations \
-        :math:`\\left[ \\mathrm{energy}  \\mathrm{length}^{-d} \\right]`.
+        """float: Pressure in NVT simulations \
+        :math:`\\left[ \\mathrm{energy} \\ \\mathrm{length}^{-d} \\right]`.
 
         .. math::
-            P = \frac{1}{\\beta} \\beta P
+            P = \\frac{1}{\\beta} \\beta P
 
         where :math:`\\beta P` is given by `betaP`.
 
