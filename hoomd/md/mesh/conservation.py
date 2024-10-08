@@ -26,12 +26,15 @@ from hoomd.logging import log
 class Area(MeshConvervationPotential):
     r"""Area conservation potential.
 
-    :py:class:`Area` specifies a global area conservation energy for each
+    `Area` specifies a global area conservation energy for each
     mesh type.
 
     .. math::
 
-        U(r) = k \frac{( A(r) - A_0 )^2}{2 \cdot A_0}
+        U_t = k \frac{ (A_t - A_{0,t} )^2}{2 \cdot A_0}
+
+    with :math:`A_t` is the instantaneous total area of all triangles   
+    of type :math:`t`.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
@@ -49,6 +52,7 @@ class Area(MeshConvervationPotential):
               :math:`[\mathrm{length}]^2]`
 
     Examples::
+
         area_conservation_potential = mesh.conservation.Area(mesh)
         tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
     """
@@ -97,6 +101,7 @@ class TriangleArea(MeshPotential):
               :math:`[\mathrm{length}]^2`
 
     Examples::
+
         tringle_area_conservation_potential = mesh.conservation.TriangleArea(mesh)
         tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
     """
