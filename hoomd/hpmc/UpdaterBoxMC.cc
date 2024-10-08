@@ -284,7 +284,8 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     const Scalar kT = (*m_mc->getKT())(timestep);
 
-    if (allowed && p < (exp(-(delta_U_pair + delta_U_external) / kT) * exp(- delta_beta_H  + log_V_term)))
+    if (allowed
+        && p < (exp(-(delta_U_pair + delta_U_external) / kT) * exp(-delta_beta_H + log_V_term)))
         {
         return true;
         }
@@ -427,7 +428,7 @@ void UpdaterBoxMC::update(uint64_t timestep)
 void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     // Get updater parameters for current timestep
-    Scalar P = (*m_beta_P)(timestep);
+    Scalar beta_P = (*m_beta_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -499,7 +500,7 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        double delta_beta_H = P * dV;
+        double delta_beta_H = beta_P * dV;
         double log_V_term = Nglobal * log(Vnew / Vold);
 
         // attempt box change
@@ -529,7 +530,7 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
 void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     // Get updater parameters for current timestep
-    Scalar P = (*m_beta_P)(timestep);
+    Scalar beta_P = (*m_beta_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -584,7 +585,7 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     else
         {
         // Calculate Boltzmann factor
-        double delta_beta_H = P * (new_V - V);
+        double delta_beta_H = beta_P * (new_V - V);
         double log_V_term = (Nglobal + 1) * log(new_V / V);
 
         // attempt box change
@@ -613,7 +614,7 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
 void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     // Get updater parameters for current timestep
-    Scalar P = (*m_beta_P)(timestep);
+    Scalar beta_P = (*m_beta_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -673,7 +674,7 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
             Vnew *= newL[2];
             }
         // Calculate Boltzmann factor
-        double delta_beta_H = P * dV;
+        double delta_beta_H = beta_P * dV;
         double log_V_term = Nglobal * log(Vnew / V);
 
         // attempt box change
