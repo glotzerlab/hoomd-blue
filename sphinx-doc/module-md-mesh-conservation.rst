@@ -18,7 +18,7 @@ md.mesh.conservation
 
 .. automodule:: hoomd.md.mesh.conservation
     :synopsis: Conservation potentials applied to a mesh data structure.
-    :members: Area,
-              TriangleArea
     :no-inherited-members:
     :show-inheritance:
+    :members: Area,
+              TriangleArea

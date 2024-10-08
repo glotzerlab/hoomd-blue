@@ -61,15 +61,6 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
     m_autotuners.push_back(m_tuner);
     }
 
-void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
-    {
-    TriangleAreaConservationMeshForceCompute::setParams(type, K, A0);
-
-    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
-    // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, A0);
-    }
-
 void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     // access the particle data arrays

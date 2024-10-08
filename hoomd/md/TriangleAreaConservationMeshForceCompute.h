@@ -96,8 +96,7 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
 #endif
 
     protected:
-    Scalar* m_K;    //!< K parameter for multiple mesh types
-    Scalar* m_A0;   //!< A0 parameter for multiple mesh types
+    GPUArray<Scalar2> m_params;                   //!< Parameters
     Scalar* m_area; //!!< total mesh area per mesh type
 
     std::shared_ptr<MeshDefinition>

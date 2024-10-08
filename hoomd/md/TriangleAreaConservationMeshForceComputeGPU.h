@@ -40,9 +40,6 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
     TriangleAreaConservationMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                 std::shared_ptr<MeshDefinition> meshdef);
 
-    //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
-
     virtual pybind11::array_t<Scalar> getArea()
         {
         computeArea();
@@ -55,7 +52,6 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
 
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;        //!< Flags set during the kernel execution
-    GPUArray<Scalar2> m_params;            //!< Parameters stored on the GPU
 
     GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over area
     GPUArray<Scalar> m_sum;         //!< memory space for sum over area

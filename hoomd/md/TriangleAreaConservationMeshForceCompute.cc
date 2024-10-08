@@ -28,17 +28,14 @@ namespace md
 TriangleAreaConservationMeshForceCompute::TriangleAreaConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_K(NULL), m_A0(NULL), m_mesh_data(meshdef)
+    : ForceCompute(sysdef), m_mesh_data(meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing TriangleAreaConservationhMeshForceCompute" << endl;
 
     unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    // allocate the parameters
-    m_K = new Scalar[n_types];
-
-    // allocate the parameters
-    m_A0 = new Scalar[n_types];
+    GPUArray<Scalar2> params(n_types, m_exec_conf);
+    m_params.swap(params);
 
     m_area = new Scalar[n_types];
     }
@@ -47,11 +44,7 @@ TriangleAreaConservationMeshForceCompute::~TriangleAreaConservationMeshForceComp
     {
     m_exec_conf->msg->notice(5) << "Destroying TriangleAreaConservationMeshForceCompute" << endl;
 
-    delete[] m_K;
-    delete[] m_A0;
     delete[] m_area;
-    m_K = NULL;
-    m_A0 = NULL;
     m_area = NULL;
     }
 
@@ -63,8 +56,9 @@ TriangleAreaConservationMeshForceCompute::~TriangleAreaConservationMeshForceComp
 */
 void TriangleAreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
-    m_K[type] = K;
-    m_A0[type] = A0;
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
+    // update the local copy of the memory
+    h_params.data[type] = make_scalar2(K, A0);
 
     // check for some silly errors a user could make
     if (K <= 0)
@@ -90,9 +84,10 @@ pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string t
         m_exec_conf->msg->error() << "mesh.conservation.TriangleArea: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in TriangleAreaConservationMeshForceCompute");
         }
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
     pybind11::dict params;
-    params["k"] = m_K[typ];
-    params["A0"] = m_A0[typ];
+    params["k"] = h_params.data[typ].x;
+    params["A0"] = h_params.data[typ].y;
     return params;
     }
 
@@ -110,6 +105,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
 
     ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
@@ -145,13 +141,11 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the triangle
         const typename Angle::members_t& triangle = h_triangles.data[i];
         assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
 
-        // transform a, b, and c into indices into the particle data arrays
         unsigned int idx_a = h_rtag.data[triangle.tag[0]];
         unsigned int idx_b = h_rtag.data[triangle.tag[1]];
         unsigned int idx_c = h_rtag.data[triangle.tag[2]];
@@ -160,7 +154,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
 
-        // calculate d\vec{r}
         Scalar3 dab;
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
@@ -171,7 +164,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
-        // apply minimum image conventions to all vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
@@ -204,12 +196,12 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
-        Scalar At = m_A0[triangle_type];
+        Scalar At =  h_params.data[triangle_type].y;
 
         Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
         Scalar Ut = 3 * tri_area - At;
 
-	Scalar prefactor = m_K[triangle_type] / (2 * At) * Ut;
+	Scalar prefactor = h_params.data[triangle_type].x / (2 * At) * Ut;
 
         Scalar3 Fab, Fac;
 	Fab = prefactor * (-nab * rac * s_baac + ds_drab * rab * rac);
@@ -225,8 +217,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             triangle_area_conservation_virial[5] = Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
             }
 
-        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
-        // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
             global_area[triangle_type] += tri_area;
@@ -235,7 +225,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += (Fab.y + Fac.y);
             h_force.data[idx_a].z += (Fab.z + Fac.z);
             h_force.data[idx_a].w
-                += m_K[triangle_type] / (6.0 * At) * Ut * Ut; // divided by 3 because of three
+                += h_params.data[triangle_type].x / (6.0 * At) * Ut * Ut; // divided by 3 because of three
                                                               // particles sharing the energy
 
             for (int j = 0; j < 6; j++)
@@ -259,7 +249,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fab.x;
             h_force.data[idx_b].y -= Fab.y;
             h_force.data[idx_b].z -= Fab.z;
-            h_force.data[idx_b].w += m_K[triangle_type] / (6.0 * At) * Ut * Ut;
+            h_force.data[idx_b].w += h_params.data[triangle_type].x / (6.0 * At) * Ut * Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += triangle_area_conservation_virial[j];
             }
@@ -281,7 +271,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 	    h_force.data[idx_c].x -= Fac.x;
             h_force.data[idx_c].y -= Fac.y;
             h_force.data[idx_c].z -= Fac.z;
-            h_force.data[idx_c].w += m_K[triangle_type] / (6.0 * At) * Ut * Ut;
+            h_force.data[idx_c].w += h_params.data[triangle_type].x / (6.0 * At) * Ut * Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += triangle_area_conservation_virial[j];
             }
