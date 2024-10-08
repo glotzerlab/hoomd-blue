@@ -8,8 +8,6 @@
 
 #include <memory>
 
-#include <vector>
-
 /*! \file TriangleAreaConservationMeshForceCompute.h
     \brief Declares a class for computing triangle area conservation forces
 */

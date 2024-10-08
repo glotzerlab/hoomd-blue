@@ -4,14 +4,9 @@
 #include "TriangleAreaConservationMeshForceCompute.h"
 
 #include <iostream>
-#include <math.h>
-#include <sstream>
 #include <stdexcept>
 
 using namespace std;
-
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
 
 /*! \file AngleAreaConservationForceCompute.cc
     \brief Contains code for the AngleAreaConservationForceCompute class
