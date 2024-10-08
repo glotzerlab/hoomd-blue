@@ -76,7 +76,7 @@ struct hpmc_args_t
           d_trial_move_type(_d_trial_move_type), d_update_order_by_ptl(_d_update_order_by_ptl),
           d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
           d_reject_in(_d_reject_in), d_reject_out(_d_reject_out), devprop(_devprop),
-          gpu_partition(_gpu_partition), streams(_streams) {};
+          gpu_partition(_gpu_partition), streams(_streams) { };
 
     const Scalar4* d_postype;             //!< postype array
     const Scalar4* d_orientation;         //!< orientation array

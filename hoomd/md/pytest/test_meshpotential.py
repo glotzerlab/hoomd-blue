@@ -48,11 +48,18 @@ _AreaConservation_args = {
 _AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
                                dict(zip(_AreaConservation_args, val)))
                               for val in zip(*_AreaConservation_args.values())]
+_BendingRigidity_args = {
+    'k': [2.0, 10.0, 300.0],
+}
+_BendingRigidity_arg_list = [(hoomd.md.mesh.bending.BendingRigidity,
+                              dict(zip(_BendingRigidity_args, val)))
+                             for val in zip(*_BendingRigidity_args.values())]
 
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-            + _TriangleAreaConservation_arg_list + _AreaConservation_arg_list)
+            + _TriangleAreaConservation_arg_list + _AreaConservation_arg_list
+            + _BendingRigidity_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -91,12 +98,20 @@ def get_mesh_potential_args_forces_and_energies():
                                 [0., 96.88179659, 68.50577534],
                                 [0., -96.88179659, 68.50577534]]]
     AreaConservation_energies = [3.69707, 57.13009, 454.492529]
+    BendingRigidity_forces = [[[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]]]
+    BendingRigidity_energies = [8, 40, 1200]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     Tether_args_and_vals = []
     TriangleAreaConservation_args_and_vals = []
     AreaConservation_args_and_vals = []
+    BendingRigidity_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
             (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
@@ -110,9 +125,13 @@ def get_mesh_potential_args_forces_and_energies():
         AreaConservation_args_and_vals.append(
             (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
              AreaConservation_energies[i]))
+        BendingRigidity_args_and_vals.append(
+            (*_BendingRigidity_arg_list[i], BendingRigidity_forces[i],
+             BendingRigidity_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
             + TriangleAreaConservation_args_and_vals
-            + AreaConservation_args_and_vals)
+            + AreaConservation_args_and_vals
+            + BendingRigidity_args_and_vals)
 
 
 @pytest.fixture(scope='session')
@@ -229,8 +248,8 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
-
 def test_area(simulation_factory, tetrahedron_snapshot_factory):
+
     snap = tetrahedron_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 

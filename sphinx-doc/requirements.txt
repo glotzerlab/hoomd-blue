@@ -20,7 +20,7 @@ beautifulsoup4==4.12.3
     #   nbconvert
 bleach==6.1.0
     # via nbconvert
-certifi==2024.2.2
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -36,13 +36,13 @@ executing==2.0.1
     # via stack-data
 fastjsonschema==2.19.1
     # via nbformat
-furo==2024.5.6
+furo==2024.8.6
     # via -r sphinx-doc/requirements.in
 idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==8.25.0
+ipython==8.27.0
     # via -r sphinx-doc/requirements.in
 jedi==0.19.1
     # via ipython
@@ -84,15 +84,15 @@ nbformat==5.10.4
     #   nbclient
     #   nbconvert
     #   nbsphinx
-nbsphinx==0.9.4
+nbsphinx==0.9.5
     # via -r sphinx-doc/requirements.in
-numpy==1.26.4
+numpy==2.1.1
     # via -r sphinx-doc/requirements.in
 packaging==24.0
     # via
     #   nbconvert
     #   sphinx
-pandoc==2.3
+pandoc==2.4
     # via -r sphinx-doc/requirements.in
 pandocfilters==1.5.1
     # via nbconvert
@@ -141,7 +141,7 @@ snowballstemmer==2.2.0
     # via sphinx
 soupsieve==2.5
     # via beautifulsoup4
-sphinx==7.3.7
+sphinx==8.0.2
     # via
     #   -r sphinx-doc/requirements.in
     #   furo
@@ -171,7 +171,7 @@ stack-data==0.6.3
     # via ipython
 tinycss2==1.3.0
     # via nbconvert
-tornado==6.4
+tornado==6.4.1
     # via
     #   -r sphinx-doc/requirements.in
     #   jupyter-client
@@ -185,7 +185,7 @@ traitlets==5.14.3
     #   nbconvert
     #   nbformat
     #   nbsphinx
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 wcwidth==0.2.13
     # via prompt-toolkit

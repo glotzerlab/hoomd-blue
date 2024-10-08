@@ -12,7 +12,7 @@ from hoomd.md import force
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy as np
-from hoomd.data.typeconverter import OnlyFrom, nonnegative_real
+from hoomd.data.typeconverter import OnlyFrom, nonnegative_real, positive_real
 
 
 class Pair(force.Force):
@@ -257,7 +257,7 @@ class Gaussian(Pair):
 
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma > 0`
           :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -275,7 +275,7 @@ class Gaussian(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
+            TypeParameterDict(epsilon=float, sigma=positive_real, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -311,7 +311,7 @@ class ExpandedGaussian(Pair):
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) - particle size
-          :math:`\sigma` :math:`[\mathrm{length}]`
+          :math:`\sigma > 0` :math:`[\mathrm{length}]`
         * ``delta`` (`float`, **required**) - shift distance
           :math:`\delta` :math:`[\mathrm{length}]`
 
@@ -331,7 +331,7 @@ class ExpandedGaussian(Pair):
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
-                              sigma=float,
+                              sigma=positive_real,
                               delta=float,
                               len_keys=2))
         self._add_typeparam(params)
@@ -685,7 +685,7 @@ class DPD(Pair):
     `DPD` computes the DPD pair force on every particle in the simulation state.
     DPD includes a an interaction potential, pairwise drag force, and pairwise
     random force. See `Groot and Warren 1997
-    <http://dx.doi.org/10.1063/1.474784>`_:
+    <https://dx.doi.org/10.1063/1.474784>`_:
 
     .. math::
 
@@ -712,7 +712,7 @@ class DPD(Pair):
     particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
     uniformly distributed random number in the range :math:`[-1, 1]`.
 
-    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
+    `C. L. Phillips et. al. 2011 <https://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
     describes the DPD implementation details. Cite it if you utilize the DPD
     functionality in your work.
 
@@ -869,7 +869,7 @@ class DPDLJ(Pair):
     particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
     uniformly distributed random number in the range [-1, 1].
 
-    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
+    `C. L. Phillips et. al. 2011 <https://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
     describes the DPD implementation details. Cite it if you utilize the DPD
     functionality in your work.
 
@@ -959,7 +959,7 @@ class ForceShiftedLJ(Pair):
     The force differs from the one calculated by  `LJ` by the subtraction of the
     value of the force at :math:`r_{\mathrm{cut}}`, such that the force smoothly
     goes to zero at the cut-off. The potential is modified by a linear function.
-    See `Toxvaerd et. al. 2011 <http://dx.doi.org/10.1063/1.3558787>`_ for a
+    See `Toxvaerd et. al. 2011 <https://dx.doi.org/10.1063/1.3558787>`_ for a
     discussion of this potential.
 
     Example::
@@ -1308,7 +1308,7 @@ class ReactionField(Pair):
     electrostatic interaction, which assumes that the medium can be treated as
     an electrostatic continuum of dielectric constant :math:`\epsilon_{RF}`
     outside the cutoff sphere of radius :math:`r_{\mathrm{cut}}`. See: `Barker
-    et. al. 1973 <http://dx.doi.org/10.1080/00268977300102101>`_.
+    et. al. 1973 <https://dx.doi.org/10.1080/00268977300102101>`_.
 
     By default (``use_charge=False``), the reaction field potential ignores the
     particle charges. Two parameters, :math:`\varepsilon` and
@@ -1844,7 +1844,7 @@ class LJGauss(Pair):
         * ``epsilon`` (`float`, **required**) -
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
-          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
+          Gaussian width :math:`\sigma > 0` :math:`[\mathrm{length}]`
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
@@ -1868,5 +1868,8 @@ class LJGauss(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, r0=float, len_keys=2))
+            TypeParameterDict(epsilon=float,
+                              sigma=positive_real,
+                              r0=float,
+                              len_keys=2))
         self._add_typeparam(params)

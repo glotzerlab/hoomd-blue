@@ -10,6 +10,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
                    AlchemyData.cc
+                   BendingRigidityMeshForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -70,6 +71,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 AreaConservationMeshForceCompute.h
                 AreaConservationMeshForceComputeGPU.h
                 AreaConservationMeshForceComputeGPU.cuh
+                BendingRigidityMeshForceComputeGPU.h
+                BendingRigidityMeshForceCompute.h
                 BondTablePotentialGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
@@ -219,6 +222,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AnisoPotentialPairALJ3GPU.cc
                            AnisoPotentialPairDipoleGPU.cc
                            AnisoPotentialPairGBGPU.cc
+                           BendingRigidityMeshForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
@@ -256,6 +260,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
+		      BendingRigidityMeshForceComputeGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       ConstantForceComputeGPU.cu

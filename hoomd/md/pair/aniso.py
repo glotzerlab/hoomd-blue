@@ -147,7 +147,7 @@ class GayBerne(AnisotropicPair):
     energy-well depth. The potential comes from the following paper `Allen et.
     al. 2006`_.
 
-    .. _Allen et. al. 2006: http://dx.doi.org/10.1080/00268970601075238
+    .. _Allen et. al. 2006: https://dx.doi.org/10.1080/00268970601075238
 
     .. math::
         U(\vec r, \vec e_i, \vec e_j) =
@@ -431,8 +431,8 @@ class ALJ(AnisotropicPair):
         * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
           **required**) - The vertices of a convex polytope in 2 or 3
           dimensions. The third dimension in 2D is ignored.
-        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
-          **required**) - The semimajor axes of a rounding ellipsoid
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`)
+          - The semimajor axes of a rounding ellipsoid
           :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
           rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
@@ -534,7 +534,7 @@ class ALJ(AnisotropicPair):
                                   to_type_converter((float, float, float)),
                                   preprocess=self._to_three_tuple),
                               len_keys=1,
-                              _defaults={'rounding_radii', (0.0, 0.0, 0.0)}))
+                              _defaults={'rounding_radii': (0.0, 0.0, 0.0)}))
 
         self._extend_typeparam((params, shape))
 

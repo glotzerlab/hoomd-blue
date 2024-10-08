@@ -83,7 +83,7 @@ class PYBIND11_EXPORT Compute : public Action
     void forceCompute(uint64_t timestep);
 
     /// Python will notify C++ objects when they are detached from Simulation
-    virtual void notifyDetach() {};
+    virtual void notifyDetach() { };
 
     protected:
     bool m_force_compute;     //!< true if calculation is enforced

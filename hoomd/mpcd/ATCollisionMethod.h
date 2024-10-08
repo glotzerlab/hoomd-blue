@@ -69,13 +69,6 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     //! Detach callback signals
     void detachCallbacks();
     };
-
-namespace detail
-    {
-//! Export ATCollisionMethod to python
-void export_ATCollisionMethod(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_H_

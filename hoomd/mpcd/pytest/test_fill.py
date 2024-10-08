@@ -22,6 +22,16 @@ def snap():
 @pytest.mark.parametrize(
     "cls, init_args",
     [
+        (hoomd.mpcd.geometry.CosineChannel, {
+            "amplitude": 4.0,
+            "repeat_length": 20.0,
+            "separation": 2.0
+        }),
+        (hoomd.mpcd.geometry.CosineExpansionContraction, {
+            "expansion_separation": 8.0,
+            "contraction_separation": 4.0,
+            "repeat_length": 20.0,
+        }),
         (hoomd.mpcd.geometry.ParallelPlates, {
             "separation": 8.0
         }),
@@ -29,8 +39,14 @@ def snap():
             "separation": 8.0,
             "length": 10.0
         }),
+        (hoomd.mpcd.geometry.Sphere, {
+            "radius": 4.0
+        }),
     ],
-    ids=["ParallelPlates", "PlanarPore"],
+    ids=[
+        "CosineChannel", "CosineExpansionContraction", "ParallelPlates",
+        "PlanarPore", "Sphere"
+    ],
 )
 class TestGeometryFiller:
 

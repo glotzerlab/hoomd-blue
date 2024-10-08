@@ -8,6 +8,7 @@
 
 #include <pybind11/stl_bind.h>
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::PairPotential>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::ExternalPotential>>);
 
 using namespace std;
 
@@ -262,18 +263,24 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
-        .def("computeTotalPairEnergy", &IntegratorHPMC::computeTotalPairEnergy)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability)
-        .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials);
+        .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials)
+        .def("computeTotalPairEnergy", &IntegratorHPMC::computeTotalPairEnergy)
+        .def_property_readonly("external_potentials", &IntegratorHPMC::getExternalPotentials)
+        .def("computeTotalExternalEnergy", &IntegratorHPMC::computeTotalExternalEnergy);
 
     pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
+
+    pybind11::bind_vector<std::vector<std::shared_ptr<ExternalPotential>>>(m,
+                                                                           "ExternalPotentialList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");
     }
 
     } // end namespace detail

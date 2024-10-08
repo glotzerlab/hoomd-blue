@@ -37,8 +37,8 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     {
     public:
     //! Constructs the compute
-    PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef);
-    virtual ~PotentialExternal<evaluator>();
+    PotentialExternal(std::shared_ptr<SystemDefinition> sysdef);
+    virtual ~PotentialExternal();
 
     //! type of external potential parameters
     typedef typename evaluator::param_type param_type;

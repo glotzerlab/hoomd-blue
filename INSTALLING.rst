@@ -18,21 +18,27 @@ Serial CPU and single GPU builds
 
 **HOOMD-blue** binaries for **serial CPU** and **single GPU** are available on conda-forge_ for the
 *linux-64*, *osx-64*, and *osx-arm64* platforms. Install the ``hoomd`` package from the conda-forge_
-channel into a conda environment::
+channel:
 
-    $ mamba install hoomd=4.7.0
+.. code-block:: bash
+
+    micromamba install hoomd=4.8.2
 
 .. _conda-forge: https://conda-forge.org/docs/user/introduction.html
 
-``conda`` auto-detects whether your system has a GPU and attempts to install the appropriate
-package. Override this and force the GPU enabled package installation with::
+By default, micromamba auto-detects whether your system has a GPU and attempts to install the
+appropriate package. Override this and force the GPU enabled package installation with:
 
-    $ export CONDA_OVERRIDE_CUDA="12.0"
-    $ mamba install "hoomd=4.7.0=*gpu*" "cuda-version=12.0"
+.. code-block:: bash
 
-Similarly, you can force CPU only package installation with::
+    export CONDA_OVERRIDE_CUDA="12.0"
+    micromamba install "hoomd=4.8.2=*gpu*" "cuda-version=12.0"
 
-    $ mamba install "hoomd=4.7.0=*cpu*"
+Similarly, you can force CPU-only package installation with:
+
+.. code-block:: bash
+
+    micromamba install "hoomd=4.8.2=*cpu*"
 
 .. note::
 
@@ -43,13 +49,3 @@ Similarly, you can force CPU only package installation with::
 
     Run time compilation is no longer available on conda-forge builds starting with HOOMD-blue
     4.7.0.
-
-.. tip::
-
-    Use miniforge_, miniconda_, or any other *minimal* conda environment provider instead of the
-    full Anaconda distribution to avoid package conflicts with conda-forge_ packages. When using
-    miniconda_, follow the instructions provided in the conda-forge_ documentation to configure the
-    channel selection so that all packages are installed from the conda-forge_ channel.
-
-.. _miniforge: https://github.com/conda-forge/miniforge
-.. _miniconda: http://conda.pydata.org/miniconda.html

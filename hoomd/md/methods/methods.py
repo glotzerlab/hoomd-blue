@@ -139,7 +139,7 @@ class ConstantVolume(Thermostatted):
 
                 nvt.thermostat = hoomd.md.methods.thermostats.Bussi(kT=0.5)
 
-    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+    .. _Kamberaj 2005: https://dx.doi.org/10.1063/1.1906216
     """
 
     def __init__(self, filter, thermostat=None):
@@ -278,13 +278,13 @@ class ConstantPressure(Thermostatted):
 
     See Also:
         * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
-          <http://dx.doi.org/10.1063/1.467468>`__
-        * `S. E. Feller, Y. Zhang, R. W. Pastor 1995
+          <https://dx.doi.org/10.1063/1.467468>`__
+        * `S. E. Feller, Y. Zhang, R. W. Pastor, B. R. Brooks 1995
           <https://doi.org/10.1063/1.470648>`_
         * `M. E. Tuckerman et. al. 2006
-          <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
+          <https://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
         * `T. Yu et. al. 2010
-          <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
+          <https://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
 
     Note:
         The barostat coupling constant `tauS` should be set within a reasonable
@@ -711,7 +711,7 @@ class Langevin(Method):
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
         simulation.operations.integrator.methods = [langevin]
 
-    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+    .. _Kamberaj 2005: https://dx.doi.org/10.1063/1.1906216
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to
@@ -907,7 +907,7 @@ class Brownian(Method):
     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
     distribution.
 
-    .. _I. Snook 2007: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
+    .. _I. Snook 2007: https://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
     Warning:
 

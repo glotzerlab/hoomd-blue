@@ -1274,7 +1274,11 @@ void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposi
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ParticleData(pybind11::module& m)
+namespace mpcd
+    {
+namespace detail
+    {
+void export_ParticleData(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParticleData, std::shared_ptr<mpcd::ParticleData>>(m, "MPCDParticleData")
         .def(pybind11::init<unsigned int,
@@ -1302,5 +1306,6 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
         .def("getTypeByName", &mpcd::ParticleData::getTypeByName)
         .def_property("mass", &mpcd::ParticleData::getMass, &mpcd::ParticleData::setMass);
     }
-
+    } // end namespace detail
+    } // end namespace mpcd
     } // end namespace hoomd

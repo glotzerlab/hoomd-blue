@@ -42,10 +42,14 @@ void mpcd::ManualVirtualParticleFiller::fill(uint64_t timestep)
     m_mpcd_pdata->invalidateCellCache();
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ManualVirtualParticleFiller(pybind11::module& m)
+void export_ManualVirtualParticleFiller(pybind11::module& m)
     {
     pybind11::class_<mpcd::ManualVirtualParticleFiller,
                      mpcd::VirtualParticleFiller,
@@ -57,5 +61,6 @@ void mpcd::detail::export_ManualVirtualParticleFiller(pybind11::module& m)
                             Scalar,
                             std::shared_ptr<Variant>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

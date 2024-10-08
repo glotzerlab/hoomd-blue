@@ -31,7 +31,7 @@ namespace md
 struct AlchemicalParticle
     {
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
-        : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) {};
+        : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) { };
 
     void notifyDetach()
         {
@@ -52,7 +52,7 @@ struct AlchemicalMDParticle : AlchemicalParticle
     {
     AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
 
-        : AlchemicalParticle(exec_conf) {};
+        : AlchemicalParticle(exec_conf) { };
 
     void inline zeroForces()
         {
@@ -136,7 +136,7 @@ struct AlchemicalPairParticle : AlchemicalMDParticle
     {
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                            int3 type_pair_param)
-        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) {};
+        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) { };
     int3 m_type_pair_param;
     };
 

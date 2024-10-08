@@ -21,8 +21,8 @@ HOOMD-blue
         :target: https://anaconda.org/conda-forge/hoomd
     .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
         :target: https://anaconda.org/conda-forge/hoomd
-    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml/badge.svg?branch=trunk-patch
-        :target: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml
+    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yaml/badge.svg?branch=trunk-patch
+        :target: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yaml
     .. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
         :target: https://hoomd-blue.readthedocs.io/en/latest/credits.html
     .. |License| image:: https://img.shields.io/badge/license-BSD--3--Clause-green.svg
@@ -64,11 +64,13 @@ Related tools
 - `Molecular Simulation Design Framework (MoSDeF)`_ tools:
 
   - `mbuild`_: Assemble reusable components into complex molecular systems.
-  - `foyer`_: perform atom-typing and define classical molecular modeling force fields.
+  - `foyer`_: Perform atom-typing and define classical molecular modeling force fields.
+  - `gmso`_: A flexible and mutable data structure for chemical topologies that writes HOOMD-blue formats.
 
 .. _Molecular Simulation Design Framework (MoSDeF): https://mosdef.org/
 .. _mbuild: https://mbuild.mosdef.org/
 .. _foyer: https://foyer.mosdef.org/
+.. _gmso: https://gmso.mosdef.org/
 
 Example scripts
 ===============

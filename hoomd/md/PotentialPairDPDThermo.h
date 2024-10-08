@@ -51,7 +51,7 @@ template<class evaluator> class PotentialPairDPDThermo : public PotentialPair<ev
     PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<NeighborList> nlist);
     //! Destructor
-    virtual ~PotentialPairDPDThermo() {};
+    virtual ~PotentialPairDPDThermo() { };
 
     //! Set the temperature
     virtual void setT(std::shared_ptr<Variant> T);

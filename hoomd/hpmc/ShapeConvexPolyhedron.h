@@ -43,6 +43,8 @@ namespace detail
 */
 struct PolyhedronVertices : ShapeParams
     {
+    static constexpr unsigned int MAX_VERTS = 4096;
+
     /// Default constructor initializes zero values.
     DEVICE PolyhedronVertices()
         : n_hull_verts(0), N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
@@ -81,6 +83,12 @@ struct PolyhedronVertices : ShapeParams
                   bool managed = false)
         {
         N = (unsigned int)verts.size();
+
+        if (N > MAX_VERTS)
+            {
+            throw std::domain_error("Too many vertices in polyhedron.");
+            }
+
         diameter = 0;
         sweep_radius = sweep_radius_;
 
@@ -229,6 +237,8 @@ struct PolyhedronVertices : ShapeParams
     /// Z coordinate of vertices
     ManagedArray<ShortReal> z;
 
+    /// TODO: store aligned copy of d here for use in the support function.
+
     /** List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex
         hull
     */
@@ -268,8 +278,8 @@ class SupportFuncConvexPolyhedron
         Note that for performance it is assumed that unused vertices (beyond N) have already
         been set to zero.
     */
-    DEVICE SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
-                                       ShortReal extra_sweep_radius = ShortReal(0.0))
+    DEVICE inline SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
+                                              ShortReal extra_sweep_radius = ShortReal(0.0))
         : verts(_verts), sweep_radius(extra_sweep_radius)
         {
         }
@@ -279,7 +289,8 @@ class SupportFuncConvexPolyhedron
         @param n Normal vector input (in the local frame)
         @returns Local coords of the point furthest in the direction of n
     */
-    DEVICE vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
+    DEVICE inline __attribute__((always_inline)) vec3<ShortReal>
+    operator()(const vec3<ShortReal>& n) const
         {
         ShortReal max_dot = -(verts.diameter * verts.diameter);
         unsigned int max_idx = 0;
@@ -293,7 +304,7 @@ class SupportFuncConvexPolyhedron
             __m256 ny_v = _mm256_broadcast_ss(&n.y);
             __m256 nz_v = _mm256_broadcast_ss(&n.z);
             __m256 max_dot_v = _mm256_broadcast_ss(&max_dot);
-            float d_s[verts.x.size()] __attribute__((aligned(32)));
+            float d_s[PolyhedronVertices::MAX_VERTS] __attribute__((aligned(32)));
 
             for (unsigned int i = 0; i < verts.N; i += 8)
                 {
@@ -312,7 +323,7 @@ class SupportFuncConvexPolyhedron
                 }
 
             // find the maximum of the 8 channels
-            // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
+            // https://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
             max_dot_v
                 = _mm256_max_ps(max_dot_v,
                                 _mm256_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
@@ -345,7 +356,7 @@ class SupportFuncConvexPolyhedron
             __m128 ny_v = _mm_load_ps1(&n.y);
             __m128 nz_v = _mm_load_ps1(&n.z);
             __m128 max_dot_v = _mm_load_ps1(&max_dot);
-            float d_s[verts.x.size()] __attribute__((aligned(16)));
+            float d_s[PolyhedronVertices::MAX_VERTS] __attribute__((aligned(16)));
 
             for (unsigned int i = 0; i < verts.N; i += 4)
                 {
@@ -363,7 +374,7 @@ class SupportFuncConvexPolyhedron
                 }
 
             // find the maximum of the 4 channels
-            // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
+            // https://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
             max_dot_v = _mm_max_ps(max_dot_v,
                                    _mm_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
             max_dot_v = _mm_max_ps(max_dot_v,
@@ -789,10 +800,10 @@ struct ShapeConvexPolyhedron
     @returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template<>
-DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                const ShapeConvexPolyhedron& a,
-                                const ShapeConvexPolyhedron& b,
-                                unsigned int& err)
+DEVICE inline __attribute__((always_inline)) bool test_overlap(const vec3<Scalar>& r_ab,
+                                                               const ShapeConvexPolyhedron& a,
+                                                               const ShapeConvexPolyhedron& b,
+                                                               unsigned int& err)
     {
     vec3<ShortReal> dr(r_ab);
 

@@ -163,10 +163,14 @@ void mpcd::Integrator::syncCellList()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_Integrator(pybind11::module& m)
+void export_Integrator(pybind11::module& m)
     {
     pybind11::bind_vector<std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>>(
         m,
@@ -188,4 +192,6 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
                       &mpcd::Integrator::setSorter)
         .def_property_readonly("fillers", &mpcd::Integrator::getFillers);
     }
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

@@ -9,7 +9,7 @@ License
 Libraries
 ---------
 
-**HOOMD:** HOOMD-blue is a continuation of the HOOMD project (http://www.ameslab.gov/hoomd/). The code from the original project is used under the following license::
+**HOOMD:** HOOMD-blue is a continuation of the HOOMD project. The code from the original project is used under the following license::
 
     Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
     Source Software License
@@ -58,7 +58,7 @@ libraries:
 
     Developed by: Theoretical and Computational Biophysics Group
                   University of Illinois at Urbana-Champaign
-                  http://www.ks.uiuc.edu/
+                  https://www.ks.uiuc.edu/
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the Software), to deal with
@@ -90,7 +90,7 @@ libraries:
 `CUDA <https://developer.nvidia.com/cuda-downloads>`_, used under the
 `NVIDIA Software License Agreement <https://docs.nvidia.com/cuda/eula/index.html>`_.
 
-`kissFFT <http://sourceforge.net/projects/kissfft/>`_, used under the
+`kissFFT <https://sourceforge.net/projects/kissfft/>`_, used under the
 following license::
 
     Copyright (c) 2003-2010 Mark Borgerding
@@ -122,7 +122,7 @@ following license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`CUB <http://nvlabs.github.io/cub/>`_, used under the following license::
+`CUB <https://nvidia.github.io/cccl/cub/>`_, used under the following license::
 
     Copyright (c) 2011, Duane Merrill.  All rights reserved.
     Copyright (c) 2011-2016, NVIDIA CORPORATION.  All rights reserved.
@@ -149,8 +149,8 @@ following license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`Eigen <http://eigen.tuxfamily.org/>`_, used under the Mozilla Public
-License v.2.0 (http://mozilla.org/MPL/2.0/).
+`Eigen <https://eigen.tuxfamily.org/>`_, used under the Mozilla Public
+License v.2.0 (https://mozilla.org/MPL/2.0/).
 
 **BVLSSolver**, is embedded in HOOMD's package and is made available under the
 following license::
@@ -311,7 +311,7 @@ used under the following license::
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 `LLVM <https://llvm.org>`_, used under the
-`Apache 2.0 license <http://www.apache.org/licenses/LICENSE-2.0.html>`_.
+`Apache 2.0 license <https://www.apache.org/licenses/LICENSE-2.0.html>`_.
 
 `nano-signal-slot <https://github.com/glotzerlab/nano-signal-slot>`_, used under
 the following license::
@@ -443,7 +443,7 @@ following license::
     SOFTWARE.
 
 `rocThrust <https://github.com/ROCmSoftwarePlatform/rocThrust>`_, used under
-the `Apache 2.0 license <http://www.apache.org/licenses/LICENSE-2.0.html>`_
+the `Apache 2.0 license <https://www.apache.org/licenses/LICENSE-2.0.html>`_
 
 `rocFFT <https://github.com/ROCmSoftwarePlatform/rocFFT>`_, used under the
 following license::
@@ -521,7 +521,7 @@ HOOMD uses the ECL code for connected components under the following license::
          software without specific prior written permission.
 
     For all other uses, please contact the Office for Commercialization and Industry
-    Relations at Texas State University <http://www.txstate.edu/ocir/>.
+    Relations at Texas State University <https://www.txstate.edu/ocir/>.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -537,7 +537,7 @@ HOOMD uses the ECL code for connected components under the following license::
     Authors: Jayadharini Jaiganesh and Martin Burtscher
 
 `Python <https://www.python.org>`_, Used under the
-`Python license <http://www.python.org/psf/license/>`_
+`Python license <https://www.python.org/psf/license/>`_
 
 
 Other Attributions

@@ -58,7 +58,7 @@ class PYBIND11_EXPORT ParticleDataSnapshot
     ParticleDataSnapshot(unsigned int N);
 
     //! Destructor
-    ~ParticleDataSnapshot() {};
+    ~ParticleDataSnapshot() { };
 
     //! Resize the snapshot
     void resize(unsigned int N);
@@ -92,13 +92,6 @@ class PYBIND11_EXPORT ParticleDataSnapshot
     Scalar mass;                           //!< MPCD particle mass
     std::vector<std::string> type_mapping; //!< Type name mapping
     };
-
-namespace detail
-    {
-//! Export mpcd::ParticleDataSnapshot to python
-void export_ParticleDataSnapshot(pybind11::module& m);
-    } // end namespace detail
-
     } // end namespace mpcd
     } // end namespace hoomd
 
