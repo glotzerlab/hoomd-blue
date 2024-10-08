@@ -44,14 +44,6 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     GPUArray<Scalar> area_GPU(NTypes, m_exec_conf);
     m_area_GPU.swap(area_GPU);
 
-    // allocate flags storage on the GPU
-    GPUArray<unsigned int> flags(1, this->m_exec_conf);
-    m_flags.swap(flags);
-
-    // reset flags
-    ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
-    h_flags.data[0] = 0;
-
     GPUArray<Scalar> sum(NTypes, m_exec_conf);
     m_sum.swap(sum);
 
@@ -67,18 +59,6 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
                                    m_exec_conf,
                                    "aconstraint_force"));
     m_autotuners.push_back(m_tuner);
-    }
-
-void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
-    {
-    if(!this->m_ignore_type || type == 0 ) 
-    	{
-	AreaConservationMeshForceCompute::setParams(type, K, A0);
-
-	ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
-	// update the local copy of the memory
-	h_params.data[type] = make_scalar2(K, A0);
-	}
     }
 
 /*! Actually perform the force computation
@@ -121,9 +101,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar> d_area(m_area_GPU, access_location::device, access_mode::read);
 
-    // access the flags array for overwriting
-    ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
-
     m_tuner->begin();
     kernel::gpu_compute_area_constraint_force(d_force.data,
                                               d_virial.data,
@@ -140,24 +117,10 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               d_gpu_n_meshtriangle.data,
                                               d_params.data,
                                               this->m_ignore_type,
-                                              m_tuner->getParam()[0],
-                                              d_flags.data);
+                                              m_tuner->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-        {
         CHECK_CUDA_ERROR();
-
-        // check the flags for any errors
-        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-
-        if (h_flags.data[0] & 1)
-            {
-            this->m_exec_conf->msg->error() << "area constraint: triangle out of bounds ("
-                                            << h_flags.data[0] << ")" << std::endl
-                                            << std::endl;
-            throw std::runtime_error("Error in meshtriangle calculation");
-            }
-        }
     m_tuner->end();
     }
 

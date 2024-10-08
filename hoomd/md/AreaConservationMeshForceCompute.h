@@ -6,8 +6,6 @@
 
 #include <memory>
 
-#include <vector>
-
 /*! \file AreaConservationMeshForceCompute.h
     \brief Declares a class for computing area constraint forces
 */
@@ -25,33 +23,6 @@ namespace hoomd
     {
 namespace md
     {
-struct aconstraint_params
-    {
-    Scalar k;
-    Scalar A0;
-
-#ifndef __HIPCC__
-    aconstraint_params() : k(0), A0(0) { }
-
-    aconstraint_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
-        {
-        }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        v["k"] = k;
-        v["A0"] = A0;
-        return v;
-        }
-#endif
-    }
-#ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
-#else
-    __attribute__((aligned(16)));
-#endif
 
 //! Computes area constraint forces on the mesh
 /*! Area constraint forces are computed on every particle in a mesh.
@@ -60,6 +31,34 @@ struct aconstraint_params
 */
 class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     {
+    struct area_conservation_params
+        {
+        Scalar k;
+        Scalar A0;
+
+#ifndef __HIPCC__
+        area_conservation_params() : k(0), A0(0) { }
+
+        area_conservation_params(pybind11::dict params)
+            : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
+            {
+            }
+
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["k"] = k;
+            v["A0"] = A0;
+            return v;
+            }
+#endif
+        }
+#if HOOMD_LONGREAL_SIZE == 32
+        __attribute__((aligned(4)));
+#else
+        __attribute__((aligned(8)));
+#endif
+
     public:
     //! Constructs the compute
     AreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
@@ -96,14 +95,10 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K; //!< K parameter for multiple mesh triangle types
-
-    Scalar* m_A0; //!< A0 parameter for multiple mesh triangle types
-
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
-
+    GPUArray<Scalar2> m_params;                   //!< Parameters
     Scalar* m_area; //! sum of the triangle areas within a mesh type
-
+		    //
+    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing energy
     bool m_ignore_type; //! ignore type to calculate global area if true
 
     //! Actually compute the forces

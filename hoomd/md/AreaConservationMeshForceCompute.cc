@@ -4,8 +4,6 @@
 #include "AreaConservationMeshForceCompute.h"
 
 #include <iostream>
-#include <math.h>
-#include <sstream>
 #include <stdexcept>
 
 using namespace std;
@@ -27,7 +25,7 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef,
     bool ignore_type)
-    : ForceCompute(sysdef), m_K(NULL), m_A0(NULL), m_mesh_data(meshdef), m_area(0),
+    : ForceCompute(sysdef), m_mesh_data(meshdef),
 	m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing AreaConservationMeshForceCompute" << endl;
@@ -36,11 +34,8 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
 
     if(m_ignore_type) n_types = 1;
 
-    // allocate the parameters
-    m_K = new Scalar[n_types];
-
-    // allocate the parameters
-    m_A0 = new Scalar[n_types];
+    GPUArray<Scalar2> params(n_types, m_exec_conf);
+    m_params.swap(params);
 
     m_area = new Scalar[n_types];
     }
@@ -49,11 +44,7 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying AreaConservationMeshForceCompute" << endl;
 
-    delete[] m_K;
-    delete[] m_A0;
     delete[] m_area;
-    m_K = NULL;
-    m_A0 = NULL;
     m_area = NULL;
     }
 
@@ -67,8 +58,9 @@ void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Sc
     {
     if(!m_ignore_type || type == 0 ) 
     	{
-	m_K[type] = K;
-	m_A0[type] = A0;
+    	ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
+    	// update the local copy of the memory
+    	h_params.data[type] = make_scalar2(K, A0);
 
 	// check for some silly errors a user could make
 	if (K <= 0)
@@ -81,7 +73,7 @@ void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Sc
 void AreaConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
-    auto _params = aconstraint_params(params);
+    auto _params = area_conservation_params(params);
     setParams(typ, _params.k, _params.A0);
     }
 
@@ -94,9 +86,10 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
         throw runtime_error("Error setting parameters in AreaConservationMeshForceCompute");
         }
     if(m_ignore_type) typ = 0;
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
     pybind11::dict params;
-    params["k"] = m_K[typ];
-    params["A0"] = m_A0[typ];
+    params["k"] = h_params.data[typ].x;
+    params["A0"] = h_params.data[typ].y;
     return params;
     }
 
@@ -108,7 +101,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     precomputeParameter(); // precompute area
 
     assert(m_pdata);
-    // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -116,6 +108,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
 
     ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
@@ -128,11 +121,9 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_rtag.data);
     assert(h_triangles.data);
 
-    // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -150,14 +141,11 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
         const typename Angle::members_t& triangle = h_triangles.data[i];
         assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
 
-        // transform a, b, and c into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[triangle.tag[0]];
         unsigned int idx_b = h_rtag.data[triangle.tag[1]];
         unsigned int idx_c = h_rtag.data[triangle.tag[2]];
@@ -166,7 +154,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
 
-        // calculate d\vec{r}
         Scalar3 dab;
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
@@ -177,7 +164,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
-        // apply minimum image conventions to all vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
@@ -215,12 +201,12 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 	if(m_ignore_type) triangle_type = 0;
 	else triN = h_pts.data[triangle_type];
 
-        Scalar AreaDiff = m_area[triangle_type] - m_A0[triangle_type];
+        Scalar AreaDiff = m_area[triangle_type] - h_params.data[triangle_type].y;
 
-        Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
-                        / (6 * m_A0[triangle_type] * triN);
+        Scalar energy = h_params.data[triangle_type].x * AreaDiff * AreaDiff
+                        / (6 * h_params.data[triangle_type].y * triN);
 
-        AreaDiff = m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
+        AreaDiff = h_params.data[triangle_type].x / h_params.data[triangle_type].y * AreaDiff / 2.0;
 	
 	Fab = AreaDiff * (-nab * rac * s_baac + ds_drab * rab * rac);
 	Fac = AreaDiff * (-nac * rab * s_baac + ds_drac * rab * rac);
@@ -235,8 +221,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             area_virial[5] = Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
             }
 
-        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
-        // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
             h_force.data[idx_a].x += (Fab.x + Fac.x);
@@ -299,7 +283,6 @@ void AreaConservationMeshForceCompute::precomputeParameter()
         access_location::host,
         access_mode::read);
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
@@ -313,13 +296,11 @@ void AreaConservationMeshForceCompute::precomputeParameter()
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
         const typename Angle::members_t& triangle = h_triangles.data[i];
         assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
 
-        // transform a, b, and c into indices into the particle data arrays
         unsigned int idx_a = h_rtag.data[triangle.tag[0]];
         unsigned int idx_b = h_rtag.data[triangle.tag[1]];
         unsigned int idx_c = h_rtag.data[triangle.tag[2]];

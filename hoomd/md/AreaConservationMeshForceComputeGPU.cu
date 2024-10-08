@@ -267,7 +267,6 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
     \param n_triangles_list total group number of triangles
     \param d_params K, A0 params packed as Scalar variables
     \param ignore_type ignores mesh type if true
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
 __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          Scalar* d_virial,
@@ -283,8 +282,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          const Index2D tlist_idx,
                                                          const unsigned int* n_triangles_list,
                                                          Scalar2* d_params,
-                                                         const bool ignore_type,
-                                                         unsigned int* d_flags)
+                                                         const bool ignore_type)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -436,7 +434,6 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
     \param n_triangles_list total group number of triangles
     \param d_params K params packed as Scalar variables
     \param ignore_type ignores mesh type if true
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 
 
     \returns Any error code resulting from the kernel launch
@@ -457,8 +454,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              const unsigned int* n_triangles_list,
                                              Scalar2* d_params,
                                              const bool ignore_type,
-                                             int block_size,
-                                             unsigned int* d_flags)
+                                             int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -491,8 +487,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                        tlist_idx,
                        n_triangles_list,
                        d_params,
-                       ignore_type,
-                       d_flags);
+                       ignore_type);
 
     return hipSuccess;
     }

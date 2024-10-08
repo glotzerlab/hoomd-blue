@@ -35,7 +35,6 @@ namespace kernel
     \param n_triangles_list List of numbers of mesh triangles stored on the GPU
     \param d_params K,A0 params packed as Scalar variables
     \param n_triangle_type number of mesh triangle types
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
 __global__ void
 gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
@@ -49,8 +48,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
                                                   const Index2D tlist_idx,
                                                   const unsigned int* n_triangles_list,
                                                   Scalar2* d_params,
-                                                  const unsigned int n_triangle_type,
-                                                  unsigned int* d_flags)
+                                                  const unsigned int n_triangle_type)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -199,7 +197,6 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
     \param d_params K, A0 params packed as Scalar variables
     \param n_triangle_type number of mesh triangle types
     \param block_size Block size to use when performing calculations
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
@@ -215,8 +212,7 @@ hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
                                                       const unsigned int* n_triangles_list,
                                                       Scalar2* d_params,
                                                       const unsigned int n_triangle_type,
-                                                      int block_size,
-                                                      unsigned int* d_flags)
+                                                      int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -246,8 +242,7 @@ hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
                        tlist_idx,
                        n_triangles_list,
                        d_params,
-                       n_triangle_type,
-                       d_flags);
+                       n_triangle_type);
 
     return hipSuccess;
     }
