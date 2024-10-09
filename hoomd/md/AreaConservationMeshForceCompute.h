@@ -23,6 +23,33 @@ namespace hoomd
     {
 namespace md
     {
+struct area_conservation_params
+{
+Scalar k;
+Scalar A0;
+
+#ifndef __HIPCC__
+area_conservation_params() : k(0), A0(0) { }
+
+area_conservation_params(pybind11::dict params)
+    : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
+    {
+    }
+
+pybind11::dict asDict()
+    {
+    pybind11::dict v;
+    v["k"] = k;
+    v["A0"] = A0;
+    return v;
+    }
+#endif
+}
+#if HOOMD_LONGREAL_SIZE == 32
+__attribute__((aligned(4)));
+#else
+__attribute__((aligned(8)));
+#endif
 
 //! Computes area constraint forces on the mesh
 /*! Area constraint forces are computed on every particle in a mesh.
@@ -31,34 +58,6 @@ namespace md
 */
 class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     {
-    struct area_conservation_params
-        {
-        Scalar k;
-        Scalar A0;
-
-#ifndef __HIPCC__
-        area_conservation_params() : k(0), A0(0) { }
-
-        area_conservation_params(pybind11::dict params)
-            : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
-            {
-            }
-
-        pybind11::dict asDict()
-            {
-            pybind11::dict v;
-            v["k"] = k;
-            v["A0"] = A0;
-            return v;
-            }
-#endif
-        }
-#if HOOMD_LONGREAL_SIZE == 32
-        __attribute__((aligned(4)));
-#else
-        __attribute__((aligned(8)));
-#endif
-
     public:
     //! Constructs the compute
     AreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,

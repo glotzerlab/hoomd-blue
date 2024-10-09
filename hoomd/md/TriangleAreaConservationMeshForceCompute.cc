@@ -2,6 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TriangleAreaConservationMeshForceCompute.h"
+#include "AreaConservationMeshForceCompute.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -67,7 +68,7 @@ void TriangleAreaConservationMeshForceCompute::setParamsPython(std::string type,
                                                                pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshTriangleData()->getTypeByName(type);
-    auto _params = triangle_area_conservation_params(params);
+    auto _params = area_conservation_params(params);
     setParams(typ, _params.k, _params.A0);
     }
 
