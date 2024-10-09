@@ -17,7 +17,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
-    \param meshdef Mesh triangulation 
+    \param meshdef Mesh triangulation
     \param ignore_type boolean whether to ignore types
     \post Memory is allocated, and forces are zeroed.
 */
@@ -25,14 +25,14 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef,
     bool ignore_type)
-    : ForceCompute(sysdef), m_mesh_data(meshdef),
-	m_ignore_type(ignore_type)
+    : ForceCompute(sysdef), m_mesh_data(meshdef), m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing AreaConservationMeshForceCompute" << endl;
 
     unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    if(m_ignore_type) n_types = 1;
+    if (m_ignore_type)
+        n_types = 1;
 
     GPUArray<Scalar2> params(n_types, m_exec_conf);
     m_params.swap(params);
@@ -56,18 +56,18 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
 */
 void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
-    if(!m_ignore_type || type == 0 ) 
-    	{
-    	ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
-    	// update the local copy of the memory
-    	h_params.data[type] = make_scalar2(K, A0);
+    if (!m_ignore_type || type == 0)
+        {
+        ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
+        // update the local copy of the memory
+        h_params.data[type] = make_scalar2(K, A0);
 
-	// check for some silly errors a user could make
-	if (K <= 0)
-	    m_exec_conf->msg->warning() << "area: specified K <= 0" << endl;
-	if (A0 <= 0)
-	    m_exec_conf->msg->warning() << "area: specified A0 <= 0" << endl;
-	}
+        // check for some silly errors a user could make
+        if (K <= 0)
+            m_exec_conf->msg->warning() << "area: specified K <= 0" << endl;
+        if (A0 <= 0)
+            m_exec_conf->msg->warning() << "area: specified A0 <= 0" << endl;
+        }
     }
 
 void AreaConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
@@ -85,7 +85,8 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
         m_exec_conf->msg->error() << "mesh.conservation.Area: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in AreaConservationMeshForceCompute");
         }
-    if(m_ignore_type) typ = 0;
+    if (m_ignore_type)
+        typ = 0;
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
     pybind11::dict params;
     params["k"] = h_params.data[typ].x;
@@ -129,14 +130,16 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-    ArrayHandle<unsigned int> h_pts(m_mesh_data->getPerTypeSize(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_pts(m_mesh_data->getPerTypeSize(),
+                                    access_location::host,
+                                    access_mode::read);
 
     Scalar area_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         area_virial[i] = Scalar(0.0);
-    
+
     unsigned int triN = m_mesh_data->getSize();
-    
+
     // loop over mesh triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -197,9 +200,11 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 Fab, Fac;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
-  
-	if(m_ignore_type) triangle_type = 0;
-	else triN = h_pts.data[triangle_type];
+
+        if (m_ignore_type)
+            triangle_type = 0;
+        else
+            triN = h_pts.data[triangle_type];
 
         Scalar AreaDiff = m_area[triangle_type] - h_params.data[triangle_type].y;
 
@@ -207,9 +212,9 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                         / (6 * h_params.data[triangle_type].y * triN);
 
         AreaDiff = h_params.data[triangle_type].x / h_params.data[triangle_type].y * AreaDiff / 2.0;
-	
-	Fab = AreaDiff * (-nab * rac * s_baac + ds_drab * rab * rac);
-	Fac = AreaDiff * (-nac * rab * s_baac + ds_drac * rab * rac);
+
+        Fab = AreaDiff * (-nab * rac * s_baac + ds_drab * rab * rac);
+        Fac = AreaDiff * (-nac * rab * s_baac + ds_drac * rab * rac);
 
         if (compute_virial)
             {
@@ -343,7 +348,8 @@ void AreaConservationMeshForceCompute::precomputeParameter()
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
-	if(m_ignore_type) triangle_type = 0;
+        if (m_ignore_type)
+            triangle_type = 0;
 
 #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -389,7 +395,8 @@ void export_AreaConservationMeshForceCompute(pybind11::module& m)
                      std::shared_ptr<AreaConservationMeshForceCompute>>(
         m,
         "AreaConservationMeshForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>())
         .def("setParams", &AreaConservationMeshForceCompute::setParamsPython)
         .def("getParams", &AreaConservationMeshForceCompute::getParams)
         .def("getArea", &AreaConservationMeshForceCompute::getArea);

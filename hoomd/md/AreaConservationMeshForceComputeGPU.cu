@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
 #include "AreaConservationMeshForceComputeGPU.cuh"
+#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
 #include "hoomd/VectorMath.h"
 
@@ -42,7 +42,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
                                                         const group_storage<3>* tlist,
                                                         const unsigned int* tpos_list,
                                                         const Index2D tlist_idx,
-                                             		const bool ignore_type,
+                                                        const bool ignore_type,
                                                         const unsigned int* n_triangles_list)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -63,9 +63,11 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
             int cur_triangle_type = cur_triangle.idx[2];
 
-            if(ignore_type) cur_triangle_type = 0;
+            if (ignore_type)
+                cur_triangle_type = 0;
 
-	    if( cur_triangle_type != mtid) continue;
+            if (cur_triangle_type != mtid)
+                continue;
 
             int cur_triangle_b = cur_triangle.idx[0];
             int cur_triangle_c = cur_triangle.idx[1];
@@ -229,7 +231,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                            d_sum_partial_area,
                            N,
                            tN,
-			   i_types,
+                           i_types,
                            d_pos,
                            box,
                            tlist,
@@ -237,7 +239,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                            tlist_idx,
                            ignore_type,
                            n_triangles_list);
-	}
+        }
 
     hipLaunchKernelGGL((gpu_area_reduce_partial_sum_kernel),
                        dim3(grid1),
@@ -261,7 +263,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
     \param aN Total global number of triangles
     \param d_pos device array of particle positions
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param area Total instantaneous area per mesh type 
+    \param area Total instantaneous area per mesh type
     \param tlist List of mesh triangle indices stored on the GPU
     \param tpos_list Position of current index in list of mesh triangles stored on the GPU
     \param n_triangles_list total group number of triangles
@@ -304,7 +306,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
-    unsigned int triN = 1*aN;
+    unsigned int triN = 1 * aN;
 
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
@@ -315,8 +317,10 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         int cur_triangle_c = cur_triangle.idx[1];
         int cur_triangle_type = cur_triangle.idx[2];
 
-	if(ignore_type) cur_triangle_type = 0;
-	else triN = gN[cur_triangle_type];
+        if (ignore_type)
+            cur_triangle_type = 0;
+        else
+            triN = gN[cur_triangle_type];
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
@@ -346,11 +350,11 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
             dab = pos_a - pos_b;
             dac = pos_a - pos_c;
             }
-	else
-	    {
+        else
+            {
             dab = pos_b - pos_a;
             dac = pos_b - pos_c;
-	    }
+            }
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -378,13 +382,13 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar3 ds_drab = -c_baac * inv_s_baac * dc_drab;
 
-        Scalar3 Fab = AreaDiff * (-nab * rac * s_baac +  ds_drab * rab * rac);
+        Scalar3 Fab = AreaDiff * (-nab * rac * s_baac + ds_drab * rab * rac);
 
         if (cur_triangle_abc == 0)
             {
-	    Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
+            Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
             Scalar3 ds_drac = -c_baac * inv_s_baac * dc_drac;
-	    Scalar3 Fac = AreaDiff * (-nac * rab * s_baac +  ds_drac * rab * rac);
+            Scalar3 Fac = AreaDiff * (-nac * rab * s_baac + ds_drac * rab * rac);
 
             force.x += (Fab.x + Fac.x);
             force.y += (Fab.y + Fac.y);
@@ -396,21 +400,20 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
             virial[3] += Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y); // yy
             virial[4] += Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y); // yz
             virial[5] += Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
-
             }
-	else
-	    {
-	    force.x -= Fab.x;
-	    force.y -= Fab.y;
-	    force.z -= Fab.z;
+        else
+            {
+            force.x -= Fab.x;
+            force.y -= Fab.y;
+            force.z -= Fab.z;
 
-	    virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
-	    virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
-	    virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
-	    virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
-	    virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
-	    virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
-	    }
+            virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
+            virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
+            virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
+            virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
+            virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
+            virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
+            }
         force.w += energy;
         }
 
@@ -428,7 +431,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
     \param aN Total global number of triangles
     \param d_pos device array of particle positions
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param area Total instantaneous area per mesh type 
+    \param area Total instantaneous area per mesh type
     \param tlist List of mesh triangle indices stored on the GPU
     \param tpos_list Position of current index in list of mesh triangles stored on the GPU
     \param n_triangles_list total group number of triangles
@@ -478,7 +481,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                        virial_pitch,
                        N,
                        gN,
-		       aN,
+                       aN,
                        d_pos,
                        box,
                        area,

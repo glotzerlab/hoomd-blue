@@ -71,6 +71,7 @@ class MeshPotential(Force):
         mesh = validate_mesh(value)
         self._mesh = mesh
 
+
 class MeshConvervationPotential(MeshPotential):
     """Constructs the conservation potential applied to a mesh.
 
@@ -82,7 +83,7 @@ class MeshConvervationPotential(MeshPotential):
         for `isinstance` or `issubclass` checks.
     """
 
-    def __init__(self, mesh,ignore_type):
+    def __init__(self, mesh, ignore_type):
         super().__init__(mesh)
         self._ignore_type = ignore_type
 

@@ -34,7 +34,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
     //! Constructs the compute
     AreaConservationMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<MeshDefinition> meshdef,
-					bool ignore_type);
+                                        bool ignore_type);
 
     virtual pybind11::array_t<Scalar> getArea()
         {

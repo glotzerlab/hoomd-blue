@@ -95,8 +95,8 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
 #endif
 
     protected:
-    GPUArray<Scalar2> m_params;                   //!< Parameters
-    Scalar* m_area; //!!< total mesh area per mesh type
+    GPUArray<Scalar2> m_params; //!< Parameters
+    Scalar* m_area;             //!!< total mesh area per mesh type
 
     std::shared_ptr<MeshDefinition>
         m_mesh_data; //!< Mesh data to use in computing area conservation energy

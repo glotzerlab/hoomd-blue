@@ -14,7 +14,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
-    \param meshdef Mesh triangulation 
+    \param meshdef Mesh triangulation
     \param ignore_type boolean whether to ignore types
     \post Memory is allocated, and forces are zeroed.
 */
@@ -34,7 +34,8 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
 
     unsigned int NTypes = this->m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    if(this->m_ignore_type) NTypes=1;
+    if (this->m_ignore_type)
+        NTypes = 1;
 
     // allocate and zero device memory
     GPUArray<Scalar2> params(NTypes, m_exec_conf);
@@ -90,10 +91,9 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
         access_location::device,
         access_mode::read);
 
-    ArrayHandle<unsigned int> d_pts(
-        this->m_mesh_data->getPerTypeSize(),
-        access_location::device,
-        access_mode::read);
+    ArrayHandle<unsigned int> d_pts(this->m_mesh_data->getPerTypeSize(),
+                                    access_location::device,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
@@ -107,7 +107,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               m_virial.getPitch(),
                                               m_pdata->getN(),
                                               d_pts.data,
-					      this->m_mesh_data->getSize(),
+                                              this->m_mesh_data->getSize(),
                                               d_pos.data,
                                               box,
                                               d_area.data,
@@ -158,23 +158,24 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
                                           access_mode::overwrite);
     ArrayHandle<Scalar> d_sumArea(m_sum, access_location::device, access_mode::overwrite);
 
-    unsigned int NTypes =  m_mesh_data->getMeshTriangleData()->getNTypes();
+    unsigned int NTypes = m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    if(this->m_ignore_type) NTypes = 1;
+    if (this->m_ignore_type)
+        NTypes = 1;
 
     kernel::gpu_compute_area_constraint_area(d_sumArea.data,
-                                        d_partial_sumArea.data,
-                                        m_pdata->getN(),
-                                        NTypes,
-                                        d_pos.data,
-                                        box,
-                                        d_gpu_meshtrianglelist.data,
-                                        d_gpu_meshtriangle_pos_list.data,
-                                        gpu_table_indexer,
-					this->m_ignore_type,
-                                        d_gpu_n_meshtriangle.data,
-                                        m_block_size,
-                                        m_num_blocks);
+                                             d_partial_sumArea.data,
+                                             m_pdata->getN(),
+                                             NTypes,
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_meshtrianglelist.data,
+                                             d_gpu_meshtriangle_pos_list.data,
+                                             gpu_table_indexer,
+                                             this->m_ignore_type,
+                                             d_gpu_n_meshtriangle.data,
+                                             m_block_size,
+                                             m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -207,7 +208,8 @@ void export_AreaConservationMeshForceComputeGPU(pybind11::module& m)
                      std::shared_ptr<AreaConservationMeshForceComputeGPU>>(
         m,
         "AreaConservationMeshForceComputeGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>());
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>());
     }
 
     } // end namespace detail

@@ -14,7 +14,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
-    \param meshdef Mesh triangulation 
+    \param meshdef Mesh triangulation
     \post Memory is allocated, and forces are zeroed.
 */
 TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceComputeGPU(
@@ -147,7 +147,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                                              d_gpu_meshtrianglelist.data,
                                              d_gpu_meshtriangle_pos_list.data,
                                              gpu_table_indexer,
-					     false,
+                                             false,
                                              d_gpu_n_meshtriangle.data,
                                              m_block_size,
                                              m_num_blocks);

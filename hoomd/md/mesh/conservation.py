@@ -4,7 +4,7 @@
 r"""Mesh Conservation potential.
 
 Mesh conservation force classes apply a force and virial to every mesh vertex
-particle based on a global or local quantity :math:`A` of the given mesh 
+particle based on a global or local quantity :math:`A` of the given mesh
 triangulation :math:`T`.
 
 .. math::
@@ -33,13 +33,13 @@ class Area(MeshConvervationPotential):
 
         U_t = k \frac{ (A_t - A_{0,t} )^2}{2 \cdot A_0}
 
-    with :math:`A_t` is the instantaneous total area of all triangles   
+    with :math:`A_t` is the instantaneous total area of all triangles
     of type :math:`t`.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
         ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
-            and calculates the conservation energy considering all triangles in 
+            and calculates the conservation energy considering all triangles in
             the mesh. Defaults to `False`.
 
     Attributes:
@@ -64,7 +64,7 @@ class Area(MeshConvervationPotential):
                                TypeParameterDict(k=float, A0=float, len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(mesh,ignore_type)
+        super().__init__(mesh, ignore_type)
 
     @log(requires_run=True)
     def area(self):
