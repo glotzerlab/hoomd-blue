@@ -16,6 +16,7 @@
 
 #include <pybind11/stl.h>
 
+#include <algorithm>
 #include <iomanip>
 #include <random>
 using namespace std;
@@ -55,7 +56,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
     setupMPI(decomposition);
     if (m_exec_conf->getNRanks() > 1)
         {
-        bcast(my_seed, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&my_seed, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
         my_seed
             += m_exec_conf->getRank(); // each rank must get a different seed value for C++11 PRNG
         }
@@ -119,37 +120,36 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
         }
 
     // global number of particles
-    unsigned int nglobal(0);
+    unsigned int N_global(0);
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        // Define per-processor particle data
-        std::vector<std::vector<Scalar3>> pos_proc;       // Position array of every processor
-        std::vector<std::vector<Scalar3>> vel_proc;       // Velocities array of every processor
-        std::vector<std::vector<unsigned int>> type_proc; // Particle types array of every processor
-        std::vector<std::vector<unsigned int>> tag_proc;  // Global tags array of every processor
-        std::vector<unsigned int> N_proc;                 // Number of particles on every processor
-
-        // resize to number of ranks in communicator
         const MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
         unsigned int n_ranks = m_exec_conf->getNRanks();
         unsigned int rank = m_exec_conf->getRank();
-        pos_proc.resize(n_ranks);
-        vel_proc.resize(n_ranks);
-        type_proc.resize(n_ranks);
-        tag_proc.resize(n_ranks);
-        N_proc.resize(n_ranks, 0);
-
-        // scatter information to all processors from rank 0 (root)
         const unsigned int root = 0;
+
+        // assign each particle to a rank
+        unsigned int num_types = 0;
+        std::vector<int> num_per_rank;       // number per rank
+        std::vector<int> rank_displacements; // displacement of particles per rank
+        std::vector<detail::pdata_element> particles;
         if (rank == root)
             {
             const Index3D& di = m_decomposition->getDomainIndexer();
-            unsigned int n_ranks = m_exec_conf->getNRanks();
             ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(),
                                                    access_location::host,
                                                    access_mode::read);
+
+            // global particle number is snapshot size, also allocate temporary data for sending
+            N_global = snapshot.size;
+            particles.resize(N_global);
+
+            // temporary data for counts per rank
+            num_per_rank.resize(n_ranks);
+            rank_displacements.resize(n_ranks);
+            std::fill(num_per_rank.begin(), num_per_rank.end(), 0);
 
             // loop over particles in snapshot, place them into domains
             for (auto it = snapshot.position.begin(); it != snapshot.position.end(); ++it)
@@ -211,54 +211,71 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
                     throw std::runtime_error("Error initializing from snapshot.");
                     }
 
+                // pack particle into pdata element
+                mpcd::detail::pdata_element particle;
+                particle.pos
+                    = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(snapshot.type[snap_idx]));
+                const auto vel = snapshot.velocity[snap_idx];
+                particle.vel
+                    = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
+                particle.tag = snap_idx;
+                particle.comm_flag = rank; // hijack the comm flag to sort by rank
+
                 // fill up per-processor data structures
-                pos_proc[rank].push_back(pos);
-                vel_proc[rank].push_back(vec_to_scalar3(snapshot.velocity[snap_idx]));
-                type_proc[rank].push_back(snapshot.type[snap_idx]);
-                tag_proc[rank].push_back(nglobal++);
-                ++N_proc[rank];
+                particles[snap_idx] = particle;
+                ++num_per_rank[rank];
                 }
 
             // mass is set equal for all particles
             m_mass = snapshot.mass;
+
+            // assign type map from snapshot
+            m_type_mapping = snapshot.type_mapping;
+            num_types = static_cast<unsigned int>(m_type_mapping.size());
+
+            // exclusive scan of displacements
+            rank_displacements[0] = 0;
+            for (size_t i = 1; i < num_per_rank.size(); ++i)
+                {
+                rank_displacements[i] = rank_displacements[i - 1] + num_per_rank[i - 1];
+                }
+
+            // sort particles by rank
+            std::sort(particles.begin(),
+                      particles.end(),
+                      [](const mpcd::detail::pdata_element& a, const mpcd::detail::pdata_element& b)
+                      { return a.comm_flag < b.comm_flag; });
             }
-
-        // get type mapping
-        m_type_mapping = snapshot.type_mapping;
-
-        if (rank != root)
-            {
-            m_type_mapping.clear();
-            }
-
-        // broadcast the particle mass
-        bcast(m_mass, root, mpi_comm);
-
-        // broadcast type mapping
-        bcast(m_type_mapping, root, mpi_comm);
 
         // broadcast global number of particles
-        bcast(nglobal, root, mpi_comm);
+        MPI_Bcast(&N_global, 1, MPI_UNSIGNED, root, mpi_comm);
 
-        // Local particle data
-        std::vector<Scalar3> pos;
-        std::vector<Scalar3> vel;
-        std::vector<unsigned int> type;
-        std::vector<unsigned int> tag;
+        // broadcast the particle mass
+        MPI_Bcast(&m_mass, 1, MPI_HOOMD_SCALAR, root, mpi_comm);
+
+        // broadcast type mapping
+        MPI_Bcast(&num_types, 1, MPI_UNSIGNED, root, mpi_comm);
+        if (rank != root)
+            {
+            m_type_mapping.resize(num_types);
+            }
+        bcast(m_type_mapping, root, mpi_comm);
+
+        // scatter the number of particles on each rank and allocate
+        MPI_Scatter(num_per_rank.data(), 1, MPI_UNSIGNED, &m_N, 1, MPI_UNSIGNED, root, mpi_comm);
+        allocate(std::max(1u, m_N));
+        std::vector<mpcd::detail::pdata_element> recv_particles(m_N);
 
         // distribute particle data to processors
-        scatter_v(pos_proc, pos, root, mpi_comm);
-        scatter_v(vel_proc, vel, root, mpi_comm);
-        scatter_v(type_proc, type, root, mpi_comm);
-        scatter_v(tag_proc, tag, root, mpi_comm);
-        scatter_v(N_proc, m_N, root, mpi_comm);
-
-        // we have to allocate even if the number of particles on a processor
-        // is zero, so that the arrays can be resized later
-        if (m_N == 0)
-            allocate(1);
-        else
-            allocate(m_N);
+        MPI_Scatterv(particles.data(),
+                     num_per_rank.data(),
+                     rank_displacements.data(),
+                     m_mpi_pdata_element,
+                     recv_particles.data(),
+                     m_N,
+                     m_mpi_pdata_element,
+                     root,
+                     mpi_comm);
 
         // Fill-up particle data arrays
         ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -269,52 +286,46 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
                                               access_mode::overwrite);
         for (unsigned int idx = 0; idx < m_N; idx++)
             {
-            h_pos.data[idx]
-                = make_scalar4(pos[idx].x, pos[idx].y, pos[idx].z, __int_as_scalar(type[idx]));
-            h_vel.data[idx] = make_scalar4(vel[idx].x,
-                                           vel[idx].y,
-                                           vel[idx].z,
-                                           __int_as_scalar(mpcd::detail::NO_CELL));
-            h_tag.data[idx] = tag[idx];
+            const mpcd::detail::pdata_element particle = recv_particles[idx];
+            h_pos.data[idx] = particle.pos;
+            h_vel.data[idx] = particle.vel;
+            h_tag.data[idx] = particle.tag;
             h_comm_flag.data[idx] = 0; // initialize with zero by default
             }
         }
     else
 #endif // ENABLE_MPI
         {
-        allocate(snapshot.size);
+        // number of local particles is the global number
+        N_global = snapshot.size;
+        allocate(N_global);
+        m_N = N_global;
 
         ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::overwrite);
 
-        for (unsigned int snap_idx = 0; snap_idx < snapshot.size; ++snap_idx)
+        for (unsigned int idx = 0; idx < m_N; ++idx)
             {
-            h_pos.data[nglobal] = make_scalar4(snapshot.position[snap_idx].x,
-                                               snapshot.position[snap_idx].y,
-                                               snapshot.position[snap_idx].z,
-                                               __int_as_scalar(snapshot.type[snap_idx]));
-            h_vel.data[nglobal] = make_scalar4(snapshot.velocity[snap_idx].x,
-                                               snapshot.velocity[snap_idx].y,
-                                               snapshot.velocity[snap_idx].z,
-                                               __int_as_scalar(mpcd::detail::NO_CELL));
-            h_tag.data[nglobal] = nglobal;
-            nglobal++;
+            const auto pos = snapshot.position[idx];
+            h_pos.data[idx]
+                = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(snapshot.type[idx]));
+
+            const auto vel = snapshot.velocity[idx];
+            h_vel.data[idx]
+                = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
+
+            h_tag.data[idx] = idx;
             }
 
         // mass is equal for all particles
         m_mass = snapshot.mass;
 
-        // number of local particles is the global number
-        m_N = nglobal;
-
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
         }
 
-    setNGlobal(nglobal);
-
-    // TODO: any particle data signaling to subscribers
+    setNGlobal(N_global);
     }
 
 /*!
@@ -559,7 +570,7 @@ bool mpcd::ParticleData::checkSnapshot(const mpcd::ParticleDataSnapshot& snapsho
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(valid_snapshot, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&valid_snapshot, 1, MPI_CXX_BOOL, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -606,7 +617,7 @@ bool mpcd::ParticleData::checkInBox(const mpcd::ParticleDataSnapshot& snapshot,
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(in_box, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&in_box, 1, MPI_CXX_BOOL, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
     return in_box;
@@ -760,7 +771,7 @@ void mpcd::ParticleData::setMass(Scalar mass)
     // in mpi, the mass must be synced between all ranks
     if (m_decomposition)
         {
-        bcast(m_mass, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_mass, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif // ENABLE_MPI
     }
@@ -910,6 +921,12 @@ unsigned int mpcd::ParticleData::addVirtualParticles(unsigned int N)
     }
 
 #ifdef ENABLE_MPI
+
+MPI_Datatype mpcd::ParticleData::getElementMPIDatatype() const
+    {
+    return m_mpi_pdata_element;
+    }
+
 /*!
  * \param out Buffer into which particle data is packed
  * \param mask Mask for \a m_comm_flags to determine if communication is necessary
@@ -1268,6 +1285,21 @@ void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposi
         m_autotuners.insert(m_autotuners.end(), {m_mark_tuner, m_remove_tuner, m_add_tuner});
         }
 #endif // ENABLE_HIP
+
+        // create new data type for the pdata_element
+        {
+        const MPI_Datatype mpi_scalar4 = m_exec_conf->getMPIConfig()->getScalar4Datatype();
+        int blocklengths[] = {1, 1, 1, 1};
+        MPI_Datatype types[] = {mpi_scalar4, mpi_scalar4, MPI_UNSIGNED, MPI_UNSIGNED};
+        MPI_Aint offsets[] = {offsetof(mpcd::detail::pdata_element, pos),
+                              offsetof(mpcd::detail::pdata_element, vel),
+                              offsetof(mpcd::detail::pdata_element, tag),
+                              offsetof(mpcd::detail::pdata_element, comm_flag)};
+        MPI_Datatype tmp;
+        MPI_Type_create_struct(4, blocklengths, offsets, types, &tmp);
+        MPI_Type_create_resized(tmp, 0, sizeof(mpcd::detail::pdata_element), &m_mpi_pdata_element);
+        MPI_Type_commit(&m_mpi_pdata_element);
+        }
     }
 #endif // ENABLE_MPI
 

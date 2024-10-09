@@ -49,23 +49,6 @@ mpcd::Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef)
     GPUArray<unsigned int> adj_mask(neigh_max, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
-    // create new data type for the pdata_element
-    const int nitems = 4;
-    int blocklengths[nitems] = {4, 4, 1, 1};
-    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED};
-    MPI_Aint offsets[nitems];
-    offsets[0] = offsetof(mpcd::detail::pdata_element, pos);
-    offsets[1] = offsetof(mpcd::detail::pdata_element, vel);
-    offsets[2] = offsetof(mpcd::detail::pdata_element, tag);
-    offsets[3] = offsetof(mpcd::detail::pdata_element, comm_flag);
-    // this needs to be made via the resize method to get its upper bound correctly
-    MPI_Datatype tmp;
-    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
-    MPI_Type_commit(&tmp);
-    MPI_Type_create_resized(tmp, 0, sizeof(mpcd::detail::pdata_element), &m_pdata_element);
-    MPI_Type_commit(&m_pdata_element);
-    MPI_Type_free(&tmp);
-
     initializeNeighborArrays();
     }
 
@@ -73,7 +56,6 @@ mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
     detachCallbacks();
-    MPI_Type_free(&m_pdata_element);
     }
 
 void mpcd::Communicator::initializeNeighborArrays()
@@ -349,11 +331,12 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                                                                access_mode::overwrite);
             m_reqs.resize(4);
             int nreq = 0;
+            const MPI_Datatype mpi_pdata_element = m_mpcd_pdata->getElementMPIDatatype();
             if (n_send_right != 0)
                 {
                 MPI_Isend(h_sendbuf.data + n_keep,
                           n_send_right,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           right_neigh,
                           1,
                           m_mpi_comm,
@@ -363,7 +346,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 {
                 MPI_Isend(h_sendbuf.data + n_keep + n_send_right,
                           n_send_left,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           left_neigh,
                           1,
                           m_mpi_comm,
@@ -373,7 +356,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 {
                 MPI_Irecv(h_recvbuf.data + n_recv,
                           n_recv_right,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           right_neigh,
                           1,
                           m_mpi_comm,
@@ -383,7 +366,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 {
                 MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right,
                           n_recv_left,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           left_neigh,
                           1,
                           m_mpi_comm,

@@ -94,7 +94,8 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
     {
 #ifdef ENABLE_MPI
     auto communicator = exec_conf->getMPICommunicator();
-    broadcast_box(exec_conf->getMPIConfig());
+    auto mpi_config = exec_conf->getMPIConfig();
+    broadcast_box(mpi_config);
     if (exec_conf->getNRanks() > 1)
         {
         particle_data.bcast(root, communicator);
@@ -105,7 +106,7 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
         constraint_data.bcast(root, communicator);
         pair_data.bcast(root, communicator);
 #ifdef BUILD_MPCD
-        mpcd_data.bcast(root, communicator);
+        mpcd_data.bcast(root, communicator, mpi_config);
 #endif
         }
 #endif
@@ -117,9 +118,10 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
     {
 #ifdef ENABLE_MPI
     MPI_Comm hoomd_world = exec_conf->getHOOMDWorldMPICommunicator();
+    auto mpi_config = exec_conf->getMPIConfig();
     int n_ranks;
     MPI_Comm_size(hoomd_world, &n_ranks);
-    broadcast_box(exec_conf->getMPIConfig());
+    broadcast_box(mpi_config);
     if (n_ranks > 0)
         {
         particle_data.bcast(root, hoomd_world);
@@ -130,7 +132,7 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
         constraint_data.bcast(root, hoomd_world);
         pair_data.bcast(root, hoomd_world);
 #ifdef BUILD_MPCD
-        mpcd_data.bcast(root, hoomd_world);
+        mpcd_data.bcast(root, hoomd_world, mpi_config);
 #endif
         }
 #endif

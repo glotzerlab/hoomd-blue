@@ -139,10 +139,29 @@ class PYBIND11_EXPORT MPIConfiguration
         return walltime;
         }
 
+#ifdef ENABLE_MPI
+    //! Get Scalar2 datatype
+    MPI_Datatype getScalar2Datatype() const;
+
+    //! Get Scalar3 datatype
+    MPI_Datatype getScalar3Datatype() const;
+
+    //! Get vec3<Scalar> datatype
+    MPI_Datatype getVec3ScalarDatatype() const;
+
+    //! Get Scalar4 datatype
+    MPI_Datatype getScalar4Datatype() const;
+#endif // ENABLE_MPI
+
     protected:
 #ifdef ENABLE_MPI
     MPI_Comm m_mpi_comm;    //!< The MPI communicator
     MPI_Comm m_hoomd_world; //!< The HOOMD world communicator
+
+    MPI_Datatype m_mpi_scalar2;     //!< HOOMD Scalar2 MPI datatype
+    MPI_Datatype m_mpi_scalar3;     //!< HOOMD Scalar3 MPI datatype
+    MPI_Datatype m_mpi_vec3_scalar; //!< HOOMD vec3<Scalar> MPI datatype
+    MPI_Datatype m_mpi_scalar4;     //!< HOOMD Scalar4 MPI datatype
 #endif
     unsigned int m_rank;   //!< Rank of this processor (0 if running in single-processor mode)
     unsigned int m_n_rank; //!< Ranks per partition
