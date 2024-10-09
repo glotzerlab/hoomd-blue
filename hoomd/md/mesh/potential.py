@@ -74,7 +74,8 @@ class MeshPotential(Force):
 class MeshConvervationPotential(MeshPotential):
     """Constructs the conservation potential applied to a mesh.
 
-    `MeshConvervationPotential` is the base class for global conservation potentials applied to meshes.
+    `MeshConvervationPotential` is the base class for global conservation 
+    potentials applied to meshes.
 
     Warning:
         This class should not be instantiated by users. The class can be used
