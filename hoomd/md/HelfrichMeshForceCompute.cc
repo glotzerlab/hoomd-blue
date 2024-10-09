@@ -129,7 +129,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
 
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
@@ -138,11 +137,9 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_sigma.data);
     assert(h_sigma_dash.data);
 
-    // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -152,11 +149,9 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
 
-    // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
         const typename MeshBond::members_t& bond = h_bonds.data[i];
 
         unsigned int btag_a = bond.tag[0];
@@ -171,8 +166,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (btag_c == btag_d)
             continue;
 
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[btag_a];
         unsigned int idx_b = h_rtag.data[btag_b];
         unsigned int idx_c = h_rtag.data[btag_c];
@@ -183,7 +176,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
 
-        // calculate d\vec{r}
         Scalar3 dab;
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
@@ -214,7 +206,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
         dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
 
-        // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
         dad = box.minImage(dad);
@@ -222,10 +213,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dbd = box.minImage(dbd);
         dcd = box.minImage(dcd);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -425,7 +412,6 @@ void HelfrichMeshForceCompute::computeSigma()
         access_location::host,
         access_mode::read);
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::overwrite);
@@ -434,7 +420,6 @@ void HelfrichMeshForceCompute::computeSigma()
     memset((void*)h_sigma.data, 0, sizeof(Scalar) * m_sigma.getNumElements());
     memset((void*)h_sigma_dash.data, 0, sizeof(Scalar3) * m_sigma_dash.getNumElements());
 
-    // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
