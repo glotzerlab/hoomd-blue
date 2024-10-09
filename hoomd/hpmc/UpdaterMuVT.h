@@ -1085,7 +1085,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                         }
 
                     // acceptance probability
-                    lnboltzmann = log(fugacity * V / (Scalar)(nptl_type + 1));
+                    lnboltzmann = log(fugacity * V / ((Scalar)(nptl_type + 1) * kT));
                     }
 
                 // check if particle can be inserted without overlaps
@@ -1229,7 +1229,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                     throw std::runtime_error("Error in UpdaterMuVT");
                     }
 
-                lnboltzmann -= log(fugacity);
+                lnboltzmann -= log(fugacity / kT);
                 }
             else
                 {
