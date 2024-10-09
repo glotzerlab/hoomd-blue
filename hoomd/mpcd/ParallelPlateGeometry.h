@@ -134,6 +134,18 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
         return (pos.y > m_H || pos.y < -m_H);
         }
 
+    HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const
+        {
+        if (pos.y > m_H)
+            {
+            vel.x += m_V;
+            }
+        else if (pos.y < -m_H)
+            {
+            vel.x -= m_V;
+            }
+        }
+
     //! Get channel half width
     /*!
      * \returns Channel half width

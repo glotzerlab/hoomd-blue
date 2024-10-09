@@ -168,6 +168,8 @@ class __attribute__((visibility("default"))) PlanarPoreGeometry
         return ((pos.x > -m_L && pos.x < m_L) && (pos.y > m_H || pos.y < -m_H));
         }
 
+    HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const { }
+
     //! Get pore half width
     /*!
      * \returns Pore half width

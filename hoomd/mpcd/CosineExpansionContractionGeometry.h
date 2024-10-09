@@ -297,6 +297,8 @@ class __attribute__((visibility("default"))) CosineExpansionContractionGeometry
         return ((hi - m_H_wide) >= cell_size && (-m_H_wide - lo) >= cell_size);
         }
 
+    HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const { }
+
     //! Get channel width at widest point
     /*!
      * \returns Channel width at widest point

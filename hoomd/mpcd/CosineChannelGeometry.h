@@ -270,6 +270,8 @@ class __attribute__((visibility("default"))) CosineChannelGeometry
         return (a > m_H || a < -m_H);
         }
 
+    HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const { }
+
     //! Get channel amplitude
     HOSTDEVICE Scalar getAmplitude() const
         {

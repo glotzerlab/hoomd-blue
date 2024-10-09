@@ -104,6 +104,8 @@ class __attribute__((visibility("default"))) SphereGeometry
         return dot(pos, pos) > m_R2;
         }
 
+    HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const { }
+
     //! Get Sphere radius
     /*!
      * \returns confinement radius

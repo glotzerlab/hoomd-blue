@@ -125,6 +125,7 @@ template<class Geometry> void RejectionVirtualParticleFiller<Geometry>::fill(uin
             Scalar3 vel;
             gen(vel.x, vel.y, rng);
             vel.z = gen(rng);
+            m_geom->addToVirtualParticleVelocity(vel, particle);
             h_tmp_vel.data[num_selected]
                 = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
             ++num_selected;
