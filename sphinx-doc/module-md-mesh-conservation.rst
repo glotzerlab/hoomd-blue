@@ -2,7 +2,7 @@
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.mesh.conservation
-------------
+--------------------
 
 .. rubric:: Overview
 
@@ -17,6 +17,6 @@ md.mesh.conservation
 
 .. automodule:: hoomd.md.mesh.conservation
     :synopsis: Constraints applied to a mesh data structure.
-    :members: Volume
     :no-inherited-members:
     :show-inheritance:
+    :members: Volume
