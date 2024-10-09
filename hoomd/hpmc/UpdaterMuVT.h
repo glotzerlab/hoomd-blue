@@ -861,6 +861,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
+    const Scalar kT = (*m_mc->getKT())(timestep);
+
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
     // initialize random number generator
@@ -1083,7 +1085,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                         }
 
                     // acceptance probability
-                    lnboltzmann = log(fugacity * V / (Scalar)(nptl_type + 1));
+                    lnboltzmann = log(fugacity * V / ((Scalar)(nptl_type + 1) * kT));
                     }
 
                 // check if particle can be inserted without overlaps
@@ -1093,7 +1095,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 if (nonzero)
                     {
-                    lnboltzmann += lnb;
+                    lnboltzmann += lnb / kT;
                     }
 
 #ifdef ENABLE_MPI
@@ -1227,7 +1229,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                     throw std::runtime_error("Error in UpdaterMuVT");
                     }
 
-                lnboltzmann -= log(fugacity);
+                lnboltzmann -= log(fugacity / kT);
                 }
             else
                 {
@@ -1274,7 +1276,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
             Scalar lnb(0.0);
             if (tryRemoveParticle(timestep, tag, lnb))
                 {
-                lnboltzmann += lnb;
+                lnboltzmann += lnb / kT;
                 }
             else
                 {
@@ -1535,8 +1537,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 // apply criterion on rank zero
                 Scalar arg = log(V_new / V) * (Scalar)(ndof + 1)
-                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1) + lnb
-                             + other_lnb;
+                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1)
+                             + (lnb + other_lnb) / kT;
 
                 accept = hoomd::detail::generate_canonical<double>(rng) < exp(arg);
                 accept &= !(has_overlaps || other_result);

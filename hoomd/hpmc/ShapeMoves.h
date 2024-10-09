@@ -92,13 +92,13 @@ template<typename Shape> class ShapeMoveBase
         this->m_move_probability = fmin(move_probability, 1.0);
         }
 
-    virtual Scalar computeLogBoltmann(uint64_t timestep,
-                                      const unsigned int& N,
-                                      const unsigned int type_id,
-                                      const typename Shape::param_type& shape_new,
-                                      const Scalar& inew,
-                                      const typename Shape::param_type& shape_old,
-                                      const Scalar& iold)
+    virtual Scalar computeLogBoltzmann(uint64_t timestep,
+                                       const unsigned int& N,
+                                       const unsigned int type_id,
+                                       const typename Shape::param_type& shape_new,
+                                       const Scalar& inew,
+                                       const typename Shape::param_type& shape_old,
+                                       const Scalar& iold)
         {
         return (Scalar(N) / Scalar(2.0)) * log(inew / iold);
         }
@@ -472,27 +472,31 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         this->m_volume[typid] = mp.getVolume();
         }
 
-    Scalar computeLogBoltmann(uint64_t timestep,
-                              const unsigned int& N,
-                              const unsigned int type_id,
-                              const typename ShapeConvexPolyhedron::param_type& shape_new,
-                              const Scalar& inew,
-                              const typename ShapeConvexPolyhedron::param_type& shape_old,
-                              const Scalar& iold)
+    Scalar computeLogBoltzmann(uint64_t timestep,
+                               const unsigned int& N,
+                               const unsigned int type_id,
+                               const typename ShapeConvexPolyhedron::param_type& shape_new,
+                               const Scalar& inew,
+                               const typename ShapeConvexPolyhedron::param_type& shape_old,
+                               const Scalar& iold)
         {
-        Scalar inertia_term = ShapeMoveBase<ShapeConvexPolyhedron>::computeLogBoltmann(timestep,
-                                                                                       N,
-                                                                                       type_id,
-                                                                                       shape_new,
-                                                                                       inew,
-                                                                                       shape_old,
-                                                                                       iold);
+        Scalar inertia_term = ShapeMoveBase<ShapeConvexPolyhedron>::computeLogBoltzmann(timestep,
+                                                                                        N,
+                                                                                        type_id,
+                                                                                        shape_new,
+                                                                                        inew,
+                                                                                        shape_old,
+                                                                                        iold);
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Matrix3S eps_last = this->getEpsLast(type_id);
         Scalar e_ddot_e = (eps * eps).trace();
         Scalar e_ddot_e_last = (eps_last * eps_last).trace();
-        return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume[type_id] + inertia_term;
+
+        const Scalar kT = (*m_mc->getKT())(timestep);
+
+        return (N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume[type_id]) / kT
+               + inertia_term;
         }
 
     Scalar computeEnergy(uint64_t timestep,
@@ -612,24 +616,27 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
 
     void retreat(uint64_t timestep, unsigned int type) { }
 
-    Scalar computeLogBoltmann(uint64_t timestep,
-                              const unsigned int& N,
-                              const unsigned int type_id,
-                              const param_type& shape_new,
-                              const Scalar& inew,
-                              const param_type& shape_old,
-                              const Scalar& iold)
+    Scalar computeLogBoltzmann(uint64_t timestep,
+                               const unsigned int& N,
+                               const unsigned int type_id,
+                               const param_type& shape_new,
+                               const Scalar& inew,
+                               const param_type& shape_old,
+                               const Scalar& iold)
         {
-        Scalar inertia_term = ShapeMoveBase<ShapeEllipsoid>::computeLogBoltmann(timestep,
-                                                                                N,
-                                                                                type_id,
-                                                                                shape_new,
-                                                                                inew,
-                                                                                shape_old,
-                                                                                iold);
+        Scalar inertia_term = ShapeMoveBase<ShapeEllipsoid>::computeLogBoltzmann(timestep,
+                                                                                 N,
+                                                                                 type_id,
+                                                                                 shape_new,
+                                                                                 inew,
+                                                                                 shape_old,
+                                                                                 iold);
         Scalar old_energy = computeEnergy(timestep, N, type_id, shape_old, iold);
         Scalar new_energy = computeEnergy(timestep, N, type_id, shape_new, inew);
-        return old_energy - new_energy + inertia_term;
+
+        const Scalar kT = (*m_mc->getKT())(timestep);
+
+        return (old_energy - new_energy) / kT + inertia_term;
         }
 
     Scalar computeEnergy(uint64_t timestep,

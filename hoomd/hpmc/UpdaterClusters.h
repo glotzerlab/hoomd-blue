@@ -1694,6 +1694,8 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             delta_U[p] = delU;
             }
 
+        const Scalar kT = (*m_mc->getKT())(timestep);
+
         #ifdef ENABLE_TBB_TASK
         this->m_exec_conf->getTaskArena()->execute([&]{
         tbb::parallel_for(delta_U.range(), [&] (decltype(delta_U.range()) r)
@@ -1711,7 +1713,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
                 hoomd::RandomGenerator rng_ij(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClustersPairwise, timestep, seed),
                                               hoomd::Counter(std::min(i,j), std::max(i,j)));
 
-                LongReal pij = 1.0f-exp(-delU);
+                LongReal pij = 1.0f-exp(-delU / kT);
                 if (hoomd::detail::generate_canonical<LongReal>(rng_ij) <= pij) // GCA
                     {
                     // add bond

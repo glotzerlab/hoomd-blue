@@ -458,3 +458,26 @@ class SDF(Compute):
             return rho + compression_contribution + expansion_contribution
         else:
             return None
+
+    @log(requires_run=True)
+    def P(self):  # noqa: N802 - allow function name
+        """float: Pressure in NVT simulations \
+        :math:`\\left[ \\mathrm{energy} \\ \\mathrm{length}^{-d} \\right]`.
+
+        .. math::
+            P = \\frac{1}{\\beta} \\beta P
+
+        where :math:`\\beta P` is given by `betaP`.
+
+        Attention:
+            In MPI parallel execution, `P` is available on rank 0 only.
+            `P` is `None` on ranks >= 1.
+        """
+        integrator = self._simulation.operations.integrator
+
+        result = self.betaP
+
+        if result is not None:
+            return result * integrator.kT(self._simulation.timestep)
+        else:
+            return None

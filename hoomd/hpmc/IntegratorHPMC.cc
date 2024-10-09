@@ -258,6 +258,7 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
+        .def_property("kT", &IntegratorHPMC::getKT, &IntegratorHPMC::setKT)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,

@@ -15,6 +15,7 @@
 
 #include "hoomd/CellList.h"
 #include "hoomd/Integrator.h"
+#include <hoomd/Variant.h>
 
 #include "ExternalField.h"
 #include "ExternalPotential.h"
@@ -260,6 +261,21 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_nselect;
         }
 
+    //! Set kT variant
+    /*! \param kT new k_BT variant to set
+     */
+    void setKT(std::shared_ptr<Variant> kT)
+        {
+        m_kT = kT;
+        }
+
+    //! Get kT variant
+    //! \returns current value of kT parameter
+    std::shared_ptr<Variant> getKT()
+        {
+        return m_kT;
+        }
+
     //! Get performance in moves per second
     virtual double getMPS()
         {
@@ -501,6 +517,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
                                     //! used in a more general setting.
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
+
+    std::shared_ptr<Variant> m_kT; //!< kT variant
 
     /// Pair potential evaluators.
     std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;

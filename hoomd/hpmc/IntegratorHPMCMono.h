@@ -660,6 +660,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     const LongReal min_core_radius = getMinCoreDiameter() * LongReal(0.5);
     const auto& pair_energy_search_radius = getPairEnergySearchRadius();
 
+    const Scalar kT = this->getKT()->operator()(timestep);
+
     m_max_pair_additive_cutoff.clear();
     m_shape_circumsphere_radius.clear();
     for (unsigned int type = 0; type < m_pdata->getNTypes(); type++)
@@ -948,7 +950,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     this->computeOneExternalEnergy(typ_i, pos_i, shape_i.orientation, h_charge.data[i], true);
                 }
 
-            bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff);
+            bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff / kT);
 
             // The trial move is valid, so check if it is invalidated by depletants
             unsigned int seed_i_new = hoomd::detail::generate_u32(rng_i);

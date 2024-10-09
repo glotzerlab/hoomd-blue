@@ -486,6 +486,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     const LongReal min_core_radius = m_mc->getMinCoreDiameter() * LongReal(0.5);
     const auto& pair_energy_search_radius = m_mc->getPairEnergySearchRadius();
 
+    const Scalar kT = (*m_mc->getKT())(timestep);
+
     // loop through N particles
     // At the top of this loop, we initialize min_bin to the size of the sdf histogram
     // For each of particle i's neighbors, we find the scaling that produces the first overlap.
@@ -615,7 +617,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                         else
                                             {
                                             hist_weight_ptl_i_compression
-                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0) / kT);
                                             }
                                         }
                                     } // end if (!hard_overlap)
@@ -675,7 +677,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                         else
                                             {
                                             hist_weight_ptl_i_expansion
-                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0) / kT);
                                             }
                                         }
                                     } // end if (!hard_overlap)
