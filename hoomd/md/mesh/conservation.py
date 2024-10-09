@@ -46,7 +46,8 @@ class Area(MeshConvervationPotential):
         parameter (TypeParameter[dict]):
             The parameter of the area conservation for each mesh type.
             The dictionary has the following keys:
-            * ``k`` (`float`, **required**) - area conservation coefficient
+
+            * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
             * ``A0`` (`float`, **required**) - targeted global surface area
               :math:`[\mathrm{length}]^2]`
@@ -54,7 +55,7 @@ class Area(MeshConvervationPotential):
     Examples::
 
         area_conservation_potential = mesh.conservation.Area(mesh)
-        tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
+        area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
     """
     _cpp_class_name = "AreaConservationMeshForceCompute"
 
@@ -95,6 +96,7 @@ class TriangleArea(MeshPotential):
         parameter (TypeParameter[dict]):
             The parameter of the triangle area conservation for each mesh type.
             The dictionary has the following keys:
+
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
             * ``A0`` (`float`, **required**) - target surface area
@@ -104,7 +106,7 @@ class TriangleArea(MeshPotential):
     Examples::
 
         tringle_area_conservation_potential = mesh.conservation.TriangleArea(mesh)
-        tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
+        tringle_area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
     """
     _cpp_class_name = "TriangleAreaConservationMeshForceCompute"
 

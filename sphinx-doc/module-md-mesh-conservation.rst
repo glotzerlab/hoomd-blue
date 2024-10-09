@@ -2,7 +2,7 @@
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.mesh.conservation
-------------
+--------------------
 
 .. rubric:: Overview
 
