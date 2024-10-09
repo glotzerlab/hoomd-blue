@@ -50,6 +50,9 @@ class _NoGPU:
         raise GPUNotAvailableError(
             "This build of HOOMD-blue does not support GPUs.")
 
+class MPINotAvailableError(NotImplementedError):
+    """Error for when a feature is not implemented for MPI."""
+    pass
 
 class IncompleteSpecificationError(ValueError):
     """Error when a value is missing."""
