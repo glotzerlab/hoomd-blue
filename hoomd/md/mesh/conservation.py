@@ -39,8 +39,8 @@ class Area(MeshConvervationPotential):
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
         ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
-              and calculates the conservation energy considering all triangles in 
-              the mesh. Defaults to `False`.
+            and calculates the conservation energy considering all triangles in 
+            the mesh. Defaults to `False`.
 
     Attributes:
         parameter (TypeParameter[dict]):
@@ -78,6 +78,7 @@ class TriangleArea(MeshPotential):
     applying an area constraint to each triangle of the mesh.
 
     .. math::
+
         U(r) = k \sum_{i,j,k \in \mathrm{mesh{ }triangle}}
         \frac{( N_\mathrm{tri} \cdot A_{ijk} - A_0 )^2}
         {2 \cdot A_0 \cdot N_\mathrm{tri}}
