@@ -6,8 +6,6 @@
 
 #include <memory>
 
-#include <vector>
-
 /*! \file HelfrichMeshForceCompute.h
     \brief Declares a class for computing helfrich energy forces
 */
@@ -25,28 +23,6 @@ namespace hoomd
     {
 namespace md
     {
-struct helfrich_params
-    {
-    Scalar k;
-
-#ifndef __HIPCC__
-    helfrich_params() : k(0) { }
-
-    helfrich_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        v["k"] = k;
-        return v;
-        }
-#endif
-    }
-#ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
-#else
-    __attribute__((aligned(16)));
-#endif
 
 //! Computes helfrich energy forces on the mesh
 /*! Helfrich energy forces are computed on every particle in a mesh.
@@ -85,8 +61,7 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K; //!< K parameter for multiple mesh triangles
-
+    GPUArray<Scalar> m_params;                   //!< Parameters
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
     GlobalArray<Scalar3>

@@ -2,10 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
+#include "BendingRigidityMeshForceCompute.h"
 
 #include <iostream>
-#include <math.h>
-#include <sstream>
 #include <stdexcept>
 
 using namespace std;
@@ -27,17 +26,16 @@ namespace md
 */
 HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_K(NULL), m_mesh_data(meshdef)
+    : ForceCompute(sysdef), m_mesh_data(meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing HelfrichMeshForceCompute" << endl;
 
     // allocate the parameters
-    m_K = new Scalar[m_mesh_data->getMeshBondData()->getNTypes()];
+    GPUArray<Scalar> params(m_mesh_data->getMeshBondData()->getNTypes(), m_exec_conf);
+    m_params.swap(params);
 
     // allocate memory for the per-type normal verctors
     GlobalArray<Scalar3> tmp_sigma_dash(m_pdata->getMaxN(), m_exec_conf);
-
-    std::cout << m_pdata->getMaxN() << " " << m_pdata->getN() << " " <<  m_pdata->getNGhosts() << std::endl;
 
     m_sigma_dash.swap(tmp_sigma_dash);
     TAG_ALLOCATION(m_sigma_dash);
@@ -67,9 +65,6 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
 HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying HelfrichMeshForceCompute" << endl;
-
-    delete[] m_K;
-    m_K = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -79,7 +74,8 @@ HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
 */
 void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K)
     {
-    m_K[type] = K;
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
+    h_params.data[type] = K;
 
     // check for some silly errors a user could make
     if (K <= 0)
@@ -89,7 +85,7 @@ void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K)
 void HelfrichMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
-    auto _params = helfrich_params(params);
+    auto _params = bending_params(params);
     setParams(typ, _params.k);
     }
 
@@ -101,8 +97,9 @@ pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
         m_exec_conf->msg->error() << "mesh.helfrich: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
         }
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
     pybind11::dict params;
-    params["k"] = m_K[typ];
+    params["k"] = h_params.data[typ];
     return params;
     }
 
@@ -122,6 +119,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
 
     ArrayHandle<typename MeshBond::members_t> h_bonds(
         m_mesh_data->getMeshBondData()->getMembersArray(),
@@ -378,10 +376,9 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Fa.z += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.z - sigma_dash_c2 * dsigma_c.z);
         Fa.z += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.z - sigma_dash_d2 * dsigma_d.z);
 
-        unsigned int bond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
-        Scalar prefactor = m_K[bond_type];
+        unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
 
-        Fa *= prefactor;
+        Fa *= h_params.data[meshbond_type];
 
         if (compute_virial)
             {
@@ -400,7 +397,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += prefactor * 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
+            h_force.data[idx_a].w += h_params.data[meshbond_type] * 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -410,7 +407,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w += prefactor * 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
+            h_force.data[idx_b].w += h_params.data[meshbond_type] * 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }

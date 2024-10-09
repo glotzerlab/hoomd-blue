@@ -75,14 +75,6 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
     m_sigma.swap(tmp_sigma);
     }
 
-void HelfrichMeshForceComputeGPU::setParams(unsigned int type, Scalar K)
-    {
-    HelfrichMeshForceCompute::setParams(type, K);
-
-    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
-    // update the local copy of the memory
-    h_params.data[type] = K;
-    }
 
 /*! Actually perform the force computation
     \param timestep Current time step
