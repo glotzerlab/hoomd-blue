@@ -63,7 +63,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     //! Constructs the compute
     AreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<MeshDefinition> meshdef,
-				     bool ignore_type);
+                                     bool ignore_type);
 
     //! Destructor
     virtual ~AreaConservationMeshForceCompute();
@@ -95,11 +95,11 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    GPUArray<Scalar2> m_params;                   //!< Parameters
-    Scalar* m_area; //! sum of the triangle areas within a mesh type
-		    //
+    GPUArray<Scalar2> m_params;                  //!< Parameters
+    Scalar* m_area;                              //! sum of the triangle areas within a mesh type
+                                                 //
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing energy
-    bool m_ignore_type; //! ignore type to calculate global area if true
+    bool m_ignore_type;                          //! ignore type to calculate global area if true
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

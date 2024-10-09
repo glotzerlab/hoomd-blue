@@ -33,7 +33,7 @@ _Tether_arg_list = [(hoomd.md.mesh.bond.Tether, dict(zip(_Tether_args, val)))
 
 _TriangleAreaConservation_args = {
     'k': [1.0, 20.0, 100.0],
-    'A0': [6 * np.sqrt(3)/4, 5 * np.sqrt(3)/4, 7 * np.sqrt(3)/4]
+    'A0': [6 * np.sqrt(3) / 4, 5 * np.sqrt(3) / 4, 7 * np.sqrt(3) / 4]
 }
 _TriangleAreaConservation_arg_list = [
     (hoomd.md.mesh.conservation.TriangleArea,
@@ -130,8 +130,7 @@ def get_mesh_potential_args_forces_and_energies():
              BendingRigidity_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
             + TriangleAreaConservation_args_and_vals
-            + AreaConservation_args_and_vals
-            + BendingRigidity_args_and_vals)
+            + AreaConservation_args_and_vals + BendingRigidity_args_and_vals)
 
 
 @pytest.fixture(scope='session')
@@ -248,6 +247,7 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
+
 def test_area(simulation_factory, tetrahedron_snapshot_factory):
 
     snap = tetrahedron_snapshot_factory(d=0.969, L=5)
@@ -275,9 +275,10 @@ def test_area(simulation_factory, tetrahedron_snapshot_factory):
     sim.run(0)
 
     np.testing.assert_allclose(mesh_potential.area,
-                               np.array([1.62633*3/4,1.62633/4]),
+                               np.array([1.62633 * 3 / 4, 1.62633 / 4]),
                                rtol=1e-2,
                                atol=1e-5)
+
 
 def test_area_ignore_type(simulation_factory, tetrahedron_snapshot_factory):
     snap = tetrahedron_snapshot_factory(d=0.969, L=5)
@@ -289,7 +290,7 @@ def test_area_ignore_type(simulation_factory, tetrahedron_snapshot_factory):
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
-    mesh_potential = hoomd.md.mesh.conservation.Area(mesh,True)
+    mesh_potential = hoomd.md.mesh.conservation.Area(mesh, True)
     mesh_potential.params.default = dict(k=1, A0=1)
 
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -307,7 +308,7 @@ def test_area_ignore_type(simulation_factory, tetrahedron_snapshot_factory):
     print(mesh_potential.area)
 
     np.testing.assert_allclose(mesh_potential.area,
-                               np.array([1.62633,0]),
+                               np.array([1.62633, 0]),
                                rtol=1e-2,
                                atol=1e-5)
 

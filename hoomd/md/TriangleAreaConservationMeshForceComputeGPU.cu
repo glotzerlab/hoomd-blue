@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
 #include "TriangleAreaConservationMeshForceComputeGPU.cuh"
+#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
 
 #include <assert.h>
@@ -97,11 +97,11 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
             dab = pos_a - pos_b;
             dac = pos_a - pos_c;
             }
-	else
-	    {
+        else
+            {
             dab = pos_b - pos_a;
             dac = pos_b - pos_c;
-	    }
+            }
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -136,16 +136,15 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
         Scalar Ut = 3 * tri_area - At;
 
-	Scalar prefactor = K / (2 * At) * Ut;
+        Scalar prefactor = K / (2 * At) * Ut;
 
-        Scalar3 Fab = prefactor * (-nab * rac * s_baac +  ds_drab * rab * rac);
+        Scalar3 Fab = prefactor * (-nab * rac * s_baac + ds_drab * rab * rac);
 
         if (cur_triangle_abc == 0)
             {
-
             Scalar3 dc_drac = -nab / rac + c_baac / rac * nac;
             Scalar3 ds_drac = -c_baac * inv_s_baac * dc_drac;
-            Scalar3 Fac = prefactor * (-nac * rab * s_baac +  ds_drac * rab * rac);
+            Scalar3 Fac = prefactor * (-nac * rab * s_baac + ds_drac * rab * rac);
 
             force.x += (Fab.x + Fac.x);
             force.y += (Fab.y + Fac.y);
@@ -157,25 +156,23 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
             virial[3] += Scalar(1. / 2.) * (dab.y * Fab.y + dac.y * Fac.y); // yy
             virial[4] += Scalar(1. / 2.) * (dab.z * Fab.y + dac.z * Fac.y); // yz
             virial[5] += Scalar(1. / 2.) * (dab.z * Fab.z + dac.z * Fac.z); // zz
-
             }
-	else
-	    {
-	    force.x -= Fab.x;
-	    force.y -= Fab.y;
-	    force.z -= Fab.z;
+        else
+            {
+            force.x -= Fab.x;
+            force.y -= Fab.y;
+            force.z -= Fab.z;
 
-	    virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
-	    virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
-	    virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
-	    virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
-	    virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
-	    virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
-	    }
+            virial[0] += Scalar(1. / 2.) * dab.x * Fab.x; // xx
+            virial[1] += Scalar(1. / 2.) * dab.y * Fab.x; // xy
+            virial[2] += Scalar(1. / 2.) * dab.z * Fab.x; // xz
+            virial[3] += Scalar(1. / 2.) * dab.y * Fab.y; // yy
+            virial[4] += Scalar(1. / 2.) * dab.z * Fab.y; // yz
+            virial[5] += Scalar(1. / 2.) * dab.z * Fab.z; // zz
+            }
 
-        force.w
-            += K / (6.0 * At) * Ut * Ut; // divided by 3 because of three
-                                                                 // particles sharing the energy
+        force.w += K / (6.0 * At) * Ut * Ut; // divided by 3 because of three
+                                             // particles sharing the energy
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)

@@ -32,7 +32,6 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigne
     GlobalArray<unsigned int> globalN(n_types, m_sysdef->getParticleData()->getExecConf());
     m_globalN.swap(globalN);
     TAG_ALLOCATION(m_globalN);
-
     }
 
 void MeshDefinition::setTypes(pybind11::list types)
