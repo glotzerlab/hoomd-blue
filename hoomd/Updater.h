@@ -58,13 +58,13 @@ class PYBIND11_EXPORT Updater : public Action
     public:
     //! Constructs the compute and associates it with the ParticleData
     Updater(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
-    virtual ~Updater() {};
+    virtual ~Updater() { };
 
     //! Abstract method that performs the update
     /*! Derived classes will implement this method to perform their specific update
         \param timestep Current time step of the simulation
     */
-    virtual void update(uint64_t timestep) {};
+    virtual void update(uint64_t timestep) { };
 
     //! Reset stat counters
     /*! If derived classes provide statistics for the last run, they should resetStats() to
@@ -100,7 +100,7 @@ class PYBIND11_EXPORT Updater : public Action
         }
 
     /// Python will notify C++ objects when they are detached from Simulation
-    virtual void notifyDetach() {};
+    virtual void notifyDetach() { };
 
     /// Return true if updating should trigger a recount of the degrees of freedom.
     virtual bool mayChangeDegreesOfFreedom(uint64_t timestep)

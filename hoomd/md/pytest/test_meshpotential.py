@@ -36,11 +36,17 @@ _Helfrich_args = {
 _Helfrich_arg_list = [(hoomd.md.mesh.bending.Helfrich,
                        dict(zip(_Helfrich_args, val)))
                       for val in zip(*_Helfrich_args.values())]
+_BendingRigidity_args = {
+    'k': [2.0, 10.0, 300.0],
+}
+_BendingRigidity_arg_list = [(hoomd.md.mesh.bending.BendingRigidity,
+                              dict(zip(_BendingRigidity_args, val)))
+                             for val in zip(*_BendingRigidity_args.values())]
 
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-            + _Helfrich_arg_list)
+            + _Helfrich_arg_list + _BendingRigidity_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -66,7 +72,6 @@ def get_mesh_potential_args_forces_and_energies():
                      [[7.144518, 0., -5.051937], [-7.144518, 0., -5.051937],
                       [0., 7.144518, 5.051937], [0., -7.144518, 5.051937]]]
     Tether_energies = [0, 0.000926, 0.294561]
-
     Helfrich_forces = [[[-12.710842, 0., 8.987922], [12.710842, 0., 8.987922],
                         [0., -12.710842, -8.987922], [0., 12.710842,
                                                       -8.987922]],
@@ -79,11 +84,20 @@ def get_mesh_potential_args_forces_and_energies():
                         [0., -1271.084184, -898.792246],
                         [0., 1271.084184, -898.792246]]]
     Helfrich_energies = [27.712812, 554.256258, 2771.281293]
+    BendingRigidity_forces = [[[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]]]
+    BendingRigidity_energies = [8, 40, 1200]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     Tether_args_and_vals = []
     Helfrich_args_and_vals = []
+    BendingRigidity_args_and_vals = []
+
     for i in range(3):
         harmonic_args_and_vals.append(
             (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
@@ -93,8 +107,17 @@ def get_mesh_potential_args_forces_and_energies():
             (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
         Helfrich_args_and_vals.append(
             (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i]))
+        BendingRigidity_args_and_vals.append(
+            (*_BendingRigidity_arg_list[i], BendingRigidity_forces[i],
+             BendingRigidity_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
-            + Helfrich_args_and_vals)
+            + Helfrich_args_and_vals + BendingRigidity_args_and_vals)
+
+def _skip_if_helfrich_mpi(sim, pair_potential):
+    """Determines if the simulation is able to run this pair potential."""
+    if (sim.device.communicator.num_ranks > 1
+            and issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich)):
+        pytest.skip("Cannot run Helfrich with MPI")
 
 
 @pytest.fixture(scope='session')
@@ -154,6 +177,8 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
 
+    _skip_if_helfrich_mpi(sim,mesh_potential_cls)
+
     integrator = hoomd.md.Integrator(dt=0.005)
 
     integrator.forces.append(mesh_potential)
@@ -190,6 +215,8 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params.default = potential_kwargs
+
+    _skip_if_helfrich_mpi(sim,mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -232,6 +259,8 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
     mesh_potential.params["patch"] = potential_kwargs
+
+    _skip_if_helfrich_mpi(sim,mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 

@@ -37,7 +37,7 @@ class MassPropertiesBase
         m_inertia.resize(6, 0.0);
         }
 
-    virtual ~MassPropertiesBase() {};
+    virtual ~MassPropertiesBase() { };
 
     Scalar getVolume()
         {
@@ -86,7 +86,7 @@ template<class Shape> class MassProperties : public MassPropertiesBase
 template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase
     {
     public:
-    MassProperties() : MassPropertiesBase() {};
+    MassProperties() : MassPropertiesBase() { };
 
     MassProperties(const typename ShapeConvexPolyhedron::param_type& param) : MassPropertiesBase()
         {
@@ -154,7 +154,7 @@ template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBa
 
     /*
         algorithm taken from
-        http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
+        https://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
     */
     void compute()
         {
@@ -244,7 +244,7 @@ template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBa
 template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase
     {
     public:
-    MassProperties() : MassPropertiesBase() {};
+    MassProperties() : MassPropertiesBase() { };
 
     MassProperties(const typename ShapeEllipsoid::param_type& param)
         : MassPropertiesBase(), m_param(param)

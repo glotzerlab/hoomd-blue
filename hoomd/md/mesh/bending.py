@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Mesh Bending potentials.
@@ -17,13 +17,53 @@ The curvature at each vertex particle :math:`j` is determined at its position
 See Also:
    See the documentation in `hoomd.mesh.Mesh` for more information on the
    initialization of the mesh object.
-
 """
 
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.error import MPINotAvailableError
 
+
+class BendingRigidity(MeshPotential):
+    r"""Bending potential.
+
+    `BendingRigidity` specifies a bending energy applied to
+    all mesh triangles in ``mesh``.
+
+    .. math::
+
+        U(i) = \frac{1}{2} k \sum_{j \in \mathrm{Neigh}(i)}
+        ( 1 - cos(\theta_{ij}))
+
+    with :math:`\theta_{ij}` is the angle between the two normal
+    directors of the bordering triangles of bond :math:`i` and :math:`j`.
+
+    Args:
+        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
+
+    Attributes:
+        params (TypeParameter[``mesh name``,dict]):
+            The parameter of the bending energy for the defined mesh.
+            The mesh type name defaults to "mesh". The dictionary has
+            the following keys:
+
+            * ``k`` (`float`, **required**) - bending stiffness
+              :math:`[\mathrm{energy}]`
+
+    Examples::
+
+        bending_potential = mesh.bond.BendingRigidity(mesh)
+        bending_potential.params["mesh"] = dict(k=10.0)
+    """
+    _cpp_class_name = "BendingRigidityMeshForceCompute"
+
+    def __init__(self, mesh):
+        params = TypeParameter("params", "types",
+                               TypeParameterDict(k=float, len_keys=1))
+        self._add_typeparam(params)
+
+        super().__init__(mesh)
 
 class Helfrich(MeshPotential):
     r"""Helfrich bending potential.
@@ -68,8 +108,16 @@ class Helfrich(MeshPotential):
     _cpp_class_name = "HelfrichMeshForceCompute"
 
     def __init__(self, mesh):
-        params = TypeParameter("params", "types",
-                               TypeParameterDict(k=float, len_keys=1))
-        self._add_typeparam(params)
 
-        super().__init__(mesh)
+            params = TypeParameter("params", "types",
+                                   TypeParameterDict(k=float, len_keys=1))
+            self._add_typeparam(params)
+
+            super().__init__(mesh)
+
+    def _attach_hook(self):
+
+        if self._simulation.device.communicator.num_ranks == 1:
+            super()._attach_hook()
+        else:
+            raise MPINotAvailableError("Helfrich is not implemented for MPI")

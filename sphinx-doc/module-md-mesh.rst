@@ -24,5 +24,6 @@ md.mesh
 .. toctree::
    :maxdepth: 1
 
+   module-md-mesh-bending
    module-md-mesh-bond
    module-md-mesh-bending

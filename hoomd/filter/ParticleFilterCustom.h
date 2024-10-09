@@ -13,7 +13,7 @@ class PYBIND11_EXPORT ParticleFilterCustom : public ParticleFilter
     public:
     /// constructs a custom ParticleFilter
     ParticleFilterCustom(pybind11::object py_filter, pybind11::object state)
-        : m_py_filter(py_filter), m_state(state) {};
+        : m_py_filter(py_filter), m_state(state) { };
 
     virtual ~ParticleFilterCustom() { }
 

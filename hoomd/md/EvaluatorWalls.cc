@@ -31,14 +31,13 @@ void export_wall_field(pybind11::module& m)
         .def("get_sphere_list",
              [](wall_type& wall_list)
              {
-                 return make_ArrayView(&wall_list.Spheres[0],
-                                       MAX_N_SWALLS,
-                                       wall_list.numSpheres,
-                                       std::function<void(const ArrayView<SphereWall>*)>(
-                                           [&wall_list](const ArrayView<SphereWall>* view) -> void {
-                                               wall_list.numSpheres
-                                                   = static_cast<unsigned int>(view->size);
-                                           }));
+                 return make_ArrayView(
+                     &wall_list.Spheres[0],
+                     MAX_N_SWALLS,
+                     wall_list.numSpheres,
+                     std::function<void(const ArrayView<SphereWall>*)>(
+                         [&wall_list](const ArrayView<SphereWall>* view) -> void
+                         { wall_list.numSpheres = static_cast<unsigned int>(view->size); }));
              })
         .def("get_cylinder_list",
              [](wall_type& wall_list)
@@ -54,14 +53,13 @@ void export_wall_field(pybind11::module& m)
         .def("get_plane_list",
              [](wall_type& wall_list)
              {
-                 return make_ArrayView(&wall_list.Planes[0],
-                                       MAX_N_PWALLS,
-                                       wall_list.numPlanes,
-                                       std::function<void(const ArrayView<PlaneWall>*)>(
-                                           [&wall_list](const ArrayView<PlaneWall>* view) -> void {
-                                               wall_list.numPlanes
-                                                   = static_cast<unsigned int>(view->size);
-                                           }));
+                 return make_ArrayView(
+                     &wall_list.Planes[0],
+                     MAX_N_PWALLS,
+                     wall_list.numPlanes,
+                     std::function<void(const ArrayView<PlaneWall>*)>(
+                         [&wall_list](const ArrayView<PlaneWall>* view) -> void
+                         { wall_list.numPlanes = static_cast<unsigned int>(view->size); }));
              })
         // These functions are not necessary for the Python interface but allow for more ready
         // testing of the ArrayView class and this exporting.

@@ -184,7 +184,7 @@ struct Index2DUpperTriangular
         \param j row index
         \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         \note Formula adapted from:
-       http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
+       https://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
     */
     HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j) const
         {

@@ -67,7 +67,7 @@ struct dpd_pair_args_t
           size_nlist(_size_nlist), ntypes(_ntypes), block_size(_block_size), seed(_seed),
           timestep(_timestep), deltaT(_deltaT), T(_T), shift_mode(_shift_mode),
           compute_virial(_compute_virial), threads_per_particle(_threads_per_particle),
-          devprop(_devprop) {};
+          devprop(_devprop) { };
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out

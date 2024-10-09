@@ -469,7 +469,7 @@ template<typename Real> class GammaDistribution
      * The implementation of this method is inspired by that of the GSL,
      * and also as discussed online:
      *
-     *      http://www.hongliangjie.com/2012/12/19/how-to-generate-gamma-random-variables/
+     *      https://www.hongliangjie.com/2012/12/19/how-to-generate-gamma-random-variables/
      *
      * The squeeze test is performed to bypass some transcendental calls.
      */

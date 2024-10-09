@@ -95,6 +95,34 @@ jobs:
         - config: [gcc, 11, -py, 310, -mpi, -tbb]
         - config: [gcc, 10, -py, 310, -mpi, -tbb]
 
+  check-links:
+    name: "Check links"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      with:
+        submodules: true
+    - name: Set up Python
+      uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+      with:
+        python-version: "3.12"
+    - name: Setup uv
+      uses: glotzerlab/workflows/setup-uv@5cfac9da9cb78e16ae97a9119b6fd13c1c2d6f5e # 0.1.0
+    - name: Install dependencies
+      run: uv pip install -r sphinx-doc/requirements.txt --system
+    - name: Install tools
+      run: sudo apt-get install pandoc
+    - name: Build Sphinx Docs
+      run: sphinx-build -b html sphinx-doc doc_build
+    - name: Link Checker
+      id: lychee
+      uses: lycheeverse/lychee-action@2b973e86fc7b1f6b36a93795fe2c9c6ae1118621  # v1.10.0
+      with:
+        args: -n './**/*.md' './**/*.html' './**/*.rst'
+              --timeout 60
+        fail: true
+
   tests_complete:
     name: Unit test
     if: always()

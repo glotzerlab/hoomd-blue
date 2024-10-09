@@ -23,10 +23,10 @@ namespace hoomd::md
 
     See:
 
-    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>
+    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <https://dx.doi.org/10.1063/1.467468>
     * S. E. Feller, Y. Zhang, R. W. Pastor 1995 <https://doi.org/10.1063/1.470648>
-    * M. E. Tuckerman et. al. 2006 <http://dx.doi.org/10.1088/0305-4470/39/19/S18>
-    * T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>
+    * M. E. Tuckerman et. al. 2006 <https://dx.doi.org/10.1088/0305-4470/39/19/S18>
+    * T. Yu et. al. 2010 <https://dx.doi.org/10.1016/j.chemphys.2010.02.014>
 
 */
 class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
