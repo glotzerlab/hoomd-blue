@@ -309,3 +309,22 @@ def test_auto_detach_simulation(simulation_factory,
     del integrator.forces[0]
     assert not mesh._attached
     assert mesh._cpp_obj is None
+
+def test_helfrich_MPI_error(simulation_factory,
+                                tetrahedron_snapshot_factory):
+    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
+    mesh = hoomd.mesh.Mesh()
+    mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
+
+    helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
+    helfrich.params["mesh"] = dict(k=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
+
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All()))
+    sim.operations.integrator = integrator
+
+    if sim.device.communicator.num_ranks > 1:
+        with pytest.raises(NotImplementedError):
+            sim.run(0)
