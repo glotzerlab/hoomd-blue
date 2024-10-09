@@ -39,7 +39,7 @@ set(PYTHON_SITE_INSTALL_DIR "@PYTHON_SITE_INSTALL_DIR@")
 # configure python
 set(Python_FIND_UNVERSIONED_NAMES "FIRST")
 find_package(Python REQUIRED COMPONENTS Interpreter Development)
-find_package(pybind11 2.2 CONFIG REQUIRED)
+find_package(pybind11 2.12 CONFIG REQUIRED)
 find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)

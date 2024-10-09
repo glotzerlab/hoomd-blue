@@ -273,7 +273,7 @@ template<class T> void GPUFlags<T>::deallocate()
     if (h_data == NULL)
         return;
 
-        // free memory
+    // free memory
 #ifdef ENABLE_HIP
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {

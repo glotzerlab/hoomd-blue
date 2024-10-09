@@ -65,6 +65,7 @@ The following people have contributed to HOOMD-blue:
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan
+* Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan
 * Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
@@ -104,6 +105,7 @@ The following people have contributed to HOOMD-blue:
 * Richmond Newman, University of Michigan
 * Roman Bystryi, Joint Institute for High Temperatures of RAS
 * Ross Smith, University of Michigan
+* Rusen Argun, University of Illinois
 * Ryan Marson, University of Michigan
 * Sam Nola, University of Michigan
 * Simone Ciarella, Eindhoven University of Technology
@@ -117,6 +119,7 @@ The following people have contributed to HOOMD-blue:
 * Tobias Dwyer, University of Michigan
 * Tommy Waltmann, University of Michigan
 * Trung Dac Nguyen, University of Michigan
+* Tzortzis Koulaxizis, University of Illinois
 * Vyas Ramasubramani, University of Michigan
 * Wenbo Shen, University of Michigan
 * William Zygmunt, University of Michigan

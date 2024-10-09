@@ -81,7 +81,7 @@ struct cluster_args_t
           d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
           d_adjacency(_d_adjacency), d_nneigh(_d_nneigh), maxn(_maxn), d_overflow(_d_overflow),
           dim(_dim), line(_line), pivot(_pivot), q(_q), update_shape_param(_update_shape_param),
-          devprop(_devprop), gpu_partition(_gpu_partition), streams(_streams) {};
+          devprop(_devprop), gpu_partition(_gpu_partition), streams(_streams) { };
 
     const Scalar4* d_postype;             //!< postype array
     const Scalar4* d_orientation;         //!< orientation array

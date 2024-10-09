@@ -30,7 +30,7 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
                  bool noiseless_t,
                  bool noiseless_r);
 
-    virtual ~TwoStepBDGPU() {};
+    virtual ~TwoStepBDGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

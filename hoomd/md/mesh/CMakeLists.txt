@@ -1,4 +1,5 @@
 set(files __init__.py
+          bending.py
           bond.py
           conservation.py
           potential.py

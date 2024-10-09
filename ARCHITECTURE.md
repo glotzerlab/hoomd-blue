@@ -11,27 +11,23 @@ Each minor and major release of HOOMD-blue at a minimum supports:
 
 * x86_64 CPUs released in the four prior years.
 * NVIDIA GPUs released in the four prior years.
-* Compilers and software dependencies available on the oldest maintained Ubuntu LTS release.
-* The two most recent major **CUDA** toolkit versions
+* Compilers and software dependencies available on the two most recent Ubuntu LTS releases.
+* The most recent major **CUDA** toolkit version.
 
 ## Testing
 
 ### Continuous integration
 
 [Github Actions] performs continuous integration testing on HOOMD-blue. GitHub
-Actions compiles HOOMD-blue, runs the unit tests, and and reports the
+Actions compiles HOOMD-blue, runs the unit tests, and reports the
 status to GitHub pull requests. A number of parallel builds test a variety of
 compiler and build configurations as defined above.
 
 Visit the [workflows] page to find recent builds. The pipeline configuration
-files are in [.github/workflows/] and are built from Jinja templates in
-[.github/workflows/templates/] using `make_workflows.py` which is automatically
-run by `pre-commit`. To make changes to the workflows, edit the templates.
+files are in `.github/workflows/`.
 
 [GitHub Actions]: https://docs.github.com/en/actions
 [workflows]: https://github.com/glotzerlab/hoomd-blue/actions
-[.github/workflows/]: .github/workflows/
-[.github/workflows/templates/]: .github/workflows/templates/
 
 ## Build system
 
@@ -398,7 +394,7 @@ classes is automated through previously described classes.
 
 HOOMD-blue version 3 allows for much more interaction with Python objects within
 its C++ core. One feature is custom actions (see the tutorial
-https://hoomd-blue.readthedocs.io/en/latest/tutorial/03-Custom-Actions-In-Python/00-index.html
+https://hoomd-blue.readthedocs.io/en/latest/tutorial/04-Custom-Actions-In-Python/00-index.html
 or API documentation for more introductory information). When using custom
 actions internally for HOOMD, the classes `hoomd.custom._InternalAction` and one
 of the `hoomd.custom._InternalOperation` subclasses are to be used. They allow

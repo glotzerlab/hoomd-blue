@@ -19,6 +19,103 @@ def snap():
     return snap_
 
 
+class TestCosineChannel:
+
+    def test_default_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                 repeat_length=10.0,
+                                                 separation=4.0)
+        assert geom.amplitude == 4.0
+        assert geom.repeat_length == 10.0
+        assert geom.separation == 4.0
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.amplitude == 4.0
+        assert geom.repeat_length == 10.0
+        assert geom.separation == 4.0
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                 repeat_length=10.0,
+                                                 separation=4.0,
+                                                 no_slip=False)
+        assert geom.amplitude == 4.0
+        assert geom.repeat_length == 10.0
+        assert geom.separation == 4.0
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.amplitude == 4.0
+        assert geom.repeat_length == 10.0
+        assert geom.separation == 4.0
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineChannel(amplitude=4.0,
+                                                 repeat_length=10.0,
+                                                 separation=4.0)
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
+
+
+class TestCosineExpansionContraction:
+
+    def test_default_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineExpansionContraction(
+            expansion_separation=4,
+            contraction_separation=2,
+            repeat_length=10.0)
+
+        assert geom.expansion_separation == 4.0
+        assert geom.contraction_separation == 2.0
+        assert geom.repeat_length == 10.0
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.expansion_separation == 4.0
+        assert geom.contraction_separation == 2.0
+        assert geom.repeat_length == 10.0
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineExpansionContraction(
+            expansion_separation=4,
+            contraction_separation=2,
+            repeat_length=10.0,
+            no_slip=False)
+        assert geom.expansion_separation == 4.0
+        assert geom.contraction_separation == 2.0
+        assert geom.repeat_length == 10.0
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.expansion_separation == 4.0
+        assert geom.contraction_separation == 2.0
+        assert geom.repeat_length == 10.0
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.CosineExpansionContraction(
+            expansion_separation=4,
+            contraction_separation=2,
+            repeat_length=10.0)
+
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
+
+
 class TestParallelPlates:
 
     def test_default_init(self, simulation_factory, snap):
@@ -86,6 +183,37 @@ class TestPlanarPore:
 
     def test_pickling(self, simulation_factory, snap):
         geom = hoomd.mpcd.geometry.PlanarPore(separation=8.0, length=10.0)
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
+
+
+class TestSphere:
+
+    def test_default_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.Sphere(radius=4.0)
+        assert geom.radius == 4.0
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.radius == 4.0
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.Sphere(radius=5.0, no_slip=False)
+        assert geom.radius == 5.0
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.radius == 5.0
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.Sphere(radius=4.0)
         pickling_check(geom)
 
         sim = simulation_factory(snap)

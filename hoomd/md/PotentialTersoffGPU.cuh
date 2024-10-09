@@ -60,7 +60,7 @@ struct tersoff_args_t
           virial_pitch(_virial_pitch), compute_virial(_compute_virial), d_pos(_d_pos), box(_box),
           d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
           size_nlist(_size_nlist), ntypes(_ntypes), block_size(_block_size), tpp(_tpp),
-          devprop(_devprop) {};
+          devprop(_devprop) { };
 
     Scalar4* d_force;           //!< Force to write out
     const unsigned int N;       //!< Number of particles

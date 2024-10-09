@@ -6,6 +6,7 @@ set(TEST_LIST
     force
     parallel_plate_geometry_filler
     planar_pore_geometry_filler
+    rejection_filler
     sorter
     srd_collision_method
     streaming_method
@@ -24,6 +25,7 @@ if(ENABLE_MPI)
     ADD_TO_MPI_TESTS(communicator 8)
     ADD_TO_MPI_TESTS(parallel_plate_geometry_filler 8)
     ADD_TO_MPI_TESTS(planar_pore_geometry_filler 8)
+    ADD_TO_MPI_TESTS(rejection_filler 8)
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)

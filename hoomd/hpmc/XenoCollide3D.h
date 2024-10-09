@@ -70,12 +70,12 @@ const unsigned int XENOCOLLIDE_3D_MAX_ITERATIONS = 1024;
     \ingroup minkowski
 */
 template<class SupportFuncA, class SupportFuncB>
-DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
-                                  const SupportFuncB& sb,
-                                  const vec3<ShortReal>& ab_t,
-                                  const quat<ShortReal>& q,
-                                  const ShortReal R,
-                                  unsigned int& err_count)
+DEVICE inline __attribute__((always_inline)) bool xenocollide_3d(const SupportFuncA& sa,
+                                                                 const SupportFuncB& sb,
+                                                                 const vec3<ShortReal>& ab_t,
+                                                                 const quat<ShortReal>& q,
+                                                                 const ShortReal R,
+                                                                 unsigned int& err_count)
     {
     // This implementation of XenoCollide is hand-written from the description of the algorithm on
     // page 171 of _Games Programming Gems 7_

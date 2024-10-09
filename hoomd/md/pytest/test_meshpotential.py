@@ -31,15 +31,20 @@ _Tether_args = {
 _Tether_arg_list = [(hoomd.md.mesh.bond.Tether, dict(zip(_Tether_args, val)))
                     for val in zip(*_Tether_args.values())]
 
-_volume_args = {'k': [20.0, 50.0, 100.0], 'V0': [0.107227, 1, 0.01]}
-_volume_arg_list = [(hoomd.md.mesh.conservation.Volume,
-                     dict(zip(_volume_args, val)))
-                    for val in zip(*_volume_args.values())]
-
+_Volume_args = {'k': [20.0, 50.0, 100.0], 'V0': [0.107227, 1, 0.01]}
+_Volume_arg_list = [(hoomd.md.mesh.conservation.Volume,
+                     dict(zip(_Volume_args, val)))
+                    for val in zip(*_Volume_args.values())]
+_BendingRigidity_args = {
+    'k': [2.0, 10.0, 300.0],
+}
+_BendingRigidity_arg_list = [(hoomd.md.mesh.bending.BendingRigidity,
+                              dict(zip(_BendingRigidity_args, val)))
+                             for val in zip(*_BendingRigidity_args.values())]
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-            + _volume_arg_list)
+            + _Volume_arg_list + _BendingRigidity_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -66,7 +71,7 @@ def get_mesh_potential_args_forces_and_energies():
                       [0., 7.144518, 5.051937], [0., -7.144518, 5.051937]]]
     Tether_energies = [0, 0.000926, 0.294561]
 
-    volume_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+    Volume_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
                      [[4.93960528, 0,
                        -3.49282839], [-4.93960528, 0, -3.49282839],
                       [0, 4.93960528, 3.49282839], [0, -4.93960528,
@@ -75,12 +80,20 @@ def get_mesh_potential_args_forces_and_energies():
                       [107.5893328, 0, 76.0771468],
                       [0, -107.5893328, -76.0771468],
                       [0, 107.5893328, -76.0771468]]]
-    volume_energies = [0, 19.92608051621174, 47.2656702899458]
+    Volume_energies = [0, 19.92608051621174, 47.2656702899458]
+    BendingRigidity_forces = [[[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]],
+                              [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                               [0., 0., 0.]]]
+    BendingRigidity_energies = [8, 40, 1200]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     Tether_args_and_vals = []
-    volume_args_and_vals = []
+    Volume_args_and_vals = []
+    BendingRigidity_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
             (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
@@ -88,10 +101,13 @@ def get_mesh_potential_args_forces_and_energies():
             (*_FENE_arg_list[i], FENE_forces[i], FENE_energies[i]))
         Tether_args_and_vals.append(
             (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
-        volume_args_and_vals.append(
-            (*_volume_arg_list[i], volume_forces[i], volume_energies[i]))
+        Volume_args_and_vals.append(
+            (*_Volume_arg_list[i], Volume_forces[i], Volume_energies[i]))
+        BendingRigidity_args_and_vals.append(
+            (*_BendingRigidity_arg_list[i], BendingRigidity_forces[i],
+             BendingRigidity_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
-            + volume_args_and_vals)
+            + Volume_args_and_vals + BendingRigidity_args_and_vals)
 
 
 @pytest.fixture(scope='session')

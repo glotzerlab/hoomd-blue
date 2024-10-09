@@ -37,7 +37,7 @@ optional requirements are missing.
 - `h5py`_ (optional)
 - `mpi4py`_ (optional)
 - `pytest`_
-- `rowan`_ (optional)
+- `rowan`_
 - `sybil`_ (optional)
 
 .. _CuPy: https://cupy.dev/

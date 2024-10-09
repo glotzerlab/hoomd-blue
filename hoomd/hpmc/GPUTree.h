@@ -367,7 +367,7 @@ class GPUTree
 // from: A Binary Stack Tandem Traversal and an Ancestor Counter Data Structure for GPU friendly
 // Bounding Volume Damkjær, Jesper and Erleben, Kenny Proceedings Workshop in Virtual Reality
 // Interactions and Physical Simulation "VRIPHYS" (2009)
-// http://dx.doi.org/10.2312/PE/vriphys/vriphys09/115-124
+// https://dx.doi.org/10.2312/PE/vriphys/vriphys09/115-124
 
 //! Compute how many ascents are necessary to reach a non right-most child
 /*! \param a_count Ancestor count in tree a

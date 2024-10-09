@@ -22,7 +22,8 @@ template<class Real> struct SnapshotSystemData;
 
 //! Reads a GSD input file
 /*! Read an input GSD file and generate a system snapshot. GSDReader can read any frame from a GSD
-    file into the snapshot. For information on the GSD specification, see http://gsd.readthedocs.io/
+    file into the snapshot. For information on the GSD specification, see
+   https://gsd.readthedocs.io/
 
     \ingroup data_structs
 */

@@ -54,7 +54,7 @@ namespace detail
 */
 struct TriangleMesh : ShapeParams
     {
-    TriangleMesh() : face_verts(), face_overlap(), n_faces(0), ignore(0) {};
+    TriangleMesh() : face_verts(), face_overlap(), n_faces(0), ignore(0) { };
 
 #ifndef __HIPCC__
     /** Initialize with a given number of vertices and vaces

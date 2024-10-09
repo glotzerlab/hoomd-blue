@@ -24,7 +24,7 @@ class PYBIND11_EXPORT HalfStepHook
     // Synchronize snapshot with external library after computing forces
     virtual void update(uint64_t timestep) = 0;
 
-    virtual ~HalfStepHook() {};
+    virtual ~HalfStepHook() { };
     };
 
     } // namespace hoomd

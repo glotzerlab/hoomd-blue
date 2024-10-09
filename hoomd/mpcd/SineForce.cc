@@ -14,7 +14,6 @@ namespace mpcd
     {
 namespace detail
     {
-
 void export_SineForce(pybind11::module& m)
     {
     pybind11::class_<SineForce, std::shared_ptr<SineForce>>(m, "SineForce")
@@ -22,7 +21,6 @@ void export_SineForce(pybind11::module& m)
         .def_property("amplitude", &SineForce::getAmplitude, &SineForce::setAmplitude)
         .def_property("wavenumber", &SineForce::getWavenumber, &SineForce::setWavenumber);
     }
-
     } // end namespace detail
     } // end namespace mpcd
     } // end namespace hoomd

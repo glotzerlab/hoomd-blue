@@ -59,7 +59,7 @@ class PYBIND11_EXPORT Analyzer : public Action
     public:
     //! Constructs the analyzer and associates it with the ParticleData
     Analyzer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
-    virtual ~Analyzer() {};
+    virtual ~Analyzer() { };
 
     //! Abstract method that performs the analysis
     /*! Derived classes will implement this method to calculate their results
@@ -89,7 +89,7 @@ class PYBIND11_EXPORT Analyzer : public Action
         }
 
     /// Python will notify C++ objects when they are detached from Simulation
-    virtual void notifyDetach() {};
+    virtual void notifyDetach() { };
 
     /// Get Trigger
     std::shared_ptr<Trigger> getTrigger()

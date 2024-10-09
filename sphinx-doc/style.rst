@@ -29,12 +29,12 @@ and formatted by **yapf**.
 Tools
 ^^^^^
 
-* Linter: `flake8 <http://flake8.pycqa.org/en/latest/>`_
+* Linter: `flake8 <https://flake8.pycqa.org/en/latest/>`_
 
   * With these plugins:
 
     * `pep8-naming <https://github.com/PyCQA/pep8-naming>`_
-    * `flake8-docstrings <https://gitlab.com/pycqa/flake8-docstrings>`_
+    * `flake8-docstrings <https://pypi.org/project/flake8-docstrings/>`_
     * `flake8-rst-docstrings <https://github.com/peterjc/flake8-rst-docstrings>`_
 
   * Configure flake8 in your editor to see violations on save.

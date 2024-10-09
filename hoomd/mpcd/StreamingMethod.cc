@@ -111,10 +111,14 @@ bool mpcd::StreamingMethod::shouldStream(uint64_t timestep)
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_StreamingMethod(pybind11::module& m)
+void export_StreamingMethod(pybind11::module& m)
     {
     pybind11::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod>>(
         m,
@@ -122,5 +126,6 @@ void mpcd::detail::export_StreamingMethod(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int>())
         .def_property_readonly("period", &mpcd::StreamingMethod::getPeriod);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

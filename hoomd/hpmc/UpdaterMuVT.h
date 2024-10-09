@@ -1010,15 +1010,15 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator(),
                              &stat);
-                    char s[n];
-                    MPI_Recv(s,
+                    std::vector<char> s(n);
+                    MPI_Recv(s.data(),
                              n,
                              MPI_CHAR,
                              m_gibbs_other,
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator(),
                              &stat);
-                    type_name = std::string(s);
+                    type_name = std::string(s.data());
 
                     // resolve type name
                     type = m_pdata->getTypeByName(type_name);
@@ -1245,9 +1245,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              m_gibbs_other,
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator());
-                    char s[n];
-                    memcpy(s, type_name.c_str(), n);
-                    MPI_Send(s,
+                    std::vector<char> s(n);
+                    memcpy(s.data(), type_name.c_str(), n);
+                    MPI_Send(s.data(),
                              n,
                              MPI_CHAR,
                              m_gibbs_other,
@@ -1643,14 +1643,17 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         // do we have to compute a wall contribution?
         auto field = m_mc->getExternalField();
         unsigned int p = m_exec_conf->getPartition() % m_npartition;
+        bool has_field = field || (!m_mc->getExternalPotentials().empty());
 
-        if (field && (!m_gibbs || p == 0))
+        if (has_field && (!m_gibbs || p == 0))
             {
-            // getPosition() takes into account grid shift, correct for that
+            // getPosition() takes into account grid shift, undo that shift as
+            // computeOneExternalEnergy expects unshifted inputs.
             Scalar3 p = m_pdata->getPosition(tag) + m_pdata->getOrigin();
             int3 tmp = make_int3(0, 0, 0);
             m_pdata->getGlobalBox().wrap(p, tmp);
             vec3<Scalar> pos(p);
+
             const BoxDim box = this->m_pdata->getGlobalBox();
             unsigned int type = this->m_pdata->getType(tag);
             quat<Scalar> orientation(m_pdata->getOrientation(tag));
@@ -1665,6 +1668,8 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                              float(diameter), // diameter i
                                              float(charge)    // charge i
                 );
+                lnboltzmann
+                    += m_mc->computeOneExternalEnergy(type, pos, orientation, charge, false);
                 }
             }
 
@@ -1921,6 +1926,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     {
     // do we have to compute a wall contribution?
     auto field = m_mc->getExternalField();
+    bool has_field = field || (!m_mc->getExternalPotentials().empty());
 
     lnboltzmann = Scalar(0.0);
 
@@ -1957,8 +1963,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         unsigned int p = m_exec_conf->getPartition() % m_npartition;
 
-        if (field && (!m_gibbs || p == 0))
+        if (has_field && (!m_gibbs || p == 0))
             {
+            lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
+
             const BoxDim& box = this->m_pdata->getGlobalBox();
             lnboltzmann -= field->energy(box,
                                          type,
@@ -1967,6 +1975,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                          1.0, // diameter i
                                          0.0  // charge i
             );
+
+            lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
             }
 
         if (m_mc->hasPairInteractions())
