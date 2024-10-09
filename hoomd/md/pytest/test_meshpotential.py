@@ -312,7 +312,7 @@ def test_auto_detach_simulation(simulation_factory,
     assert mesh._cpp_obj is None
 
 
-def test_helfrich_MPI_error(simulation_factory, tetrahedron_snapshot_factory):
+def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
     mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
