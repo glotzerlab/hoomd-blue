@@ -68,7 +68,7 @@ class BendingRigidity(MeshPotential):
 class Helfrich(MeshPotential):
     r"""Helfrich bending potential.
 
-    :py:class:`Helfrich` specifies a Helfrich bending energy applied to
+    `Helfrich` specifies a Helfrich bending energy applied to
     all particles within the mesh.
 
     .. math::
@@ -87,6 +87,9 @@ class Helfrich(MeshPotential):
     See Also:
     * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
     * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
+
+    Attention:
+        `Helfrich` is NOT implemented for MPI parallel execution!
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
