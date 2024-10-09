@@ -4,7 +4,7 @@
 """Mesh Conservation potential.
 
 Mesh conservation force classes apply a force and virial to every mesh vertex
-particle based on a global or local quantity :math:`A` of the given mesh 
+particle based on a global or local quantity :math:`A` of the given mesh
 triangulation :math:`T`.
 
 .. math::
@@ -16,7 +16,6 @@ See Also:
    initialization of the mesh object.
 
 """
-
 
 from hoomd.md.mesh.potential import MeshConvervationPotential
 from hoomd.data.typeparam import TypeParameter
@@ -60,7 +59,7 @@ class Volume(MeshConvervationPotential):
                                TypeParameterDict(k=float, V0=float, len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(mesh,ignore_type)
+        super().__init__(mesh, ignore_type)
 
     @log(requires_run=True)
     def volume(self):

@@ -32,7 +32,7 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                                                 const group_storage<3>* tlist,
                                                 const unsigned int* tpos_list,
                                                 const Index2D tlist_idx,
-						const bool ignore_type,
+                                                const bool ignore_type,
                                                 const unsigned int* n_triangles_list,
                                                 unsigned int block_size,
                                                 unsigned int num_blocks);

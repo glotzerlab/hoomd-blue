@@ -35,15 +35,15 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
         {
         Scalar k;
         Scalar V0;
-   
+
 #ifndef __HIPCC__
         volume_conservation_params() : k(0), V0(0) { }
-    
+
         volume_conservation_params(pybind11::dict params)
             : k(params["k"].cast<Scalar>()), V0(params["V0"].cast<Scalar>())
             {
             }
-    
+
         pybind11::dict asDict()
             {
             pybind11::dict v;
@@ -62,7 +62,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     //! Constructs the compute
     VolumeConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<MeshDefinition> meshdef,
-				       bool ignore_type);
+                                       bool ignore_type);
 
     //! Destructor
     virtual ~VolumeConservationMeshForceCompute();
@@ -99,7 +99,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing volume energy
 
     Scalar* m_volume; //! sum of the triangle areas within the mesh
-		      
+
     bool m_ignore_type; //! do we ignore type to calculate global area
 
     //! Actually compute the forces

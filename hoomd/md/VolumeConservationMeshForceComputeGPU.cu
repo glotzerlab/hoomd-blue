@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
 #include "VolumeConservationMeshForceComputeGPU.cuh"
+#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
 #include "hoomd/VectorMath.h"
 
@@ -44,7 +44,7 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
                                                             const group_storage<3>* tlist,
                                                             const unsigned int* tpos_list,
                                                             const Index2D tlist_idx,
-                                             		    const bool ignore_type,
+                                                            const bool ignore_type,
                                                             const unsigned int* n_triangles_list)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -66,9 +66,11 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
             int cur_triangle_type = cur_triangle.idx[2];
 
-            if(ignore_type) cur_triangle_type = 0;
+            if (ignore_type)
+                cur_triangle_type = 0;
 
-	    if(cur_triangle_type != cN) continue;
+            if (cur_triangle_type != cN)
+                continue;
 
             int cur_triangle_b = cur_triangle.idx[0];
             int cur_triangle_c = cur_triangle.idx[1];
@@ -105,26 +107,26 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             }
         }
 
-    volume_sdata[threadIdx.x] = volume_transfer;//[i_types];
-     
+    volume_sdata[threadIdx.x] = volume_transfer; //[i_types];
+
     __syncthreads();
-     
+
     // reduce the sum in parallel
     int offs = blockDim.x >> 1;
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-    	{
-    	volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
-    	}
+            {
+            volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+            }
         offs >>= 1;
         __syncthreads();
         }
-    
+
     // write out our partial sum
     if (threadIdx.x == 0)
         {
-        //d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
+        // d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
         d_partial_sum_volume[blockIdx.x * tN + cN] = volume_sdata[0];
         }
     }
@@ -220,7 +222,7 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                            d_sum_partial_volume,
                            N,
                            tN,
-			   i_types,
+                           i_types,
                            d_pos,
                            d_image,
                            box,
@@ -266,7 +268,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
                                                            const size_t virial_pitch,
                                                            const unsigned int N,
                                                            const unsigned int* gN,
-                                               		   const unsigned int aN,
+                                                           const unsigned int aN,
                                                            const Scalar4* d_pos,
                                                            const int3* d_image,
                                                            BoxDim box,
@@ -300,7 +302,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
-    unsigned int triN = 1*aN;
+    unsigned int triN = 1 * aN;
 
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
@@ -311,8 +313,10 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
         int cur_triangle_c = cur_triangle.idx[1];
         int cur_triangle_type = cur_triangle.idx[2];
 
-	if(ignore_type) cur_triangle_type = 0;
-	else triN = gN[cur_triangle_type];
+        if (ignore_type)
+            cur_triangle_type = 0;
+        else
+            triN = gN[cur_triangle_type];
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
@@ -439,7 +443,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                        virial_pitch,
                        N,
                        gN,
-		       aN,
+                       aN,
                        d_pos,
                        d_image,
                        box,

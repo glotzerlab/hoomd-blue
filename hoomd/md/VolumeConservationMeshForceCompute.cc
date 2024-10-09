@@ -17,7 +17,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
-    \param meshdef Mesh triangulation 
+    \param meshdef Mesh triangulation
     \param ignore_type boolean whether to ignore types
     \post Memory is allocated, and forces are zeroed.
 */
@@ -25,14 +25,14 @@ VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef,
     bool ignore_type)
-    : ForceCompute(sysdef), m_mesh_data(meshdef), 
-	m_ignore_type(ignore_type)
+    : ForceCompute(sysdef), m_mesh_data(meshdef), m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing VolumeConservationMeshForceCompute" << endl;
 
     unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    if(m_ignore_type) n_types = 1;
+    if (m_ignore_type)
+        n_types = 1;
 
     GPUArray<Scalar2> params(n_types, m_exec_conf);
     m_params.swap(params);
@@ -56,8 +56,8 @@ VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
 */
 void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar V0)
     {
-    if(!m_ignore_type || type == 0 ) 
-    	{
+    if (!m_ignore_type || type == 0)
+        {
         ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
         h_params.data[type] = make_scalar2(K, V0);
 
@@ -65,7 +65,7 @@ void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, 
             m_exec_conf->msg->warning() << "volume: specified K <= 0" << endl;
         if (V0 <= 0)
             m_exec_conf->msg->warning() << "volume: specified V0 <= 0" << endl;
-	}
+        }
     }
 
 void VolumeConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
@@ -127,12 +127,13 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-    ArrayHandle<unsigned int> h_pts(m_mesh_data->getPerTypeSize(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_pts(m_mesh_data->getPerTypeSize(),
+                                    access_location::host,
+                                    access_mode::read);
 
     Scalar helfrich_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
-
 
     unsigned int triN = m_mesh_data->getSize();
 
@@ -173,10 +174,12 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 Fa, Fb, Fc;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
-  
-	if(m_ignore_type) triangle_type = 0;
-	else triN = h_pts.data[triangle_type];
-  
+
+        if (m_ignore_type)
+            triangle_type = 0;
+        else
+            triN = h_pts.data[triangle_type];
+
         Scalar VolDiff = m_volume[triangle_type] - h_params.data[triangle_type].y;
 
         Scalar energy = h_params.data[triangle_type].x * VolDiff * VolDiff
@@ -273,7 +276,8 @@ void VolumeConservationMeshForceCompute::computeVolume()
 
     unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    if(m_ignore_type) n_types = 1;
+    if (m_ignore_type)
+        n_types = 1;
 
     std::vector<Scalar> global_volume(n_types);
     for (unsigned int i = 0; i < n_types; i++)
@@ -311,7 +315,8 @@ void VolumeConservationMeshForceCompute::computeVolume()
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
-	if(m_ignore_type) triangle_type = 0;
+        if (m_ignore_type)
+            triangle_type = 0;
 
 #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -357,7 +362,8 @@ void export_VolumeConservationMeshForceCompute(pybind11::module& m)
                      std::shared_ptr<VolumeConservationMeshForceCompute>>(
         m,
         "VolumeConservationMeshForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>, bool>())
         .def("setParams", &VolumeConservationMeshForceCompute::setParamsPython)
         .def("getParams", &VolumeConservationMeshForceCompute::getParams)
         .def("getVolume", &VolumeConservationMeshForceCompute::getVolume);
