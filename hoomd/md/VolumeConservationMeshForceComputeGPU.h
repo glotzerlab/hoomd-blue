@@ -37,9 +37,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
                                           std::shared_ptr<MeshDefinition> meshdef,
 					  bool ignore_type);
 
-    //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K, Scalar V0);
-
     virtual pybind11::array_t<Scalar> getVolume()
         {
         ArrayHandle<Scalar> h_volume(m_volume_GPU, access_location::host, access_mode::read);
@@ -51,7 +48,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
 
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<Scalar2> m_params;          //!< Parameters stored on the GPU
 
     GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
     GPUArray<Scalar> m_sum;          //!< memory space for sum over volume

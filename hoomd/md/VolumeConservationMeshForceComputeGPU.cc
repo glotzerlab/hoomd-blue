@@ -61,18 +61,6 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     m_autotuners.push_back(m_tuner);
     }
 
-void VolumeConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar V0)
-    {
-    if(!this->m_ignore_type || type == 0 ) 
-    	{
-        VolumeConservationMeshForceCompute::setParams(type, K, V0);
-
-        ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
-        // update the local copy of the memory
-        h_params.data[type] = make_scalar2(K, V0);
-	}
-    }
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */

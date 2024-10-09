@@ -6,8 +6,6 @@
 
 #include <memory>
 
-#include <vector>
-
 /*! \file VolumeConservationMeshForceCompute.h
     \brief Declares a class for computing volume constraint forces
 */
@@ -25,33 +23,6 @@ namespace hoomd
     {
 namespace md
     {
-struct vconstraint_params
-    {
-    Scalar k;
-    Scalar V0;
-
-#ifndef __HIPCC__
-    vconstraint_params() : k(0), V0(0) { }
-
-    vconstraint_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), V0(params["V0"].cast<Scalar>())
-        {
-        }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        v["k"] = k;
-        v["V0"] = V0;
-        return v;
-        }
-#endif
-    }
-#ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
-#else
-    __attribute__((aligned(16)));
-#endif
 
 //! Computes volume constraint forces on the mesh
 /*! Volume constraint forces are computed on every particle in a mesh.
@@ -60,6 +31,33 @@ struct vconstraint_params
 */
 class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     {
+    struct volume_conservation_params
+        {
+        Scalar k;
+        Scalar V0;
+   
+#ifndef __HIPCC__
+        volume_conservation_params() : k(0), V0(0) { }
+    
+        volume_conservation_params(pybind11::dict params)
+            : k(params["k"].cast<Scalar>()), V0(params["V0"].cast<Scalar>())
+            {
+            }
+    
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["k"] = k;
+            v["V0"] = V0;
+            return v;
+            }
+#endif
+        }
+#if HOOMD_LONGREAL_SIZE == 32
+        __attribute__((aligned(4)));
+#else
+        __attribute__((aligned(8)));
+#endif
     public:
     //! Constructs the compute
     VolumeConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
@@ -96,11 +94,9 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K; //!< K parameter for multiple mesh triangles
+    GPUArray<Scalar2> m_params; //!< Parameters
 
-    Scalar* m_V0;
-
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
+    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing volume energy
 
     Scalar* m_volume; //! sum of the triangle areas within the mesh
 		      

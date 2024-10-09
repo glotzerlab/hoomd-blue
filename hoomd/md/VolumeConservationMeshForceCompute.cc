@@ -4,8 +4,6 @@
 #include "VolumeConservationMeshForceCompute.h"
 
 #include <iostream>
-#include <math.h>
-#include <sstream>
 #include <stdexcept>
 
 using namespace std;
@@ -27,7 +25,7 @@ VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef,
     bool ignore_type)
-    : ForceCompute(sysdef), m_K(NULL), m_V0(NULL), m_mesh_data(meshdef), m_volume(0), 
+    : ForceCompute(sysdef), m_mesh_data(meshdef), 
 	m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing VolumeConservationMeshForceCompute" << endl;
@@ -36,11 +34,8 @@ VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
 
     if(m_ignore_type) n_types = 1;
 
-    // allocate the parameters
-    m_K = new Scalar[n_types];
-
-    // allocate the parameters
-    m_V0 = new Scalar[n_types];
+    GPUArray<Scalar2> params(n_types, m_exec_conf);
+    m_params.swap(params);
 
     m_volume = new Scalar[n_types];
     }
@@ -49,11 +44,7 @@ VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying VolumeConservationMeshForceCompute" << endl;
 
-    delete[] m_K;
-    delete[] m_V0;
     delete[] m_volume;
-    m_K = NULL;
-    m_V0 = NULL;
     m_volume = NULL;
     }
 
@@ -67,8 +58,9 @@ void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, 
     {
     if(!m_ignore_type || type == 0 ) 
     	{
-        m_K[type] = K;
-        m_V0[type] = V0;
+        ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
+        // update the local copy of the memory
+        h_params.data[type] = make_scalar2(K, V0);
 
         // check for some silly errors a user could make
         if (K <= 0)
@@ -81,7 +73,7 @@ void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, 
 void VolumeConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
-    auto _params = vconstraint_params(params);
+    auto _params = volume_conservation_params(params);
     setParams(typ, _params.k, _params.V0);
     }
 
@@ -93,10 +85,10 @@ pybind11::dict VolumeConservationMeshForceCompute::getParams(std::string type)
         m_exec_conf->msg->error() << "mesh.volume: Invalid mesh type specified" << endl;
         throw runtime_error("Error setting parameters in VolumeConservationMeshForceCompute");
         }
-    if(m_ignore_type) typ = 0;
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
     pybind11::dict params;
-    params["k"] = m_K[typ];
-    params["V0"] = m_V0[typ];
+    params["k"] = h_params.data[typ].x;
+    params["V0"] = h_params.data[typ].y;
     return params;
     }
 
@@ -117,6 +109,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
 
     ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
@@ -194,12 +187,12 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
 	if(m_ignore_type) triangle_type = 0;
 	else triN = h_pts.data[triangle_type];
   
-        Scalar VolDiff = m_volume[triangle_type] - m_V0[triangle_type];
+        Scalar VolDiff = m_volume[triangle_type] - h_params.data[triangle_type].y;
 
-        Scalar energy = m_K[triangle_type] * VolDiff * VolDiff
-                        / (6 * m_V0[triangle_type] * triN);
+        Scalar energy = h_params.data[triangle_type].x * VolDiff * VolDiff
+                        / (6 * h_params.data[triangle_type].y * triN);
 
-        VolDiff = -m_K[triangle_type] / m_V0[triangle_type] * VolDiff / 6.0;
+        VolDiff = -h_params.data[triangle_type].x / h_params.data[triangle_type].y * VolDiff / 6.0;
 
         Fa.x = VolDiff * dVol_a.x;
         Fa.y = VolDiff * dVol_a.y;
