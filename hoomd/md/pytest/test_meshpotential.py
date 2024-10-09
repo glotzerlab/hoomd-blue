@@ -3,7 +3,6 @@
 
 import hoomd
 import pytest
-import math
 import numpy as np
 
 _harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
