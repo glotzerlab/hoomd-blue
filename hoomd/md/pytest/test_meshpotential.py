@@ -113,6 +113,7 @@ def get_mesh_potential_args_forces_and_energies():
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
             + Helfrich_args_and_vals + BendingRigidity_args_and_vals)
 
+
 def _skip_if_helfrich_mpi(sim, pair_potential):
     """Determines if the simulation is able to run this pair potential."""
     if (sim.device.communicator.num_ranks > 1
@@ -177,7 +178,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim,mesh_potential_cls)
+    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -216,7 +217,7 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params.default = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim,mesh_potential_cls)
+    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -260,7 +261,7 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
     mesh_potential.params["mesh"] = potential_kwargs
     mesh_potential.params["patch"] = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim,mesh_potential_cls)
+    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -310,8 +311,8 @@ def test_auto_detach_simulation(simulation_factory,
     assert not mesh._attached
     assert mesh._cpp_obj is None
 
-def test_helfrich_MPI_error(simulation_factory,
-                                tetrahedron_snapshot_factory):
+
+def test_helfrich_MPI_error(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
     mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])

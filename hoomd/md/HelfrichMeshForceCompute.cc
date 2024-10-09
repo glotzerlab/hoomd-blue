@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
@@ -21,7 +21,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
-    \param meshdef Mesh triangulation 
+    \param meshdef Mesh triangulation
     \post Memory is allocated, and forces are zeroed.
 */
 HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
@@ -384,7 +384,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += h_params.data[meshbond_type] * 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
+            h_force.data[idx_a].w += h_params.data[meshbond_type] * 0.5
+                                     * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -394,7 +395,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w += h_params.data[meshbond_type] * 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
+            h_force.data[idx_b].w += h_params.data[meshbond_type] * 0.5
+                                     * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -545,22 +547,21 @@ void HelfrichMeshForceCompute::computeSigma()
 
         Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
-
         if (idx_a < m_pdata->getN())
-	   {
-	   h_sigma.data[idx_a] += sigma_a;
-           h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
-           h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
-           h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
-	   }
+            {
+            h_sigma.data[idx_a] += sigma_a;
+            h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
+            h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
+            h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
+            }
 
         if (idx_b < m_pdata->getN())
-	   {
-           h_sigma.data[idx_b] += sigma_a;
-           h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
-           h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
-           h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
-	   }
+            {
+            h_sigma.data[idx_b] += sigma_a;
+            h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
+            h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
+            h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
+            }
         }
     }
 

@@ -65,6 +65,7 @@ class BendingRigidity(MeshPotential):
 
         super().__init__(mesh)
 
+
 class Helfrich(MeshPotential):
     r"""Helfrich bending potential.
 
@@ -112,11 +113,11 @@ class Helfrich(MeshPotential):
 
     def __init__(self, mesh):
 
-            params = TypeParameter("params", "types",
-                                   TypeParameterDict(k=float, len_keys=1))
-            self._add_typeparam(params)
+        params = TypeParameter("params", "types",
+                               TypeParameterDict(k=float, len_keys=1))
+        self._add_typeparam(params)
 
-            super().__init__(mesh)
+        super().__init__(mesh)
 
     def _attach_hook(self):
 

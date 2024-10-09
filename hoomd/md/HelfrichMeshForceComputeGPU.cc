@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceComputeGPU.h"
@@ -14,7 +14,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef System to compute forces on
-    \param meshdef Mesh triangulation 
+    \param meshdef Mesh triangulation
     \post Memory is allocated, and forces are zeroed.
 */
 HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -66,7 +66,6 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
     m_sigma_dash.swap(tmp_sigma_dash);
     m_sigma.swap(tmp_sigma);
     }
-
 
 /*! Actually perform the force computation
     \param timestep Current time step
