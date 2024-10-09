@@ -54,8 +54,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                                                const unsigned int* n_triangles_list,
                                                Scalar2* d_params,
                                                const bool ignore_type,
-                                               int block_size,
-                                               unsigned int* d_flags);
+                                               int block_size);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

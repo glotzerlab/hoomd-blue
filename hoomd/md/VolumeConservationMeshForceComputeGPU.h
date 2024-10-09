@@ -51,7 +51,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
 
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
     GPUArray<Scalar2> m_params;          //!< Parameters stored on the GPU
 
     GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
