@@ -59,10 +59,8 @@ void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, 
     if(!m_ignore_type || type == 0 ) 
     	{
         ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
-        // update the local copy of the memory
         h_params.data[type] = make_scalar2(K, V0);
 
-        // check for some silly errors a user could make
         if (K <= 0)
             m_exec_conf->msg->warning() << "volume: specified K <= 0" << endl;
         if (V0 <= 0)
@@ -100,7 +98,6 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     computeVolume(); // precompute volume
 
     assert(m_pdata);
-    // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -116,18 +113,15 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         access_location::host,
         access_mode::read);
 
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
     assert(h_triangles.data);
 
-    // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -142,11 +136,9 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     unsigned int triN = m_mesh_data->getSize();
 
-    // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
         const typename Angle::members_t& triangle = h_triangles.data[i];
 
         unsigned int ttag_a = triangle.tag[0];
@@ -156,8 +148,6 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         unsigned int ttag_c = triangle.tag[2];
         assert(ttag_c < m_pdata->getMaximumTag() + 1);
 
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[ttag_a];
         unsigned int idx_b = h_rtag.data[ttag_b];
         unsigned int idx_c = h_rtag.data[ttag_c];
@@ -208,8 +198,6 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
             helfrich_virial[5] = Scalar(1. / 2.) * h_pos.data[idx_a].z * Fa.z; // zz
             }
 
-        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
-        // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
             h_force.data[idx_a].x += Fa.x;
@@ -281,7 +269,6 @@ void VolumeConservationMeshForceCompute::computeVolume()
         access_location::host,
         access_mode::read);
 
-    // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
@@ -292,11 +279,9 @@ void VolumeConservationMeshForceCompute::computeVolume()
     for (unsigned int i = 0; i < n_types; i++)
         global_volume[i] = 0;
 
-    // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
         const typename Angle::members_t& triangle = h_triangles.data[i];
 
         unsigned int ttag_a = triangle.tag[0];
@@ -306,8 +291,6 @@ void VolumeConservationMeshForceCompute::computeVolume()
         unsigned int ttag_c = triangle.tag[2];
         assert(ttag_c < m_pdata->getMaximumTag() + 1);
 
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[ttag_a];
         unsigned int idx_b = h_rtag.data[ttag_b];
         unsigned int idx_c = h_rtag.data[ttag_c];
