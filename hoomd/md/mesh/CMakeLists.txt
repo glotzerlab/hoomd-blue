@@ -2,7 +2,6 @@ set(files __init__.py
           potential.py
           bending.py
           bond.py
-          bending.py
    )
 
 install(FILES ${files}
