@@ -638,16 +638,37 @@ class VirtualClusterMoves(Updater):
     """Apply virtual move Monte Carlo moves.
 
     See Whitelam and Geissler (2007).
+    Args
+    ----
+    cluster_size_limit mode : str, one of ["deterministic", "probabilistic"]
+        deterministic = hard cutoff on cluster size
+        probabilistic = cluster size cutoff proportional to 1/cluster_size**2, cluster_size_distribution_prefactor is the constant of proportionality
     """
 
-    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0, translation_move_probability=0.5, maximum_trial_rotation=0.5,maximum_trial_translation=1.0, maximum_trial_center_of_rotation_shift=1.0):
+    def __init__(self, trigger=1, attempts_per_particle=1, beta_ficticious=1.0,
+                 translation_move_probability=0.5,
+                 maximum_trial_rotation=0.5,maximum_trial_translation=1.0,
+                 maximum_trial_center_of_rotation_shift=1.0,
+                 maximum_allowed_cluster_size=0,
+                 cluster_size_distribution_prefactor=1.0,
+                 cluster_size_limit_mode=None,
+                 ):
         super().__init__(trigger)
+        if maximum_allowed_cluster_size is None:
+            # set no limits on maximum allowed cluster size
+            # TODO: is there a more explicit way to do this insteading of using None?
+            maximum_allowed_cluster_size = 0
+        if cluster_size_limit_mode is None:
+            cluster_size_limit_mode = ""
         param_dict = ParameterDict(attempts_per_particle=int(attempts_per_particle),
                                    beta_ficticious=hoomd.variant.Variant,
                                    translation_move_probability=float(translation_move_probability),
                                    maximum_trial_rotation=float(maximum_trial_rotation),
                                    maximum_trial_translation=float(maximum_trial_translation),
                                    maximum_trial_center_of_rotation_shift=float(maximum_trial_center_of_rotation_shift),
+                                   maximum_allowed_cluster_size=int(maximum_allowed_cluster_size),
+                                   cluster_size_distribution_prefactor=float(cluster_size_distribution_prefactor),
+                                   cluster_size_limit_mode=str(cluster_size_limit_mode),
                                    )
         param_dict.update(dict(beta_ficticious=beta_ficticious))
         self._param_dict.update(param_dict)
