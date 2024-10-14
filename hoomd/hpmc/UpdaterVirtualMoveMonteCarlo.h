@@ -23,7 +23,7 @@ namespace hoomd {
 namespace hpmc
 {
 
-struct LinkerData
+struct ClusterData
     {
     void clear()
         {
@@ -40,6 +40,11 @@ struct LinkerData
             m_linkers.push_back(idx);
             m_linker_rotation_centers.push_back(rotation_center);
             }
+        }
+
+    size_t current_cluster_size()
+        {
+        return m_linkers_added.size();
         }
 
     std::vector<unsigned int> m_linkers;
@@ -192,7 +197,7 @@ class UpdaterVMMC : public Updater
 
         // containers used during creation and execution of cluster moves
         std::vector<vec3<Scalar>> m_positions_after_move;
-        LinkerData m_linker_data;
+        ClusterData m_cluster_data;
         PotentialLinkData m_potential_link_data;
 
         hpmc_virtual_moves_counters_t m_count_total;
@@ -306,7 +311,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
         for (unsigned int current_seed = 0; current_seed < m_pdata->getN(); current_seed++)
             {
             m_mc->buildAABBTree();
-            m_linker_data.clear();
+            m_cluster_data.clear();
             m_potential_link_data.clear();
             LongReal p_link_probability_ratio = 1.0;  // 3rd product in eqn 13 from the paper
             LongReal p_failed_link_probability_ratio = 1.0;  // 1st product in eqn 13 from the paper
@@ -341,7 +346,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 }
 
             // add linker and current image rotation center to their sets
-            m_linker_data.update_cluster(seed_idx, virtual_translate_move);
+            m_cluster_data.update_cluster(seed_idx, virtual_translate_move);
 
             m_exec_conf->msg->notice(6) << " VMMC virtual translation = ("
                 << virtual_translate_move.x << ", "
@@ -351,16 +356,16 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             // loop over neighbors of cluster members to find new cluster members
             m_exec_conf->msg->notice(5) << "VMMC seed tag: " << seed_idx << std::endl;
             /* int3 _images = make_int3(0, 0, 0); */
-            while (m_linker_data.m_linkers.size() > 0)
+            while (m_cluster_data.m_linkers.size() > 0)
                 {
                 if (skip_to_next_seed)
                     {
                     break;
                     }
-                unsigned int i_linker = m_linker_data.m_linkers[0];
-                m_linker_data.m_linkers.erase(m_linker_data.m_linkers.begin());
-                vec3<Scalar> center_of_rotation = m_linker_data.m_linker_rotation_centers[0];
-                m_linker_data.m_linker_rotation_centers.erase(m_linker_data.m_linker_rotation_centers.begin());
+                unsigned int i_linker = m_cluster_data.m_linkers[0];
+                m_cluster_data.m_linkers.erase(m_cluster_data.m_linkers.begin());
+                vec3<Scalar> center_of_rotation = m_cluster_data.m_linker_rotation_centers[0];
+                m_cluster_data.m_linker_rotation_centers.erase(m_cluster_data.m_linker_rotation_centers.begin());
                 m_exec_conf->msg->notice(5) << "VMMC linker tag: " << i_linker << std::endl;
 
                 // get position and orientation of linker
@@ -459,9 +464,9 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         {
                                         break;
                                         }
-                                    m_exec_conf->msg->notice(6) << "linker_set_size = " << m_linker_data.m_linkers.size() << std::endl;
+                                    m_exec_conf->msg->notice(6) << "linker_set_size = " << m_cluster_data.m_linkers.size() << std::endl;
                                     unsigned int j_linkee = mc_aabb_tree.getNodeParticle(current_node_index, current_linkee);
-                                    if (!(m_linker_data.m_linkers_added.find(j_linkee) == m_linker_data.m_linkers_added.end()))
+                                    if (!(m_cluster_data.m_linkers_added.find(j_linkee) == m_cluster_data.m_linkers_added.end()))
                                         {
                                         // j already in cluster
                                         continue;
@@ -725,7 +730,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 unsigned int linker_i = m_potential_link_data.m_potential_intracluster_link_idxs[i].first;  // recall: linker_i in cluster by construction
                 unsigned int linkee_j = m_potential_link_data.m_potential_intracluster_link_idxs[i].second;
                 m_exec_conf->msg->notice(10) << "  Checking failed, intracluster links between " << linker_i << " and " << linkee_j << std::endl;
-                if (m_linker_data.m_linkers_added.find(linkee_j) == m_linker_data.m_linkers_added.end())
+                if (m_cluster_data.m_linkers_added.find(linkee_j) == m_cluster_data.m_linkers_added.end())
                     {
                     // j ultimately did not join the cluster, so there will in general be a contribution to beta_deltaU for this i-j pair
                     // we have already accounted for the probability of not forming the i-j link, so all we do is add to beta_deltaU
@@ -752,7 +757,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             Scalar r = hoomd::UniformDistribution<Scalar>()(rng_i);
             bool accept_cluster_move = r <= p_acc;
             m_exec_conf->msg->notice(4) << "  VMMC p_acc: " << p_acc << std::endl;
-            size_t cluster_size = m_linker_data.m_linkers_added.size();
+            size_t cluster_size = m_cluster_data.m_linkers_added.size();
             m_count_total.total_num_particles_in_clusters += (unsigned long long int)cluster_size;
             if(accept_cluster_move)
                 {
@@ -769,7 +774,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 // apply the cluster move
                 for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                     {
-                    if ( !(m_linker_data.m_linkers_added.find(idx) == m_linker_data.m_linkers_added.end()) )
+                    if ( !(m_cluster_data.m_linkers_added.find(idx) == m_cluster_data.m_linkers_added.end()) )
                         {
                         // particle idx is in the cluster
                         Scalar4 postype_idx = h_postype.data[idx];
