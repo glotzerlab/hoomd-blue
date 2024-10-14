@@ -732,6 +732,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             m_count_total.total_num_particles_in_clusters += (unsigned long long int)cluster_size;
             if(accept_cluster_move)
                 {
+                m_count_total.total_num_particles_in_accepted_cluster_moves += (unsigned long long int)cluster_size;
                 m_exec_conf->msg->notice(4) << "  VMMC move accepted, moving " << cluster_size << " particles as a cluster" << std::endl;
                 if (move_type_translate)
                     {

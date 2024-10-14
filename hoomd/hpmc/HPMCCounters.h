@@ -375,6 +375,10 @@ struct hpmc_virtual_moves_counters_t
     unsigned long long int rotate_reject_count;
     unsigned long long int total_num_particles_in_clusters;
     unsigned long long int total_num_moves_attempted;
+    unsigned long long int reject_count_inactive_seed;
+    unsigned long long int early_abort_no_reverse_link;
+    unsigned long long int early_abort_forced_reverse_link;
+    unsigned long long int total_num_particles_in_accepted_cluster_moves;
 
 
     //! Construct a zero set of counters
@@ -386,6 +390,10 @@ struct hpmc_virtual_moves_counters_t
         rotate_reject_count = 0;
         total_num_particles_in_clusters = 0;
         total_num_moves_attempted = 0;
+        reject_count_inactive_seed = 0;
+        early_abort_no_reverse_link = 0;
+        early_abort_forced_reverse_link = 0;
+        total_num_particles_in_accepted_cluster_moves = 0;
         }
 
     std::pair<unsigned long long int, unsigned long long int> getTranslateCounts()
@@ -409,6 +417,19 @@ struct hpmc_virtual_moves_counters_t
             return 0.0;
             }
         }
+
+    DEVICE double getAverageAcceptedClusterSize()
+        {
+        if (translate_accept_count + rotate_accept_count)
+            {
+            return (double)total_num_particles_in_accepted_cluster_moves / ((double)translate_accept_count + (double)rotate_accept_count);
+            }
+        else
+            {
+            return 0.0;
+            }
+        }
+
     DEVICE unsigned long long int getTotalNumParticlesInClusters()
         {
         return total_num_particles_in_clusters;
@@ -417,6 +438,11 @@ struct hpmc_virtual_moves_counters_t
     DEVICE unsigned long long int getTotalNumMovesAttempted()
         {
         return total_num_moves_attempted;
+        }
+
+    DEVICE std::pair<unsigned long long int, unsigned long long int> getEarlyAbortCounts()
+        {
+        return std::make_pair(early_abort_no_reverse_link, early_abort_forced_reverse_link);
         }
     };
 
@@ -429,6 +455,9 @@ DEVICE inline hpmc_virtual_moves_counters_t operator-(const hpmc_virtual_moves_c
     result.rotate_reject_count = a.rotate_reject_count - b.rotate_reject_count;
     result.total_num_particles_in_clusters = a.total_num_particles_in_clusters - b.total_num_particles_in_clusters;
     result.total_num_moves_attempted = a.total_num_moves_attempted - b.total_num_moves_attempted;
+    result.early_abort_no_reverse_link = a.early_abort_no_reverse_link - b.early_abort_no_reverse_link;
+    result.early_abort_forced_reverse_link = a.early_abort_forced_reverse_link - b.early_abort_forced_reverse_link;
+    result.total_num_particles_in_accepted_cluster_moves = a.total_num_particles_in_accepted_cluster_moves - b.total_num_particles_in_accepted_cluster_moves;
     return result;
     }
 
