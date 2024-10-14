@@ -158,6 +158,36 @@ class UpdaterVMMC : public Updater
             return m_maximum_trial_center_of_rotation_shift;
             }
 
+        unsigned int getMaximumAllowedClusterSize()
+            {
+            return m_maximum_allowed_cluster_size;
+            }
+
+        void setMaximumAllowedClusterSize(unsigned int s)
+            {
+            m_maximum_allowed_cluster_size = s;
+            }
+
+        LongReal getClusterSizeDistributionPrefactor()
+            {
+            return m_cluster_size_distribution_prefactor;
+            }
+
+        void setClusterSizeDistributionPrefactor(LongReal f)
+            {
+            m_cluster_size_distribution_prefactor = f;
+            }
+
+        std::string getClusterSizeLimitMode()
+            {
+            return m_cluster_size_limit_mode;
+            }
+
+        void setClusterSizeLimitMode(std::string s)
+            {
+            m_cluster_size_limit_mode = s;
+            }
+
         /// Reset statistics counters
         virtual void resetStats()
             {
@@ -185,6 +215,9 @@ class UpdaterVMMC : public Updater
         unsigned int m_attempts_per_particle;  //!< Number of attempted moves per particle each time update() is called
         std::shared_ptr<Variant> m_beta_ficticious;  //!< Ficticious inverse temperature for creating links between particles
         LongReal m_translation_move_probability;
+        unsigned int m_maximum_allowed_cluster_size;
+        LongReal m_cluster_size_distribution_prefactor;
+        std::string m_cluster_size_limit_mode;
 
         detail::UpdateOrder m_update_order;
 
@@ -282,6 +315,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     unsigned int ndim = this->m_sysdef->getNDimensions();
     uint16_t seed = m_sysdef->getSeed();
     const auto &mc_params = m_mc->getParams();
+    unsigned int maximum_allowed_cluster_size = m_maximum_allowed_cluster_size == 0 ? m_pdata->getN() : m_maximum_allowed_cluster_size;
 
     #ifdef ENABLE_MPI
     // compute the width of the active region
@@ -509,8 +543,26 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         {
                                         m_exec_conf->msg->notice(5) << "    Overlap found between " << i_linker << " and " << j_linkee << " -> link formed!" << std::endl;
 
-                                        // add linkee to cluster if not in there already
-                                        m_linker_data.update_cluster(j_linkee, center_of_rotation_image);
+                                        // add linkee to cluster if not in there already and after checking maximum cluster_size
+                                        if (
+                                                m_cluster_size_limit_mode == "deterministic"
+                                                && m_cluster_data.current_cluster_size() == maximum_allowed_cluster_size)
+                                            {
+                                            // abort the move.
+                                            skip_to_next_seed = true;
+                                            break;
+                                            }
+                                        else if (m_cluster_size_limit_mode == "probabilistic"
+                                                && hoomd::UniformDistribution<Scalar>()(rng_i) > m_cluster_size_distribution_prefactor / ((LongReal)m_cluster_data.current_cluster_size() + 1))
+                                            {
+                                            // abort the move.
+                                            skip_to_next_seed = true;
+                                            break;
+                                            }
+                                        else
+                                            {
+                                            m_cluster_data.update_cluster(j_linkee, center_of_rotation_image);
+                                            }
 
                                         // account for probability of forming this link: denominator of p_link_probability_ratio *= 1
                                         p_link_probability_ratio /= 1.0;
@@ -613,7 +665,25 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                     if (link_formed)
                                         {
                                         m_exec_conf->msg->notice(5) << "  p_ij_forward = " << p_ij_forward << " > " << r << " -> link_formed!" << std::endl;
-                                        m_linker_data.update_cluster(j_linkee, center_of_rotation_image);
+                                        if (
+                                                m_cluster_size_limit_mode == "deterministic"
+                                                && m_cluster_data.current_cluster_size() == maximum_allowed_cluster_size)
+                                            {
+                                            // abort the move.
+                                            skip_to_next_seed = true;
+                                            break;
+                                            }
+                                        else if (m_cluster_size_limit_mode == "probabilistic"
+                                                && hoomd::UniformDistribution<Scalar>()(rng_i) > m_cluster_size_distribution_prefactor / ((LongReal)m_cluster_data.current_cluster_size() + 1))
+                                            {
+                                            // abort the move.
+                                            skip_to_next_seed = true;
+                                            break;
+                                            }
+                                        else
+                                            {
+                                            m_cluster_data.update_cluster(j_linkee, center_of_rotation_image);
+                                            }
 
                                         // numerator of p_link_probability_ratio gets multiplied by p_ij_reverse
                                         Scalar p_ij_reverse;
@@ -833,6 +903,9 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
         .def_property("maximum_trial_translation", &UpdaterVMMC<Shape>::getMaximumTrialTranslation, &UpdaterVMMC<Shape>::setMaximumTrialTranslation)
         .def_property("attempts_per_particle", &UpdaterVMMC<Shape>::getAttemptsPerParticle, &UpdaterVMMC<Shape>::setAttemptsPerParticle)
         .def_property("maximum_trial_center_of_rotation_shift", &UpdaterVMMC<Shape>::getMaximumTrialCenterOfRotationShift, &UpdaterVMMC<Shape>::setMaximumTrialCenterOfRotationShift)
+        .def_property("maximum_allowed_cluster_size", &UpdaterVMMC<Shape>::getMaximumAllowedClusterSize, &UpdaterVMMC<Shape>::setMaximumAllowedClusterSize)
+        .def_property("cluster_size_limit_mode", &UpdaterVMMC<Shape>::getClusterSizeLimitMode, &UpdaterVMMC<Shape>::setClusterSizeLimitMode)
+        .def_property("cluster_size_distribution_prefactor", &UpdaterVMMC<Shape>::getClusterSizeDistributionPrefactor, &UpdaterVMMC<Shape>::setClusterSizeDistributionPrefactor)
     ;
     }
 
