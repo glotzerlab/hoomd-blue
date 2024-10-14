@@ -48,6 +48,25 @@ struct LinkerData
 
     };
 
+struct PotentialLinkData
+    {
+
+    void clear()
+        {
+        m_potential_intracluster_link_idxs.clear();
+        m_potential_intracluster_link_beta_deltaU_fwds.clear();
+        }
+
+    void update(unsigned int i, unsigned int j, LongReal beta_delta_u_ij_fwd)
+        {
+        m_potential_intracluster_link_idxs.push_back(std::make_pair(i, j));
+        m_potential_intracluster_link_beta_deltaU_fwds.push_back(beta_delta_u_ij_fwd);
+        }
+
+    std::vector<std::pair<unsigned int, unsigned int>> m_potential_intracluster_link_idxs;
+    std::vector<LongReal> m_potential_intracluster_link_beta_deltaU_fwds;
+    };
+
 
 /*! Virtual move Monte Carlo Algorithm.
 
@@ -173,10 +192,8 @@ class UpdaterVMMC : public Updater
 
         // containers used during creation and execution of cluster moves
         std::vector<vec3<Scalar>> m_positions_after_move;
-        std::vector<std::pair<unsigned int, unsigned int>> m_potential_intracluster_links;
-        std::vector<double> m_u_ij_potential_links;
-        std::vector<double> m_u_ij_forward_potential_links;
         LinkerData m_linker_data;
+        PotentialLinkData m_potential_link_data;
 
         hpmc_virtual_moves_counters_t m_count_total;
         hpmc_virtual_moves_counters_t m_count_run_start;
@@ -282,7 +299,6 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     // counters
     hpmc_counters_t counters;
 
-    m_positions_after_move.clear();
     m_positions_after_move.resize(m_pdata->getN());
 
     for (unsigned int i_trial = 0; i_trial < m_attempts_per_particle; i_trial++)
@@ -291,12 +307,11 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             {
             m_mc->buildAABBTree();
             m_linker_data.clear();
-            m_potential_intracluster_links.clear();
-            m_u_ij_potential_links.clear();
-            m_u_ij_forward_potential_links.clear();
+            m_potential_link_data.clear();
             LongReal p_link_probability_ratio = 1.0;  // 3rd product in eqn 13 from the paper
             LongReal p_failed_link_probability_ratio = 1.0;  // 1st product in eqn 13 from the paper
             LongReal beta_deltaU = 0.0;  // change in energy before and after the cluster move
+            bool skip_to_next_seed = false;
 
             // seed particle that starts the virtual move
             unsigned int seed_idx = m_update_order[current_seed];
@@ -328,22 +343,24 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             // add linker and current image rotation center to their sets
             m_linker_data.update_cluster(seed_idx, virtual_translate_move);
 
-            m_exec_conf->msg->notice(6) << " VMMC virtual translation = (" << virtual_translate_move.x << ", " << virtual_translate_move.y << ", " << virtual_translate_move.z << ")" <<std::endl;
+            m_exec_conf->msg->notice(6) << " VMMC virtual translation = ("
+                << virtual_translate_move.x << ", "
+                << virtual_translate_move.y << ", "
+                << virtual_translate_move.z << ")" <<std::endl;
 
             // loop over neighbors of cluster members to find new cluster members
-            bool skip_to_next_seed = false;
             m_exec_conf->msg->notice(5) << "VMMC seed tag: " << seed_idx << std::endl;
-            int3 _images = make_int3(0, 0, 0);
+            /* int3 _images = make_int3(0, 0, 0); */
             while (m_linker_data.m_linkers.size() > 0)
                 {
                 if (skip_to_next_seed)
                     {
                     break;
                     }
-                unsigned int i_linker = m_linker_data.m_linkers.back();
-                m_linker_data.m_linkers.pop_back();
-                vec3<Scalar> center_of_rotation = m_linker_data.m_linker_rotation_centers.back();
-                m_linker_data.m_linker_rotation_centers.pop_back();
+                unsigned int i_linker = m_linker_data.m_linkers[0];
+                m_linker_data.m_linkers.erase(m_linker_data.m_linkers.begin());
+                vec3<Scalar> center_of_rotation = m_linker_data.m_linker_rotation_centers[0];
+                m_linker_data.m_linker_rotation_centers.erase(m_linker_data.m_linker_rotation_centers.begin());
                 m_exec_conf->msg->notice(5) << "VMMC linker tag: " << i_linker << std::endl;
 
                 // get position and orientation of linker
@@ -355,28 +372,42 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     {
                     pos_linker_after_move_primary_image = pos_linker + virtual_translate_move;
                     pos_linker_after_reverse_move_primary_image = pos_linker - virtual_translate_move;
-                    box.wrap(pos_linker_after_move_primary_image, _images);
-                    box.wrap(pos_linker_after_reverse_move_primary_image, _images);
+                    /* box.wrap(pos_linker_after_move_primary_image, _images); */
+                    /* box.wrap(pos_linker_after_reverse_move_primary_image, _images); */
                     }
                 else
                     {
                     pos_linker_after_move_primary_image = rotate(virtual_rotate_move, pos_linker - center_of_rotation) + center_of_rotation;
                     pos_linker_after_reverse_move_primary_image = rotate(conj(virtual_rotate_move), pos_linker - center_of_rotation) + center_of_rotation;
-                    box.wrap(pos_linker_after_move_primary_image, _images);
-                    box.wrap(pos_linker_after_reverse_move_primary_image, _images);
+                    /* box.wrap(pos_linker_after_move_primary_image, _images); */
+                    /* box.wrap(pos_linker_after_reverse_move_primary_image, _images); */
                     }
                 m_positions_after_move[i_linker] = pos_linker_after_move_primary_image;
 
                 int type_linker = __scalar_as_int(postype_linker.w);
                 Shape shape_linker(quat<Scalar>(h_orientation.data[i_linker]), mc_params[type_linker]);
+                Shape shape_linker_after_move(
+                    virtual_rotate_move * quat<Scalar>(h_orientation.data[i_linker]), mc_params[type_linker]);
+                Shape shape_linker_after_reverse_move(
+                    conj(virtual_rotate_move) * quat<Scalar>(h_orientation.data[i_linker]), mc_params[type_linker]);
+
 
                 // linker must be an active particle
                 #ifdef ENABLE_MPI
                 if (m_sysdef->isDomainDecomposed())
                     {
-                    if (!isActive(make_scalar3(postype_linker.x, postype_linker.y, postype_linker.z), box, ghost_fraction))
+                    if (!isActive(make_scalar3(pos_linker.x, pos_linker.y, pos_linker.z), box, ghost_fraction))
                         {
+                        m_count_total.reject_count_inactive_seed++;
                         skip_to_next_seed = true;
+                        if (move_type_translate)
+                            {
+                            m_count_total.translate_reject_count++;
+                            }
+                        else
+                            {
+                            m_count_total.rotate_reject_count++;
+                            }
                         break;
                         }
                     }
@@ -414,6 +445,10 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     // stackless search
                     for (unsigned int current_node_index = 0; current_node_index < mc_aabb_tree.getNumNodes(); current_node_index++)
                         {
+                        if (skip_to_next_seed)
+                            {
+                            break;
+                            }
                         if (aabb.overlaps(mc_aabb_tree.getNodeAABB(current_node_index)))
                             {
                             if (mc_aabb_tree.isNodeLeaf(current_node_index))
@@ -426,7 +461,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         }
                                     m_exec_conf->msg->notice(6) << "linker_set_size = " << m_linker_data.m_linkers.size() << std::endl;
                                     unsigned int j_linkee = mc_aabb_tree.getNodeParticle(current_node_index, current_linkee);
-                                    if (m_linker_data.m_linkers_added.find(j_linkee) != m_linker_data.m_linkers_added.end())
+                                    if (!(m_linker_data.m_linkers_added.find(j_linkee) == m_linker_data.m_linkers_added.end()))
                                         {
                                         // j already in cluster
                                         continue;
@@ -458,11 +493,6 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                     vec3<Scalar> r_linker_linkee_after_reverse_move_of_linker = vec3<Scalar>(postype_linkee) - (pos_linker_after_reverse_move_primary_image + image_list[current_image]);
                                     LongReal r_squared_after_reverse_move_of_linker = dot(
                                         r_linker_linkee_after_reverse_move_of_linker, r_linker_linkee_after_reverse_move_of_linker);
-
-                                    Shape shape_linker_after_move(
-                                        virtual_rotate_move * quat<Scalar>(h_orientation.data[i_linker]), mc_params[type_linker]);
-                                    Shape shape_linker_after_reverse_move(
-                                        conj(virtual_rotate_move) * quat<Scalar>(h_orientation.data[i_linker]), mc_params[type_linker]);
 
                                     m_exec_conf->msg->notice(5) << "Test for links: pair " << i_linker << " and " << j_linkee << std::endl;
                                     m_exec_conf->msg->notice(5) << "  Checking for overlap after moving linker between pair " << i_linker << " and " << j_linkee << std::endl;
@@ -628,8 +658,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         }
                                     else  // no link formed
                                         {
-                                        // if these don't form a link, we still need their pair energies (all 3 mentioned above), but
-                                        // we cannot do anything with them yet until we determine whether or not j ends up in the cluster
+                                        m_exec_conf->msg->notice(5) << "  p_ij_forward = " << p_ij_forward << "; random number = " << r << " -> no link_formed" << std::endl;
                                         // if j ultimately ends up in the cluster, the dU contribution is 0, but we still have to
                                         // if j ultimately does not end up in the cluster, we do have to account for the energy change,
                                         // so dU_forward += dU
@@ -670,9 +699,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         p_failed_link_probability_ratio *= q_ij_reverse / q_ij_forward;
 
                                         // add to possible contributions to deltaU for the cluster move
-                                        m_potential_intracluster_links.push_back(std::make_pair(i_linker, j_linkee));
-                                        m_u_ij_potential_links.push_back(u_ij);
-                                        m_u_ij_forward_potential_links.push_back(u_ij_after_move);
+                                        m_potential_link_data.update(i_linker, j_linkee, (LongReal)u_ij_after_move - (LongReal)u_ij);
                                         continue;
                                         }
                                     }  // end loop over linkees
@@ -688,22 +715,21 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 }  // end loop over linkers
             if (skip_to_next_seed)
                 {
-                break;
+                continue;
                 }
 
             // find which of the potential cluster members ended up in the cluster
             m_exec_conf->msg->notice(5) << "Finding failed intracluster links" << std::endl;
-            for (unsigned int i = 0; i < m_potential_intracluster_links.size(); i++)
+            for (unsigned int i = 0; i < m_potential_link_data.m_potential_intracluster_link_idxs.size(); i++)
                 {
-                unsigned int linker_i = m_potential_intracluster_links[i].first;  // recall: linker_i in cluster by construction
-                unsigned int linkee_j = m_potential_intracluster_links[i].second;
+                unsigned int linker_i = m_potential_link_data.m_potential_intracluster_link_idxs[i].first;  // recall: linker_i in cluster by construction
+                unsigned int linkee_j = m_potential_link_data.m_potential_intracluster_link_idxs[i].second;
                 m_exec_conf->msg->notice(10) << "  Checking failed, intracluster links between " << linker_i << " and " << linkee_j << std::endl;
                 if (m_linker_data.m_linkers_added.find(linkee_j) == m_linker_data.m_linkers_added.end())
                     {
                     // j ultimately did not join the cluster, so there will in general be a contribution to beta_deltaU for this i-j pair
                     // we have already accounted for the probability of not forming the i-j link, so all we do is add to beta_deltaU
-                    beta_deltaU += m_u_ij_forward_potential_links[i] - m_u_ij_potential_links[i];
-                    m_exec_conf->msg->notice(5) << "    particle with tag " << linkee_j << " never joined the cluster (failed forming link with " << linker_i << "). beta_deltaU += " << m_u_ij_forward_potential_links[i] - m_u_ij_potential_links[i] << " = " << beta_deltaU << std::endl;
+                    beta_deltaU += m_potential_link_data.m_potential_intracluster_link_beta_deltaU_fwds[i];
                     }
                 else
                     {
@@ -743,32 +769,19 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 // apply the cluster move
                 for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                     {
-                    if (m_linker_data.m_linkers_added.find(idx) != m_linker_data.m_linkers_added.end())
+                    if ( !(m_linker_data.m_linkers_added.find(idx) == m_linker_data.m_linkers_added.end()) )
                         {
+                        // particle idx is in the cluster
                         Scalar4 postype_idx = h_postype.data[idx];
                         vec3<Scalar> new_pos = m_positions_after_move[idx];
                         h_postype.data[idx] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, postype_idx.w);
                         box.wrap(h_postype.data[idx], h_image.data[idx]);
                         quat<Scalar> orientation(h_orientation.data[idx]);
                         h_orientation.data[idx] = quat_to_scalar4(virtual_rotate_move * orientation);
-                        if (idx == 0)
-                            {
-                            m_exec_conf->msg->notice(6) << "Setting h_orientation[" << idx << "] from: "
-                                << orientation.s << " "
-                                << orientation.v.x << " "
-                                << orientation.v.y << " "
-                                << orientation.v.z << " (norm**2 = " << norm2(orientation) << ") to: "
-                                << h_orientation.data[idx].w << " "
-                                << h_orientation.data[idx].x << " "
-                                << h_orientation.data[idx].y << " "
-                                << h_orientation.data[idx].z << " (norm**2 = " << norm2(orientation) << "); "
-                                << "virtual rotate move =  " << virtual_rotate_move.s << " "
-                                << virtual_rotate_move.v.x << " " << virtual_rotate_move.v.y << " " << virtual_rotate_move.v.z << " (norm**2 = "
-                << norm2(virtual_rotate_move) << ")" << std::endl;
-                            }
                         }
                     }
                 m_mc->invalidateAABBTree();
+                // TODO: implement this less conservative handling of the AABB tree
                 /* if (particles_moved_too_far) */
                 /*     { */
                 /*     m_mc->invalidateAABBTree(); */
@@ -805,7 +818,8 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
         .def(pybind11::init<
                             std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Trigger>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape>>
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
+                            std::shared_ptr<Variant>
                             >())
         .def("getCounters", &UpdaterVMMC<Shape>::getCounters)
         .def_property("beta_ficticious", &UpdaterVMMC<Shape>::getBetaFicticious, &UpdaterVMMC<Shape>::setBetaFicticious)
