@@ -7,6 +7,7 @@
 #include "hoomd/Updater.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/Variant.h"
 
 #include <algorithm>
 #include <set>
@@ -62,7 +63,7 @@ class UpdaterVMMC : public Updater
             \param trigger When to run updater
             \param mc HPMC integrator
         */
-        UpdaterVMMC(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger, std::shared_ptr<IntegratorHPMCMono<Shape> > mc);
+        UpdaterVMMC(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger, std::shared_ptr<IntegratorHPMCMono<Shape> > mc, std::shared_ptr<Variant> beta_ficticious);
 
         //! Destructor
         virtual ~UpdaterVMMC();
@@ -83,12 +84,12 @@ class UpdaterVMMC : public Updater
             return m_attempts_per_particle;
             }
 
-        void setBetaFicticious(LongReal beta_ficticious)
+        void setBetaFicticious(std::shared_ptr<Variant> beta_ficticious)
             {
             m_beta_ficticious = beta_ficticious;
             }
 
-        LongReal getBetaFicticious()
+        std::shared_ptr<Variant> getBetaFicticious()
             {
             return m_beta_ficticious;
             }
@@ -158,7 +159,7 @@ class UpdaterVMMC : public Updater
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_attempts_per_particle;  //!< Number of attempted moves per particle each time update() is called
-        LongReal m_beta_ficticious;  //!< Ficticious inverse temperature for creating links between particles
+        std::shared_ptr<Variant> m_beta_ficticious;  //!< Ficticious inverse temperature for creating links between particles
         LongReal m_translation_move_probability;
 
         detail::UpdateOrder m_update_order;
@@ -186,8 +187,9 @@ template< class Shape >
 UpdaterVMMC<Shape>::UpdaterVMMC(
         std::shared_ptr<SystemDefinition> sysdef,
         std::shared_ptr<Trigger> trigger,
-        std::shared_ptr<IntegratorHPMCMono<Shape> > mc
-        ) : Updater(sysdef, trigger), m_mc(mc), m_update_order(m_pdata->getN())
+        std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+        std::shared_ptr<Variant> beta_ficticious
+        ) : Updater(sysdef, trigger), m_mc(mc), m_beta_ficticious(beta_ficticious), m_update_order(m_pdata->getN())
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterVMMC" << std::endl;
 
@@ -246,6 +248,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     m_count_step_start = m_count_total;
 
     // get stuff needed for the calculation
+    const LongReal current_beta_ficticious = m_beta_ficticious->operator()(timestep);
     const LongReal min_core_radius = m_mc->getMinCoreDiameter() * LongReal(0.5);
     const auto& pair_energy_search_radius = m_mc->getPairEnergySearchRadius();
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -515,24 +518,31 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                         shape_linkee.orientation,
                                                         h_diameter.data[j_linkee],
                                                         h_charge.data[j_linkee]);
-                                            p_ij_reverse = std::max(0.0, 1 - exp(-m_beta_ficticious*(u_ij_after_reverse_move_of_linker - u_ij)));
+                                            p_ij_reverse = std::max(0.0, 1 - exp(-current_beta_ficticious*(u_ij_after_reverse_move_of_linker - u_ij)));
                                             m_exec_conf->msg->notice(5) << "  u_ij = "  << u_ij << std::endl;
                                             m_exec_conf->msg->notice(5) << "  u_ij_after_reverse_move = "  << u_ij_after_reverse_move_of_linker << std::endl;
                                             m_exec_conf->msg->notice(5) << "  p_ij_reverse = "  << p_ij_reverse << std::endl;
                                             }
-                                        /* if (p_ij_reverse == 0.0) */
-                                        /*     { */
-                                        /*     skip_to_next_seed = true; */
-                                        /*     break; */
-                                        /*     } */
+                                        if (p_ij_reverse == 0.0)
+                                            {
+                                            m_count_total.early_abort_no_reverse_link++;
+                                            if (move_type_translate)
+                                                {
+                                                m_count_total.translate_reject_count++;
+                                                }
+                                            else
+                                                {
+                                                m_count_total.rotate_reject_count++;
+                                                }
+                                            skip_to_next_seed = true;
+                                            break;  // break loop over linkees
+                                            }
                                         p_link_probability_ratio *= p_ij_reverse;
                                         continue; // to next linkee
                                         } // end if (overlap_after_forward_move_of_linker)
                                     m_exec_conf->msg->notice(5) << "    No overlap after moving linker between " << i_linker << " and " << j_linkee << std::endl;
 
-                                    // if no overlap, we have to calculate u_ij, u_ij_after_move and u_ij_after_reverse move
-                                    // We also need to check for overlaps in the reverse move, before calculating u_ij_after_reverse_move
-                                    // Calculate u_ij_after_move first to determine if there is a link
+                                    // if no overlap, we have to calculate u_ij and u_ij_after_move to determine p_ij
                                     double u_ij_after_move =
                                         m_mc->computeOnePairEnergy(r_squared_after_forward_move_of_linker,
                                                 r_linker_linkee_after_forward_move_of_linker,
@@ -556,39 +566,26 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                 shape_linkee.orientation,
                                                 h_diameter.data[j_linkee],
                                                 h_charge.data[j_linkee]);
-                                    m_exec_conf->msg->notice(5) << "  u_ij = "  << u_ij << std::endl;
-                                    m_exec_conf->msg->notice(5) << "  u_ij_after_move = "  << u_ij_after_move << std::endl;
                                     if (u_ij_after_move == 0.0 && u_ij == 0.0)
                                         {
                                         // non-interacting -> non-interacting; continue to next linkee
-                                        continue;
+                                        continue;  // to next linkee
                                         }
 
-                                    LongReal p_ij_forward = std::max(0.0, 1.0 - exp(-m_beta_ficticious * (u_ij_after_move - u_ij)));
+                                    LongReal p_ij_forward = std::max(0.0, 1.0 - exp(-current_beta_ficticious * (u_ij_after_move - u_ij)));
                                     Scalar r = hoomd::UniformDistribution<Scalar>()(rng_i);
                                     bool link_formed = r < p_ij_forward;
                                     if (link_formed)
                                         {
-                                        m_exec_conf->msg->notice(5) << "  p_ij_forward = " << p_ij_forward << "; random number = " << r << " -> link_formed!" << std::endl;
-                                        }
-                                    else
-                                        {
-                                        m_exec_conf->msg->notice(5) << "  p_ij_forward = " << p_ij_forward << "; random number = " << r << " -> no link_formed" << std::endl;
-                                        }
-
-                                    bool overlap_after_reverse_move =
-                                        h_overlaps.data[m_mc->getOverlapIndexer()(type_linker, type_linkee)]
-                                        && r_squared_after_reverse_move_of_linker < max_overlap_distance * max_overlap_distance
-                                        && test_overlap(r_linker_linkee_after_reverse_move_of_linker, shape_linker_after_move, shape_linkee, counters.overlap_err_count);
-                                    if (link_formed)
-                                        {
-                                        // do all the stuff we need to do
-                                        // add linkee to cluster if not in there already
+                                        m_exec_conf->msg->notice(5) << "  p_ij_forward = " << p_ij_forward << " > " << r << " -> link_formed!" << std::endl;
                                         m_linker_data.update_cluster(j_linkee, center_of_rotation_image);
-
 
                                         // numerator of p_link_probability_ratio gets multiplied by p_ij_reverse
                                         Scalar p_ij_reverse;
+                                        bool overlap_after_reverse_move =
+                                            h_overlaps.data[m_mc->getOverlapIndexer()(type_linker, type_linkee)]
+                                            && r_squared_after_reverse_move_of_linker < max_overlap_distance * max_overlap_distance
+                                            && test_overlap(r_linker_linkee_after_reverse_move_of_linker, shape_linker_after_reverse_move, shape_linkee, counters.overlap_err_count);
                                         if (overlap_after_reverse_move)
                                             {
                                             p_ij_reverse = 1.0;
@@ -608,9 +605,19 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                         h_diameter.data[j_linkee],
                                                         h_charge.data[j_linkee]);
                                             m_exec_conf->msg->notice(5) << "  u_ij_after_reverse_move = "  << u_ij_after_move << std::endl;
-                                            p_ij_reverse = std::max(0.0, 1.0 - exp(-m_beta_ficticious * (u_ij_after_reverse_move - u_ij)));
+                                            p_ij_reverse = std::max(0.0, 1.0 - exp(-current_beta_ficticious * (u_ij_after_reverse_move - u_ij)));
                                             if (p_ij_reverse == 0.0)
                                                 {
+                                                m_count_total.early_abort_no_reverse_link++;
+                                                m_exec_conf->msg->notice(5) << "  p_ij_reverse = 0; aborting move."  << std::endl;
+                                                if (move_type_translate)
+                                                    {
+                                                    m_count_total.translate_reject_count++;
+                                                    }
+                                                else
+                                                    {
+                                                    m_count_total.rotate_reject_count++;
+                                                    }
                                                 skip_to_next_seed = true;
                                                 break;
                                                 }
@@ -641,30 +648,21 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         // a generic virtual move) so the only relevant energies are u_ij and u_ij_after_move
 
                                         // account for probabilities of not forming this link
-                                        Scalar q_ij_forward = 1.0 - p_ij_forward;
-                                        Scalar q_ij_reverse;
-                                        if (overlap_after_reverse_move)
-                                            {
-                                            q_ij_reverse = 0.0;
-                                            }
-                                        else
-                                            {
-                                            double u_ij_after_reverse_move =
-                                                m_mc->computeOnePairEnergy(r_squared_after_reverse_move_of_linker,
-                                                        r_linker_linkee_after_reverse_move_of_linker,
-                                                        type_linker,
-                                                        shape_linker_after_reverse_move.orientation,
-                                                        h_diameter.data[i_linker],
-                                                        h_charge.data[i_linker],
-                                                        type_linkee,
-                                                        shape_linkee.orientation,
-                                                        h_diameter.data[j_linkee],
-                                                        h_charge.data[j_linkee]);
-                                            q_ij_reverse = 1.0 - std::max(0.0, 1 - exp(-m_beta_ficticious * (u_ij_after_reverse_move - u_ij)));
-                                            }
+                                        Scalar q_ij_forward = 1.0 - q_ij_forward;
+                                        Scalar q_ij_reverse = std::min(1.0, fast::exp(-current_beta_ficticious * (u_ij - u_ij_after_move)));
                                         if (q_ij_reverse == 0.0)
                                             {
+                                            m_count_total.early_abort_forced_reverse_link++;
+                                            m_exec_conf->msg->notice(5) << "  q_ij_reverse = 0; aborting move." << std::endl;
                                             skip_to_next_seed = true;
+                                            if (move_type_translate)
+                                                {
+                                                m_count_total.translate_reject_count++;
+                                                }
+                                            else
+                                                {
+                                                m_count_total.rotate_reject_count++;
+                                                }
                                             break;
                                             }
                                         m_exec_conf->msg->notice(5) << "  q_ij_forward = "  << q_ij_forward << std::endl;
