@@ -825,6 +825,8 @@ pybind11::class_<hpmc_virtual_moves_counters_t>(m, "hpmc_virtual_moves_counters_
     .def_property_readonly("average_cluster_size", &hpmc_virtual_moves_counters_t::getAverageClusterSize)
     .def_property_readonly("total_num_particles_in_clusters", &hpmc_virtual_moves_counters_t::getTotalNumParticlesInClusters)
     .def_property_readonly("total_num_moves_attempted", &hpmc_virtual_moves_counters_t::getTotalNumMovesAttempted)
+    .def_property_readonly("early_abort_counts", &hpmc_virtual_moves_counters_t::getEarlyAbortCounts)
+    .def_property_readonly("average_cluster_size_accepted", &hpmc_virtual_moves_counters_t::getAverageAcceptedClusterSize)
     ;
     }
 
