@@ -752,7 +752,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         // a generic virtual move) so the only relevant energies are u_ij and u_ij_after_move
 
                                         // account for probabilities of not forming this link
-                                        Scalar q_ij_forward = 1.0 - q_ij_forward;
+                                        Scalar q_ij_forward = 1.0 - p_ij_forward;
                                         Scalar q_ij_reverse = std::min(1.0, fast::exp(-current_beta_ficticious * (u_ij - u_ij_after_move)));
                                         if (q_ij_reverse == 0.0)
                                             {
