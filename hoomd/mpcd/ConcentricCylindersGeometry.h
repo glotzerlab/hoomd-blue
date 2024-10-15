@@ -121,16 +121,19 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
         return (rsq > m_R1_sq || rsq < m_R0_sq);
         }
 
+    //! Add a contribution to random virtual particle velocity.
+    /*!
+     * \param vel Velocity of virtual particle
+     * \param pos Position of virtual particle
+     *
+     * Add velocity of rotating outer cylinder to \a vel for particles beyond the outer radius.
+     */
     HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const
         {
         const Scalar rsq = pos.x * pos.x + pos.y * pos.y;
         if (rsq > m_R1_sq)
             {
-            // Find the closest point on the perimeter of the outer cylinder.
-            const Scalar pos_x = slow::sqrt(m_R1_sq / rsq) * pos.x;
-            const Scalar pos_y = slow::sqrt(m_R1_sq / rsq) * pos.y;
-
-            vel.x += m_w * -pos_y;
+            vel.x -= m_w * pos_y;
             vel.y += m_w * pos_x;
             }
         }

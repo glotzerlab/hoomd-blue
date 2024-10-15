@@ -134,6 +134,15 @@ class __attribute__((visibility("default"))) ParallelPlateGeometry
         return (pos.y > m_H || pos.y < -m_H);
         }
 
+    //! Add a contribution to random virtual particle velocity.
+    /*!
+     * \param vel Velocity of virtual particle
+     * \param pos Position of virtual particle
+     *
+     * Add velocity of moving parallel plates to \a vel for particles beyond the separation
+     * distance. The velocity is increased by \a m_V if beyond the upper plate, and decreased by \a
+     * m_V if beyond the lower plate.
+     */
     HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const
         {
         if (pos.y > m_H)

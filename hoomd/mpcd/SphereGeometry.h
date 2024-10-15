@@ -104,6 +104,13 @@ class __attribute__((visibility("default"))) SphereGeometry
         return dot(pos, pos) > m_R2;
         }
 
+    //! Add a contribution to random virtual particle velocity.
+    /*!
+     * \param vel Velocity of virtual particle
+     * \param pos Position of virtual particle
+     *
+     * No velocity contribution is needed as the wall is stationary.
+     */
     HOSTDEVICE void addToVirtualParticleVelocity(Scalar3& vel, const Scalar3& pos) const { }
 
     //! Get Sphere radius
