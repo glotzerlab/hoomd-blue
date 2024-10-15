@@ -133,8 +133,8 @@ class __attribute__((visibility("default"))) ConcentricCylindersGeometry
         const Scalar rsq = pos.x * pos.x + pos.y * pos.y;
         if (rsq > m_R1_sq)
             {
-            vel.x -= m_w * pos_y;
-            vel.y += m_w * pos_x;
+            vel.x -= m_w * pos.y;
+            vel.y += m_w * pos.x;
             }
         }
 
