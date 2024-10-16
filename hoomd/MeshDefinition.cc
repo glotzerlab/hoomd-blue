@@ -28,10 +28,15 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigne
           std::shared_ptr<TriangleData>(new TriangleData(m_sysdef->getParticleData(), n_types)))
 
     {
+    // allocate the max number of neighbors per type allowed
+    GlobalArray<unsigned int> globalN(n_types, m_sysdef->getParticleData()->getExecConf());
+    m_globalN.swap(globalN);
+    TAG_ALLOCATION(m_globalN);
     }
 
 void MeshDefinition::setTypes(pybind11::list types)
     {
+    m_globalN.resize(len(types));
     for (unsigned int i = 0; i < len(types); i++)
         {
         m_meshbond_data->setTypeName(i, types[i].cast<string>());
@@ -106,6 +111,11 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
     triangle_data.resize(static_cast<unsigned int>(len_triang));
     TriangleData::members_t triangle_new;
 
+    ArrayHandle<unsigned int> h_globalN(m_globalN, access_location::host, access_mode::overwrite);
+
+    for (unsigned int i = 0; i < m_meshtriangle_data->getNTypes(); i++)
+        h_globalN.data[i] = 0;
+
     for (size_t i = 0; i < len_triang; i++)
         {
         triangle_new.tag[0] = ptr1[i * 3];
@@ -113,6 +123,8 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
         triangle_new.tag[2] = ptr1[i * 3 + 2];
         triangle_data.groups[i] = triangle_new;
         triangle_data.type_id[i] = ptr2[i];
+
+        h_globalN.data[triangle_data.type_id[i]] += 1;
         }
 
     m_meshtriangle_data = std::shared_ptr<TriangleData>(
