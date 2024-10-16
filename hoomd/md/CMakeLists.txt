@@ -26,6 +26,7 @@ set(_md_sources module-md.cc
                    HarmonicAngleForceCompute.cc
                    HarmonicDihedralForceCompute.cc
                    HarmonicImproperForceCompute.cc
+                   HelfrichMeshForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
                    ManifoldZCylinder.cc
@@ -138,6 +139,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicDihedralForceCompute.h
                 HarmonicImproperForceComputeGPU.h
                 HarmonicImproperForceCompute.h
+		HelfrichMeshForceComputeGPU.h
+		HelfrichMeshForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
                 ManifoldZCylinder.h
@@ -234,6 +237,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            HarmonicAngleForceComputeGPU.cc
                            HarmonicDihedralForceComputeGPU.cc
                            HarmonicImproperForceComputeGPU.cc
+			   HelfrichMeshForceComputeGPU.cc
                            MolecularForceCompute.cu
                            NeighborListGPU.cc
                            NeighborListGPUBinned.cc
@@ -272,6 +276,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       HarmonicAngleForceGPU.cu
                       HarmonicDihedralForceGPU.cu
                       HarmonicImproperForceGPU.cu
+		      HelfrichMeshForceComputeGPU.cu
                       MolecularForceCompute.cu
                       NeighborListGPUBinned.cu
                       NeighborListGPU.cu
