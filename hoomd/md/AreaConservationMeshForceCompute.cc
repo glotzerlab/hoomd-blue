@@ -37,15 +37,13 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
     GPUArray<Scalar2> params(n_types, m_exec_conf);
     m_params.swap(params);
 
-    m_area = new Scalar[n_types];
+    GPUArray<Scalar> area(n_types, m_exec_conf);
+    m_area.swap(area);
     }
 
 AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying AreaConservationMeshForceCompute" << endl;
-
-    delete[] m_area;
-    m_area = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -110,6 +108,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::read);
 
     ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
@@ -206,7 +205,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         else
             triN = h_pts.data[triangle_type];
 
-        Scalar AreaDiff = m_area[triangle_type] - h_params.data[triangle_type].y;
+        Scalar AreaDiff = h_area.data[triangle_type] - h_params.data[triangle_type].y;
 
         Scalar energy = h_params.data[triangle_type].x * AreaDiff * AreaDiff
                         / (6 * h_params.data[triangle_type].y * triN);
@@ -382,8 +381,9 @@ void AreaConservationMeshForceCompute::precomputeParameter()
         }
 #endif
 
+    ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < n_types; i++)
-        m_area[i] = global_area[i];
+        h_area.data[i] = global_area[i];
     }
 
 namespace detail

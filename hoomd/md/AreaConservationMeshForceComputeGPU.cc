@@ -37,14 +37,6 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     if (this->m_ignore_type)
         NTypes = 1;
 
-    // allocate and zero device memory
-    GPUArray<Scalar2> params(NTypes, m_exec_conf);
-    m_params.swap(params);
-
-    // allocate and zero device memory
-    GPUArray<Scalar> area_GPU(NTypes, m_exec_conf);
-    m_area_GPU.swap(area_GPU);
-
     GPUArray<Scalar> sum(NTypes, m_exec_conf);
     m_sum.swap(sum);
 
@@ -99,7 +91,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
-    ArrayHandle<Scalar> d_area(m_area_GPU, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_area(m_area, access_location::device, access_mode::read);
 
     m_tuner->begin();
     kernel::gpu_compute_area_constraint_force(d_force.data,
@@ -183,7 +175,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         }
 
     ArrayHandle<Scalar> h_sumArea(m_sum, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_area(m_area_GPU, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::overwrite);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
