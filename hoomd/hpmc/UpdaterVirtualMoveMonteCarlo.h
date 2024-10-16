@@ -380,7 +380,8 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 }
 
             // add linker and current image rotation center to their sets
-            m_cluster_data.update_cluster(seed_idx, virtual_translate_move);
+            vec3<Scalar> pos_seed = vec3<Scalar>(h_postype.data[seed_idx]);
+            m_cluster_data.update_cluster(seed_idx, virtual_translate_move + pos_seed);
 
             m_exec_conf->msg->notice(6) << " VMMC virtual translation = ("
                 << virtual_translate_move.x << ", "
@@ -417,6 +418,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                 else
                     {
                     pos_linker_after_move_primary_image = rotate(virtual_rotate_move, pos_linker - center_of_rotation) + center_of_rotation;
+                    m_exec_conf->msg->notice(5) << "center of rotation for particle " << i_linker << " = " << center_of_rotation.x << " " << center_of_rotation.y << " " << center_of_rotation.z << std::endl;
                     pos_linker_after_reverse_move_primary_image = rotate(conj(virtual_rotate_move), pos_linker - center_of_rotation) + center_of_rotation;
                     /* box.wrap(pos_linker_after_move_primary_image, _images); */
                     /* box.wrap(pos_linker_after_reverse_move_primary_image, _images); */
