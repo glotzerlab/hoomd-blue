@@ -36,8 +36,8 @@ class Volume(MeshConvervationPotential):
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
         ignore_type (`bool`, optional): Flag to detemine if a single volume
-            constraint is applied to all mesh triangles regardless of mesh 
-            type (``True``) or a volume constraint per mesh type 
+            constraint is applied to all mesh triangles regardless of mesh
+            type (``True``) or a volume constraint per mesh type
             (``False``). Defaults to ``False``.
 
     Attributes:
