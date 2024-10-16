@@ -12,6 +12,7 @@ md.mesh.bending
     :nosignatures:
 
     BendingRigidity
+    Helfrich
 
 .. rubric:: Details
 
@@ -19,4 +20,5 @@ md.mesh.bending
     :synopsis: Bending potentials applied to a mesh data structure.
     :no-inherited-members:
     :show-inheritance:
-    :members: BendingRigidity
+    :members: BendingRigidity,
+              Helfrich

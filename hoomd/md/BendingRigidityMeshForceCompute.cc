@@ -55,7 +55,7 @@ void BendingRigidityMeshForceCompute::setParams(unsigned int type, Scalar K)
 void BendingRigidityMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
-    auto _params = rigidity_params(params);
+    auto _params = bending_params(params);
     setParams(typ, _params.k);
     }
 

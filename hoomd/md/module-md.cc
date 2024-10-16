@@ -81,7 +81,7 @@ void export_PotentialBondTether(pybind11::module& m);
 void export_PotentialMeshBondHarmonic(pybind11::module& m);
 void export_PotentialMeshBondFENE(pybind11::module& m);
 void export_PotentialMeshBondTether(pybind11::module& m);
-
+void export_HelfrichMeshForceCompute(pybind11::module& m);
 void export_VolumeConservationMeshForceCompute(pybind11::module& m);
 
 void export_PotentialSpecialPairLJ(pybind11::module& m);
@@ -229,7 +229,7 @@ void export_PotentialBondTetherGPU(pybind11::module& m);
 void export_PotentialMeshBondHarmonicGPU(pybind11::module& m);
 void export_PotentialMeshBondFENEGPU(pybind11::module& m);
 void export_PotentialMeshBondTetherGPU(pybind11::module& m);
-
+void export_HelfrichMeshForceComputeGPU(pybind11::module& m);
 void export_VolumeConservationMeshForceComputeGPU(pybind11::module& m);
 
 void export_PotentialSpecialPairLJGPU(pybind11::module& m);
@@ -346,6 +346,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairTable(m);
 
     export_AlchemicalMDParticles(m);
+
     export_PotentialPairAlchemicalLJGauss(m);
 
     export_PotentialTersoff(m);
@@ -367,7 +368,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBondHarmonic(m);
     export_PotentialMeshBondFENE(m);
     export_PotentialMeshBondTether(m);
-
+    export_HelfrichMeshForceCompute(m);
     export_VolumeConservationMeshForceCompute(m);
 
     export_PotentialSpecialPairLJ(m);
@@ -449,7 +450,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBondHarmonicGPU(m);
     export_PotentialMeshBondFENEGPU(m);
     export_PotentialMeshBondTetherGPU(m);
-
+    export_HelfrichMeshForceComputeGPU(m);
     export_VolumeConservationMeshForceComputeGPU(m);
 
     export_PotentialSpecialPairLJGPU(m);
