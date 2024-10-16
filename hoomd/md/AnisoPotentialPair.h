@@ -167,7 +167,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
             }
         }
 
-    /// Get the mod eused for the energy shifting
+    /// Get the mode used for the energy shifting
     std::string getShiftMode()
         {
         switch (m_shift_mode)
@@ -226,7 +226,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_params; //!< Pair parameters per type pair
     std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
-        m_shape_params; //!< Shape paramters per type
+        m_shape_params; //!< Shape parameters per type
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -705,8 +705,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &AnisoPotentialPair<T>::setParamsPython)
         .def("getParams", &AnisoPotentialPair<T>::getParamsPython)
-        .def("setShape", &AnisoPotentialPair<T>::setShapePython)
-        .def("getShape", &AnisoPotentialPair<T>::getShapePython)
+        .def(("set" + T::getShapeParamName()).c_str(), &AnisoPotentialPair<T>::setShapePython)
+        .def(("get" + T::getShapeParamName()).c_str(), &AnisoPotentialPair<T>::getShapePython)
         .def("setRCut", &AnisoPotentialPair<T>::setRCutPython)
         .def("getRCut", &AnisoPotentialPair<T>::getRCut)
         .def_property("mode",
