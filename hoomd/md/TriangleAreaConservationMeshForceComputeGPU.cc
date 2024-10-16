@@ -158,6 +158,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
         }
 
     ArrayHandle<Scalar> h_sumA(m_sum, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::overwrite);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -170,7 +171,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
         }
 #endif
     for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
-        m_area[i] = h_sumA.data[i];
+        h_area.data[i] = h_sumA.data[i];
     }
 
 namespace detail

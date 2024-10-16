@@ -50,7 +50,8 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
 
     virtual pybind11::array_t<Scalar> getArea()
         {
-        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_area);
+        ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::read);
+        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), h_area.data);
         };
 
 #ifdef ENABLE_MPI
@@ -68,7 +69,7 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
 
     protected:
     GPUArray<Scalar2> m_params; //!< Parameters
-    Scalar* m_area;             //!!< total mesh area per mesh type
+    GPUArray<Scalar> m_area; //!< memory space for area
 
     std::shared_ptr<MeshDefinition>
         m_mesh_data; //!< Mesh data to use in computing area conservation energy

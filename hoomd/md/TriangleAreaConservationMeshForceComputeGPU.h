@@ -43,7 +43,8 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
     virtual pybind11::array_t<Scalar> getArea()
         {
         computeArea();
-        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_area);
+        ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::read);
+        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), h_area.data);
         }
 
     protected:

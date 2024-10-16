@@ -33,15 +33,13 @@ TriangleAreaConservationMeshForceCompute::TriangleAreaConservationMeshForceCompu
     GPUArray<Scalar2> params(n_types, m_exec_conf);
     m_params.swap(params);
 
-    m_area = new Scalar[n_types];
+    GPUArray<Scalar> area(n_types, m_exec_conf);
+    m_area.swap(area);
     }
 
 TriangleAreaConservationMeshForceCompute::~TriangleAreaConservationMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying TriangleAreaConservationMeshForceCompute" << endl;
-
-    delete[] m_area;
-    m_area = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -292,8 +290,9 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         }
 #endif
 
+    ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < n_types; i++)
-        m_area[i] = global_area[i];
+        h_area.data[i] = global_area[i];
     }
 
 namespace detail
