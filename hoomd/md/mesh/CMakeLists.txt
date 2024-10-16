@@ -2,6 +2,7 @@ set(files __init__.py
           potential.py
           bending.py
           bond.py
+          conservation.py
    )
 
 install(FILES ${files}

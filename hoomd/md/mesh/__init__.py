@@ -4,4 +4,4 @@
 """Mesh potentials for molecular dynamics."""
 
 from .potential import MeshPotential
-from . import bending, bond
+from . import bond, bending, conservation
