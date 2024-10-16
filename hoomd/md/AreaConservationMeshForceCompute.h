@@ -96,7 +96,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 
     protected:
     GPUArray<Scalar2> m_params;                  //!< Parameters
-    GPUArray<Scalar> m_area; 			 //!< memory space for area
+    GPUArray<Scalar> m_area;                     //!< memory space for area
                                                  //
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing energy
     bool m_ignore_type;                          //! ignore type to calculate global area if true

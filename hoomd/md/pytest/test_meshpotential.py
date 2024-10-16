@@ -65,8 +65,7 @@ _TriangleAreaConservation_arg_list = [
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
             + _BendingRigidity_arg_list + _Helfrich_arg_list
-            + _AreaConservation_arg_list 
-            + _TriangleAreaConservation_arg_list)
+            + _AreaConservation_arg_list + _TriangleAreaConservation_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -154,8 +153,8 @@ def get_mesh_potential_args_forces_and_energies():
             (*_TriangleAreaConservation_arg_list[i], AreaConservation_forces[i],
              AreaConservation_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
-            + BendingRigidity_args_and_vals + Helfrich_args_and_vals 
-            + AreaConservation_args_and_vals 
+            + BendingRigidity_args_and_vals + Helfrich_args_and_vals
+            + AreaConservation_args_and_vals
             + TriangleAreaConservation_args_and_vals)
 
 
