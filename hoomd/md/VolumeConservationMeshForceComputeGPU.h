@@ -37,12 +37,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
                                           std::shared_ptr<MeshDefinition> meshdef,
                                           bool ignore_type);
 
-    virtual pybind11::array_t<Scalar> getVolume()
-        {
-        ArrayHandle<Scalar> h_volume(m_volume_GPU, access_location::host, access_mode::read);
-        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), h_volume.data);
-        }
-
     protected:
     unsigned int m_block_size; //!< block size for partial sum memory
     unsigned int m_num_blocks; //!< number of memory blocks reserved for partial sum memory
@@ -51,8 +45,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
 
     GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
     GPUArray<Scalar> m_sum;         //!< memory space for sum over volume
-
-    GPUArray<Scalar> m_volume_GPU; //!< memory space for sum over volume
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

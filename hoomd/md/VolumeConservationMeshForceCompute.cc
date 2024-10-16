@@ -37,15 +37,13 @@ VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
     GPUArray<Scalar2> params(n_types, m_exec_conf);
     m_params.swap(params);
 
-    m_volume = new Scalar[n_types];
+    GPUArray<Scalar> volume(n_types, m_exec_conf);
+    m_volume.swap(volume);
     }
 
 VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying VolumeConservationMeshForceCompute" << endl;
-
-    delete[] m_volume;
-    m_volume = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -107,6 +105,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::read);
 
     ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
@@ -180,7 +179,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         else
             triN = h_pts.data[triangle_type];
 
-        Scalar VolDiff = m_volume[triangle_type] - h_params.data[triangle_type].y;
+        Scalar VolDiff = h_volume.data[triangle_type] - h_params.data[triangle_type].y;
 
         Scalar energy = h_params.data[triangle_type].x * VolDiff * VolDiff
                         / (6 * h_params.data[triangle_type].y * triN);
@@ -349,8 +348,9 @@ void VolumeConservationMeshForceCompute::computeVolume()
         }
 #endif
 
+    ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < n_types; i++)
-        m_volume[i] = global_volume[i];
+        h_volume.data[i] = global_volume[i];
     }
 
 namespace detail

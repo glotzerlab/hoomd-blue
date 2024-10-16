@@ -41,10 +41,6 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     GPUArray<Scalar2> params(NTypes, m_exec_conf);
     m_params.swap(params);
 
-    // allocate and zero device memory
-    GPUArray<Scalar> volume_GPU(NTypes, m_exec_conf);
-    m_volume_GPU.swap(volume_GPU);
-
     GPUArray<Scalar> sum(NTypes, m_exec_conf);
     m_sum.swap(sum);
 
@@ -100,7 +96,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
-    ArrayHandle<Scalar> d_volume(m_volume_GPU, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_volume(m_volume, access_location::device, access_mode::read);
 
     m_tuner->begin();
     kernel::gpu_compute_volume_constraint_force(d_force.data,
@@ -187,7 +183,7 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
         }
 
     ArrayHandle<Scalar> h_sumVol(m_sum, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_volume(m_volume_GPU, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::overwrite);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {

@@ -77,7 +77,8 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
 
     virtual pybind11::array_t<Scalar> getVolume()
         {
-        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_volume);
+        ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::read);
+        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), h_volume.data);
         }
 
 #ifdef ENABLE_MPI
@@ -98,7 +99,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing volume energy
 
-    Scalar* m_volume; //! sum of the triangle areas within the mesh
+    GPUArray<Scalar> m_volume; //!< memory space for volume
 
     bool m_ignore_type; //! do we ignore type to calculate global area
 
