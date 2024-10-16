@@ -6,8 +6,8 @@
 
 #include <memory>
 
-/*! \file BendingRigidityMeshForceCompute.h
-    \brief Declares a class for computing bending rigidity energy forces
+/*! \file HelfrichMeshForceCompute.h
+    \brief Declares a class for computing helfrich energy forces
 */
 
 #ifdef __HIPCC__
@@ -16,50 +16,28 @@
 
 #include <pybind11/pybind11.h>
 
-#ifndef __BENDINGRIGIDITYMESHFORCECOMPUTE_H__
-#define __BENDINGRIGIDITYMESHFORCECOMPUTE_H__
+#ifndef __HELFRICHMESHFORCECOMPUTE_H__
+#define __HELFRICHMESHFORCECOMPUTE_H__
 
 namespace hoomd
     {
 namespace md
     {
-struct bending_params
-    {
-    Scalar k;
 
-#ifndef __HIPCC__
-    bending_params() : k(0) { }
-
-    bending_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        v["k"] = k;
-        return v;
-        }
-#endif
-    }
-#if HOOMD_LONGREAL_SIZE == 32
-    __attribute__((aligned(4)));
-#else
-    __attribute__((aligned(8)));
-#endif
-
-//! Computes rigidity energy forces on the mesh
-/*! BendingRigidity energy forces are computed on every particle in a mesh.
+//! Computes helfrich energy forces on the mesh
+/*! Helfrich energy forces are computed on every particle in a mesh.
 
     \ingroup computes
 */
-class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
+class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    BendingRigidityMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                    std::shared_ptr<MeshDefinition> meshdef);
+    HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
-    virtual ~BendingRigidityMeshForceCompute();
+    virtual ~HelfrichMeshForceCompute();
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K);
@@ -84,17 +62,25 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
 
     protected:
     GPUArray<Scalar> m_params;                   //!< Parameters
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing
-                                                 // the bending energy
+    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
+
+    GlobalArray<Scalar3>
+        m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
+
+    GlobalArray<Scalar>
+        m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    //! compute sigmas
+    virtual void computeSigma();
     };
 
 namespace detail
     {
-//! Exports the BendingRigidityMeshForceCompute class to python
-void export_BendingRigidityMeshForceCompute(pybind11::module& m);
+//! Exports the HelfrichMeshForceCompute class to python
+void export_HelfrichMeshForceCompute(pybind11::module& m);
 
     } // end namespace detail
     } // end namespace md
