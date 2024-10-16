@@ -52,8 +52,8 @@ _Volume_arg_list = [(hoomd.md.mesh.conservation.Volume,
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-            + _BendingRigidity_arg_list + _Helfrich_arg_list
-            + _Volume_arg_list)
+            + _BendingRigidity_arg_list + _Helfrich_arg_list + _Volume_arg_list)
+
 
 def get_mesh_potential_args_forces_and_energies():
     harmonic_forces = [[[37.86, 0., -26.771063], [-37.86, 0., -26.771063],
