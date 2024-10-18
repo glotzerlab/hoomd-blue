@@ -194,6 +194,26 @@ class UpdaterVMMC : public Updater
             m_count_run_start = m_count_total;
             }
 
+        bool getAlwaysRebuildTree()
+            {
+            return m_always_rebuild_tree;
+            }
+
+        void setAlwaysRebuildTree()
+            {
+            m_always_rebuild_tree = true;
+            }
+
+        uint16_t getInstance()
+            {
+            return m_instance;
+            }
+
+        void setInstance(uint16_t instance)
+            {
+            m_instance = instance;
+            }
+
         /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
             \return The current state of the acceptance counters
         */
@@ -209,7 +229,6 @@ class UpdaterVMMC : public Updater
             return result;
             }
 
-
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_attempts_per_particle;  //!< Number of attempted moves per particle each time update() is called
@@ -218,6 +237,7 @@ class UpdaterVMMC : public Updater
         unsigned int m_maximum_allowed_cluster_size;
         LongReal m_cluster_size_distribution_prefactor;
         std::string m_cluster_size_limit_mode;
+        bool m_always_rebuild_tree;
 
         detail::UpdateOrder m_update_order;
 
@@ -227,6 +247,7 @@ class UpdaterVMMC : public Updater
         LongReal m_maximum_translate_size;
         Scalar m_maximum_rotate_size;
         LongReal m_maximum_trial_center_of_rotation_shift;
+        uint16_t  m_instance;
 
         // containers used during creation and execution of cluster moves
         std::vector<vec3<Scalar>> m_positions_after_move;
@@ -313,15 +334,23 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     const BoxDim box = m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
-    uint16_t seed = m_sysdef->getSeed();
+    uint16_t user_seed = m_sysdef->getSeed();
     const auto &mc_params = m_mc->getParams();
     unsigned int maximum_allowed_cluster_size = m_maximum_allowed_cluster_size == 0 ? m_pdata->getN() : m_maximum_allowed_cluster_size;
+    ArrayHandle<Scalar4> pos_last_tree_build(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
     #ifdef ENABLE_MPI
     // compute the width of the active region
     Scalar3 npd = box.getNearestPlaneDistance();
     Scalar3 ghost_fraction = m_mc->getNominalWidth() / npd;
     #endif
+    Scalar3 npd_global = m_pdata->getGlobalBox().getNearestPlaneDistance();
+    Scalar min_npd = detail::min(npd_global.x, npd_global.y);
+    if (this->m_sysdef->getNDimensions() == 3)
+        {
+        min_npd = detail::min(min_npd, npd_global.z);
+        }
+    /* LongReal min_displacement_rebuild_tree = min_npd; */
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getN());
@@ -356,8 +385,8 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
             unsigned int seed_idx = m_update_order[current_seed];
 
             // generate the virtual move
-            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterVMMC, timestep, seed),
-                                         hoomd::Counter(seed_idx, m_exec_conf->getRank(), i_trial));
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterVMMC, timestep, user_seed),
+                                         hoomd::Counter(seed_idx, (m_exec_conf->getRank() << 16) + m_instance, i_trial));
             LongReal move_type_select = hoomd::UniformDistribution<LongReal>()(rng_i);
             bool move_type_translate = move_type_select < m_translation_move_probability;
             vec3<Scalar> virtual_translate_move(0, 0, 0);
@@ -843,7 +872,9 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     {
                     m_count_total.rotate_accept_count++;
                     }
-                // apply the cluster move
+
+                // move the particles that are in the cluster
+                /* bool rebuild_tree = m_always_rebuild_tree ? true : false; */
                 for(unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                     {
                     if ( !(m_cluster_data.m_linkers_added.find(idx) == m_cluster_data.m_linkers_added.end()) )
@@ -853,20 +884,38 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                         vec3<Scalar> new_pos = m_positions_after_move[idx];
                         h_postype.data[idx] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, postype_idx.w);
                         box.wrap(h_postype.data[idx], h_image.data[idx]);
+                        /* vec3<Scalar> displacement = vec3<Scalar>(h_postype.data[idx]) - vec3<Scalar>(pos_last_tree_build.data[idx]); */
+                        /* LongReal displacement_sq = dot(displacement, displacement); */
+                        /* if (displacement_sq > min_displacement_rebuild_tree * min_displacement_rebuild_tree) */
+                        /*     { */
+                        /*     rebuild_tree = true; */
+                        /*     } */
                         quat<Scalar> orientation(h_orientation.data[idx]);
                         h_orientation.data[idx] = quat_to_scalar4(virtual_rotate_move * orientation);
                         }
                     }
                 m_mc->invalidateAABBTree();
-                // TODO: implement this less conservative handling of the AABB tree
-                /* if (particles_moved_too_far) */
+                /* if (rebuild_tree) */
                 /*     { */
                 /*     m_mc->invalidateAABBTree(); */
-                /*     // also zero out the displacements array */
                 /*     } */
                 /* else */
                 /*     { */
-                /*     // update AABB tree */
+                /*     for(unsigned int idx = 0; idx < m_pdata->getN(); idx++) */
+                /*         { */
+                /*         if ( !(m_cluster_data.m_linkers_added.find(idx) == m_cluster_data.m_linkers_added.end()) ) */
+                /*             { */
+                /*             LongReal R_query = m_mc->getShapeCircumsphereRadius()[h_postype.data[idx].w]; */
+                /*             if (m_mc->hasPairInteractions()) */
+                /*                 { */
+                /*                 // Extend the search to include the pair interaction r_cut */
+                /*                 // subtract minimum AABB extent from search radius */
+                /*                 R_query = std::max(R_query, pair_energy_search_radius[h_postype.data[idx].w] - min_core_radius); */
+                /*                 } */
+                /*             hoomd::detail::AABB new_aabb = hoomd::detail::AABB(vec3<LongReal>(h_postype.data[idx]), R_query); */
+                /*             mc_aabb_tree.update(idx, new_aabb); */
+                /*             } */
+                /*         } */
                 /*     } */
                 }
             else
@@ -908,6 +957,7 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
         .def_property("maximum_allowed_cluster_size", &UpdaterVMMC<Shape>::getMaximumAllowedClusterSize, &UpdaterVMMC<Shape>::setMaximumAllowedClusterSize)
         .def_property("cluster_size_limit_mode", &UpdaterVMMC<Shape>::getClusterSizeLimitMode, &UpdaterVMMC<Shape>::setClusterSizeLimitMode)
         .def_property("cluster_size_distribution_prefactor", &UpdaterVMMC<Shape>::getClusterSizeDistributionPrefactor, &UpdaterVMMC<Shape>::setClusterSizeDistributionPrefactor)
+        .def_property("always_rebuild_tree", &UpdaterVMMC<Shape>::getAlwaysRebuildTree, &UpdaterVMMC<Shape>::setAlwaysRebuildTree)
     ;
     }
 
