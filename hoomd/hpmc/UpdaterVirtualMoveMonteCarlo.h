@@ -462,14 +462,23 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     conj(virtual_rotate_move) * quat<Scalar>(h_orientation.data[i_linker]), mc_params[type_linker]);
 
 
-                // linker must be an active particle
+                // linker must be an active particle before and after the move
                 #ifdef ENABLE_MPI
                 if (m_sysdef->isDomainDecomposed())
                     {
-                    if (!isActive(make_scalar3(pos_linker.x, pos_linker.y, pos_linker.z), box, ghost_fraction))
+                    if (
+                        !isActive(make_scalar3(pos_linker.x, pos_linker.y, pos_linker.z), box, ghost_fraction)
+                        || (!isActive(
+                            make_scalar3(
+                                pos_linker_after_move_primary_image.x,
+                                pos_linker_after_move_primary_image.y,
+                                pos_linker_after_move_primary_image.z),
+                            box,
+                            ghost_fraction))
+
+                       )
                         {
                         m_count_total.reject_count_inactive_seed++;
-                        skip_to_next_seed = true;
                         if (move_type_translate)
                             {
                             m_count_total.translate_reject_count++;
@@ -478,6 +487,7 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
                             {
                             m_count_total.rotate_reject_count++;
                             }
+                        skip_to_next_seed = true;
                         break;
                         }
                     }
