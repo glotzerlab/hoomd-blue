@@ -15,6 +15,14 @@ md.pair.aniso
     AnisotropicPair
     Dipole
     GayBerne
+    Patchy
+    PatchyExpandedGaussian
+    PatchyExpandedLJ
+    PatchyExpandedMie
+    PatchyGaussian
+    PatchyLJ
+    PatchyMie
+    PatchyYukawa
 
 .. rubric:: Details
 
@@ -25,4 +33,12 @@ md.pair.aniso
         AnisotropicPair,
         Dipole,
         GayBerne,
+        Patchy,
+        PatchyExpandedGaussian,
+        PatchyExpandedLJ,
+        PatchyExpandedMie,
+        PatchyGaussian,
+        PatchyLJ,
+        PatchyMie,
+        PatchyYukawa,
     :show-inheritance:
