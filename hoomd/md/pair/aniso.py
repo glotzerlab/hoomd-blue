@@ -660,19 +660,10 @@ class Patchy(AnisotropicPair):
         patchy.patches.default = []
         simulation.operations.integrator.forces = [patchy]
 
-    For multiple patches, every combination of patch and
-    We use PatchyLJ as the example.
-
-    To make specific patches
-
-    todo write example
 
     .. py:attribute:: params
 
-        The Patchy potential parameters. A dictionary of dictionaries that
-        are passed on to the envelope and to the pair potential.
-
-        The dictionary has the following keys:
+        The Patchy potential parameters. The dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 

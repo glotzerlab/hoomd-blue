@@ -48,12 +48,6 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
         {
         param_type() { }
 
-        // param_type(typename PairEvaluator::param_type _pair_p, typename
-        // DirectionalEnvelope::param_type _envel_p)
-        //     {
-        //         pair_p = _pair_p;
-        //         envel_p = _envel_p;
-        //     }
 #ifndef __HIPCC__
         param_type(pybind11::dict params, bool managed)
             {
