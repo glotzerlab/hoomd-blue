@@ -727,7 +727,7 @@ class Patchy(AnisotropicPair):
 
 
 class PatchyLJ(Patchy):
-    """Directional version of LJ."""
+    """Modulate `hoomd.md.pair.LJ` with angular patches."""
     _example_doc = r"""
     .. rubric:: Example:
 
@@ -761,7 +761,7 @@ class PatchyLJ(Patchy):
 
 
 class PatchyExpandedGaussian(Patchy):
-    """Directional version of ExpandedGaussian."""
+    """Modulate `hoomd.md.pair.ExpandedGaussian` with angular patches."""
     _example_doc = r"""
     .. rubric:: Example:
 
@@ -798,7 +798,7 @@ class PatchyExpandedGaussian(Patchy):
 
 
 class PatchyExpandedLJ(Patchy):
-    """Directional version of ExpandedLJ."""
+    """Modulate `hoomd.md.pair.ExpandedLJ` with angular patches."""
     _example_doc = r"""
     .. rubric: Example:
 
@@ -833,7 +833,7 @@ class PatchyExpandedLJ(Patchy):
 
 
 class PatchyExpandedMie(Patchy):
-    """Directional version of ExpandedMie."""
+    """Modulate `hoomd.md.pair.ExpandedMie` with angular patches."""
     _example_doc = r"""
     .. rubric:: Example:
 
@@ -880,7 +880,7 @@ class PatchyExpandedMie(Patchy):
 
 
 class PatchyGaussian(Patchy):
-    """Directional version of Gaussian."""
+    """Modulate `hoomd.md.pair.Gaussian` with angular patches."""
     _example_doc = r"""
     .. rubric:: Example:
 
@@ -920,7 +920,7 @@ class PatchyGaussian(Patchy):
 
 
 class PatchyMie(Patchy):
-    """Directional version of Mie."""
+    """Modulate `hoomd.md.pair.Mie` with angular patches."""
     _example_doc = r"""
     .. rubric:: Example:
 
@@ -956,7 +956,7 @@ class PatchyMie(Patchy):
 
 
 class PatchyYukawa(Patchy):
-    """Directional version of Yukawa."""
+    """Modulate `hoomd.md.pair.Yukawa` with angular patches."""
     _example_doc = r"""
     .. rubric:: Example:
 
