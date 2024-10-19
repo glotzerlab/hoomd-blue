@@ -313,10 +313,6 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     {
     m_exec_conf->msg->notice(4) << "VMMC update() timestep " << timestep << std::endl;
     Updater::update(timestep);
-    #ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        throw std::runtime_error("UpdaterVMMC does not work with spatial domain decomposition.");
-    #endif
 
     // if no particles, exit early
     if (! m_pdata->getN()) return;
@@ -337,19 +333,19 @@ void UpdaterVMMC<Shape>::update(uint64_t timestep)
     uint16_t user_seed = m_sysdef->getSeed();
     const auto &mc_params = m_mc->getParams();
     unsigned int maximum_allowed_cluster_size = m_maximum_allowed_cluster_size == 0 ? m_pdata->getN() : m_maximum_allowed_cluster_size;
-    ArrayHandle<Scalar4> pos_last_tree_build(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    /* ArrayHandle<Scalar4> pos_last_tree_build(m_pdata->getPositions(), access_location::host, access_mode::readwrite); */
 
     #ifdef ENABLE_MPI
     // compute the width of the active region
     Scalar3 npd = box.getNearestPlaneDistance();
     Scalar3 ghost_fraction = m_mc->getNominalWidth() / npd;
     #endif
-    Scalar3 npd_global = m_pdata->getGlobalBox().getNearestPlaneDistance();
-    Scalar min_npd = detail::min(npd_global.x, npd_global.y);
-    if (this->m_sysdef->getNDimensions() == 3)
-        {
-        min_npd = detail::min(min_npd, npd_global.z);
-        }
+    /* Scalar3 npd_global = m_pdata->getGlobalBox().getNearestPlaneDistance(); */
+    /* Scalar min_npd = detail::min(npd_global.x, npd_global.y); */
+    /* if (this->m_sysdef->getNDimensions() == 3) */
+    /*     { */
+    /*     min_npd = detail::min(min_npd, npd_global.z); */
+    /*     } */
     /* LongReal min_displacement_rebuild_tree = min_npd; */
 
     // Shuffle the order of particles for this step
