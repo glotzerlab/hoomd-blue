@@ -652,6 +652,7 @@ class VirtualClusterMoves(Updater):
                  maximum_allowed_cluster_size=0,
                  cluster_size_distribution_prefactor=1.0,
                  cluster_size_limit_mode=None,
+                 static_linking_mode=False,
                  always_rebuild_tree=True,
                  ):
         super().__init__(trigger)
@@ -670,6 +671,7 @@ class VirtualClusterMoves(Updater):
                                    maximum_allowed_cluster_size=int(maximum_allowed_cluster_size),
                                    cluster_size_distribution_prefactor=float(cluster_size_distribution_prefactor),
                                    cluster_size_limit_mode=str(cluster_size_limit_mode),
+                                   static_linking_mode=bool(static_linking_mode),
                                    always_rebuild_tree=bool(always_rebuild_tree),
                                    )
         param_dict.update(dict(beta_ficticious=beta_ficticious))
