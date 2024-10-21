@@ -654,6 +654,7 @@ class VirtualClusterMoves(Updater):
                  cluster_size_limit_mode=None,
                  static_linking_mode=False,
                  always_rebuild_tree=True,
+                 instance=0,
                  ):
         super().__init__(trigger)
         if maximum_allowed_cluster_size is None:
@@ -673,10 +674,10 @@ class VirtualClusterMoves(Updater):
                                    cluster_size_limit_mode=str(cluster_size_limit_mode),
                                    static_linking_mode=bool(static_linking_mode),
                                    always_rebuild_tree=bool(always_rebuild_tree),
+                                   instance=int(instance),
                                    )
         param_dict.update(dict(beta_ficticious=beta_ficticious))
         self._param_dict.update(param_dict)
-        self.instance = 0
 
     def _attach_hook(self):
         self._simulation._warn_if_seed_unset()

@@ -1017,6 +1017,7 @@ template < class Shape> void export_UpdaterVirtualMoveMonteCarlo(pybind11::modul
         .def_property("cluster_size_distribution_prefactor", &UpdaterVMMC<Shape>::getClusterSizeDistributionPrefactor, &UpdaterVMMC<Shape>::setClusterSizeDistributionPrefactor)
         .def_property("always_rebuild_tree", &UpdaterVMMC<Shape>::getAlwaysRebuildTree, &UpdaterVMMC<Shape>::setAlwaysRebuildTree)
         .def_property("static_linking_mode", &UpdaterVMMC<Shape>::getStaticLinkingMode, &UpdaterVMMC<Shape>::setStaticLinkingMode)
+        .def_property("instance", &UpdaterVMMC<Shape>::getInstance, &UpdaterVMMC<Shape>::setInstance)
     ;
     }
 
