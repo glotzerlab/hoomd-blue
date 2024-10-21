@@ -15,9 +15,9 @@ validate_mesh = OnlyTypes(Mesh)
 
 
 class MeshPotential(Force):
-    """Constructs the bond potential applied to a mesh.
+    """Constructs the potential applied to a mesh.
 
-    `MeshPotential` is the base class for all bond potentials applied to meshes.
+    `MeshPotential` is the base class for all potentials applied to meshes.
 
     Warning:
         This class should not be instantiated by users. The class can be used
@@ -70,3 +70,38 @@ class MeshPotential(Force):
                 "mesh cannot be set after calling Simulation.run().")
         mesh = validate_mesh(value)
         self._mesh = mesh
+
+
+class MeshConvervationPotential(MeshPotential):
+    """Constructs the bond potential applied to a mesh.
+
+    `MeshConvervationPotential` is the base class for global conservation
+    potentials applied to meshes.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
+
+    def __init__(self, mesh, ignore_type):
+        super().__init__(mesh)
+        self._ignore_type = ignore_type
+
+    def _attach_hook(self):
+        """Create the c++ mirror class."""
+        if self._mesh._attached and self._simulation != self._mesh._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent mesh structure."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To supress the warning explicitly set new mesh.",
+                RuntimeWarning)
+            self._mesh = copy.deepcopy(self._mesh)
+        self.mesh._attach(self._simulation)
+
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = getattr(_md, self._cpp_class_name)
+        else:
+            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                self._mesh._cpp_obj, self._ignore_type)
