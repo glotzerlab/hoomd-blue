@@ -407,7 +407,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         double computePairEnergy(uint64_t timestep, std::shared_ptr<PairPotential> selected_pair = nullptr);
 
         //! Build the AABB tree (if needed)
-        const hoomd::detail::AABBTree& buildAABBTree();
+        hoomd::detail::AABBTree& buildAABBTree();
 
         //! Make list of image indices for boxes to check in small-box mode
         const std::vector<vec3<Scalar> >& updateImageList();
@@ -1738,7 +1738,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
     \returns A reference to the tree.
 */
 template <class Shape>
-const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
+hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
     {
     if (m_aabb_tree_invalid)
         {
