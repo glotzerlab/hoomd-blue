@@ -154,6 +154,7 @@ __global__ void draw_virtual_particles(Scalar4* d_tmp_pos,
     Scalar3 vel;
     gen(vel.x, vel.y, rng);
     vel.z = gen(rng);
+    geom.addToVirtualParticleVelocity(vel, pos);
     d_tmp_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
     }
 

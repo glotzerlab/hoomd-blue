@@ -64,6 +64,7 @@ The following people have contributed to HOOMD-blue:
 * Jen Bradley, University of Michigan
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
+* Jinny Cha, Auburn University
 * Joseph Berleant, University of Michigan
 * Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan

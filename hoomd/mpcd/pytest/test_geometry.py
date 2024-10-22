@@ -19,6 +19,50 @@ def snap():
     return snap_
 
 
+class TestConcentricCylinders:
+
+    def test_default_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                       outer_radius=4.0)
+        assert geom.inner_radius == 2.0
+        assert geom.outer_radius == 4.0
+        assert geom.angular_speed == 0.0
+        assert geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.inner_radius == 2.0
+        assert geom.outer_radius == 4.0
+        assert geom.angular_speed == 0.0
+        assert geom.no_slip
+
+    def test_nondefault_init(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                       outer_radius=5.0,
+                                                       angular_speed=1.0,
+                                                       no_slip=False)
+        assert geom.inner_radius == 2.0
+        assert geom.outer_radius == 5.0
+        assert geom.angular_speed == 1.0
+        assert not geom.no_slip
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        assert geom.inner_radius == 2.0
+        assert geom.outer_radius == 5.0
+        assert geom.angular_speed == 1.0
+        assert not geom.no_slip
+
+    def test_pickling(self, simulation_factory, snap):
+        geom = hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
+                                                       outer_radius=4.0)
+        pickling_check(geom)
+
+        sim = simulation_factory(snap)
+        geom._attach(sim)
+        pickling_check(geom)
+
+
 class TestCosineChannel:
 
     def test_default_init(self, simulation_factory, snap):
