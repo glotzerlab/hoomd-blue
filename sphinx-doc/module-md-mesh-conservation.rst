@@ -13,6 +13,7 @@ md.mesh.conservation
 
     Area
     TriangleArea
+    Volume
 
 .. rubric:: Details
 
@@ -21,4 +22,5 @@ md.mesh.conservation
     :no-inherited-members:
     :show-inheritance:
     :members: Area,
-              TriangleArea
+              TriangleArea,
+              Volume

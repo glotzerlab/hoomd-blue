@@ -56,6 +56,7 @@ set(_md_sources module-md.cc
                    Thermostat.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
+		   VolumeConservationMeshForceCompute.cc
                    ZeroMomentumUpdater.cc
                    )
 
@@ -214,6 +215,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepConstantPressure.h
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
+		VolumeConservationMeshForceCompute.h
+		VolumeConservationMeshForceComputeGPU.h
+                AlchemostatTwoStep.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
@@ -251,6 +255,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TriangleAreaConservationMeshForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepLangevinGPU.cc
+			   VolumeConservationMeshForceComputeGPU.cc
                            TwoStepConstantVolumeGPU.cc
                            TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
@@ -295,6 +300,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepConstantVolumeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
+		      VolumeConservationMeshForceComputeGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
