@@ -11,12 +11,16 @@ md.mesh.conservation
 .. autosummary::
     :nosignatures:
 
+    Area
+    TriangleArea
     Volume
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.mesh.conservation
-    :synopsis: Constraints applied to a mesh data structure.
+    :synopsis: Conservation potentials applied to a mesh data structure.
     :no-inherited-members:
     :show-inheritance:
-    :members: Volume
+    :members: Area,
+              TriangleArea,
+              Volume

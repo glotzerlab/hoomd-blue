@@ -44,8 +44,6 @@ void export_wall_data(pybind11::module& m);
 void export_wall_field(pybind11::module& m);
 void export_LocalNeighborListDataHost(pybind11::module& m);
 
-void export_BendingRigidityMeshForceCompute(pybind11::module& m);
-
 void export_PotentialPairBuckingham(pybind11::module& m);
 void export_PotentialPairLJ(pybind11::module& m);
 void export_PotentialPairLJ1208(pybind11::module& m);
@@ -81,8 +79,12 @@ void export_PotentialBondTether(pybind11::module& m);
 void export_PotentialMeshBondHarmonic(pybind11::module& m);
 void export_PotentialMeshBondFENE(pybind11::module& m);
 void export_PotentialMeshBondTether(pybind11::module& m);
+
+void export_BendingRigidityMeshForceCompute(pybind11::module& m);
 void export_HelfrichMeshForceCompute(pybind11::module& m);
 void export_VolumeConservationMeshForceCompute(pybind11::module& m);
+void export_AreaConservationMeshForceCompute(pybind11::module& m);
+void export_TriangleAreaConservationMeshForceCompute(pybind11::module& m);
 
 void export_PotentialSpecialPairLJ(pybind11::module& m);
 void export_PotentialSpecialPairCoulomb(pybind11::module& m);
@@ -191,8 +193,6 @@ void export_PeriodicImproperForceComputeGPU(pybind11::module& m);
 void export_PPPMForceComputeGPU(pybind11::module& m);
 void export_LocalNeighborListDataGPU(pybind11::module& m);
 
-void export_BendingRigidityMeshForceComputeGPU(pybind11::module& m);
-
 void export_PotentialPairBuckinghamGPU(pybind11::module& m);
 void export_PotentialPairLJGPU(pybind11::module& m);
 void export_PotentialPairLJ1208GPU(pybind11::module& m);
@@ -229,8 +229,12 @@ void export_PotentialBondTetherGPU(pybind11::module& m);
 void export_PotentialMeshBondHarmonicGPU(pybind11::module& m);
 void export_PotentialMeshBondFENEGPU(pybind11::module& m);
 void export_PotentialMeshBondTetherGPU(pybind11::module& m);
+
+void export_BendingRigidityMeshForceComputeGPU(pybind11::module& m);
 void export_HelfrichMeshForceComputeGPU(pybind11::module& m);
 void export_VolumeConservationMeshForceComputeGPU(pybind11::module& m);
+void export_AreaConservationMeshForceComputeGPU(pybind11::module& m);
+void export_TriangleAreaConservationMeshForceComputeGPU(pybind11::module& m);
 
 void export_PotentialSpecialPairLJGPU(pybind11::module& m);
 void export_PotentialSpecialPairCoulombGPU(pybind11::module& m);
@@ -320,8 +324,6 @@ PYBIND11_MODULE(_md, m)
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
 
-    export_BendingRigidityMeshForceCompute(m);
-
     export_PotentialPairBuckingham(m);
     export_PotentialPairLJ(m);
     export_PotentialPairLJ1208(m);
@@ -368,8 +370,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBondHarmonic(m);
     export_PotentialMeshBondFENE(m);
     export_PotentialMeshBondTether(m);
+
+    export_BendingRigidityMeshForceCompute(m);
     export_HelfrichMeshForceCompute(m);
     export_VolumeConservationMeshForceCompute(m);
+    export_AreaConservationMeshForceCompute(m);
+    export_TriangleAreaConservationMeshForceCompute(m);
 
     export_PotentialSpecialPairLJ(m);
     export_PotentialSpecialPairCoulomb(m);
@@ -450,8 +456,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBondHarmonicGPU(m);
     export_PotentialMeshBondFENEGPU(m);
     export_PotentialMeshBondTetherGPU(m);
+
+    export_BendingRigidityMeshForceComputeGPU(m);
     export_HelfrichMeshForceComputeGPU(m);
     export_VolumeConservationMeshForceComputeGPU(m);
+    export_AreaConservationMeshForceComputeGPU(m);
+    export_TriangleAreaConservationMeshForceComputeGPU(m);
 
     export_PotentialSpecialPairLJGPU(m);
     export_PotentialSpecialPairCoulombGPU(m);
@@ -480,8 +490,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
     export_PotentialExternalMagneticFieldGPU(m);
-
-    export_BendingRigidityMeshForceComputeGPU(m);
 
     export_PotentialExternalWallLJGPU(m);
     export_PotentialExternalWallYukawaGPU(m);
