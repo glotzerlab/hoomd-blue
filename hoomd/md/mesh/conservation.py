@@ -49,6 +49,7 @@ class Area(MeshConvervationPotential):
 
             * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+
             * ``A0`` (`float`, **required**) - targeted global surface area
               :math:`[\mathrm{length}]^2]`
 
@@ -99,6 +100,7 @@ class TriangleArea(MeshPotential):
 
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+
             * ``A0`` (`float`, **required**) - target surface area
               of a single triangle in the mesh
               :math:`[\mathrm{length}]^2`
