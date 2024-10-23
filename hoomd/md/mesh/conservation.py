@@ -122,6 +122,7 @@ class TriangleArea(MeshPotential):
         """Area of the mesh triangulation."""
         return self._cpp_obj.getArea()
 
+
 class Volume(MeshConvervationPotential):
     r"""Volume conservation potential.
 
