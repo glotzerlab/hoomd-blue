@@ -311,7 +311,7 @@ implementation
 (https://pybind11.readthedocs.io/en/stable/classes.html#instance-and-static-fields).
 Properties can be read-only which means they will never be set through
 `ParameterDict`, but can be through the C++ class constructor. Attempting to set
-such a property after attaching will result in an `MutabiliyError` being thrown.
+such a property after attaching will result in an `MutabilityError` being thrown.
 
 This class should be used to define all attributes shared with C++ member
 variables that are on a per-object basis (i.e. not per type). Examples of

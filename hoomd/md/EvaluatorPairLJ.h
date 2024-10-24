@@ -39,8 +39,8 @@ namespace md
    pair potentials. "Standard" pair potentials in hoomd are all handled via the template class
    PotentialPair. PotentialPair takes a potential evaluator as a template argument. In this way, all
    the complicated data management and other details of computing the pair force and potential on
-   every single particle is only written once in the template class and the difference V(r)
-   potentials that can be calculated are simply handled with various evaluator classes. Template
+   every single particle is only written once in the template class and the different V(r)
+   potentials that can be calculated are handled with various evaluator classes. Template
    instantiation is equivalent to inlining code, so there is no performance loss.
 
     In hoomd, a "standard" pair potential is defined as V(rsq, rcutsq, params, di, dj, qi, qj),

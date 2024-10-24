@@ -18,7 +18,7 @@
 #include "hoomd/VectorMath.h"
 
 /*! \file EvaluatorPairGB.h
-    \brief Defines a an evaluator class for the Gay-Berne potential
+    \brief Defines an evaluator class for the Gay-Berne potential
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -297,7 +297,10 @@ class EvaluatorPairGB
         {
         return "gb";
         }
-
+    static std::string getShapeParamName()
+        {
+        return "shape";
+        }
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;

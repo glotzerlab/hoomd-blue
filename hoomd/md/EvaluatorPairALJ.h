@@ -719,7 +719,10 @@ template<unsigned int ndim> class EvaluatorPairALJ
         {
         return "alj";
         }
-
+    static std::string getShapeParamName()
+        {
+        return "Shape";
+        }
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this pair potential.");
