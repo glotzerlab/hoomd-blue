@@ -79,7 +79,7 @@ struct Index2D
         uint2 t;
 
         t.y = idx / m_w;
-        t.x = idx % m_w;
+        t.x = idx - t.y * m_w;
         return t;
         }
 
@@ -153,7 +153,7 @@ struct Index3D
         uint3 t;
 
         t.z = idx / (m_h * m_w);
-        t.y = (idx % (m_h * m_w)) / m_w;
+        t.y = (idx - (t.z * m_h * m_w)) / m_w;
         t.x = idx - t.z * m_h * m_w - t.y * m_w;
         return t;
         }
