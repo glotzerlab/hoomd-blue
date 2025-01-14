@@ -1699,8 +1699,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `ConvexSpheropolyhedron` supports the `hoomd.wall.Sphere` and
-    `hoomd.wall.Plane` geometries.
+    `ConvexSpheropolyhedron` supports all `hoomd.wall` geometries.
 
     Example::
 
