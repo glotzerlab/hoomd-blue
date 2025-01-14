@@ -58,7 +58,10 @@ class _HPMCWallsMetaList(_WallsMetaList):
             hoomd.wall.Cylinder,
             hoomd.wall.Plane,
         ],
-        hpmc.integrate.ConvexSpheropolyhedron: [hoomd.wall.Sphere, hoomd.wall.Plane],
+        hpmc.integrate.ConvexSpheropolyhedron: [
+            hoomd.wall.Sphere, 
+            hoomd.wall.Cylinder, 
+            hoomd.wall.Plane],
     }
 
     def _check_wall_compatibility(self, wall):
