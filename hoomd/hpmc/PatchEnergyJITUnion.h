@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _PATCH_ENERGY_JIT_UNION_H_
@@ -351,7 +351,7 @@ namespace detail
 //! Exports the PatchEnergyJITUnion class to python
 void export_PatchEnergyJITUnion(pybind11::module& m);
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif // _PATCH_ENERGY_JIT_UNION_H_

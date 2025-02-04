@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Module implements the `State` class.
@@ -245,7 +245,7 @@ class State:
     See Also:
         To write the simulation to disk, use `write.GSD`.
 
-    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+    .. _Kamberaj 2005: https://dx.doi.org/10.1063/1.1906216
     """
 
     def __init__(self, simulation, snapshot, domain_decomposition):

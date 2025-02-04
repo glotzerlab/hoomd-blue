@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_WALL_H_
@@ -114,12 +114,12 @@ struct CylinderWall
 #ifndef __HIPCC__
     CylinderWall(Scalar r, pybind11::tuple origin, pybind11::tuple axis, bool inside = true)
         : CylinderWall(
-            r,
-            vec3<Scalar>(origin[0].cast<Scalar>(),
-                         origin[1].cast<Scalar>(),
-                         origin[2].cast<Scalar>()),
-            vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
-            inside)
+              r,
+              vec3<Scalar>(origin[0].cast<Scalar>(),
+                           origin[1].cast<Scalar>(),
+                           origin[2].cast<Scalar>()),
+              vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
+              inside)
         {
         }
 
@@ -621,6 +621,56 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         for (size_t i = 0; i < m_Planes.size(); i++)
             {
             if (!test_confined(m_Planes[i], shape_new, position_new, origin, box))
+                {
+                return INFINITY;
+                }
+            }
+
+        return double(0.0);
+        }
+
+    //! Evaluate the energy of the force.
+    /*! \param box The system box.
+        \param type Particle type.
+        \param r_i Particle position
+        \param q_i Particle orientation.
+        \param diameter Particle diameter.
+        \param charge Particle charge.
+        \returns Energy due to the force
+    */
+    virtual float energy(const BoxDim& box,
+                         unsigned int type,
+                         const vec3<Scalar>& r_i,
+                         const quat<Scalar>& q_i,
+                         Scalar diameter,
+                         Scalar charge)
+        {
+        const std::vector<typename Shape::param_type,
+                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
+            = m_mc->getParams();
+        Shape shape(q_i, params[type]);
+        vec3<Scalar> origin(m_pdata->getOrigin());
+
+        for (size_t i = 0; i < m_Spheres.size(); i++)
+            {
+            if (!test_confined(m_Spheres[i], shape, r_i, origin, box))
+                {
+                return INFINITY;
+                }
+            }
+
+        for (size_t i = 0; i < m_Cylinders.size(); i++)
+            {
+            set_cylinder_wall_verts(m_Cylinders[i], shape);
+            if (!test_confined(m_Cylinders[i], shape, r_i, origin, box))
+                {
+                return INFINITY;
+                }
+            }
+
+        for (size_t i = 0; i < m_Planes.size(); i++)
+            {
+            if (!test_confined(m_Planes[i], shape, r_i, origin, box))
                 {
                 return INFINITY;
                 }

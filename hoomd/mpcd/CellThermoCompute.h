@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -191,13 +191,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         m_force_compute = true;
         }
     };
-
-namespace detail
-    {
-//! Export the CellThermoCompute class to python
-void export_CellThermoCompute(pybind11::module& m);
-    } // end namespace detail
-
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // #define MPCD_CELL_THERMO_COMPUTE_H_

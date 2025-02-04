@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -164,7 +164,7 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
 
     // ------
     // while (origin ray does not intersect candidate) choose new candidate
-    // In 2D, this step is not necessary (http://xenocollide.snethen.com/mpr2d.html). By choosing
+    // In 2D, this step is not necessary (https://xenocollide.snethen.com/mpr2d.html). By choosing
     // the correct normal above, we have a proper portal by construction. The 3D version of this
     // code will need to implement the loop, however. See the book.
 

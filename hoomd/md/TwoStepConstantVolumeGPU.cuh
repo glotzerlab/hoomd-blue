@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/GPUPartition.cuh"
@@ -40,7 +40,7 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                                     Scalar rescale_factor,
                                     const GPUPartition& gpu_partition);
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 #endif // HOOMD_TWOSTEPNVTBASEGPU_CUH

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HOOMD_MPI_H__
@@ -10,7 +10,7 @@
     The functions provided here imitate some basic boost.MPI functionality.
 
     Usage of boost.Serialization is made as described in
-    http://stackoverflow.com/questions/3015582/
+    https://stackoverflow.com/questions/3015582/
 */
 
 #ifdef ENABLE_MPI
@@ -20,6 +20,7 @@
 
 #include <mpi.h>
 
+#include <algorithm>
 #include <numeric>
 #include <queue>
 #include <sstream>

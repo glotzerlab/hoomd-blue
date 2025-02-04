@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Long-range potentials evaluated using the PPPM method."""
@@ -117,9 +117,9 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     .. _J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980:
       https://doi.org/10.1063/1.464397
 
-    .. _D. LeBard et. al. 2012: http://dx.doi.org/10.1039/c1sm06787g
+    .. _D. LeBard et. al. 2012: https://dx.doi.org/10.1039/c1sm06787g
 
-    .. _Salin, G and Caillol, J. 2000: http://dx.doi.org/10.1063/1.1326477
+    .. _Salin, G and Caillol, J. 2000: https://dx.doi.org/10.1063/1.1326477
     """
     real_space_force = hoomd.md.pair.Ewald(nlist)
 
@@ -270,10 +270,6 @@ class Coulomb(Force):
 
             # ensure that the pair force uses the same neighbor list
             self._pair_force.nlist = value
-
-    @property
-    def _children(self):
-        return [self.nlist]
 
 
 def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):

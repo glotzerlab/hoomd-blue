@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cuh
@@ -336,5 +336,5 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                                             const Scalar* d_netvirial_recvbuf,
                                             Scalar* d_netvirial,
                                             unsigned int pitch_out);
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_HIP
@@ -39,13 +39,13 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoSt
                        bool noiseless_r,
                        Scalar tolerance);
 
-    virtual ~TwoStepRATTLEBDGPU() {};
+    virtual ~TwoStepRATTLEBDGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);
 
     //! Performs the second step of the integration
-    virtual void integrateStepTwo(uint64_t timestep) {};
+    virtual void integrateStepTwo(uint64_t timestep) { };
 
     //! Includes the RATTLE forces to the virial/net force
     virtual void includeRATTLEForce(uint64_t timestep);

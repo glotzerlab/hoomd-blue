@@ -285,7 +285,10 @@ class EvaluatorPairRotationalCoupling
         {
         return "rotational coupling";
         }
-
+    static std::string getShapeParamName()
+        {
+        return "Omega";
+        }
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this pair potential.");

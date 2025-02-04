@@ -95,6 +95,7 @@ set(_hoomd_sources Action.cc
                    Tuner.cc
                    Updater.cc
                    Variant.cc
+                   VectorVariant.cc
                    extern/BVLSSolver.cc
                    extern/gsd.c
                    extern/kiss_fft.cc
@@ -142,8 +143,6 @@ set(_hoomd_headers
     GPUArray.h
     GPUFlags.h
     GPUPartition.cuh
-    GPUPolymorph.h
-    GPUPolymorph.cuh
     GPUVector.h
     GSD.h
     GSDDequeWriter.h
@@ -187,6 +186,7 @@ set(_hoomd_headers
     TextureTools.h
     Updater.h
     Variant.h
+    VectorVariant.h
     VectorMath.h
     WarpTools.cuh
     )
@@ -211,7 +211,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       SFCPackTunerGPU.cu)
 
 # add the MPCD base parts that should go into _hoomd (i.e., core particle data)
-if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
+if (BUILD_MPCD)
     list(APPEND _hoomd_sources
         mpcd/ParticleData.cc
         mpcd/ParticleDataSnapshot.cc
@@ -229,7 +229,7 @@ endif (ENABLE_HIP)
 
 #########################
 ## Build the module
-pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
+hoomd_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
@@ -237,11 +237,7 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 # Work around support for the delete operator with pybind11 and older versions of clang
 # https://github.com/pybind/pybind11/issues/1604
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.11)
-        target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
-    else()
-        target_compile_options(_hoomd PUBLIC -fsized-deallocation)
-    endif()
+    target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
 endif()
 
 # add quick hull as its own library so that it's symbols can be public
@@ -352,7 +348,6 @@ set(files box.py
           operations.py
           pytest_plugin_validate.py
           util.py
-          variant.py
           simulation.py
           state.py
           trigger.py
@@ -384,6 +379,7 @@ add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)
 add_subdirectory(update)
+add_subdirectory(variant)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
@@ -409,7 +405,7 @@ if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
 
-if (BUILD_MPCD AND (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc"))
+if (BUILD_MPCD)
     target_compile_definitions(_hoomd PUBLIC BUILD_MPCD)
     add_subdirectory(mpcd)
 endif()

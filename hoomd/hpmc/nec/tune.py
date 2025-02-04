@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Tune Newtonian event chain parameters."""
@@ -272,8 +272,8 @@ class ChainTime(_InternalCustomTuner):
 
         Note:
             Increasing ``gamma`` towards 1 does not necessarily speed up
-            convergence and can slow it done. In addition, large values of
-            ``gamma`` can make the solver unstable especially when tuning
+            convergence and can slow it down. In addition, large values of
+            ``gamma`` can make the solver unstable, especially when tuning
             frequently.
         """
         solver = SecantSolver(gamma, tol)

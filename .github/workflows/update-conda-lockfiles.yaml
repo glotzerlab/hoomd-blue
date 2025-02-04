@@ -1,0 +1,14 @@
+name: Update conda lockfiles
+
+on:
+  schedule:
+    - cron: '0 12 1 * *'
+
+  workflow_dispatch:
+
+jobs:
+  update:
+    uses: glotzerlab/workflows/.github/workflows/update-conda-lockfiles.yaml@1747bc5c994ec280440dd051f2928791407692c8 # 0.5.1
+    secrets: inherit
+    with:
+      branch: trunk-patch

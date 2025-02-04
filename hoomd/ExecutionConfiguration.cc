@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
@@ -416,8 +416,14 @@ void ExecutionConfiguration::scanGPUs()
     hipError_t error = hipGetDeviceCount(&dev_count);
     if (error != hipSuccess)
         {
-        s_gpu_scan_messages.push_back("Failed to get GPU device count: "
-                                      + string(hipGetErrorString(error)));
+        std::string message = "Failed to get GPU device count: ";
+#ifdef __HIP_PLATFORM_NVCC__
+        cudaError_t cuda_error = cudaPeekAtLastError();
+        message += string(cudaGetErrorString(cuda_error));
+#else
+        message += string(hipGetErrorString(error));
+#endif
+        s_gpu_scan_messages.push_back(message);
         return;
         }
 
@@ -435,8 +441,14 @@ void ExecutionConfiguration::scanGPUs()
 
         if (error != hipSuccess)
             {
-            s_gpu_scan_messages.push_back("Failed to get device properties: "
-                                          + string(hipGetErrorString(error)));
+            std::string message = "Failed to get device properties: ";
+#ifdef __HIP_PLATFORM_NVCC__
+            cudaError_t cuda_error = cudaPeekAtLastError();
+            message += string(cudaGetErrorString(cuda_error));
+#else
+            message += string(hipGetErrorString(error));
+#endif
+            s_gpu_scan_messages.push_back(message);
             continue;
             }
 

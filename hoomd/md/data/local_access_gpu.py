@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement local access classes for the GPU."""
@@ -23,7 +23,7 @@ if hoomd.version.gpu_enabled:
         _array_cls = HOOMDGPUArray
 
 else:
-    from hoomd.util import _NoGPU
+    from hoomd.error import _NoGPU
 
     class ForceLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""

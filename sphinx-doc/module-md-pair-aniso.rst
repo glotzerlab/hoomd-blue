@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.pair.aniso
@@ -15,6 +15,14 @@ md.pair.aniso
     AnisotropicPair
     Dipole
     GayBerne
+    Patchy
+    PatchyExpandedGaussian
+    PatchyExpandedLJ
+    PatchyExpandedMie
+    PatchyGaussian
+    PatchyLJ
+    PatchyMie
+    PatchyYukawa
 
 .. rubric:: Details
 
@@ -25,4 +33,12 @@ md.pair.aniso
         AnisotropicPair,
         Dipole,
         GayBerne,
+        Patchy,
+        PatchyExpandedGaussian,
+        PatchyExpandedLJ,
+        PatchyExpandedMie,
+        PatchyGaussian,
+        PatchyLJ,
+        PatchyMie,
+        PatchyYukawa,
     :show-inheritance:

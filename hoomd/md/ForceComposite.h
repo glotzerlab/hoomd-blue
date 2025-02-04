@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
@@ -200,7 +200,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         v["constituent_types"] = types;
         v["positions"] = positions;
         v["orientations"] = orientations;
-        return std::move(v);
+        return v;
         }
 
     /// Get the number of free particles (global)

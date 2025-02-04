@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolygon.h"
@@ -139,7 +139,7 @@ namespace detail
 */
 DEVICE inline bool is_inside(const vec2<ShortReal>& p, const PolygonVertices& verts)
     {
-    // code for concave test from: http://alienryderflex.com/polygon/
+    // code for concave test from: https://alienryderflex.com/polygon/
     unsigned int nvert = verts.N;
 
     unsigned int i, j = nvert - 1;
@@ -194,7 +194,7 @@ DEVICE inline bool segment_intersect(const vec2<ShortReal>& a,
                                      const vec2<ShortReal>& d)
     {
     // implemented following the algorithm in:
-    // http://www.dcs.gla.ac.uk/~pat/52233/slides/Geometry1x1.pdf
+    // https://www.dcs.gla.ac.uk/~pat/52233/slides/Geometry1x1.pdf
     unsigned int o1 = tri_orientation(a, c, d);
     unsigned int o2 = tri_orientation(b, c, d);
     unsigned int o3 = tri_orientation(a, b, c);

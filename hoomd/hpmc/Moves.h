@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -136,7 +136,7 @@ DEVICE inline bool isActive(Scalar3 pos, const BoxDim& box, Scalar3 ghost_fracti
 //! Helper function to generate a random element of SO(3)
 // see Shoemake, Uniform random rotations, Graphics Gems III, p.142-132
 // and
-// http://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
+// https://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
 template<class RNG>
 DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim)
     {
@@ -322,7 +322,7 @@ DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat
     }
 
     }; // end namespace hpmc
-    }  // namespace hoomd
+    } // namespace hoomd
 
 #undef DEVICE
 

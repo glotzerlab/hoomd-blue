@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence
@@ -78,6 +78,27 @@ def test_invalid_shape_params(invalid_args):
     mc = integrator()
     with pytest.raises(hoomd.error.TypeConversionError):
         mc.shape["A"] = args
+
+
+@pytest.mark.parametrize(
+    "cpp_shape",
+    [hoomd.hpmc._hpmc.EllipsoidParams, hoomd.hpmc._hpmc.FacetedEllipsoidParams])
+@pytest.mark.parametrize("c", [0.0, -0.5])
+def test_semimajor_axis_validity(cpp_shape, c):
+    args = {
+        'a': 0.125,
+        'b': 0.375,
+        'c': c,
+        # These properties are only read for the FacetedEllipsoid
+        'normals': [],
+        'offsets': [],
+        'vertices': [],
+        'origin': []
+    }
+    with pytest.raises(ValueError) as err:
+        cpp_shape({"ignore_statistics": False} | args)
+
+    assert ("All semimajor axes must be nonzero!" in str(err))
 
 
 def test_shape_attached(simulation_factory, two_particle_snapshot_factory,

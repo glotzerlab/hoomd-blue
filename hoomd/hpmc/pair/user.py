@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """User-defined pair potentials for HPMC simulations.
@@ -76,7 +76,7 @@ class CPPPotentialBase(AutotunedObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.4.1/hoomd/VectorMath.h
+            v4.9.1/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -103,7 +103,7 @@ class CPPPotentialBase(AutotunedObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
-        return integrator._cpp_obj.computePatchEnergy(timestep)
+        return integrator._cpp_obj.computeTotalPairEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
         r"""Wrap the provided code into a function with the expected signature.
@@ -216,9 +216,6 @@ class CPPPotential(CPPPotentialBase):
         `CPPPotential` is **experimental** and subject to change in future minor
         releases.
 
-    Example:
-        See :doc:`howto/cpppotential`.
-
     Attributes:
         code (str): The C++ code that defines the body of the patch energy
             function. After running zero or more steps, this property cannot be
@@ -243,6 +240,12 @@ class CPPPotential(CPPPotentialBase):
         param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
+
+        warnings.warn(
+            "CPPPotential is deprecated since 4.6.0. "
+            "Use a hpmc.pair.Pair potential.",
+            FutureWarning,
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -337,12 +340,9 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
-    .. deprecated:: 4.4.1
+    .. deprecated:: 4.4.0
 
         ``num_cpu_threads >= 1`` is deprecated. Set ``num_cpu_threads = 1``.
-
-    See Also:
-        :doc:`howto/cpppotential`.
 
     .. py:attribute:: positions
 
@@ -521,6 +521,12 @@ class CPPPotentialUnion(CPPPotentialBase):
         self.code_constituent = code_constituent
         self.code_isotropic = code_isotropic
 
+        warnings.warn(
+            "CPPPotentialUnion is deprecated since 4.6.0. "
+            "Use a hpmc.pair.Pair potential.",
+            FutureWarning,
+            stacklevel=2)
+
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}
         if attr in code_attrs:
@@ -531,7 +537,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         if (isinstance(self._simulation.device, hoomd.device.CPU)
                 and self._simulation.device.num_cpu_threads > 1):
             warnings.warn(
-                "num_cpu_threads > 1 is deprecated since 4.4.1. "
+                "num_cpu_threads > 1 is deprecated since 4.6.0. "
                 "Use num_cpu_threads=1.",
                 FutureWarning,
                 stacklevel=1)

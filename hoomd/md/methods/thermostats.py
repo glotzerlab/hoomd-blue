@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Provide classes for thermostatting simulations.
@@ -93,8 +93,8 @@ class MTTK(Thermostat):
 
     See Also:
         `G. J. Martyna, D. J. Tobias, M. L. Klein 1994
-        <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
-        <http://dx.doi.org/10.1063/1.470959>`_.
+        <https://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
+        <https://dx.doi.org/10.1063/1.470959>`_.
 
     .. rubric:: Examples:
 
@@ -354,7 +354,7 @@ class Berendsen(Thermostat):
         energies.
 
     See Also:
-        `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
+        `Berendsen et. al. 1984 <https://dx.doi.org/10.1063/1.448118>`_.
 
     .. rubric:: Example:
 

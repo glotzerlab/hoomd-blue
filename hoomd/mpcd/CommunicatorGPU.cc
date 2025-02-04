@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -381,10 +381,14 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     m_flags_tuner->end();
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_CommunicatorGPU(pybind11::module& m)
+void export_CommunicatorGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::CommunicatorGPU,
                      mpcd::Communicator,
@@ -392,7 +396,8 @@ void mpcd::detail::export_CommunicatorGPU(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setMaxStages", &mpcd::CommunicatorGPU::setMaxStages);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd
 
 #endif // ENABLE_HIP

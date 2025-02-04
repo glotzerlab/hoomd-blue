@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Anisotropic pair forces.
@@ -17,6 +17,14 @@ energies and virials in the same manner as `hoomd.md.pair.Pair`
 
 `AnisotropicPair` does not support the ``'xplor'`` shifting mode or the ``r_on``
 parameter.
+
+.. invisible-code-block: python
+    neighbor_list = hoomd.md.nlist.Cell(buffer = 0.4)
+    simulation = hoomd.util.make_example_simulation()
+    simulation.operations.integrator = hoomd.md.Integrator(
+        dt=0.001,
+        integrate_rotational_dof = True)
+
 """
 
 from collections.abc import Sequence
@@ -31,7 +39,8 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
+import numpy as np
 
 
 class AnisotropicPair(Pair):
@@ -151,7 +160,7 @@ class GayBerne(AnisotropicPair):
     energy-well depth. The potential comes from the following paper `Allen et.
     al. 2006`_.
 
-    .. _Allen et. al. 2006: http://dx.doi.org/10.1080/00268970601075238
+    .. _Allen et. al. 2006: https://dx.doi.org/10.1080/00268970601075238
 
     .. math::
         U(\vec r, \vec e_i, \vec e_j) =
@@ -572,8 +581,8 @@ class ALJ(AnisotropicPair):
         * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
           **required**) - The vertices of a convex polytope in 2 or 3
           dimensions. The third dimension in 2D is ignored.
-        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
-          **required**) - The semimajor axes of a rounding ellipsoid
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`)
+          - The semimajor axes of a rounding ellipsoid
           :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
           rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
@@ -675,7 +684,7 @@ class ALJ(AnisotropicPair):
                                   to_type_converter((float, float, float)),
                                   preprocess=self._to_three_tuple),
                               len_keys=1,
-                              _defaults={'rounding_radii', (0.0, 0.0, 0.0)}))
+                              _defaults={'rounding_radii': (0.0, 0.0, 0.0)}))
 
         self._extend_typeparam((params, shape))
 
@@ -704,3 +713,513 @@ class ALJ(AnisotropicPair):
         log shape for visualization and storage through the GSD file type.
         """
         return self._return_type_shapes()
+
+
+class Patchy(AnisotropicPair):
+    r"""Patchy pair potentials.
+
+    `Patchy` combines an isotropic `Pair <hoomd.md.pair.Pair>` potential with an
+    orientation dependent modulation function :math:`f`. Use `Patchy` with an attractive
+    potential to create localized sticky patches on the surface of a particle. Use it
+    with a repulsive potential to create localized bumps. `Patchy` computes both forces
+    and torques on particles.
+
+    Note:
+        `Patchy` provides *no* interaction when there are no patches or particles are
+        oriented such that :math:`f = 0`. Use `Patchy` along with a  repulsive isotropic
+        `Pair <hoomd.md.pair.Pair>` potential to prevent particles from passing through
+        each other.
+
+    The specific form of the patchy pair potential between particles :math:`i` and
+    :math:`j` is:
+
+    .. math::
+
+        U(r_{ij}, \mathbf{q}_i, \mathbf{q}_j) =
+        \sum_{m=1}^{N_{\mathrm{patches},i}}
+        \sum_{n=1}^{N_{\mathrm{patches},j}}
+        f(\theta_{m,i}, \alpha, \omega)
+        f(\theta_{n,j}, \alpha, \omega)
+        U_{\mathrm{pair}}(r_{ij})
+
+    where :math:`U_{\mathrm{pair}}(r_{ij})` is the isotropic pair potential and
+    :math:`f` is an orientation-dependent factor of the patchy spherical cap half-angle
+    :math:`\alpha` and patch steepness :math:`\omega`:
+
+    .. math::
+        \begin{align}
+        f(\theta, \alpha, \omega) &= \frac{\big(1+e^{-\omega (\cos{\theta} -
+        \cos{\alpha}) }\big)^{-1} - f_{min}}{f_{max} - f_{min}}\\
+        f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
+        f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
+        \end{align}
+
+    .. image:: patchy-pair.svg
+         :align: center
+         :height: 400px
+         :alt: Two dashed circles not quite touching. Circle i on the left has a faded
+          shaded slice pointing up and to the right at a 35 degree angle.
+          Circle j on the right has its shaded region pointing left and slightly up at a
+          25 degree angle. A vector labeled r i j points from particle i to j.
+
+    `directors` sets the locations of the patches **in the local reference frame** of
+    the particle. `Patchy` rotates the local director :math:`\vec{d}` by the particle's
+    orientation and computes the :math:`cos(\theta)` in :math:`f` as the cosine of the
+    angle between the director and :math:`\vec{r}_{ij}`:
+    :math:`cos(\theta_i) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot \hat{r}_{ij}` and
+    :math:`cos(\theta_j) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot -\hat{r}_{ij}`.
+
+    .. image:: patchy-def.svg
+         :align: center
+         :height: 400px
+         :alt: A single dashed circle centered at the origin of Cartesian x y axes.
+          Vector p points from the center of the circle at a 35 degree angle from the
+          right towards the center of the shaded region but does not reach the circle
+          boundary. Alpha is indicated as half of the arc of the shaded region.
+
+    :math:`\alpha` and :math:`\omega` control the shape of the patch:
+
+    .. image:: patchy-modulator.svg
+         :alt: Plots of modulator f with alpha equals pi over 3 for omegas of 2, 5, 10,
+          20 and 50. For omega of 50, the plot is a barely rounded step from 0 to 1 at
+          negative pi over 3 and back down to 0 at pi over 3. The omega 2 line is so
+          rounded that there are no noticeable elbows, but f still reaches 1 at theta of
+          0. The other lines appear between these.
+
+    See Also:
+        `Beltran-Villegas et. al.`_
+
+        `hoomd.hpmc.pair.AngularStep` provides a similar functional form for HPMC,
+        except that :math:`f` is a step function.
+
+    .. _Beltran-Villegas et. al.: https://dx.doi.org/10.1039/C3SM53136H
+
+    .. invisible-code-block: python
+        patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list,
+                                              default_r_cut = 3.0)
+        pair_params = {'epsilon': 10, 'sigma': 1}
+
+        patchy.params.default = dict(pair_params=pair_params,
+                                     envelope_params = {'alpha': math.pi/4,
+                                                        'omega': 30})
+        patchy.directors.default = []
+        simulation.operations.integrator.forces = [patchy]
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * ``alpha`` (`float`) - patch half-angle :math:`\alpha` :math:`[\mathrm{rad}]`
+          * ``omega`` (`float`) - patch steepness :math:`\omega`
+
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to isotropic potential (see subclasses).
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            envelope_params = {'alpha': math.pi/4, 'omega': 30}
+            patchy.params[('A', 'A')] = dict(pair_params=pair_params,
+                                             envelope_params=envelope_params)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: directors
+
+        List of vectors pointing to patch centers, by particle type (normalized when
+        set). When a particle type does not have patches, set an empty list.
+
+        Type: `TypeParameter` [``particle_type``, `list` [`tuple` [`float`, `float`,
+        `float`]]
+
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            patchy.directors['A'] = [(1,0,0), (1,1,1)]
+
+        .. code-block:: python
+
+            patchy.directors['A'] = []
+
+    """
+
+    _doc_args = r"""
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+    """
+
+    _doc_inherited = r"""
+
+    **Inherited from:** `Patchy <hoomd.md.pair.aniso.Patchy>`
+
+    .. py:attribute:: directors
+
+        List of vectors pointing to patch centers, by particle type.
+
+        `Read more... <hoomd.md.pair.aniso.Patchy.directors>`
+    """
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(
+                {
+                    "pair_params": self._pair_params,
+                    "envelope_params": {
+                        "alpha": OnlyTypes(float, postprocess=self._check_0_pi),
+                        "omega": float,
+                    }
+                },
+                len_keys=2))
+        envelope = TypeParameter(
+            'directors', 'particle_types',
+            TypeParameterDict([(float, float, float)], len_keys=1))
+        self._extend_typeparam((params, envelope))
+
+    @staticmethod
+    def _check_0_pi(input):
+        if 0 <= input <= np.pi:
+            return input
+        else:
+            raise ValueError(f"Value {input} is not between 0 and pi")
+        # can we get the keys here to check for A A being ni=nj
+
+
+class PatchyLJ(Patchy):
+    """Modulate `hoomd.md.pair.LJ` with angular patches."""
+    _doc = r"""
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        lj_params = dict(epsilon=1, sigma=1)
+        envelope_params=dict(alpha=math.pi/2, omega=20)
+
+        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist=neighbor_list,
+                                                default_r_cut=3.0)
+        patchylj.params[('A', 'A')] = dict(pair_params=lj_params,
+                                           envelope_params=envelope_params)
+        patchylj.directors['A'] = [(1,0,0)]
+        simulation.operations.integrator.forces = [patchylj]
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    """
+
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyLJ"
+    _pair_params = {"epsilon": float, "sigma": float}
+
+
+class PatchyExpandedGaussian(Patchy):
+    """Modulate `hoomd.md.pair.ExpandedGaussian` with angular patches."""
+    _doc = r"""
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        gauss_params=dict(epsilon=1, sigma=1, delta=0.5)
+        envelope_params=dict(alpha=math.pi/2, omega=40)
+
+        patchy_expanded_gaussian = hoomd.md.pair.aniso.PatchyExpandedGaussian(
+            nlist=neighbor_list,
+            default_r_cut=3.0)
+        patchy_expanded_gaussian.params[('A', 'A')] = dict(
+            pair_params=gauss_params,
+            envelope_params=envelope_params)
+        patchy_expanded_gaussian.directors['A'] = [(1,0,0), (1,1,1)]
+        simulation.operations.integrator.forces = [patchy_expanded_gaussian]
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedGaussian.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+          * ``delta`` (`float`, **required**) - radial shift
+            :math:`\delta` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
+    _pair_params = {"epsilon": float, "sigma": float, "delta": float}
+
+
+class PatchyExpandedLJ(Patchy):
+    """Modulate `hoomd.md.pair.ExpandedLJ` with angular patches."""
+    _doc = r"""
+    .. rubric: Example:
+
+    .. code-block:: python
+
+        lj_params=dict(epsilon=1, sigma=1)
+        envelope_params=dict(alpha=math.pi/2, omega=20)
+
+        patchylj = hoomd.md.pair.aniso.PatchyLJ(nlist=neighbor_list,
+                                                default_r_cut=3.0)
+        patchylj.params[('A', 'A')] = dict(pair_params=lj_params,
+                                           envelope_params=envelope_params)
+        patchylj.directors['A'] = [(1,0,0)]
+        simulation.operation.integrator.forces = [patchylj]
+
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedLJ.params`.
+
+          * ``epsilon`` (`float`) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+          * ``delta`` (`float`) - radial shift
+            :math:`\Delta` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
+    _pair_params = {"epsilon": float, "sigma": float, "delta": float}
+
+
+class PatchyExpandedMie(Patchy):
+    """Modulate `hoomd.md.pair.ExpandedMie` with angular patches."""
+    _doc = r"""
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        expanded_mie_params = dict(epsilon=1, sigma=1,
+                               n=15, m=10, delta=1)
+        envelope_params = dict(alpha=math.pi/3, omega=20)
+
+        patchy_expanded_mie = hoomd.md.pair.aniso.PatchyExpandedMie(
+            nlist=neighbor_list, default_r_cut=3.0)
+        patchy_expanded_mie.params[('A', 'A')] = dict(
+            pair_params=expanded_mie_params
+            envelope_params=envelope_params)
+        patchy_expanded_mie.directors['A'] = [(1,0,0)]
+        simulation.operations.integrator.forces = [patchy_expanded_mie]
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedMie.params`.
+
+          * ``epsilon`` (`float`, **required**) -
+            :math:`\epsilon` :math:`[\mathrm{energy}]`.
+          * ``sigma`` (`float`, **required**) -
+            :math:`\sigma` :math:`[\mathrm{length}]`.
+          * ``n`` (`float`, **required**) -
+            :math:`n` :math:`[\mathrm{dimensionless}]`.
+          * ``m`` (`float`, **required**) -
+            :math:`m` :math:`[\mathrm{dimensionless}]`.
+          * ``delta`` (`float`, **required**) -
+            :math:`\Delta` :math:`[\mathrm{length}]`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
+    _pair_params = {
+        "epsilon": float,
+        "sigma": float,
+        "n": float,
+        "m": float,
+        "delta": float
+    }
+
+
+class PatchyGaussian(Patchy):
+    """Modulate `hoomd.md.pair.Gaussian` with angular patches."""
+    _doc = r"""
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        gauss_params=dict(epsilon=1, sigma=1)
+        envelope_params=dict(alpha=math.pi/4, omega=30)
+
+        patchy_gaussian = hoomd.md.pair.aniso.PatchyGaussian(nlist=neighbor_list,
+                                                             default_r_cut=3.0)
+        patchy_gaussian.params[('A', 'A')] = dict(pair_params=gauss_params,
+                                                  envelope_params=envelope_params)
+        patchy_gaussian.directors['A'] = [(1,0,0)]
+        simulation.operations.integrator.forces = [patchy_gaussian]
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedMie.params`.
+
+          * ``epsilon`` (`float`, **required**) -
+            :math:`\epsilon` :math:`[\mathrm{energy}]`.
+          * ``sigma`` (`float`, **required**) -
+            :math:`\sigma` :math:`[\mathrm{length}]`.
+          * ``n`` (`float`, **required**) -
+            :math:`n` :math:`[\mathrm{dimensionless}]`.
+          * ``m`` (`float`, **required**) -
+            :math:`m` :math:`[\mathrm{dimensionless}]`.
+          * ``delta`` (`float`, **required**) -
+            :math:`\Delta` :math:`[\mathrm{length}]`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyGauss"
+    _pair_params = {"epsilon": float, "sigma": float}
+
+
+class PatchyMie(Patchy):
+    """Modulate `hoomd.md.pair.Mie` with angular patches."""
+    _doc = r"""
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        mie_params = dict(epsilon=1, sigma=1, n=15, m=10)
+        envelope_params = dict(alpha=math.pi/3, omega=20)
+
+        patchy_mie = hoomd.md.pair.aniso.PatchyMie(nlist=neighbor_list,
+                                                   default_r_cut=3.0)
+        patchy_mie.params[('A', 'A')] = dict(pair_params=mie_params
+                                             envelope_params = envelope_params)
+        patchy_mie.directors['A'] = [(1,0,0)]
+        simulation.operations.integrator.forces = [patchy_mie]
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Mie.params`.
+
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+            :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - :math:`\sigma`
+            :math:`[\mathrm{length}]`
+          * ``n`` (`float`, **required**) - :math:`n`
+            :math:`[\mathrm{dimensionless}]`
+          * ``m`` (`float`, **required**) - :math:`m`
+            :math:`[\mathrm{dimensionless}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyMie"
+    _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
+
+
+class PatchyYukawa(Patchy):
+    """Modulate `hoomd.md.pair.Yukawa` with angular patches."""
+    _doc = r"""
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        yukawa_params = dict(epsilon=1, kappa=10)
+        envelope_params = dict(alpha=math.pi/4, omega=25)
+
+        patchy_yukawa = hoomd.md.pair.aniso.PatchyYukawa(nlist=neighbor_list,
+                                                         default_r_cut=5.0)
+        patchy_yukawa.params[('A', 'A')] = dict(pair_params=yukawa_params
+                                                envelope_params=envelope_params)
+        patchy_yukawa.directors['A'] = [(1,0,0)]
+        simulation.operations.integrator.forces = [patchy_yukawa]
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Yukawa.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``kappa`` (`float`, **required**) - scaling parameter
+            :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ += "\n" + Patchy._doc_args + _doc + Patchy._doc_inherited
+    _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
+    _pair_params = {"epsilon": float, "kappa": float}

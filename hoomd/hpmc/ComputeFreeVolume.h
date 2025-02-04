@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME__H__
@@ -38,7 +38,7 @@ template<class Shape> class ComputeFreeVolume : public Compute
                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                       std::shared_ptr<CellList> cl);
     //! Destructor
-    virtual ~ComputeFreeVolume() {};
+    virtual ~ComputeFreeVolume() { };
 
     //! Get the number of MC samples to perform
     unsigned int getNumSamples()

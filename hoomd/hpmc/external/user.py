@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """User-defined external fields for HPMC simulations.
@@ -29,6 +29,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.logging import log
 import numpy as np
+import warnings
 
 
 class CPPExternalPotential(ExternalField):
@@ -84,9 +85,9 @@ class CPPExternalPotential(ExternalField):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.4.1/hoomd/VectorMath.h
+            v4.9.1/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v4.4.1/hoomd/BoxDim.h
+            v4.9.1/hoomd/BoxDim.h
 
     .. rubric:: Example:
 
@@ -145,6 +146,12 @@ class CPPExternalPotential(ExternalField):
         param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
+
+        warnings.warn(
+            "CPPExternalPotential is deprecated since 4.8.0. "
+            "Use hpmc.external.linear or a custom component.",
+            FutureWarning,
+            stacklevel=2)
 
     def _getattr_param(self, attr):
         if attr == 'code':

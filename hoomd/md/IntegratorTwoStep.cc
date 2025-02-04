@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
@@ -235,7 +235,7 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
     if (!m_integrate_rotational_dof && areForcesAnisotropic())
         {
         m_exec_conf->msg->warning() << "Forces provide torques, but integrate_rotational_dof is"
-                                       "false."
+                                       " false."
                                     << endl;
         }
 

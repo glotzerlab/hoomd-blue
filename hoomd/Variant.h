@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -11,10 +11,10 @@
 
 namespace hoomd
     {
-/** Defines quantities that vary with time steps.
+/** Defines scalar quantities that vary with time steps.
 
-    Variant provides an interface to define quanties (such as kT) that vary over time. The base
-    class provides a callable interface. Derived classes implement specific kinds of varying
+    Variant provides an interface to define scalar quanties (such as kT) that vary over time. The
+   base class provides a callable interface. Derived classes implement specific kinds of varying
     quantities.
 */
 class PYBIND11_EXPORT Variant

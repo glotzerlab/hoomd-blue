@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
@@ -39,7 +39,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     std::shared_ptr<mpcd::ParticleData> pdata_5 = sysdef->getMPCDParticleData();
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
@@ -258,7 +258,7 @@ template<class CT> void cell_thermo_embed_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     cl->setEmbeddedGroup(group);
     std::shared_ptr<CT> thermo = std::make_shared<CT>(sysdef, cl);
     AllThermoRequest thermo_req(thermo);

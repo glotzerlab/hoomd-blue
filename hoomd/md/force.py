@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
@@ -241,9 +241,11 @@ class Custom(Force):
       See the documentation in `hoomd.State` for more information on the local
       snapshot API.
 
-    Examples::
+    .. rubric:: Examples:
 
-        class MyCustomForce(hoomd.force.Custom):
+    .. code-block:: python
+
+        class MyCustomForce(hoomd.md.force.Custom):
             def __init__(self):
                 super().__init__(aniso=True)
 
@@ -263,9 +265,9 @@ class Custom(Force):
         Pass ``aniso=True`` to the `md.force.Custom` constructor if your custom
         force produces non-zero torques on particles.
 
-    Examples::
+    .. code-block:: python
 
-        class MyCustomForce(hoomd.force.Custom):
+        class MyCustomForce(hoomd.md.force.Custom):
             def __init__(self):
                 super().__init__()
 

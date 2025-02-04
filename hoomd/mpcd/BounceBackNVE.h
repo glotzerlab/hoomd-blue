@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -40,7 +40,7 @@ class PYBIND11_EXPORT BounceBackNVE : public hoomd::md::IntegrationMethodTwoStep
     //! Constructor
     BounceBackNVE(std::shared_ptr<SystemDefinition> sysdef,
                   std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<const Geometry> geom);
+                  std::shared_ptr<Geometry> geom);
 
     //! Destructor
     virtual ~BounceBackNVE();
@@ -52,71 +52,42 @@ class PYBIND11_EXPORT BounceBackNVE : public hoomd::md::IntegrationMethodTwoStep
     virtual void integrateStepTwo(uint64_t timestep);
 
     //! Get the streaming geometry
-    std::shared_ptr<const Geometry> getGeometry()
+    std::shared_ptr<Geometry> getGeometry()
         {
         return m_geom;
         }
 
     //! Set the streaming geometry
-    void setGeometry(std::shared_ptr<const Geometry> geom)
+    void setGeometry(std::shared_ptr<Geometry> geom)
         {
-        requestValidate();
         m_geom = geom;
         }
 
-    protected:
-    std::shared_ptr<const Geometry> m_geom; //!< Bounce-back geometry
-    bool m_validate_geom;                   //!< If true, run a validation check on the geometry
-
-    //! Validate the system with the streaming geometry
-    void validate();
-
-    private:
-    void requestValidate()
-        {
-        m_validate_geom = true;
-        }
-
     //! Check that particles lie inside the geometry
-    bool validateParticles();
+    bool checkParticles();
+
+    protected:
+    std::shared_ptr<Geometry> m_geom; //!< Bounce-back geometry
     };
 
 template<class Geometry>
 BounceBackNVE<Geometry>::BounceBackNVE(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
-                                       std::shared_ptr<const Geometry> geom)
-    : IntegrationMethodTwoStep(sysdef, group), m_geom(geom), m_validate_geom(true)
+                                       std::shared_ptr<Geometry> geom)
+    : IntegrationMethodTwoStep(sysdef, group), m_geom(geom)
     {
     m_exec_conf->msg->notice(5) << "Constructing BounceBackNVE + " << Geometry::getName()
                                 << std::endl;
-
-    m_pdata->getBoxChangeSignal()
-        .template connect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
     }
 
 template<class Geometry> BounceBackNVE<Geometry>::~BounceBackNVE()
     {
     m_exec_conf->msg->notice(5) << "Destroying BounceBackNVE + " << Geometry::getName()
                                 << std::endl;
-
-    m_pdata->getBoxChangeSignal()
-        .template disconnect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(
-            this);
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
     {
-    if (m_aniso)
-        {
-        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with "
-                                     "bounce-back integrators."
-                                  << std::endl;
-        throw std::runtime_error("Anisotropic integration not supported with bounce-back");
-        }
-
-    if (m_validate_geom)
-        validate();
-
     // particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                access_location::host,
@@ -174,13 +145,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
     {
-    if (m_aniso)
-        {
-        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with "
-                                     "bounce-back integrators."
-                                  << std::endl;
-        throw std::runtime_error("Anisotropic integration not supported with bounce-back");
-        }
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -218,40 +182,11 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
         }
     }
 
-template<class Geometry> void BounceBackNVE<Geometry>::validate()
-    {
-    // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim box = m_pdata->getGlobalBox();
-    if (!m_geom->validateBox(box, 0.))
-        {
-        m_exec_conf->msg->error() << "BounceBackNVE: box too small for " << Geometry::getName()
-                                  << " geometry. Increase box size." << std::endl;
-        throw std::runtime_error("Simulation box too small for bounce back method");
-        }
-
-    // check that no particles are out of bounds
-    unsigned char error = !validateParticles();
-#ifdef ENABLE_MPI
-    if (m_exec_conf->getNRanks() > 1)
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &error,
-                      1,
-                      MPI_UNSIGNED_CHAR,
-                      MPI_LOR,
-                      m_exec_conf->getMPICommunicator());
-#endif // ENABLE_MPI
-    if (error)
-        throw std::runtime_error("Invalid particle configuration for bounce back geometry");
-
-    // validation completed, unset flag
-    m_validate_geom = false;
-    }
-
 /*!
  * Checks each particle position to determine if it lies within the geometry. If any particle is
  * out of bounds, an error is raised.
  */
-template<class Geometry> bool BounceBackNVE<Geometry>::validateParticles()
+template<class Geometry> bool BounceBackNVE<Geometry>::checkParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -261,6 +196,7 @@ template<class Geometry> bool BounceBackNVE<Geometry>::validateParticles()
                                       access_mode::read);
     const unsigned int group_size = m_group->getNumMembers();
 
+    bool out_of_bounds = false;
     for (unsigned int idx = 0; idx < group_size; ++idx)
         {
         const unsigned int pid = h_group.data[idx];
@@ -269,15 +205,24 @@ template<class Geometry> bool BounceBackNVE<Geometry>::validateParticles()
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         if (m_geom->isOutside(pos))
             {
-            m_exec_conf->msg->errorAllRanks()
-                << "Particle with tag " << h_tag.data[pid] << " at (" << pos.x << "," << pos.y
-                << "," << pos.z << ") lies outside the " << Geometry::getName()
-                << " geometry. Fix configuration." << std::endl;
-            return false;
+            out_of_bounds = true;
+            break;
             }
         }
 
-    return true;
+#ifdef ENABLE_MPI
+    if (m_exec_conf->getNRanks() > 1)
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &out_of_bounds,
+                      1,
+                      MPI_CXX_BOOL,
+                      MPI_LOR,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif // ENABLE_MPI
+
+    return !out_of_bounds;
     }
 
 namespace detail
@@ -292,12 +237,13 @@ template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
                      std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<const Geometry>>())
+                            std::shared_ptr<Geometry>>())
         .def_property("geometry",
                       &BounceBackNVE<Geometry>::getGeometry,
-                      &BounceBackNVE<Geometry>::setGeometry);
+                      &BounceBackNVE<Geometry>::setGeometry)
+        .def("check_particles", &BounceBackNVE<Geometry>::checkParticles);
     }
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // #ifndef MPCD_BOUNCE_BACK_NVE_H_

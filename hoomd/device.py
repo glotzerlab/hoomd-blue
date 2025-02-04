@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Devices.
@@ -40,6 +40,7 @@ See Also:
 import contextlib
 import hoomd
 from hoomd import _hoomd
+import warnings
 
 
 class NoticeFile:
@@ -214,8 +215,22 @@ class Device:
 
     @property
     def devices(self):
-        """list[str]: Descriptions of the active hardware devices."""
+        """list[str]: Descriptions of the active hardware devices.
+
+        .. deprecated:: 4.5.0
+
+            Use `device`.
+        """
+        warnings.warn("devices is deprecated, use device.",
+                      FutureWarning,
+                      stacklevel=2)
+
         return self._cpp_exec_conf.getActiveDevices()
+
+    @property
+    def device(self):
+        """str: Descriptions of the active hardware device."""
+        return self._cpp_exec_conf.getActiveDevices()[0]
 
     @property
     def num_cpu_threads(self):
@@ -285,6 +300,10 @@ class GPU(Device):
         gpu_ids (list[int]): List of GPU ids to use. Set to `None` to let the
             driver auto-select a GPU.
 
+            .. deprecated:: 4.5.0
+
+                Use ``gpu_id``.
+
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
@@ -297,23 +316,26 @@ class GPU(Device):
 
         notice_level (int): Minimum level of messages to print.
 
+        gpu_id (int): GPU id to use. Set to `None` to let the driver auto-select
+            a GPU.
+
     Tip:
         Call `GPU.get_available_devices` to get a human readable list of
-        devices. ``gpu_ids = [0]`` will select the first device in this list,
-        ``[1]`` will select the second, and so on.
+        devices. ``gpu_id = 0`` will select the first device in this list,
+        ``1`` will select the second, and so on.
 
         The ordering of the devices is determined by the GPU driver and runtime.
 
     .. rubric:: Device auto-selection
 
-    When ``gpu_ids`` is `None`, HOOMD will ask the GPU driver to auto-select a
+    When ``gpu_id`` is `None`, HOOMD will ask the GPU driver to auto-select a
     GPU. In most cases, this will select device 0. When all devices are set to a
     compute exclusive mode, the driver will choose a free GPU.
 
     .. rubric:: MPI
 
     In MPI execution environments, create a `GPU` device on every rank. When
-    ``gpu_ids`` is left `None`, HOOMD will attempt to detect the MPI local rank
+    ``gpu_id`` is left `None`, HOOMD will attempt to detect the MPI local rank
     environment and choose an appropriate GPU with ``id = local_rank %
     num_capable_gpus``. Set `notice_level` to 3 to see status messages from this
     process. Override this auto-selection by providing appropriate device ids on
@@ -323,6 +345,10 @@ class GPU(Device):
 
     Specify a list of GPUs to ``gpu_ids`` to activate a single-process multi-GPU
     code path.
+
+    .. deprecated:: 4.5.0
+
+        Use MPI.
 
     Note:
         Not all features are optimized to use this code path, and it requires
@@ -346,12 +372,23 @@ class GPU(Device):
         communicator=None,
         message_filename=None,
         notice_level=2,
+        gpu_id=None,
     ):
 
         super().__init__(communicator, notice_level, message_filename)
 
-        if gpu_ids is None:
+        if gpu_ids is not None:
+            warnings.warn("gpu_ids is deprecated, use gpu_id.",
+                          FutureWarning,
+                          stacklevel=2)
+
+        if gpu_ids is not None and gpu_id is not None:
+            raise ValueError("Set either gpu_id or gpu_ids, not both.")
+
+        if gpu_id is None:
             gpu_ids = []
+        else:
+            gpu_ids = [gpu_id]
 
         # convert None options to defaults
         self._cpp_exec_conf = _hoomd.ExecutionConfiguration(

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -35,6 +35,25 @@ class ExternalField : public Compute
                                    const Scalar4* const orientation_old,
                                    const BoxDim& box_old,
                                    const Scalar3& origin_old)
+        {
+        return 0;
+        }
+
+    //! Evaluate the energy of the force.
+    /*! \param box The system box.
+        \param type Particle type.
+        \param r_i Particle position
+        \param q_i Particle orientation.
+        \param diameter Particle diameter.
+        \param charge Particle charge.
+        \returns Energy due to the force
+    */
+    virtual float energy(const BoxDim& box,
+                         unsigned int type,
+                         const vec3<Scalar>& r_i,
+                         const quat<Scalar>& q_i,
+                         Scalar diameter,
+                         Scalar charge)
         {
         return 0;
         }
@@ -88,10 +107,11 @@ template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &ExternalFieldMono<Shape>::compute)
         .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
+        .def("energy", &ExternalFieldMono<Shape>::energy)
         .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE);
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif // end inclusion guard

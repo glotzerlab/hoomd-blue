@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
@@ -158,7 +158,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                                access_location::host,
                                access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
@@ -197,8 +197,8 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
     // v(t+deltaT) = random distribution consistent with T
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        unsigned int ptag = m_group->getMemberTag(group_idx);
-        unsigned int j = h_rtag.data[ptag];
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
         RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
@@ -331,11 +331,20 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero)
+                    {
                     bf_torque.x = 0;
+                    t.x = 0;
+                    }
                 if (y_zero)
+                    {
                     bf_torque.y = 0;
+                    t.y = 0;
+                    }
                 if (z_zero)
+                    {
                     bf_torque.z = 0;
+                    t.z = 0;
+                    }
 
                 // use the d_invamping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r
@@ -397,7 +406,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
     const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
@@ -413,8 +422,8 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
     // v(t+deltaT) = random distribution consistent with T
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        unsigned int ptag = m_group->getMemberTag(group_idx);
-        unsigned int j = h_rtag.data[ptag];
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
         RandomGenerator rng_b(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),

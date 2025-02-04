@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Testing
@@ -37,7 +37,7 @@ optional requirements are missing.
 - `h5py`_ (optional)
 - `mpi4py`_ (optional)
 - `pytest`_
-- `rowan`_ (optional)
+- `rowan`_
 - `sybil`_ (optional)
 
 .. _CuPy: https://cupy.dev/

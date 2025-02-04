@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Mesh Bond forces.
@@ -40,6 +40,13 @@ particles in the bond group:
     U_i = \frac{1}{2} \sum_{k \in \mathrm{Neigh}(i)}U_{ik}(r)
 
 and similarly for virials.
+
+.. invisible-code-block: python
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh"]
+    mesh.triangulation = dict(type_ids = [0,0,0,0],
+          triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]])
 """
 
 from hoomd.md.mesh.potential import MeshPotential
@@ -68,7 +75,9 @@ class Harmonic(MeshPotential):
             * ``r0`` (`float`, **required**) - rest length
               :math:`[\mathrm{length}]`
 
-    Examples::
+    .. rubric:: Example:
+
+    .. code-block:: python
 
         harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
         harmonic.params["mesh"] = dict(k=10.0, r0=1.0)
@@ -113,7 +122,9 @@ class FENEWCA(MeshPotential):
             * ``delta`` (`float`, **required**) - radial shift :math:`\Delta`
               :math:`[\mathrm{length}]`.
 
-    Examples::
+    .. rubric:: Example:
+
+    .. code-block:: python
 
         bond_potential = hoomd.md.mesh.bond.FENEWCA(mesh)
         bond_potential.params["mesh"] = dict(k=10.0, r0=1.0,
@@ -166,7 +177,9 @@ class Tether(MeshPotential):
             * ``l_max`` (`float`, **required**) - maximum bond length
               :math:`[\mathrm{length}]`
 
-    Examples::
+    .. rubric:: Example:
+
+    .. code-block:: python
 
         bond_potential = hoomd.md.mesh.bond.Tether(mesh)
         bond_potential.params["mesh"] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,

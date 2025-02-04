@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Communicator.h"
@@ -54,7 +54,7 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     cl->computeDimensions();
 
     // Fill in a dummy cell property array, which is just the global index of each cell
@@ -155,7 +155,7 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     cl->computeDimensions();
 
     // Don't really care what's in this array, just want to make sure errors get thrown

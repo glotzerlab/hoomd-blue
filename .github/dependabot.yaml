@@ -1,0 +1,50 @@
+version: 2
+updates:
+- package-ecosystem: "github-actions"
+  directory: "/"
+  target-branch: trunk-patch
+  schedule:
+    interval: "monthly"
+    time: "07:00"
+    timezone: "EST5EDT"
+  pull-request-branch-name:
+    separator: "-"
+  open-pull-requests-limit: 2
+  reviewers:
+  - joaander
+  groups:
+    actions-version:
+      applies-to: version-updates
+      patterns:
+      - '*'
+    actions-security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+- package-ecosystem: "pip"
+  directory: "/"
+  target-branch: trunk-patch
+  schedule:
+    interval: "monthly"
+    time: "07:00"
+    timezone: "EST5EDT"
+  pull-request-branch-name:
+    separator: "-"
+  open-pull-requests-limit: 2
+  reviewers:
+  - joaander
+  groups:
+    pip-version:
+      applies-to: version-updates
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+    pip-security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch

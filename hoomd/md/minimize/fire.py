@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Energy minimizer."""
@@ -69,7 +69,7 @@ class FIRE(_DynamicIntegrator):
     Engine (FIRE) algorithm to minimize the potential energy for a group of
     particles while keeping all other particles fixed. This method is published
     in `Bitzek, et. al., PRL, 2006
-    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_. HOOMD-blue's
+    <https://dx.doi.org/10.1103/PhysRevLett.97.170201>`_. HOOMD-blue's
     implementation extends the original formulation to include rotational
     degrees of freedom.
 

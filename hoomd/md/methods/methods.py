@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods.
@@ -139,7 +139,7 @@ class ConstantVolume(Thermostatted):
 
                 nvt.thermostat = hoomd.md.methods.thermostats.Bussi(kT=0.5)
 
-    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+    .. _Kamberaj 2005: https://dx.doi.org/10.1063/1.1906216
     """
 
     def __init__(self, filter, thermostat=None):
@@ -278,13 +278,13 @@ class ConstantPressure(Thermostatted):
 
     See Also:
         * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
-          <http://dx.doi.org/10.1063/1.467468>`__
-        * `S. E. Feller, Y. Zhang, R. W. Pastor 1995
+          <https://dx.doi.org/10.1063/1.467468>`__
+        * `S. E. Feller, Y. Zhang, R. W. Pastor, B. R. Brooks 1995
           <https://doi.org/10.1063/1.470648>`_
         * `M. E. Tuckerman et. al. 2006
-          <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
+          <https://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
         * `T. Yu et. al. 2010
-          <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
+          <https://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
 
     Note:
         The barostat coupling constant `tauS` should be set within a reasonable
@@ -652,7 +652,8 @@ class Langevin(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
-            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
+            coefficient tensor for all particles :math:`[\mathrm{mass} \cdot
+            \mathrm{length}^{2} \cdot \mathrm{time}^{-1}]`.
 
     `Langevin` integrates particles forward in time according to the
     Langevin equations of motion, modelling a canonical ensemble (NVT).
@@ -680,8 +681,8 @@ class Langevin(Method):
 
     .. math::
 
-        I \frac{d\vec{L}}{dt} &= \vec{\tau}_\mathrm{C} - \gamma_r \cdot \vec{L}
-        + \vec{\tau}_\mathrm{R}
+        I \frac{d\vec{\omega}}{dt} &= \vec{\tau}_\mathrm{C} - \gamma_r \cdot
+        \vec{\omega} + \vec{\tau}_\mathrm{R}
 
         \langle \vec{\tau}_\mathrm{R} \rangle &= 0,
 
@@ -691,10 +692,10 @@ class Langevin(Method):
     where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
     :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
     (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
-    the torque, :math:`\vec{L}` is the particle's angular momentum and :math:`I`
-    is the the particle's moment of inertia. The magnitude of the random torque
-    is chosen via the fluctuation-dissipation theorem to be consistent with the
-    specified drag and temperature, :math:`kT`.
+    torque, :math:`\vec{\omega}` is the particle's angular velocity and
+    :math:`I` is the the particle's moment of inertia. The magnitude of the
+    random torque is chosen via the fluctuation-dissipation theorem to be
+    consistent with the specified drag and temperature, :math:`kT`.
 
     `Langevin` numerically integrates the translational degrees of freedom
     using Velocity-Verlet and the rotational degrees of freedom with a scheme
@@ -710,7 +711,7 @@ class Langevin(Method):
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
         simulation.operations.integrator.methods = [langevin]
 
-    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+    .. _Kamberaj 2005: https://dx.doi.org/10.1063/1.1906216
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to
@@ -753,7 +754,8 @@ class Langevin(Method):
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
-            :math:`[\mathrm{time}^{-1}]`.
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{2} \cdot
+            \mathrm{time}^{-1}]`.
 
             .. rubric:: Example:
 
@@ -905,7 +907,7 @@ class Brownian(Method):
     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
     distribution.
 
-    .. _I. Snook 2007: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
+    .. _I. Snook 2007: https://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
     Warning:
 

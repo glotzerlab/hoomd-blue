@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Provides an HDF5 logging backend for a fast binary logging format.
@@ -37,6 +37,7 @@ import hoomd.util as util
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.data.parameterdicts import ParameterDict
+import warnings
 
 try:
     import h5py
@@ -346,7 +347,14 @@ class HDF5Log(_InternalCustomWriter):
         .. code-block:: python
 
             hdf5_writer.write()
+
+        .. deprecated:: 4.5.0
+
+            Use `Simulation` to call the operation.
         """
+        warnings.warn(
+            "`HDF5Log.writer` is deprecated,"
+            "use `Simulation` to call the operation.", FutureWarning)
         self._action.act(timestep)
 
 

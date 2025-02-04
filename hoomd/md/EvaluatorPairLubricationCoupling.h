@@ -280,6 +280,10 @@ class EvaluatorPairLubricationCoupling
         return "rotational coupling";
         }
 
+    static std::string getShapeParamName()
+        {
+        return "omega";
+        }
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this pair potential.");

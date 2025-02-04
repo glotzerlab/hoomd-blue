@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __UPDATER_MUVT_H__
@@ -156,6 +156,7 @@ template<class Shape> class UpdaterMuVT : public Updater
         m_mc;                  //!< The MC Integrator this Updater is associated with
     unsigned int m_npartition; //!< The number of partitions to use for Gibbs ensemble
     bool m_gibbs;              //!< True if we simulate a Gibbs ensemble
+    uint16_t m_move_type_seed; //!< Random number seed to use for move types.
 
     GPUVector<Scalar4> m_postype_backup; //!< Backup of postype array
 
@@ -347,6 +348,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
         m_gibbs = true;
         }
 
+    m_move_type_seed = m_sysdef->getSeed();
+
 #ifdef ENABLE_MPI
     if (m_gibbs)
         {
@@ -361,6 +364,52 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 
         m_exec_conf->msg->notice(5) << "Constructing UpdaterMuVT: Gibbs ensemble with "
                                     << m_npartition << " partitions" << std::endl;
+
+        // Ensure that the user sets unique seeds on all partitions so that local trial moves
+        // are decorrelated.
+        unsigned int my_partition = this->m_exec_conf->getPartition();
+        unsigned int my_group = this->m_exec_conf->getPartition() / npartition;
+        uint16_t my_seed = this->m_sysdef->getSeed();
+
+        for (unsigned int check_partition = 0;
+             check_partition < this->m_exec_conf->getNPartitions();
+             check_partition++)
+            {
+            unsigned int check_group = check_partition / npartition;
+            uint16_t check_seed = my_seed;
+            MPI_Bcast(&check_seed,
+                      1,
+                      MPI_UINT16_T,
+                      check_partition * m_exec_conf->getMPIConfig()->getNRanks(),
+                      m_exec_conf->getHOOMDWorldMPICommunicator());
+
+            if (my_group == check_group && my_partition != check_partition && my_seed == check_seed)
+                {
+                std::ostringstream s;
+                s << "Each partition within a group must set a unique seed. ";
+                s << "Partition " << check_partition << "'s " << "seed (" << check_seed << ") ";
+                s << "matches partition " << my_partition << "'s";
+                throw std::runtime_error(s.str());
+                }
+            }
+
+        // synchronize move types across all ranks within each group
+        for (unsigned int group = 0; group < this->m_exec_conf->getNPartitions() / npartition;
+             group++)
+            {
+            uint16_t tmp = m_move_type_seed;
+            MPI_Bcast(&tmp,
+                      1,
+                      MPI_UINT16_T,
+                      group * npartition * this->m_exec_conf->getNRanks(),
+                      m_exec_conf->getHOOMDWorldMPICommunicator());
+
+            unsigned int my_group = this->m_exec_conf->getPartition() / npartition;
+            if (my_group == group)
+                {
+                m_move_type_seed = tmp;
+                }
+            }
         }
     else
 #endif
@@ -529,15 +578,8 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
 
     unsigned int N_old = m_pdata->getN();
 
-    extra_ndof = 0;
-
-    auto patch = m_mc->getPatchEnergy();
-
-    if (patch)
-        {
-        // energy of old configuration
-        lnboltzmann += m_mc->computePatchEnergy(timestep);
-        }
+    // energy of old configuration
+    lnboltzmann += m_mc->computeTotalPairEnergy(timestep);
 
         {
         // Get particle positions
@@ -569,10 +611,10 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
     // check for overlaps
     bool overlap = m_mc->countOverlaps(true);
 
-    if (!overlap && patch)
+    if (!overlap)
         {
         // energy of new configuration
-        lnboltzmann -= m_mc->computePatchEnergy(timestep);
+        lnboltzmann -= m_mc->computeTotalPairEnergy(timestep);
         }
 
     if (!overlap)
@@ -820,7 +862,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                         if (overlap)
                             break;
                         } // end loop over images
-                    }     // end overlap check in new configuration
+                    } // end overlap check in new configuration
 
                 if (overlap_old)
                     {
@@ -872,9 +914,11 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
     // initialize random number generator
     unsigned int group = (m_exec_conf->getPartition() / m_npartition);
+    unsigned int partition = (m_exec_conf->getPartition() % m_npartition);
 
-    hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVT, timestep, this->m_sysdef->getSeed()),
+    // Make a RNG that is seeded the same across the whole group
+    hoomd::RandomGenerator rng_group(
+        hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTGroup, timestep, m_move_type_seed),
         hoomd::Counter(group));
 
     bool active = true;
@@ -891,31 +935,30 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     // the other MPI partition
     if (m_gibbs)
         {
-        unsigned int p = m_exec_conf->getPartition() % m_npartition;
-
         // choose a random pair of communicating boxes
-        src = hoomd::UniformIntDistribution(m_npartition - 1)(rng);
-        dest = hoomd::UniformIntDistribution(m_npartition - 2)(rng);
+        src = hoomd::UniformIntDistribution(m_npartition - 1)(rng_group);
+        dest = hoomd::UniformIntDistribution(m_npartition - 2)(rng_group);
         if (src <= dest)
             dest++;
 
-        if (p == src)
+        if (partition == src)
             {
             m_gibbs_other = (dest + group * m_npartition) * m_exec_conf->getNRanks();
             mod = 0;
             }
-        if (p == dest)
+        if (partition == dest)
             {
             m_gibbs_other = (src + group * m_npartition) * m_exec_conf->getNRanks();
             mod = 1;
             }
-        if (p != src && p != dest)
+        if (partition != src && partition != dest)
             {
             active = false;
             }
 
         // order the expanded ensembles
-        volume_move = hoomd::detail::generate_canonical<Scalar>(rng) < m_volume_move_probability;
+        Scalar r = hoomd::detail::generate_canonical<Scalar>(rng_group);
+        volume_move = r < m_volume_move_probability;
 
         if (active && m_exec_conf->getRank() == 0)
             {
@@ -980,7 +1023,14 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 #endif
 
         // whether we insert or remove a particle
-        bool insert = m_gibbs ? mod : hoomd::UniformIntDistribution(1)(rng);
+        bool insert = m_gibbs ? mod : hoomd::UniformIntDistribution(1)(rng_group);
+
+        // Use a partition specific RNG stream on each partition in Gibbs ensembles.
+        hoomd::RandomGenerator rng_insert_remove(
+            hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTInsertRemove,
+                        timestep,
+                        this->m_sysdef->getSeed()),
+            hoomd::Counter(group, partition));
 
         if (insert)
             {
@@ -999,7 +1049,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 {
                 // choose a random particle type out of those being inserted or removed
                 type = m_transfer_types[hoomd::UniformIntDistribution(
-                    (unsigned int)(m_transfer_types.size() - 1))(rng)];
+                    (unsigned int)(m_transfer_types.size() - 1))(rng_insert_remove)];
                 }
             else
                 {
@@ -1017,15 +1067,15 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator(),
                              &stat);
-                    char s[n];
-                    MPI_Recv(s,
+                    std::vector<char> s(n);
+                    MPI_Recv(s.data(),
                              n,
                              MPI_CHAR,
                              m_gibbs_other,
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator(),
                              &stat);
-                    type_name = std::string(s);
+                    type_name = std::string(s.data());
 
                     // resolve type name
                     type = m_pdata->getTypeByName(type_name);
@@ -1052,15 +1102,15 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 // Propose a random position uniformly in the box
                 Scalar3 f;
-                f.x = hoomd::detail::generate_canonical<Scalar>(rng);
-                f.y = hoomd::detail::generate_canonical<Scalar>(rng);
+                f.x = hoomd::detail::generate_canonical<Scalar>(rng_insert_remove);
+                f.y = hoomd::detail::generate_canonical<Scalar>(rng_insert_remove);
                 if (m_sysdef->getNDimensions() == 2)
                     {
                     f.z = Scalar(0.5);
                     }
                 else
                     {
-                    f.z = hoomd::detail::generate_canonical<Scalar>(rng);
+                    f.z = hoomd::detail::generate_canonical<Scalar>(rng_insert_remove);
                     }
                 vec3<Scalar> pos_test = vec3<Scalar>(m_pdata->getGlobalBox().makeCoordinates(f));
 
@@ -1068,7 +1118,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 if (shape_test.hasOrientation())
                     {
                     // set particle orientation
-                    shape_test.orientation = generateRandomOrientation(rng, ndim);
+                    shape_test.orientation = generateRandomOrientation(rng_insert_remove, ndim);
                     }
 
                 if (m_gibbs)
@@ -1147,7 +1197,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 bool accept = false;
                 if (nonzero)
                     {
-                    accept = (hoomd::detail::generate_canonical<double>(rng) < exp(lnboltzmann));
+                    accept = (hoomd::detail::generate_canonical<double>(rng_insert_remove)
+                              < exp(lnboltzmann));
                     }
 
 #ifdef ENABLE_MPI
@@ -1197,16 +1248,10 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
             // try removing a particle
             unsigned int tag = UINT_MAX;
 
-            // in Gibbs ensemble, we should not use correlated random numbers with box 1
-            hoomd::RandomGenerator rng_local(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTBox1,
-                                                         timestep,
-                                                         this->m_sysdef->getSeed()),
-                                             hoomd::Counter(group));
-
             // choose a random particle type out of those being transferred
             assert(m_transfer_types.size() > 0);
             unsigned int type = m_transfer_types[hoomd::UniformIntDistribution(
-                (unsigned int)(m_transfer_types.size() - 1))(rng_local)];
+                (unsigned int)(m_transfer_types.size() - 1))(rng_insert_remove)];
 
             // choose a random particle of that type
             unsigned int nptl_type = getNumParticlesType(type);
@@ -1214,7 +1259,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
             if (nptl_type)
                 {
                 // get random tag of given type
-                unsigned int type_offset = hoomd::UniformIntDistribution(nptl_type - 1)(rng_local);
+                unsigned int type_offset
+                    = hoomd::UniformIntDistribution(nptl_type - 1)(rng_insert_remove);
                 tag = getNthTypeTag(type, type_offset);
                 }
 
@@ -1252,9 +1298,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              m_gibbs_other,
                              0,
                              m_exec_conf->getHOOMDWorldMPICommunicator());
-                    char s[n];
-                    memcpy(s, type_name.c_str(), n);
-                    MPI_Send(s,
+                    std::vector<char> s(n);
+                    memcpy(s.data(), type_name.c_str(), n);
+                    MPI_Send(s.data(),
                              n,
                              MPI_CHAR,
                              m_gibbs_other,
@@ -1326,8 +1372,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 // apply acceptance criterion
                 if (nonzero)
                     {
-                    accept
-                        = (hoomd::detail::generate_canonical<double>(rng_local) < exp(lnboltzmann));
+                    accept = (hoomd::detail::generate_canonical<double>(rng_insert_remove)
+                              < exp(lnboltzmann));
                     }
                 else
                     {
@@ -1417,18 +1463,20 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
             if (mod == 0)
                 {
-                Scalar ln_V_new = log(V / V_other)
-                                  + (hoomd::detail::generate_canonical<Scalar>(rng) - Scalar(0.5))
-                                        * m_max_vol_rescale;
+                Scalar ln_V_new
+                    = log(V / V_other)
+                      + (hoomd::detail::generate_canonical<Scalar>(rng_group) - Scalar(0.5))
+                            * m_max_vol_rescale;
                 V_new = (V + V_other) * exp(ln_V_new) / (Scalar(1.0) + exp(ln_V_new));
                 V_new_other
                     = (V + V_other) * (Scalar(1.0) - exp(ln_V_new) / (Scalar(1.0) + exp(ln_V_new)));
                 }
             else
                 {
-                Scalar ln_V_new = log(V_other / V)
-                                  + (hoomd::detail::generate_canonical<Scalar>(rng) - Scalar(0.5))
-                                        * m_max_vol_rescale;
+                Scalar ln_V_new
+                    = log(V_other / V)
+                      + (hoomd::detail::generate_canonical<Scalar>(rng_group) - Scalar(0.5))
+                            * m_max_vol_rescale;
                 V_new
                     = (V + V_other) * (Scalar(1.0) - exp(ln_V_new) / (Scalar(1.0) + exp(ln_V_new)));
                 }
@@ -1545,7 +1593,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                              + log(V_new_other / V_other) * (Scalar)(other_ndof + 1) + lnb
                              + other_lnb;
 
-                accept = hoomd::detail::generate_canonical<double>(rng) < exp(arg);
+                accept = hoomd::detail::generate_canonical<double>(rng_group) < exp(arg);
                 accept &= !(has_overlaps || other_result);
 
                 // communicate if accepted
@@ -1647,11 +1695,41 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         {
         bool is_local = this->m_pdata->isParticleLocal(tag);
 
-        // do we have to compute energetic contribution?
-        auto patch = m_mc->getPatchEnergy();
+        // do we have to compute a wall contribution?
+        auto field = m_mc->getExternalField();
+        unsigned int p = m_exec_conf->getPartition() % m_npartition;
+        bool has_field = field || (!m_mc->getExternalPotentials().empty());
+
+        if (has_field && (!m_gibbs || p == 0))
+            {
+            // getPosition() takes into account grid shift, undo that shift as
+            // computeOneExternalEnergy expects unshifted inputs.
+            Scalar3 p = m_pdata->getPosition(tag) + m_pdata->getOrigin();
+            int3 tmp = make_int3(0, 0, 0);
+            m_pdata->getGlobalBox().wrap(p, tmp);
+            vec3<Scalar> pos(p);
+
+            const BoxDim box = this->m_pdata->getGlobalBox();
+            unsigned int type = this->m_pdata->getType(tag);
+            quat<Scalar> orientation(m_pdata->getOrientation(tag));
+            Scalar diameter = m_pdata->getDiameter(tag);
+            Scalar charge = m_pdata->getCharge(tag);
+            if (is_local)
+                {
+                lnboltzmann += field->energy(box,
+                                             type,
+                                             pos,
+                                             quat<float>(orientation),
+                                             float(diameter), // diameter i
+                                             float(charge)    // charge i
+                );
+                lnboltzmann
+                    += m_mc->computeOneExternalEnergy(type, pos, orientation, charge, false);
+                }
+            }
 
         // if not, no overlaps generated
-        if (patch)
+        if (m_mc->hasPairInteractions())
             {
             // type
             unsigned int type = this->m_pdata->getType(tag);
@@ -1695,13 +1773,13 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                              access_mode::read);
 
                 // Check particle against AABB tree for neighbors
-                Scalar r_cut_patch = patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type);
+                Scalar r_cut_patch
+                    = m_mc->getMaxPairEnergyRCutNonAdditive()
+                      + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
 
                 Scalar R_query = std::max(0.0, r_cut_patch - m_mc->getMinCoreDiameter() / 2.0);
                 hoomd::detail::AABB aabb_local
                     = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
-
-                Scalar r_cut_self = r_cut_patch + 0.5 * patch->getAdditiveCutoff(type);
 
                 const unsigned int n_images = (unsigned int)image_list.size();
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -1712,18 +1790,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                         {
                         vec3<Scalar> r_ij = pos - pos_image;
                         // self-energy
-                        if (dot(r_ij, r_ij) <= r_cut_self * r_cut_self)
-                            {
-                            lnboltzmann += patch->energy(r_ij,
-                                                         type,
-                                                         quat<float>(orientation),
-                                                         float(diameter),
-                                                         float(charge),
-                                                         type,
-                                                         quat<float>(orientation),
-                                                         float(diameter),
-                                                         float(charge));
-                            }
+                        lnboltzmann += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                  r_ij,
+                                                                  type,
+                                                                  orientation,
+                                                                  diameter,
+                                                                  charge,
+                                                                  type,
+                                                                  orientation,
+                                                                  diameter,
+                                                                  charge);
                         }
 
                     hoomd::detail::AABB aabb = aabb_local;
@@ -1745,7 +1821,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                     unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                     Scalar4 postype_j = h_postype.data[j];
-                                    Scalar4 orientation_j = h_orientation.data[j];
+                                    quat<LongReal> orientation_j(h_orientation.data[j]);
 
                                     // put particles in coordinate system of particle i
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
@@ -1756,21 +1832,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                     if (h_tag.data[j] == tag)
                                         continue;
 
-                                    Scalar r_cut_ij
-                                        = r_cut_patch + 0.5 * patch->getAdditiveCutoff(typ_j);
-
-                                    if (dot(r_ij, r_ij) <= r_cut_ij * r_cut_ij)
-                                        {
-                                        lnboltzmann += patch->energy(r_ij,
-                                                                     type,
-                                                                     quat<float>(orientation),
-                                                                     float(diameter),
-                                                                     float(charge),
-                                                                     typ_j,
-                                                                     quat<float>(orientation_j),
-                                                                     float(h_diameter.data[j]),
-                                                                     float(h_charge.data[j]));
-                                        }
+                                    lnboltzmann += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                              r_ij,
+                                                                              type,
+                                                                              orientation,
+                                                                              diameter,
+                                                                              charge,
+                                                                              typ_j,
+                                                                              orientation_j,
+                                                                              h_diameter.data[j],
+                                                                              h_charge.data[j]);
                                     }
                                 }
                             }
@@ -1780,21 +1851,21 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                             cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
                             }
                         } // end loop over AABB nodes
-                    }     // end loop over images
+                    } // end loop over images
                 }
+            }
 
 #ifdef ENABLE_MPI
-            if (m_sysdef->isDomainDecomposed())
-                {
-                MPI_Allreduce(MPI_IN_PLACE,
-                              &lnboltzmann,
-                              1,
-                              MPI_HOOMD_SCALAR,
-                              MPI_SUM,
-                              m_exec_conf->getMPICommunicator());
-                }
-#endif
+        if (m_sysdef->isDomainDecomposed())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &lnboltzmann,
+                          1,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
             }
+#endif
         }
 
 // Depletants
@@ -1896,7 +1967,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 // just accept
                 }
             } // end if particle exists
-        }     // end loop over depletants
+        } // end loop over depletants
 
     return nonzero;
     }
@@ -1908,8 +1979,9 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                            quat<Scalar> orientation,
                                            Scalar& lnboltzmann)
     {
-    // do we have to compute energetic contribution?
-    auto patch = m_mc->getPatchEnergy();
+    // do we have to compute a wall contribution?
+    auto field = m_mc->getExternalField();
+    bool has_field = field || (!m_mc->getExternalPotentials().empty());
 
     lnboltzmann = Scalar(0.0);
 
@@ -1942,13 +2014,30 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
-        ShortReal r_cut_patch(0.0);
-        Scalar r_cut_self(0.0);
+        LongReal r_cut_patch(0.0);
 
-        if (patch)
+        unsigned int p = m_exec_conf->getPartition() % m_npartition;
+
+        if (has_field && (!m_gibbs || p == 0))
             {
-            r_cut_patch = ShortReal(patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type));
-            r_cut_self = r_cut_patch + 0.5 * patch->getAdditiveCutoff(type);
+            lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
+
+            const BoxDim& box = this->m_pdata->getGlobalBox();
+            lnboltzmann -= field->energy(box,
+                                         type,
+                                         pos,
+                                         quat<float>(orientation),
+                                         1.0, // diameter i
+                                         0.0  // charge i
+            );
+
+            lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
+            }
+
+        if (m_mc->hasPairInteractions())
+            {
+            r_cut_patch = m_mc->getMaxPairEnergyRCutNonAdditive()
+                          + LongReal(0.5) * m_mc->getMaxPairInteractionAdditiveRCut(type);
             }
 
         unsigned int err_count = 0;
@@ -1992,19 +2081,17 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                         }
 
                     // self-energy
-                    if (patch && dot(r_ij, r_ij) <= r_cut_self * r_cut_self)
-                        {
-                        lnboltzmann -= patch->energy(r_ij,
-                                                     type,
-                                                     quat<float>(orientation),
-                                                     1.0, // diameter i
-                                                     0.0, // charge i
-                                                     type,
-                                                     quat<float>(orientation),
-                                                     1.0, // diameter i
-                                                     0.0  // charge i
-                        );
-                        }
+                    lnboltzmann -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                              r_ij,
+                                                              type,
+                                                              orientation,
+                                                              1.0, // diameter i
+                                                              0.0, // charge i
+                                                              type,
+                                                              orientation,
+                                                              1.0, // diameter i
+                                                              0.0  // charge i
+                    );
                     }
                 }
             }
@@ -2032,8 +2119,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                                  access_mode::read);
 
             Shape shape(orientation, params[type]);
-            ShortReal R_query = std::max(shape.getCircumsphereDiameter() / ShortReal(2.0),
-                                         r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
+            LongReal R_query = std::max(shape.getCircumsphereDiameter() / LongReal(2.0),
+                                        r_cut_patch - m_mc->getMinCoreDiameter() / LongReal(2.0));
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -2059,17 +2146,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                 unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                 Scalar4 postype_j = h_postype.data[j];
-                                Scalar4 orientation_j = h_orientation.data[j];
+                                quat<LongReal> orientation_j(h_orientation.data[j]);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                                Scalar r_cut_ij(0.0);
-                                if (patch)
-                                    r_cut_ij = r_cut_patch + 0.5 * patch->getAdditiveCutoff(typ_j);
+                                Shape shape_j(orientation_j, params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape, shape_j)
@@ -2078,18 +2161,17 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                     overlap = 1;
                                     break;
                                     }
-                                else if (patch && dot(r_ij, r_ij) <= r_cut_ij * r_cut_ij)
-                                    {
-                                    lnboltzmann -= patch->energy(r_ij,
-                                                                 type,
-                                                                 quat<float>(orientation),
-                                                                 float(1.0), // diameter i
-                                                                 float(0.0), // charge i
-                                                                 typ_j,
-                                                                 quat<float>(orientation_j),
-                                                                 float(h_diameter.data[j]),
-                                                                 float(h_charge.data[j]));
-                                    }
+
+                                lnboltzmann -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                          r_ij,
+                                                                          type,
+                                                                          orientation,
+                                                                          1.0, // diameter i
+                                                                          0.0, // charge i
+                                                                          typ_j,
+                                                                          orientation_j,
+                                                                          h_diameter.data[j],
+                                                                          h_charge.data[j]);
                                 }
                             }
                         }
@@ -2110,8 +2192,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                     break;
                     }
                 } // end loop over images
-            }     // end if nptl_local > 0
-        }         // end if local
+            } // end if nptl_local > 0
+        } // end if local
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -2472,7 +2554,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
                 zero = 1;
                 }
             } // end loop over test depletants
-        }     // is_local
+        } // is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
@@ -2691,7 +2773,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
                 zero = 1;
                 }
             } // end loop over test depletants
-        }     // end is_local
+        } // end is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
@@ -2882,7 +2964,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
                 }
 
             } // end loop over test depletants
-        }     // is_local
+        } // is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
@@ -3053,7 +3135,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
                 n_overlap++;
                 }
             } // end loop over test depletants
-        }     // is_local
+        } // is_local
 
 #ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())

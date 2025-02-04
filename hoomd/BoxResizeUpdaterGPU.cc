@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxResizeUpdater.cc
@@ -10,21 +10,11 @@
 
 namespace hoomd
     {
-/*! \param sysdef System definition containing the particle data to set the box size on
-    \param Lx length of the x dimension over time
-    \param Ly length of the y dimension over time
-    \param Lz length of the z dimension over time
-
-    The default setting is to scale particle positions along with the box.
-*/
-
 BoxResizeUpdaterGPU::BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
                                          std::shared_ptr<Trigger> trigger,
-                                         std::shared_ptr<BoxDim> box1,
-                                         std::shared_ptr<BoxDim> box2,
-                                         std::shared_ptr<Variant> variant,
+                                         std::shared_ptr<VectorVariantBox> box,
                                          std::shared_ptr<ParticleGroup> group)
-    : BoxResizeUpdater(sysdef, trigger, box1, box2, variant, group)
+    : BoxResizeUpdater(sysdef, trigger, box, group)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -87,9 +77,7 @@ void export_BoxResizeUpdaterGPU(pybind11::module& m)
         "BoxResizeUpdaterGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Trigger>,
-                            std::shared_ptr<BoxDim>,
-                            std::shared_ptr<BoxDim>,
-                            std::shared_ptr<Variant>,
+                            std::shared_ptr<VectorVariantBox>,
                             std::shared_ptr<ParticleGroup>>());
     }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_H__
@@ -44,7 +44,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
                         Manifold manifold,
                         Scalar tolerance);
 
-    virtual ~TwoStepRATTLENVEGPU() {};
+    virtual ~TwoStepRATTLENVEGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

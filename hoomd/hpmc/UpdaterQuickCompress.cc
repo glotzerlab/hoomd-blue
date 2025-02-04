@@ -1,8 +1,9 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterQuickCompress.h"
 #include "hoomd/RNGIdentifiers.h"
+#include <cmath>
 
 namespace hoomd
     {
@@ -13,7 +14,7 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
-                                           std::shared_ptr<BoxDim> target_box)
+                                           std::shared_ptr<VectorVariantBox> target_box)
     : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
       m_target_box(target_box)
     {
@@ -46,22 +47,22 @@ void UpdaterQuickCompress::update(uint64_t timestep)
     // count the number of overlaps in the current configuration
     auto n_overlaps = m_mc->countOverlaps(false);
     BoxDim current_box = m_pdata->getGlobalBox();
-
-    if (n_overlaps == 0 && current_box != *m_target_box)
+    BoxDim target_box = BoxDim((*m_target_box)(timestep));
+    if (n_overlaps == 0 && current_box != target_box)
         {
-        performBoxScale(timestep);
+        performBoxScale(timestep, target_box);
         }
 
     // The compression is complete when we have reached the target box and there are no overlaps.
-    if (n_overlaps == 0 && current_box == *m_target_box)
+    if (n_overlaps == 0 && current_box == target_box)
         m_is_complete = true;
     else
         m_is_complete = false;
     }
 
-void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
+void UpdaterQuickCompress::performBoxScale(uint64_t timestep, const BoxDim& target_box)
     {
-    auto new_box = getNewBox(timestep);
+    auto new_box = getNewBox(timestep, target_box);
     auto old_box = m_pdata->getGlobalBox();
 
     Scalar3 old_origin = m_pdata->getOrigin();
@@ -111,7 +112,7 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
 
     @returns The scaled value.
 */
-static inline double scaleValue(double current, double target, double s)
+static inline double scaleLength(double current, double target, double s)
     {
     assert(s <= 1.0);
     if (target < current)
@@ -124,7 +125,21 @@ static inline double scaleValue(double current, double target, double s)
         }
     }
 
-BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
+static inline double scaleTilt(double current, double target, double s)
+    {
+    assert(s <= 1.0);
+    double scaled_value = current + (1.0 - s) * target;
+    if (target < current)
+        {
+        return std::min(scaled_value, target);
+        }
+    else
+        {
+        return std::max(scaled_value, target);
+        }
+    }
+
+BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep, const BoxDim& target_box)
     {
     // compute the current MC translate acceptance ratio
     auto current_counters = m_mc->getCounters();
@@ -138,15 +153,26 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
               / double(counter_delta.translate_accept_count + counter_delta.translate_reject_count);
         }
 
-    // Determine the worst case minimum allowable scale factor. The minimum allowable scale factor
-    // assumes that the typical accepted trial move shifts particles by the current acceptance ratio
-    // times the maximum displacement. Assuming that the particles are all spheres with their
-    // circumsphere diameter, set the minimum allowable scale factor so that overlaps of this size
-    // can be removed by trial move. The worst case estimate uses the minimum move size and the
-    // maximum core diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
-    double max_diameter = m_mc->getMaxCoreDiameter();
-    double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
-    double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+    // If unsafe box moves are allowed, set min_scale without considering min_move_size.
+    // Otherwise, determine the worst case minimum allowable scale factor. The minimum
+    // allowable scale factor assumes that the typical accepted trial move shifts
+    // particles by the current acceptance ratio times the maximum displacement. Assuming
+    // that the particles are all spheres with their circumsphere diameter, set the
+    // minimum allowable scale factor so that overlaps of this size can be removed by
+    // trial move. The worst case estimate uses the minimum move size and the maximum core
+    // diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
+    double min_scale;
+
+    if (m_allow_unsafe_resize)
+        {
+        min_scale = m_min_scale;
+        }
+    else
+        {
+        double max_diameter = m_mc->getMaxCoreDiameter();
+        double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
+        min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+        }
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(
@@ -157,27 +183,24 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
 
-    // TODO: This slow. We will implement a general reusable fix later in #705
-    const auto& target_box = *m_target_box;
-
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
     Scalar3 new_L;
     Scalar new_xy, new_xz, new_yz;
     if (m_sysdef->getNDimensions() == 3)
         {
-        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-        new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
-        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
-        new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
-        new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
+        new_L.z = scaleLength(current_box.getL().z, target_box.getL().z, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_xz = scaleTilt(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
+        new_yz = scaleTilt(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
         }
     else
         {
-        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_L.x = scaleLength(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleLength(current_box.getL().y, target_box.getL().y, scale);
+        new_xy = scaleTilt(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
 
         // assume that the unused fields in the 2D target box are valid
         new_L.z = target_box.getL().z;
@@ -203,7 +226,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                             std::shared_ptr<IntegratorHPMC>,
                             double,
                             double,
-                            std::shared_ptr<BoxDim>>())
+                            std::shared_ptr<VectorVariantBox>>())
         .def("isComplete", &UpdaterQuickCompress::isComplete)
         .def_property("max_overlaps_per_particle",
                       &UpdaterQuickCompress::getMaxOverlapsPerParticle,
@@ -216,7 +239,10 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                       &UpdaterQuickCompress::setTargetBox)
         .def_property("instance",
                       &UpdaterQuickCompress::getInstance,
-                      &UpdaterQuickCompress::setInstance);
+                      &UpdaterQuickCompress::setInstance)
+        .def_property("allow_unsafe_resize",
+                      &UpdaterQuickCompress::getAllowUnsafeResize,
+                      &UpdaterQuickCompress::setAllowUnsafeResize);
     }
     } // end namespace detail
     } // end namespace hpmc

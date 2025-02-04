@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -28,8 +28,8 @@ namespace detail
 //! Bulk (periodic) geometry
 /*!
  * This geometry is for a bulk fluid, and hence all of its methods simply indicate no collision
- * occurs. It exists so that we can leverage the ConfinedStreamingMethod integrator to still stream
- * in bulk.
+ * occurs. It exists so that we can leverage the BounceBackStreamingMethod integrator to still
+ * stream in bulk.
  */
 class __attribute__((visibility("default"))) BulkGeometry
     {
@@ -60,15 +60,6 @@ class __attribute__((visibility("default"))) BulkGeometry
     HOSTDEVICE bool isOutside(const Scalar3& pos) const
         {
         return false;
-        }
-
-    //! Validate the simulation box
-    /*!
-     * \returns True because the simulation box is always big enough to hold a bulk geometry.
-     */
-    HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
-        {
-        return true;
         }
 
 #ifndef __HIPCC__

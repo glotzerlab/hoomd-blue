@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -4843,7 +4843,7 @@ DEVICE inline ShortReal yol4(ShortReal ar,
                  / (4 * ShortReal(M_PI));
     }
 
-    }  // namespace detail
-    }  // namespace hpmc
-    }  // end namespace hoomd
+    } // namespace detail
+    } // namespace hpmc
+    } // end namespace hoomd
 #endif // __SPHINXOVERLAP__H__

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -29,9 +29,7 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     {
     public:
     //! Constructor
-    SorterGPU(std::shared_ptr<SystemDefinition> sysdef,
-              unsigned int cur_timestep,
-              unsigned int period);
+    SorterGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     protected:
     /// Kernel tuner for filling sentinels in cell list.
@@ -49,12 +47,6 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     //! Apply the sorting order on the GPU
     virtual void applyOrder() const;
     };
-
-namespace detail
-    {
-//! Exports the mpcd::SorterGPU to python
-void export_SorterGPU(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_SORTER_GPU_H_

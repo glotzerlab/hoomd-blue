@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD-blue python package.
@@ -42,6 +42,11 @@ import pathlib
 import os
 import signal
 
+# Work around /usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf
+# error on Purdue Anvil.
+if os.environ.get('RCAC_CLUSTER') == 'anvil':
+    sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
+
 if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
         and 'SPHINX' not in os.environ):
     print("It appears that hoomd is being imported from the source directory:")
@@ -59,8 +64,8 @@ outside the hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
 
 from hoomd import version
 from hoomd import trigger
-from hoomd import variant
 from hoomd.box import Box, box_like
+from hoomd import variant
 from hoomd import data
 from hoomd import filter
 from hoomd import device
@@ -81,8 +86,8 @@ if version.hpmc_built:
     from hoomd import hpmc
 # if version.metal_built:
 #     from hoomd import metal
-# if version.mpcd_built:
-#     from hoomd import mpcd
+if version.mpcd_built:
+    from hoomd import mpcd
 
 from hoomd.simulation import Simulation
 from hoomd.state import State

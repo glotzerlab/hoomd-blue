@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -7,12 +7,6 @@ import pytest
 import hoomd
 from hoomd.conftest import operation_pickling_check
 from hoomd.error import MutabilityError
-
-
-@pytest.fixture(scope="function")
-def rng():
-    return np.random.default_rng(42)
-
 
 _n_points = 10
 
@@ -256,3 +250,69 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
 
     with pytest.raises(MutabilityError):
         box_op.filter = filt
+
+
+def test_new_api(simulation_factory, two_particle_snapshot_factory):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    inverse_volume_ramp = hoomd.variant.box.InverseVolumeRamp(
+        initial_box=hoomd.Box.cube(6),
+        final_volume=100,
+        t_start=1_000,
+        t_ramp=21_000)
+
+    box_resize = hoomd.update.BoxResize(trigger=hoomd.trigger.Periodic(1),
+                                        filter=hoomd.filter.All(),
+                                        box=inverse_volume_ramp)
+    sim.operations.updaters.append(box_resize)
+
+    sim.run(0)
+
+    assert box_resize.box is inverse_volume_ramp
+
+
+def test_invalid_api(variant, trigger):
+    box_variant = hoomd.variant.box.InverseVolumeRamp(
+        initial_box=hoomd.Box.cube(6),
+        final_volume=100,
+        t_start=1_000,
+        t_ramp=21_000)
+
+    box1 = hoomd.Box.cube(10)
+    box2 = hoomd.Box.cube(20)
+
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger, box1=box1)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger, box1=box1, box2=box2)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger, box2=box2, variant=variant)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger,
+                               box1=box1,
+                               box2=box2,
+                               variant=variant,
+                               box=box_variant)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger, box1=box1, box=box_variant)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger, box2=box2, box=box_variant)
+    with pytest.raises(ValueError):
+        hoomd.update.BoxResize(trigger=trigger,
+                               variant=variant,
+                               box=box_variant)
+
+    box_resize = hoomd.update.BoxResize(trigger=trigger, box=box_variant)
+    with pytest.raises(RuntimeError):
+        box_resize.box1
+    with pytest.raises(RuntimeError):
+        box_resize.box2
+    with pytest.raises(RuntimeError):
+        box_resize.variant
+    with pytest.raises(RuntimeError):
+        box_resize.box1 = box1
+    with pytest.raises(RuntimeError):
+        box_resize.box2 = box2
+    with pytest.raises(RuntimeError):
+        box_resize.variant = variant

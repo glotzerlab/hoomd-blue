@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef HOOMD_THERMOSTAT_H
@@ -113,8 +113,8 @@ class Thermostat
 
 /** Implement the MTTK thermostat.
 
-    See: G. J. Martyna, D. J. Tobias, M. L. Klein 1994 <http://dx.doi.org/10.1063/1.467468> and
-    J. Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>.
+    See: G. J. Martyna, D. J. Tobias, M. L. Klein 1994 <https://dx.doi.org/10.1063/1.467468> and
+    J. Cao, G. J. Martyna 1996 <https://dx.doi.org/10.1063/1.470959>.
 */
 class MTTKThermostat : public Thermostat
     {

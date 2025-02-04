@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPU.cuh
@@ -81,7 +81,7 @@ struct cluster_args_t
           d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
           d_adjacency(_d_adjacency), d_nneigh(_d_nneigh), maxn(_maxn), d_overflow(_d_overflow),
           dim(_dim), line(_line), pivot(_pivot), q(_q), update_shape_param(_update_shape_param),
-          devprop(_devprop), gpu_partition(_gpu_partition), streams(_streams) {};
+          devprop(_devprop), gpu_partition(_gpu_partition), streams(_streams) { };
 
     const Scalar4* d_postype;             //!< postype array
     const Scalar4* d_orientation;         //!< orientation array
@@ -401,7 +401,7 @@ __launch_bounds__(max_threads)
                         }
                     }
                 } // end while (s_queue_size < max_queue_size && (k < excell_size)
-            }     // end if active
+            } // end if active
 
         // sync to make sure all threads in the block are caught up
         __syncthreads();

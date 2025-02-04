@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //
@@ -40,7 +40,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
                              std::shared_ptr<Variant> T,
                              Scalar tolerance);
 
-    virtual ~TwoStepRATTLELangevinGPU() {};
+    virtual ~TwoStepRATTLELangevinGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -43,13 +43,6 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     std::shared_ptr<Autotuner<1>> m_tuner_draw;  //!< Tuner for drawing random velocities
     std::shared_ptr<Autotuner<1>> m_tuner_apply; //!< Tuner for applying random velocities
     };
-
-namespace detail
-    {
-//! Export ATCollisionMethodGPU to python
-void export_ATCollisionMethodGPU(pybind11::module& m);
-    } // end namespace detail
-
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_GPU_H_

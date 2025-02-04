@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -420,7 +420,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 }
             }
         m_recvbuf.resize(n_recv); // free up memory from the end of the receive buffer
-        }                         // end dir loop
+        } // end dir loop
 
         // fill particle data with wrapped, received particles
         {
@@ -673,14 +673,19 @@ void mpcd::Communicator::detachCallbacks()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_Communicator(pybind11::module& m)
+void export_Communicator(pybind11::module& m)
     {
     pybind11::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
-
-    }  // end namespace hoomd
+    } // namespace detail
+    } // namespace mpcd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListGPUTree.cc
@@ -253,9 +253,8 @@ void NeighborListGPUTree::buildTree()
             const unsigned int error_tag = h_tag.data[error_idx];
 
             m_exec_conf->msg->error()
-                << "nlist.tree(): Particle " << error_tag << " is out of bounds "
-                << "(" << error_pos.x << ", " << error_pos.y << ", " << error_pos.z << ")"
-                << std::endl;
+                << "nlist.tree(): Particle " << error_tag << " is out of bounds " << "("
+                << error_pos.x << ", " << error_pos.y << ", " << error_pos.z << ")" << std::endl;
             throw std::runtime_error("Error updating neighborlist");
             }
         }

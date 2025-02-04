@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Bond forces.
@@ -279,7 +279,7 @@ class Tether(Bond):
     The tethered network is described in Refs. `Gompper, G. & Kroll, D. M.
     Statistical Mechanics of Membranes and Surfaces 2nd edn (eds Nelson, D. R.
     et al.) 359-426 (World Scientific, 2004)
-    <https://www.worldscientific.com/worldscibooks/10.1142/5473>`__ and
+    <https://doi.org/10.1142/5473>`__ and
     `Noguchi, H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
     <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`__.
 

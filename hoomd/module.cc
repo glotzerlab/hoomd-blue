@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Action.h"
@@ -38,14 +38,24 @@
 #include "Updater.h"
 #include "UpdaterRemoveDrift.h"
 #include "Variant.h"
+#include "VectorVariant.h"
 
 // ParticleFilter objects
 #include "filter/export_filters.h"
 
 // optional MPCD classes
 #ifdef BUILD_MPCD
-#include "hoomd/mpcd/ParticleData.h"
-#include "hoomd/mpcd/ParticleDataSnapshot.h"
+namespace hoomd
+    {
+namespace mpcd
+    {
+namespace detail
+    {
+void export_ParticleData(pybind11::module& pybind11);
+void export_ParticleDataSnapshot(pybind11::module& pybind11);
+    } // namespace detail
+    } // namespace mpcd
+    } // namespace hoomd
 #endif
 
 // include GPU classes
@@ -352,6 +362,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // variant
     export_Variant(m);
+
+    // vector variant
+    export_VectorVariantBoxClasses(m);
 
     // messenger
     export_Messenger(m);

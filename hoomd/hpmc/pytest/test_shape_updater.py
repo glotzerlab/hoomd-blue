@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2024 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -173,8 +173,8 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
     assert np.isclose(updater.particle_volumes[0], 1)
 
 
-def test_python_callback_shape_move(simulation_factory,
-                                    two_particle_snapshot_factory):
+def test_python_callback_shape_move_ellipsoid(simulation_factory,
+                                              lattice_snapshot_factory):
     """Test ShapeSpace with a toy class that randomly squashes spheres \
            into oblate ellipsoids with constant volume."""
 
@@ -206,7 +206,95 @@ def test_python_callback_shape_move(simulation_factory,
     mc.shape["A"] = ellipsoid
 
     # create simulation & attach objects
-    sim = simulation_factory(two_particle_snapshot_factory(d=10))
+    sim = simulation_factory(lattice_snapshot_factory(a=2.75, n=(3, 3, 5)))
+    sim.operations.integrator = mc
+    sim.operations += updater
+
+    # test attachmet before first run
+    assert not move._attached
+    assert not updater._attached
+
+    sim.run(0)
+
+    # test attachmet after first run
+    assert move._attached
+    assert updater._attached
+
+    # run with 0 probability of performing a move:
+    #  - shape and params should remain unchanged
+    #  - no shape moves proposed
+    move.param_move_probability = 0
+    sim.run(10)
+    assert np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
+    assert np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
+    assert np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
+    assert np.allclose(move.params["A"], [1])
+
+    # always attempt a shape move:
+    #  - shape and params should change
+    #  - volume should remain unchanged
+    move.param_move_probability = 1
+    sim.run(50)
+    assert np.sum(updater.shape_moves) == 100
+
+    # Check that the shape parameters have changed
+    assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
+    assert not np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
+    assert not np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
+    assert not np.allclose(move.params["A"], [1])
+
+    # Check that the shape parameters map back to the correct geometry
+    assert np.allclose(move.params["A"], [
+        mc.shape["A"]["a"] / mc.shape["A"]["b"],
+        mc.shape["A"]["a"] / mc.shape["A"]["c"]
+    ])
+
+    # Check that the callback is conserving volume properly
+    assert np.allclose(updater.particle_volumes, 4 * np.pi / 3)
+
+
+def test_python_callback_shape_move_pyramid(simulation_factory,
+                                            two_particle_snapshot_factory):
+    """Test ShapeSpace with a toy class that randomly stretches square \
+        pyramids."""
+
+    def square_pyramid_factory(h):
+        """Generate a square pyramid with unit volume."""
+        theta = np.arange(0, 2 * np.pi, np.pi / 2)
+        base_vertices = np.array(
+            [np.cos(theta), np.sin(theta),
+             np.zeros_like(theta)]).T * np.sqrt(3 / 2)
+        vertices = np.vstack([base_vertices, [0, 0, h]])
+        return vertices / np.cbrt(h), base_vertices
+
+    class ScalePyramid:
+
+        def __init__(self, h=1.1):
+            _, self.base_vertices = square_pyramid_factory(h=1.1)
+            self.default_dict = dict(sweep_radius=0, ignore_statistics=True)
+
+        def __call__(self, type_id, param_list):
+            h = param_list[0] + 0.1  # Prevent a 0-height pyramid
+            new_vertices = np.vstack([self.base_vertices, [0, 0, h]])
+            new_vertices /= np.cbrt(h)  # Rescale to unit volume
+            ret = dict(vertices=new_vertices, **self.default_dict)
+            return ret
+
+    initial_pyramid, _ = square_pyramid_factory(h=1.1)
+
+    move = ShapeSpace(callback=ScalePyramid(), default_step_size=0.2)
+    move.params["A"] = [1]
+
+    updater = hpmc.update.Shape(trigger=1, shape_move=move, nsweeps=2)
+    updater.shape_move = move
+
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron()
+    mc.d["A"] = 0
+    mc.a["A"] = 0
+    mc.shape["A"] = dict(vertices=initial_pyramid)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory(d=2.5))
     sim.operations.integrator = mc
     sim.operations += updater
 
@@ -225,22 +313,28 @@ def test_python_callback_shape_move(simulation_factory,
     #  - all moves accepted
     move.param_move_probability = 0
     sim.run(10)
-    assert np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
-    assert np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
-    assert np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
+    assert np.allclose(mc.shape["A"]["vertices"], initial_pyramid)
     assert np.allclose(move.params["A"], [1])
+    assert np.allclose(updater.particle_volumes, 1)
 
     # always attempt a shape move:
     #  - shape and params should change
     #  - volume should remain unchanged
     move.param_move_probability = 1
-    sim.run(10)
-    assert np.sum(updater.shape_moves) == 20
-    assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
-    assert not np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
-    assert not np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
-    assert not np.allclose(move.params["A"], [1])
-    assert np.allclose(updater.particle_volumes, 4 * np.pi / 3)
+    sim.run(50)
+    assert np.sum(updater.shape_moves) == 100
+
+    # Check that the shape parameters have changed
+    current_h = move.params["A"][0]
+    assert not np.allclose(mc.shape["A"]["vertices"], initial_pyramid)
+    assert not np.isclose(current_h, 1)
+
+    # Check that the shape parameters map back to the correct geometry
+    assert np.allclose(
+        square_pyramid_factory(current_h + 0.1)[0], mc.shape["A"]["vertices"])
+
+    # Check that the callback is conserving volume properly
+    assert np.allclose(updater.particle_volumes, 1)
 
 
 def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):

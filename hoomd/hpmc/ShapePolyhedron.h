@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2024 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -54,7 +54,7 @@ namespace detail
 */
 struct TriangleMesh : ShapeParams
     {
-    TriangleMesh() : face_verts(), face_overlap(), n_faces(0), ignore(0) {};
+    TriangleMesh() : face_verts(), face_overlap(), n_faces(0), ignore(0) { };
 
 #ifndef __HIPCC__
     /** Initialize with a given number of vertices and vaces
@@ -842,7 +842,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<ShortReal> dr,
                     }
                 }
             } // end loop over faces of b
-        }     // end loop over over faces of a
+        } // end loop over over faces of a
     return false;
     }
 
