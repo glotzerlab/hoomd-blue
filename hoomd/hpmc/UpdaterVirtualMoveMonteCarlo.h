@@ -364,6 +364,7 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(),
                                          access_location::host,
                                          access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // counters
     hpmc_counters_t counters;
@@ -383,6 +384,11 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
 
             // seed particle that starts the virtual move
             unsigned int seed_idx = m_update_order[current_seed];
+            bool stop = false;
+            if (h_tag.data[seed_idx] == 7 && timestep == 1678)
+                {
+                stop = true;
+                }
 
             // generate the virtual move
             hoomd::RandomGenerator rng_i(
@@ -395,9 +401,17 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
             if (move_type_translate)
                 {
                 move_translate(virtual_translate_move, rng_i, m_maximum_translate_size, ndim);
+                if (stop)
+                    {
+                    std::cout << "translate" << std::endl;
+                    }
                 }
             else
                 {
+                if (stop)
+                    {
+                    std::cout << "rotate" << std::endl;
+                    }
                 move_translate(virtual_translate_move,
                                rng_i,
                                m_maximum_trial_center_of_rotation_shift,
@@ -472,6 +486,10 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
                         pos_linker_after_reverse_move_primary_image
                             = rotate(conj(virtual_rotate_move), pos_linker - center_of_rotation)
                               + center_of_rotation;
+                        }
+                    if (i_linker >= m_pdata->getN())
+                        {
+                        std::cout << "i linker too big" << std::endl;
                         }
                     m_positions_after_move[i_linker] = pos_linker_after_move_primary_image;
 
@@ -587,9 +605,15 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                         unsigned int j_linkee
                                             = mc_aabb_tree.getNodeParticle(current_node_index,
                                                                            current_linkee);
+                                        if (stop)
+                                            {
+                                            std::cout
+                                                << "tag of j_linkee = " << h_tag.data[j_linkee]
+                                                << std::endl;
+                                            }
+                                        bool j_is_ghost = j_linkee >= m_pdata->getN();
                                         if (!(m_cluster_data.m_linkers_added.find(j_linkee)
-                                              == m_cluster_data.m_linkers_added.end())
-                                            || j_linkee >= m_pdata->getN())
+                                              == m_cluster_data.m_linkers_added.end()))
                                             {
                                             // j already in cluster or is a ghost particle
                                             continue;
@@ -708,9 +732,17 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                 }
                                             else
                                                 {
-                                                m_cluster_data.update_cluster(
-                                                    j_linkee,
-                                                    center_of_rotation_image);
+                                                if (!j_is_ghost)
+                                                    {
+                                                    m_cluster_data.update_cluster(
+                                                        j_linkee,
+                                                        center_of_rotation_image);
+                                                    }
+                                                else
+                                                    {
+                                                    skip_to_next_seed = true;
+                                                    break;
+                                                    }
                                                 }
 
                                             // account for probability of forming this link:
@@ -884,9 +916,17 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
                                                 }
                                             else
                                                 {
-                                                m_cluster_data.update_cluster(
-                                                    j_linkee,
-                                                    center_of_rotation_image);
+                                                if (!j_is_ghost)
+                                                    {
+                                                    m_cluster_data.update_cluster(
+                                                        j_linkee,
+                                                        center_of_rotation_image);
+                                                    }
+                                                else
+                                                    {
+                                                    skip_to_next_seed = true;
+                                                    break;
+                                                    }
                                                 }
                                             // numerator of p_link_probability_ratio gets multiplied
                                             // by p_ij_reverse
@@ -1125,7 +1165,9 @@ template<class Shape> void UpdaterVMMC<Shape>::update(uint64_t timestep)
                     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                                        access_location::host,
                                                        access_mode::readwrite);
-                    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+                    ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                              access_location::host,
+                                              access_mode::readwrite);
                     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                         {
                         if (!(m_cluster_data.m_linkers_added.find(idx)
