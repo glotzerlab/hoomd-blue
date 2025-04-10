@@ -651,6 +651,7 @@ struct
     Scalar m_xz;       //!< xz tilt factor
     Scalar m_yz;       //!< yz tilt factor
     uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
+    Scalar m_xy_rate;
     };
 
     } // end namespace hoomd
