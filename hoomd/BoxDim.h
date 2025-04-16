@@ -526,17 +526,16 @@ struct
         if (m_periodic.x)
             {
             Scalar tilt_x = (m_xz - m_xy * m_yz) * (pos.z - origin.z) + m_xy * (pos.y - origin.y);
-            Scalar Lx_shear;
             if (((pos.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
                 {
                 pos.x -= L.x;
-                vel.x -= Lx_shear;
+                vel.x -= m_L_rate.x;
                 img.x++;
                 }
             else if (((pos.x < m_lo.x + tilt_x) && !flags.x) || flags.x == -1)
                 {
                 pos.x += L.x;
-                vel.x += Lx_shear;
+                vel.x += m_L_rate.x;
                 img.x--;
                 }
             }
@@ -544,39 +543,34 @@ struct
         if (m_periodic.y)
             {
             Scalar tilt_y = m_yz * (pos.z - origin.z);
-            Scalar Ly_shear;
-            Scalar xy_shear;
             if (((pos.y >= m_hi.y + tilt_y) && !flags.y) || flags.y == 1)
                 {
                 pos.y -= L.y;
                 pos.x -= L.y * m_xy;
-                vel.y -= Ly_shear;
-                vel.x -= xy_shear;
+                vel.y -= m_L_rate.y;
+                vel.x -= L.y * m_xy_rate;
                 img.y++;
                 }
             else if (((pos.y < m_lo.y + tilt_y) && !flags.y) || flags.y == -1)
                 {
                 pos.y += L.y;
                 pos.x += L.y * m_xy;
-                vel.y += Ly_shear;
-                vel.x += xy_shear;
+                vel.y += m_L_rate.y;
+                vel.x += L.y * m_xy_rate;
                 img.y--;
                 }
             }
 
         if (m_periodic.z)
             {
-            Scalar Lz_shear;
-            Scalar xz_shear;
-            Scalar yz_shear;
             if (((pos.z >= m_hi.z) && !flags.z) || flags.z == 1)
                 {
                 pos.z -= L.z;
                 pos.y -= L.z * m_yz;
                 pos.x -= L.z * m_xz;
-                vel.z -= Lz_shear;
-                vel.y -= yz_shear;
-                vel.x -= xz_shear;
+                vel.z -= m_L_rate.z;
+                vel.y -= L.z * m_yz_rate;
+                vel.x -= L.z * m_xz_rate;
                 img.z++;
                 }
             else if (((pos.z < m_lo.z) && !flags.z) || flags.z == -1)
@@ -584,50 +578,13 @@ struct
                 pos.z += L.z;
                 pos.y += L.z * m_yz;
                 pos.x += L.z * m_xz;
-                vel.z += Lz_shear;
-                vel.y += yz_shear;
-                vel.x += xz_shear;
+                vel.z += m_L_rate.z;
+                vel.y += L.z * m_yz_rate;
+                vel.x += L.z * m_xz_rate;
                 img.z--;
                 }
             }
         }
-
-    //! Wrap vec3
-    HOSTDEVICE void wrap_pos_vel(vec3<Scalar>& pos, vec3<Scalar>& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
-        {
-        Scalar3 pos_scalar = vec_to_scalar3(pos);
-        Scalar3 vel_scalar = vec_to_scalar3(vel);
-        wrap_pos_vel(pos_scalar, vel_scalar, img, flags);
-        pos.x = pos_scalar.x;
-        pos.y = pos_scalar.y;
-        pos.z = pos_scalar.z;
-        vel.x = vel_scalar.x;
-        vel.y = vel_scalar.y;
-        vel.z = vel_scalar.z;
-        }
-
-    //! Wrap vectors back into the box
-    /*! \param pos Vector to wrap, updated to the minimum image obeying the periodic settings
-        \param vel Vector to wrap according to deformation rates, obeying the periodic settings
-        \param img Image of the vector, updated to reflect the new image
-        \param flags Vector of flags to force wrapping along certain directions
-        \post \a img and \a v are updated appropriately
-        \note \a v must not extend more than 1 image beyond the box
-        \note This is a special version that wraps a Scalar4 (the 4th element is left alone)
-    */
-    HOSTDEVICE void wrap_pos_vel(Scalar4& pos, Scalar4& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
-        {
-        Scalar3 r = make_scalar3(pos.x, pos.y, pos.z);
-        Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
-        wrap_pos_vel(r, v, img, flags);
-        pos.x = r.x;
-        pos.y = r.y;
-        pos.z = r.z;
-        vel.x = v.x;
-        vel.y = v.y;
-        vel.z = v.z;
-        }
-
 
     //! Get the periodic image a vector belongs to
     /*! \param v The vector to check
