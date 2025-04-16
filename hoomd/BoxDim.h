@@ -505,7 +505,7 @@ struct
         \note \a v must not extend more than 1 image beyond the box
     */
    
-    HOSTDEVICE void wrap_pos_vel(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+    HOSTDEVICE void wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
         Scalar3 L = getL();
 
@@ -784,10 +784,10 @@ struct
     Scalar m_xz;       //!< xz tilt factor
     Scalar m_yz;       //!< yz tilt factor
     uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
-    Scalar m_xy_rate;  //!< Shear rate in xy 
-    Scalar m_xz_rate;  //!< Shear rate in xz
-    Scalar m_yz_rate;  //!< Shear rate in yz  
-    Scalar3 m_L_rate;  //!< Shear rate of dox dimensions
+    Scalar3 m_L_rate;  //!< Deformation rate of box dimensions
+    Scalar m_xy_rate;  //!< Deformation rate in xy 
+    Scalar m_xz_rate;  //!< Deformation rate in xz
+    Scalar m_yz_rate;  //!< Deformation rate in yz  
     };
 
     } // end namespace hoomd
