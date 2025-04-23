@@ -496,6 +496,96 @@ struct
         w.z = v.z;
         }
 
+    //! Wrap vectors back into the box
+    /*! \param pos Vector to wrap, updated to the minimum image obeying the periodic settings
+        \param vel Vector to wrap according to deformation rates, obeying the periodic settings
+        \param img Image of the vector, updated to reflect the new image
+        \param flags Vector of flags to force wrapping along certain directions
+        \post \a img and \a v are updated appropriately
+        \note \a v must not extend more than 1 image beyond the box
+    */
+   
+    HOSTDEVICE void wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+        {
+        Scalar3 L = getL();
+
+        // allow for a shifted box with periodic boundary conditions
+        Scalar3 origin = (m_hi + m_lo) / Scalar(2.0);
+
+        // tilt factors for nonperiodic boxes are always calculated w.r.t. to the global box with
+        // origin (0,0,0)
+        if (!m_periodic.y)
+            {
+            origin.y = Scalar(0.0);
+            }
+        if (!m_periodic.z)
+            {
+            origin.z = Scalar(0.0);
+            }
+
+        if (m_periodic.x)
+            {
+            Scalar tilt_x = (m_xz - m_xy * m_yz) * (pos.z - origin.z) + m_xy * (pos.y - origin.y);
+            if (((pos.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
+                {
+                pos.x -= L.x;
+                vel.x -= m_L_rate.x;
+                img.x++;
+                }
+            else if (((pos.x < m_lo.x + tilt_x) && !flags.x) || flags.x == -1)
+                {
+                pos.x += L.x;
+                vel.x += m_L_rate.x;
+                img.x--;
+                }
+            }
+
+        if (m_periodic.y)
+            {
+            Scalar tilt_y = m_yz * (pos.z - origin.z);
+            if (((pos.y >= m_hi.y + tilt_y) && !flags.y) || flags.y == 1)
+                {
+                pos.y -= L.y;
+                pos.x -= L.y * m_xy;
+                vel.y -= m_L_rate.y;
+                vel.x -= L.y * m_xy_rate;
+                img.y++;
+                }
+            else if (((pos.y < m_lo.y + tilt_y) && !flags.y) || flags.y == -1)
+                {
+                pos.y += L.y;
+                pos.x += L.y * m_xy;
+                vel.y += m_L_rate.y;
+                vel.x += L.y * m_xy_rate;
+                img.y--;
+                }
+            }
+
+        if (m_periodic.z)
+            {
+            if (((pos.z >= m_hi.z) && !flags.z) || flags.z == 1)
+                {
+                pos.z -= L.z;
+                pos.y -= L.z * m_yz;
+                pos.x -= L.z * m_xz;
+                vel.z -= m_L_rate.z;
+                vel.y -= L.z * m_yz_rate;
+                vel.x -= L.z * m_xz_rate;
+                img.z++;
+                }
+            else if (((pos.z < m_lo.z) && !flags.z) || flags.z == -1)
+                {
+                pos.z += L.z;
+                pos.y += L.z * m_yz;
+                pos.x += L.z * m_xz;
+                vel.z += m_L_rate.z;
+                vel.y += L.z * m_yz_rate;
+                vel.x += L.z * m_xz_rate;
+                img.z--;
+                }
+            }
+        }
+
     //! Get the periodic image a vector belongs to
     /*! \param v The vector to check
         \returns the integer coordinates of the periodic image
@@ -651,6 +741,10 @@ struct
     Scalar m_xz;       //!< xz tilt factor
     Scalar m_yz;       //!< yz tilt factor
     uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
+    Scalar3 m_L_rate;  //!< Deformation rate of box dimensions
+    Scalar m_xy_rate;  //!< Deformation rate in xy 
+    Scalar m_xz_rate;  //!< Deformation rate in xz
+    Scalar m_yz_rate;  //!< Deformation rate in yz  
     };
 
     } // end namespace hoomd
