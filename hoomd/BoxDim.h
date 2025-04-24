@@ -586,6 +586,19 @@ struct
             }
         }
 
+    HOSTDEVICE void wrap(Scalar4& pos, Scalar4& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+        {
+        Scalar3 p = make_scalar3(pos.x, pos.y, pos.z);
+        Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
+        wrap(p, v, img, flags);
+        pos.x = p.x;
+        pos.y = p.y;
+        pos.z = p.z;
+        vel.x = v.x;
+        vel.y = v.y;
+        vel.z = v.z;
+        }
+
     //! Get the periodic image a vector belongs to
     /*! \param v The vector to check
         \returns the integer coordinates of the periodic image

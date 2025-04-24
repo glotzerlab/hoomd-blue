@@ -77,7 +77,7 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
         int3 image = d_image[idx];
 
         // time to fix the periodic boundary conditions
-        box.wrap(pos, image);
+        box.wrap(pos, vel, image);
 
         // write out the results
         d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
@@ -145,7 +145,8 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
     }
 
 //! Takes the second 1/2 step forward in the NVT integration step
-/*! \param d_vel array of particle velocities
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param work_size Number of members in the group for this GPU
@@ -154,7 +155,8 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
     \param rescale_factor Velocity rescaling factor.
     \param n_dimensions Number of dimensions in the simulation.
 */
-__global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
+__global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_pos,
+                                                Scalar4* d_vel,
                                                 Scalar3* d_accel,
                                                 unsigned int* d_group_members,
                                                 unsigned int work_size,
@@ -190,6 +192,11 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
         // update
         v += Scalar(1.0 / 2.0) * deltaT * accel;
 
+        // time to fix the periodic boundary conditions
+        Scalar4 pos = d_pos[idx];
+        Scalar3 p = make_scalar3(pos.x, pos.y, pos.z);
+        box.wrap(p, v, image);
+
         // write out data
         d_vel[idx] = make_scalar4(v.x, v.y, v.z, vel.w);
 
@@ -198,7 +205,8 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
         }
     }
 
-/*! \param d_vel array of particle velocities
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
@@ -208,7 +216,8 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
     \param rescale_factor Exponential velocity scaling factor
     \param n_dimensions Number of dimensions in the simulation.
 */
-hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
+hipError_t gpu_nvt_rescale_step_two(Scalar4* d_pos,
+                                    Scalar4* d_vel,
                                     Scalar3* d_accel,
                                     unsigned int* d_group_members,
                                     unsigned int group_size,
@@ -238,6 +247,7 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                        dim3(threads),
                        0,
                        0,
+                       d_pos,
                        d_vel,
                        d_accel,
                        d_group_members,
