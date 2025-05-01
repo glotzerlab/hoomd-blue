@@ -262,26 +262,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
         h_vel.data[j].z = v.z;
 
         // store acceleration
-        h_accel.data[j] = accel;
-
-        // particles may have been moved slightly outside the box by the above steps, wrap them back
-        // into place
-        const BoxDim& box = m_pdata->getBox();
-
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                access_location::host,
-                                access_mode::readwrite);    
-
-        ArrayHandle<int3> h_image(m_pdata->getImages(),
-                                  access_location::host,
-                                  access_mode::readwrite);
-
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            // wrap the particles around the box
-            box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
-            }        
+        h_accel.data[j] = accel;   
         }
 
     if (m_aniso)
