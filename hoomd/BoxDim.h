@@ -387,6 +387,116 @@ struct
         return w;
         }
 
+    //! Compute minimum image
+    /*! \param p Position vector to compute
+        \param v Velocity vector to compute
+        \return vectors that are the minimum image vectors of \a p and \a v, obeying the periodic settings
+        \note \a p must not extend more than 1 image beyond the box
+    */
+    struct MinImage {
+        Scalar3 dx;
+        Scalar3 dv;
+    };
+
+    HOSTDEVICE MinImage minImage(const Scalar3& p, const Scalar3& v) const
+        {
+        Scalar3 pos = p;
+        Scalar3 vel = v;
+        Scalar3 L = getL();
+
+#ifdef __HIPCC__
+        if (m_periodic.z)
+            {
+            Scalar img = slow::rint(pos.z * m_Linv.z);
+            auto sign = std::copysign(Scalar(1.0), img);
+            pos.z -= L.z * img;
+            pos.y -= L.z * m_yz * img;
+            pos.x -= L.z * m_xz * img;
+            vel.z = vel.z + sign * m_L_rate.z;
+            vel.y = vel.y + sign * L.z * m_yz_rate;
+            vel.x = vel.x + sign * L.z * m_xz_rate;
+            }
+
+        if (m_periodic.y)
+            {
+            Scalar img = slow::rint(pos.y * m_Linv.y);
+            auto sign = std::copysign(Scalar(1.0), img);
+            pos.y -= L.y * img;
+            pos.x -= L.y * m_xy * img;
+            vel.y = vel.y + sign * m_L_rate.y;
+            vel.x = vel.x + sign * L.y * m_xy_rate;
+            }
+
+        if (m_periodic.x)
+            {
+            pos.x -= L.x * slow::rint(pos.x * m_Linv.x);
+            vel.x = vel.x + std::copysign(Scalar(1.0), slow::rint(pos.x * m_Linv.x)) * m_L_rate.x;
+            }
+#else
+        // on the cpu, branches are faster than calling rint
+        if (m_periodic.z)
+            {
+            if (pos.z >= m_hi.z)
+                {
+                pos.z -= L.z;
+                pos.y -= L.z * m_yz;
+                pos.x -= L.z * m_xz;
+                vel.z -= m_L_rate.z;
+                vel.y -= L.z * m_yz_rate;
+                vel.x -= L.z * m_xz_rate;
+                }
+            else if (pos.z < m_lo.z)
+                {
+                pos.z += L.z;
+                pos.y += L.z * m_yz;
+                pos.x += L.z * m_xz;
+                vel.z += m_L_rate.z;
+                vel.y += L.z * m_yz_rate;
+                vel.x += L.z * m_xz_rate;
+                }
+            }
+
+        if (m_periodic.y)
+            {
+            if (pos.y >= m_hi.y)
+                {
+                int i = int(pos.y * m_Linv.y + Scalar(0.5));
+                pos.y -= (Scalar)i * L.y;
+                pos.x -= (Scalar)i * L.y * m_xy;
+                vel.y -= m_L_rate.y;
+                vel.x -= L.y * m_xy_rate;
+
+                }
+            else if (pos.y < m_lo.y)
+                {
+                int i = int(-pos.y * m_Linv.y + Scalar(0.5));
+                pos.y += (Scalar)i * L.y;
+                pos.x += (Scalar)i * L.y * m_xy;
+                vel.y += m_L_rate.y;
+                vel.x += L.y * m_xy_rate;            
+                }
+            }
+
+        if (m_periodic.x)
+            {
+            if (pos.x >= m_hi.x)
+                {
+                int i = int(pos.x * m_Linv.x + Scalar(0.5));
+                pos.x -= (Scalar)i * L.x;
+                vel.x -= m_L_rate.x;
+                }
+            else if (pos.x < m_lo.x)
+                {
+                int i = int(-pos.x * m_Linv.x + Scalar(0.5));
+                pos.x += (Scalar)i * L.x;
+                vel.x += m_L_rate.x;
+                }
+            }
+#endif
+
+        return {pos, vel};
+        }
+
     //! Minimum image using vec3s
     HOSTDEVICE vec3<Scalar> minImage(const vec3<Scalar>& v) const
         {
