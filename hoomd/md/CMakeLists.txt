@@ -99,7 +99,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
-            		EvaluatorExternalMagneticField.h
+            	EvaluatorExternalMagneticField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
@@ -112,6 +112,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairGauss.h
                 EvaluatorPairExpandedGaussian.h
                 EvaluatorPairGB.h
+		EvaluatorPairInverse.h
                 EvaluatorPairLJ.h
                 EvaluatorPairLJ1208.h
                 EvaluatorPairLJ0804.h
@@ -142,8 +143,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicDihedralForceCompute.h
                 HarmonicImproperForceComputeGPU.h
                 HarmonicImproperForceCompute.h
-            		HelfrichMeshForceComputeGPU.h
-            		HelfrichMeshForceCompute.h
+            	HelfrichMeshForceComputeGPU.h
+            	HelfrichMeshForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
                 ManifoldZCylinder.h
@@ -488,7 +489,7 @@ foreach(_evaluator ${_external_evaluators})
     endif()
 endforeach()
 
-set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse)
+set(_wall_evaluators LJ Yukawa Inverse ForceShiftedLJ Mie Gauss Morse)
 
 foreach(_evaluator ${_wall_evaluators})
     configure_file(export_PotentialExternalWall.cc.inc
@@ -542,10 +543,12 @@ set(_pair_evaluators Buckingham
                      ExpandedLJ
                      ExpandedMie
                      Yukawa
+		     Inverse
                      Ewald
                      Morse
                      ConservativeDPD
                      Moliere
+		     Inverse
                      ZBL
                      Mie
                      ReactionField
@@ -592,6 +595,7 @@ set(_patchy_evaluators ExpandedGaussian
                        LJ
                        Mie
                        Yukawa
+		       Inverse
                        Table)
 
 foreach(_evaluator ${_patchy_evaluators})
@@ -609,6 +613,25 @@ foreach(_evaluator ${_patchy_evaluators})
         set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
             AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+foreach(_evaluator ${_patchy_evaluators})
+    configure_file(export_AnisoPotentialPairAlign.cc.inc
+                   export_AnisoPotentialPairAlign${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_AnisoPotentialPairAlign${_evaluator}.cc)
+    if(ENABLE_HIP)
+        configure_file(export_AnisoPotentialPairAlignGPU.cc.inc
+                       export_AnisoPotentialPairAlign${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(AnisoPotentialPairAlignGPUKernel.cu.inc
+                       AnisoPotentialPairAlign${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_AnisoPotentialPairAlign${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            AnisoPotentialPairAlign${_evaluator}GPUKernel.cu)
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()

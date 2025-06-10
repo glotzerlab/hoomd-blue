@@ -515,6 +515,61 @@ class Yukawa(Pair):
         )
         self._add_typeparam(params)
 
+class Inverse(Pair):
+    r"""Inverse pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `Inverse` computes the Inverse pair force son every particle in the simulation
+    state:
+
+    .. math::
+
+        U(r) = \varepsilon r^{-\kappa}
+
+    Example::
+
+        nl = nlist.Cell()
+        inverse = pair.Inverse(default_r_cut=3.0, nlist=nl)
+        inverse.params[("A", "A")] = dict(epsilon=1.0, kappa=1.0)
+        inverse.r_cut[("A", "B")] = 3.0
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Inverse`:
+
+    .. py:attribute:: params
+
+        The Inverse potential parameters. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\varepsilon` :math:`[\mathrm{energy}] [\mathrm{length}]`
+        * ``kappa`` (`float`, **required**) - scaling parameter
+          :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    _cpp_class_name = "PotentialPairInverse"
+    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(kappa=float, epsilon=float, len_keys=2),
+        )
+        self._add_typeparam(params)
+
 
 class Ewald(Pair):
     r"""Ewald pair force.
