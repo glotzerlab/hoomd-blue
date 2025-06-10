@@ -78,7 +78,7 @@ void CellListStencil::compute(uint64_t timestep)
         ArrayHandle<unsigned int> h_n_stencil(m_n_stencil,
                                               access_location::host,
                                               access_mode::overwrite);
-        memset((void*)h_n_stencil.data, 0, sizeof(unsigned int) * m_pdata->getNTypes());
+        m_n_stencil.zeroFill();
         return;
         }
 

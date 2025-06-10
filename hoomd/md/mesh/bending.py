@@ -28,6 +28,7 @@ from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.error import MPINotAvailableError
+import inspect
 
 
 class BendingRigidity(MeshPotential):
@@ -71,7 +72,9 @@ class BendingRigidity(MeshPotential):
     """
 
     _cpp_class_name = "BendingRigidityMeshForceCompute"
-    __doc__ = __doc__.replace("{inherited}", MeshPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
+    )
 
     def __init__(self, mesh):
         params = TypeParameter(
@@ -138,7 +141,9 @@ class Helfrich(MeshPotential):
     """
 
     _cpp_class_name = "HelfrichMeshForceCompute"
-    __doc__ = __doc__.replace("{inherited}", MeshPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
+    )
 
     def __init__(self, mesh):
         params = TypeParameter(

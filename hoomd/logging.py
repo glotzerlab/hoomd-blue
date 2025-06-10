@@ -542,7 +542,7 @@ class _LoggerEntry:
             category = LoggerCategories[category]
         elif not isinstance(category, LoggerCategories):
             raise ValueError(
-                "category must be a string or hoomd.logging.LoggerCategories " "object."
+                "category must be a string or hoomd.logging.LoggerCategories object."
             )
         return cls(entry[0], method, category)
 

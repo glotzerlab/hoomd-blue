@@ -357,7 +357,7 @@ void mpcd::CellList::buildCellList()
                                           access_mode::overwrite);
     ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::overwrite);
     // zero the cell counter
-    memset(h_cell_np.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
+    m_cell_np.zeroFill();
 
     uint3 conditions = make_uint3(0, 0, 0);
 

@@ -5,6 +5,7 @@
 
 import copy
 import warnings
+import inspect
 
 import hoomd
 from hoomd.md import _md
@@ -12,7 +13,12 @@ from hoomd.md import force
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy as np
-from hoomd.data.typeconverter import OnlyFrom, nonnegative_real, positive_real
+from hoomd.data.typeconverter import (
+    OnlyFrom,
+    nonnegative_real,
+    positive_real,
+    positive_int,
+)
 
 
 class Pair(force.Force):
@@ -62,7 +68,9 @@ class Pair(force.Force):
         `float`])
     """
 
-    __doc__ = __doc__.replace("{inherited}", force.Force._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(force.Force._doc_inherited)
+    )
     _doc_inherited = (
         force.Force._doc_inherited
         + """
@@ -257,7 +265,9 @@ class LJ(Pair):
     """
 
     _cpp_class_name = "PotentialPairLJ"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -321,7 +331,9 @@ class Gaussian(Pair):
     """
 
     _cpp_class_name = "PotentialPairGauss"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -381,7 +393,9 @@ class ExpandedGaussian(Pair):
     """
 
     _cpp_class_name = "PotentialPairExpandedGaussian"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -446,7 +460,9 @@ class ExpandedLJ(Pair):
     """
 
     _cpp_class_name = "PotentialPairExpandedLJ"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -504,7 +520,9 @@ class Yukawa(Pair):
     """
 
     _cpp_class_name = "PotentialPairYukawa"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -621,7 +639,9 @@ class Ewald(Pair):
     """
 
     _cpp_class_name = "PotentialPairEwald"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
@@ -726,7 +746,9 @@ class Table(Pair):
     """
 
     _cpp_class_name = "PotentialPairTable"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
@@ -792,7 +814,9 @@ class Morse(Pair):
     """
 
     _cpp_class_name = "PotentialPairMorse"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -826,6 +850,8 @@ class DPD(Pair):
     where
 
     .. math::
+
+        \begin{split}
         F_{\mathrm{C}}(r) &= A \cdot  w(r_{ij}), \\
         F_{\mathrm{R, ij}}(r_{ij}) &= - \theta_{ij}\sqrt{3}
         \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij}),  \\
@@ -837,6 +863,7 @@ class DPD(Pair):
         & r < r_{\mathrm{cut}} \\
         0 & r \ge r_{\mathrm{cut}} \\
         \end{cases},
+        \end{split}
 
 
     :math:`\hat r_{ij}` is a normalized vector from particle i to
@@ -885,7 +912,9 @@ class DPD(Pair):
     """
 
     _cpp_class_name = "PotentialPairDPDThermoDPD"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none",)
 
     def __init__(
@@ -956,7 +985,9 @@ class DPDConservative(Pair):
     """
 
     _cpp_class_name = "PotentialPairConservativeDPD"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
@@ -984,6 +1015,8 @@ class DPDLJ(Pair):
     on every particle in the simulation state with:
 
     .. math::
+
+        \begin{split}
         F &= F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +
             F_{\mathrm{D,ij}}(v_{ij}), \\
         F_{\mathrm{C}}(r) &= \partial U / \partial r, \\
@@ -1000,6 +1033,7 @@ class DPDLJ(Pair):
         & r < r_{\mathrm{cut}} \\
         0 & r \ge r_{\mathrm{cut}} \\
         \end{cases},
+        \end{split}
 
     :math:`\hat r_{ij}` is a normalized vector from particle i to
     particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
@@ -1045,7 +1079,9 @@ class DPDLJ(Pair):
     """
 
     _cpp_class_name = "PotentialPairDPDThermoLJ"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, kT, default_r_cut=None, mode="none"):
@@ -1123,7 +1159,9 @@ class ForceShiftedLJ(Pair):
     """
 
     _cpp_class_name = "PotentialPairForceShiftedLJ"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
@@ -1208,7 +1246,9 @@ class Moliere(Pair):
     """
 
     _cpp_class_name = "PotentialPairMoliere"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1287,7 +1327,9 @@ class ZBL(Pair):
     """
 
     _cpp_class_name = "PotentialPairZBL"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0):
@@ -1350,7 +1392,9 @@ class Mie(Pair):
     """
 
     _cpp_class_name = "PotentialPairMie"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1429,7 +1473,9 @@ class ExpandedMie(Pair):
     """
 
     _cpp_class_name = "PotentialPairExpandedMie"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1513,7 +1559,9 @@ class ReactionField(Pair):
     """
 
     _cpp_class_name = "PotentialPairReactionField"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1542,12 +1590,14 @@ class DLVO(Pair):
     on every particle in the simulation state with:
 
     .. math::
+        \begin{split}
         V_{\mathrm{DLVO}}(r) = &- \frac{A}{6} \left[
             \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} +
             \frac{2a_1a_2}{r^2 - (a_1-a_2)^2} \\
             + \log \left(
             \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right] \\
             & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))}
+        \end{split}
 
     where :math:`a_1` is the radius of first particle in the pair, :math:`a_2`
     is the radius of second particle in the pair, :math:`A` is the Hamaker
@@ -1593,7 +1643,9 @@ class DLVO(Pair):
     """
 
     _cpp_class_name = "PotentialPairDLVO"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
@@ -1659,7 +1711,9 @@ class Buckingham(Pair):
     """
 
     _cpp_class_name = "PotentialPairBuckingham"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1717,7 +1771,9 @@ class LJ1208(Pair):
     """
 
     _cpp_class_name = "PotentialPairLJ1208"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1776,7 +1832,9 @@ class LJ0804(Pair):
     """
 
     _cpp_class_name = "PotentialPairLJ0804"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1809,8 +1867,10 @@ class Fourier(Pair):
 
     .. math::
 
+        \begin{split}
         a_1 &= \sum_{n=2}^4 (-1)^n a_n \\
         b_1 &= \sum_{n=2}^4 n (-1)^n b_n \\
+        \end{split}
 
     enforce :math:`U(r_\mathrm{cut}) = 0`.
 
@@ -1841,7 +1901,9 @@ class Fourier(Pair):
     """
 
     _cpp_class_name = "PotentialPairFourier"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
     _accepted_modes = ("none", "xplor")
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
@@ -1923,7 +1985,9 @@ class OPP(Pair):
     """
 
     _cpp_class_name = "PotentialPairOPP"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1999,7 +2063,9 @@ class TWF(Pair):
     """
 
     _cpp_class_name = "PotentialPairTWF"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -2065,7 +2131,9 @@ class LJGauss(Pair):
     """
 
     _cpp_class_name = "PotentialPairLJGauss"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -2074,4 +2142,95 @@ class LJGauss(Pair):
             "particle_types",
             TypeParameterDict(epsilon=float, sigma=positive_real, r0=float, len_keys=2),
         )
+        self._add_typeparam(params)
+
+
+class WangFrenkel(Pair):
+    r"""Wang-Frenkel pair potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `WangFrenkel` computes the Wang-Frenkel pair force on every particle
+    in the simulation state:
+
+    .. math::
+        U(r) = \epsilon \alpha \left( \left[\frac{\sigma}{r}\right]^{2\mu} -1\right)
+               \left(\left[\frac{R}{r}\right]^{2\mu} -1 \right)^{2\nu}
+
+    .. math::
+        \alpha = 2 \nu \left(\frac{R}{\sigma}\right)^{2\mu}
+                 \left(\frac{2 \nu + 1}
+                 {2\nu \left(\left(\frac{R}{\sigma}\right)^{2\mu} - 1\right)}\right)
+                 ^{2\nu + 1}
+
+    The potential was introduced in `Xipeng Wang et al. 2020`_.
+
+    .. _Xipeng Wang et al. 2020:
+       https://dx.doi.org/10.1039/c9cp05445f
+
+    Warning:
+        Set ``R`` and `r_cut` to the same value so the potential goes to
+        0 smoothly at the cutoff.
+
+    Example::
+
+        nl = nlist.Cell()
+        WangFrenkel = pair.WangFrenkel(nlist=nl, default_r_cut=3.0)
+        WangFrenkel.params[("A", "A")] = dict(
+            epsilon=1.0, sigma=1.0, R=2 ** (1 / 6), mu=12, nu=6
+        )
+        WangFrenkel.r_cut[("A", "A")] = 2 ** (1.0 / 6.0)
+        WangFrenkel.params[(["A", "B"], ["C", "D"])] = dict(
+            epsilon=1.5, sigma=2.0, R=2.5, mu=2, nu=2
+        )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `WangFrenkel`:
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) - :math:`\sigma`
+          :math:`[\mathrm{length}]`
+        * ``R`` (`float`, **required**) - :math:`R`
+          :math:`[\mathrm{length}]`
+        * ``mu`` (`int`, **required**) - :math:`\mu`
+          :math:`[\mathrm{dimensionless}]`
+        * ``nu`` (`int`, **required**) - :math:`\nu`
+          :math:`[\mathrm{dimensionless}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    _cpp_class_name = "PotentialPairWangFrenkel"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                epsilon=float,
+                sigma=float,
+                R=float,
+                mu=positive_int,
+                nu=positive_int,
+                len_keys=2,
+            ),
+        )
+
         self._add_typeparam(params)

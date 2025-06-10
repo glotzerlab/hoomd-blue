@@ -23,6 +23,7 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.md.force import Force
 import hoomd
+import inspect
 
 
 class Constraint(Force):
@@ -35,7 +36,7 @@ class Constraint(Force):
         for `isinstance` or `issubclass` checks.
     """
 
-    __doc__ += Force._doc_inherited
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Force._doc_inherited)
 
     # Module where the C++ class is defined. Reassign this when developing an
     # external plugin.
@@ -111,7 +112,9 @@ class Distance(Constraint):
     """
 
     _cpp_class_name = "ForceDistanceConstraint"
-    __doc__ = __doc__.replace("{inherited}", Constraint._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Constraint._doc_inherited)
+    )
 
     def __init__(self, tolerance=1e-3):
         self._param_dict.update(ParameterDict(tolerance=float(tolerance)))
@@ -145,9 +148,11 @@ class Rigid(Constraint):
 
     .. math::
 
+        \begin{split}
         \vec{r}_c &= \vec{r}_b
                     + \mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^* \\
         \mathbf{q}_c &= \mathbf{q}_b \mathbf{q}_{c,\mathrm{body}}
+        \end{split}
 
     where :math:`\vec{r}_c` and :math:`\mathbf{q}_c` are the position and
     orientation of a constituent particle in the simulation box,
@@ -194,11 +199,13 @@ class Rigid(Constraint):
 
     .. math::
 
+        \begin{split}
         \vec{F}_b' &= \vec{F}_b + \sum_c \vec{F}_c \\
         \vec{U}_b' &= U_b + \sum_c U_c \\
         \vec{\tau}_b' &= \vec{\tau}_b + \sum_c \vec{\tau}_c +
             (\mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^*)
             \times \vec{F}_c
+        \end{split}
 
     `Rigid` also computes the corrected virial accounting for the effective
     constraint force (see `Glaser 2020
@@ -299,7 +306,9 @@ class Rigid(Constraint):
     """
 
     _cpp_class_name = "ForceComposite"
-    __doc__ = __doc__.replace("{inherited}", Constraint._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Constraint._doc_inherited)
+    )
 
     def __init__(self):
         body = TypeParameter(

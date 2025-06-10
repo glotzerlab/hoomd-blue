@@ -319,8 +319,8 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
         // need to start from a zero force, energy
-        memset(h_force.data, 0, sizeof(Scalar4) * (m_pdata->getN() + m_pdata->getNGhosts()));
-        memset(h_virial.data, 0, sizeof(Scalar) * 6 * m_virial_pitch);
+        m_force.zeroFill();
+        m_virial.zeroFill();
 
         // for each particle
         for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -582,8 +582,8 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
         // need to start from a zero force, energy
-        memset(h_force.data, 0, sizeof(Scalar4) * (m_pdata->getN() + m_pdata->getNGhosts()));
-        memset(h_virial.data, 0, sizeof(Scalar) * 6 * m_virial_pitch);
+        m_force.zeroFill();
+        m_virial.zeroFill();
 
         unsigned int ntypes = m_pdata->getNTypes();
 

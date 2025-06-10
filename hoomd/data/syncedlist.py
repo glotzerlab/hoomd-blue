@@ -163,7 +163,7 @@ class SyncedList(MutableSequence):
             return integer % max(1, len(self))
         if integer >= len(self):
             raise IndexError(
-                f"Index {integer} is outside bounds of a length {len(self)}" f"list."
+                f"Index {integer} is outside bounds of a length {len(self)}list."
             )
         return integer
 

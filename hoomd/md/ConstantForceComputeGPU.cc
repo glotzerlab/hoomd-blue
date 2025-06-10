@@ -64,6 +64,9 @@ void ConstantForceComputeGPU::setForces()
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
 
+    m_force.zeroFill();
+    m_torque.zeroFill();
+
     // compute the forces on the GPU
     m_tuner->begin();
 

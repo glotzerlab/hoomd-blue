@@ -87,9 +87,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     virtual CommFlags determineFlags(uint64_t timestep);
 #endif
 
-    /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool areForcesAnisotropic();
-
     /// Updates the rigid body constituent particles
     virtual void updateRigidBodies(uint64_t timestep);
 

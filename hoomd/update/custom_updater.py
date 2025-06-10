@@ -16,6 +16,7 @@
 from hoomd.custom import CustomOperation, Action
 from hoomd.custom.custom_operation import _InternalCustomOperation
 from hoomd.operation import Updater
+import inspect
 
 
 class _UpdaterProperty:
@@ -65,7 +66,11 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
 
     _cpp_list_name = "updaters"
     _cpp_class_name = "PythonUpdater"
-    __doc__ += CustomOperation._doc_inherited
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(CustomOperation._doc_inherited)
+    )
 
 
 class _InternalCustomUpdater(_InternalCustomOperation, Updater):

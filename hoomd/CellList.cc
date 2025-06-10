@@ -425,7 +425,7 @@ void CellList::computeCellList()
     Index2D cli = m_cell_list_indexer;
 
     // clear the bin sizes to 0
-    memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
+    m_cell_size.zeroFill();
 
     Scalar3 ghost_width = getGhostWidth();
 

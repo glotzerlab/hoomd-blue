@@ -500,7 +500,7 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
 
     // clear the neighbor counts
-    hipMemset(d_n_neigh.data, 0, sizeof(unsigned int) * m_pdata->getN());
+    m_n_neigh.zeroFill();
 
     const BoxDim& box = m_pdata->getBox();
 

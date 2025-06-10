@@ -73,7 +73,7 @@ stage_particles(unsigned int* d_comm_flag, const Scalar4* d_pos, unsigned int N,
     } // end namespace kernel
 
 //! Functor to select a particle for migration
-struct get_migrate_key : public thrust::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key
     {
     const uint3 my_pos;             //!< My domain decomposition position
     const Index3D di;               //!< Domain indexer
@@ -271,7 +271,6 @@ namespace gpu
     {
 //! Wrap a particle in a pdata_element
 struct wrap_particle_op
-    : public thrust::unary_function<const mpcd::detail::pdata_element, mpcd::detail::pdata_element>
     {
     const BoxDim box; //!< The box for which we are applying boundary conditions
 

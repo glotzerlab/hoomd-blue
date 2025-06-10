@@ -398,7 +398,7 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                         {
                         this->m_exec_conf->msg->error()
                             << "The number of chain elements exceeded safe-guard limit of "
-                            << debug_max_chain << ".\n";
+                            << debug_max_chain << "." << std::endl;
                         this->m_exec_conf->msg->error()
                             << "Shorten chain_time if this message appears regularly." << std::endl;
                         break;
@@ -866,11 +866,11 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
                                             }
                                         }
 
-                                    if (newDist == sweepableDistance)
-                                        {
-                                        this->m_exec_conf->msg->error()
-                                            << "Two particles with the same distance\n";
-                                        }
+                                    // 3-way collisions (newDist == sweepableDistance) should be
+                                    // extremely rare, yet they somehow occur often with NEC.
+                                    // Ignore these cases and choose one colliding pair to resolve.
+                                    // NEC would sample the correct distribution even if all
+                                    // velocities were fixed.
                                     }
                                 }
                             }

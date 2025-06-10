@@ -9,12 +9,12 @@ a time :math:`\Delta t`:
 
 .. math::
 
-    \mathbf{v}(t + \Delta t/2) &= \mathbf{v}(t) + (\mathbf{f}/m)(\Delta t / 2)
-
-    \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t
-
+    \begin{split}
+    \mathbf{v}(t + \Delta t/2) &= \mathbf{v}(t) + (\mathbf{f}/m)(\Delta t / 2) \\
+    \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t \\
     \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) +
     (\mathbf{f}/m)(\Delta t / 2)
+    \end{split}
 
 where **r** and **v** are the particle position and velocity, respectively, and
 **f** is the external force acting on the particles of mass *m*. For a list of
@@ -34,6 +34,7 @@ from hoomd.mpcd import _mpcd
 from hoomd.mpcd.force import BodyForce
 from hoomd.mpcd.geometry import Geometry
 from hoomd.operation import Operation
+import inspect
 
 
 class StreamingMethod(Operation):
@@ -69,7 +70,9 @@ class StreamingMethod(Operation):
             modified.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Operation._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Operation._doc_inherited)
+    )
 
     _doc_inherited = (
         Operation._doc_inherited
@@ -133,7 +136,11 @@ class Bulk(StreamingMethod):
         simulation.operations.integrator.streaming_method = stream
     """
 
-    __doc__ += StreamingMethod._doc_inherited
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(StreamingMethod._doc_inherited)
+    )
 
     def _attach_hook(self):
         sim = self._simulation
@@ -162,7 +169,7 @@ class Bulk(StreamingMethod):
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
         class_ = getattr(*class_info, None)
-        assert class_ is not None, "C++ streaming method could not be " "determined"
+        assert class_ is not None, "C++ streaming method could not be determined"
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
@@ -256,7 +263,9 @@ class BounceBack(StreamingMethod):
     """
 
     _cpp_class_map = {}
-    __doc__ = __doc__.replace("{inherited}", StreamingMethod._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(StreamingMethod._doc_inherited)
+    )
 
     def __init__(self, period, geometry, mpcd_particle_force=None):
         super().__init__(period, mpcd_particle_force)

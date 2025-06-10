@@ -17,6 +17,7 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
+import inspect
 
 
 class BoxMC(Updater):
@@ -59,6 +60,7 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V + u \\
           L_x^t &= \left( \frac{Lx}{Ly} \frac{Lx}{Lz} V^t \right)^{1/3} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
@@ -66,6 +68,7 @@ class BoxMC(Updater):
           xy^t &= xy \\
           xz^t &= xz \\
           yz^t &= yz \\
+          \end{split}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[-\delta_\mathrm{volume}, \delta_\mathrm{volume}]`.
@@ -74,10 +77,12 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V + u \\
           L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
           xy^t &= xy \\
+          \end{split}
 
     * `volume` (``mode='ln'``): Change the volume (or area in 2D) of the
       simulation box while maining fixed aspect ratios :math:`Lx/Ly`,
@@ -85,6 +90,7 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V e^u \\
           L_x^t &= \left( \frac{Lx}{Ly} \frac{Lx}{Lz} V^t \right)^{1/3} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
@@ -92,6 +98,7 @@ class BoxMC(Updater):
           xy^t &= xy \\
           xz^t &= xz \\
           yz^t &= yz \\
+          \end{split}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[-\delta_\mathrm{volume}, \delta_\mathrm{volume}]`.
@@ -100,15 +107,19 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V e^u \\
           L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
           xy^t &= xy \\
+          \end{split}
+
     * `aspect`: Change the aspect ratio of the simulation box while maintaining
       a fixed volume. In 3D:
 
       .. math::
 
+          \begin{split}
           L_k^t & = \begin{cases} L_k(1 + a) & u < 0.5 \\
                                 L_k \frac{1}{1+a}  & u \ge 0.5
                   \end{cases} \\
@@ -116,6 +127,7 @@ class BoxMC(Updater):
           xy^t &= xy \\
           xz^t &= xz \\
           yz^t &= yz \\
+          \end{split}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[0, 1]`, :math:`a` is a random value uniformly distributed in the
@@ -126,11 +138,14 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           L_k^t & = \begin{cases} L_k(1 + a) & u < 0.5 \\
                                 L_k \frac{1}{1+a}  & u \ge 0.5
                     \end{cases} \\
           L_{m \ne k}^t & = L_m \frac{L_k}{L_k^t} \\
           xy^t &= xy \\
+          \end{split}
+
     * `length`: Change the box lengths:
 
       .. math::
@@ -277,7 +292,9 @@ class BoxMC(Updater):
               disable shear reduction.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(self, trigger, P):
         super().__init__(trigger)
@@ -431,7 +448,9 @@ class MuVT(Updater):
           from/to the reservoir or between boxes
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -602,7 +621,9 @@ class Shape(Updater):
             triggered timesteps.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(self, trigger, shape_move, pretend=False, type_select=1, nsweeps=1):
         super().__init__(trigger)
@@ -721,7 +742,9 @@ class GCA(Updater):
 
     _remove_for_pickling = (*Updater._remove_for_pickling, "_cpp_cell")
     _skip_for_equality = Updater._skip_for_equality | {"_cpp_cell"}
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(self, pivot_move_probability=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
@@ -811,6 +834,7 @@ class QuickCompress(Updater):
 
     .. math::
 
+          \begin{split}
           L_x' &= \begin{cases}
           \max( L_x \cdot s, L_{\mathrm{target},x} )
           & L_{\mathrm{target},x} < L_x \\
@@ -847,11 +871,13 @@ class QuickCompress(Updater):
           \max( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} \ge yz
           \end{cases} \\
+          \end{split}
 
     and in 2D:
 
     .. math::
 
+          \begin{split}
           L_x' &= \begin{cases}
           \max( L_x \cdot s, L_{\mathrm{target},x} )
           & L_{\mathrm{target},x} < L_x \\
@@ -873,6 +899,7 @@ class QuickCompress(Updater):
           \end{cases} \\
           xz' &= xz \\
           yz' &= yz \\
+          \end{split}
 
     where the current simulation box is :math:`(L_x, L_y, L_z, xy, xz, yz)`,
     the target is :math:`(L_{\mathrm{target},x}, L_{\mathrm{target},y},
@@ -959,7 +986,9 @@ class QuickCompress(Updater):
             independent of particle translational move sizes.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(
         self,

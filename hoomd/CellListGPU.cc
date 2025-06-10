@@ -69,10 +69,7 @@ void CellListGPU::computeCellList()
                                         access_mode::overwrite);
 
         // reset cell list contents
-        hipMemsetAsync(d_cell_size.data,
-                       0,
-                       sizeof(unsigned int) * m_cell_indexer.getNumElements(),
-                       0);
+        m_cell_size.zeroFill();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 

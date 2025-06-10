@@ -58,7 +58,7 @@ To build the documentation from source (optional):
 
    .. code-block:: bash
 
-       micromamba install sphinx sphinx-copybutton furo nbsphinx ipython
+       micromamba install sphinx furo nbsphinx ipython
 
 2. `Build the documentation`_:
 
@@ -92,7 +92,7 @@ Install additional packages needed to build the documentation:
 
 .. code-block:: bash
 
-   micromamba install sphinx sphinx-copybutton furo nbsphinx ipython
+   micromamba install sphinx furo nbsphinx ipython
 
 .. note::
 
@@ -144,7 +144,6 @@ Install additional packages needed to build the documentation:
 **To build the documentation:**
 
 - **sphinx**
-- **sphinx-copybutton**
 - **furo**
 - **nbsphinx**
 - **ipython**
@@ -238,8 +237,7 @@ Other option changes take effect at any time:
 - ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``HOOMD_SHORTREAL_SIZE`` - Size in bits of the ``ShortReal`` type (default: ``32``).
 
-  - When set to ``32``, perform force computations, overlap checks, and other local calculations
-    in single precision.
+  - When set to ``32``, perform HPMC overlap checks in single precision.
   - When set to ``64``, perform **all** calculations in double precision.
 
 - ``HOOMD_LONGREAL_SIZE`` - Size in bits of the ``LongReal`` type (default: ``64``).

@@ -162,16 +162,18 @@ class ManualTuneDefinition(_TuneDefinition):
     can return a y of ``None`` to indicate this. `hoomd.tune.SolverStep`
     objects will handle this automatically. Since we check for ``None``
     internally in `hoomd.tune.SolverStep` objects, a `ManualTuneDefinition`
-    object's ``y`` property should be consistant when called multiple times
+    object's ``y`` property should be consistent when called multiple times
     within a timestep.
 
     When setting ``x`` the value is clamped between the given domain via,
 
     .. math::
 
+        \\begin{split}
         x &= x_{max}, \\text{ if } x_n > x_{max},\\\\
         x &= x_{min}, \\text{ if } x_n < x_{min},\\\\
         x &= x_n, \\text{ otherwise}
+        \\end{split}
 
     Args:
         get_y (``callable``): A callable that gets the current value for y.

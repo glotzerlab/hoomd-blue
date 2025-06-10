@@ -260,7 +260,8 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
                                             Scalar mat_exp_v_yz,
                                             Scalar mat_exp_v_zz,
                                             Scalar deltaT,
-                                            Scalar thermo_rescale)
+                                            Scalar thermo_rescale,
+                                            unsigned int n_dimensions)
     {
     // determine which particle this thread works on
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -276,6 +277,12 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
         // compute acceleration
         Scalar minv = Scalar(1.0) / vel.w;
         Scalar4 net_force = d_net_force[idx];
+
+        if (n_dimensions == 2)
+            {
+            net_force.z = Scalar(0.0);
+            }
+
         Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
         accel *= minv;
 
@@ -319,7 +326,8 @@ hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
                                     Scalar* mat_exp_v,
                                     Scalar deltaT,
                                     Scalar thermo_rescale,
-                                    const unsigned int block_size)
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -352,7 +360,8 @@ hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
                        mat_exp_v[4],
                        mat_exp_v[5],
                        deltaT,
-                       thermo_rescale);
+                       thermo_rescale,
+                       n_dimensions);
 
     return hipSuccess;
     }

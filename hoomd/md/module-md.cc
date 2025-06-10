@@ -67,6 +67,7 @@ void export_PotentialPairTWF(pybind11::module& m);
 void export_PotentialPairLJGauss(pybind11::module& m);
 void export_PotentialPairForceShiftedLJ(pybind11::module& m);
 void export_PotentialPairTable(pybind11::module& m);
+void export_PotentialPairWangFrenkel(pybind11::module& m);
 
 void export_AnisoPotentialPairALJ2D(pybind11::module& m);
 void export_AnisoPotentialPairALJ3D(pybind11::module& m);
@@ -233,6 +234,7 @@ void export_PotentialPairDLVOGPU(pybind11::module& m);
 void export_PotentialPairFourierGPU(pybind11::module& m);
 void export_PotentialPairOPPGPU(pybind11::module& m);
 void export_PotentialPairTWFGPU(pybind11::module& m);
+void export_PotentialPairWangFrenkelGPU(pybind11::module&);
 void export_PotentialPairLJGaussGPU(pybind11::module& m);
 void export_PotentialPairForceShiftedLJGPU(pybind11::module& m);
 void export_PotentialPairTableGPU(pybind11::module& m);
@@ -389,6 +391,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJGauss(m);
     export_PotentialPairForceShiftedLJ(m);
     export_PotentialPairTable(m);
+    export_PotentialPairWangFrenkel(m);
 
     export_AlchemicalMDParticles(m);
 
@@ -498,6 +501,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJGaussGPU(m);
     export_PotentialPairForceShiftedLJGPU(m);
     export_PotentialPairTableGPU(m);
+    export_PotentialPairWangFrenkelGPU(m);
     export_PotentialPairConservativeDPDGPU(m);
 
     export_PotentialTersoffGPU(m);

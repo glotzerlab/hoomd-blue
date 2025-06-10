@@ -50,7 +50,8 @@ hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
                                     Scalar* mat_exp_v,
                                     Scalar deltaT,
                                     Scalar thermo_rescale,
-                                    const unsigned int block_size);
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions);
 
 //! Rescale all positions
 void gpu_npt_rescale_rescale(const unsigned int N,

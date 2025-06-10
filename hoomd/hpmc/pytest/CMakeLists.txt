@@ -18,6 +18,7 @@ set(files __init__.py
           test_pair_expanded_gaussian.py
           test_pair_lj_gauss.py
           test_pair_opp.py
+          test_pair_zetterling.py
           test_pair_step.py
           test_pair_union.py
           test_pair_angular_step.py

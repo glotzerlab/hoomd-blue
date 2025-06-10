@@ -341,6 +341,12 @@ def _invalid_params():
         _make_invalid_params(table_invalid_dicts, hoomd.md.pair.Table, {})
     )
 
+    wangfrenkel_valid_dict = {"sigma": 1.0, "epsilon": 1.0, "R": 2.0, "mu": 1, "nu": 1}
+    wangfrenkel_invalid_dicts = _make_invalid_param_dict(wangfrenkel_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(wangfrenkel_invalid_dicts, hoomd.md.pair.WangFrenkel, {})
+    )
+
     tersoff_valid_dict = {
         "cutoff_thickness": 1.0,
         "magnitudes": (5.0, 2.0),

@@ -113,7 +113,7 @@ class Communicator(object):
             # check validity
             if self.cpp_mpi_conf.getNRanksGlobal() % ranks_per_partition:
                 raise RuntimeError(
-                    "Total number of ranks is not a multiple of " "ranks_per_partition."
+                    "Total number of ranks is not a multiple of ranks_per_partition."
                 )
 
             # split the communicator into partitions

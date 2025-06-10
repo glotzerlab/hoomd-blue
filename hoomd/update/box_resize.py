@@ -21,6 +21,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
 from hoomd.trigger import Periodic
+import inspect
 
 
 class BoxResize(Updater):
@@ -107,7 +108,9 @@ class BoxResize(Updater):
                 filter_ = box_resize.filter
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(
         self,

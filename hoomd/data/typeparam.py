@@ -68,7 +68,7 @@ class TypeParameter(MutableMapping):
             return getattr(self.param_dict, attr)
         except AttributeError:
             raise AttributeError(
-                "'{}' object has no attribute " "'{}'".format(type(self), attr)
+                "'{}' object has no attribute '{}'".format(type(self), attr)
             )
 
     def __setitem__(self, key, value):

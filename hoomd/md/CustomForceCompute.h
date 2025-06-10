@@ -37,11 +37,6 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     //! Destructor
     ~CustomForceCompute();
 
-    bool isAnisotropic()
-        {
-        return m_aniso;
-        }
-
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

@@ -143,11 +143,6 @@ template<class evaluator> class EvaluatorWalls
         {
         }
 
-    DEVICE static bool isAnisotropic()
-        {
-        return false;
-        }
-
     //! Charges not supported by walls evals
     DEVICE static bool needsCharge()
         {

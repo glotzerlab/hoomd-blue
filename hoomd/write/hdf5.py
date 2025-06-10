@@ -27,6 +27,7 @@
 import copy
 import functools
 from pathlib import PurePath
+import inspect
 
 import numpy as np
 
@@ -335,7 +336,9 @@ class HDF5Log(_InternalCustomWriter):
 
     _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
-    __doc__ = __doc__.replace("{inherited}", Writer._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
 
 __all__ = ["HDF5Log"]

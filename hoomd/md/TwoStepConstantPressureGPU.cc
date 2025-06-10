@@ -306,7 +306,8 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                          m_mat_exp_v,
                                          m_deltaT,
                                          rescalingFactors[0], // exp_thermo_fac,
-                                         m_tuner_two->getParam()[0]);
+                                         m_tuner_two->getParam()[0],
+                                         m_sysdef->getNDimensions());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

@@ -9,6 +9,7 @@ set(files __init__.py
     test_snapshot.py
     test_stream.py
     test_tune.py
+    test_update.py
     )
 
 install(FILES ${files}

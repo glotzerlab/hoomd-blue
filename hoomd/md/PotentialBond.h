@@ -186,8 +186,8 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     assert(h_charge.data);
 
     // Zero data for force calculation
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_virial.zeroFill();
 
     // we are using the minimum image of the global box here
     // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain

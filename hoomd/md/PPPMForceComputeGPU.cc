@@ -720,7 +720,7 @@ void PPPMForceComputeGPU::fixExclusions()
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     // reset virial
-    hipMemset(d_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_virial.zeroFill();
 
     Index2D nex = m_nlist->getExListIndexer();
 

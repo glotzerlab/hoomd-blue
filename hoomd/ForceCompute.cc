@@ -44,9 +44,9 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-        memset(h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
-        memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+        m_force.zeroFill();
+        m_torque.zeroFill();
+        m_virial.zeroFill();
         }
 
     m_virial_pitch = m_virial.getPitch();
@@ -88,9 +88,9 @@ void ForceCompute::reallocate()
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-        memset(h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
-        memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+        m_force.zeroFill();
+        m_torque.zeroFill();
+        m_virial.zeroFill();
         }
 
     // the pitch of the virial array may have changed

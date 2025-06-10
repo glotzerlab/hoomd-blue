@@ -13,6 +13,7 @@
 import copy
 
 import hoomd
+import inspect
 
 
 class _GroupConverter:
@@ -82,7 +83,9 @@ class FilterUpdater(hoomd.operation.Updater):
     **Members defined in** `FilterUpdater`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", hoomd.operation.Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(hoomd.operation.Updater._doc_inherited)
+    )
 
     def __init__(self, trigger, filters):
         super().__init__(trigger)

@@ -70,7 +70,7 @@ __global__ void gpu_select_particle_migrate(unsigned int N,
     }
 
 //! Select a particle for migration
-struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key_gpu
     {
     const uint3 my_pos;               //!< My domain decomposition position
     const Index3D di;                 //!< Domain indexer
@@ -884,6 +884,8 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                               const Scalar* d_diameter,
                               const unsigned int* d_body,
                               const Scalar4* d_orientation,
+                              const Scalar4* d_angmom,
+                              const Scalar3* d_inertia,
                               unsigned int* d_tag_sendbuf,
                               Scalar4* d_pos_sendbuf,
                               Scalar4* d_vel_sendbuf,
@@ -892,6 +894,8 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                               unsigned int* d_body_sendbuf,
                               int3* d_img_sendbuf,
                               Scalar4* d_orientation_sendbuf,
+                              Scalar4* d_angmom_sendbuf,
+                              Scalar3* d_inertia_sendbuf,
                               bool send_tag,
                               bool send_pos,
                               bool send_vel,
@@ -900,6 +904,8 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                               bool send_body,
                               bool send_image,
                               bool send_orientation,
+                              bool send_angmom,
+                              bool send_inertia,
                               const Index3D& di,
                               uint3 my_pos,
                               const BoxDim& box)
@@ -1014,6 +1020,34 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                            d_ghost_idx_adj,
                            d_orientation,
                            d_orientation_sendbuf);
+        }
+    if (send_angmom)
+        {
+        assert(d_angmom);
+        assert(d_angmom_sendbuf);
+        hipLaunchKernelGGL(gpu_pack_kernel,
+                           dim3(n_blocks),
+                           dim3(block_size),
+                           0,
+                           0,
+                           n_out,
+                           d_ghost_idx_adj,
+                           d_angmom,
+                           d_angmom_sendbuf);
+        }
+    if (send_inertia)
+        {
+        assert(d_inertia);
+        assert(d_inertia_sendbuf);
+        hipLaunchKernelGGL(gpu_pack_kernel,
+                           dim3(n_blocks),
+                           dim3(block_size),
+                           0,
+                           0,
+                           n_out,
+                           d_ghost_idx_adj,
+                           d_inertia,
+                           d_inertia_sendbuf);
         }
     }
 
@@ -1155,6 +1189,8 @@ void gpu_exchange_ghosts_copy_buf(unsigned int n_recv,
                                   const unsigned int* d_body_recvbuf,
                                   const int3* d_image_recvbuf,
                                   const Scalar4* d_orientation_recvbuf,
+                                  const Scalar4* d_angmom_recvbuf,
+                                  const Scalar3* d_inertia_recvbuf,
                                   unsigned int* d_tag,
                                   Scalar4* d_pos,
                                   Scalar4* d_vel,
@@ -1163,6 +1199,8 @@ void gpu_exchange_ghosts_copy_buf(unsigned int n_recv,
                                   unsigned int* d_body,
                                   int3* d_image,
                                   Scalar4* d_orientation,
+                                  Scalar4* d_angmom,
+                                  Scalar3* d_inertia,
                                   bool send_tag,
                                   bool send_pos,
                                   bool send_vel,
@@ -1170,7 +1208,9 @@ void gpu_exchange_ghosts_copy_buf(unsigned int n_recv,
                                   bool send_diameter,
                                   bool send_body,
                                   bool send_image,
-                                  bool send_orientation)
+                                  bool send_orientation,
+                                  bool send_angmom,
+                                  bool send_inertia)
     {
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv / block_size + 1;
@@ -1261,6 +1301,28 @@ void gpu_exchange_ghosts_copy_buf(unsigned int n_recv,
                            n_recv,
                            d_orientation_recvbuf,
                            d_orientation);
+        }
+    if (send_angmom)
+        {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>),
+                           dim3(n_blocks),
+                           dim3(block_size),
+                           0,
+                           0,
+                           n_recv,
+                           d_angmom_recvbuf,
+                           d_angmom);
+        }
+    if (send_inertia)
+        {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar3>),
+                           dim3(n_blocks),
+                           dim3(block_size),
+                           0,
+                           0,
+                           n_recv,
+                           d_inertia_recvbuf,
+                           d_inertia);
         }
     }
 

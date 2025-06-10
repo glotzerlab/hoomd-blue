@@ -265,21 +265,12 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SI
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hip-clang")
+    if (HIP_PLATFORM STREQUAL "amd")
         target_link_libraries(_hoomd PUBLIC hip::hipfft)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
     target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
-
-    if(ALWAYS_USE_MANAGED_MEMORY)
-        target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
-    endif()
-
-    if (ENABLE_NVTOOLS)
-        target_link_libraries(_hoomd PUBLIC CUDA::nvToolsExt)
-        target_compile_definitions(_hoomd PUBLIC ENABLE_NVTOOLS)
-    endif()
 
     if (CUSOLVER_AVAILABLE)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)

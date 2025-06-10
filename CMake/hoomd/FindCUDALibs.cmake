@@ -55,22 +55,6 @@ else()
     add_library(CUDA::cufft UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc" AND ENABLE_NVTOOLS)
-    find_library(CUDA_nvToolsExt_LIBRARY nvToolsExt HINTS ${CUDA_LIB_PATH})
-    mark_as_advanced(CUDA_nvToolsExt_LIBRARY)
-    if(CUDA_nvToolsExt_LIBRARY AND NOT TARGET CUDA::nvToolsExt)
-      add_library(CUDA::nvToolsExt UNKNOWN IMPORTED)
-      set_target_properties(CUDA::nvToolsExt PROPERTIES
-        IMPORTED_LOCATION "${CUDA_nvToolsExt_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
-      )
-    endif()
-    find_package_message(CUDALibsNVToolsExt "Found nvToolsExt: ${CUDA_nvToolsExt_LIBRARY}" "$[{CUDA_nvToolsExt_LIBRARY}]")
-else()
-    # nvtools not supported by HIP
-    add_library(CUDA::nvToolsExt UNKNOWN IMPORTED)
-endif()
-
 if (HIP_PLATFORM STREQUAL "nvcc")
     find_library(CUDA_cusolver_LIBRARY cusolver HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cusolver_LIBRARY)
@@ -105,8 +89,11 @@ else()
     add_library(CUDA::cusparse UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "hip-clang")
-    find_package(hipfft)
+if (HIP_PLATFORM STREQUAL "amd")
+    find_package(hipfft REQUIRED)
+    include_directories("${hipfft_INCLUDE_DIR}")
+    include_directories("${hipfft_INCLUDE_DIR}/hipfft")
+    message("Found hipfft includes: ${hipfft_INCLUDE_DIR}")
 endif()
 
 if (HIP_PLATFORM STREQUAL "nvcc")

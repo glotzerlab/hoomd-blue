@@ -138,7 +138,14 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
         Scalar minv = Scalar(1.0) / mass;
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
-        accel.z = (accel.z + bd_force.z) * minv;
+        if (D > 2)
+            {
+            accel.z = (accel.z + bd_force.z) * minv;
+            }
+        else
+            {
+            accel.z = Scalar(0.0);
+            }
 
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)

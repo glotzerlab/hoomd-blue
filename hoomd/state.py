@@ -577,14 +577,14 @@ class State:
             box = Box.from_box(box)
         except Exception:
             raise ValueError(
-                "{} is not convertible to hoomd.Box using " "hoomd.Box.from_box".format(
+                "{} is not convertible to hoomd.Box using hoomd.Box.from_box".format(
                     box
                 )
             )
 
         if box.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device._cpp_msg.warning(
-                "Box changing dimensions from {} to {}." "".format(
+                "Box changing dimensions from {} to {}.".format(
                     self._cpp_sys_def.getNDimensions(), box.dimensions
                 )
             )

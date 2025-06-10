@@ -59,7 +59,7 @@ struct AlchemicalMDParticle : AlchemicalParticle
         ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
                                      access_location::host,
                                      access_mode::overwrite);
-        memset((void*)h_forces.data, 0, sizeof(Scalar) * m_alchemical_derivatives.getNumElements());
+        m_alchemical_derivatives.zeroFill();
         }
 
     void resizeForces(unsigned int N)

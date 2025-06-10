@@ -106,7 +106,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
         ArrayHandle<unsigned int> h_conditions(m_conditions,
                                                access_location::host,
                                                access_mode::overwrite);
-        memset(h_conditions.data, 0, sizeof(unsigned int) * m_pdata->getNTypes());
+        m_conditions.zeroFill();
         }
 
     // allocate m_last_pos
@@ -560,8 +560,8 @@ void NeighborList::resizeAndClearExclusions()
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int) * m_n_ex_tag.getNumElements());
-    memset(h_n_ex_idx.data, 0, sizeof(unsigned int) * m_n_ex_idx.getNumElements());
+    m_n_ex_tag.zeroFill();
+    m_n_ex_idx.zeroFill();
     m_exclusions_set = false;
 
     forceUpdate();
@@ -1533,7 +1533,7 @@ void NeighborList::resetConditions()
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
                                            access_mode::overwrite);
-    memset(h_conditions.data, 0, sizeof(unsigned int) * m_pdata->getNTypes());
+    m_conditions.zeroFill();
     }
 
 void NeighborList::growExclusionList()

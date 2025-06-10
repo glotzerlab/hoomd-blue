@@ -85,12 +85,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
                           std::vector<Scalar3>& pos,
                           std::vector<Scalar4>& orientation);
 
-    //! Returns true because we compute the torque on the central particle
-    virtual bool isAnisotropic()
-        {
-        return true;
-        }
-
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);

@@ -250,15 +250,13 @@ template<class Shape> class IntegratorHPMCMono : public IntegratorHPMC
 #ifdef ENABLE_MPI
         if (m_sysdef->isDomainDecomposed())
             {
-            // this is kludgy but necessary since we are calling the communications methods directly
-            m_comm->setFlags(getCommFlags(0));
-
             if (migrate)
-                m_comm->migrateParticles();
-            else
-                m_pdata->removeAllGhostParticles();
+                {
+                m_comm->forceMigrate();
+                }
 
-            m_comm->exchangeGhosts();
+            // The timestep flag is not used in HPMC simulations, pass 0.
+            m_comm->communicate(0);
 
             m_aabb_tree_invalid = true;
             }
@@ -440,7 +438,9 @@ template<class Shape> void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     m_update_order.resize(m_pdata->getN());
     m_update_order.shuffle(timestep, m_sysdef->getSeed(), m_exec_conf->getRank());
 
-    // update the AABB Tree
+    // update the AABB Tree. Assume that it is invalid as previously called Updaters may have
+    // moved particles.
+    m_aabb_tree_invalid = true;
     buildAABBTree();
     // limit m_d entries so that particles cannot possibly wander more than one box image in one
     // time step

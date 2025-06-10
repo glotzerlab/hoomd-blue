@@ -23,7 +23,7 @@ namespace md
     {
 namespace kernel
     {
-struct vel_search_un_opt : public thrust::unary_function<const unsigned int, Scalar3>
+struct vel_search_un_opt
     {
     vel_search_un_opt(const Scalar4* const d_vel,
                       const unsigned int* const d_tag,
@@ -59,8 +59,7 @@ struct vel_search_un_opt : public thrust::unary_function<const unsigned int, Sca
         return result;
         }
     };
-template<typename CMP>
-struct vel_search_binary_opt : public thrust::binary_function<Scalar3, Scalar3, Scalar3>
+template<typename CMP> struct vel_search_binary_opt
     {
     vel_search_binary_opt(const unsigned int* const d_rtag,
                           const Scalar4* const d_pos,

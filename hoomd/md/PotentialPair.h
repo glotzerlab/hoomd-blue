@@ -596,8 +596,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
         // need to start from a zero force, energy and virial
-        memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-        memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+        m_force.zeroFill();
+        m_virial.zeroFill();
 
         // for each particle
         for (int i = 0; i < (int)m_pdata->getN(); i++)

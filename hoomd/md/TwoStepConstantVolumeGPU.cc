@@ -173,7 +173,8 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
                                          d_net_force.data,
                                          m_tuner_two->getParam()[0],
                                          m_deltaT,
-                                         rescalingFactors[0]);
+                                         rescalingFactors[0],
+                                         m_sysdef->getNDimensions());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

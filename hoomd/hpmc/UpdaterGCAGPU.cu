@@ -51,7 +51,7 @@ namespace gpu
         }
 #endif
 
-struct get_source : public thrust::unary_function<uint2, unsigned int>
+struct get_source
     {
     __host__ __device__ unsigned int operator()(const uint2& u) const
         {
@@ -59,7 +59,7 @@ struct get_source : public thrust::unary_function<uint2, unsigned int>
         }
     };
 
-struct get_destination : public thrust::unary_function<uint2, unsigned int>
+struct get_destination
     {
     __host__ __device__ unsigned int operator()(const uint2& u) const
         {
@@ -67,7 +67,7 @@ struct get_destination : public thrust::unary_function<uint2, unsigned int>
         }
     };
 
-struct pair_less : public thrust::binary_function<uint2, uint2, bool>
+struct pair_less
     {
     __device__ bool operator()(const uint2& lhs, const uint2& rhs) const
         {

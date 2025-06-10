@@ -6,6 +6,7 @@
 from hoomd.filter.filter_ import ParticleFilter
 from hoomd._hoomd import ParticleFilterTags
 import numpy as np
+import inspect
 
 
 class Tags(ParticleFilter, ParticleFilterTags):
@@ -33,7 +34,9 @@ class Tags(ParticleFilter, ParticleFilterTags):
     **Members defined in** `Tags`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", ParticleFilter._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(ParticleFilter._doc_inherited)
+    )
 
     def __init__(self, tags):
         ParticleFilter.__init__(self)

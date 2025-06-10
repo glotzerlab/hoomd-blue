@@ -91,11 +91,6 @@ class EvaluatorExternalMagneticField
         {
         }
 
-    DEVICE static bool isAnisotropic()
-        {
-        return true;
-        }
-
     //! ExternalMagneticField needs charges
     DEVICE static bool needsCharge()
         {

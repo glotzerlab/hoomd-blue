@@ -196,7 +196,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
     particle i determined by cutoff and other interactions.
 
     The body ghost layer width for constituent particles *should be* the maximum diameter d_i among
-    all rigid body types that have this particle as a consituent. However, this must be larger due
+    all rigid body types that have this particle as a constituent. However, this must be larger due
     to limitations in the way that individual rigid body particles are indexed relative to the
     molecules in MolecularForceCompute. In the worst case, for a ghost particle within the
     interaction ghost width r_ghost_i of a boundary, *ALL* other particles in that body must be
@@ -630,6 +630,11 @@ CommFlags ForceComposite::getRequestedCommFlags(uint64_t timestep)
     // request orientations
     flags[comm_flag::orientation] = 1;
 
+    // request velocity, angular momentum, and inertia
+    flags[comm_flag::velocity] = 1;
+    flags[comm_flag::angmom] = 1;
+    flags[comm_flag::inertia] = 1;
+
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
     if (pdata_flags[pdata_flag::pressure_tensor])
@@ -705,9 +710,9 @@ void ForceComposite::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     // reset constraint forces and torques
-    memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
-    memset(h_torque.data, 0, sizeof(Scalar4) * m_pdata->getN());
-    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_torque.zeroFill();
+    m_virial.zeroFill();
 
     unsigned int n_particles_local = m_pdata->getN() + m_pdata->getNGhosts();
     size_t net_virial_pitch = m_pdata->getNetVirial().getPitch();
@@ -799,8 +804,7 @@ void ForceComposite::computeForces(uint64_t timestep)
                 h_torque.data[central_idx].z += delta_torque.z;
 
                 /* from previous rigid body implementation: Access Torque elements from a single
-                   particle. Right now I will am assuming that the particle and rigid body reference
-                   frames are the same. Probably have to rotate first.
+                   particle. Probably have to rotate first.
                  */
                 h_torque.data[central_idx].x += net_torque.x;
                 h_torque.data[central_idx].y += net_torque.y;
@@ -867,9 +871,18 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+    ArrayHandle<Scalar4> h_velocity(m_pdata->getVelocities(),
+                                    access_location::host,
+                                    access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                        access_location::host,
                                        access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::read);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::read);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
@@ -973,11 +986,55 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         updated_pos += dr_space;
         quat<Scalar> updated_orientation = orientation * local_orientation;
 
+        /* Update velocity of constituents
+         *
+         * Calculate the angular momentum in the body frame as a vector,
+         * then divide by the moment of inertia to get the angular velocity.
+         * The tangential velocity in the body frame is the angular velocity
+         * cross the position relative to the center of mass, which is then
+         * rotated into the space frame and added to the velocity of the center
+         * of mass.
+         */
+        const quat<Scalar> angmom(h_angmom.data[central_idx]);
+        const vec3<Scalar> inertia(h_inertia.data[central_idx]);
+        const quat<Scalar> angvel_body_quat = Scalar(0.5) * conj(orientation) * angmom;
+        vec3<Scalar> angvel_body = angvel_body_quat.v;
+        if (inertia.x != Scalar(0))
+            {
+            angvel_body.x /= inertia.x;
+            }
+        else
+            {
+            angvel_body.x = Scalar(0);
+            }
+
+        if (inertia.y != Scalar(0))
+            {
+            angvel_body.y /= inertia.y;
+            }
+        else
+            {
+            angvel_body.y = Scalar(0);
+            }
+
+        if (inertia.z != Scalar(0))
+            {
+            angvel_body.z /= inertia.z;
+            }
+        else
+            {
+            angvel_body.z = Scalar(0);
+            }
+
+        const vec3<Scalar> updated_vel = vec3<Scalar>(h_velocity.data[central_idx])
+                                         + rotate(orientation, cross(angvel_body, local_pos));
+
         // this runs before the ForceComputes,
         // wrap into box, allowing rigid bodies to span multiple images
         int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
         updated_pos = global_box.shift(updated_pos, negimgi);
+        const Scalar mass = h_velocity.data[particle_index].w;
 
         h_postype.data[particle_index]
             = make_scalar4(updated_pos.x,
@@ -985,6 +1042,8 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
                            updated_pos.z,
                            __int_as_scalar(h_body_types.data[m_body_idx(type, idx_in_body)]));
         h_orientation.data[particle_index] = quat_to_scalar4(updated_orientation);
+        h_velocity.data[particle_index]
+            = make_scalar4(updated_vel.x, updated_vel.y, updated_vel.z, mass);
         h_image.data[particle_index] = img + imgi;
         }
     }

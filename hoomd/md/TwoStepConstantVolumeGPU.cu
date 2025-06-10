@@ -151,6 +151,8 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
     \param work_size Number of members in the group for this GPU
     \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
+    \param rescale_factor Velocity rescaling factor.
+    \param n_dimensions Number of dimensions in the simulation.
 */
 __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
                                                 Scalar3* d_accel,
@@ -158,7 +160,8 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
                                                 unsigned int work_size,
                                                 Scalar4* d_net_force,
                                                 Scalar deltaT,
-                                                Scalar rescale_factor)
+                                                Scalar rescale_factor,
+                                                unsigned int n_dimensions)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -169,6 +172,10 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
 
         // read in the net force and calculate the acceleration
         Scalar4 net_force = d_net_force[idx];
+        if (n_dimensions == 2)
+            {
+            net_force.z = Scalar(0.0);
+            }
         Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
 
         Scalar4 vel = d_vel[idx];
@@ -199,6 +206,7 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
     \param block_size Size of the block to execute on the device
     \param deltaT Amount of real time to step forward in one time step
     \param rescale_factor Exponential velocity scaling factor
+    \param n_dimensions Number of dimensions in the simulation.
 */
 hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                                     Scalar3* d_accel,
@@ -207,7 +215,9 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                                     Scalar4* d_net_force,
                                     unsigned int block_size,
                                     Scalar deltaT,
-                                    Scalar rescale_factor)
+                                    Scalar rescale_factor,
+                                    unsigned int n_dimensions)
+
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -234,7 +244,8 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                        nwork,
                        d_net_force,
                        deltaT,
-                       rescale_factor);
+                       rescale_factor,
+                       n_dimensions);
 
     return hipSuccess;
     }

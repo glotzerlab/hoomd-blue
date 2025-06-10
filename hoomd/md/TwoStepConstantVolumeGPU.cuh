@@ -35,7 +35,8 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                                     Scalar4* d_net_force,
                                     unsigned int block_size,
                                     Scalar deltaT,
-                                    Scalar rescale_factor);
+                                    Scalar rescale_factor,
+                                    unsigned int n_dimensions);
 
     } // end namespace kernel
     } // end namespace md

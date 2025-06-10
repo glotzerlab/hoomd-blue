@@ -4,14 +4,10 @@ updates:
   directory: "/"
   target-branch: trunk-patch
   schedule:
-    interval: "monthly"
-    time: "07:00"
-    timezone: "EST5EDT"
+    interval: "cron"
+    cronjob: "9 12 * 2,5,8,11 4#1"
   pull-request-branch-name:
     separator: "-"
-  open-pull-requests-limit: 2
-  reviewers:
-  - joaander
   groups:
     actions-version:
       applies-to: version-updates
@@ -25,14 +21,10 @@ updates:
   directory: "/"
   target-branch: trunk-patch
   schedule:
-    interval: "monthly"
-    time: "07:00"
-    timezone: "EST5EDT"
+    interval: "cron"
+    cronjob: "9 12 * 2,5,8,11 4#1"
   pull-request-branch-name:
     separator: "-"
-  open-pull-requests-limit: 2
-  reviewers:
-  - joaander
   groups:
     pip-version:
       applies-to: version-updates

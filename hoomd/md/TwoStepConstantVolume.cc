@@ -240,6 +240,11 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
         Scalar3 net_force
             = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
 
+        if (m_sysdef->getNDimensions() == 2)
+            {
+            net_force.z = Scalar(0.0);
+            }
+
         // first, calculate acceleration from the net force
         Scalar m = h_vel.data[j].w;
         Scalar minv = Scalar(1.0) / m;

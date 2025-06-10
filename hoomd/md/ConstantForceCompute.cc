@@ -151,8 +151,8 @@ void ConstantForceCompute::setForces()
     assert(h_t_actVec.data != NULL);
 
     // zero forces so we don't leave any forces set for indices that are no longer part of our group
-    memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset(h_torque.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    m_force.zeroFill();
+    m_torque.zeroFill();
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {

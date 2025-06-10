@@ -19,6 +19,7 @@ from hoomd.wall import _WallsMetaList
 from hoomd.data.syncedlist import identity
 from hoomd.logging import log
 from hoomd import hpmc
+import inspect
 
 from .external import External
 
@@ -164,7 +165,9 @@ class WallPotential(External):
     **Members defined in** `WallPotential`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", External._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(External._doc_inherited)
+    )
 
     def __init__(self, walls):
         self._walls = _HPMCWallsMetaList(self, walls, _to_hpmc_cpp_wall)

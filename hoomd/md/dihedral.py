@@ -46,6 +46,7 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd
 
 import numpy
+import inspect
 
 
 class Dihedral(Force):
@@ -58,7 +59,7 @@ class Dihedral(Force):
         for `isinstance` or `issubclass` checks.
     """
 
-    __doc__ += Force._doc_inherited
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Force._doc_inherited)
 
     # Module where the C++ class is defined. Reassign this when developing an
     # external plugin.
@@ -118,7 +119,9 @@ class Periodic(Dihedral):
     """
 
     _cpp_class_name = "HarmonicDihedralForceCompute"
-    __doc__ = __doc__.replace("{inherited}", Dihedral._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Dihedral._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()
@@ -177,7 +180,9 @@ class Table(Dihedral):
         width (int): Number of points in the table.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Dihedral._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Dihedral._doc_inherited)
+    )
 
     def __init__(self, width):
         super().__init__()
@@ -251,7 +256,9 @@ class OPLS(Dihedral):
     """
 
     _cpp_class_name = "OPLSDihedralForceCompute"
-    __doc__ = __doc__.replace("{inherited}", Dihedral._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Dihedral._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()

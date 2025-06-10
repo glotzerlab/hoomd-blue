@@ -483,7 +483,7 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
     @shape.setter
     def shape(self, value):
         raise HOOMDArrayError(
-            "Shape cannot be set on a {}. Use " "``array.reshape`` instead.".format(
+            "Shape cannot be set on a {}. Use ``array.reshape`` instead.".format(
                 self.__class__.__name__
             )
         )

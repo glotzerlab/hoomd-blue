@@ -74,7 +74,7 @@ class Simulation(metaclass=Loggable):
     @device.setter
     def device(self, value):
         raise ValueError(
-            "Device cannot be removed or replaced once in " "Simulation object."
+            "Device cannot be removed or replaced once in Simulation object."
         )
 
     @log
@@ -137,8 +137,7 @@ class Simulation(metaclass=Loggable):
         if v_int < 0 or v_int > SEED_MAX:
             v_int = v_int & SEED_MAX
             self.device._cpp_msg.warning(
-                f"Provided seed {v} is larger than {SEED_MAX}. "
-                f"Truncating to {v_int}.\n"
+                f"Provided seed {v} is larger than {SEED_MAX}. Truncating to {v_int}.\n"
             )
 
         self._seed = v_int
@@ -557,7 +556,7 @@ class Simulation(metaclass=Loggable):
 
         steps_int = int(steps)
         if steps_int < 0 or steps_int > TIMESTEP_MAX - 1:
-            raise ValueError(f"steps must be in the range [0, " f"{TIMESTEP_MAX - 1}]")
+            raise ValueError(f"steps must be in the range [0, {TIMESTEP_MAX - 1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
 

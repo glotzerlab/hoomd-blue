@@ -19,6 +19,7 @@ from hoomd.filter import ParticleFilter
 from hoomd.md.methods import Method
 from hoomd.mpcd import _mpcd
 from hoomd.mpcd.geometry import Geometry
+import inspect
 
 
 class BounceBack(Method):
@@ -86,7 +87,9 @@ class BounceBack(Method):
     """
 
     _cpp_class_map = {}
-    __doc__ = __doc__.replace("{inherited}", Method._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Method._doc_inherited)
+    )
 
     def __init__(self, filter, geometry):
         super().__init__()

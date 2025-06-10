@@ -82,6 +82,7 @@ from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, nonnegative_real
 from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.operation import Compute
+import inspect
 
 
 class NeighborList(Compute):
@@ -118,7 +119,9 @@ class NeighborList(Compute):
         `float`])
     """
 
-    __doc__ = __doc__.replace("{inherited}", Compute._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
 
     _doc_inherited = (
         Compute._doc_inherited
@@ -468,7 +471,9 @@ class Cell(NeighborList):
             deterministic simulation runs.
     """
 
-    __doc__ = __doc__.replace("{inherited}", NeighborList._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(NeighborList._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -583,7 +588,9 @@ class Stencil(NeighborList):
             deterministic simulation runs.
     """
 
-    __doc__ = __doc__.replace("{inherited}", NeighborList._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(NeighborList._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -662,7 +669,11 @@ class Tree(NeighborList):
         nl_t = nlist.Tree(check_dist=False)
     """
 
-    __doc__ += NeighborList._doc_inherited
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(NeighborList._doc_inherited)
+    )
 
     def __init__(
         self,

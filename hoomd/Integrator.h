@@ -207,9 +207,6 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// The systems's communicator.
     std::shared_ptr<Communicator> m_comm;
 #endif
-
-    /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool areForcesAnisotropic();
     };
 
 namespace detail

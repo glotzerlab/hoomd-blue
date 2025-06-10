@@ -73,10 +73,6 @@ std::string BuildInfo::getCompileFlags()
     o << "AVX2 ";
 #endif
 
-#ifdef ALWAYS_USE_MANAGED_MEMORY
-    o << "ALWAYS_MANAGED ";
-#endif
-
     return o.str();
     }
 

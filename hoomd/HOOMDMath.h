@@ -237,6 +237,8 @@ inline HOSTDEVICE float rsqrt(float x)
     return ::rsqrtf(x);
 #elif defined(__HIP_PLATFORM_HCC__)
     return ::__frsqrt_rn(x);
+#elif defined(__HIP_PLATFORM_AMD__)
+    return ::__frsqrt_rn(x);
 #endif
 #else
     return 1.0f / ::sqrtf(x);
@@ -347,6 +349,56 @@ inline HOSTDEVICE float pow(float x, float y)
 inline HOSTDEVICE double pow(double x, double y)
     {
     return ::exp(y * log(x));
+    }
+
+//! Compute the pow of x,y in double precision when y is an integer using squaring
+inline HOSTDEVICE double pow(double x, unsigned int y)
+    {
+    double result = 1.0;
+    for (;;)
+        {
+        if (y & 1)
+            result *= x;
+        y >>= 1;
+        if (!y)
+            break;
+        x *= x;
+        }
+    return result;
+    }
+
+inline HOSTDEVICE double pow(double x, int y)
+    {
+    unsigned int _y = abs(y);
+    if (y < 0)
+        return 1.0 / pow(x, _y);
+    else
+        return pow(x, _y);
+    }
+
+//! Compute the pow of x,y in single precision when y is an integer using squaring
+inline HOSTDEVICE float pow(float x, unsigned int y)
+    {
+    float result = 1.0f;
+    for (;;)
+        {
+        if (y & 1)
+            result *= x;
+        y >>= 1;
+        if (!y)
+            break;
+        x *= x;
+        }
+    return result;
+    }
+
+inline HOSTDEVICE float pow(float x, int y)
+    {
+    unsigned int _y = abs(y);
+    if (y < 0)
+        return 1.0f / pow(x, _y);
+    else
+        return pow(x, _y);
     }
 
 //! Compute the exp of x
@@ -677,6 +729,19 @@ HOSTDEVICE inline hoomd::Scalar3& operator+=(hoomd::Scalar3& a, const hoomd::Sca
     a.z += b.z;
     return a;
     }
+
+//! Vector multiplication (component-wise)
+HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a.x * b.x, a.y * b.y, a.z * b.z);
+    }
+
+//! Vector division (component-wise)
+HOSTDEVICE inline hoomd::Scalar3 operator/(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a.x / b.x, a.y / b.y, a.z / b.z);
+    }
+
 #endif
 
 //! Vector subtraction
@@ -693,12 +758,6 @@ HOSTDEVICE inline hoomd::Scalar3& operator-=(hoomd::Scalar3& a, const hoomd::Sca
     return a;
     }
 
-//! Vector multiplication (component-wise)
-HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
-    {
-    return hoomd::make_scalar3(a.x * b.x, a.y * b.y, a.z * b.z);
-    }
-
 //! Vector multiplication
 HOSTDEVICE inline hoomd::Scalar3& operator*=(hoomd::Scalar3& a, const hoomd::Scalar3& b)
     {
@@ -708,11 +767,6 @@ HOSTDEVICE inline hoomd::Scalar3& operator*=(hoomd::Scalar3& a, const hoomd::Sca
     return a;
     }
 
-//! Vector division (component-wise)
-HOSTDEVICE inline hoomd::Scalar3 operator/(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
-    {
-    return hoomd::make_scalar3(a.x / b.x, a.y / b.y, a.z / b.z);
-    }
 //! Scalar - vector multiplication
 HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar& a, const hoomd::Scalar3& b)
     {

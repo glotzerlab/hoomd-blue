@@ -99,8 +99,8 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_rtag.data);
     assert(h_bonds.data);
 
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_virial.zeroFill();
 
     const BoxDim& box = m_pdata->getGlobalBox();
 

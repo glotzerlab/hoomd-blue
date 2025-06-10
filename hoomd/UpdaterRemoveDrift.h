@@ -32,6 +32,15 @@ class UpdaterRemoveDrift : public Updater
         : Updater(sysdef, trigger)
         {
         setReferencePositions(ref_positions);
+
+#ifdef ENABLE_MPI
+        if (m_sysdef->isDomainDecomposed())
+            {
+            auto comm_weak = m_sysdef->getCommunicator();
+            assert(comm_weak.lock());
+            m_comm = comm_weak.lock();
+            }
+#endif
         }
 
     //! Set reference positions from a (N_particles, 3) numpy array
@@ -87,61 +96,77 @@ class UpdaterRemoveDrift : public Updater
     //! Take one timestep forward
     virtual void update(uint64_t timestep)
         {
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::readwrite);
-        ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
-                                        access_location::host,
-                                        access_mode::read);
-        ArrayHandle<int3> h_image(this->m_pdata->getImages(),
-                                  access_location::host,
-                                  access_mode::readwrite);
-        const BoxDim box = this->m_pdata->getGlobalBox();
-        const vec3<Scalar> origin(this->m_pdata->getOrigin());
-        vec3<Scalar> rshift;
-        rshift.x = rshift.y = rshift.z = 0.0f;
-
-        for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
             {
-            unsigned int tag_i = h_tag.data[i];
-            // read in the current position and orientation
-            vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
-            int3 tmp_image = make_int3(0, 0, 0);
-            box.wrap(postype_i, tmp_image);
-            const vec3<Scalar> dr = postype_i - m_ref_positions[tag_i];
-            rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
+            ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
+                                           access_location::host,
+                                           access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
+                                            access_location::host,
+                                            access_mode::read);
+            ArrayHandle<int3> h_image(this->m_pdata->getImages(),
+                                      access_location::host,
+                                      access_mode::readwrite);
+            const BoxDim box = this->m_pdata->getGlobalBox();
+            const vec3<Scalar> origin(this->m_pdata->getOrigin());
+            vec3<Scalar> rshift;
+            rshift.x = rshift.y = rshift.z = 0.0f;
+
+            for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
+                {
+                unsigned int tag_i = h_tag.data[i];
+                // read in the current position and orientation
+                vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
+                int3 tmp_image = make_int3(0, 0, 0);
+                box.wrap(postype_i, tmp_image);
+                const vec3<Scalar> dr = postype_i - m_ref_positions[tag_i];
+                rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
+                }
+
+#ifdef ENABLE_MPI
+            if (this->m_pdata->getDomainDecomposition())
+                {
+                Scalar r[3] = {rshift.x, rshift.y, rshift.z};
+                MPI_Allreduce(MPI_IN_PLACE,
+                              &r[0],
+                              3,
+                              MPI_HOOMD_SCALAR,
+                              MPI_SUM,
+                              m_exec_conf->getMPICommunicator());
+                rshift.x = r[0];
+                rshift.y = r[1];
+                rshift.z = r[2];
+                }
+#endif
+
+            rshift /= Scalar(this->m_pdata->getNGlobal());
+
+            for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
+                {
+                // read in the current position and orientation
+                Scalar4 postype_i = h_postype.data[i];
+                const vec3<Scalar> r_i = vec3<Scalar>(postype_i);
+                h_postype.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
+                box.wrap(h_postype.data[i], h_image.data[i]);
+                }
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        // All particles have moved, communicate the changes.
+        if (m_sysdef->isDomainDecomposed())
             {
-            Scalar r[3] = {rshift.x, rshift.y, rshift.z};
-            MPI_Allreduce(MPI_IN_PLACE,
-                          &r[0],
-                          3,
-                          MPI_HOOMD_SCALAR,
-                          MPI_SUM,
-                          m_exec_conf->getMPICommunicator());
-            rshift.x = r[0];
-            rshift.y = r[1];
-            rshift.z = r[2];
+            m_comm->forceMigrate();
+            m_comm->communicate(timestep);
             }
 #endif
-
-        rshift /= Scalar(this->m_pdata->getNGlobal());
-
-        for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
-            {
-            // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i];
-            const vec3<Scalar> r_i = vec3<Scalar>(postype_i);
-            h_postype.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
-            box.wrap(h_postype.data[i], h_image.data[i]);
-            }
         }
 
     protected:
     std::vector<vec3<Scalar>> m_ref_positions;
+
+#ifdef ENABLE_MPI
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
     };
 
 namespace detail

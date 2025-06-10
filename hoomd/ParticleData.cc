@@ -386,9 +386,10 @@ void ParticleData::allocate(unsigned int N)
         ArrayHandle<Scalar> h_net_virial(m_net_virial,
                                          access_location::host,
                                          access_mode::overwrite);
-        memset(h_net_force.data, 0, sizeof(Scalar4) * m_net_force.getNumElements());
-        memset(h_net_torque.data, 0, sizeof(Scalar4) * m_net_torque.getNumElements());
-        memset(h_net_virial.data, 0, sizeof(Scalar) * m_net_virial.getNumElements());
+
+        m_net_force.zeroFill();
+        m_net_torque.zeroFill();
+        m_net_virial.zeroFill();
         }
 
     GPUArray<Scalar4> orientation(N, m_exec_conf);
@@ -482,9 +483,9 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
         ArrayHandle<Scalar> h_net_virial_alt(m_net_virial_alt,
                                              access_location::host,
                                              access_mode::overwrite);
-        memset(h_net_force_alt.data, 0, sizeof(Scalar4) * m_net_force_alt.getNumElements());
-        memset(h_net_torque_alt.data, 0, sizeof(Scalar4) * m_net_torque_alt.getNumElements());
-        memset(h_net_virial_alt.data, 0, sizeof(Scalar) * m_net_virial_alt.getNumElements());
+        m_net_force_alt.zeroFill();
+        m_net_torque_alt.zeroFill();
+        m_net_virial_alt.zeroFill();
         }
     }
 
@@ -577,9 +578,10 @@ void ParticleData::reallocate(unsigned int max_n)
         ArrayHandle<Scalar> h_net_virial(m_net_virial,
                                          access_location::host,
                                          access_mode::readwrite);
-        memset(h_net_force.data, 0, sizeof(Scalar4) * m_net_force.getNumElements());
-        memset(h_net_torque.data, 0, sizeof(Scalar4) * m_net_torque.getNumElements());
-        memset(h_net_virial.data, 0, sizeof(Scalar) * m_net_virial.getNumElements());
+
+        m_net_force.zeroFill();
+        m_net_torque.zeroFill();
+        m_net_virial.zeroFill();
         }
 
     m_orientation.resize(max_n);
@@ -617,9 +619,10 @@ void ParticleData::reallocate(unsigned int max_n)
             ArrayHandle<Scalar> h_net_virial_alt(m_net_virial_alt,
                                                  access_location::host,
                                                  access_mode::overwrite);
-            memset(h_net_force_alt.data, 0, sizeof(Scalar4) * m_net_force_alt.getNumElements());
-            memset(h_net_torque_alt.data, 0, sizeof(Scalar4) * m_net_torque_alt.getNumElements());
-            memset(h_net_virial_alt.data, 0, sizeof(Scalar) * m_net_virial_alt.getNumElements());
+
+            m_net_force_alt.zeroFill();
+            m_net_torque_alt.zeroFill();
+            m_net_virial_alt.zeroFill();
             }
         }
 

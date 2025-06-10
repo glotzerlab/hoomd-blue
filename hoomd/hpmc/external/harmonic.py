@@ -8,6 +8,7 @@ from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.hpmc import _hpmc
 import hoomd
 import numpy as np
+import inspect
 
 from .external import External
 
@@ -38,6 +39,7 @@ class Harmonic(External):
 
     .. math::
 
+        \begin{split}
         U_{\mathrm{external},i} & = U_{\mathrm{translational},i} +
         U_{\mathrm{rotational},i} \\
         U_{\mathrm{translational},i} & = \frac{1}{2}
@@ -46,6 +48,7 @@ class Harmonic(External):
             k_{rotational} \cdot \min_j \left[
             (\mathbf{q}_i-\mathbf{q}_{0,i} \cdot
              \mathbf{q}_{\mathrm{symmetry},j})^2 \right]
+        \end{split}
 
 
     where :math:`k_{translational}` and :math:`k_{rotational}` correspond to the
@@ -81,7 +84,9 @@ class Harmonic(External):
             :math:`[\mathrm{dimensionless}]`.
     """
 
-    __doc__ = __doc__.replace("{inherited}", External._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(External._doc_inherited)
+    )
 
     def __init__(
         self,

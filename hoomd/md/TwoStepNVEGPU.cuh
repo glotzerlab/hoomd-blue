@@ -31,18 +31,6 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
                             bool zero_force,
                             unsigned int block_size);
 
-//! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
-hipError_t gpu_nve_step_two(Scalar4* d_vel,
-                            Scalar3* d_accel,
-                            unsigned int* d_group_members,
-                            const unsigned int group_size,
-                            Scalar4* d_net_force,
-                            Scalar deltaT,
-                            bool limit,
-                            Scalar limit_val,
-                            bool zero_force,
-                            unsigned int block_size);
-
 //! Kernel driver for the first part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
 hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                                     Scalar4* d_angmom,

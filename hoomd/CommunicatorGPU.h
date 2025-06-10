@@ -238,6 +238,12 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     GPUVector<Scalar> m_netvirial_ghost_sendbuf; //!< Send buffer for netvirial
     GPUVector<Scalar> m_netvirial_ghost_recvbuf; //!< Recv buffer for netvirial
 
+    GPUVector<Scalar4> m_angmom_ghost_sendbuf; //<! Buffer for sending ghost angular momentum
+    GPUVector<Scalar4> m_angmom_ghost_recvbuf; //<! Buffer for receiving ghost angular momentum
+
+    GPUVector<Scalar3> m_inertia_ghost_sendbuf; //<! Buffer for sending ghost moment of inertia
+    GPUVector<Scalar3> m_inertia_ghost_recvbuf; //<! Buffer for receiving ghost moment of inertia
+
     GPUVector<unsigned int> m_ghost_begin; //!< Begin index for every stage and neighbor in send buf
     GPUVector<unsigned int> m_ghost_end;   //!< Begin index for every and neighbor in send buf
 

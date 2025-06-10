@@ -121,7 +121,10 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         // update position
         h_pos.data[j].x += (h_net_force.data[j].x + Fr_x) * m_deltaT / gamma;
         h_pos.data[j].y += (h_net_force.data[j].y + Fr_y) * m_deltaT / gamma;
-        h_pos.data[j].z += (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
+        if (D > 2)
+            {
+            h_pos.data[j].z += (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
+            }
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place

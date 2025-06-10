@@ -166,13 +166,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         }
 #endif
 
-    //! Returns true if this ForceCompute requires anisotropic integration
-    virtual bool isAnisotropic()
-        {
-        // by default, only translational degrees of freedom are integrated
-        return false;
-        }
-
     bool getLocalBuffersWriteable() const
         {
         return m_buffers_writeable;

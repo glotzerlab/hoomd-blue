@@ -68,14 +68,14 @@ repos:
   hooks:
     - id: nbstripout
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 'v0.8.6'
+  rev: 'v0.11.4'
   hooks:
   - id: ruff-format
     types_or: [python]
   - id: ruff
     types_or: [python]
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v19.1.6
+  rev: v20.1.0
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

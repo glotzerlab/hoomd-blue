@@ -437,6 +437,9 @@ template<class T> class GPUArray
         return m_exec_conf;
         }
 
+    /// Fill the array with 0's
+    void zeroFill() const;
+
     protected:
     //! Clear memory starting from a given element
     /*! \param first The first element to clear
@@ -894,6 +897,29 @@ template<class T> void GPUArray<T>::allocate()
             = std::unique_ptr<T, hoomd::detail::device_deleter<T>>(reinterpret_cast<T*>(device_ptr),
                                                                    device_deleter);
         }
+#endif
+    }
+
+template<class T> void GPUArray<T>::zeroFill() const
+    {
+    if (!h_data.get())
+        return;
+
+#ifdef ENABLE_HIP
+
+    if (m_data_location == data_location::host || m_data_location == data_location::hostdevice)
+        {
+        memset((void*)h_data.get(), 0, sizeof(T) * m_num_elements);
+        }
+    if (m_data_location == data_location::device || m_data_location == data_location::hostdevice)
+        {
+        hipMemsetAsync(d_data.get(), 0, sizeof(T) * m_num_elements);
+        }
+
+#else
+
+    memset((void*)h_data.get(), 0, sizeof(T) * m_num_elements);
+
 #endif
     }
 

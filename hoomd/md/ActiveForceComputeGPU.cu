@@ -152,7 +152,6 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipMemset(d_force, 0, sizeof(Scalar4) * N);
     hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel),
                        dim3(grid),
                        dim3(threads),

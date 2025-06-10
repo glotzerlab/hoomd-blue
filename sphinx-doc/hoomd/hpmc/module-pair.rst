@@ -3,7 +3,7 @@ pair
 
 .. automodule:: hoomd.hpmc.pair
    :members:
-   :exclude-members: AngularStep,ExpandedGaussian,LJGauss,LennardJones,OPP,Pair,Step,Union
+   :exclude-members: AngularStep,ExpandedGaussian,LJGauss,LennardJones,OPP,Pair,Step,Union,Zetterling
 
 .. rubric:: Classes
 
@@ -18,3 +18,4 @@ pair
     pair/pair
     pair/step
     pair/union
+    pair/zetterling

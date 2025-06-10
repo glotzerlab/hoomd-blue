@@ -154,7 +154,10 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
         // update position
         postype.x += (net_force.x + Fr_x) * deltaT / gamma;
         postype.y += (net_force.y + Fr_y) * deltaT / gamma;
-        postype.z += (net_force.z + Fr_z) * deltaT / gamma;
+        if (D > 2)
+            {
+            postype.z += (net_force.z + Fr_z) * deltaT / gamma;
+            }
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place

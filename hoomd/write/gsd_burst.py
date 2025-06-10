@@ -13,6 +13,7 @@ from hoomd import _hoomd
 from hoomd.filter import All
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.write.gsd import GSD
+import inspect
 
 
 class Burst(GSD):
@@ -104,7 +105,9 @@ class Burst(GSD):
                     burst.clear_buffer_after_dump = False
     """
 
-    __doc__ = __doc__.replace("{inherited}", GSD._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(GSD._doc_inherited)
+    )
 
     def __init__(
         self,

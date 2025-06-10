@@ -22,6 +22,7 @@ import numpy as np
 import json
 import atexit
 import weakref
+import inspect
 
 # Track open gsd writers to flush at exit.
 _open_gsd_writers = []
@@ -263,7 +264,9 @@ class GSD(Writer):
                 gsd.maximum_write_buffer_size = 128 * 1024**2
     """
 
-    __doc__ = __doc__.replace("{inherited}", Writer._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
     def __init__(
         self,

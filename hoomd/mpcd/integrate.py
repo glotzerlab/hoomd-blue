@@ -13,6 +13,7 @@ from hoomd.mpcd.collide import CellList, CollisionMethod
 from hoomd.mpcd.fill import VirtualParticleFiller
 from hoomd.mpcd.stream import StreamingMethod
 from hoomd.mpcd.tune import ParticleSorter
+import inspect
 
 
 @hoomd.logging.modify_namespace(("mpcd", "Integrator"))
@@ -167,7 +168,9 @@ class Integrator(_MDIntegrator):
             for the MPCD particles.
     """
 
-    __doc__ = __doc__.replace("{inherited}", _MDIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(_MDIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,

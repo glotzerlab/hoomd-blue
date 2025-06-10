@@ -67,6 +67,7 @@ from hoomd.mpcd.integrate import Integrator
 from hoomd.mpcd import methods
 from hoomd.mpcd import stream
 from hoomd.mpcd import tune
+from hoomd.mpcd import update
 
 __all__ = [
     "Integrator",
@@ -77,4 +78,5 @@ __all__ = [
     "methods",
     "stream",
     "tune",
+    "update",
 ]

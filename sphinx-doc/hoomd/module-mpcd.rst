@@ -17,6 +17,7 @@ mpcd
     mpcd/module-methods
     mpcd/module-stream
     mpcd/module-tune
+    mpcd/module-update
 
 .. rubric:: Classes
 

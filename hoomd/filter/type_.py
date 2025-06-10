@@ -5,6 +5,7 @@
 
 from hoomd.filter.filter_ import ParticleFilter
 from hoomd._hoomd import ParticleFilterType
+import inspect
 
 
 class Type(ParticleFilter, ParticleFilterType):
@@ -28,7 +29,9 @@ class Type(ParticleFilter, ParticleFilterType):
     **Members defined in** `Type`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", ParticleFilter._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(ParticleFilter._doc_inherited)
+    )
 
     def __init__(self, types):
         ParticleFilter.__init__(self)

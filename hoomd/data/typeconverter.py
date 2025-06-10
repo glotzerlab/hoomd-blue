@@ -106,6 +106,21 @@ def nonnegative_real(number):
     return float_number
 
 
+def positive_int(number):
+    """Ensures that a value is a positive integer"""
+    if isinstance(number, float) and not number.is_integer():
+        raise TypeConversionError(
+            f"Expected integer, {number} has a non-zero decimal part"
+        )
+    try:
+        int_number = int(number)
+    except Exception as err:
+        raise TypeConversionError(f"{number} is not convertible to int.") from err
+    if int_number <= 0:
+        raise TypeConversionError("Expected a positive integer")
+    return int_number
+
+
 def identity(value):
     """Return the given value."""
     return value
@@ -185,8 +200,7 @@ class Either(_HelpValidate):
             except Exception:
                 continue
         raise ValueError(
-            f"value {value} not converible using "
-            f"{[str(spec) for spec in self.specs]}"
+            f"value {value} not converible using {[str(spec) for spec in self.specs]}"
         )
 
     def __str__(self):
@@ -257,8 +271,7 @@ class OnlyTypes(_HelpValidate):
                 except Exception:
                     pass
             raise ValueError(
-                f"Value {value} is not convertable into any of these types "
-                f"{self.types}"
+                f"Value {value} is not convertable into any of these types {self.types}"
             )
 
     def __str__(self):

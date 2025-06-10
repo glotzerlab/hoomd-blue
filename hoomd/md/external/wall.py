@@ -140,6 +140,7 @@ from hoomd.md import force
 from hoomd.data.array_view import _ArrayViewWrapper
 from hoomd.md import _md
 import hoomd
+import inspect
 
 
 def _to_md_cpp_wall(wall):
@@ -188,7 +189,9 @@ class WallPotential(force.Force):
     **Members defined in** `WallPotential`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", force.Force._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(force.Force._doc_inherited)
+    )
 
     _doc_inherited = (
         force.Force._doc_inherited
@@ -312,7 +315,9 @@ class LJ(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialLJ"
-    __doc__ = __doc__.replace("{inherited}", WallPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
         # initialize the base class
@@ -378,7 +383,9 @@ class Gaussian(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialGauss"
-    __doc__ = __doc__.replace("{inherited}", WallPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
         # initialize the base class
@@ -444,7 +451,9 @@ class Yukawa(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialYukawa"
-    __doc__ = __doc__.replace("{inherited}", WallPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
         # initialize the base class
@@ -513,7 +522,9 @@ class Morse(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialMorse"
-    __doc__ = __doc__.replace("{inherited}", WallPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
         # initialize the base class
@@ -580,7 +591,9 @@ class ForceShiftedLJ(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialForceShiftedLJ"
-    __doc__ = __doc__.replace("{inherited}", WallPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
         # initialize the base class
@@ -650,7 +663,9 @@ class Mie(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialMie"
-    __doc__ = __doc__.replace("{inherited}", WallPotential._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
         # initialize the base class

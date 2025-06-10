@@ -247,9 +247,7 @@ class _SafeNamespaceDict(_NamespaceDict):
     def __setitem__(self, namespace, value):
         if namespace in self:
             raise KeyError(
-                "Namespace {} is being used. Remove before " "replacing.".format(
-                    namespace
-                )
+                "Namespace {} is being used. Remove before replacing.".format(namespace)
             )
         else:
             super().__setitem__(namespace, value)

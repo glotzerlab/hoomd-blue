@@ -450,7 +450,7 @@ struct
                 }
             }
 
-        if (m_periodic.z)
+        if (m_periodic.z && m_hi.z != Scalar(0.0))
             {
             if (((w.z >= m_hi.z) && !flags.z) || flags.z == 1)
                 {

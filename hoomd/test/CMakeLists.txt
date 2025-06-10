@@ -6,6 +6,7 @@ set(TEST_LIST
     test_gpu_array
     test_gridshift_correct
     test_index1d
+    test_math
     test_messenger
     test_pdata
     test_quat

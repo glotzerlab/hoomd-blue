@@ -616,7 +616,14 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
             Scalar minv = Scalar(1.0) / m;
             h_accel.data[j].x = h_net_force.data[j].x * minv;
             h_accel.data[j].y = h_net_force.data[j].y * minv;
-            h_accel.data[j].z = h_net_force.data[j].z * minv;
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                h_accel.data[j].z = Scalar(0.0);
+                }
+            else
+                {
+                h_accel.data[j].z = h_net_force.data[j].z * minv;
+                }
 
             Scalar3 accel = make_scalar3(h_accel.data[j].x, h_accel.data[j].y, h_accel.data[j].z);
 

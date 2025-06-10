@@ -11,6 +11,7 @@ from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.hpmc.tune import mc_move_tune
 from hoomd.operation import Tuner
 from hoomd.tune.custom_tuner import _InternalCustomTuner
+import inspect
 
 
 class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
@@ -26,7 +27,7 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
     def __init__(self, attr, type, target, domain=None):
         if attr not in self._attr_acceptance:
             raise ValueError(
-                "Only {} are allowed as tunable " "attributes.".format(
+                "Only {} are allowed as tunable attributes.".format(
                     self._available_attrs
                 )
             )
@@ -274,7 +275,9 @@ class MoveSize(_InternalCustomTuner):
 
     _internal_class = _InternalMoveSize
     _wrap_methods = ("tuned",)
-    __doc__ = __doc__.replace("{inherited}", Tuner._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     @classmethod
     def scale_solver(

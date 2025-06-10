@@ -4,13 +4,85 @@ Change Log
 5.x
 ---
 
-5.0.2 (not yet released)
+5.3.0 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The Zetterling pair potential: ``hoomd.hpmc.pair.Zetterling``
+  (`#2057 <https://github.com/glotzerlab/hoomd-blue/pull/2057>`__).
+
+*Fixed*
+
+* The formulas in the docs for `variant.box.Interpolate` are now consistent
+  (`#2060 <https://github.com/glotzerlab/hoomd-blue/pull/2060>`__).
+* Do not increment z image in 2D simulation boxes
+  (`#2071 <https://github.com/glotzerlab/hoomd-blue/pull/2071>`__).
+
+5.2.0 (2025-05-06)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Set constituent particle velocities for rigid bodies
+  (`#2024 <https://github.com/glotzerlab/hoomd-blue/pull/2024>`__).
+* Mesh tutorial
+  (`hoomd-examples#160 <https://github.com/glotzerlab/hoomd-examples/pull/160>`__).
+
+*Changed*
+
+* Use KaTeX to render math equations in the documentation
+  (`#2053 <https://github.com/glotzerlab/hoomd-blue/pull/2053>`__).
+* The "Organizing and Executing Simulations" tutorial now demonstrates the use of **row**
+  (`hoomd-examples#155 <https://github.com/glotzerlab/hoomd-examples/pull/155>`__).
+
+*Fixed*
+
+* The documentation builds without warnings in Python 3.13 environments
+  (`#2049 <https://github.com/glotzerlab/hoomd-blue/pull/2049>`__).
+* Remove the error message that NEC prints when one particle simultaneously collides with two
+  others (`#2029 <https://github.com/glotzerlab/hoomd-blue/pull/2029>`__).
+* Compile without errors with recent versions of clang
+  (`#2042 <https://github.com/glotzerlab/hoomd-blue/pull/2042>`__).
+
+5.1.1 (2025-03-19)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Prevent warnings about forces that provide torques (or not)
+  (`#2015 <https://github.com/glotzerlab/hoomd-blue/pull/2015>`__).
+* Compile without errors or warnings with CUDA 12.8
+  (`#2019 <https://github.com/glotzerlab/hoomd-blue/pull/2019>`__).
+* ``force.Active`` applies torques correctly when the filter is not ``All``
+  (`#2020 <https://github.com/glotzerlab/hoomd-blue/pull/2020>`__).
+* MD integrators no longer integrate the z degree of freedom in 2D simulation boxes
+  (`#2021 <https://github.com/glotzerlab/hoomd-blue/pull/2021>`__).
+* HPMC integrators no longer miss pairwise interactions when updaters, such as
+  ``RemoveDrift`` move particles
+  (`#2022 <https://github.com/glotzerlab/hoomd-blue/pull/2022>`__).
+
+5.1.0 (2025-02-20)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The ``WangFrenkel`` potential
+  (`#1970 <https://github.com/glotzerlab/hoomd-blue/pull/1970>`__).
+* ``mpcd.update.ReverseNonequilibriumShearFlow``
+  (`#1983 <https://github.com/glotzerlab/hoomd-blue/pull/1983>`__).
+* Support rocm 6
+  (`#2002 <https://github.com/glotzerlab/hoomd-blue/pull/2002>`__).
+
+*Fixed*
 
 * Correctly reference ``TriggeredOperation`` in inherited documentation
   (`#1990 <https://github.com/glotzerlab/hoomd-blue/pull/1990>`__).
 
-*Fixed*
+*Removed*
+
+* Support for rocm5
+  (`#2002 <https://github.com/glotzerlab/hoomd-blue/pull/2002>`__).
 
 5.0.1 (2025-01-20)
 ^^^^^^^^^^^^^^^^^^
@@ -23,6 +95,7 @@ Change Log
   (`#1972 <https://github.com/glotzerlab/hoomd-blue/pull/1972>`__).
 * Provide a navigation bar on the 404 not found page in the documentation
   (`#1986 <https://github.com/glotzerlab/hoomd-blue/pull/1986>`__).
+
 
 
 5.0.0 (2024-12-02)

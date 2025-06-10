@@ -317,9 +317,7 @@ void MolecularForceCompute::initMolecules()
     ArrayHandle<unsigned int> h_molecule_order(m_molecule_order,
                                                access_location::host,
                                                access_mode::overwrite);
-    memset(h_molecule_order.data,
-           0,
-           sizeof(unsigned int) * (m_pdata->getN() + m_pdata->getNGhosts()));
+    m_molecule_order.zeroFill();
 
     // resize reverse-lookup
     m_molecule_idx.resize(nptl_local);
@@ -333,7 +331,7 @@ void MolecularForceCompute::initMolecules()
                                              access_mode::overwrite);
 
     // reset reverse lookup
-    memset(h_molecule_idx.data, 0, sizeof(unsigned int) * nptl_local);
+    m_molecule_idx.zeroFill();
 
     unsigned int i_mol = 0;
     for (auto it_mol = local_molecules_sorted.begin(); it_mol != local_molecules_sorted.end();

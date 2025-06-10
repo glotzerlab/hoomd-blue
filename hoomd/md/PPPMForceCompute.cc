@@ -44,7 +44,7 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     m_pdata->getBoxChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     // reset virial
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_virial.zeroFill();
 
     m_mesh_points = make_uint3(0, 0, 0);
     m_global_dim = make_uint3(0, 0, 0);
@@ -605,8 +605,8 @@ void PPPMForceCompute::computeInfluenceFunction()
     ArrayHandle<Scalar3> h_k(m_k, access_location::host, access_mode::overwrite);
 
     // reset arrays
-    memset(h_inf_f.data, 0, sizeof(Scalar) * m_inf_f.getNumElements());
-    memset(h_k.data, 0, sizeof(Scalar3) * m_k.getNumElements());
+    m_inf_f.zeroFill();
+    m_k.zeroFill();
 
     const BoxDim& global_box = m_pdata->getGlobalBox();
 
@@ -786,7 +786,7 @@ void PPPMForceCompute::assignParticles()
     const BoxDim& box = m_pdata->getBox();
 
     // set mesh to zero
-    memset(h_mesh.data, 0, sizeof(kiss_fft_cpx) * m_mesh.getNumElements());
+    m_mesh.zeroFill();
 
     Scalar V_cell = box.getVolume() / (Scalar)(m_mesh_points.x * m_mesh_points.y * m_mesh_points.z);
 
@@ -1102,7 +1102,7 @@ void PPPMForceCompute::interpolateForces()
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
 
     // reset force for ALL particles
-    memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
+    m_force.zeroFill();
 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
 
@@ -1593,7 +1593,7 @@ void PPPMForceCompute::fixExclusions()
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
 
     // reset virial (but not forces, we reset them above)
-    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_virial.zeroFill();
 
     size_t virial_pitch = m_virial.getPitch();
 
