@@ -46,12 +46,13 @@ class PatchEnvelope
     public:
     struct param_type
         {
-        param_type() : cosalpha(0), omega(0) { }
+        param_type() : cosalpha(0), omega(0), additive(false) { }
 #ifndef __HIPCC__
         param_type(pybind11::dict params) //<! param dict can take any python type
             {
             cosalpha = fast::cos(params["alpha"].cast<Scalar>());
             omega = params["omega"].cast<Scalar>();
+            additive = params["additive"].cast<bool>();
             }
 
         pybind11::dict toPython()
@@ -59,11 +60,13 @@ class PatchEnvelope
             pybind11::dict v;
             v["alpha"] = fast::acos(cosalpha);
             v["omega"] = omega;
+            v["additive"] = additive;
             return v;
             }
 #endif
         Scalar cosalpha;
         Scalar omega;
+	bool additive;
         } __attribute__((aligned(16)));
 
     struct shape_type
@@ -214,8 +217,10 @@ class PatchEnvelope
                         * f_max_min_inv * fj * fj;
         fj = (fj - f_min) * f_max_min_inv;
 
-        // the overall modulation
-        envelope = fi * fj;
+	if( params.additive)
+        	envelope = 0.5*(fi + fj);
+	else
+        	envelope = fi * fj;
 
         vec3<Scalar> dfi_dni = dfi_du * -rhat;
 
@@ -223,15 +228,24 @@ class PatchEnvelope
                               + vec_to_scalar3(p_i.y * cross(a2, dfi_dni))
                               + vec_to_scalar3(p_i.z * cross(a3, dfi_dni));
 
-        torque_div_energy_i *= Scalar(-1) * fj;
-
         vec3<Scalar> dfj_dnj = dfj_du * rhat; // still positive
 
         torque_div_energy_j = vec_to_scalar3(p_j.x * cross(b1, dfj_dnj))
                               + vec_to_scalar3(p_j.y * cross(b2, dfj_dnj))
                               + vec_to_scalar3(p_j.z * cross(b3, dfj_dnj));
 
-        torque_div_energy_j *= Scalar(-1) * fi;
+	if( params.additive)
+	{
+        	envelope = 0.5*(fi + fj);
+        	torque_div_energy_i *= Scalar(-0.5);
+        	torque_div_energy_j *= Scalar(-0.5);
+	}
+	else
+	{
+        	envelope = fi * fj;
+        	torque_div_energy_i *= Scalar(-1) * fj;
+        	torque_div_energy_j *= Scalar(-1) * fi;
+	}
 
         // find df/dr = df/du * du/dr (using chain rule)
         // find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
@@ -251,7 +265,11 @@ class PatchEnvelope
         // lo and dlo are the same as above
         vec3<Scalar> duj_dr = (lo * dhi - hi * dlo) / (lo * lo);
 
-        force = -vec_to_scalar3(dfj_duj * duj_dr * fi + dfi_dui * dui_dr * fj);
+
+	if( params.additive)
+        	force = -0.5*vec_to_scalar3(dfj_duj * duj_dr + dfi_dui * dui_dr );
+	else
+        	force = -vec_to_scalar3(dfj_duj * duj_dr * fi + dfi_dui * dui_dr * fj);
 
         return true;
         }

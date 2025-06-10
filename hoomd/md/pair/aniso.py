@@ -773,6 +773,7 @@ class Patchy(AnisotropicPair):
                     "envelope_params": {
                         "alpha": OnlyTypes(float, postprocess=self._check_0_pi),
                         "omega": float,
+                        "additive": bool,
                     },
                 },
                 len_keys=2,
@@ -1218,6 +1219,724 @@ class PatchyYukawa(Patchy):
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
 
+class PatchyInverse(Patchy):
+    r"""Modulate `hoomd.md.pair.Inverse` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        inverse_params = dict(epsilon=1, kappa=10)
+        envelope_params = dict(alpha=math.pi / 4, omega=25)
+
+        patchy_inverse = hoomd.md.pair.aniso.PatchyInverse(
+            nlist=neighbor_list, default_r_cut=5.0
+        )
+        patchy_inverse.params[("A", "A")] = dict(
+            pair_params=inverse_params,
+            envelope_params=envelope_params,
+        )
+        patchy_inverse.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchy_inverse]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `PatchyInverse`:
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Patchy.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Inverse.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``kappa`` (`float`, **required**) - scaling parameter
+            :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairPatchyInverse"
+    _pair_params = {"epsilon": float, "kappa": float}
+
+class Align(AnisotropicPair):
+    r"""Align pair potentials.
+
+    `Align` combines an isotropic `Pair <hoomd.md.pair.Pair>` potential with an
+    orientation dependent modulation function :math:`f`. Use `Align` with an attractive
+    potential to create localized sticky patches on the surface of a particle. Use it
+    with a repulsive potential to create localized bumps. `Align` computes both forces
+    and torques on particles.
+
+    Note:
+        `Align` provides *no* interaction when there are no patches or particles are
+        oriented such that :math:`f = 0`. Use `Align` along with a  repulsive isotropic
+        `Pair <hoomd.md.pair.Pair>` potential to prevent particles from passing through
+        each other.
+
+    The specific form of the patchy pair potential between particles :math:`i` and
+    :math:`j` is:
+
+    .. math::
+
+        U(r_{ij}, \mathbf{q}_i, \mathbf{q}_j) =
+        \sum_{m=1}^{N_{\mathrm{patches},i}}
+        \sum_{n=1}^{N_{\mathrm{patches},j}}
+        f(\theta_{m,i}, \alpha, \omega)
+        f(\theta_{n,j}, \alpha, \omega)
+        U_{\mathrm{pair}}(r_{ij})
+
+    where :math:`U_{\mathrm{pair}}(r_{ij})` is the isotropic pair potential and
+    :math:`f` is an orientation-dependent factor of the patchy spherical cap half-angle
+    :math:`\alpha` and patch steepness :math:`\omega`:
+
+    .. math::
+        \begin{align}
+        f(\theta, \alpha, \omega) &= \frac{\big(1+e^{-\omega (\cos{\theta} -
+        \cos{\alpha}) }\big)^{-1} - f_{min}}{f_{max} - f_{min}}\\
+        f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
+        f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
+        \end{align}
+
+    .. image:: /patchy-pair.svg
+         :align: center
+         :height: 400px
+         :alt: Two dashed circles not quite touching. Circle i on the left has a faded
+          shaded slice pointing up and to the right at a 35 degree angle.
+          Circle j on the right has its shaded region pointing left and slightly up at a
+          25 degree angle. A vector labeled r i j points from particle i to j.
+
+    `directors` sets the locations of the patches **in the local reference frame** of
+    the particle. `Align` rotates the local director :math:`\vec{d}` by the particle's
+    orientation and computes the :math:`cos(\theta)` in :math:`f` as the cosine of the
+    angle between the director and :math:`\vec{r}_{ij}`:
+    :math:`cos(\theta_i) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot \hat{r}_{ij}` and
+    :math:`cos(\theta_j) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot -\hat{r}_{ij}`.
+
+    .. image:: /patchy-def.svg
+         :align: center
+         :height: 400px
+         :alt: A single dashed circle centered at the origin of Cartesian x y axes.
+          Vector p points from the center of the circle at a 35 degree angle from the
+          right towards the center of the shaded region but does not reach the circle
+          boundary. Alpha is indicated as half of the arc of the shaded region.
+
+    :math:`\alpha` and :math:`\omega` control the shape of the patch:
+
+    .. image:: /patchy-modulator.svg
+         :alt: Plots of modulator f with alpha equals pi over 3 for omegas of 2, 5, 10,
+          20 and 50. For omega of 50, the plot is a barely rounded step from 0 to 1 at
+          negative pi over 3 and back down to 0 at pi over 3. The omega 2 line is so
+          rounded that there are no noticeable elbows, but f still reaches 1 at theta of
+          0. The other lines appear between these.
+
+    See Also:
+        `Beltran-Villegas et. al.`_
+
+        `hoomd.hpmc.pair.AngularStep` provides a similar functional form for HPMC,
+        except that :math:`f` is a step function.
+
+    .. _Beltran-Villegas et. al.: https://dx.doi.org/10.1039/C3SM53136H
+
+    .. invisible-code-block: python
+        patchy = hoomd.md.pair.aniso.AlignLJ(nlist = neighbor_list,
+                                              default_r_cut = 3.0)
+        pair_params = {'epsilon': 10, 'sigma': 1}
+
+        patchy.params.default = dict(pair_params=pair_params,
+                                     envelope_params = {'alpha': math.pi/4,
+                                                        'omega': 30})
+        patchy.directors.default = []
+        simulation.operations.integrator.forces = [patchy]
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Align`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * ``alpha`` (`float`) - patch half-angle :math:`\alpha` :math:`[\mathrm{rad}]`
+          * ``omega`` (`float`) - patch steepness :math:`\omega`
+
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to isotropic potential (see subclasses).
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            envelope_params = {'alpha': math.pi/4, 'omega': 30}
+            patchy.params[('A', 'A')] = dict(pair_params=pair_params,
+                                             envelope_params=envelope_params)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: directors
+
+        List of vectors pointing to patch centers, by particle type (normalized when
+        set). When a particle type does not have patches, set an empty list.
+
+        Type: `TypeParameter` [``particle_type``, `list` [`tuple` [`float`, `float`,
+        `float`]]
+
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            patchy.directors['A'] = [(1,0,0), (1,1,1)]
+
+        .. code-block:: python
+
+            patchy.directors['A'] = []
+
+    """
+
+    __doc__ = __doc__.replace("{inherited}", AnisotropicPair._doc_inherited)
+    _doc_inherited = (
+        AnisotropicPair._doc_inherited
+        + r"""
+    ----------
+
+    **Members inherited from** `Align <hoomd.md.pair.aniso.Align>`:
+
+    .. py:attribute:: directors
+
+        List of vectors pointing to patch centers, by particle type.
+
+        `Read more... <hoomd.md.pair.aniso.Align.directors>`
+    """
+    )
+
+    def __init__(self, nlist, default_r_cut=None, mode="none"):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                {
+                    "pair_params": self._pair_params,
+                    "envelope_params": {
+                        "additive": bool,
+                        "anti_align": bool,
+                    },
+                },
+                len_keys=2,
+            ),
+        )
+        envelope = TypeParameter(
+            "directors",
+            "particle_types",
+            TypeParameterDict([(float, float, float)], len_keys=1),
+        )
+        self._extend_typeparam((params, envelope))
+
+class AlignLJ(Align):
+    r"""Modulate `hoomd.md.pair.LJ` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        lj_params = dict(epsilon=1, sigma=1)
+        envelope_params = dict(alpha=math.pi / 2, omega=20)
+
+        patchylj = hoomd.md.pair.aniso.AlignLJ(
+            nlist=neighbor_list, default_r_cut=3.0
+        )
+        patchylj.params[("A", "A")] = dict(
+            pair_params=lj_params,
+            envelope_params=envelope_params,
+        )
+        patchylj.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchylj]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignLJ`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignLJ"
+    _pair_params = {"epsilon": float, "sigma": float}
+
+
+class AlignExpandedGaussian(Align):
+    r"""Modulate `hoomd.md.pair.ExpandedGaussian` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        gauss_params = dict(epsilon=1, sigma=1, delta=0.5)
+        envelope_params = dict(alpha=math.pi / 2, omega=40)
+
+        patchy_expanded_gaussian = hoomd.md.pair.aniso.AlignExpandedGaussian(
+            nlist=neighbor_list, default_r_cut=3.0
+        )
+        patchy_expanded_gaussian.params[("A", "A")] = dict(
+            pair_params=gauss_params,
+            envelope_params=envelope_params,
+        )
+        patchy_expanded_gaussian.directors["A"] = [
+            (1, 0, 0),
+            (1, 1, 1),
+        ]
+        simulation.operations.integrator.forces = [patchy_expanded_gaussian]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignExpandedGaussian`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedGaussian.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+          * ``delta`` (`float`, **required**) - radial shift
+            :math:`\delta` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignExpandedGaussian"
+    _pair_params = {"epsilon": float, "sigma": float, "delta": float}
+
+
+class AlignExpandedLJ(Align):
+    r"""Modulate `hoomd.md.pair.ExpandedLJ` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric: Example:
+
+    .. code-block:: python
+
+        lj_params = dict(epsilon=1, sigma=1)
+        envelope_params = dict(alpha=math.pi / 2, omega=20)
+
+        patchylj = hoomd.md.pair.aniso.AlignLJ(
+            nlist=neighbor_list, default_r_cut=3.0
+        )
+        patchylj.params[("A", "A")] = dict(
+            pair_params=lj_params,
+            envelope_params=envelope_params,
+        )
+        patchylj.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchylj]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignExpandedLJ`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedLJ.params`.
+
+          * ``epsilon`` (`float`) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`) - particle size
+            :math:`\sigma` :math:`[\mathrm{length}]`
+          * ``delta`` (`float`) - radial shift
+            :math:`\Delta` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignExpandedLJ"
+    _pair_params = {"epsilon": float, "sigma": float, "delta": float}
+
+
+class AlignExpandedMie(Align):
+    r"""Modulate `hoomd.md.pair.ExpandedMie` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        expanded_mie_params = dict(epsilon=1, sigma=1, n=15, m=10, delta=1)
+        envelope_params = dict(alpha=math.pi / 3, omega=20)
+
+        patchy_expanded_mie = hoomd.md.pair.aniso.AlignExpandedMie(
+            nlist=neighbor_list, default_r_cut=3.0
+        )
+        patchy_expanded_mie.params[("A", "A")] = dict(
+            pair_params=expanded_mie_params,
+            envelope_params=envelope_params,
+        )
+        patchy_expanded_mie.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchy_expanded_mie]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignExpandedMie`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedMie.params`.
+
+          * ``epsilon`` (`float`, **required**) -
+            :math:`\epsilon` :math:`[\mathrm{energy}]`.
+          * ``sigma`` (`float`, **required**) -
+            :math:`\sigma` :math:`[\mathrm{length}]`.
+          * ``n`` (`float`, **required**) -
+            :math:`n` :math:`[\mathrm{dimensionless}]`.
+          * ``m`` (`float`, **required**) -
+            :math:`m` :math:`[\mathrm{dimensionless}]`.
+          * ``delta`` (`float`, **required**) -
+            :math:`\Delta` :math:`[\mathrm{length}]`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignExpandedMie"
+    _pair_params = {
+        "epsilon": float,
+        "sigma": float,
+        "n": float,
+        "m": float,
+        "delta": float,
+    }
+
+
+class AlignGaussian(Align):
+    r"""Modulate `hoomd.md.pair.Gaussian` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        gauss_params = dict(epsilon=1, sigma=1)
+        envelope_params = dict(alpha=math.pi / 4, omega=30)
+
+        patchy_gaussian = hoomd.md.pair.aniso.AlignGaussian(
+            nlist=neighbor_list, default_r_cut=3.0
+        )
+        patchy_gaussian.params[("A", "A")] = dict(
+            pair_params=gauss_params,
+            envelope_params=envelope_params,
+        )
+        patchy_gaussian.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchy_gaussian]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignGaussian`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to `md.pair.ExpandedMie.params`.
+
+          * ``epsilon`` (`float`, **required**) -
+            :math:`\epsilon` :math:`[\mathrm{energy}]`.
+          * ``sigma`` (`float`, **required**) -
+            :math:`\sigma` :math:`[\mathrm{length}]`.
+          * ``n`` (`float`, **required**) -
+            :math:`n` :math:`[\mathrm{dimensionless}]`.
+          * ``m`` (`float`, **required**) -
+            :math:`m` :math:`[\mathrm{dimensionless}]`.
+          * ``delta`` (`float`, **required**) -
+            :math:`\Delta` :math:`[\mathrm{length}]`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignGauss"
+    _pair_params = {"epsilon": float, "sigma": float}
+
+
+class AlignMie(Align):
+    r"""Modulate `hoomd.md.pair.Mie` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        mie_params = dict(epsilon=1, sigma=1, n=15, m=10)
+        envelope_params = dict(alpha=math.pi / 3, omega=20)
+
+        patchy_mie = hoomd.md.pair.aniso.AlignMie(
+            nlist=neighbor_list, default_r_cut=3.0
+        )
+        patchy_mie.params[("A", "A")] = dict(
+            pair_params=mie_params,
+            envelope_params=envelope_params,
+        )
+        patchy_mie.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchy_mie]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignMie`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Mie.params`.
+
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+            :math:`[\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - :math:`\sigma`
+            :math:`[\mathrm{length}]`
+          * ``n`` (`float`, **required**) - :math:`n`
+            :math:`[\mathrm{dimensionless}]`
+          * ``m`` (`float`, **required**) - :math:`m`
+            :math:`[\mathrm{dimensionless}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignMie"
+    _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
+
+
+class AlignYukawa(Align):
+    r"""Modulate `hoomd.md.pair.Yukawa` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        yukawa_params = dict(epsilon=1, kappa=10)
+        envelope_params = dict(alpha=math.pi / 4, omega=25)
+
+        patchy_yukawa = hoomd.md.pair.aniso.AlignYukawa(
+            nlist=neighbor_list, default_r_cut=5.0
+        )
+        patchy_yukawa.params[("A", "A")] = dict(
+            pair_params=yukawa_params,
+            envelope_params=envelope_params,
+        )
+        patchy_yukawa.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchy_yukawa]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignYukawa`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Yukawa.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``kappa`` (`float`, **required**) - scaling parameter
+            :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignYukawa"
+    _pair_params = {"epsilon": float, "kappa": float}
+
+class AlignInverse(Align):
+    r"""Modulate `hoomd.md.pair.Inverse` with angular patches.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        inverse_params = dict(epsilon=1, kappa=10)
+        envelope_params = dict(alpha=math.pi / 4, omega=25)
+
+        patchy_inverse = hoomd.md.pair.aniso.AlignInverse(
+            nlist=neighbor_list, default_r_cut=5.0
+        )
+        patchy_inverse.params[("A", "A")] = dict(
+            pair_params=inverse_params,
+            envelope_params=envelope_params,
+        )
+        patchy_inverse.directors["A"] = [(1, 0, 0)]
+        simulation.operations.integrator.forces = [patchy_inverse]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `AlignInverse`:
+
+    .. py:attribute:: params
+
+        The Align potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * `Read more... <Align.params>`
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Inverse.params`.
+
+          * ``epsilon`` (`float`, **required**) - energy parameter
+            :math:`\varepsilon` :math:`[\mathrm{energy}]`
+          * ``kappa`` (`float`, **required**) - scaling parameter
+            :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairAlignInverse"
+    _pair_params = {"epsilon": float, "kappa": float}
+
 
 __all__ = [
     "ALJ",
@@ -1229,7 +1948,17 @@ __all__ = [
     "PatchyExpandedLJ",
     "PatchyExpandedMie",
     "PatchyGaussian",
+    "PatchyInverse",
     "PatchyLJ",
     "PatchyMie",
     "PatchyYukawa",
+    "Align",
+    "AlignExpandedGaussian",
+    "AlignExpandedLJ",
+    "AlignExpandedMie",
+    "AlignGaussian",
+    "AlignInverse",
+    "AlignLJ",
+    "AlignMie",
+    "AlignYukawa",
 ]
