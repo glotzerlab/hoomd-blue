@@ -257,6 +257,8 @@ PYBIND11_MODULE(_hoomd, m)
                                                    "ImproperData",
                                                    "ImproperDataSnapshot",
                                                    false);
+
+	export_BondedGroupData<TetrahedronData, Dihedral>(m, "TetrahedronData","TetrahedronDataSnapshot", false); 
     export_BondedGroupData<ConstraintData, Constraint>(m,
                                                        "ConstraintData",
                                                        "ConstraintDataSnapshot");
@@ -268,6 +270,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDHostBuffer, DihedralData>(m, "LocalDihedralDataHost");
     export_LocalGroupData<HOOMDHostBuffer, MeshBondData>(m, "LocalMeshBondDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
+	export_LocalGroupData<HOOMDHostBuffer, TetrahedronData>(m, "LocalTetrhedronDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
 #if ENABLE_HIP
@@ -277,6 +280,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(m, "LocalDihedralDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, MeshBondData>(m, "LocalMeshBondDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(m, "LocalImproperDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, TetrahedronData>(m, "LocalTetrahedronDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
 #endif

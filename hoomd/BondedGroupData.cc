@@ -26,6 +26,7 @@ char name_angle_data[] = "angle";
 char name_triangle_data[] = "triangle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
+char name_tetrahedron_data[] = "tetrahedron";
 char name_meshbond_data[] = "meshbond";
 char name_constraint_data[] = "constraint";
 char name_pair_data[] = "pair";
@@ -1496,6 +1497,7 @@ template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_triangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_tetrahedron_data>;
 template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
 
@@ -1522,6 +1524,11 @@ template void export_BondedGroupData<DihedralData, Dihedral>(pybind11::module& m
                                                              bool export_struct);
 
 template void export_BondedGroupData<ImproperData, Dihedral>(pybind11::module& m,
+                                                             std::string name,
+                                                             std::string snapshot_name,
+                                                             bool export_struct);
+
+template void export_BondedGroupData<TetrahedronData, Dihedral>(pybind11::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);

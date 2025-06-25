@@ -1010,6 +1010,14 @@ extern char name_improper_data[];
 typedef BondedGroupData<4, Dihedral, name_improper_data> ImproperData;
 
 /*
+ * TetrahedronData
+ */
+extern char name_tetrahedron_data[];
+
+//! Definition of TetrahedronData
+typedef BondedGroupData<4, Dihedral, name_tetrahedron_data> TetrahedronData;
+
+/*
  * ConstraintData
  *
  * constraints use the same data type as bonds
