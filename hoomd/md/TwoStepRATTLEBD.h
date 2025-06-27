@@ -297,7 +297,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
-        box.wrap(h_pos.data[j], h_image.data[j]);
+        box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
 
         // rotational random force and orientation quaternion updates
         if (m_aniso)

@@ -260,7 +260,7 @@ __global__ void gpu_wrap_particles_kernel(const unsigned int n_recv,
         return;
 
     detail::pdata_element p = d_recv[idx];
-    box.wrap(p.pos, p.image);
+    box.wrap(p.pos, p.vel, p.image);
     d_recv[idx] = p;
     }
 
@@ -789,8 +789,10 @@ gpu_pack_kernel(unsigned int n_out, const uint2* d_ghost_idx_adj, const T* in, T
 __global__ void gpu_pack_wrap_kernel(unsigned int n_out,
                                      const uint2* d_ghost_idx_adj,
                                      const Scalar4* d_postype,
+                                     const Scalar4* d_vel,
                                      const int3* d_img,
                                      Scalar4* out_pos,
+                                     Scalar4* out_vel,
                                      int3* out_img,
                                      Index3D di,
                                      uint3 my_pos,
@@ -864,9 +866,11 @@ __global__ void gpu_pack_wrap_kernel(unsigned int n_out,
     if (d_img)
         img = d_img[idx];
     Scalar4 postype = d_postype[idx];
-    box.wrap(postype, img, wrap);
+    Scalar4 vel = d_vel[idx];
+    box.wrap(postype, vel, img, wrap);
 
     out_pos[buf_idx] = postype;
+    out_vel[buf_idx] = vel;
 
     if (out_img)
         {
@@ -938,8 +942,10 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                            n_out,
                            d_ghost_idx_adj,
                            d_pos,
+                           d_vel,
                            d_img,
                            d_pos_sendbuf,
+                           d_vel_sendbuf,
                            send_image ? d_img_sendbuf : 0,
                            di,
                            my_pos,

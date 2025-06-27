@@ -100,7 +100,7 @@ __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
         int3 image = d_image[idx];
 
         // fix the periodic boundary conditions (FLOPS: 15)
-        box.wrap(pos, image);
+        box.wrap(pos, vel, image);
 
         // write out the results (MEM_TRANSFER: 48 bytes)
         d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);

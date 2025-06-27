@@ -251,9 +251,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 Scalar3 dv = veli - velj;
 
                 // apply periodic boundary conditions: (FLOPS 12)
-                auto min_image = box.minImage(dx, dv);
-                dx = min_image.dx;
-                dv = min_image.dv;
+                box.minImage(dx, dv);
 
                 // calculate r squared (FLOPS: 5)
                 Scalar rsq = dot(dx, dx);

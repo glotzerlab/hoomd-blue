@@ -37,6 +37,7 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
 //! Kernel driver for wrapping particles back in the box (part of first step)
 hipError_t gpu_npt_rescale_wrap(const unsigned int N,
                                 Scalar4* d_pos,
+                                Scalar4* d_vel,
                                 int3* d_image,
                                 const BoxDim& box,
                                 const unsigned int block_size);

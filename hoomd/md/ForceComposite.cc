@@ -579,11 +579,13 @@ void ForceComposite::createRigidBodies(
                 quat<Scalar> constituent_orientation = body_orientation * local_orientation;
 
                 snap.pos[constituent_particle_tag] = constituent_position;
+                snap.vel[constituent_particle_tag] = snap.vel[particle_tag];
                 snap.image[constituent_particle_tag] = snap.image[particle_tag];
                 snap.orientation[constituent_particle_tag] = constituent_orientation;
 
                 // wrap back into the box
                 global_box.wrap(snap.pos[constituent_particle_tag],
+                                snap.vel[constituent_particle_tag],
                                 snap.image[constituent_particle_tag]);
 
                 // Since the central particle tags here will be [0, n_central_particles), we know

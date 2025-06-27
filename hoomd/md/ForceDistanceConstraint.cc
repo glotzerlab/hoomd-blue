@@ -201,15 +201,16 @@ void ForceDistanceConstraint::fillMatrixVector(uint64_t timestep)
         vec3<Scalar> rb(h_pos.data[idx_b]);
         vec3<Scalar> rn(ra - rb);
 
-        // apply minimum image
-        rn = box.minImage(rn);
-
         vec3<Scalar> va(h_vel.data[idx_a]);
         Scalar ma(h_vel.data[idx_a].w);
         vec3<Scalar> vb(h_vel.data[idx_b]);
         Scalar mb(h_vel.data[idx_b].w);
 
         vec3<Scalar> rndot(va - vb);
+
+        // apply minimum image
+        box.minImage(rn, rndot);
+
         vec3<Scalar> qn(rn + rndot * m_deltaT);
 
         // fill matrix row

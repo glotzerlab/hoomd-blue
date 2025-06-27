@@ -48,6 +48,9 @@ UP_TEST(ParticleDataGridShiftGetMethods)
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
         ArrayHandle<int3> h_img(pdata->getImages(), access_location::host, access_mode::readwrite);
 
         for (unsigned int i = 0; i < pdata->getN(); i++)
@@ -57,7 +60,7 @@ UP_TEST(ParticleDataGridShiftGetMethods)
             vec3<Scalar> r_i = vec3<Scalar>(pos_i); // translation from local to global coordinates
             r_i += vec3<Scalar>(shift);
             h_pos.data[i] = vec_to_scalar4(r_i, pos_i.w);
-            box.wrap(h_pos.data[i], h_img.data[i]);
+            box.wrap(h_pos.data[i], h_vel.data[i], h_img.data[i]);
             }
         }
 
@@ -87,6 +90,9 @@ UP_TEST(ParticleDataGridShiftGetMethods)
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
         ArrayHandle<int3> h_img(pdata->getImages(), access_location::host, access_mode::readwrite);
 
         for (unsigned int i = 0; i < pdata->getN(); i++)
@@ -96,7 +102,7 @@ UP_TEST(ParticleDataGridShiftGetMethods)
             vec3<Scalar> r_i = vec3<Scalar>(pos_i); // translation from local to global coordinates
             r_i += vec3<Scalar>(shift_img);
             h_pos.data[i] = vec_to_scalar4(r_i, pos_i.w);
-            box.wrap(h_pos.data[i], h_img.data[i]);
+            box.wrap(h_pos.data[i], h_vel.data[i], h_img.data[i]);
             }
         }
 
@@ -145,6 +151,9 @@ UP_TEST(ParticleDataGridShiftSetMethods)
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
         ArrayHandle<int3> h_img(pdata->getImages(), access_location::host, access_mode::readwrite);
 
         for (unsigned int i = 0; i < pdata->getN(); i++)
@@ -154,7 +163,7 @@ UP_TEST(ParticleDataGridShiftSetMethods)
             vec3<Scalar> r_i = vec3<Scalar>(pos_i); // translation from local to global coordinates
             r_i += vec3<Scalar>(shift_img);
             h_pos.data[i] = vec_to_scalar4(r_i, pos_i.w);
-            box.wrap(h_pos.data[i], h_img.data[i]);
+            box.wrap(h_pos.data[i], h_vel.data[i], h_img.data[i]);
             }
         }
 

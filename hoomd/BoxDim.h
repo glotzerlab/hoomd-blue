@@ -387,120 +387,124 @@ struct
         return w;
         }
 
-    //! Compute minimum image
-    /*! \param p Position vector to compute
-        \param v Velocity vector to compute
-        \return vectors that are the minimum image vectors of \a p and \a v, obeying the periodic settings
-        \note \a p must not extend more than 1 image beyond the box
-    */
-    struct MinImage {
-        Scalar3 dx;
-        Scalar3 dv;
-    };
-
-    HOSTDEVICE MinImage minImage(const Scalar3& p, const Scalar3& v) const
+    //! Minimum image using vec3s
+    HOSTDEVICE vec3<Scalar> minImage(const vec3<Scalar>& v) const
         {
-        Scalar3 pos = p;
-        Scalar3 vel = v;
+        return vec3<Scalar>(minImage(vec_to_scalar3(v)));
+        }
+
+    //! Compute minimum image
+    /*! 
+        \param dr Position vector to compute / Minimum image vector returned
+        \param dv Velocity vector to compute / Minimum image vector returned
+        \note \a dr must not extend more than 1 image beyond the box
+    */
+    HOSTDEVICE void minImage(Scalar3& dr, Scalar3& dv) const
+        {
+        Scalar3 r = dr;
+        Scalar3 v = dv;
         Scalar3 L = getL();
 
 #ifdef __HIPCC__
         if (m_periodic.z)
             {
-            Scalar img = slow::rint(pos.z * m_Linv.z);
-            auto sign = std::copysign(Scalar(1.0), img);
-            pos.z -= L.z * img;
-            pos.y -= L.z * m_yz * img;
-            pos.x -= L.z * m_xz * img;
-            vel.z = vel.z + sign * m_L_rate.z;
-            vel.y = vel.y + sign * L.z * m_yz_rate;
-            vel.x = vel.x + sign * L.z * m_xz_rate;
+            Scalar img = slow::rint(r.z * m_Linv.z);
+            r.z -= L.z * img;
+            r.y -= L.z * m_yz * img;
+            r.x -= L.z * m_xz * img;
+            v.z -= m_L_rate.z * img;
+            v.y -= L.z * m_yz_rate * img;
+            v.x -= L.z * m_xz_rate * img;
             }
 
         if (m_periodic.y)
             {
-            Scalar img = slow::rint(pos.y * m_Linv.y);
-            auto sign = std::copysign(Scalar(1.0), img);
-            pos.y -= L.y * img;
-            pos.x -= L.y * m_xy * img;
-            vel.y = vel.y + sign * m_L_rate.y;
-            vel.x = vel.x + sign * L.y * m_xy_rate;
+            Scalar img = slow::rint(r.y * m_Linv.y);
+            r.y -= L.y * img;
+            r.x -= L.y * m_xy * img;
+            v.y -= m_L_rate.y * img;
+            v.x -= L.y * m_xy_rate * img;
             }
 
         if (m_periodic.x)
             {
-            pos.x -= L.x * slow::rint(pos.x * m_Linv.x);
-            vel.x = vel.x + std::copysign(Scalar(1.0), slow::rint(pos.x * m_Linv.x)) * m_L_rate.x;
+            r.x -= L.x * slow::rint(r.x * m_Linv.x);
+            v.x -= m_L_rate.x * slow::rint(r.x * m_Linv.x);
             }
 #else
         // on the cpu, branches are faster than calling rint
         if (m_periodic.z)
             {
-            if (pos.z >= m_hi.z)
+            if (r.z >= m_hi.z)
                 {
-                pos.z -= L.z;
-                pos.y -= L.z * m_yz;
-                pos.x -= L.z * m_xz;
-                vel.z -= m_L_rate.z;
-                vel.y -= L.z * m_yz_rate;
-                vel.x -= L.z * m_xz_rate;
+                r.z -= L.z;
+                r.y -= L.z * m_yz;
+                r.x -= L.z * m_xz;
+                v.z -= m_L_rate.z;
+                v.y -= L.z * m_yz_rate;
+                v.x -= L.z * m_xz_rate;
                 }
-            else if (pos.z < m_lo.z)
+            else if (r.z < m_lo.z)
                 {
-                pos.z += L.z;
-                pos.y += L.z * m_yz;
-                pos.x += L.z * m_xz;
-                vel.z += m_L_rate.z;
-                vel.y += L.z * m_yz_rate;
-                vel.x += L.z * m_xz_rate;
+                r.z += L.z;
+                r.y += L.z * m_yz;
+                r.x += L.z * m_xz;
+                v.z += m_L_rate.z;
+                v.y += L.z * m_yz_rate;
+                v.x += L.z * m_xz_rate;
                 }
             }
 
         if (m_periodic.y)
             {
-            if (pos.y >= m_hi.y)
+            if (r.y >= m_hi.y)
                 {
-                int i = int(pos.y * m_Linv.y + Scalar(0.5));
-                pos.y -= (Scalar)i * L.y;
-                pos.x -= (Scalar)i * L.y * m_xy;
-                vel.y -= m_L_rate.y;
-                vel.x -= L.y * m_xy_rate;
+                int i = int(r.y * m_Linv.y + Scalar(0.5));
+                r.y -= (Scalar)i * L.y;
+                r.x -= (Scalar)i * L.y * m_xy;
+                v.y -= m_L_rate.y;
+                v.x -= L.y * m_xy_rate;
 
                 }
-            else if (pos.y < m_lo.y)
+            else if (r.y < m_lo.y)
                 {
-                int i = int(-pos.y * m_Linv.y + Scalar(0.5));
-                pos.y += (Scalar)i * L.y;
-                pos.x += (Scalar)i * L.y * m_xy;
-                vel.y += m_L_rate.y;
-                vel.x += L.y * m_xy_rate;            
+                int i = int(-r.y * m_Linv.y + Scalar(0.5));
+                r.y += (Scalar)i * L.y;
+                r.x += (Scalar)i * L.y * m_xy;
+                v.y += m_L_rate.y;
+                v.x += L.y * m_xy_rate;            
                 }
             }
 
         if (m_periodic.x)
             {
-            if (pos.x >= m_hi.x)
+            if (r.x >= m_hi.x)
                 {
-                int i = int(pos.x * m_Linv.x + Scalar(0.5));
-                pos.x -= (Scalar)i * L.x;
-                vel.x -= m_L_rate.x;
+                int i = int(r.x * m_Linv.x + Scalar(0.5));
+                r.x -= (Scalar)i * L.x;
+                v.x -= m_L_rate.x;
                 }
-            else if (pos.x < m_lo.x)
+            else if (r.x < m_lo.x)
                 {
-                int i = int(-pos.x * m_Linv.x + Scalar(0.5));
-                pos.x += (Scalar)i * L.x;
-                vel.x += m_L_rate.x;
+                int i = int(-r.x * m_Linv.x + Scalar(0.5));
+                r.x += (Scalar)i * L.x;
+                v.x += m_L_rate.x;
                 }
             }
 #endif
 
-        return {pos, vel};
+        dr = r;
+        dv = v;
         }
 
     //! Minimum image using vec3s
-    HOSTDEVICE vec3<Scalar> minImage(const vec3<Scalar>& v) const
+    HOSTDEVICE void minImage(vec3<Scalar>& dr, vec3<Scalar>& dv) const
         {
-        return vec3<Scalar>(minImage(vec_to_scalar3(v)));
+        Scalar3 dr_scalar = vec_to_scalar3(dr);
+        Scalar3 dv_scalar = vec_to_scalar3(dv);
+        minImage(dr_scalar, dv_scalar);
+        dr = vec3<Scalar>(dr_scalar);
+        dv = vec3<Scalar>(dv_scalar);
         }
 
     //! Wrap a vector back into the box
@@ -614,7 +618,6 @@ struct
         \post \a img and \a v are updated appropriately
         \note \a v must not extend more than 1 image beyond the box
     */
-   
     HOSTDEVICE void wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
         Scalar3 L = getL();
@@ -695,7 +698,24 @@ struct
                 }
             }
         }
+    
+    //! Wrap a vec3
+    HOSTDEVICE void wrap(vec3<Scalar>& pos, vec3<Scalar>& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+        {
+        Scalar3 pos_scalar = vec_to_scalar3(pos);
+        Scalar3 vel_scalar = vec_to_scalar3(vel);
+        wrap(pos_scalar, vel_scalar, img, flags);
+        pos.x = pos_scalar.x;
+        pos.y = pos_scalar.y;
+        pos.z = pos_scalar.z;
+        vel.x = vel_scalar.x;
+        vel.y = vel_scalar.y;
+        vel.z = vel_scalar.z;
+        }
 
+    //! Wrap a Scalar4
+    /*! \note The 4th element remains unchanged
+    */
     HOSTDEVICE void wrap(Scalar4& pos, Scalar4& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
         Scalar3 p = make_scalar3(pos.x, pos.y, pos.z);
@@ -749,6 +769,37 @@ struct
         {
         return vec3<Scalar>(shift(vec_to_scalar3(v), _shift));
         }
+
+    //! Shift a particle by a multiple of the lattice vectors
+    /*! \param r The position vector to shift (and the new shifted position)
+        \param v The velocity vector to shift (and the new shifted velocity)
+        \param shift The displacement in lattice coordinates
+     */
+    HOSTDEVICE void shift(Scalar3& r, Scalar3& v, const int3& shift) const
+        {
+        Scalar3 pos = r;
+        Scalar3 vel = v;
+        
+        pos += Scalar(shift.x) * make_scalar3(m_L.x, 0.0, 0.0);
+        pos += Scalar(shift.y) * make_scalar3(m_L.y * m_xy, m_L.y, 0.0);
+        pos += Scalar(shift.z) * make_scalar3(m_L.z * m_xz, m_L.z * m_yz, m_L.z);
+        vel += Scalar(shift.x) * make_scalar3(m_L_rate.x, 0.0, 0.0);
+        vel += Scalar(shift.y) * make_scalar3(m_L.y * m_xy_rate, m_L_rate.y, 0.0);
+        vel += Scalar(shift.z) * make_scalar3(m_L.z * m_xz_rate, m_L.z * m_yz_rate, m_L_rate.z);
+    
+        r = pos;
+        v = vel;
+        }
+
+    //! Shift a vec3
+    HOSTDEVICE void shift(vec3<Scalar>& r, vec3<Scalar>& v, const int3& _shift) const
+    {
+        Scalar3 r_scalar = vec_to_scalar3(r);
+        Scalar3 v_scalar = vec_to_scalar3(v);
+        shift(r_scalar, v_scalar, _shift);
+        r = vec3<Scalar>(r_scalar);
+        v = vec3<Scalar>(v_scalar);
+    }
 
     //! Get the shortest distance between opposite boundary planes of the box
     /*! The distance between two planes of the lattice is 2 Pi/|b_i|, where

@@ -188,6 +188,9 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
         ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata_4->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
 
         // translate all particles and wrap them back into the box
         Scalar3 shift = make_scalar3(.5, 0, 1);
@@ -197,22 +200,22 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
                                      h_pos.data[0].y + shift.y,
                                      h_pos.data[0].z + shift.z,
                                      h_pos.data[0].w);
-        box.wrap(h_pos.data[0], img);
+        box.wrap(h_pos.data[0], h_vel.data[0], img);
         h_pos.data[1] = make_scalar4(h_pos.data[1].x + shift.x,
                                      h_pos.data[1].y + shift.y,
                                      h_pos.data[1].z + shift.z,
                                      h_pos.data[1].w);
-        box.wrap(h_pos.data[1], img);
+        box.wrap(h_pos.data[1], h_vel.data[1], img);
         h_pos.data[2] = make_scalar4(h_pos.data[2].x + shift.x,
                                      h_pos.data[2].y + shift.y,
                                      h_pos.data[2].z + shift.z,
                                      h_pos.data[2].w);
-        box.wrap(h_pos.data[2], img);
+        box.wrap(h_pos.data[2], h_vel.data[2], img);
         h_pos.data[3] = make_scalar4(h_pos.data[3].x + shift.x,
                                      h_pos.data[3].y + shift.y,
                                      h_pos.data[3].z + shift.z,
                                      h_pos.data[3].w);
-        box.wrap(h_pos.data[3], img);
+        box.wrap(h_pos.data[3], h_vel.data[3], img);
         }
 
     fc_4->compute(2);

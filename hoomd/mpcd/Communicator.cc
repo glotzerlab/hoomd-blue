@@ -415,9 +415,10 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
             {
             mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
             Scalar4& postype = p.pos;
+            Scalar4& vel = p.vel;
             int3 image = make_int3(0, 0, 0);
 
-            wrap_box.wrap(postype, image);
+            wrap_box.wrap(postype, vel, image);
             }
         }
 

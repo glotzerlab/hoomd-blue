@@ -793,6 +793,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 {
                 unsigned int snap_idx = (unsigned int)(it - snapshot.pos.begin());
 
+                Scalar3 v = vec_to_scalar3(snapshot.vel[snap_idx]);
+
                 // if requested, do not initialize constituent particles of bodies
                 if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY
                     && snapshot.body[snap_idx] != snap_idx)
@@ -834,7 +836,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 // only wrap if the particles is on one of the boundaries
                 uchar3 periodic = make_uchar3(flags.x, flags.y, flags.z);
                 global_box.setPeriodic(periodic);
-                global_box.wrap(pos, img, flags);
+                global_box.wrap(pos, v, img, flags);
 
                 // place particle using actual domain fractions, not global box fraction
                 unsigned int rank

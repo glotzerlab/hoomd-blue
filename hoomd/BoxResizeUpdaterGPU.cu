@@ -32,13 +32,13 @@ __global__ void gpu_box_resize_scale_kernel(Scalar4* d_pos,
     }
 
 __global__ void
-gpu_box_resize_wrap_kernel(unsigned int N, Scalar4* d_pos, int3* d_image, const BoxDim new_box)
+gpu_box_resize_wrap_kernel(unsigned int N, Scalar4* d_pos, Scalar4* d_vel, int3* d_image, const BoxDim new_box)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
-        new_box.wrap(d_pos[idx], d_image[idx]);
+        new_box.wrap(d_pos[idx], d_vel[idx], d_image[idx]);
         }
     }
 
@@ -74,6 +74,7 @@ hipError_t gpu_box_resize_scale(Scalar4* d_pos,
 
 hipError_t gpu_box_resize_wrap(const unsigned int N,
                                Scalar4* d_pos,
+                               Scalar4* d_vel,
                                int3* d_image,
                                const BoxDim& new_box,
                                unsigned int block_size)
@@ -94,6 +95,7 @@ hipError_t gpu_box_resize_wrap(const unsigned int N,
                        0,
                        N,
                        d_pos,
+                       d_vel,
                        d_image,
                        new_box);
 

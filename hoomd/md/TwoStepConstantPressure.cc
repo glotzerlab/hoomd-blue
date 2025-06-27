@@ -351,13 +351,16 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(),
                                   access_location::host,
                                   access_mode::readwrite);
 
         // Wrap particles
         for (unsigned int j = 0; j < m_pdata->getN(); j++)
-            box.wrap(h_pos.data[j], h_image.data[j]);
+            box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
         }
 
     // Integration of angular degrees of freedom using symplectic and

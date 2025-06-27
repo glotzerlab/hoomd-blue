@@ -199,6 +199,9 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                   access_location::device,
+                                   access_mode::readwrite);
         ArrayHandle<int3> d_image(m_pdata->getImages(),
                                   access_location::device,
                                   access_mode::readwrite);
@@ -208,6 +211,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
 
         kernel::gpu_npt_rescale_wrap(m_pdata->getN(),
                                      d_pos.data,
+                                     d_vel.data,
                                      d_image.data,
                                      box,
                                      m_tuner_wrap->getParam()[0]);

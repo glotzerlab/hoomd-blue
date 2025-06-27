@@ -159,6 +159,8 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
                 {
                 unsigned int snap_idx = (unsigned int)(it - snapshot.position.begin());
 
+                Scalar3 v = vec_to_scalar3(snapshot.velocity[snap_idx]);
+
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
                 Scalar3 f = global_box->makeFraction(pos);
@@ -189,7 +191,7 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
                 auto wrapping_box = *global_box;
                 wrapping_box.setPeriodic(periodic);
                 int3 img = make_int3(0, 0, 0);
-                wrapping_box.wrap(pos, img, flags);
+                wrapping_box.wrap(pos, v, img, flags);
 
                 // place particle into the computational domain
                 unsigned int rank

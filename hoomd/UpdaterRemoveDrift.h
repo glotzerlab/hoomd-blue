@@ -100,6 +100,9 @@ class UpdaterRemoveDrift : public Updater
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
                                            access_location::host,
                                            access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(this->m_pdata->getVelocities(),
+                                           access_location::host,
+                                           access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
                                             access_location::host,
                                             access_mode::read);
@@ -116,8 +119,9 @@ class UpdaterRemoveDrift : public Updater
                 unsigned int tag_i = h_tag.data[i];
                 // read in the current position and orientation
                 vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
+                vec3<Scalar> vel = vec3<Scalar>(h_vel.data[i]);
                 int3 tmp_image = make_int3(0, 0, 0);
-                box.wrap(postype_i, tmp_image);
+                box.wrap(postype_i, vel, tmp_image);
                 const vec3<Scalar> dr = postype_i - m_ref_positions[tag_i];
                 rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
                 }
@@ -146,7 +150,7 @@ class UpdaterRemoveDrift : public Updater
                 Scalar4 postype_i = h_postype.data[i];
                 const vec3<Scalar> r_i = vec3<Scalar>(postype_i);
                 h_postype.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
-                box.wrap(h_postype.data[i], h_image.data[i]);
+                box.wrap(h_postype.data[i], h_vel.data[i], h_image.data[i]);
                 }
             }
 

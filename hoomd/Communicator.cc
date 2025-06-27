@@ -1718,9 +1718,10 @@ void Communicator::migrateParticles()
             {
             detail::pdata_element& p = m_recvbuf[idx];
             Scalar4& postype = p.pos;
+            Scalar4& vel = p.vel;
             int3& image = p.image;
 
-            shifted_box.wrap(postype, image);
+            shifted_box.wrap(postype, vel, image);
             }
 
         // remove particles that were sent and fill particle data with received particles
@@ -2321,6 +2322,9 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,
                                        access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::readwrite);
             ArrayHandle<int3> h_image(m_pdata->getImages(),
                                       access_location::host,
                                       access_mode::readwrite);
@@ -2330,10 +2334,11 @@ void Communicator::exchangeGhosts()
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
                 Scalar4& pos = h_pos.data[idx];
+                Scalar4& vel = h_vel.data[idx];
 
                 // wrap particles received across a global boundary
                 int3& img = h_image.data[idx];
-                shifted_box.wrap(pos, img);
+                shifted_box.wrap(pos, vel, img);
                 }
             }
 
@@ -2837,15 +2842,19 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,
                                        access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::readwrite);
 
             const BoxDim shifted_box = getShiftedBox();
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
                 Scalar4& pos = h_pos.data[idx];
+                Scalar4& vel = h_vel.data[idx];
 
                 // wrap particles received across a global boundary
                 int3 img = make_int3(0, 0, 0);
-                shifted_box.wrap(pos, img);
+                shifted_box.wrap(pos, vel, img);
                 }
             }
 

@@ -245,7 +245,7 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
         postype.z += dz;
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
-        box.wrap(postype, image);
+        box.wrap(postype, vel, image);
 
         // write out data
         d_pos[idx] = postype;
