@@ -82,9 +82,6 @@ template<class evaluator> class GeodesicPotentialPair : public PotentialPair<eva
     //! Set the rcut for a single type pair
     virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
 
-    /// Get the r_cut for a single type pair
-    Scalar getRCut(pybind11::tuple types);
-
     protected:
     Scalar m_R; 
     //! Actually compute the forces
@@ -129,8 +126,8 @@ void GeodesicPotentialPair<evaluator>::setRcut(unsigned int typ1, unsigned int t
 	Scalar rcut_euclid = 2*m_R*fast::sin(rcut/(2*m_R));
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
-        h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut_euclid * rcut_euclid;
-        h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut_euclid * rcut_euclid;
+        h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
+        h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
 
         // store r_cut unmodified for so the neighbor list knows what particles to include
         ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
@@ -142,16 +139,6 @@ void GeodesicPotentialPair<evaluator>::setRcut(unsigned int typ1, unsigned int t
 
     // notify the neighbor list that we have changed r_cut values
     m_nlist->notifyRCutMatrixChange();
-    }
-
-template<class evaluator>
-Scalar GeodesicPotentialPair<evaluator>::getRCut(pybind11::tuple types)
-    {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "getting r_cut.");
-    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-    return 2*m_R*fast:arcsin(sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)])/(2*m_R));
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is
@@ -182,22 +169,17 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                       access_location::host,
-                                       access_mode::read);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // force arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
     const BoxDim box = m_pdata->getBox();
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         {
         // need to start from a zero force, energy and virial
         m_force.zeroFill();
-        m_torque.zeroFill();
         m_virial.zeroFill();
 
         PDataFlags flags = this->m_pdata->getFlags();
@@ -209,7 +191,9 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
             // access the particle's position and type (MEM TRANSFER: 4 scalars)
             Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
             unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-            Scalar4 quat_i = h_orientation.data[i];
+
+	    Scalar normi = fast::rsqrt(pi.x*pi.x+pi.y*pi.y+pi.z*pi.z);
+            Scalar3 normali = pi*normi;
 
             // sanity check
             assert(typei < m_pdata->getNTypes());
@@ -219,14 +203,9 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
             if (evaluator::needsCharge())
                 qi = h_charge.data[i];
 
-            // initialize current particle force, torque, potential energy, and virial to 0
-            Scalar fxi = Scalar(0.0);
-            Scalar fyi = Scalar(0.0);
-            Scalar fzi = Scalar(0.0);
-            Scalar txi = Scalar(0.0);
-            Scalar tyi = Scalar(0.0);
-            Scalar tzi = Scalar(0.0);
-            Scalar pei = Scalar(0.0);
+            // initialize current particle force, potential energy, and virial to 0
+            Scalar3 fi = make_scalar3(0, 0, 0);
+            Scalar pei = 0.0;
             Scalar virialxxi = 0.0;
             Scalar virialxyi = 0.0;
             Scalar virialxzi = 0.0;
@@ -245,8 +224,11 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
 
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
                 Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+
+	    	Scalar normj = fast::rsqrt(pj.x*pj.x+pj.y*pj.y+pj.z*pj.z);
+            	Scalar3 normalj = pj*normj;
+
                 Scalar3 dx = pi - pj;
-                Scalar4 quat_j = h_orientation.data[j];
 
                 // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
                 unsigned int typej = __scalar_as_int(h_pos.data[j].w);
@@ -257,105 +239,149 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
                 if (evaluator::needsCharge())
                     qj = h_charge.data[j];
 
-                // apply periodic boundary conditions
-                dx = box.minImage(dx);
+                // calculate r_ij squared (FLOPS: 5)
+                Scalar rsq = dot(dx, dx);
+		
+		Scalar r_geodesic = 2*m_R*fast:arcsin(sqrt(rsq)/(2*m_R));
+
+		Scalar rsq_geodesic = r_geodesic*r_geodesic;
 
                 // get parameters for this type pair
                 unsigned int typpair_idx = m_typpair_idx(typei, typej);
                 const param_type& param = m_params[typpair_idx];
                 Scalar rcutsq = h_rcutsq.data[typpair_idx];
+                Scalar ronsq = Scalar(0.0);
+                if (m_shift_mode == xplor)
+                    ronsq = h_ronsq.data[typpair_idx];
 
                 // design specifies that energies are shifted if
-                // shift mode is set to shift
+                // 1) shift mode is set to shift
+                // or 2) shift mode is explor and ron > rcut
                 bool energy_shift = false;
                 if (m_shift_mode == shift)
                     energy_shift = true;
+                else if (m_shift_mode == xplor)
+                    {
+                    if (ronsq > rcutsq)
+                        energy_shift = true;
+                    }
 
                 // compute the force and potential energy
-                Scalar3 force = make_scalar3(0.0, 0.0, 0.0);
-                Scalar3 torque_i = make_scalar3(0.0, 0.0, 0.0);
-                Scalar3 torque_j = make_scalar3(0.0, 0.0, 0.0);
-
+                Scalar force_divr = Scalar(0.0);
                 Scalar pair_eng = Scalar(0.0);
-
-                evaluator eval(dx, quat_i, quat_j, rcutsq, param);
-
+                evaluator eval(rsq_geodesic, rcutsq, param);
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
-                if (evaluator::needsShape())
-                    eval.setShape(&m_shape_params[typei], &m_shape_params[typej]);
-                if (evaluator::needsTags())
-                    eval.setTags(h_tag.data[i], h_tag.data[j]);
 
-                bool evaluated = eval.evaluate(force, pair_eng, energy_shift, torque_i, torque_j);
+                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
                 if (evaluated)
                     {
-                    Scalar3 force2 = Scalar(0.5) * force;
+                    // modify the potential for xplor shifting
+                    if (m_shift_mode == xplor)
+                        {
+                        if (rsq >= ronsq && rsq < rcutsq)
+                            {
+                            // Implement XPLOR smoothing (FLOPS: 16)
+                            Scalar old_pair_eng = pair_eng;
+                            Scalar old_force_divr = force_divr;
 
+                            // calculate 1.0 / (xplor denominator)
+                            Scalar xplor_denom_inv
+                                = Scalar(1.0)
+                                  / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                            Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                            Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                                       * (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq)
+                                       * xplor_denom_inv;
+                            Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq
+                                                * xplor_denom_inv;
+
+                            // make modifications to the old pair energy and force
+                            pair_eng = old_pair_eng * s;
+                            // note: I'm not sure why the minus sign needs to be there: my notes
+                            // have a
+                            // + But this is verified correct via plotting
+                            force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                            }
+                        }
+
+                    force_divr = force_divr * r_geodesic;
+                    Scalar force_div2r = force_divr * Scalar(0.5);
                     // add the force, potential energy and virial to the particle i
                     // (FLOPS: 8)
-                    fxi += force.x;
-                    fyi += force.y;
-                    fzi += force.z;
-                    txi += torque_i.x;
-                    tyi += torque_i.y;
-                    tzi += torque_i.z;
-                    pei += pair_eng * Scalar(0.5);
 
+		    Scalar3 dxi = dx - (dx.x*normali.x+dx.y*normali.y+ dx.z*normali.z)*normali;
+		    Scalar normdxi = fast::rsqrt(dxi.x*dxi.x+dxi.y*dxi.y+dxi.z*dxi.z);
+
+		    dxi = dxi*normdxi;
+		    
+                    fi += dxi * force_divr;
+                    pei += pair_eng * Scalar(0.5);
                     if (compute_virial)
                         {
-                        virialxxi += dx.x * force2.x;
-                        virialxyi += dx.y * force2.x;
-                        virialxzi += dx.z * force2.x;
-                        virialyyi += dx.y * force2.y;
-                        virialyzi += dx.z * force2.y;
-                        virialzzi += dx.z * force2.z;
+			//maybe wrong
+                        virialxxi += force_div2r * dxi.x * pi.x;
+                        virialxyi += force_div2r * dxi.x * pi.y;
+                        virialxzi += force_div2r * dxi.x * pi.z;
+                        virialyyi += force_div2r * dxi.y * pi.y;
+                        virialyzi += force_div2r * dxi.y * pi.z;
+                        virialzzi += force_div2r * dxi.z * pi.z;
                         }
 
                     // add the force to particle j if we are using the third law (MEM TRANSFER: 10
-                    // scalars / FLOPS: 8)
+                    // scalars / FLOPS: 8) only add force to local particles
                     if (third_law && j < m_pdata->getN())
                         {
-                        h_force.data[j].x -= force.x;
-                        h_force.data[j].y -= force.y;
-                        h_force.data[j].z -= force.z;
-                        h_torque.data[j].x += torque_j.x;
-                        h_torque.data[j].y += torque_j.y;
-                        h_torque.data[j].z += torque_j.z;
-                        h_force.data[j].w += pair_eng * Scalar(0.5);
+                        unsigned int mem_idx = j;
+
+			Scalar3 dxj = -dx + (dx.x*normalj.x+dx.y*normalj.y+ dx.z*normalj.z)*normalj;
+			Scalar normdxj = fast::rsqrt(dxj.x*dxj.x+dxj.y*dxj.y+dxj.z*dxj.z);
+
+			dxj = dxj*normdxj;
+                        h_force.data[mem_idx].x += dxj.x * force_divr;
+                        h_force.data[mem_idx].y += dxj.y * force_divr;
+                        h_force.data[mem_idx].z += dxj.z * force_divr;
+                        h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
                         if (compute_virial)
                             {
-                            h_virial.data[0 * m_virial_pitch + j] += dx.x * force2.x;
-                            h_virial.data[1 * m_virial_pitch + j] += dx.y * force2.x;
-                            h_virial.data[2 * m_virial_pitch + j] += dx.z * force2.x;
-                            h_virial.data[3 * m_virial_pitch + j] += dx.y * force2.y;
-                            h_virial.data[4 * m_virial_pitch + j] += dx.z * force2.y;
-                            h_virial.data[5 * m_virial_pitch + j] += dx.z * force2.z;
+                            h_virial.data[0 * m_virial_pitch + mem_idx]
+                                += force_div2r * dxj.x * pj.x;
+                            h_virial.data[1 * m_virial_pitch + mem_idx]
+                                += force_div2r * dxj.x * pj.y;
+                            h_virial.data[2 * m_virial_pitch + mem_idx]
+                                += force_div2r * dxj.x * pj.z;
+                            h_virial.data[3 * m_virial_pitch + mem_idx]
+                                += force_div2r * dxj.y * pj.y;
+                            h_virial.data[4 * m_virial_pitch + mem_idx]
+                                += force_div2r * dxj.y * pj.z;
+                            h_virial.data[5 * m_virial_pitch + mem_idx]
+                                += force_div2r * dxj.z * pj.z;
                             }
                         }
                     }
                 }
 
             // finally, increment the force, potential energy and virial for particle i
-            h_force.data[i].x += fxi;
-            h_force.data[i].y += fyi;
-            h_force.data[i].z += fzi;
-            h_torque.data[i].x += txi;
-            h_torque.data[i].y += tyi;
-            h_torque.data[i].z += tzi;
-            h_force.data[i].w += pei;
+            unsigned int mem_idx = i;
+            h_force.data[mem_idx].x += fi.x;
+            h_force.data[mem_idx].y += fi.y;
+            h_force.data[mem_idx].z += fi.z;
+            h_force.data[mem_idx].w += pei;
             if (compute_virial)
                 {
-                h_virial.data[0 * m_virial_pitch + i] += virialxxi;
-                h_virial.data[1 * m_virial_pitch + i] += virialxyi;
-                h_virial.data[2 * m_virial_pitch + i] += virialxzi;
-                h_virial.data[3 * m_virial_pitch + i] += virialyyi;
-                h_virial.data[4 * m_virial_pitch + i] += virialyzi;
-                h_virial.data[5 * m_virial_pitch + i] += virialzzi;
+                h_virial.data[0 * m_virial_pitch + mem_idx] += virialxxi;
+                h_virial.data[1 * m_virial_pitch + mem_idx] += virialxyi;
+                h_virial.data[2 * m_virial_pitch + mem_idx] += virialxzi;
+                h_virial.data[3 * m_virial_pitch + mem_idx] += virialyyi;
+                h_virial.data[4 * m_virial_pitch + mem_idx] += virialyzi;
+                h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
                 }
             }
         }
+
+    computeTailCorrection();
     }
 
 
@@ -371,8 +397,6 @@ template<class T> void export_GeodesicPotentialPair(pybind11::module& m, const s
         geodesicpotentialpair(m, name.c_str());
     geodesicpotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>,Scalar>())
-        .def("setRCut", &GeodesicPotentialPair<T>::setRCutPython)
-        .def("getRCut", &GeodesicPotentialPair<T>::getRCut)
     }
 
     } // end namespace detail
