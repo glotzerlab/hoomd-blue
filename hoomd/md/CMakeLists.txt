@@ -18,6 +18,7 @@ set(_md_sources module-md.cc
                    ConstantForceCompute.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
+                   Elastic.cc
                    EvaluatorWalls.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
@@ -93,6 +94,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 CustomForceCompute.h
+                Elastic.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorBondTether.h
