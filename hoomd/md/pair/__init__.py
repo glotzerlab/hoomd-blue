@@ -138,6 +138,7 @@ from .pair import (
     ExpandedLJ,
     ExpandedGaussian,
     Yukawa,
+    Inverse,
     Ewald,
     Morse,
     DPD,
@@ -189,5 +190,6 @@ __all__ = [
     "Table",
     "WangFrenkel",
     "Yukawa",
+    "Inverse",
     "aniso",
 ]
