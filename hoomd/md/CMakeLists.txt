@@ -130,7 +130,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
                 EvaluatorWalls.h
-                FIREEnergyMinimizerGPU.h
+                GeodesicPotentialPair.h
+	        FIREEnergyMinimizerGPU.h
                 FIREEnergyMinimizer.h
                 ForceCompositeGPU.h
                 ForceComposite.h
@@ -582,6 +583,32 @@ foreach(_evaluator ${_pair_evaluators})
         set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
             PotentialPair${_evaluator}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+foreach(_evaluator ${_pair_evaluators})
+    set(_evaluator_cpp ${_evaluator})
+    if (_evaluator STREQUAL "ConservativeDPD")
+        set(_evaluator_cpp "DPDThermoDPD")
+    endif()     
+                
+    configure_file(export_GeodesicPotentialPair.cc.inc
+                   export_GeodesicPotentialPair${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_GeodesicPotentialPair${_evaluator}.cc)
+                
+    if (ENABLE_HIP)
+        configure_file(export_GeodesicPotentialPairGPU.cc.inc
+                       export_GeodesicPotentialPair${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(GeodesicPotentialPairGPUKernel.cu.inc
+                       GeodesicPotentialPair${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_GeodesicPotentialPair${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            GeodesicPotentialPair${_evaluator}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()

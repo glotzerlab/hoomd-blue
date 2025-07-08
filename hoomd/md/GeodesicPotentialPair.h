@@ -40,8 +40,7 @@ namespace md
 /*! <b>Overview:</b>
     GeodesicPotentialPair computes standard pair potentials (and forces) between all particle pairs in
    the simulation. It employs the use of a neighbor list to limit the number of computations done to
-   only those particles*/   
- with the cutoff radius of each other. The computation of the actual V(r) is
+   only those particles  with the cutoff radius of each other. The computation of the actual V(r) is
    not performed directly by this class, but by an evaluator class (e.g. EvaluatorPairLJ)
    which is passed in as a template parameter so the computations are performed as efficiently as
    possible.
@@ -95,20 +94,20 @@ template<class evaluator>
 GeodesicPotentialPair<evaluator>::GeodesicPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
                                                         std::shared_ptr<NeighborList> nlist,
 							Scalar R)
-    : PotentialPair(sysdef, nlist), m_R(R))
+    : PotentialPair<evaluator>(sysdef, nlist), m_R(R)
     {
-    m_exec_conf->msg->notice(5) << "Constructing GeodesicPotentialPair<" << evaluator::getName()
+    this->m_exec_conf->msg->notice(5) << "Constructing GeodesicPotentialPair<" << evaluator::getName()
                                 << ">" << std::endl;
     }
 
 template<class evaluator> GeodesicPotentialPair<evaluator>::~GeodesicPotentialPair()
     {
-    m_exec_conf->msg->notice(5) << "Destroying GeodesicPotentialPair<" << evaluator::getName()
+    this->m_exec_conf->msg->notice(5) << "Destroying GeodesicPotentialPair<" << evaluator::getName()
                                 << ">" << std::endl;
 
     if (this->m_attached)
         {
-        this->m_nlist->removeRCutMatrix(m_r_cut_nlist);
+        this->m_nlist->removeRCutMatrix(this->m_r_cut_nlist);
         }
     }
 
@@ -125,20 +124,20 @@ void GeodesicPotentialPair<evaluator>::setRcut(unsigned int typ1, unsigned int t
         {
 	Scalar rcut_euclid = 2*m_R*fast::sin(rcut/(2*m_R));
         // store r_cut**2 for use internally
-        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
-        h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
-        h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
+        ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::readwrite);
+        h_rcutsq.data[this->m_typpair_idx(typ1, typ2)] = rcut * rcut;
+        h_rcutsq.data[this->m_typpair_idx(typ2, typ1)] = rcut * rcut;
 
         // store r_cut unmodified for so the neighbor list knows what particles to include
-        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+        ArrayHandle<Scalar> h_r_cut_nlist(*this->m_r_cut_nlist,
                                           access_location::host,
                                           access_mode::readwrite);
-        h_r_cut_nlist.data[m_typpair_idx(typ1, typ2)] = rcut_euclid;
-        h_r_cut_nlist.data[m_typpair_idx(typ2, typ1)] = rcut_euclid;
+        h_r_cut_nlist.data[this->m_typpair_idx(typ1, typ2)] = rcut_euclid;
+        h_r_cut_nlist.data[this->m_typpair_idx(typ2, typ1)] = rcut_euclid;
         }
 
     // notify the neighbor list that we have changed r_cut values
-    m_nlist->notifyRCutMatrixChange();
+    this->m_nlist->notifyRCutMatrixChange();
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is
@@ -150,43 +149,43 @@ template<class evaluator>
 void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
-    m_nlist->compute(timestep);
+    this->m_nlist->compute(timestep);
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
 
     // access the neighbor list, particle data, and system box
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+    ArrayHandle<unsigned int> h_n_neigh(this->m_nlist->getNNeighArray(),
                                         access_location::host,
                                         access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+    ArrayHandle<unsigned int> h_nlist(this->m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+    ArrayHandle<size_t> h_head_list(this->m_nlist->getHeadList(),
                                     access_location::host,
                                     access_mode::read);
 
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
 
     // force arrays
-    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(this->m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(this->m_virial, access_location::host, access_mode::overwrite);
 
-    const BoxDim box = m_pdata->getBox();
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+    const BoxDim box = this->m_pdata->getBox();
+    ArrayHandle<Scalar> h_ronsq(this->m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
         {
         // need to start from a zero force, energy and virial
-        m_force.zeroFill();
-        m_virial.zeroFill();
+        this->m_force.zeroFill();
+        this->m_virial.zeroFill();
 
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
         // for each particle
-        for (int i = 0; i < (int)m_pdata->getN(); i++)
+        for (int i = 0; i < (int)this->m_pdata->getN(); i++)
             {
             // access the particle's position and type (MEM TRANSFER: 4 scalars)
             Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
@@ -196,7 +195,7 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
             Scalar3 normali = pi*normi;
 
             // sanity check
-            assert(typei < m_pdata->getNTypes());
+            assert(typei < this->m_pdata->getNTypes());
 
             // access charge (if needed)
             Scalar qi = Scalar(0.0);
@@ -220,7 +219,7 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
                 {
                 // access the index of this neighbor (MEM TRANSFER: 1 scalar)
                 unsigned int j = h_nlist.data[myHead + k];
-                assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+                assert(j < this->m_pdata->getN() + this->m_pdata->getNGhosts());
 
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
                 Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -232,7 +231,7 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
 
                 // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
                 unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-                assert(typej < m_pdata->getNTypes());
+                assert(typej < this->m_pdata->getNTypes());
 
                 // access charge (if needed)
                 Scalar qj = Scalar(0.0);
@@ -242,25 +241,25 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
                 // calculate r_ij squared (FLOPS: 5)
                 Scalar rsq = dot(dx, dx);
 		
-		Scalar r_geodesic = 2*m_R*fast:arcsin(sqrt(rsq)/(2*m_R));
+		Scalar r_geodesic = 2*m_R*asin(sqrt(rsq)/(2*m_R));
 
 		Scalar rsq_geodesic = r_geodesic*r_geodesic;
 
                 // get parameters for this type pair
-                unsigned int typpair_idx = m_typpair_idx(typei, typej);
-                const param_type& param = m_params[typpair_idx];
+                unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
+                const param_type& param = this->m_params[typpair_idx];
                 Scalar rcutsq = h_rcutsq.data[typpair_idx];
                 Scalar ronsq = Scalar(0.0);
-                if (m_shift_mode == xplor)
+                if (this->m_shift_mode == this->xplor)
                     ronsq = h_ronsq.data[typpair_idx];
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
                 // or 2) shift mode is explor and ron > rcut
                 bool energy_shift = false;
-                if (m_shift_mode == shift)
+                if (this->m_shift_mode == this->shift)
                     energy_shift = true;
-                else if (m_shift_mode == xplor)
+                else if (this->m_shift_mode == this->xplor)
                     {
                     if (ronsq > rcutsq)
                         energy_shift = true;
@@ -278,7 +277,7 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
                 if (evaluated)
                     {
                     // modify the potential for xplor shifting
-                    if (m_shift_mode == xplor)
+                    if (this->m_shift_mode == this->xplor)
                         {
                         if (rsq >= ronsq && rsq < rcutsq)
                             {
@@ -332,7 +331,7 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
 
                     // add the force to particle j if we are using the third law (MEM TRANSFER: 10
                     // scalars / FLOPS: 8) only add force to local particles
-                    if (third_law && j < m_pdata->getN())
+                    if (third_law && j < this->m_pdata->getN())
                         {
                         unsigned int mem_idx = j;
 
@@ -346,17 +345,17 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
                         h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
                         if (compute_virial)
                             {
-                            h_virial.data[0 * m_virial_pitch + mem_idx]
+                            h_virial.data[0 * this->m_virial_pitch + mem_idx]
                                 += force_div2r * dxj.x * pj.x;
-                            h_virial.data[1 * m_virial_pitch + mem_idx]
+                            h_virial.data[1 * this->m_virial_pitch + mem_idx]
                                 += force_div2r * dxj.x * pj.y;
-                            h_virial.data[2 * m_virial_pitch + mem_idx]
+                            h_virial.data[2 * this->m_virial_pitch + mem_idx]
                                 += force_div2r * dxj.x * pj.z;
-                            h_virial.data[3 * m_virial_pitch + mem_idx]
+                            h_virial.data[3 * this->m_virial_pitch + mem_idx]
                                 += force_div2r * dxj.y * pj.y;
-                            h_virial.data[4 * m_virial_pitch + mem_idx]
+                            h_virial.data[4 * this->m_virial_pitch + mem_idx]
                                 += force_div2r * dxj.y * pj.z;
-                            h_virial.data[5 * m_virial_pitch + mem_idx]
+                            h_virial.data[5 * this->m_virial_pitch + mem_idx]
                                 += force_div2r * dxj.z * pj.z;
                             }
                         }
@@ -371,17 +370,17 @@ void GeodesicPotentialPair<evaluator>::computeForces(uint64_t timestep)
             h_force.data[mem_idx].w += pei;
             if (compute_virial)
                 {
-                h_virial.data[0 * m_virial_pitch + mem_idx] += virialxxi;
-                h_virial.data[1 * m_virial_pitch + mem_idx] += virialxyi;
-                h_virial.data[2 * m_virial_pitch + mem_idx] += virialxzi;
-                h_virial.data[3 * m_virial_pitch + mem_idx] += virialyyi;
-                h_virial.data[4 * m_virial_pitch + mem_idx] += virialyzi;
-                h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
+                h_virial.data[0 * this->m_virial_pitch + mem_idx] += virialxxi;
+                h_virial.data[1 * this->m_virial_pitch + mem_idx] += virialxyi;
+                h_virial.data[2 * this->m_virial_pitch + mem_idx] += virialxzi;
+                h_virial.data[3 * this->m_virial_pitch + mem_idx] += virialyyi;
+                h_virial.data[4 * this->m_virial_pitch + mem_idx] += virialyzi;
+                h_virial.data[5 * this->m_virial_pitch + mem_idx] += virialzzi;
                 }
             }
         }
 
-    computeTailCorrection();
+    this->computeTailCorrection();
     }
 
 
@@ -396,7 +395,7 @@ template<class T> void export_GeodesicPotentialPair(pybind11::module& m, const s
     pybind11::class_<GeodesicPotentialPair<T>, PotentialPair<T>, std::shared_ptr<GeodesicPotentialPair<T>>>
         geodesicpotentialpair(m, name.c_str());
     geodesicpotentialpair
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>,Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>,Scalar>());
     }
 
     } // end namespace detail
