@@ -11,6 +11,12 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
 
+from hoomd.data.typeconverter import (
+    OnlyFrom,
+    nonnegative_real,
+    positive_real,
+    positive_int,
+)
 
 class GeodesicPair(Pair):
     r"""Base class anisotropic pair force.
@@ -1404,7 +1410,7 @@ class LJGauss(GeodesicPair):
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
     """
-
+PotentialPair
     _cpp_class_name = "GeodesicPotentialPairLJGauss"
     __doc__ = inspect.cleandoc(__doc__).replace(
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
