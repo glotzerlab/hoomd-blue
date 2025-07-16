@@ -5,7 +5,7 @@
 
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
-from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
@@ -25,7 +25,7 @@ class GeodesicPair(pair):
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, R, default_r_cut=None, mode="none"):
-	param_dict = ParameterDict(R = float(R))
+        param_dict = ParameterDict(R = float(R))
 	self._param_dict.update(param_dict)
         super().__init__(nlist, default_r_cut, 0.0, mode)
 
