@@ -5,6 +5,7 @@
 
 import hoomd
 import inspect
+from hoomd.md import _md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
@@ -33,9 +34,9 @@ class GeodesicPair(Pair):
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, default_r_cut, 0.0, mode)
         param_dict = ParameterDict(R = float(R))
         self._param_dict.update(param_dict)
-        super().__init__(nlist, default_r_cut, 0.0, mode)
 
     def _attach_hook(self):
         if self.nlist._attached and self._simulation != self.nlist._simulation:
@@ -1516,3 +1517,29 @@ class WangFrenkel(GeodesicPair):
         )
 
         self._add_typeparam(params)
+
+__all__ = [
+    "LJ",
+    "LJ0804",
+    "LJ1208",
+    "OPP",
+    "TWF",
+    "ZBL",
+    "Buckingham",
+    "Ewald",
+    "ExpandedGaussian",
+    "ExpandedLJ",
+    "ExpandedMie",
+    "ForceShiftedLJ",
+    "Fourier",
+    "Gaussian",
+    "LJGauss",
+    "Mie",
+    "Moliere",
+    "Morse",
+    "Pair",
+    "ReactionField",
+    "Table",
+    "WangFrenkel",
+    "Yukawa",
+]

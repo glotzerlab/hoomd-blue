@@ -68,6 +68,30 @@ void export_PotentialPairForceShiftedLJ(pybind11::module& m);
 void export_PotentialPairTable(pybind11::module& m);
 void export_PotentialPairWangFrenkel(pybind11::module& m);
 
+
+void export_GeodesicPotentialPairBuckingham(pybind11::module& m);
+void export_GeodesicPotentialPairLJ(pybind11::module& m);
+void export_GeodesicPotentialPairLJ1208(pybind11::module& m);
+void export_GeodesicPotentialPairLJ0804(pybind11::module& m);
+void export_GeodesicPotentialPairGauss(pybind11::module& m);
+void export_GeodesicPotentialPairExpandedLJ(pybind11::module& m);
+void export_GeodesicPotentialPairExpandedGaussian(pybind11::module& m);
+void export_GeodesicPotentialPairExpandedMie(pybind11::module& m);
+void export_GeodesicPotentialPairYukawa(pybind11::module& m);
+void export_GeodesicPotentialPairEwald(pybind11::module& m);
+void export_GeodesicPotentialPairMorse(pybind11::module& m);
+void export_GeodesicPotentialPairMoliere(pybind11::module& m);
+void export_GeodesicPotentialPairZBL(pybind11::module& m);
+void export_GeodesicPotentialPairMie(pybind11::module& m);
+void export_GeodesicPotentialPairReactionField(pybind11::module& m);
+void export_GeodesicPotentialPairFourier(pybind11::module& m);
+void export_GeodesicPotentialPairOPP(pybind11::module& m);
+void export_GeodesicPotentialPairTWF(pybind11::module& m);
+void export_GeodesicPotentialPairLJGauss(pybind11::module& m);
+void export_GeodesicPotentialPairForceShiftedLJ(pybind11::module& m);
+void export_GeodesicPotentialPairTable(pybind11::module& m);
+void export_GeodesicPotentialPairWangFrenkel(pybind11::module& m);
+
 void export_AnisoPotentialPairALJ2D(pybind11::module& m);
 void export_AnisoPotentialPairALJ3D(pybind11::module& m);
 void export_AnisoPotentialPairDipole(pybind11::module& m);
@@ -367,6 +391,30 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairForceShiftedLJ(m);
     export_PotentialPairTable(m);
     export_PotentialPairWangFrenkel(m);
+
+
+    export_GeodesicPotentialPairBuckingham(m);
+    export_GeodesicPotentialPairLJ(m);
+    export_GeodesicPotentialPairLJ1208(m);
+    export_GeodesicPotentialPairLJ0804(m);
+    export_GeodesicPotentialPairGauss(m);
+    export_GeodesicPotentialPairExpandedLJ(m);
+    export_GeodesicPotentialPairExpandedGaussian(m);
+    export_GeodesicPotentialPairExpandedMie(m);
+    export_GeodesicPotentialPairYukawa(m);
+    export_GeodesicPotentialPairEwald(m);
+    export_GeodesicPotentialPairMorse(m);
+    export_GeodesicPotentialPairMoliere(m);
+    export_GeodesicPotentialPairZBL(m);
+    export_GeodesicPotentialPairMie(m);
+    export_GeodesicPotentialPairReactionField(m);
+    export_GeodesicPotentialPairFourier(m);
+    export_GeodesicPotentialPairOPP(m);
+    export_GeodesicPotentialPairTWF(m);
+    export_GeodesicPotentialPairLJGauss(m);
+    export_GeodesicPotentialPairForceShiftedLJ(m);
+    export_GeodesicPotentialPairTable(m);
+    export_GeodesicPotentialPairWangFrenkel(m);
 
     export_AlchemicalMDParticles(m);
 
