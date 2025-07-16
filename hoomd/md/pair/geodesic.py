@@ -26,7 +26,7 @@ class GeodesicPair(pair):
 
     def __init__(self, nlist, R, default_r_cut=None, mode="none"):
         param_dict = ParameterDict(R = float(R))
-	self._param_dict.update(param_dict)
+        self._param_dict.update(param_dict)
         super().__init__(nlist, default_r_cut, 0.0, mode)
 
     def _attach_hook(self):
