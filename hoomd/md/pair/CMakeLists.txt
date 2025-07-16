@@ -1,6 +1,7 @@
 set(files __init__.py
           pair.py
           aniso.py
+	  geodesic.py
    )
 
 install(FILES ${files}

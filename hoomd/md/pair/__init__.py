@@ -131,6 +131,7 @@ For anisotropic potentials see `hoomd.md.pair.aniso`
 """
 
 from . import aniso
+from . import geodesic 
 from .pair import (
     Pair,
     LJ,
@@ -190,4 +191,5 @@ __all__ = [
     "WangFrenkel",
     "Yukawa",
     "aniso",
+    "geodesic",
 ]
