@@ -3,6 +3,7 @@
 
 """Geodesic pair forces."""
 
+import hoomd
 import inspect
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
@@ -1410,7 +1411,7 @@ class LJGauss(GeodesicPair):
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
     """
-PotentialPair
+
     _cpp_class_name = "GeodesicPotentialPairLJGauss"
     __doc__ = inspect.cleandoc(__doc__).replace(
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
