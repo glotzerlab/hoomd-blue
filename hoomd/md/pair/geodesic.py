@@ -11,7 +11,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
 
 
-class GeodesicPair(Pair):
+class GeodesicPair(pair):
     r"""Base class anisotropic pair force.
 
     `GeodesicPair` is the base class for all geodesic pair forces.
@@ -25,8 +25,9 @@ class GeodesicPair(Pair):
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, R, default_r_cut=None, mode="none"):
-	self.R = R
-        super().__init__(nlist, R, default_r_cut, 0.0, mode)
+	param_dict = ParameterDict(R = float(R))
+	self._param_dict.update(param_dict)
+        super().__init__(nlist, default_r_cut, 0.0, mode)
 
     def _attach_hook(self):
         if self.nlist._attached and self._simulation != self.nlist._simulation:
@@ -99,8 +100,8 @@ class ExpandedGaussian(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R,  default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R,  default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -167,8 +168,8 @@ class ExpandedLJ(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -222,13 +223,13 @@ class Yukawa(GeodesicPair):
         `dict`]
     """
 
-    _cpp_class_name = "PotentialPairYukawa"
+    _cpp_class_name = "GeodesicPotentialPairYukawa"
     __doc__ = inspect.cleandoc(__doc__).replace(
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -292,10 +293,8 @@ class Ewald(GeodesicPair):
     )
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, R, default_r_cut=None):
-        super().__init__(
-            nlist=nlist, R=R, default_r_cut=default_r_cut, default_r_on=0, mode="none"
-        )
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -399,10 +398,8 @@ class Table(GeodesicPair):
     )
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, R, default_r_cut=None):
-        super().__init__(
-            nlist, R, default_r_cut=default_r_cut, default_r_on=0, mode="none"
-        )
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -466,295 +463,14 @@ class Morse(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
             TypeParameterDict(D0=float, alpha=float, r0=float, len_keys=2),
         )
         self._add_typeparam(params)
-
-
-class DPD(GeodesicPair):
-    r"""Dissipative Particle Dynamics.
-
-    Args:
-        nlist (hoomd.md.nlist.NeighborList): Neighbor list
-        kT (`hoomd.variant` or `float`): Temperature of
-            thermostat :math:`[\mathrm{energy}]`.
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-
-    `DPD` computes the DPD pair force on every particle in the simulation state.
-    DPD includes a an interaction potential, pairwise drag force, and pairwise
-    random force. See `Groot and Warren 1997
-    <https://dx.doi.org/10.1063/1.474784>`_:
-
-    .. math::
-
-        F = F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +
-        F_{\mathrm{D,ij}}(v_{ij})
-
-    where
-
-    .. math::
-
-        \begin{split}
-        F_{\mathrm{C}}(r) &= A \cdot  w(r_{ij}), \\
-        F_{\mathrm{R, ij}}(r_{ij}) &= - \theta_{ij}\sqrt{3}
-        \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij}),  \\
-        F_{\mathrm{D, ij}}(r_{ij}) &= - \gamma w^2(r_{ij})\left(
-        \hat r_{ij} \circ v_{ij} \right), \\
-        w(r_{ij}) &=
-        \begin{cases}
-        \left( 1 - r/r_{\mathrm{cut}} \right)
-        & r < r_{\mathrm{cut}} \\
-        0 & r \ge r_{\mathrm{cut}} \\
-        \end{cases},
-        \end{split}
-
-
-    :math:`\hat r_{ij}` is a normalized vector from particle i to
-    particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
-    uniformly distributed random number in the range :math:`[-1, 1]`.
-
-    `C. L. Phillips et. al. 2011 <https://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    describes the DPD implementation details. Cite it if you utilize the DPD
-    functionality in your work.
-
-    `DPD` does not implement any energy shift / smoothing modes due to the
-    function of the force.
-
-    To use the DPD thermostat, apply the `hoomd.md.methods.ConstantVolume` or
-    `hoomd.md.methods.ConstantPressure` integration method without thermostats
-    along with `DPD` forces.  Use of the DPD thermostat pair force with
-    other integrators will result in nonphysical behavior. To use `DPD` with a
-    different conservative potential than :math:`F_C`, set A to zero and define
-    the conservative pair force separately.
-
-    Example::
-
-        nl = nlist.Cell()
-        dpd = pair.DPD(nlist=nl, kT=1.0, default_r_cut=1.0)
-        dpd.params[('A', 'A')] = dict(A=25.0, gamma=4.5)
-        dpd.params[('A', 'B')] = dict(A=40.0, gamma=4.5)
-        dpd.params[('B', 'B')] = dict(A=25.0, gamma=4.5)
-        dpd.params[(['A', 'B'], ['C', 'D'])] = dict(A=40.0, gamma=4.5)
-
-    {inherited}
-
-    ----------
-
-    **Members defined in** `DPD`:
-
-    .. py:attribute:: params
-
-        The force parameters. The dictionary has the following keys:
-
-        * ``A`` (`float`, **required**) - :math:`A` :math:`[\mathrm{force}]`
-        * ``gamma`` (`float`, **required**) - :math:`\gamma`
-          :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`
-
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`]
-    """
-
-    _cpp_class_name = "GeodesicPotentialPairDPDThermoDPD"
-    __doc__ = inspect.cleandoc(__doc__).replace(
-        "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
-    )
-    _accepted_modes = ("none",)
-
-    def __init__(
-        self,
-        nlist,
-	R,
-        kT,
-        default_r_cut=None,
-    ):
-        super().__init__(
-            nlist=nlist, R,  default_r_cut=default_r_cut, default_r_on=0, mode="none"
-        )
-        params = TypeParameter(
-            "params",
-            "particle_types",
-            TypeParameterDict(A=float, gamma=float, len_keys=2),
-        )
-        self._add_typeparam(params)
-        param_dict = ParameterDict(kT=hoomd.variant.Variant)
-        param_dict["kT"] = kT
-        self._param_dict.update(param_dict)
-
-    def _attach_hook(self):
-        """DPD uses RNGs. Warn the user if they did not set the seed."""
-        self._simulation._warn_if_seed_unset()
-        super()._attach_hook()
-
-
-class DPDConservative(GeodesicPair):
-    r"""DPD Conservative pair force.
-
-    Args:
-        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-
-    `DPDConservative` computes the conservative part of the `DPD` pair force on
-    every particle in the simulation state with:
-
-    .. math::
-        U(r) = A \cdot \left( r_{\mathrm{cut}} - r
-          \right) - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot
-          \left(r_{\mathrm{cut}}^2 - r^2 \right).
-
-    `DPDConservative` does not implement any energy shift / smoothing modes due
-    to the function of the force.
-
-    Example::
-
-        nl = nlist.Cell()
-        dpdc = pair.DPDConservative(nlist=nl, default_r_cut=3.0)
-        dpdc.params[("A", "A")] = dict(A=1.0)
-        dpdc.params[("A", "B")] = dict(A=2.0)
-        dpdc.r_cut[("A", "B")] = 1.0
-        dpdc.params[(["A", "B"], ["C", "D"])] = dict(A=3.0)
-
-    {inherited}
-
-    ----------
-
-    **Members defined in** `DPDConservative`:
-
-    .. py:attribute:: params
-
-        The potential parameters. The dictionary has the following keys:
-
-        * ``A`` (`float`, **required**) - :math:`A` :math:`[\mathrm{force}]`
-
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`]
-    """
-
-    _cpp_class_name = "GeodesicPotentialPairConservativeDPD"
-    __doc__ = inspect.cleandoc(__doc__).replace(
-        "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
-    )
-    _accepted_modes = ("none",)
-
-    def __init__(self, nlist, R, default_r_cut=None):
-        # initialize the base class
-        super().__init__(
-            nlist=nlist, R = R, default_r_cut=default_r_cut, default_r_on=0, mode="none"
-        )
-        params = TypeParameter(
-            "params", "particle_types", TypeParameterDict(A=float, len_keys=2)
-        )
-        self._add_typeparam(params)
-
-
-class DPDLJ(GeodesicPair):
-    r"""Dissipative Particle Dynamics with the LJ conservative force.
-
-    Args:
-        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
-        kT (`hoomd.variant` or `float`): Temperature of
-            thermostat :math:`[\mathrm{energy}]`.
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        mode (str): Energy shifting mode.
-
-    `DPDLJ` computes the `DPD` thermostat combined with the `LJ` pair force
-    on every particle in the simulation state with:
-
-    .. math::
-
-        \begin{split}
-        F &= F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +
-            F_{\mathrm{D,ij}}(v_{ijed to compute the bond potential.
-        `Read more... <hoomd.m}), \\
-        F_{\mathrm{C}}(r) &= \partial U / \partial r, \\
-        F_{\mathrm{R, ij}}(r_{ij}) &= - \theta_{ij}\sqrt{3}
-            \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij}), \\
-        F_{\mathrm{D, ij}}(r_{ij}) &= - \gamma w^2(r_{ij})
-            \left( \hat r_{ij} \circ v_{ij} \right), \\
-        U(r) &= 4 \varepsilon \left[ \left(
-               \frac{\sigma}{r} \right)^{12} -
-               \left( \frac{\sigma}{r} \right)^{6} \right], \\
-        w(r_{ij}) &=
-        \begin{cases}
-        \left( 1 - r/r_{\mathrm{cut}} \right)
-        & r < r_{\mathrm{cut}} \\
-        0 & r \ge r_{\mathrm{cut}} \\
-        \end{cases},
-        \end{split}
-
-    :math:`\hat r_{ij}` is a normalized vector from particle i to
-    particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
-    uniformly distributed random number in the range [-1, 1].
-
-    `C. L. Phillips et. al. 2011 <https://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    describes the DPD implementation details. Cite it if you utilize the DPD
-    functionality in your work.
-
-    To use the DPD thermostat, apply the `hoomd.md.methods.ConstantVolume` or
-    `hoomd.md.methods.ConstantPressure` integration method  without thermostat
-    along with `DPD` forces.  Use of the DPD thermostat pair force with
-    other integrators will result in nonphysical behavior.
-
-    Example::
-
-        nl = nlist.Cell()
-        dpdlj = pair.DPDLJ(nlist=nl, kT=1.0, default_r_cut=2.5)
-        dpdlj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
-        dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(
-            epsilon=3.0, sigma=1.0, gamma=1.2)
-        dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
-
-    {inherited}
-
-    ----------
-
-    **Members defined in** `DPDLJ`:
-
-    .. py:attribute:: params
-
-        The DPDLJ potential parameters. The dictionary has the following keys:
-
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
-          :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float`, **required**) - :math:`\sigma`
-          :math:`[\mathrm{length}]`
-        * ``gamma`` (`float`, **required**) - :math:`\gamma`
-          :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`
-
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`]
-    """
-
-    _cpp_class_name = "GeodesicPotentialPairDPDThermoLJ"
-    __doc__ = inspect.cleandoc(__doc__).replace(
-        "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
-    )
-    _accepted_modes = ("none", "shift")
-
-    def __init__(self, nlist, R, kT, default_r_cut=None, mode="none"):
-        super().__init__(
-            nlist=nlist, R=R, default_r_cut=default_r_cut, default_r_on=0, mode=mode
-        )
-        params = TypeParameter(
-            "params",
-            "particle_types",
-            TypeParameterDict(epsilon=float, sigma=float, gamma=float, len_keys=2),
-        )
-        self._add_typeparam(params)
-
-        d = ParameterDict(kT=hoomd.variant.Variant)
-        self._param_dict.update(d)
-
-        self.kT = kT
-
-    def _attach_hook(self):
-        """DPDLJ uses RNGs. Warn the user if they did not set the seed."""
-        self._simulation._warn_if_seed_unset()
-        super()._attach_hook()
 
 
 class ForceShiftedLJ(GeodesicPair):
@@ -815,10 +531,8 @@ class ForceShiftedLJ(GeodesicPair):
     )
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, R, default_r_cut=None):
-        super().__init__(
-            nlist=nlist, R=R, default_r_cut=default_r_cut, default_r_on=0, mode="none"
-        )
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
 
         params = TypeParameter(
             "params",
@@ -901,8 +615,8 @@ class Moliere(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -983,8 +697,8 @@ class ZBL(GeodesicPair):
     )
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0):
-        super().__init__(nlist, R, default_r_cut, default_r_on, "none")
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1047,8 +761,8 @@ class Mie(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1128,8 +842,8 @@ class ExpandedMie(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1214,8 +928,8 @@ class ReactionField(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1226,97 +940,6 @@ class ReactionField(GeodesicPair):
 
         self._add_typeparam(params)
 
-
-class DLVO(GeodesicPair):
-    r"""DLVO colloidal interaction.
-
-    Args:
-        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
-        name (str): Name of the force instance.
-        mode (str): Energy shifting mode.
-
-    `DLVO` computes the DLVO dispersion and electrostatic interaction pair force
-    on every particle in the simulation state with:
-
-    .. math::
-        \begin{split}
-        V_{\mathrm{DLVO}}(r) = &- \frac{A}{6} \left[
-            \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} +
-            \frac{2a_1a_2}{r^2 - (a_1-a_2)^2} \\
-            + \log \left(
-            \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right] \\
-            & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))}
-        \end{split}
-
-    where :math:`a_1` is the radius of first particle in the pair, :math:`a_2`
-    is the radius of second particle in the pair, :math:`A` is the Hamaker
-    constant, :math:`Z` is proportional to the surface electric potential,
-    and :math:`\kappa` is the screening parameter.
-
-    The first term corresponds to the attractive van der Waals interaction with
-    and the second term to the repulsive double-layer interaction between two
-    spherical surfaces. See "Intermolecular and Surface Forces" Israelachvili
-    2011, pp. 317.
-
-    Example::
-
-        nl = hoomd.md.nlist.Cell()
-        dlvo = hoomd.md.pair.DLVO(nlist=nl)
-        dlvo.params[('A', 'A')] = dict(A=1.0, kappa=1.0, Z=2, a1=1, a2=1)
-        dlvo.params[('A', 'B')] = dict(A=2.0, kappa=0.5, Z=3, a1=1, a2=3)
-        dlvo.params[('B', 'B')] = dict(A=2.0, kappa=0.5, Z=3, a1=3, a2=3)
-
-    {inherited}
-
-    ----------
-
-    **Members defined in** `DLVO`:
-
-    .. py:attribute:: params
-
-        The potential parameters. The dictionary has the following keys:
-
-        * ``A`` (`float`, **required**) - Hamaker constant :math:`A`
-          :math:`[\mathrm{energy}]`
-        * ``a1`` (`float`, **required**) - Radius of first particle :math:`a_1`
-          :math:`[\mathrm{length}]`
-        * ``a2`` (`float`, **required**) - Radius of second particle :math:`a_2`
-          :math:`[\mathrm{length}]`
-        * ``kappa`` (`float`, **required**) - screening parameter
-          :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
-        * ``Z`` surface electric potential (`float`, **required**) - :math:`Z`
-          :math:`[\mathrm{energy} \cdot \mathrm{length}^{-1}]`
-
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`]
-    """
-
-    _cpp_class_name = "GeodesicPotentialPairDLVO"
-    __doc__ = inspect.cleandoc(__doc__).replace(
-        "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
-    )
-    _accepted_modes = ("none", "shift")
-
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        if mode == "xplor":
-            raise ValueError("xplor is not a valid mode for the DLVO potential")
-
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
-        params = TypeParameter(
-            "params",
-            "particle_types",
-            TypeParameterDict(
-                kappa=float,
-                Z=float,
-                A=float,
-                a1=float,
-                a2=float,
-                len_keys=2,
-            ),
-        )
-        self._add_typeparam(params)
 
 
 class Buckingham(GeodesicPair):
@@ -1366,8 +989,8 @@ class Buckingham(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1426,8 +1049,8 @@ class LJ1208(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1487,8 +1110,8 @@ class LJ0804(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1557,8 +1180,8 @@ class Fourier(GeodesicPair):
     )
     _accepted_modes = ("none", "xplor")
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1640,8 +1263,8 @@ class OPP(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1718,8 +1341,8 @@ class TWF(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1786,8 +1409,8 @@ class LJGauss(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
@@ -1869,8 +1492,8 @@ class WangFrenkel(GeodesicPair):
         "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
     )
 
-    def __init__(self, nlist, R, default_r_cut=None, default_r_on=0.0, mode="none"):
-        super().__init__(nlist, R, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
