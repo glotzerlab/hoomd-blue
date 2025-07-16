@@ -78,6 +78,12 @@ template<class evaluator> class GeodesicPotentialPair : public PotentialPair<eva
     //! Destructor
     virtual ~GeodesicPotentialPair();
 
+    void setRadius(Scalar R)
+	{m_R = R;}
+
+    Scalar getRadius()
+	{return m_R;}
+
     //! Set the rcut for a single type pair
     virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
 
@@ -395,7 +401,8 @@ template<class T> void export_GeodesicPotentialPair(pybind11::module& m, const s
     pybind11::class_<GeodesicPotentialPair<T>, PotentialPair<T>, std::shared_ptr<GeodesicPotentialPair<T>>>
         geodesicpotentialpair(m, name.c_str());
     geodesicpotentialpair
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>,Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>,Scalar>())
+	.def_property("R", &GeodesicPotentialPair<T>::getRadius, &GeodesicPotentialPair<T>::setRadius);
     }
 
     } // end namespace detail
