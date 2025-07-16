@@ -3,6 +3,7 @@
 
 """Geodesic pair forces."""
 
+import inspect
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
@@ -11,7 +12,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
 
 
-class GeodesicPair(pair):
+class GeodesicPair(Pair):
     r"""Base class anisotropic pair force.
 
     `GeodesicPair` is the base class for all geodesic pair forces.
@@ -21,7 +22,7 @@ class GeodesicPair(pair):
         for `isinstance` or `issubclass` checks.
     """
 
-    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(GeodesicPair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Pair._doc_inherited)
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, R, default_r_cut=None, mode="none"):
