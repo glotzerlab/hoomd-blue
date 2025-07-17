@@ -285,6 +285,10 @@ class EvaluatorPairRotationalCoupling
         {
         return "rotational coupling";
         }
+    static std::string getShapeParamName()
+        {
+        return "rotation";
+        }
 
     std::string getShapeSpec() const
         {

@@ -1,11 +1,9 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HPMC updaters.
-
-HPMC updaters work with the `hpmc.integrate.HPMCIntegrator` to apply changes to
+"""HPMC updaters work with the `hpmc.integrate.HPMCIntegrator` to apply changes to
 the system consistent with the particle shape and defined interaction energies.
-The `BoxMC`, `Clusters`, and `MuVT` updaters apply trial moves that enable
+The `BoxMC`, `GCA`, and `MuVT` updaters apply trial moves that enable
 enhanced sampling or the equilibration of different ensembles. `QuickCompress`
 helps prepare non-overlapping configurations of particles in a given box shape.
 """
@@ -19,15 +17,16 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
+import inspect
 
 
 class BoxMC(Updater):
     r"""Apply box updates to sample isobaric and related ensembles.
 
     Args:
-        betaP (hoomd.variant.variant_like): :math:`\frac{p}{k_{\mathrm{B}}T}`
-            :math:`[\mathrm{length}^{-2}]` in 2D or
-            :math:`[\mathrm{length}^{-3}]` in 3D.
+        P (hoomd.variant.variant_like): The pressure :math:`P`
+            :math:`[\mathrm{energy}] \cdot [\mathrm{length}^{-2}]` in 2D or
+            :math:`[\mathrm{energy}] \cdot [\mathrm{length}^{-3}]` in 3D.
         trigger (hoomd.trigger.trigger_like): Select the timesteps to perform
             box trial moves.
 
@@ -61,6 +60,7 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V + u \\
           L_x^t &= \left( \frac{Lx}{Ly} \frac{Lx}{Lz} V^t \right)^{1/3} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
@@ -68,6 +68,7 @@ class BoxMC(Updater):
           xy^t &= xy \\
           xz^t &= xz \\
           yz^t &= yz \\
+          \end{split}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[-\delta_\mathrm{volume}, \delta_\mathrm{volume}]`.
@@ -76,10 +77,12 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V + u \\
           L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
           xy^t &= xy \\
+          \end{split}
 
     * `volume` (``mode='ln'``): Change the volume (or area in 2D) of the
       simulation box while maining fixed aspect ratios :math:`Lx/Ly`,
@@ -87,6 +90,7 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V e^u \\
           L_x^t &= \left( \frac{Lx}{Ly} \frac{Lx}{Lz} V^t \right)^{1/3} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
@@ -94,6 +98,7 @@ class BoxMC(Updater):
           xy^t &= xy \\
           xz^t &= xz \\
           yz^t &= yz \\
+          \end{split}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[-\delta_\mathrm{volume}, \delta_\mathrm{volume}]`.
@@ -102,15 +107,19 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           V^t &= V e^u \\
           L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
           xy^t &= xy \\
+          \end{split}
+
     * `aspect`: Change the aspect ratio of the simulation box while maintaining
       a fixed volume. In 3D:
 
       .. math::
 
+          \begin{split}
           L_k^t & = \begin{cases} L_k(1 + a) & u < 0.5 \\
                                 L_k \frac{1}{1+a}  & u \ge 0.5
                   \end{cases} \\
@@ -118,6 +127,7 @@ class BoxMC(Updater):
           xy^t &= xy \\
           xz^t &= xz \\
           yz^t &= yz \\
+          \end{split}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[0, 1]`, :math:`a` is a random value uniformly distributed in the
@@ -128,11 +138,14 @@ class BoxMC(Updater):
 
       .. math::
 
+          \begin{split}
           L_k^t & = \begin{cases} L_k(1 + a) & u < 0.5 \\
                                 L_k \frac{1}{1+a}  & u \ge 0.5
                     \end{cases} \\
           L_{m \ne k}^t & = L_m \frac{L_k}{L_k^t} \\
           xy^t &= xy \\
+          \end{split}
+
     * `length`: Change the box lengths:
 
       .. math::
@@ -204,10 +217,11 @@ class BoxMC(Updater):
         1 & \beta \Delta H + \beta \Delta U \le 0 \\
         \end{cases}
 
-    where :math:`\Delta U = U^t - U` is the difference in potential energy,
-    :math:`\beta \Delta H = \beta P (V^t - V) - N_\mathrm{particles} \cdot
-    \ln(V^t / V)` for most move types. It is :math:`\beta P (V^t - V) -
-    (N_\mathrm{particles}+1) \cdot \ln(V^t / V)` for ln volume moves.
+    where :math:`\beta = \frac{1}{kT}` (set in `HPMCIntegrator.kT`) and
+    :math:`\Delta U = U^t - U` is the difference in potential energy.
+    :math:`\Delta H = P (V^t - V) - N_\mathrm{particles} \cdot
+    \ln(V^t / V) / \beta` for most move types. It is :math:`P (V^t - V) -
+    (N_\mathrm{particles}+1) \cdot \ln(V^t / V) / \beta` for ln volume moves.
 
     When the trial move is accepted, the system state is set to the the trial
     configuration. When it is not accepted, the move is rejected and the state
@@ -218,18 +232,13 @@ class BoxMC(Updater):
     `BoxMC` uses reduced precision floating point arithmetic when checking
     for particle overlaps in the local particle reference frame.
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `BoxMC`:
+
     Attributes:
-        volume (dict):
-            Parameters for isobaric volume moves that scale the box lengths
-            uniformly. The dictionary has the following keys:
-
-            * ``weight`` (float) - Relative weight of volume box moves.
-            * ``mode`` (str) - ``standard`` proposes changes to the box volume
-              and ``ln`` proposes changes to the logarithm of the volume.
-              Initially starts off in 'standard' mode.
-            * ``delta`` (float) - Maximum change in **V** or **ln(V)** where V
-              is box area (2D) or volume (3D) :math:`\delta_\mathrm{volume}`.
-
         aspect (dict):
             Parameters for isovolume aspect ratio moves. The dictionary has the
             following keys:
@@ -237,6 +246,11 @@ class BoxMC(Updater):
             * ``weight`` (float) - Relative weight of aspect box moves.
             * ``delta`` (float) - Maximum relative change of box aspect ratio
               :math:`\delta_\mathrm{aspect} [\mathrm{dimensionless}]`.
+
+        instance (int):
+            When using multiple `BoxMC` updaters in a single simulation,
+            give each a unique value for `instance` so they generate
+            different streams of random numbers.
 
         length (dict):
             Parameters for isobaric box length moves that change box lengths
@@ -248,6 +262,21 @@ class BoxMC(Updater):
               box lengths :math:`(\delta_{\mathrm{length},x},
               \delta_{\mathrm{length},y}, \delta_{\mathrm{length},z})
               [\mathrm{length}]`.
+
+        P (hoomd.variant.Variant): The pressure :math:`P`
+            :math:`[\mathrm{energy} \ \mathrm{length}^{-2}]` in 2D or
+            :math:`[\mathrm{energy} \ \mathrm{length}^{-3}]` in 3D.
+
+        volume (dict):
+            Parameters for isobaric volume moves that scale the box lengths
+            uniformly. The dictionary has the following keys:
+
+            * ``weight`` (float) - Relative weight of volume box moves.
+            * ``mode`` (str) - ``standard`` proposes changes to the box volume
+              and ``ln`` proposes changes to the logarithm of the volume.
+              Initially starts off in 'standard' mode.
+            * ``delta`` (float) - Maximum change in **V** or **ln(V)** where V
+              is box area (2D) or volume (3D) :math:`\delta_\mathrm{volume}`.
 
         shear (dict):
             Parameters for isovolume box shear moves. The dictionary has the
@@ -261,31 +290,30 @@ class BoxMC(Updater):
             * ``reduce`` (float) - Maximum number of lattice vectors of shear
               to allow before applying lattice reduction. Values less than 0.5
               disable shear reduction.
-
-        instance (int):
-            When using multiple `BoxMC` updaters in a single simulation,
-            give each a unique value for `instance` so they generate
-            different streams of random numbers.
     """
 
-    def __init__(self, trigger, betaP):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
+
+    def __init__(self, trigger, P):
         super().__init__(trigger)
 
         _default_dict = dict(weight=0.0, delta=0.0)
         param_dict = ParameterDict(
             volume={
-                "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
-                **_default_dict
+                "mode": hoomd.data.typeconverter.OnlyFrom(["standard", "ln"]),
+                **_default_dict,
             },
             aspect=_default_dict,
             length=dict(weight=0.0, delta=(0.0,) * 3),
             shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
-            betaP=hoomd.variant.Variant,
+            P=hoomd.variant.Variant,
             instance=int,
         )
         self._param_dict.update(param_dict)
         self.volume["mode"] = "standard"
-        self.betaP = betaP
+        self.P = P
         self.instance = 0
 
     def _attach_hook(self):
@@ -298,9 +326,12 @@ class BoxMC(Updater):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
-                                           self.trigger, integrator._cpp_obj,
-                                           self.betaP)
+        self._cpp_obj = _hpmc.UpdaterBoxMC(
+            self._simulation.state._cpp_sys_def,
+            self.trigger,
+            integrator._cpp_obj,
+            self.P,
+        )
 
     @property
     def counter(self):
@@ -399,45 +430,54 @@ class MuVT(Updater):
         with the ``ngibbs`` option to update.muvt(), where the number of
         partitions can be a multiple of ``ngibbs``.
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `MuVT`:
+
     Attributes:
-        trigger (int): Select the timesteps on which to perform cluster moves.
-        transfer_types (list): List of type names that are being transferred
-          from/to the reservoir or between boxes
+        fugacity (`TypeParameter` [ ``particle type``, `float`]):
+            Particle fugacity
+            :math:`[\mathrm{energy}] \cdot [\mathrm{volume}^{-1}]` (**default:** 0).
         max_volume_rescale (float): Maximum step size in ln(V) (applies to
           Gibbs ensemble)
         move_ratio (float): The ratio between volume and exchange/transfer moves
           (applies to Gibbs ensemble)
-        ntrial (float): (**default**: 1) Number of configurational bias attempts
-          to swap depletants
-        fugacity (`TypeParameter` [ ``particle type``, `float`]):
-            Particle fugacity
-            :math:`[\mathrm{volume}^{-1}]` (**default:** 0).
+        transfer_types (list): List of type names that are being transferred
+          from/to the reservoir or between boxes
     """
 
-    def __init__(self,
-                 transfer_types,
-                 ngibbs=1,
-                 max_volume_rescale=0.1,
-                 volume_move_probability=0.5,
-                 trigger=1):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
+
+    def __init__(
+        self,
+        transfer_types,
+        ngibbs=1,
+        max_volume_rescale=0.1,
+        volume_move_probability=0.5,
+        trigger=1,
+    ):
         super().__init__(trigger)
 
         self.ngibbs = int(ngibbs)
 
-        _default_dict = dict(ntrial=1)
         param_dict = ParameterDict(
             transfer_types=list(transfer_types),
             max_volume_rescale=float(max_volume_rescale),
             volume_move_probability=float(volume_move_probability),
-            **_default_dict)
+        )
         self._param_dict.update(param_dict)
 
         typeparam_fugacity = TypeParameter(
-            'fugacity',
-            type_kind='particle_types',
-            param_dict=TypeParameterDict(hoomd.variant.Variant,
-                                         len_keys=1,
-                                         _defaults=hoomd.variant.Constant(0.0)))
+            "fugacity",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict(
+                hoomd.variant.Variant, len_keys=1, _defaults=hoomd.variant.Constant(0.0)
+            ),
+        )
         self._append_typeparam(typeparam_fugacity)
 
     def _attach_hook(self):
@@ -449,12 +489,16 @@ class MuVT(Updater):
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
 
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                self.trigger, integrator._cpp_obj, self.ngibbs)
+        self._cpp_obj = cpp_cls(
+            self._simulation.state._cpp_sys_def,
+            self.trigger,
+            integrator._cpp_obj,
+            self.ngibbs,
+        )
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def insert_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle \
+        """tuple[int, int]: Count of the accepted and rejected particle \
         insertion moves.
 
         None when not attached
@@ -462,19 +506,19 @@ class MuVT(Updater):
         counter = self._cpp_obj.getCounters(1)
         return counter.insert
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def remove_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle removal \
-        moves.
+        """tuple[int, int]: Count of the accepted and rejected particle \
+        removal moves.
 
         None when not attached
         """
         counter = self._cpp_obj.getCounters(1)
         return counter.remove
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def exchange_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle \
+        """tuple[int, int]: Count of the accepted and rejected particle \
         exchange moves.
 
         None when not attached
@@ -482,9 +526,9 @@ class MuVT(Updater):
         counter = self._cpp_obj.getCounters(1)
         return counter.exchange
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def volume_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle volume \
+        """tuple[int, int]: Count of the accepted and rejected particle volume \
         moves.
 
         None when not attached
@@ -492,7 +536,7 @@ class MuVT(Updater):
         counter = self._cpp_obj.getCounters(1)
         return counter.volume
 
-    @log(category='object')
+    @log(category="object")
     def N(self):  # noqa: N802 - allow N as a function name
         """dict: Map of number of particles per type.
 
@@ -536,19 +580,33 @@ class Shape(Updater):
     Example::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron()
-        mc.shape["A"] = dict(vertices=numpy.asarray([(1, 1, 1), (-1, -1, 1),
-                                                    (1, -1, -1), (-1, 1, -1)]))
-        vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
-                                                   param_ratio=0.2,
-                                                   volume=1.0)
-        updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
-                                          trigger=hoomd.trigger.Periodic(1),
-                                          type_select=1,
-                                          nsweeps=1)
+        mc.shape["A"] = dict(
+            vertices=numpy.asarray(
+                [
+                    (1, 1, 1),
+                    (-1, -1, 1),
+                    (1, -1, -1),
+                    (-1, 1, -1),
+                ]
+            )
+        )
+        vertex_move = hoomd.hpmc.shape_move.Vertex(
+            stepsize={"A": 0.01}, param_ratio=0.2, volume=1.0
+        )
+        updater = hoomd.hpmc.update.Shape(
+            shape_move=vertex_move,
+            trigger=hoomd.trigger.Periodic(1),
+            type_select=1,
+            nsweeps=1,
+        )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Shape`:
 
     Attributes:
-        trigger (Trigger): Call the updater on triggered time steps.
-
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
@@ -563,17 +621,18 @@ class Shape(Updater):
             triggered timesteps.
     """
 
-    def __init__(self,
-                 trigger,
-                 shape_move,
-                 pretend=False,
-                 type_select=1,
-                 nsweeps=1):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
+
+    def __init__(self, trigger, shape_move, pretend=False, type_select=1, nsweeps=1):
         super().__init__(trigger)
-        param_dict = ParameterDict(shape_move=hoomd.hpmc.shape_move.ShapeMove,
-                                   pretend=bool(pretend),
-                                   type_select=int(type_select),
-                                   nsweeps=int(nsweeps))
+        param_dict = ParameterDict(
+            shape_move=hoomd.hpmc.shape_move.ShapeMove,
+            pretend=bool(pretend),
+            type_select=int(type_select),
+            nsweeps=int(nsweeps),
+        )
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
 
@@ -611,19 +670,22 @@ class Shape(Updater):
 
         # check for supported shapes is done in the shape move classes
         integrator_name = integrator.__class__.__name__
-        updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
+        updater_cls = getattr(_hpmc, "UpdaterShape" + integrator_name)
 
         self.shape_move._attach(self._simulation)
-        self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
-                                    self.trigger, integrator._cpp_obj,
-                                    self.shape_move._cpp_obj)
+        self._cpp_obj = updater_cls(
+            self._simulation.state._cpp_sys_def,
+            self.trigger,
+            integrator._cpp_obj,
+            self.shape_move._cpp_obj,
+        )
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def shape_moves(self):
         """tuple[int, int]: Count of the accepted and rejected shape moves."""
         return self._cpp_obj.getShapeMovesCount()
 
-    @log(category='scalar', requires_run=True)
+    @log(category="scalar", requires_run=True)
     def particle_volumes(self):
         """list[float]: Volume of a single particle for each type."""
         return self._cpp_obj.particle_volumes
@@ -634,7 +696,7 @@ class Shape(Updater):
         return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
 
 
-class Clusters(Updater):
+class GCA(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
@@ -646,16 +708,15 @@ class Clusters(Updater):
             perform cluster moves.
 
     The GCA as described in Liu and Lujten (2004),
-    http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
-    interactions and depletants. Implicit depletants are supported and simulated
-    on-the-fly, as if they were present in the actual system.
+    https://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape and patch
+    interactions.
 
     Supported moves include pivot moves (point reflection) and line reflections
     (pi rotation around an axis).  With anisotropic particles, the pivot move
     cannot be used because it would create a chiral mirror image of the
     particle, and only line reflections are employed. In general, line
     reflections are not rejection free because of periodic boundary conditions,
-    as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    as discussed in Sinkovits et al. (2012), https://doi.org/10.1063/1.3694271 .
     However, we restrict the line reflections to axes parallel to the box axis,
     which makes those moves rejection-free for anisotropic particles, but the
     algorithm is then no longer ergodic for those and needs to be combined with
@@ -663,29 +724,35 @@ class Clusters(Updater):
 
     .. rubric:: Mixed precision
 
-    `Clusters` uses reduced precision floating point arithmetic when checking
+    `GCA` uses reduced precision floating point arithmetic when checking
     for particle overlaps in the local particle reference frame.
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `GCA`:
+
     Attributes:
-        pivot_move_probability (float): Set the probability for attempting a
-                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        trigger (Trigger): Select the timesteps on which to perform cluster
-            moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
     """
-    _remove_for_pickling = Updater._remove_for_pickling + ('_cpp_cell',)
-    _skip_for_equality = Updater._skip_for_equality | {'_cpp_cell'}
 
-    def __init__(self,
-                 pivot_move_probability=0.5,
-                 flip_probability=0.5,
-                 trigger=1):
+    _remove_for_pickling = (*Updater._remove_for_pickling, "_cpp_cell")
+    _skip_for_equality = Updater._skip_for_equality | {"_cpp_cell"}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
+
+    def __init__(self, pivot_move_probability=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
 
         param_dict = ParameterDict(
             pivot_move_probability=float(pivot_move_probability),
-            flip_probability=float(flip_probability))
+            flip_probability=float(flip_probability),
+        )
 
         self._param_dict.update(param_dict)
         self.instance = 0
@@ -697,11 +764,13 @@ class Clusters(Updater):
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        cpp_cls_name = "UpdaterClusters"
+        cpp_cls_name = "UpdaterGCA"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
-        use_gpu = (isinstance(self._simulation.device, hoomd.device.GPU)
-                   and (cpp_cls_name + 'GPU') in _hpmc.__dict__)
+        use_gpu = (
+            isinstance(self._simulation.device, hoomd.device.GPU)
+            and (cpp_cls_name + "GPU") in _hpmc.__dict__
+        )
         if use_gpu:
             cpp_cls_name += "GPU"
         cpp_cls = getattr(_hpmc, cpp_cls_name)
@@ -712,12 +781,16 @@ class Clusters(Updater):
         if use_gpu:
             sys_def = self._simulation.state._cpp_sys_def
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                    self.trigger, integrator._cpp_obj,
-                                    self._cpp_cell)
+            self._cpp_obj = cpp_cls(
+                self._simulation.state._cpp_sys_def,
+                self.trigger,
+                integrator._cpp_obj,
+                self._cpp_cell,
+            )
         else:
-            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                    self.trigger, integrator._cpp_obj)
+            self._cpp_obj = cpp_cls(
+                self._simulation.state._cpp_sys_def, self.trigger, integrator._cpp_obj
+            )
 
     @log(requires_run=True)
     def avg_cluster_size(self):
@@ -736,7 +809,8 @@ class QuickCompress(Updater):
         trigger (hoomd.trigger.trigger_like): Update the box dimensions on
             triggered time steps.
 
-        target_box (hoomd.box.box_like): Dimensions of the target box.
+        target_box (`hoomd.box.box_like` or `hoomd.variant.box.BoxVariant`):
+            Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
@@ -745,16 +819,22 @@ class QuickCompress(Updater):
 
         min_scale (float): The minimum scale factor to apply to box dimensions.
 
+        allow_unsafe_resize (bool): When `True`, box moves are proposed
+            independent of particle translational move sizes.
+
     Use `QuickCompress` in conjunction with an HPMC integrator to scale the
     system to a target box size. `QuickCompress` can typically compress dilute
     systems to near random close packing densities in tens of thousands of time
-    steps.
+    steps. For more control over the rate of compression, use a `BoxVariant` for
+    `target_box`.
 
-    It operates by making small changes toward the `target_box`, but only
-    when there are no particle overlaps in the current simulation state. In 3D:
+    `QuickCompress` operates by making small changes toward the `target_box`,
+    but only when there are no particle overlaps in the current simulation
+    state. In 3D:
 
     .. math::
 
+          \begin{split}
           L_x' &= \begin{cases}
           \max( L_x \cdot s, L_{\mathrm{target},x} )
           & L_{\mathrm{target},x} < L_x \\
@@ -774,28 +854,30 @@ class QuickCompress(Updater):
           & L_{\mathrm{target},z} \ge L_z
           \end{cases} \\
           xy' &= \begin{cases}
-          \max( xy \cdot s, xy_\mathrm{target} )
+          \min( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} < xy \\
-          \min( xy / s, xy_\mathrm{target} )
+          \max( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} \ge xy
           \end{cases} \\
           xz' &= \begin{cases}
-          \max( xz \cdot s, xz_\mathrm{target} )
+          \min( xz + (1-s) \cdot xz_\mathrm{target}, xz_\mathrm{target} )
           & xz_\mathrm{target} < xz \\
-          \min( xz / s, xz_\mathrm{target} )
+          \max( xz + (1-s) \cdot xz_\mathrm{target}, xz_\mathrm{target} )
           & xz_\mathrm{target} \ge xz
           \end{cases} \\
           yz' &= \begin{cases}
-          \max( yz \cdot s, yz_\mathrm{target} )
+          \min( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} < yz \\
-          \min( yz / s, yz_\mathrm{target} )
+          \max( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} \ge yz
           \end{cases} \\
+          \end{split}
 
     and in 2D:
 
     .. math::
 
+          \begin{split}
           L_x' &= \begin{cases}
           \max( L_x \cdot s, L_{\mathrm{target},x} )
           & L_{\mathrm{target},x} < L_x \\
@@ -810,13 +892,14 @@ class QuickCompress(Updater):
           \end{cases} \\
           L_z' &= L_z \\
           xy' &= \begin{cases}
-          \max( xy \cdot s, xy_\mathrm{target} )
+          \min( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} < xy \\
-          \min( xy / s, xy_\mathrm{target} )
+          \max( xy + (1-s) \cdot xy_\mathrm{target}, xy_\mathrm{target} )
           & xy_\mathrm{target} \ge xy
           \end{cases} \\
           xz' &= xz \\
           yz' &= yz \\
+          \end{split}
 
     where the current simulation box is :math:`(L_x, L_y, L_z, xy, xz, yz)`,
     the target is :math:`(L_{\mathrm{target},x}, L_{\mathrm{target},y},
@@ -838,16 +921,36 @@ class QuickCompress(Updater):
     distributed between ``max(min_scale, 1.0 - min_move_size / max_diameter)``
     and 1.0 where ``min_move_size`` is the smallest MC translational move size
     adjusted by the acceptance ratio and ``max_diameter`` is the circumsphere
-    diameter of the largest particle type.
+    diameter of the largest particle type. If `allow_unsafe_resize` is `True`,
+    box move sizes will be uniformly distributed between ``min_scale`` and 1.0
+    (with no consideration of ``min_move_size``).
+
+    When using a `BoxVariant` for `target_box`, `complete` returns `True` if the
+    current simulation box is equal to the box corresponding to `target_box`
+    evaluated at the current timestep and there are no overlaps in the system.
+    To ensure the updater has compressed the system to the final target box, use
+    a condition that checks both the `complete` attribute of the updater and the
+    simulation timestep. For example::
+
+        target_box = hoomd.variant.box.InverseVolumeRamp(
+            sim.state.box, sim.state.box.volume / 2, 0, 1_000)
+        qc = hoomd.hpmc.update.QuickCompress(10, target_box)
+        while (
+            sim.timestep < target_box.t_ramp + target_box.t_start or
+            not qc.complete):
+            sim.run(100)
 
     Tip:
         Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
+
     Warning:
-        When the smallest MC translational move size is 0, `QuickCompress`
-        will scale the box by 1.0 and not progress toward the target box.
+        When the smallest MC translational move size is 0, `allow_unsafe_resize`
+        must be set to `True` to progress toward the target box. Decrease
+        `max_overlaps_per_particle` when using this setting to prevent
+        unresolvable overlaps.
 
     Warning:
         Use `QuickCompress` *OR* `BoxMC`. Do not use both at the same time.
@@ -857,10 +960,15 @@ class QuickCompress(Updater):
     `QuickCompress` uses reduced precision floating point arithmetic when
     checking for particle overlaps in the local particle reference frame.
 
-    Attributes:
-        trigger (Trigger): Update the box dimensions on triggered time steps.
+    {inherited}
 
-        target_box (Box): Dimensions of the target box.
+    ----------
+
+    **Members defined in** `QuickCompress`:
+
+    Attributes:
+        target_box (BoxVariant): The variant for the dimensions of the target
+            box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
@@ -873,22 +981,38 @@ class QuickCompress(Updater):
             When using multiple `QuickCompress` updaters in a single simulation,
             give each a unique value for `instance` so that they generate
             different streams of random numbers.
+
+        allow_unsafe_resize (bool): When `True`, box moves are proposed
+            independent of particle translational move sizes.
     """
 
-    def __init__(self,
-                 trigger,
-                 target_box,
-                 max_overlaps_per_particle=0.25,
-                 min_scale=0.99):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
+
+    def __init__(
+        self,
+        trigger,
+        target_box,
+        max_overlaps_per_particle=0.25,
+        min_scale=0.99,
+        allow_unsafe_resize=False,
+    ):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(max_overlaps_per_particle=float,
-                                   min_scale=float,
-                                   target_box=hoomd.Box,
-                                   instance=int)
-        param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
-        param_dict['min_scale'] = min_scale
-        param_dict['target_box'] = target_box
+        param_dict = ParameterDict(
+            max_overlaps_per_particle=float,
+            min_scale=float,
+            target_box=hoomd.variant.box.BoxVariant,
+            instance=int,
+            allow_unsafe_resize=bool,
+        )
+        if isinstance(target_box, hoomd.Box):
+            target_box = hoomd.variant.box.Constant(target_box)
+        param_dict["max_overlaps_per_particle"] = max_overlaps_per_particle
+        param_dict["min_scale"] = min_scale
+        param_dict["target_box"] = target_box
+        param_dict["allow_unsafe_resize"] = allow_unsafe_resize
 
         self._param_dict.update(param_dict)
 
@@ -905,9 +1029,13 @@ class QuickCompress(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
-            self._simulation.state._cpp_sys_def, self.trigger,
-            integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
-            self.target_box._cpp_obj)
+            self._simulation.state._cpp_sys_def,
+            self.trigger,
+            integrator._cpp_obj,
+            self.max_overlaps_per_particle,
+            self.min_scale,
+            self.target_box,
+        )
 
     @property
     def complete(self):
@@ -916,3 +1044,12 @@ class QuickCompress(Updater):
             return False
 
         return self._cpp_obj.isComplete()
+
+
+__all__ = [
+    "GCA",
+    "BoxMC",
+    "MuVT",
+    "QuickCompress",
+    "Shape",
+]

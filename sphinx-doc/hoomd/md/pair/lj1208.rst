@@ -1,0 +1,8 @@
+LJ1208
+======
+
+.. py:currentmodule:: hoomd.md.pair
+
+.. autoclass:: LJ1208
+   :members:
+   :show-inheritance:

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -189,7 +189,7 @@ class SupportFuncConvexPolygon
                 }
 
             // find the maximum of the 8 channels
-            // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
+            // https://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
             max_dot_v
                 = _mm256_max_ps(max_dot_v,
                                 _mm256_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
@@ -238,7 +238,7 @@ class SupportFuncConvexPolygon
                 }
 
             // find the maximum of the 4 channels
-            // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
+            // https://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
             max_dot_v = _mm_max_ps(max_dot_v,
                                    _mm_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
             max_dot_v = _mm_max_ps(max_dot_v,
@@ -340,11 +340,6 @@ struct ShapeConvexPolygon
     {
     /// Define the parameter type
     typedef detail::PolygonVertices param_type;
-
-    //! Temporary storage for depletant insertion
-    typedef struct
-        {
-        } depletion_storage_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolygon(const quat<Scalar>& _orientation, const param_type& _params)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -70,13 +70,30 @@ bool mpcd::ParticleDataSnapshot::validate() const
  * \param root Root rank to broadcast from
  * \param mpi_comm MPI communicator to use for broadcasting
  */
-void mpcd::ParticleDataSnapshot::bcast(unsigned int root, MPI_Comm mpi_comm)
+void mpcd::ParticleDataSnapshot::bcast(unsigned int root,
+                                       MPI_Comm mpi_comm,
+                                       std::shared_ptr<MPIConfiguration> mpi_config)
     {
-    hoomd::bcast(size, root, mpi_comm);
-    hoomd::bcast(position, root, mpi_comm);
-    hoomd::bcast(velocity, root, mpi_comm);
-    hoomd::bcast(type, root, mpi_comm);
-    hoomd::bcast(mass, root, mpi_comm);
+    int rank;
+    MPI_Comm_rank(mpi_comm, &rank);
+
+    // broadcast size and resize
+    int N;
+    if (rank == static_cast<int>(root))
+        {
+        N = size;
+        }
+    MPI_Bcast(&N, 1, MPI_UNSIGNED, root, mpi_comm);
+    if (rank != static_cast<int>(root))
+        {
+        resize(N);
+        }
+
+    const MPI_Datatype mpi_vec3 = mpi_config->getVec3ScalarDatatype();
+    MPI_Bcast(position.data(), size, mpi_vec3, root, mpi_comm);
+    MPI_Bcast(velocity.data(), size, mpi_vec3, root, mpi_comm);
+    MPI_Bcast(type.data(), size, MPI_UNSIGNED, root, mpi_comm);
+    MPI_Bcast(&mass, 1, MPI_HOOMD_SCALAR, root, mpi_comm);
     hoomd::bcast(type_mapping, root, mpi_comm);
     }
 #endif
@@ -134,9 +151,9 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
                     type[k] = type[i];
                     ++j;
                     } // n
-                }     // m
-            }         // l
-        }             // i
+                } // m
+            } // l
+        } // i
     }
 
 /*!
@@ -158,7 +175,11 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
+namespace mpcd
+    {
+namespace detail
+    {
+void export_ParticleDataSnapshot(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParticleDataSnapshot, std::shared_ptr<mpcd::ParticleDataSnapshot>>(
         m,
@@ -172,7 +193,11 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
                 std::vector<ssize_t> dims(2);
                 dims[0] = self_cpp->position.size();
                 dims[1] = 3;
-                return pybind11::array(dims, (Scalar*)&self_cpp->position[0], self);
+                if (dims[0] == 0)
+                    {
+                    return pybind11::array(pybind11::dtype::of<Scalar>(), dims, nullptr);
+                    }
+                return pybind11::array(dims, (Scalar*)self_cpp->position.data(), self);
             })
         .def_property_readonly(
             "velocity",
@@ -183,14 +208,22 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
                 std::vector<ssize_t> dims(2);
                 dims[0] = self_cpp->velocity.size();
                 dims[1] = 3;
-                return pybind11::array(dims, (Scalar*)&self_cpp->velocity[0], self);
+                if (dims[0] == 0)
+                    {
+                    return pybind11::array(pybind11::dtype::of<Scalar>(), dims, nullptr);
+                    }
+                return pybind11::array(dims, (Scalar*)self_cpp->velocity.data(), self);
             })
         .def_property_readonly(
             "typeid",
             [](pybind11::object self)
             {
                 auto self_cpp = self.cast<ParticleDataSnapshot*>();
-                return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
+                if (self_cpp->type.size() == 0)
+                    {
+                    return pybind11::array(pybind11::dtype::of<unsigned int>(), 0, nullptr);
+                    }
+                return pybind11::array(self_cpp->type.size(), self_cpp->type.data(), self);
             })
         .def_readwrite("mass", &mpcd::ParticleDataSnapshot::mass)
         .def_property(
@@ -219,5 +252,6 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
             [](pybind11::object self) { return self.cast<ParticleDataSnapshot*>()->size; },
             &mpcd::ParticleDataSnapshot::resize);
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

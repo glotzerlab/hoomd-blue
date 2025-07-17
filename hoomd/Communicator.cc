@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Communicator.cc
@@ -219,7 +219,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                             }
                     }
                 } // end loop over groups
-            }     // end ArrayHandle scope
+            } // end ArrayHandle scope
 
         // clear send buffer
         m_ranks_sendbuf.clear();
@@ -254,9 +254,9 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
         /*
          * communicate rank information (phase 1)
          */
-        unsigned int n_send_groups[m_comm.m_n_unique_neigh];
-        unsigned int n_recv_groups[m_comm.m_n_unique_neigh];
-        unsigned int offs[m_comm.m_n_unique_neigh];
+        std::vector<unsigned int> n_send_groups(m_comm.m_n_unique_neigh);
+        std::vector<unsigned int> n_recv_groups(m_comm.m_n_unique_neigh);
+        std::vector<unsigned int> offs(m_comm.m_n_unique_neigh);
         unsigned int n_recv_tot = 0;
 
             {
@@ -272,8 +272,8 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -299,7 +299,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                           &req[nreq++]);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
@@ -601,8 +601,8 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -628,7 +628,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                           &req[nreq++]);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
@@ -791,7 +791,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 //! Mark ghost particles
 template<class group_data>
 void Communicator::GroupCommunicator<group_data>::markGhostParticles(
-    const GlobalVector<unsigned int>& plans,
+    const GPUVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
@@ -905,13 +905,13 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
                         } // end inner loop over group members
                     }
                 } // end outer loop over group members
-            }     // end loop over groups
+            } // end loop over groups
         }
     }
 
 template<class group_data>
 void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
-    const GlobalArray<unsigned int>& plans,
+    const GPUArray<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
@@ -1183,13 +1183,14 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
       m_nneigh(0), m_n_unique_neigh(0), m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf),
       m_diameter_copybuf(m_exec_conf), m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf),
       m_velocity_copybuf(m_exec_conf), m_orientation_copybuf(m_exec_conf),
-      m_plan_copybuf(m_exec_conf), m_tag_copybuf(m_exec_conf), m_netforce_copybuf(m_exec_conf),
-      m_nettorque_copybuf(m_exec_conf), m_netvirial_copybuf(m_exec_conf),
-      m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf), m_plan_reverse(m_exec_conf),
-      m_tag_reverse(m_exec_conf), m_netforce_reverse_copybuf(m_exec_conf),
-      m_netforce_reverse_recvbuf(m_exec_conf), m_r_ghost_max(Scalar(0.0)), m_ghosts_added(0),
-      m_has_ghost_particles(false), m_last_flags(0), m_comm_pending(false),
-      m_bond_comm(*this, m_sysdef->getBondData()), m_angle_comm(*this, m_sysdef->getAngleData()),
+      m_angmom_copybuf(m_exec_conf), m_inertia_copybuf(m_exec_conf), m_plan_copybuf(m_exec_conf),
+      m_tag_copybuf(m_exec_conf), m_netforce_copybuf(m_exec_conf), m_nettorque_copybuf(m_exec_conf),
+      m_netvirial_copybuf(m_exec_conf), m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf),
+      m_plan_reverse(m_exec_conf), m_tag_reverse(m_exec_conf),
+      m_netforce_reverse_copybuf(m_exec_conf), m_netforce_reverse_recvbuf(m_exec_conf),
+      m_r_ghost_max(Scalar(0.0)), m_ghosts_added(0), m_has_ghost_particles(false), m_last_flags(0),
+      m_comm_pending(false), m_bond_comm(*this, m_sysdef->getBondData()),
+      m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
@@ -1209,7 +1210,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
 
     for (unsigned int dir = 0; dir < 6; dir++)
         {
-        GlobalVector<unsigned int> copy_ghosts(m_exec_conf);
+        GPUVector<unsigned int> copy_ghosts(m_exec_conf);
         m_copy_ghosts[dir].swap(copy_ghosts);
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
@@ -1218,14 +1219,14 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     // All buffers corresponding to sending ghosts in reverse
     for (unsigned int dir = 0; dir < 6; dir++)
         {
-        GlobalVector<unsigned int> copy_ghosts_reverse(m_exec_conf);
+        GPUVector<unsigned int> copy_ghosts_reverse(m_exec_conf);
         m_copy_ghosts_reverse[dir].swap(copy_ghosts_reverse);
-        GlobalVector<unsigned int> plan_reverse_copybuf(m_exec_conf);
+        GPUVector<unsigned int> plan_reverse_copybuf(m_exec_conf);
         m_plan_reverse_copybuf[dir].swap(plan_reverse_copybuf);
         m_num_copy_local_ghosts_reverse[dir] = 0;
         m_num_recv_local_ghosts_reverse[dir] = 0;
 
-        GlobalVector<unsigned int> forward_ghosts_reverse(m_exec_conf);
+        GPUVector<unsigned int> forward_ghosts_reverse(m_exec_conf);
         m_forward_ghosts_reverse[dir].swap(forward_ghosts_reverse);
         m_num_forward_ghosts_reverse[dir] = 0;
         m_num_recv_forward_ghosts_reverse[dir] = 0;
@@ -1239,10 +1240,10 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
         .connect<Communicator, &Communicator::slotGhostParticlesRemoved>(this);
 
     // allocate per type ghost width
-    GlobalArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
+    GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost.swap(r_ghost);
 
-    GlobalArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
+    GPUArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost_body.swap(r_ghost_body);
 
     /*
@@ -1279,65 +1280,64 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
         .connect<Communicator, &Communicator::setPairsChanged>(this);
 
     // allocate memory
-    GlobalArray<unsigned int> neighbors(NEIGH_MAX, m_exec_conf);
+    GPUArray<unsigned int> neighbors(NEIGH_MAX, m_exec_conf);
     m_neighbors.swap(neighbors);
 
-    GlobalArray<unsigned int> unique_neighbors(NEIGH_MAX, m_exec_conf);
+    GPUArray<unsigned int> unique_neighbors(NEIGH_MAX, m_exec_conf);
     m_unique_neighbors.swap(unique_neighbors);
 
     // neighbor masks
-    GlobalArray<unsigned int> adj_mask(NEIGH_MAX, m_exec_conf);
+    GPUArray<unsigned int> adj_mask(NEIGH_MAX, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
-    GlobalArray<unsigned int> begin(NEIGH_MAX, m_exec_conf);
+    GPUArray<unsigned int> begin(NEIGH_MAX, m_exec_conf);
     m_begin.swap(begin);
 
-    GlobalArray<unsigned int> end(NEIGH_MAX, m_exec_conf);
+    GPUArray<unsigned int> end(NEIGH_MAX, m_exec_conf);
     m_end.swap(end);
 
     initializeNeighborArrays();
 
-    /* create a type for pdata_element */
-    const int nitems = 14;
-    int blocklengths[14] = {4, 4, 3, 1, 1, 3, 1, 4, 4, 3, 1, 4, 4, 6};
-    MPI_Datatype types[14] = {MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_INT,
-                              MPI_UNSIGNED,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_UNSIGNED,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR,
-                              MPI_HOOMD_SCALAR};
-    MPI_Aint offsets[14];
+        // create a type for pdata_element
+        {
+        const MPI_Datatype mpi_scalar3 = m_exec_conf->getMPIConfig()->getScalar3Datatype();
+        const MPI_Datatype mpi_scalar4 = m_exec_conf->getMPIConfig()->getScalar4Datatype();
+        const unsigned int nitems = 14;
+        int blocklengths[nitems] = {1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 6};
+        MPI_Datatype types[nitems] = {mpi_scalar4,
+                                      mpi_scalar4,
+                                      mpi_scalar3,
+                                      MPI_HOOMD_SCALAR,
+                                      MPI_HOOMD_SCALAR,
+                                      MPI_INT,
+                                      MPI_UNSIGNED,
+                                      mpi_scalar4,
+                                      mpi_scalar4,
+                                      mpi_scalar3,
+                                      MPI_UNSIGNED,
+                                      mpi_scalar4,
+                                      mpi_scalar4,
+                                      MPI_HOOMD_SCALAR};
+        MPI_Aint offsets[nitems] = {offsetof(detail::pdata_element, pos),
+                                    offsetof(detail::pdata_element, vel),
+                                    offsetof(detail::pdata_element, accel),
+                                    offsetof(detail::pdata_element, charge),
+                                    offsetof(detail::pdata_element, diameter),
+                                    offsetof(detail::pdata_element, image),
+                                    offsetof(detail::pdata_element, body),
+                                    offsetof(detail::pdata_element, orientation),
+                                    offsetof(detail::pdata_element, angmom),
+                                    offsetof(detail::pdata_element, inertia),
+                                    offsetof(detail::pdata_element, tag),
+                                    offsetof(detail::pdata_element, net_force),
+                                    offsetof(detail::pdata_element, net_torque),
+                                    offsetof(detail::pdata_element, net_virial)};
 
-    offsets[0] = offsetof(detail::pdata_element, pos);
-    offsets[1] = offsetof(detail::pdata_element, vel);
-    offsets[2] = offsetof(detail::pdata_element, accel);
-    offsets[3] = offsetof(detail::pdata_element, charge);
-    offsets[4] = offsetof(detail::pdata_element, diameter);
-    offsets[5] = offsetof(detail::pdata_element, image);
-    offsets[6] = offsetof(detail::pdata_element, body);
-    offsets[7] = offsetof(detail::pdata_element, orientation);
-    offsets[8] = offsetof(detail::pdata_element, angmom);
-    offsets[9] = offsetof(detail::pdata_element, inertia);
-    offsets[10] = offsetof(detail::pdata_element, tag);
-    offsets[11] = offsetof(detail::pdata_element, net_force);
-    offsets[12] = offsetof(detail::pdata_element, net_torque);
-    offsets[13] = offsetof(detail::pdata_element, net_virial);
-
-    MPI_Datatype tmp;
-    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
-    MPI_Type_commit(&tmp);
-
-    MPI_Type_create_resized(tmp, 0, sizeof(detail::pdata_element), &m_mpi_pdata_element);
-    MPI_Type_commit(&m_mpi_pdata_element);
-    MPI_Type_free(&tmp);
+        MPI_Datatype tmp;
+        MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
+        MPI_Type_create_resized(tmp, 0, sizeof(detail::pdata_element), &m_mpi_pdata_element);
+        MPI_Type_commit(&m_mpi_pdata_element);
+        }
     }
 
 //! Destructor
@@ -1949,8 +1949,14 @@ void Communicator::exchangeGhosts()
             m_velocity_copybuf.resize(max_copy_ghosts);
 
         if (flags[comm_flag::orientation])
-            {
             m_orientation_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::angmom])
+            m_angmom_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::inertia])
+            {
+            m_inertia_copybuf.resize(max_copy_ghosts);
             }
 
             {
@@ -1976,6 +1982,12 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                                access_location::host,
                                                access_mode::read);
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::host,
+                                          access_mode::read);
+            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                           access_location::host,
+                                           access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
                                             access_location::host,
                                             access_mode::read);
@@ -2008,6 +2020,12 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf,
                                                        access_location::host,
                                                        access_mode::overwrite);
+            ArrayHandle<Scalar4> h_angmom_copybuf(m_angmom_copybuf,
+                                                  access_location::host,
+                                                  access_mode::overwrite);
+            ArrayHandle<Scalar3> h_inertia_copybuf(m_inertia_copybuf,
+                                                   access_location::host,
+                                                   access_mode::overwrite);
 
             for (unsigned int idx = 0; idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
                 {
@@ -2029,6 +2047,10 @@ void Communicator::exchangeGhosts()
                     if (flags[comm_flag::orientation])
                         h_orientation_copybuf.data[m_num_copy_ghosts[dir]]
                             = h_orientation.data[idx];
+                    if (flags[comm_flag::angmom])
+                        h_angmom_copybuf.data[m_num_copy_ghosts[dir]] = h_angmom.data[idx];
+                    if (flags[comm_flag::inertia])
+                        h_inertia_copybuf.data[m_num_copy_ghosts[dir]] = h_inertia.data[idx];
                     h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
 
                     h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_tag.data[idx];
@@ -2107,6 +2129,12 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf,
                                                        access_location::host,
                                                        access_mode::read);
+            ArrayHandle<Scalar4> h_angmom_copybuf(m_angmom_copybuf,
+                                                  access_location::host,
+                                                  access_mode::read);
+            ArrayHandle<Scalar3> h_inertia_copybuf(m_inertia_copybuf,
+                                                   access_location::host,
+                                                   access_mode::read);
 
             ArrayHandle<unsigned int> h_plan(m_plan, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -2130,6 +2158,12 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                                access_location::host,
                                                access_mode::readwrite);
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::host,
+                                          access_mode::readwrite);
+            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                           access_location::host,
+                                           access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
                                             access_location::host,
                                             access_mode::readwrite);
@@ -2307,6 +2341,44 @@ void Communicator::exchangeGhosts()
                           MPI_BYTE,
                           recv_neighbor,
                           9,
+                          m_mpi_comm,
+                          &req);
+                m_reqs.push_back(req);
+                }
+            if (flags[comm_flag::angmom])
+                {
+                MPI_Isend(h_angmom_copybuf.data,
+                          int(m_num_copy_ghosts[dir] * sizeof(Scalar4)),
+                          MPI_BYTE,
+                          send_neighbor,
+                          10,
+                          m_mpi_comm,
+                          &req);
+                m_reqs.push_back(req);
+                MPI_Irecv(h_angmom.data + start_idx,
+                          int(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
+                          MPI_BYTE,
+                          recv_neighbor,
+                          10,
+                          m_mpi_comm,
+                          &req);
+                m_reqs.push_back(req);
+                }
+            if (flags[comm_flag::inertia])
+                {
+                MPI_Isend(h_inertia_copybuf.data,
+                          int(m_num_copy_ghosts[dir] * sizeof(Scalar3)),
+                          MPI_BYTE,
+                          send_neighbor,
+                          11,
+                          m_mpi_comm,
+                          &req);
+                m_reqs.push_back(req);
+                MPI_Irecv(h_inertia.data + start_idx,
+                          int(m_num_recv_ghosts[dir] * sizeof(Scalar3)),
+                          MPI_BYTE,
+                          recv_neighbor,
+                          11,
                           m_mpi_comm,
                           &req);
                 m_reqs.push_back(req);
@@ -2629,7 +2701,7 @@ void Communicator::exchangeGhosts()
 //! update positions of ghost particles
 void Communicator::beginUpdateGhosts(uint64_t timestep)
     {
-    // we have a current m_copy_ghosts liss which contain the indices of particles
+    // we have a current m_copy_ghosts list which contain the indices of particles
     // to send to neighboring processors
     m_exec_conf->msg->notice(7) << "Communicator: update ghosts" << std::endl;
 
@@ -2725,6 +2797,32 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                 }
             }
 
+        if (flags[comm_flag::angmom])
+            {
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::host,
+                                          access_mode::read);
+            ArrayHandle<Scalar4> h_angmom_copybuf(m_angmom_copybuf,
+                                                  access_location::host,
+                                                  access_mode::overwrite);
+            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir],
+                                                    access_location::host,
+                                                    access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                             access_location::host,
+                                             access_mode::read);
+
+            // copy angmom of ghost particles
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                {
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                // copy angmom into send buffer
+                h_angmom_copybuf.data[ghost_idx] = h_angmom.data[idx];
+                }
+            }
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
@@ -2740,8 +2838,9 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-        // only non-permanent fields (position, velocity, orientation) need to be considered here
-        // charge, body, image and diameter are not updated between neighbor list builds
+        // only non-permanent fields (position, velocity, orientation, angmom) need to be considered
+        // here charge, body, image, diameter, and moment of inertia are not updated between
+        // neighbor list builds
         if (flags[comm_flag::position])
             {
             m_reqs.resize(2);
@@ -2832,6 +2931,35 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
             }
 
+        if (flags[comm_flag::angmom])
+            {
+            m_reqs.resize(2);
+            m_stats.resize(2);
+
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::host,
+                                          access_mode::readwrite);
+            ArrayHandle<Scalar4> h_angmom_copybuf(m_angmom_copybuf,
+                                                  access_location::host,
+                                                  access_mode::read);
+
+            // exchange particle data, write directly to the particle data arrays
+            MPI_Isend(h_angmom_copybuf.data,
+                      (unsigned int)(m_num_copy_ghosts[dir] * sizeof(Scalar4)),
+                      MPI_BYTE,
+                      send_neighbor,
+                      4,
+                      m_mpi_comm,
+                      &m_reqs[0]);
+            MPI_Irecv(h_angmom.data + start_idx,
+                      (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
+                      MPI_BYTE,
+                      recv_neighbor,
+                      4,
+                      m_mpi_comm,
+                      &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+            }
         // wrap particle positions (only if copying positions)
         if (flags[comm_flag::position])
             {
@@ -3413,5 +3541,5 @@ void export_Communicator(pybind11::module& m)
     }
     } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_NEC__H__
@@ -34,7 +34,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
         m_chain_probability;  //!< how often we do a chain. Replaces translation_move_probability
     Scalar m_update_fraction; //!< if we perform chains we update several particles as one move
 
-    GlobalArray<hpmc_nec_counters_t> m_nec_count_total; //!< counters for chain statistics
+    GPUArray<hpmc_nec_counters_t> m_nec_count_total; //!< counters for chain statistics
 
     // statistics - pressure
     // We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
@@ -237,7 +237,7 @@ IntegratorHPMCMonoNEC<Shape>::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefini
     m_chain_probability = static_cast<unsigned int>(0.01 * 65535);
     m_chain_time = 1.0;
 
-    GlobalArray<hpmc_nec_counters_t> nec_counters(1, this->m_exec_conf);
+    GPUArray<hpmc_nec_counters_t> nec_counters(1, this->m_exec_conf);
     m_nec_count_total.swap(nec_counters);
     }
 
@@ -275,17 +275,12 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
     this->m_exec_conf->msg->notice(10) << "HPMCMonoEC update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
 
-    // get needed vars
-    ArrayHandle<hpmc_counters_t> h_counters(this->m_count_total,
-                                            access_location::host,
-                                            access_mode::readwrite);
-    hpmc_counters_t& counters = h_counters.data[0];
-
-    ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total,
-                                                    access_location::host,
-                                                    access_mode::readwrite);
-    hpmc_nec_counters_t& nec_counters = h_nec_counters.data[0];
-    m_nec_count_step_start = h_nec_counters.data[0];
+        {
+        ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total,
+                                                        access_location::host,
+                                                        access_mode::readwrite);
+        m_nec_count_step_start = h_nec_counters.data[0];
+        }
 
     const BoxDim& box = this->m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
@@ -293,29 +288,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
     // reset pressure statistics
     count_pressurevirial = 0.0;
     count_movelength = 0.0;
-
-    // access interaction matrix
-    ArrayHandle<unsigned int> h_overlaps(this->m_overlaps,
-                                         access_location::host,
-                                         access_mode::read);
-    ArrayHandle<int3> h_image(this->m_pdata->getImages(),
-                              access_location::host,
-                              access_mode::readwrite);
-
-    // access particle data
-    ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-    ArrayHandle<Scalar4> h_velocities(this->m_pdata->getVelocities(),
-                                      access_location::host,
-                                      access_mode::readwrite);
-    ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
-                                       access_location::host,
-                                       access_mode::readwrite);
-
-    // access move sizes
-    ArrayHandle<Scalar> h_d(this->m_d, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_a(this->m_a, access_location::host, access_mode::read);
 
     uint16_t seed = this->m_sysdef->getSeed();
 
@@ -332,6 +304,40 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
         this->limitMoveDistances();
         // update the image list
         this->updateImageList();
+
+        // get needed vars
+        ArrayHandle<hpmc_counters_t> h_counters(this->m_count_total,
+                                                access_location::host,
+                                                access_mode::readwrite);
+        hpmc_counters_t& counters = h_counters.data[0];
+
+        ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total,
+                                                        access_location::host,
+                                                        access_mode::readwrite);
+        hpmc_nec_counters_t& nec_counters = h_nec_counters.data[0];
+
+        // access interaction matrix
+        ArrayHandle<unsigned int> h_overlaps(this->m_overlaps,
+                                             access_location::host,
+                                             access_mode::read);
+        ArrayHandle<int3> h_image(this->m_pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+
+        // access particle data
+        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+        ArrayHandle<Scalar4> h_velocities(this->m_pdata->getVelocities(),
+                                          access_location::host,
+                                          access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::readwrite);
+
+        // access move sizes
+        ArrayHandle<Scalar> h_d(this->m_d, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_a(this->m_a, access_location::host, access_mode::read);
 
         // loop through N particles in a shuffled order
         for (unsigned int cur_chain = 0; cur_chain < this->m_pdata->getN() * m_update_fraction;
@@ -392,7 +398,7 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                         {
                         this->m_exec_conf->msg->error()
                             << "The number of chain elements exceeded safe-guard limit of "
-                            << debug_max_chain << ".\n";
+                            << debug_max_chain << "." << std::endl;
                         this->m_exec_conf->msg->error()
                             << "Shorten chain_time if this message appears regularly." << std::endl;
                         break;
@@ -611,8 +617,8 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                         }
                     }
                 } // end loop over totalDist.
-            }     // end loop over all particles
-        }         // end loop over nselect
+            } // end loop over all particles
+        } // end loop over nselect
 
         {
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
@@ -860,11 +866,11 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
                                             }
                                         }
 
-                                    if (newDist == sweepableDistance)
-                                        {
-                                        this->m_exec_conf->msg->error()
-                                            << "Two particles with the same distance\n";
-                                        }
+                                    // 3-way collisions (newDist == sweepableDistance) should be
+                                    // extremely rare, yet they somehow occur often with NEC.
+                                    // Ignore these cases and choose one colliding pair to resolve.
+                                    // NEC would sample the correct distribution even if all
+                                    // velocities were fixed.
                                     }
                                 }
                             }
@@ -877,7 +883,7 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
                 cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
                 }
             } // end loop over AABB nodes
-        }     // end loop over images
+        } // end loop over images
 
     return sweepableDistance;
     }

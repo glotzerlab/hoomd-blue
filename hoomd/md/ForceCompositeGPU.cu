@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -83,7 +83,6 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                unsigned int thread_mask,
                                                unsigned int n_bodies_per_block,
                                                bool zero_force,
-                                               unsigned int first_body,
                                                unsigned int nwork)
     {
     extern __shared__ char sum[];
@@ -116,7 +115,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         int group_idx = blockIdx.x * n_bodies_per_block + m;
         if (group_idx < nwork)
             {
-            central_idx[m] = d_rigid_center[group_idx + first_body];
+            central_idx[m] = d_rigid_center[group_idx];
             mol_idx[m] = d_molecule_idx[central_idx[m]];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
@@ -274,7 +273,6 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 unsigned int window_size,
                                                 unsigned int thread_mask,
                                                 unsigned int n_bodies_per_block,
-                                                unsigned int first_body,
                                                 unsigned int nwork)
     {
     extern __shared__ char sum[];
@@ -317,7 +315,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         int group_idx = blockIdx.x * n_bodies_per_block + m;
         if (group_idx < nwork)
             {
-            central_idx[m] = d_rigid_center[group_idx + first_body];
+            central_idx[m] = d_rigid_center[group_idx];
             mol_idx[m] = d_molecule_idx[central_idx[m]];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
@@ -471,81 +469,75 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
                            unsigned int block_size,
                            const hipDeviceProp_t& dev_prop,
                            bool zero_force,
-                           const GPUPartition& gpu_partition)
+                           unsigned int n_local_bodies)
     {
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int nwork = n_local_bodies;
+
+    dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
+
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_rigid_force_sliding_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+
+    unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
+
+    // round down to nearest power of two
+    unsigned int b = 1;
+    while (b * 2 <= run_block_size)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
-
-        unsigned int max_block_size;
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_rigid_force_sliding_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-
-        unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
-
-        // round down to nearest power of two
-        unsigned int b = 1;
-        while (b * 2 <= run_block_size)
-            {
-            b *= 2;
-            }
-        run_block_size = b;
-
-        unsigned int window_size = run_block_size / n_bodies_per_block;
-        unsigned int thread_mask = window_size - 1;
-
-        size_t shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                              + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
-
-        while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-            {
-            // block size is power of two
-            run_block_size /= 2;
-
-            shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                           + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
-
-            window_size = run_block_size / n_bodies_per_block;
-            thread_mask = window_size - 1;
-            }
-
-        hipLaunchKernelGGL((gpu_rigid_force_sliding_kernel),
-                           dim3(force_grid),
-                           dim3(run_block_size),
-                           shared_bytes,
-                           0,
-                           d_force,
-                           d_torque,
-                           d_molecule_len,
-                           d_molecule_list,
-                           d_molecule_idx,
-                           d_rigid_center,
-                           molecule_indexer,
-                           d_postype,
-                           d_orientation,
-                           body_indexer,
-                           d_body_pos,
-                           d_body_orientation,
-                           d_body_len,
-                           d_body,
-                           d_tag,
-                           d_flag,
-                           d_net_force,
-                           d_net_torque,
-                           n_mol,
-                           N,
-                           window_size,
-                           thread_mask,
-                           n_bodies_per_block,
-                           zero_force,
-                           range.first,
-                           nwork);
+        b *= 2;
         }
+    run_block_size = b;
+
+    unsigned int window_size = run_block_size / n_bodies_per_block;
+    unsigned int thread_mask = window_size - 1;
+
+    size_t shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                          + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
+
+    while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+        {
+        // block size is power of two
+        run_block_size /= 2;
+
+        shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                       + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
+
+        window_size = run_block_size / n_bodies_per_block;
+        thread_mask = window_size - 1;
+        }
+
+    hipLaunchKernelGGL((gpu_rigid_force_sliding_kernel),
+                       dim3(force_grid),
+                       dim3(run_block_size),
+                       shared_bytes,
+                       0,
+                       d_force,
+                       d_torque,
+                       d_molecule_len,
+                       d_molecule_list,
+                       d_molecule_idx,
+                       d_rigid_center,
+                       molecule_indexer,
+                       d_postype,
+                       d_orientation,
+                       body_indexer,
+                       d_body_pos,
+                       d_body_orientation,
+                       d_body_len,
+                       d_body,
+                       d_tag,
+                       d_flag,
+                       d_net_force,
+                       d_net_torque,
+                       n_mol,
+                       N,
+                       window_size,
+                       thread_mask,
+                       n_bodies_per_block,
+                       zero_force,
+                       nwork);
     return hipSuccess;
     }
 
@@ -571,90 +563,86 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
                             size_t virial_pitch,
                             unsigned int block_size,
                             const hipDeviceProp_t& dev_prop,
-                            const GPUPartition& gpu_partition)
+                            unsigned int n_local_bodies)
     {
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int nwork = n_local_bodies;
+
+    dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
+
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_rigid_virial_sliding_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+
+    unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
+
+    // round down to nearest power of two
+    unsigned int b = 1;
+    while (b * 2 <= run_block_size)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
-
-        unsigned int max_block_size;
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_rigid_virial_sliding_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-
-        unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
-
-        // round down to nearest power of two
-        unsigned int b = 1;
-        while (b * 2 <= run_block_size)
-            {
-            b *= 2;
-            }
-        run_block_size = b;
-
-        unsigned int window_size = run_block_size / n_bodies_per_block;
-        unsigned int thread_mask = window_size - 1;
-
-        size_t shared_bytes = 6 * run_block_size * sizeof(Scalar)
-                              + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
-
-        while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-            {
-            // block size is power of two
-            run_block_size /= 2;
-
-            shared_bytes = 6 * run_block_size * sizeof(Scalar)
-                           + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
-
-            window_size = run_block_size / n_bodies_per_block;
-            thread_mask = window_size - 1;
-            }
-
-        hipLaunchKernelGGL((gpu_rigid_virial_sliding_kernel),
-                           dim3(force_grid),
-                           dim3(run_block_size),
-                           shared_bytes,
-                           0,
-                           d_virial,
-                           d_molecule_len,
-                           d_molecule_list,
-                           d_molecule_idx,
-                           d_rigid_center,
-                           molecule_indexer,
-                           d_postype,
-                           d_orientation,
-                           body_indexer,
-                           d_body_pos,
-                           d_body_orientation,
-                           d_net_force,
-                           d_net_virial,
-                           d_body,
-                           d_tag,
-                           n_mol,
-                           N,
-                           net_virial_pitch,
-                           virial_pitch,
-                           window_size,
-                           thread_mask,
-                           n_bodies_per_block,
-                           range.first,
-                           nwork);
+        b *= 2;
         }
+    run_block_size = b;
+
+    unsigned int window_size = run_block_size / n_bodies_per_block;
+    unsigned int thread_mask = window_size - 1;
+
+    size_t shared_bytes = 6 * run_block_size * sizeof(Scalar)
+                          + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
+
+    while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+        {
+        // block size is power of two
+        run_block_size /= 2;
+
+        shared_bytes = 6 * run_block_size * sizeof(Scalar)
+                       + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
+
+        window_size = run_block_size / n_bodies_per_block;
+        thread_mask = window_size - 1;
+        }
+
+    hipLaunchKernelGGL((gpu_rigid_virial_sliding_kernel),
+                       dim3(force_grid),
+                       dim3(run_block_size),
+                       shared_bytes,
+                       0,
+                       d_virial,
+                       d_molecule_len,
+                       d_molecule_list,
+                       d_molecule_idx,
+                       d_rigid_center,
+                       molecule_indexer,
+                       d_postype,
+                       d_orientation,
+                       body_indexer,
+                       d_body_pos,
+                       d_body_orientation,
+                       d_net_force,
+                       d_net_virial,
+                       d_body,
+                       d_tag,
+                       n_mol,
+                       N,
+                       net_virial_pitch,
+                       virial_pitch,
+                       window_size,
+                       thread_mask,
+                       n_bodies_per_block,
+                       nwork);
 
     return hipSuccess;
     }
 
 __global__ void gpu_update_composite_kernel(unsigned int N,
                                             unsigned int nwork,
-                                            unsigned int offset,
                                             unsigned int n_ghost,
                                             const unsigned int* d_lookup_center,
                                             Scalar4* d_postype,
+                                            Scalar4* d_velocity,
                                             Scalar4* d_orientation,
+                                            const Scalar4* d_angmom,
+                                            const Scalar3* d_inertia,
                                             Index2D body_indexer,
                                             const Scalar3* d_body_pos,
                                             const Scalar4* d_body_orientation,
@@ -672,8 +660,6 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     if (idx >= nwork)
         return;
-
-    idx += offset;
 
     unsigned int central_idx = d_lookup_center[idx];
     if (central_idx >= MIN_FLOPPY)
@@ -730,6 +716,48 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     quat<Scalar> local_orientation(d_body_orientation[body_indexer(body_type, idx_in_body)]);
     quat<Scalar> updated_orientation = orientation * local_orientation;
 
+    /* Update velocity of constituents
+     *
+     * Calculate the angular momentum in the body frame as a vector,
+     * then divide by the moment of inertia to get the angular velocity.
+     * The tangential velocity in the body frame is the angular velocity
+     * cross the position relative to the center of mass, which is then
+     * rotated into the space frame and added to the velocity of the center
+     * of mass.
+     */
+    const quat<Scalar> angmom(d_angmom[central_idx]);
+    const vec3<Scalar> inertia(d_inertia[central_idx]);
+    const quat<Scalar> angvel_body_quat = Scalar(0.5) * conj(orientation) * angmom;
+    vec3<Scalar> angvel_body = angvel_body_quat.v;
+    if (inertia.x != Scalar(0))
+        {
+        angvel_body.x /= inertia.x;
+        }
+    else
+        {
+        angvel_body.x = Scalar(0);
+        }
+
+    if (inertia.y != Scalar(0))
+        {
+        angvel_body.y /= inertia.y;
+        }
+    else
+        {
+        angvel_body.y = Scalar(0);
+        }
+
+    if (inertia.z != Scalar(0))
+        {
+        angvel_body.z /= inertia.z;
+        }
+    else
+        {
+        angvel_body.z = Scalar(0);
+        }
+
+    const vec3<Scalar> updated_vel = vec3<Scalar>(d_velocity[central_idx])
+                                     + rotate(orientation, cross(angvel_body, local_pos));
     // this runs before the ForceComputes,
     // wrap into box, allowing rigid bodies to span multiple images
     int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
@@ -737,12 +765,14 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     updated_pos = global_box.shift(updated_pos, negimgi);
 
     unsigned int type = __scalar_as_int(d_postype[idx].w);
+    const Scalar mass = d_velocity[idx].w;
 
     d_postype[idx]
         = make_scalar4(updated_pos.x,
                        updated_pos.y,
                        updated_pos.z,
                        __int_as_scalar(d_body_types[body_indexer(body_type, idx_in_body)]));
+    d_velocity[idx] = make_scalar4(updated_vel.x, updated_vel.y, updated_vel.z, mass);
     d_orientation[idx] = quat_to_scalar4(updated_orientation);
     d_image[idx] = img + imgi;
     }
@@ -750,7 +780,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 void gpu_update_composite(unsigned int N,
                           unsigned int n_ghost,
                           Scalar4* d_postype,
+                          Scalar4* d_velocity,
                           Scalar4* d_orientation,
+                          const Scalar4* d_angmom,
+                          const Scalar3* d_inertia,
                           Index2D body_indexer,
                           const unsigned int* d_lookup_center,
                           const Scalar3* d_body_pos,
@@ -764,8 +797,7 @@ void gpu_update_composite(unsigned int N,
                           const BoxDim box,
                           const BoxDim global_box,
                           unsigned int block_size,
-                          uint2* d_flag,
-                          const GPUPartition& gpu_partition)
+                          uint2* d_flag)
     {
     unsigned int run_block_size = block_size;
 
@@ -779,43 +811,35 @@ void gpu_update_composite(unsigned int N,
         run_block_size = max_block_size;
         }
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = N + n_ghost;
 
-        unsigned int nwork = range.second - range.first;
-
-        // process ghosts in final range
-        if (idev == (int)gpu_partition.getNumActiveGPUs() - 1)
-            nwork += n_ghost;
-
-        unsigned int n_blocks = nwork / run_block_size + 1;
-        hipLaunchKernelGGL((gpu_update_composite_kernel),
-                           dim3(n_blocks),
-                           dim3(run_block_size),
-                           0,
-                           0,
-                           N,
-                           nwork,
-                           range.first,
-                           n_ghost,
-                           d_lookup_center,
-                           d_postype,
-                           d_orientation,
-                           body_indexer,
-                           d_body_pos,
-                           d_body_orientation,
-                           d_body_types,
-                           d_body_len,
-                           d_molecule_order,
-                           d_molecule_len,
-                           d_molecule_idx,
-                           d_image,
-                           box,
-                           global_box,
-                           d_flag);
-        }
+    unsigned int n_blocks = nwork / run_block_size + 1;
+    hipLaunchKernelGGL((gpu_update_composite_kernel),
+                       dim3(n_blocks),
+                       dim3(run_block_size),
+                       0,
+                       0,
+                       N,
+                       nwork,
+                       n_ghost,
+                       d_lookup_center,
+                       d_postype,
+                       d_velocity,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       body_indexer,
+                       d_body_pos,
+                       d_body_orientation,
+                       d_body_types,
+                       d_body_len,
+                       d_molecule_order,
+                       d_molecule_len,
+                       d_molecule_idx,
+                       d_image,
+                       box,
+                       global_box,
+                       d_flag);
     }
 
 struct is_center
@@ -827,7 +851,7 @@ struct is_center
     };
 
 // create a lookup table ptl idx -> center idx
-struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
+struct lookup_op
     {
     __host__ __device__ lookup_op(const unsigned int* _d_rtag) : d_rtag(_d_rtag) { }
 

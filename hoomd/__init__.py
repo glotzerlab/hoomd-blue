@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD-blue python package.
@@ -28,7 +28,7 @@ methods, and variables in the API.
 * `hoomd.md` - Molecular dynamics.
 
 See Also:
-    Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
+    Tutorial: :doc:`/tutorial/00-Introducing-HOOMD-blue/00-index`
 
 .. rubric:: Signal handling
 
@@ -37,17 +37,27 @@ so that open gsd files have a chance to flush write buffers
 (`hoomd.write.GSD.flush`) when a user's process is terminated. Use
 `signal.signal` to adjust this behavior as needed.
 """
+
 import sys
 import pathlib
 import os
 import signal
 
-if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
-        and 'SPHINX' not in os.environ):
+__all__ = []
+
+# Work around /usr/lib64/slurm/auth_munge.so: undefined symbol: slurm_conf
+# error on Purdue Anvil.
+if os.environ.get("RCAC_CLUSTER") == "anvil":
+    sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
+
+if (
+    pathlib.Path(__file__).parent / "CMakeLists.txt"
+).exists() and "SPHINX" not in os.environ:
     print("It appears that hoomd is being imported from the source directory:")
     print(pathlib.Path(__file__).parent)
     print()
-    print("""Compile the package and import from the build directory or install
+    print(
+        """Compile the package and import from the build directory or install
 the package and import from the Python environment.
 
 To run pytest, either:
@@ -55,12 +65,14 @@ To run pytest, either:
 (2) compile and install. Then, ensuring your current working directory is
 outside the hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
 """,
-          file=sys.stderr)
+        file=sys.stderr,
+    )
 
 from hoomd import version
 from hoomd import trigger
+from hoomd import box
+from hoomd.box import Box
 from hoomd import variant
-from hoomd.box import Box, box_like
 from hoomd import data
 from hoomd import filter
 from hoomd import device
@@ -69,20 +81,21 @@ from hoomd import mesh
 from hoomd import update
 from hoomd import communicator
 from hoomd import util
+from hoomd import operation
+
 from hoomd import write
 from hoomd import wall
 from hoomd import _hoomd
 from hoomd import tune
 from hoomd import logging
 from hoomd import custom
+
 if version.md_built:
     from hoomd import md
 if version.hpmc_built:
     from hoomd import hpmc
-# if version.metal_built:
-#     from hoomd import metal
-# if version.mpcd_built:
-#     from hoomd import mpcd
+if version.mpcd_built:
+    from hoomd import mpcd
 
 from hoomd.simulation import Simulation
 from hoomd.state import State
@@ -110,3 +123,32 @@ try:
     signal.signal(signal.SIGTERM, lambda n, f: sys.exit(1))
 except ValueError:
     pass
+
+__all__ = [
+    "Box",
+    "Operations",
+    "Simulation",
+    "Snapshot",
+    "State",
+    "box",
+    "communicator",
+    "custom",
+    "data",
+    "device",
+    "error",
+    "filter",
+    "hpmc",
+    "logging",
+    "md",
+    "mesh",
+    "mpcd",
+    "operation",
+    "trigger",
+    "tune",
+    "update",
+    "util",
+    "variant",
+    "version",
+    "wall",
+    "write",
+]

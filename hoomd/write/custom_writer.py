@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomWriter.
@@ -13,12 +13,13 @@
     custom_action = ExampleAction()
 """
 
-from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
+from hoomd.custom import Action, CustomOperation
+from hoomd.custom.custom_operation import _InternalCustomOperation
 from hoomd.operation import Writer
+import inspect
 
 
 class _WriterProperty:
-
     @property
     def writer(self):
         return self._action
@@ -28,8 +29,7 @@ class _WriterProperty:
         if isinstance(analyzer, Action):
             self._action = analyzer
         else:
-            raise ValueError(
-                "analyzer must be an instance of hoomd.custom.Action")
+            raise ValueError("analyzer must be an instance of hoomd.custom.Action")
 
 
 class CustomWriter(CustomOperation, _WriterProperty, Writer):
@@ -53,7 +53,8 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
 
             custom_writer = hoomd.write.CustomWriter(
                 action=custom_action,
-                trigger=hoomd.trigger.Periodic(1000))
+                trigger=hoomd.trigger.Periodic(1000),
+            )
             simulation.operations.writers.append(custom_writer)
 
     See Also:
@@ -63,14 +64,17 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
 
         `hoomd.tune.CustomTuner`
     """
-    _cpp_list_name = 'analyzers'
-    _cpp_class_name = 'PythonAnalyzer'
+
+    _cpp_list_name = "analyzers"
+    _cpp_class_name = "PythonAnalyzer"
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(CustomOperation._doc_inherited)
+    )
 
 
 class _InternalCustomWriter(_InternalCustomOperation, Writer):
-    _cpp_list_name = 'analyzers'
-    _cpp_class_name = 'PythonAnalyzer'
+    _cpp_list_name = "analyzers"
+    _cpp_class_name = "PythonAnalyzer"
     _operation_func = "write"
-
-    def write(self, timestep):
-        return self._action.act(timestep)

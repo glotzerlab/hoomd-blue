@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -194,10 +194,14 @@ void mpcd::ATCollisionMethodGPU::setCellList(std::shared_ptr<mpcd::CellList> cl)
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
+void export_ATCollisionMethodGPU(pybind11::module& m)
     {
     pybind11::class_<mpcd::ATCollisionMethodGPU,
                      mpcd::ATCollisionMethod,
@@ -208,5 +212,6 @@ void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
                             int,
                             std::shared_ptr<Variant>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

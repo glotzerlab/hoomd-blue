@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -35,9 +35,21 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     //! Destructor
     virtual ~ATCollisionMethod();
 
-    void setCellList(std::shared_ptr<mpcd::CellList> cl);
+    //! Start autotuning kernel launch parameters
+    void startAutotuning() override;
 
-    //! Set the temperature and enable the thermostat
+    //! Check if kernel autotuning is complete
+    bool isAutotuningComplete() override;
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl) override;
+
+    //! Get the temperature
+    std::shared_ptr<Variant> getTemperature() const
+        {
+        return m_T;
+        }
+
+    //! Set the temperature
     void setTemperature(std::shared_ptr<Variant> T)
         {
         m_T = T;
@@ -49,7 +61,7 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     std::shared_ptr<Variant> m_T;                           //!< Temperature for thermostat
 
     //! Implementation of the collision rule
-    virtual void rule(uint64_t timestep);
+    virtual void rule(uint64_t timestep) override;
 
     //! Draw velocities for particles in each cell
     virtual void drawVelocities(uint64_t timestep);
@@ -63,13 +75,6 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     //! Detach callback signals
     void detachCallbacks();
     };
-
-namespace detail
-    {
-//! Export ATCollisionMethod to python
-void export_ATCollisionMethod(pybind11::module& m);
-    } // end namespace detail
-
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_H_

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define particle filter set operations.
@@ -12,6 +12,7 @@
 
 from hoomd.filter.filter_ import ParticleFilter
 from hoomd import _hoomd
+import inspect
 
 
 class _ParticleFilterSetOperations(ParticleFilter):
@@ -40,8 +41,9 @@ class _ParticleFilterSetOperations(ParticleFilter):
         ParticleFilter.__init__(self)
 
         if f == g:
-            raise ValueError("Cannot use same filter for {}"
-                             "".format(self.__class__.__name__))
+            raise ValueError(
+                "Cannot use same filter for {}".format(self.__class__.__name__)
+            )
         else:
             self._f = f
             self._g = g
@@ -54,20 +56,24 @@ class _ParticleFilterSetOperations(ParticleFilter):
 
     def __eq__(self, other):
         if self._symmetric:
-            return type(self) is type(other) and \
-                (self._f == other._f or self._f == other._g) and \
-                (self._g == other._g or self._g == other._f)
+            return (
+                type(self) is type(other)
+                and (self._f == other._f or self._f == other._g)
+                and (self._g == other._g or self._g == other._f)
+            )
         else:
-            return type(self) is type(other) and \
-                self._f == other._f and self._g == other._g
+            return (
+                type(self) is type(other)
+                and self._f == other._f
+                and self._g == other._g
+            )
 
     def __reduce__(self):
         """Enable (deep)copying and pickling of set based particle filters."""
         return (type(self), (self._f, self._g))
 
 
-class SetDifference(_ParticleFilterSetOperations,
-                    _hoomd.ParticleFilterSetDifference):
+class SetDifference(_ParticleFilterSetOperations, _hoomd.ParticleFilterSetDifference):
     r"""Set difference operation.
 
     Args:
@@ -77,16 +83,20 @@ class SetDifference(_ParticleFilterSetOperations,
     `SetDifference` is a composite filter. It selects particles in the set
     difference :math:`f \setminus g`.
 
-    Base: `ParticleFilter`
-
     .. rubric:: Example:
 
     .. code-block:: python
 
         set_difference = hoomd.filter.SetDifference(filter1, filter2)
     """
-    _cpp_cls_name = 'ParticleFilterSetDifference'
+
+    _cpp_cls_name = "ParticleFilterSetDifference"
     _symmetric = False
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(ParticleFilter._doc_inherited)
+    )
 
 
 class Union(_ParticleFilterSetOperations, _hoomd.ParticleFilterUnion):
@@ -99,20 +109,23 @@ class Union(_ParticleFilterSetOperations, _hoomd.ParticleFilterUnion):
     `Union` is a composite filter. It selects particles in the set
     union :math:`f \cup g`.
 
-    Base: `ParticleFilter`
-
     .. rubric:: Example:
 
     .. code-block:: python
 
         union = hoomd.filter.Union(filter1, filter2)
     """
-    _cpp_cls_name = 'ParticleFilterUnion'
+
+    _cpp_cls_name = "ParticleFilterUnion"
     _symmetric = True
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(ParticleFilter._doc_inherited)
+    )
 
 
-class Intersection(_ParticleFilterSetOperations,
-                   _hoomd.ParticleFilterIntersection):
+class Intersection(_ParticleFilterSetOperations, _hoomd.ParticleFilterIntersection):
     r"""Set intersection operation.
 
     Args:
@@ -122,13 +135,17 @@ class Intersection(_ParticleFilterSetOperations,
     `Intersection` is a composite filter. It selects particles in the set
     intersection :math:`f \cap g`.
 
-    Base: `ParticleFilter`
-
     .. rubric:: Example:
 
     .. code-block:: python
 
         intersection = hoomd.filter.Intersection(filter1, filter2)
     """
-    _cpp_cls_name = 'ParticleFilterIntersection'
+
+    _cpp_cls_name = "ParticleFilterIntersection"
     _symmetric = True
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(ParticleFilter._doc_inherited)
+    )

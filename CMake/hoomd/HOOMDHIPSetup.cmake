@@ -7,8 +7,8 @@ if(ENABLE_HIP)
         SET(HOOMD_DEVICE_LANGUAGE HIP)
 
         # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
-        set(CMAKE_HIP_ARCHITECTURES gfx900 gfx906 gfx908 gfx90a CACHE STRING "List of AMD GPU to compile HIP code for. Separate with semicolons.")
-        set(HIP_PLATFORM hip-clang)
+        set(CMAKE_HIP_ARCHITECTURES gfx900 gfx906 gfx908 gfx90a gfx940 gfx941 gfx942 CACHE STRING "List of AMD GPU to compile HIP code for. Separate with semicolons.")
+        set(HIP_PLATFORM amd)
     elseif (HOOMD_GPU_PLATFORM STREQUAL "CUDA")
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
         ENABLE_LANGUAGE(CUDA)
@@ -48,8 +48,8 @@ if(ENABLE_HIP)
     # branch upon HCC or NVCC target
     if(${HIP_PLATFORM} STREQUAL "nvcc")
         set_property(TARGET hip::host APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS __HIP_PLATFORM_NVCC__)
-    elseif(${HIP_PLATFORM} STREQUAL "hip-clang")
-        set_property(TARGET hip::host APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS __HIP_PLATFORM_AMD__)
+    elseif(${HIP_PLATFORM} STREQUAL "amd")
+        set_property(TARGET hip::host APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS __HIP_PLATFORM_AMD__ __HIP_PLATFORM_HCC__)
     endif()
 
     find_package(CUDALibs REQUIRED)

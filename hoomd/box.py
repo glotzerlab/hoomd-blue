@@ -1,7 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement Box."""
+""":py:class:`Box`-adjacent types."""
 
 import abc
 import typing
@@ -32,24 +32,23 @@ def _make_vec3(vec, vec_factory, scalar_type):
             return vec_factory(v, v, v)
     if l_vec == 3:
         try:
-            return vec_factory(scalar_type(vec[0]), scalar_type(vec[1]),
-                               scalar_type(vec[2]))
+            return vec_factory(
+                scalar_type(vec[0]), scalar_type(vec[1]), scalar_type(vec[2])
+            )
         except (ValueError, TypeError):
             raise ValueError("Expected values of type {}.".format(scalar_type))
     else:
-        raise ValueError("Expected a sequence of three values or a single "
-                         "value. Received {} values.".format(len(vec)))
+        raise ValueError(
+            "Expected a sequence of three values or a single "
+            "value. Received {} values.".format(len(vec))
+        )
 
 
-_make_scalar3 = partial(_make_vec3,
-                        vec_factory=_hoomd.make_scalar3,
-                        scalar_type=float)
+_make_scalar3 = partial(_make_vec3, vec_factory=_hoomd.make_scalar3, scalar_type=float)
 
 _make_int3 = partial(_make_vec3, vec_factory=_hoomd.make_int3, scalar_type=int)
 
-_make_char3 = partial(_make_vec3,
-                      vec_factory=_hoomd.make_char3,
-                      scalar_type=int)
+_make_char3 = partial(_make_vec3, vec_factory=_hoomd.make_char3, scalar_type=int)
 
 
 def _vec3_to_array(vec, dtype=None):
@@ -67,7 +66,7 @@ class Box:
         xz (float): tilt factor xz :math:`[\\mathrm{dimensionless}]`.
         yz (float): tilt factor yz :math:`[\\mathrm{dimensionless}]`.
 
-    .. image:: box.svg
+    .. image:: /box.svg
        :alt: Example simulation box labelled with lengths and vectors.
 
     Particles in a simulation exist in a triclinic box with
@@ -102,18 +101,23 @@ class Box:
     :math:`\\alpha`, :math:`\\beta` and :math:`\\gamma` are as follows:
 
     .. math::
-        \\cos\\gamma &= \\cos(\\angle\\vec a_1, \\vec a_2) &=&
+
+        \\begin{split}
+        \\cos\\gamma &= \\cos(\\angle\\vec a_1, \\vec a_2) =
             \\frac{xy}{\\sqrt{1+xy^2}}\\\\
-        \\cos\\beta &= \\cos(\\angle\\vec a_1, \\vec a_3) &=&
+        \\cos\\beta &= \\cos(\\angle\\vec a_1, \\vec a_3) =
             \\frac{xz}{\\sqrt{1+xz^2+yz^2}}\\\\
-        \\cos\\alpha &= \\cos(\\angle\\vec a_2, \\vec a_3) &=&
+        \\cos\\alpha &= \\cos(\\angle\\vec a_2, \\vec a_3) =
             \\frac{xy \\cdot xz + yz}{\\sqrt{1+xy^2} \\sqrt{1+xz^2+yz^2}}
+        \\end{split}
 
     Given an arbitrarily oriented lattice with box vectors :math:`\\vec v_1,
     \\vec v_2, \\vec v_3`, the parameters for the rotated box can be found as
     follows:
 
     .. math::
+
+        \\begin{split}
         L_x &= v_1\\\\
         a_{2x} &= \\frac{\\vec v_1 \\cdot \\vec v_2}{v_1}\\\\
         L_y &= \\sqrt{v_2^2 - a_{2x}^2}\\\\
@@ -123,6 +127,7 @@ class Box:
         a_{3x} &= \\frac{\\vec v_1 \\cdot \\vec v_3}{v_1}\\\\
         xz &= \\frac{a_{3x}}{L_z}\\\\
         yz &= \\frac{\\vec v_2 \\cdot \\vec v_3 - a_{2x}a_{3x}}{L_y L_z}
+        \\end{split}
 
     .. rubric:: Box images
 
@@ -160,8 +165,8 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, `from_matrix`, and `from_box`. See each method's documentation for
-    more details.
+    `square`, `from_matrix`, `from_basis_vectors`, and `from_box`. See each
+    method's documentation for more details.
 
     .. rubric:: Example:
 
@@ -217,6 +222,90 @@ class Box:
         return cls(L, L, 0, 0, 0, 0)
 
     @classmethod
+    def from_basis_vectors(cls, box_matrix):
+        r"""Initialize a Box instance from a box matrix.
+
+        Args:
+            box_matrix ((3, 3) `numpy.ndarray` of `float`): A 3x3 matrix
+                or list of lists representing a set of lattice basis vectors.
+
+        Note:
+           The created box will be rotated with respect to the lattice basis. As
+           a consequence the output of `to_matrix` will not be the same as the
+           input provided to this function. This function also returns a
+           rotation matrix commensurate with this transformation. Using this
+           rotation matrix users can rotate the original points into the new box
+           by applying the rotation to the points.
+
+        Note:
+           When passing a 2D basis vectors, the third vector should be set to
+           all zeros, while first two vectors should have the last element set
+           to zero.
+
+        Returns:
+            tuple[hoomd.Box, numpy.ndarray]: A tuple containing:
+                - hoomd.Box: The created box configured according to the given
+                  basis vectors.
+                - numpy.ndarray: A 3x3 floating-point rotation matrix that can
+                  be used to transform the original basis vectors to align with
+                  the new box basis vectors.
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            points = np.array([[0, 0, 0], [0.5, 0, 0], [0.25, 0.25, 0]])
+            box, rotation = hoomd.Box.from_basis_vectors(
+                box_matrix=[[1, 1, 0], [1, -1, 0], [0, 0, 1]]
+            )
+            rotated_points = rotation @ points
+        """
+        box_matrix = np.asarray(box_matrix, dtype=np.float64)
+        if box_matrix.shape != (3, 3):
+            raise ValueError("Box matrix must be a 3x3 matrix.")
+        v0 = box_matrix[:, 0]
+        v1 = box_matrix[:, 1]
+        v2 = box_matrix[:, 2]
+        Lx = np.sqrt(np.dot(v0, v0))
+        a2x = np.dot(v0, v1) / Lx
+        Ly = np.sqrt(np.dot(v1, v1) - a2x * a2x)
+        xy = a2x / Ly
+        v0xv1 = np.cross(v0, v1)
+        v0xv1mag = np.sqrt(np.dot(v0xv1, v0xv1))
+        Lz = np.dot(v2, v0xv1) / v0xv1mag
+        if Lz != 0:
+            a3x = np.dot(v0, v2) / Lx
+            xz = a3x / Lz
+            yz = (np.dot(v1, v2) - a2x * a3x) / (Ly * Lz)
+            upper_triangular_box_matrix = np.array(
+                [[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz], [0, 0, Lz]]
+            )
+        else:
+            xz = yz = 0
+            if not (
+                np.allclose(v2, [0, 0, 0])
+                and np.allclose(v0[2], 0)
+                and np.allclose(v1[2], 0)
+            ):
+                error_string = (
+                    "A 2D box matrix must have a third vector and"
+                    "third component of first two vectors set to"
+                    "zero."
+                )
+                raise ValueError(error_string)
+            upper_triangular_box_matrix = np.array([[Lx, Ly * xy], [0, Ly]])
+            box_matrix = box_matrix[:2, :2]
+
+        rotation = np.linalg.solve(upper_triangular_box_matrix, box_matrix)
+
+        if Lz == 0:
+            rotation = np.zeros((3, 3))
+            rotation[:2, :2] = box_matrix
+            rotation[2, 2] = 1
+
+        return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz), rotation
+
+    @classmethod
     def from_matrix(cls, box_matrix):
         r"""Create a box from an upper triangular matrix.
 
@@ -247,14 +336,18 @@ class Box:
                               [0, 8, 16],
                               [0, 0, 18]])
         """
-        box_matrix = np.asarray(box_matrix)
+        box_matrix = np.asarray(box_matrix, dtype=np.float64)
         if box_matrix.shape != (3, 3):
             raise ValueError("Box matrix must be a 3x3 matrix.")
         if not np.allclose(box_matrix, np.triu(box_matrix)):
             raise ValueError("Box matrix must be upper triangular.")
         L = np.diag(box_matrix)
-        return cls(*L, box_matrix[0, 1] / L[1], box_matrix[0, 2] / L[2],
-                   box_matrix[1, 2] / L[2])
+        return cls(
+            *L,
+            box_matrix[0, 1] / L[1],
+            box_matrix[0, 2] / L[2],
+            box_matrix[1, 2] / L[2],
+        )
 
     @classmethod
     def _from_cpp(cls, cpp_obj):
@@ -295,30 +388,31 @@ class Box:
             # Handles hoomd.box.Box and objects with attributes
             Lx = box.Lx
             Ly = box.Ly
-            Lz = getattr(box, 'Lz', 0)
-            xy = getattr(box, 'xy', 0)
-            xz = getattr(box, 'xz', 0)
-            yz = getattr(box, 'yz', 0)
+            Lz = getattr(box, "Lz", 0)
+            xy = getattr(box, "xy", 0)
+            xz = getattr(box, "xz", 0)
+            yz = getattr(box, "yz", 0)
         except AttributeError:
             try:
                 # Handle dictionary-like
-                Lx = box['Lx']
-                Ly = box['Ly']
-                Lz = box.get('Lz', 0)
-                xy = box.get('xy', 0)
-                xz = box.get('xz', 0)
-                yz = box.get('yz', 0)
+                Lx = box["Lx"]
+                Ly = box["Ly"]
+                Lz = box.get("Lz", 0)
+                xy = box.get("xy", 0)
+                xz = box.get("xz", 0)
+                yz = box.get("yz", 0)
             except (IndexError, KeyError, TypeError):
-                if not len(box) in [2, 3, 6]:
+                if len(box) not in [2, 3, 6]:
                     raise ValueError(
                         "List-like objects must have length 2, 3, or 6 to be "
-                        "converted to hoomd.Box.")
+                        "converted to hoomd.Box."
+                    )
                 # Handle list-like
                 Lx = box[0]
                 Ly = box[1]
                 Lz = box[2] if len(box) > 2 else 0
                 xy, xz, yz = box[3:6] if len(box) == 6 else (0, 0, 0)
-        except:  # noqa
+        except:
             raise
 
         return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
@@ -373,14 +467,14 @@ class Box:
         return _vec3_to_array(self._cpp_obj.getL())
 
     @L.setter
-    def L(self, new_L):  # noqa: N802: Allow function name
+    def L(self, new_L):  # noqa: N802 - Allow function name
         newL = _make_scalar3(new_L)
         if newL.z == 0 and not self.is2D:
             self.tilts = [self.xy, 0, 0]
         self._cpp_obj.setL(newL)
 
     @property
-    def Lx(self):  # noqa: N802: Allow function name
+    def Lx(self):  # noqa: N802 - Allow function name
         """float: The length of the box in the x dimension \
         :math:`[\\mathrm{length}]`.
 
@@ -393,13 +487,13 @@ class Box:
         return self.L[0]
 
     @Lx.setter
-    def Lx(self, value):  # noqa: N802: Allow function name
+    def Lx(self, value):  # noqa: N802 - Allow function name
         L = self.L
         L[0] = float(value)
         self.L = L
 
     @property
-    def Ly(self):  # noqa: N802: Allow function name
+    def Ly(self):  # noqa: N802 - Allow function name
         """float: The length of the box in the y dimension \
         :math:`[\\mathrm{length}]`.
 
@@ -412,13 +506,13 @@ class Box:
         return self.L[1]
 
     @Ly.setter
-    def Ly(self, value):  # noqa: N802: Allow function name
+    def Ly(self, value):  # noqa: N802 - Allow function name
         L = self.L
         L[1] = float(value)
         self.L = L
 
     @property
-    def Lz(self):  # noqa: N802: Allow function name
+    def Lz(self):  # noqa: N802 - Allow function name
         """float: The length of the box in the z dimension \
         :math:`[\\mathrm{length}]`.
 
@@ -431,7 +525,7 @@ class Box:
         return self.L[2]
 
     @Lz.setter
-    def Lz(self, value):  # noqa: N802: Allow function name
+    def Lz(self, value):  # noqa: N802 - Allow function name
         L = self.L
         L[2] = float(value)
         self.L = L
@@ -545,7 +639,7 @@ class Box:
 
     @volume.setter
     def volume(self, volume):
-        self.scale((volume / self.volume)**(1 / self.dimensions))
+        self.scale((volume / self.volume) ** (1 / self.dimensions))
 
     def to_matrix(self):
         """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that \
@@ -599,7 +693,8 @@ class Box:
     def __repr__(self):
         """Executable representation of the object."""
         return "hoomd.box.Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
-            self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
+            self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz
+        )
 
     def __eq__(self, other):
         """Test if boxes are equal."""
@@ -628,19 +723,19 @@ class BoxInterface(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def Lx(self) -> float:  # noqa: N802: Allow function name
+    def Lx(self) -> float:  # noqa: N802 - Allow function name
         """Length in x direction."""
         pass
 
     @property
     @abc.abstractmethod
-    def Ly(self) -> float:  # noqa: N802: Allow function name
+    def Ly(self) -> float:  # noqa: N802 - Allow function name
         """Length in y direction."""
         pass
 
     @property
     @abc.abstractmethod
-    def Lz(self) -> float:  # noqa: N802: Allow function name
+    def Lz(self) -> float:  # noqa: N802 - Allow function name
         """Length in z direction."""
         pass
 
@@ -663,8 +758,9 @@ class BoxInterface(abc.ABC):
         pass
 
 
-box_like = typing.Union[Box, BoxInterface, typing.Sequence[float],
-                        typing.Mapping[str, float], np.ndarray]
+box_like = typing.Union[
+    Box, BoxInterface, typing.Sequence[float], typing.Mapping[str, float], np.ndarray
+]
 """Objects that are or can be converted to `Box`.
 
 This includes
@@ -680,3 +776,8 @@ Note:
     If any of ``Lz, xy, xz, yz`` for these different types are not provided,
     they are considered 0.
 """
+
+__all__ = [
+    "BoxInterface",
+    "box_like",
+]

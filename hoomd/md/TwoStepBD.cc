@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
@@ -52,7 +52,7 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
     const Scalar currentTemp = m_T->operator()(timestep);
     const unsigned int D = m_sysdef->getNDimensions();
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -121,7 +121,10 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         // update position
         h_pos.data[j].x += (h_net_force.data[j].x + Fr_x) * m_deltaT / gamma;
         h_pos.data[j].y += (h_net_force.data[j].y + Fr_y) * m_deltaT / gamma;
-        h_pos.data[j].z += (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
+        if (D > 2)
+            {
+            h_pos.data[j].z += (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
+            }
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
@@ -182,11 +185,20 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero)
+                    {
                     bf_torque.x = 0;
+                    t.x = 0;
+                    }
                 if (y_zero)
+                    {
                     bf_torque.y = 0;
+                    t.y = 0;
+                    }
                 if (z_zero)
+                    {
                     bf_torque.z = 0;
+                    t.z = 0;
+                    }
 
                 // use the damping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r

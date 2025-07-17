@@ -2012,7 +2012,7 @@ int gsd_flush(struct gsd_handle* handle)
                 {
                 handle->frame_index.data[i]
                     = handle->frame_index
-                          .data[handle->frame_index.size - handle->pending_index_entries];
+                          .data[handle->frame_index.size - handle->pending_index_entries + i];
                 }
             }
 

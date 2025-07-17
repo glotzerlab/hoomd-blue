@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement a storage and management class for HOOMD-blue operations.
@@ -66,7 +66,7 @@ class Operations(Collection):
     def __init__(self):
         self._scheduled = False
         self._simulation = None
-        sync_func = syncedlist._PartialGetAttr('_cpp_obj')
+        sync_func = syncedlist._PartialGetAttr("_cpp_obj")
         self._updaters = syncedlist.SyncedList(Updater, sync_func)
         self._writers = syncedlist.SyncedList(Writer, sync_func)
         self._tuners = syncedlist.SyncedList(Tuner, sync_func)
@@ -120,8 +120,9 @@ class Operations(Collection):
             try:
                 container = self._get_proper_container(operation)
             except TypeError:
-                raise TypeError(f"Type {type(operation)} is not a valid "
-                                f"type to add to Operations.")
+                raise TypeError(
+                    f"Type {type(operation)} is not a valid type to add to Operations."
+                )
             container.append(operation)
 
     def __iadd__(self, operation):
@@ -167,8 +168,10 @@ class Operations(Collection):
             try:
                 container = self._get_proper_container(operation)
             except TypeError:
-                raise TypeError(f"Type {type(operation)} is not a valid "
-                                f"type to remove from Operations.")
+                raise TypeError(
+                    f"Type {type(operation)} is not a valid "
+                    f"type to remove from Operations."
+                )
             container.remove(operation)
 
     def __isub__(self, operation):
@@ -255,8 +258,9 @@ class Operations(Collection):
                 pass
         """
         integrator = (self._integrator,) if self._integrator else []
-        yield from chain(self._tuners, self._updaters, integrator,
-                         self._writers, self._computes)
+        yield from chain(
+            self._tuners, self._updaters, integrator, self._writers, self._computes
+        )
 
     def __len__(self):
         """Return the number of operations contained in this collection.
@@ -296,8 +300,10 @@ class Operations(Collection):
     def integrator(self, op):
         if op is not None:
             if not isinstance(op, Integrator):
-                raise TypeError("Cannot set integrator to a type not derived "
-                                "from hoomd.operation.Integrator")
+                raise TypeError(
+                    "Cannot set integrator to a type not derived "
+                    "from hoomd.operation.Integrator"
+                )
         old_ref = self.integrator
         self._integrator = op
         # Handle attaching and detaching integrators dealing with None values
@@ -360,7 +366,7 @@ class Operations(Collection):
 
         .. code-block:: python
 
-            while (not simulation.operations.is_tuning_complete):
+            while not simulation.operations.is_tuning_complete:
                 simulation.run(1000)
         """
         if not self._scheduled:
@@ -371,7 +377,8 @@ class Operations(Collection):
             return result
         else:
             return _hoomd.mpi_allreduce_bcast_and(
-                result, self._simulation.device._cpp_exec_conf)
+                result, self._simulation.device._cpp_exec_conf
+            )
 
     def tune_kernel_parameters(self):
         """Start tuning kernel parameters in all children.
@@ -386,8 +393,7 @@ class Operations(Collection):
             simulation.operations.tune_kernel_parameters()
         """
         if not self._scheduled:
-            raise RuntimeError("Call Simulation.run() before "
-                               "tune_kernel_parameters.")
+            raise RuntimeError("Call Simulation.run() before tune_kernel_parameters.")
 
         for op in self:
             op.tune_kernel_parameters()
@@ -396,8 +402,8 @@ class Operations(Collection):
         """Get the current state of the operations container for pickling."""
         # ensure that top level changes to self.__dict__ are not propagated
         state = copy(self.__dict__)
-        state['_simulation'] = None
-        state['_scheduled'] = False
+        state["_simulation"] = None
+        state["_scheduled"] = False
         return state
 
     @property

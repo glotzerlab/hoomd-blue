@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_PARTICLE_DATA_H_
@@ -336,7 +336,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
         }
 
     //! Allocate memory for virtual particles
-    void addVirtualParticles(unsigned int N);
+    unsigned int addVirtualParticles(unsigned int N);
 
     //! Remove all virtual particles
     /*!
@@ -359,6 +359,9 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
 #ifdef ENABLE_MPI
     //! \name communication methods
     //@{
+
+    //! Get MPI datatype for pdata_element
+    MPI_Datatype getElementMPIDatatype() const;
 
     //! Pack particle data into a buffer
     void removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
@@ -419,6 +422,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     std::vector<std::string> m_type_mapping; //!< Type name mapping
 #ifdef ENABLE_MPI
     GPUArray<unsigned int> m_comm_flags; //!< MPCD particle communication flags
+    MPI_Datatype m_mpi_pdata_element;    //!< MPI datatype for pdata_element
 #endif                                   // ENABLE_MPI
 
     GPUArray<Scalar4> m_pos_alt;      //!< Alternate position array
@@ -465,13 +469,6 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     void setupMPI(std::shared_ptr<DomainDecomposition> decomposition);
 #endif // ENABLE_MPI
     };
-
-namespace detail
-    {
-//! Export MPCD ParticleData to python
-void export_ParticleData(pybind11::module& m);
-    } // end namespace detail
-
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_H_

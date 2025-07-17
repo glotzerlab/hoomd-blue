@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_PAIR_GB_H__
@@ -18,7 +18,7 @@
 #include "hoomd/VectorMath.h"
 
 /*! \file EvaluatorPairGB.h
-    \brief Defines a an evaluator class for the Gay-Berne potential
+    \brief Defines an evaluator class for the Gay-Berne potential
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -309,7 +309,10 @@ class EvaluatorPairGB
         {
         return "gb";
         }
-
+    static std::string getShapeParamName()
+        {
+        return "shape";
+        }
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;

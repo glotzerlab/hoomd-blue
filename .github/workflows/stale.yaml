@@ -1,0 +1,11 @@
+name: Close stale issues and PRs
+
+on:
+  schedule:
+    - cron: '0 19 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  stale:
+    uses: glotzerlab/workflows/.github/workflows/stale.yaml@a36a97114c60241b26217ce92abbb64621ac67c7 # 0.6.0

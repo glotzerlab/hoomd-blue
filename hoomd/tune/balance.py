@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define LoadBalancer."""
@@ -7,6 +7,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.operation import Tuner
 from hoomd import _hoomd
 import hoomd
+import inspect
 
 
 class LoadBalancer(Tuner):
@@ -74,9 +75,13 @@ class LoadBalancer(Tuner):
     Balancing is ignored if there is no domain decomposition available (MPI is
     not built or is running on a single rank).
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `LoadBalancer`:
+
     Attributes:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to
-            perform load balancing.
         x (bool): Balance the **x** direction when `True`.
         y (bool): Balance the **y** direction when `True`.
         z (bool): Balance the **z** direction when `True`.
@@ -85,33 +90,28 @@ class LoadBalancer(Tuner):
             attempt in a single step.
     """
 
-    def __init__(self,
-                 trigger,
-                 x=True,
-                 y=True,
-                 z=True,
-                 tolerance=1.02,
-                 max_iterations=1):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
+
+    def __init__(
+        self, trigger, x=True, y=True, z=True, tolerance=1.02, max_iterations=1
+    ):
         super().__init__(trigger)
 
-        defaults = dict(x=x,
-                        y=y,
-                        z=z,
-                        tolerance=tolerance,
-                        max_iterations=max_iterations)
-        load_balancer_params = ParameterDict(x=bool,
-                                             y=bool,
-                                             z=bool,
-                                             max_iterations=int,
-                                             tolerance=float)
+        defaults = dict(
+            x=x, y=y, z=z, tolerance=tolerance, max_iterations=max_iterations
+        )
+        load_balancer_params = ParameterDict(
+            x=bool, y=bool, z=bool, max_iterations=int, tolerance=float
+        )
         self._param_dict.update(load_balancer_params)
         self._param_dict.update(defaults)
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            cpp_cls = getattr(_hoomd, 'LoadBalancerGPU')
+            cpp_cls = getattr(_hoomd, "LoadBalancerGPU")
         else:
-            cpp_cls = getattr(_hoomd, 'LoadBalancer')
+            cpp_cls = getattr(_hoomd, "LoadBalancer")
 
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                self.trigger)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.trigger)

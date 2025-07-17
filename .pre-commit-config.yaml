@@ -3,29 +3,40 @@ ci:
   autoupdate_branch: 'trunk-patch'
   autofix_prs: false
 
-exclude: (?x)(
-        ^hoomd/extern/|
-        ^sphinx-doc/tutorial/
-        )
+# these exclusions must be synced with ruff-format agove and the file ruff.toml.
+exclude: |
+  (?x)(
+    ^hoomd/_hoomd.py|
+    ^hoomd/version_config.py|
+    ^hoomd/md/_md.py|
+    ^hoomd/hpmc/_hpmc.py|
+    ^hoomd/mpcd/_mpcd.py|
+    ^hoomd/extern/|
+    ^sphinx-doc/tutorial/
+    ^hoomd/metal/
+  )
 
 repos:
 - repo: local
   hooks:
-  - id: make_workflows
-    name: make_workflows
-    language: python
-    entry: python3 .github/workflows/make_workflows.py
-    pass_filenames: false
-    always_run: true
-    additional_dependencies: [jinja2==3.1.2, pyyaml==6.0.1]
   - id: check-maintainer
     name: Check for maintainer comments
     description: 'Enforce that `maintainer` comments are removed.'
     entry: '(# Maintainer:|\/\/ Maintainer:)'
     language: pygrep
     types_or: [python, c, c++, cuda, inc]
+- repo: local
+  hooks:
+  - id: generate_toctree
+    name: Generate Sphinx toctree
+    language: python
+    entry: python3 sphinx-doc/generate-toctree.py
+    pass_filenames: false
+    always_run: true
+    additional_dependencies:
+     - numpy==2.1.0
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.5.0'
+  rev: 'v5.0.0'
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -33,78 +44,43 @@ repos:
     exclude_types: [svg]
   - id: check-json
   - id: check-yaml
-    exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
   - id: check-case-conflict
-  - id: fix-encoding-pragma
-    args:
-    - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
-  rev: v0.2.0
+  rev: v0.4.1
   hooks:
   - id: fix-license-header
-    name: Fix license headers (Python)
+    name: Fix license headers
     exclude: |
       (?x)(
           ^hoomd/extern/|
           ^sphinx-doc/tutorial/|
           ^sphinx-doc/howto/
           )
-    types_or: [python]
+    types_or: [python, c, c++, cuda, inc]
     args:
     - --license-file=LICENSE
     - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
     - --keep-before=#!
-  - id: fix-license-header
-    name: Fix license headers (C)
-    types_or: [c, c++, cuda, inc]
-    args:
-    - --license-file=LICENSE
-    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
-    - --comment-prefix=//
-  - id: fix-license-header
-    name: Fix license headers (reStructuredText)
-    types_or: [rst]
-    args:
-    - --license-file=LICENSE
-    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
     - --keep-after=.. include
-    - --comment-prefix=..
 - repo: https://github.com/kynan/nbstripout
-  rev: 0.6.1
+  rev: 0.8.1
   hooks:
     - id: nbstripout
-- repo: https://github.com/google/yapf
-  rev: 'v0.40.2'
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: 'v0.11.4'
   hooks:
-  - id: yapf
-- repo: https://github.com/PyCQA/flake8
-  rev: '6.1.0'
-  hooks:
-  - id: flake8
-    additional_dependencies:
-    - pep8-naming==0.13.3
-    - pydocstyle==6.3.0
-    - flake8-docstrings==1.7.0
-    - flake8-rst-docstrings==0.3.0
-    # Exclude components not yet ported to hoomd v3
-    # TODO: Remove these exclusions as components are ported
-    # These also need to be removed in setup.cfg
-    exclude: |
-      (?x)(
-        ^hoomd/extern/|
-        ^hoomd/mpcd/|
-        ^hoomd/metal/
-      )
+  - id: ruff-format
+    types_or: [python]
+  - id: ruff
+    types_or: [python]
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v17.0.6
+  rev: v20.1.0
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]
     exclude: |
       (?x)(
         ^CMake/|
-        ^hoomd/extern/|
-        ^hoomd/hpmc/UpdaterClusters\.h|
-        ^hoomd/hpmc/IntegratorHPMCMono\.h
+        ^hoomd/extern/
       )

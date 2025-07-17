@@ -1,13 +1,11 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""MPI communicator.
-
-When compiled without MPI support, `Communicator` acts as if there is one MPI
-rank and 1 partition. To use MPI, :doc:`compile HOOMD-blue <building>` with the
+"""When compiled without MPI support, `Communicator` acts as if there is one MPI
+rank and 1 partition. To use MPI, :doc:`compile HOOMD-blue </building>` with the
 option ``ENABLE_MPI=on`` and use the appropriate MPI launcher to launch Python.
 Then the `Communicator` class will configure and query MPI ranks and partitions.
-By default, `Communicator` starts with the ``MPI_COMM_WOLRD`` MPI communicator,
+By default, `Communicator` starts with the ``MPI_COMM_WOLRD`` MPI communicator
 and the communicator is not available for user scripts.
 
 `Communicator` also accepts MPI communicators from ``mpi4py``. Use this to
@@ -15,9 +13,9 @@ implement workflows with multiple simulations that communicate using ``mpi4py``
 calls in user code (e.g. genetic algorithms, umbrella sampling).
 
 See Also:
-    :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
+    :doc:`/tutorial/03-Parallel-Simulations-With-MPI/00-index`
 
-    :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
+    :doc:`/tutorial/05-Organizing-and-Executing-Simulations/00-index`
 
 .. invisible-code-block: python
 
@@ -66,7 +64,6 @@ class Communicator(object):
     """
 
     def __init__(self, mpi_comm=None, ranks_per_partition=None):
-
         # check ranks_per_partition
         if ranks_per_partition is not None:
             if not hoomd.version.mpi_enabled:
@@ -90,10 +87,12 @@ class Communicator(object):
             # pass in pointer to MPI_Comm object provided by mpi4py
             try:
                 import mpi4py
+
                 if isinstance(mpi_comm, mpi4py.MPI.Comm):
                     addr = mpi4py.MPI._addressof(mpi_comm)
-                    self.cpp_mpi_conf = \
-                        _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(addr)
+                    self.cpp_mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(
+                        addr
+                    )
                     handled = True
             except ImportError:
                 # silently ignore when mpi4py is missing
@@ -102,19 +101,20 @@ class Communicator(object):
             # undocumented case: handle plain integers as pointers to MPI_Comm
             # objects
             if not handled and isinstance(mpi_comm, int):
-                self.cpp_mpi_conf = \
-                    _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(mpi_comm)
+                self.cpp_mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(
+                    mpi_comm
+                )
                 handled = True
 
             if not handled:
-                raise RuntimeError(
-                    "Invalid mpi_comm object: {}".format(mpi_comm))
+                raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm))
 
         if ranks_per_partition is not None:
             # check validity
-            if (self.cpp_mpi_conf.getNRanksGlobal() % ranks_per_partition):
-                raise RuntimeError('Total number of ranks is not a multiple of '
-                                   'ranks_per_partition.')
+            if self.cpp_mpi_conf.getNRanksGlobal() % ranks_per_partition:
+                raise RuntimeError(
+                    "Total number of ranks is not a multiple of ranks_per_partition."
+                )
 
             # split the communicator into partitions
             self.cpp_mpi_conf.splitPartitions(ranks_per_partition)
@@ -276,3 +276,7 @@ class Communicator(object):
 # to the world communicator, but users can opt in to a more specific
 # communicator using the Device.localize_abort context manager
 _current_communicator = Communicator()
+
+__all__ = [
+    "Communicator",
+]

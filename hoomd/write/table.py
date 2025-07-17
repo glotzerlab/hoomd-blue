@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Table.
@@ -13,6 +13,7 @@ import copy
 from numbers import Integral
 from math import log10
 from sys import stdout
+import inspect
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.custom.custom_action import _InternalAction
@@ -21,6 +22,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.util import _dict_flatten
 from hoomd.custom import Action
+from hoomd.operation import Writer
 
 
 class _OutputWriter(metaclass=ABCMeta):
@@ -79,12 +81,9 @@ class _Formatter:
             centered ('^').
     """
 
-    def __init__(self,
-                 pretty=True,
-                 max_precision=15,
-                 max_decimals_pretty=5,
-                 pad=" ",
-                 align="^"):
+    def __init__(
+        self, pretty=True, max_precision=15, max_decimals_pretty=5, pad=" ", align="^"
+    ):
         self.generate_fmt_strings(pad, align)
         self.pretty = pretty
         self.precision = max_precision - 1
@@ -132,8 +131,7 @@ class _Formatter:
             if not min_len_repr < 6 or min_len_repr > column_width:
                 # Determine the number of decimals to use
                 if self.pretty:
-                    decimals = min(max(column_width - 6, 1),
-                                   self.max_decimals_pretty)
+                    decimals = min(max(column_width - 6, 1), self.max_decimals_pretty)
                 else:
                     decimals = max(self.precision, 0)
                 type_fmt = "." + str(decimals) + "e"
@@ -141,32 +139,33 @@ class _Formatter:
             else:
                 # Determine the number of decimals to use
                 if self.pretty:
-                    decimals = min(max(column_width - min_len_repr - 2, 1),
-                                   self.max_decimals_pretty)
+                    decimals = min(
+                        max(column_width - min_len_repr - 2, 1),
+                        self.max_decimals_pretty,
+                    )
                 else:
                     decimals = max(self.precision - min_len_repr + 1, 0)
                 type_fmt = "." + str(decimals) + "f"
 
-            return self._num_format.format(value,
-                                           width=column_width,
-                                           type=type_fmt)
+            return self._num_format.format(value, width=column_width, type=type_fmt)
 
     def format_str(self, value, column_width):
         if self.pretty and len(value) > column_width:
             truncate_to = max(1, column_width - 2)
-            return self._str_format.format(value[-truncate_to:],
-                                           width=column_width)
+            return self._str_format.format(value[-truncate_to:], width=column_width)
         else:
             return self._str_format.format(value, width=column_width)
 
     def __eq__(self, other):
         if not isinstance(other, _Formatter):
             return NotImplemented
-        return (self.pretty == other.pretty
-                and self.precision == other.precision
-                and self.max_decimals_pretty == other.max_decimals_pretty
-                and self._num_format == other._num_format
-                and self._str_format == other._str_format)
+        return (
+            self.pretty == other.pretty
+            and self.precision == other.precision
+            and self.max_decimals_pretty == other.max_decimals_pretty
+            and self._num_format == other._num_format
+            and self._str_format == other._str_format
+        )
 
 
 class _TableInternal(_InternalAction):
@@ -178,66 +177,83 @@ class _TableInternal(_InternalAction):
     logged quantities, but would be more fragile.
     """
 
-    _invalid_logger_categories = LoggerCategories.any([
-        'sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
-        'improper', 'pair', 'constraint', 'strings'
-    ])
+    _invalid_logger_categories = LoggerCategories.any(
+        [
+            "sequence",
+            "object",
+            "particle",
+            "bond",
+            "angle",
+            "dihedral",
+            "improper",
+            "pair",
+            "constraint",
+            "strings",
+        ]
+    )
 
     flags = [
-        Action.Flags.ROTATIONAL_KINETIC_ENERGY, Action.Flags.PRESSURE_TENSOR,
-        Action.Flags.EXTERNAL_FIELD_VIRIAL
+        Action.Flags.ROTATIONAL_KINETIC_ENERGY,
+        Action.Flags.PRESSURE_TENSOR,
+        Action.Flags.EXTERNAL_FIELD_VIRIAL,
     ]
 
     _skip_for_equality = {"_comm"}
 
-    def __init__(self,
-                 logger,
-                 output=stdout,
-                 header_sep='.',
-                 delimiter=' ',
-                 pretty=True,
-                 max_precision=10,
-                 max_header_len=None):
-
-        param_dict = ParameterDict(header_sep=str,
-                                   delimiter=str,
-                                   min_column_width=int,
-                                   max_header_len=OnlyTypes(int,
-                                                            allow_none=True),
-                                   pretty=bool,
-                                   max_precision=int,
-                                   output=OnlyTypes(
-                                       _OutputWriter,
-                                       postprocess=_ensure_writable),
-                                   logger=Logger)
+    def __init__(
+        self,
+        logger,
+        output=stdout,
+        header_sep=".",
+        delimiter=" ",
+        pretty=True,
+        max_precision=10,
+        max_header_len=None,
+    ):
+        param_dict = ParameterDict(
+            header_sep=str,
+            delimiter=str,
+            min_column_width=int,
+            max_header_len=OnlyTypes(int, allow_none=True),
+            pretty=bool,
+            max_precision=int,
+            output=OnlyTypes(_OutputWriter, postprocess=_ensure_writable),
+            logger=Logger,
+        )
 
         param_dict.update(
-            dict(header_sep=header_sep,
-                 delimiter=delimiter,
-                 min_column_width=max(10, max_precision + 6),
-                 max_header_len=max_header_len,
-                 max_precision=max_precision,
-                 pretty=pretty,
-                 output=output,
-                 logger=logger))
+            dict(
+                header_sep=header_sep,
+                delimiter=delimiter,
+                min_column_width=max(10, max_precision + 6),
+                max_header_len=max_header_len,
+                max_precision=max_precision,
+                pretty=pretty,
+                output=output,
+                logger=logger,
+            )
+        )
         self._param_dict = param_dict
         # internal variables that are not part of the state.
 
         # Generate LoggerCategories for valid and invalid categories
         _valid_categories = LoggerCategories.any(
-            [LoggerCategories.scalar, LoggerCategories.string])
+            [LoggerCategories.scalar, LoggerCategories.string]
+        )
         _invalid_inputs = logger.categories & self._invalid_logger_categories
 
         # Ensure that only scalar and string categories are set for the logger
         if logger.categories == LoggerCategories.NONE:
             pass
-        elif (_valid_categories ^ LoggerCategories.ALL
-              ) & logger.categories == LoggerCategories.NONE:
+        elif (
+            _valid_categories ^ LoggerCategories.ALL
+        ) & logger.categories == LoggerCategories.NONE:
             pass
         else:
             raise ValueError(
                 "Table Logger may only have scalar or string categories set. \
-                    Use hoomd.write.GSD for {}.".format(_invalid_inputs))
+                    Use hoomd.write.GSD for {}.".format(_invalid_inputs)
+            )
 
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
@@ -256,8 +272,7 @@ class _TableInternal(_InternalAction):
     def _get_log_dict(self):
         """Get a flattened dict for writing to output."""
         return {
-            key: value[0]
-            for key, value in _dict_flatten(self.logger.log()).items()
+            key: value[0] for key, value in _dict_flatten(self.logger.log()).items()
         }
 
     def _update_headers(self, new_keys):
@@ -272,16 +287,19 @@ class _TableInternal(_InternalAction):
         header_output_list = []
         header_dict = {}
         for namespace in new_keys:
-            header = self._determine_header(namespace, self.header_sep,
-                                            self.max_header_len)
+            header = self._determine_header(
+                namespace, self.header_sep, self.max_header_len
+            )
             column_size = max(len(header), self.min_column_width)
             header_dict[namespace] = column_size
             header_output_list.append((header, column_size))
         self._cur_headers_with_width = header_dict
         self.output.write(
-            self.delimiter.join((self._fmt.format_str(hdr, width)
-                                 for hdr, width in header_output_list)))
-        self.output.write('\n')
+            self.delimiter.join(
+                (self._fmt.format_str(hdr, width) for hdr, width in header_output_list)
+            )
+        )
+        self.output.write("\n")
 
     @staticmethod
     def _determine_header(namespace, sep, max_len):
@@ -301,9 +319,9 @@ class _TableInternal(_InternalAction):
         """Write a row of data to output."""
         headers = self._cur_headers_with_width
         self.output.write(
-            self.delimiter.join(
-                (self._fmt(data[k], headers[k]) for k in headers)))
-        self.output.write('\n')
+            self.delimiter.join((self._fmt(data[k], headers[k]) for k in headers))
+        )
+        self.output.write("\n")
 
     def act(self, timestep=None):
         """Write row to designated output.
@@ -327,27 +345,28 @@ class _TableInternal(_InternalAction):
 
     def __getstate__(self):
         state = copy.copy(self.__dict__)
-        state.pop('_comm', None)
+        state.pop("_comm", None)
         # This is to handle when the output specified is just stdout. By default
         # file objects like this are not picklable, so we need to handle it
         # differently. We let `None` represent stdout in the state dictionary.
         # Most other file like objects will simply fail to be pickled here.
         if self.output == stdout:
             param_dict = ParameterDict()
-            param_dict.update(state['_param_dict'])
-            state['_param_dict'] = param_dict
-            state['_param_dict']._dict['output'] = None
-            state['_param_dict']['output']
+            param_dict.update(state["_param_dict"])
+            state["_param_dict"] = param_dict
+            state["_param_dict"]._dict["output"] = None
+            state["_param_dict"]["output"]
             return state
         else:
             return super().__getstate__()
 
     def __setstate__(self, state):
-        if state['_param_dict']['output'] is None:
-            del state['_param_dict']['output']
-            state['_param_dict']['output'] = stdout
-            state['_param_dict']._type_converter['output'] = OnlyTypes(
-                _OutputWriter, postprocess=_ensure_writable),
+        if state["_param_dict"]["output"] is None:
+            del state["_param_dict"]["output"]
+            state["_param_dict"]["output"] = stdout
+            state["_param_dict"]._type_converter["output"] = (
+                OnlyTypes(_OutputWriter, postprocess=_ensure_writable),
+            )
         self.__dict__ = state
 
 
@@ -373,7 +392,7 @@ class Table(_InternalCustomWriter):
         pretty (`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read (defaults to `True`).
         max_precision (`int`, optional): If pretty is not set, then this
-            controls the maximum precision to use when outputing numerical
+            controls the maximum precision to use when writing numerical
             values, defaults to 10.
         max_header_len (`int`, optional): If not `None` (the default), limit
             the outputted header names to length ``max_header_len``. When not
@@ -396,9 +415,17 @@ class Table(_InternalCustomWriter):
 
     .. code-block:: python
 
-        logger = hoomd.logging.Logger(categories=['scalar', 'string'])
-        table = hoomd.write.Table(trigger=hoomd.trigger.Periodic(10_000),
-                                  logger=logger)
+        logger = hoomd.logging.Logger(categories=["scalar", "string"])
+        table = hoomd.write.Table(
+            trigger=hoomd.trigger.Periodic(10_000),
+            logger=logger,
+        )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Table`:
 
     Attributes:
         logger (hoomd.logging.Logger): The logger to query for output. `Table`
@@ -449,7 +476,7 @@ class Table(_InternalCustomWriter):
                 pretty = table.pretty
 
         max_precision (`int`, optional): If pretty is not set, then this
-            controls the maximum precision to use when outputing numerical
+            controls the maximum precision to use when writing numerical
             values (*read-only*).
 
             .. rubric:: Example:
@@ -475,7 +502,11 @@ class Table(_InternalCustomWriter):
 
                 min_column_width = table.min_column_width
     """
+
     _internal_class = _TableInternal
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
     def write(self):
         """Write out data to ``self.output``.

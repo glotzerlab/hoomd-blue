@@ -1,11 +1,71 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Migrating to the latest version
 ===============================
 
-Migrating to HOOMD v4
----------------------
+Migrating to HOOMD-blue 5
+-------------------------
+
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* ``hoomd.snapshot.from_gsd_snapshot``
+
+  * Use `hoomd.Snapshot.from_gsd_frame`.
+
+* ``hoomd.util.GPUNotAvailableError``
+
+  * use `hoomd.error.GPUNotAvailableError`.
+
+* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
+
+  * Use ``box``.
+
+* ``hpmc.pair.user.CPPPotentialBase``, ``hpmc.pair.user.CPPPotential``,
+  ``hpmc.pair.user.CPPPotentialUnion``, ``hpmc.integrate.HPMCIntegrator.pair_potential``
+
+  * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
+
+* ``hoomd.hpmc.external.user.CPPExternalPotential``
+
+  * Use `hoomd.hpmc.external.Linear` or a custom component (compiled).
+
+* ``hoomd.hpmc.update.BoxMC.betaP``
+
+  * Set `hoomd.hpmc.update.BoxMC.P` to ``P = betaP / beta`` and set the appropriate ``kT = 1/beta``
+    in the integrator.
+
+* ``hoomd.hpmc.update.Clusters`` is renamed to ``hoomd.hpmc.update.GCA``.
+
+* ``Device.gpu_ids``.
+
+  * Use ``Device.gpu_id``.
+
+* ``HPMCIntegrator.external_potential``.
+
+  * Use ``HPMCIntegrator.external_potentials``
+
+* ``hoomd.hpmc.external.wall.WallPotential`` is now ``hoomd.hpmc.external.WallPotential``.
+
+* ``hoomd.hpmc.external.field.Harmonic`` is now ``hoomd.hpmc.external.Harmonic``.
+
+Removed functionalities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* ``_InternalCustomUpdater.update``
+
+* ``_InternalCustomTuner.tune``
+
+* ``_InternalCustomWriter.write``
+
+* ``HDF5Log.write``
+
+* Implicit depletants from HPMC.
+
+* ``Device.num_cpu_threads``.
+
+* Single-process multi-GPU code path.
+
+Migrating to HOOMD-blue 4
+-------------------------
 
 Breaking changes to existing functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -91,11 +151,75 @@ For some functionalities, you will need to update your scripts to use a new API:
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
+HOOMD-blue 4 removes functionalities deprecated in v3.x releases:
 
 * ``hoomd.md.pair.aniso.ALJ.mode`` parameter
 * ``hoomd.md.pair.aniso.Dipole.mode`` parameter
 * ``hoomd.device.GPU.memory_traceback`` parameter
+
+Reintroducing `hoomd.mpcd`
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`hoomd.mpcd` was previously available in HOOMD 2, but it was not available in HOOMD 3 because its
+API needed to be significantly rewritten. It is reintroduced in HOOMD 4 with all classes and methods
+renamed to be consistent with the rest of HOOMD's API. The most significant changes for users are:
+
+* The way MPCD particle data is stored and initialized has changed. MPCD particles are now part of
+  `hoomd.State`, so HOOMD and MPCD particles need to be initialized together rather than separately.
+* After initialization, most objects now need to be attached to the :class:`hoomd.mpcd.Integrator`,
+  similarly to other features migrated from HOOMD 2 to HOOMD 3.
+* The `hoomd.mpcd.geometry.ParallelPlates` and `hoomd.mpcd.geometry.PlanarPore` streaming geometries
+  have been rotated to the *xy* plane from the *xz* plane.
+* MPCD particle sorting is not enabled by default but is still highly recommended for performance.
+  Users should explicitly create a `hoomd.mpcd.tune.ParticleSorter` and attach it to the
+  :class:`hoomd.mpcd.Integrator`.
+
+Please refer to the module-level documentation and examples for full details of the new API. Some
+common changes that you may need to make to your HOOMD 2 scripts are:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Feature
+      - Change
+    * - Create snapshots using ``mpcd.data``
+      - Use `hoomd.Snapshot.mpcd`
+    * - Specify cell size using ``mpcd.data``
+      - The cell size is fixed at 1.0.
+    * - Initialize MPCD particles with ``mpcd.init.read_snapshot``
+      - Use `hoomd.Simulation.create_state_from_snapshot`
+    * - Initialize MPCD particles randomly with ``mpcd.init.make_random``
+      - Not currently supported
+    * - Initialize HOOMD particles from a file, then add MPCD particles through ``mpcd.init``.
+      - Use `hoomd.Snapshot.from_gsd_frame`, add the MPCD particles, then initialize as above
+    * - Bounce-back integration of HOOMD particles using ``mpcd.integrate``
+      - Use `hoomd.mpcd.methods.BounceBack` with a geometry from `hoomd.mpcd.geometry`
+    * - Bounce-back streaming of MPCD particles using ``mpcd.stream``
+      - Use `hoomd.mpcd.stream.BounceBack` with a geometry from `hoomd.mpcd.geometry`
+    * - Fill geometry with virtual particles using ``mpcd.fill``
+      - Use `hoomd.mpcd.fill.GeometryFiller` with a geometry from `hoomd.mpcd.geometry`
+    * - Change sorting period of automatically created ``system.sorter``
+      - Explicitly create a `hoomd.mpcd.tune.ParticleSorter` with desired period
+    * - Have HOOMD automatically validate my streaming geometry fits inside my box
+      - No longer performed. Users should make sure their geometries make sense
+    * - Have HOOMD automatically validate my particles are inside my streaming geometry
+      - Call `hoomd.mpcd.stream.BounceBack.check_mpcd_particles` directly
+
+For developers, the following are the most significant changes to be aware of:
+
+* The MPCD namespace is ``hoomd::mpcd``.
+* ``hoomd::mpcd::SystemData`` has been removed. Classes should accept ``hoomd::SystemDefinition``
+  instead and use ``SystemDefinition::getMPCDParticleData()``.
+* Force and geometry files have been renamed.
+* Bounce-back streaming methods are now templated on both geometries and forces, rather than using
+  polymorphism for the forces. This means that combinations of geometries and forces need to be
+  compiled when new classes are added. CMake can automatically generate the necessary files if new
+  geometries and forces are added to the appropriate lists. Python will automatically deduce the
+  right C++ class names if standard naming conventions are followed; otherwise, explicit
+  registration is required.
+* The virtual particle filler design has been refactored to enable other methods for virtual
+  particle filling. Fillers that derived from the previous ``hoomd::mpcd::VirtualParticleFiller``
+  should inherit from ``hoomd::mpcd::ManualVirtualParticleFiller`` instead.
 
 Compiling
 ^^^^^^^^^
@@ -114,8 +238,8 @@ Components
 * Replace any use of ``hpmc::OverlapReal`` with ``ShortReal``.
 * Remove ``needsDiameter`` and ``setDiameter`` methods in potential evaluator classes.
 
-Migrating to HOOMD v3
----------------------
+Migrating to HOOMD-blue 3
+-------------------------
 
 HOOMD v3 introduces many breaking changes for both users and developers
 in order to provide a cleaner Python interface, enable new functionalities, and
@@ -124,7 +248,7 @@ move away from unsupported tools. This guide highlights those changes.
 Overview of API changes
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-HOOMD v3 introduces a completely new API. All classes have been renamed to match
+HOOMD-blue 3 introduces a completely new API. All classes have been renamed to match
 PEP8 naming guidelines and have new or renamed parameters, methods, and
 properties. See the tutorials and the Python module documentation for full
 class-level details.
@@ -183,9 +307,9 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.md.update.constraint_ellipsoid``
      - `hoomd.md.manifold.Ellipsoid`
    * - ``hoomd.jit.patch``
-     - `hoomd.hpmc.pair.user`
+     - ``hoomd.hpmc.pair.user``
    * - ``hoomd.jit.external``
-     - `hoomd.hpmc.external.user`
+     - ``hoomd.hpmc.external.user``
 
 Removed functionality
 ^^^^^^^^^^^^^^^^^^^^^
@@ -228,9 +352,9 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - ``deprecated.init.read_xml``
      - `Simulation.create_state_from_gsd`
    * - ``deprecated.init.create_random``
-     - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
+     - `mBuild <https://github.com/mosdef-hub/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
    * - ``deprecated.init.create_random_polymers``
-     - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
+     - `mBuild <https://github.com/mosdef-hub/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
 
 :py:mod:`hoomd.hpmc`:
 

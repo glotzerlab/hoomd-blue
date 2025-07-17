@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Provides an HDF5 logging backend for a fast binary logging format.
@@ -27,6 +27,7 @@
 import copy
 import functools
 from pathlib import PurePath
+import inspect
 
 import numpy as np
 
@@ -34,9 +35,11 @@ import hoomd.custom as custom
 import hoomd.logging as logging
 import hoomd.data.typeconverter as typeconverter
 import hoomd.util as util
+from hoomd.operation import Writer
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.custom.custom_action import _InternalAction
 
 try:
     import h5py
@@ -45,12 +48,10 @@ except ImportError:
 
 
 class _SkipIfNone:
-
     def __init__(self, attr):
         self._attr = attr
 
     def __call__(self, method):
-
         @functools.wraps(method)
         def func(s, *args, **kwargs):
             if getattr(s, self._attr, None) is None:
@@ -63,12 +64,10 @@ class _SkipIfNone:
 _skip_fh = _SkipIfNone("_fh")
 
 
-class _HDF5LogInternal(custom._InternalAction):
+class _HDF5LogInternal(_InternalAction):
     """A HDF5 HOOMD logging backend."""
 
-    _skip_for_equality = custom._InternalAction._skip_for_equality | {
-        "_fh", "_attached_"
-    }
+    _skip_for_equality = _InternalAction._skip_for_equality | {"_fh", "_attached_"}
 
     flags = (
         custom.Action.Flags.ROTATIONAL_KINETIC_ENERGY,
@@ -76,11 +75,13 @@ class _HDF5LogInternal(custom._InternalAction):
         custom.Action.Flags.EXTERNAL_FIELD_VIRIAL,
     )
 
-    _reject_categories = logging.LoggerCategories.any((
-        logging.LoggerCategories.object,
-        logging.LoggerCategories.strings,
-        logging.LoggerCategories.string,
-    ))
+    _reject_categories = logging.LoggerCategories.any(
+        (
+            logging.LoggerCategories.object,
+            logging.LoggerCategories.strings,
+            logging.LoggerCategories.string,
+        )
+    )
 
     accepted_categories = ~_reject_categories
 
@@ -89,20 +90,18 @@ class _HDF5LogInternal(custom._InternalAction):
 
     def __init__(self, filename, logger, mode="a"):
         if h5py is None:
-            raise ImportError(f"{type(self)} requires the h5py pacakge.")
-        param_dict = ParameterDict(filename=typeconverter.OnlyTypes(
-            (str, PurePath)),
-                                   logger=logging.Logger,
-                                   mode=str)
-        if (rejects := self._reject_categories
-                & logger.categories) != logging.LoggerCategories["NONE"]:
+            raise ImportError(f"{type(self)} requires the h5py package.")
+        param_dict = ParameterDict(
+            filename=typeconverter.OnlyTypes((str, PurePath)),
+            logger=logging.Logger,
+            mode=str,
+        )
+        if (
+            rejects := self._reject_categories & logger.categories
+        ) != logging.LoggerCategories["NONE"]:
             reject_str = logging.LoggerCategories._get_string_list(rejects)
             raise ValueError(f"Cannot have {reject_str} in logger categories.")
-        param_dict.update({
-            "filename": filename,
-            "logger": logger,
-            "mode": mode
-        })
+        param_dict.update({"filename": filename, "logger": logger, "mode": mode})
         self._param_dict = param_dict
         self._fh = None
         self._attached_ = False
@@ -148,10 +147,9 @@ class _HDF5LogInternal(custom._InternalAction):
                 continue
             if value is None:
                 continue
-            str_key = "/".join(("hoomd-data",) + key)
+            str_key = "/".join(("hoomd-data", *key))
             if str_key not in self._fh:
-                raise RuntimeError(
-                    "The logged quantities cannot change within a file.")
+                raise RuntimeError("The logged quantities cannot change within a file.")
             dataset = self._fh[str_key]
             dataset.resize(self._frame + 1, axis=0)
             dataset[self._frame, ...] = value
@@ -175,7 +173,7 @@ class _HDF5LogInternal(custom._InternalAction):
         .. code-block:: python
 
             for writer in simulation.operations.writers:
-                if hasattr(writer, 'flush'):
+                if hasattr(writer, "flush"):
                     writer.flush()
         """
         self._fh.flush()
@@ -216,13 +214,14 @@ class _HDF5LogInternal(custom._InternalAction):
             else:
                 if not isinstance(value, np.ndarray):
                     value = np.asarray(value)
-                data_shape = (1,) + value.shape
+                data_shape = (1, *value.shape)
                 dtype = value.dtype
-                chunk_size = (max(
-                    self._MULTIFRAME_ARRAY_CHUNK_MAXIMUM // value.nbytes,
-                    1),) + data_shape[1:]
-            self._create_dataset("/".join(("hoomd-data",) + key), data_shape,
-                                 dtype, chunk_size)
+                chunk_size = (
+                    max(self._MULTIFRAME_ARRAY_CHUNK_MAXIMUM // value.nbytes, 1),
+                ) + data_shape[1:]
+            self._create_dataset(
+                "/".join(("hoomd-data", *key)), data_shape, dtype, chunk_size
+            )
 
     @_skip_fh
     def _find_frame(self):
@@ -283,13 +282,19 @@ class HDF5Log(_InternalCustomWriter):
 
     .. code-block:: python
 
-        logger = hoomd.logging.Logger(
-            hoomd.write.HDF5Log.accepted_categories)
+        logger = hoomd.logging.Logger(hoomd.write.HDF5Log.accepted_categories)
         hdf5_log = hoomd.write.HDF5Log(
             trigger=hoomd.trigger.Periodic(10_000),
             filename=hdf5_filename,
-            logger=logger)
+            logger=logger,
+        )
         simulation.operations.writers.append(hdf5_log)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `HDF5Log`:
 
     Attributes:
         accepted_categories (hoomd.logging.LoggerCategories): The enum value
@@ -328,26 +333,12 @@ class HDF5Log(_InternalCustomWriter):
 
                 mode = hdf5_log.mode
     """
+
     _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
-
-    def write(self, timestep=None):
-        """Write out data to the HDF5 file.
-
-        Writes out a frame at the current timestep from the composed logger.
-
-        Warning:
-            This may not be able to write out quantities which require the
-            pressure tensor, rotational kinetic energy, or external field
-            virial.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            hdf5_writer.write()
-        """
-        self._action.act(timestep)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
 
 __all__ = ["HDF5Log"]

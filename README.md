@@ -3,7 +3,7 @@
 [![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://hoomd-blue.readthedocs.io/en/latest/citing.html)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
 [![conda-forge Downloads](https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
-[![GitHub Actions](https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml/badge.svg?branch=trunk-patch)](https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml)
+[![GitHub Actions](https://github.com/glotzerlab/hoomd-blue/actions/workflows//test.yaml/badge.svg?branch=trunk-patch)](https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yaml)
 [![Read the Docs](https://img.shields.io/readthedocs/hoomd-blue/latest.svg)](https://hoomd-blue.readthedocs.io/en/latest/?badge=latest)
 [![Contributors](https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/latest/credits.html)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
@@ -37,7 +37,7 @@ types of particle simulations.
 
 - [freud](https://freud.readthedocs.io/):
   Analyze HOOMD-blue simulation results with the **freud** Python library.
-- [signac](https://signac.io/):
+- [signac](https://signac.readthedocs.io/):
   Manage your workflow with **signac**.
 
 ## Example scripts

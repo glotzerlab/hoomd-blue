@@ -1,5 +1,12 @@
 set(files __init__.py
-        user.py
+        lennard_jones.py
+        expanded_gaussian.py
+        lj_gauss.py
+	    opp.py
+	    pair.py
+        step.py
+        union.py
+        angular_step.py
  )
 
 install(FILES ${files}

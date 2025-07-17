@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement MD Integrator."""
-
-import itertools
 
 import hoomd
 from hoomd.md import _md
@@ -14,6 +12,7 @@ from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
+import inspect
 
 
 def _set_synced_list(old_list, new_list):
@@ -22,21 +21,23 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
-
     def __init__(self, forces, constraints, methods, rigid):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
         self._forces = syncedlist.SyncedList(
-            Force, syncedlist._PartialGetAttr('_cpp_obj'), iterable=forces)
+            Force, syncedlist._PartialGetAttr("_cpp_obj"), iterable=forces
+        )
 
         self._constraints = syncedlist.SyncedList(
             OnlyTypes(Constraint, disallow_types=(Rigid,)),
-            syncedlist._PartialGetAttr('_cpp_obj'),
-            iterable=constraints)
+            syncedlist._PartialGetAttr("_cpp_obj"),
+            iterable=constraints,
+        )
 
         self._methods = syncedlist.SyncedList(
-            Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
+            Method, syncedlist._PartialGetAttr("_cpp_obj"), iterable=methods
+        )
 
         param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
         if rigid is not None and rigid._attached:
@@ -94,18 +95,6 @@ class _DynamicIntegrator(BaseIntegrator):
     @methods.setter
     def methods(self, value):
         _set_synced_list(self._methods, value)
-
-    @property
-    def _children(self):
-        children = list(self.forces)
-        children.extend(self.constraints)
-        children.extend(self.methods)
-
-        for child in itertools.chain(self.forces, self.constraints,
-                                     self.methods):
-            children.extend(child._children)
-
-        return children
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":
@@ -183,20 +172,24 @@ class Integrator(_DynamicIntegrator):
 
     .. math::
 
+        \begin{split}
         \vec{F}_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
         \vec{\tau}_{\mathrm{net},i} &=
         \sum_{f \in \mathrm{forces}} \vec{\tau}_i^f \\
         U_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} U_i^f \\
         W_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} W_i^f \\
+        \end{split}
 
     `Integrator` also computes the net additional energy and virial
 
     .. math::
 
+        \begin{split}
         U_{\mathrm{net},\mathrm{additional}} &= \sum_{f \in \mathrm{forces}}
         U_\mathrm{additional}^f \\
         W_{\mathrm{net},\mathrm{additional}} &= \sum_{f \in \mathrm{forces}}
         W_\mathrm{additional}^f \\
+        \end{split}
 
     See `md.force.Force` for definitions of these terms. Constraints are a
     special type of force used to enforce specific constraints on the system
@@ -211,7 +204,7 @@ class Integrator(_DynamicIntegrator):
     It *optionally* integrates one or more rotational degrees of freedom
     for a given particle *i* when all the following conditions are met:
 
-    * The intergration method supports rotational degrees of freedom.
+    * The integration method supports rotational degrees of freedom.
     * `integrate_rotational_dof` is ``True``.
     * The moment of inertia is non-zero :math:`I^d_i > 0`.
 
@@ -256,61 +249,126 @@ class Integrator(_DynamicIntegrator):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
         sim.operations.integrator = integrator
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Integrator`:
+
 
     Attributes:
-        dt (float): Integrator time step size :math:`[\mathrm{time}]`.
+        constraints (list[hoomd.md.constrain.Constraint]): List of
+            constraint forces applied to the particles in the system.
 
-        methods (list[hoomd.md.methods.Method]): List of integration methods.
+        dt (float): Integrator time step size :math:`[\mathrm{time}]`.
 
         forces (list[hoomd.md.force.Force]): List of forces applied to
             the particles in the system.
 
+        half_step_hook (hoomd.md.HalfStepHook): User-defined implementation to
+            perform computations during the half-step of the integration.
+
         integrate_rotational_dof (bool): When True, integrate rotational degrees
             of freedom.
 
-        constraints (list[hoomd.md.constrain.Constraint]): List of
-            constraint forces applied to the particles in the system.
+        methods (list[hoomd.md.methods.Method]): List of integration methods.
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
-
-        half_step_hook (hoomd.md.HalfStepHook): User defined implementation to
-            perform computations during the half-step of the integration.
     """
 
-    def __init__(self,
-                 dt,
-                 integrate_rotational_dof=False,
-                 forces=None,
-                 constraints=None,
-                 methods=None,
-                 rigid=None,
-                 half_step_hook=None):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(hoomd.operation.Integrator._doc_inherited)
+    )
+    _doc_inherited = (
+        hoomd.operation.Integrator._doc_inherited
+        + """
+    ----------
 
+    **Members inherited from** `Integrator <hoomd.md.Integrator>`:
+
+    .. py:attribute:: constraints
+
+        List of constraint forces applied to the system.
+        `Read more... <hoomd.md.Integrator.constraints>`
+
+    .. py:attribute:: dt
+
+        Integrator time step size.
+        `Read more... <hoomd.md.Integrator.dt>`
+
+    .. py:attribute:: forces
+
+        List of the forces applied to the system.
+        `Read more... <hoomd.md.Integrator.forces>`
+
+    .. py:attribute:: half_step_hook
+
+        User-defined method that executes between the half steps.
+        `Read more... <hoomd.md.Integrator.half_step_hook>`
+
+    .. py:attribute:: integrate_rotational_dof
+
+        When True, integrate rotational degrees of freedom.
+        `Read more... <hoomd.md.Integrator.integrate_rotational_dof>`
+
+    .. py:attribute:: methods
+
+        List of integration methods applied to the system.
+        `Read more... <hoomd.md.Integrator.methods>`
+
+    .. py:attribute:: rigid
+
+        Rigid body constraint.
+        `Read more... <hoomd.md.Integrator.rigid>`
+
+    .. py:property:: linear_momentum
+
+        The linear momentum of the system.
+        `Read more... <hoomd.md.Integrator.linear_momentum>`
+
+    """
+    )
+
+    def __init__(
+        self,
+        dt,
+        integrate_rotational_dof=False,
+        forces=None,
+        constraints=None,
+        methods=None,
+        rigid=None,
+        half_step_hook=None,
+    ):
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
             ParameterDict(
                 dt=float(dt),
                 integrate_rotational_dof=bool(integrate_rotational_dof),
-                half_step_hook=OnlyTypes(hoomd.md.HalfStepHook,
-                                         allow_none=True)))
+                half_step_hook=OnlyTypes(hoomd.md.HalfStepHook, allow_none=True),
+            )
+        )
 
         self.half_step_hook = half_step_hook
 
     def _attach_hook(self):
         # initialize the reflected c++ class
         self._cpp_obj = _md.IntegratorTwoStep(
-            self._simulation.state._cpp_sys_def, self.dt)
+            self._simulation.state._cpp_sys_def, self.dt
+        )
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach_hook()
 
     def __setattr__(self, attr, value):
-        """Hande group DOF update when setting integrate_rotational_dof."""
+        """Handle group DOF update when setting integrate_rotational_dof."""
         super().__setattr__(attr, value)
-        if (attr == 'integrate_rotational_dof' and self._simulation is not None
-                and self._simulation.state is not None):
+        if (
+            attr == "integrate_rotational_dof"
+            and self._simulation is not None
+            and self._simulation.state is not None
+        ):
             self._simulation.state.update_group_dof()
 
     @hoomd.logging.log(category="sequence", requires_run=True)

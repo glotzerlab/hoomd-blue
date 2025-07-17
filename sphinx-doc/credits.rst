@@ -1,6 +1,3 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Credits
 =======
 
@@ -40,6 +37,7 @@ The following people have contributed to HOOMD-blue:
 * Cong Qiao, Brandeis University
 * Corwin Kerr, University of Michigan
 * Charlotte Zhao, University of Michigan
+* Calvin Pozderac, Ohio State University
 * Dan Evans, University of Michigan
 * David LeBard, Temple University
 * Elizabeth R Chen, University of Michigan
@@ -63,7 +61,9 @@ The following people have contributed to HOOMD-blue:
 * Jen Bradley, University of Michigan
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
+* Jinny Cha, Auburn University
 * Joseph Berleant, University of Michigan
+* Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan
 * Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
@@ -72,9 +72,11 @@ The following people have contributed to HOOMD-blue:
 * Khalid Ahmed, University of Michigan
 * Kody Takada, University of Michigan
 * Kristi Pepa, University of Michigan
+* Kwabena Darko, University of Houston
 * Kwanghwi Je, University of Michigan
+* Kieran Nehil-Puleo, Vanderbilt University
 * Lin Yang, Iowa State University
-* Ludwig Schneider, Georg-August Univeristy Goettingen
+* Ludwig Schneider, Georg-August University Goettingen
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
@@ -83,9 +85,11 @@ The following people have contributed to HOOMD-blue:
 * Matthew Spellings, University of Michgan
 * Melody Zhang, University of Michigan
 * Michael Howard, Auburn University
+* Michaela Bush, Auburn University
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
+* Nicholas Cal Craven, Vanderbilt University
 * Pablo Zubieta, PME, The University of Chicago
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
@@ -101,6 +105,7 @@ The following people have contributed to HOOMD-blue:
 * Richmond Newman, University of Michigan
 * Roman Bystryi, Joint Institute for High Temperatures of RAS
 * Ross Smith, University of Michigan
+* Rusen Argun, University of Illinois
 * Ryan Marson, University of Michigan
 * Sam Nola, University of Michigan
 * Simone Ciarella, Eindhoven University of Technology
@@ -109,16 +114,20 @@ The following people have contributed to HOOMD-blue:
 * Stephen Thomas, Boise State University
 * Steve Barr, Princeton University
 * Sumedh R. Risbud, Massachusetts Institute of Technology
+* Suraj Kannur, University of Michigan
 * Thi Vo, University of Michigan
 * Tim Moore, University of Michigan
 * Tobias Dwyer, University of Michigan
 * Tommy Waltmann, University of Michigan
 * Trung Dac Nguyen, University of Michigan
+* Tzortzis Koulaxizis, University of Illinois
 * Vyas Ramasubramani, University of Michigan
 * Wenbo Shen, University of Michigan
 * William Zygmunt, University of Michigan
 * Wouter Ellenbroek, Eindhoven University of Technology
+* Yashraj Wani, Johannes Gutenberg University Mainz
 * Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF
 * Nathan Barrett, Pritzker School of Molecular Engineering
 * Domagoj Fijan, University of Michigan
+* Cristina Butu, Columbia University

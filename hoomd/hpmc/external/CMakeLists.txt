@@ -1,6 +1,7 @@
 set(files __init__.py
-        user.py
-        field.py
+        external.py
+        harmonic.py
+        linear.py
         wall.py
  )
 

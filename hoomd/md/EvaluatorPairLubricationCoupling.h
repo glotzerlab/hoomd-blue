@@ -279,6 +279,10 @@ class EvaluatorPairLubricationCoupling
         {
         return "rotational coupling";
         }
+    static std::string getShapeParamName()
+        {
+        return "lubrication";
+        }
 
     std::string getShapeSpec() const
         {

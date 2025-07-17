@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
@@ -30,7 +30,7 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
                  bool noiseless_t,
                  bool noiseless_r);
 
-    virtual ~TwoStepBDGPU() {};
+    virtual ~TwoStepBDGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

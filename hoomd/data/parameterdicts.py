@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement parameter dictionaries."""
@@ -10,14 +10,22 @@ from itertools import product, combinations_with_replacement
 
 import numpy as np
 
-from hoomd.data.collections import (_HOOMDSyncedCollection, _to_hoomd_data,
-                                    _to_base)
+from hoomd.data.collections import _HOOMDSyncedCollection, _to_hoomd_data, _to_base
 from hoomd.error import MutabilityError, TypeConversionError
 from hoomd.util import _to_camel_case, _is_iterable
-from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
-                                      TypeConverterMapping, OnlyIf, Either)
-from hoomd.data.smart_default import (_to_base_defaults, _to_default,
-                                      _SmartDefault, _NoDefault)
+from hoomd.data.typeconverter import (
+    to_type_converter,
+    RequiredArg,
+    TypeConverterMapping,
+    OnlyIf,
+    Either,
+)
+from hoomd.data.smart_default import (
+    _to_base_defaults,
+    _to_default,
+    _SmartDefault,
+    _NoDefault,
+)
 from hoomd.error import IncompleteSpecificationError
 
 
@@ -36,7 +44,7 @@ def _proper_type_return(val):
     if len(val) == 0:
         return None
     elif len(val) == 1:
-        return list(val.values())[0]
+        return next(iter(val.values()))
     else:
         return val
 
@@ -60,7 +68,7 @@ def _raise_if_required_arg(value, current_context=()):
 
     if isinstance(value, Mapping):
         for key, item in value.items():
-            _raise_if_required_arg(item, current_context + (key,))
+            _raise_if_required_arg(item, (*current_context, key))
     # _is_iterable is required over isinstance(value, Sequence) because a
     # str of 1 character is still a sequence and results in infinite recursion.
     elif _is_iterable(value):
@@ -68,11 +76,10 @@ def _raise_if_required_arg(value, current_context=()):
         if len(value) == 1 and value[0] is RequiredArg:
             _raise_error_with_context(current_context)
         for index, item in enumerate(value):
-            _raise_if_required_arg(item, current_context + (index,))
+            _raise_if_required_arg(item, (*current_context, index))
 
 
 class _SmartTypeIndexer:
-
     def __init__(self, len_key, valid_types=None):
         self.len_key = len_key
         self._valid_types = valid_types
@@ -84,8 +91,7 @@ class _SmartTypeIndexer:
         else:
             for k in self.raw_yield(key):
                 if not self.are_valid_types(k):
-                    raise KeyError(
-                        f"Key {k} from key {key} is not of valid types.")
+                    raise KeyError(f"Key {k} from key {key} is not of valid types.")
                 yield k
 
     def raw_yield(self, key):
@@ -133,10 +139,7 @@ class _SmartTypeIndexer:
         iterable of type strings.
         """
         if isinstance(key, tuple) and len(key) == self.len_key:
-            if any([
-                    not _is_key_iterable(v) and not isinstance(v, str)
-                    for v in key
-            ]):
+            if any([not _is_key_iterable(v) and not isinstance(v, str) for v in key]):
                 raise KeyError("The key {} is not valid.".format(key))
             # convert str to single item list for proper enumeration using
             # product
@@ -172,9 +175,12 @@ class _SmartTypeIndexer:
         elif self.len_key == 1:
             yield from self._valid_types
         elif isinstance(self._valid_types, set):
-            yield from (tuple(sorted(key))
-                        for key in combinations_with_replacement(
-                            self._valid_types, self.len_key))
+            yield from (
+                tuple(sorted(key))
+                for key in combinations_with_replacement(
+                    self._valid_types, self.len_key
+                )
+            )
 
 
 class _ValidatedDefaultDict(MutableMapping):
@@ -208,14 +214,17 @@ class _ValidatedDefaultDict(MutableMapping):
     """
 
     def _set_validation_and_defaults(self, *args, **kwargs):
-        defaults = kwargs.pop('_defaults', _NoDefault)
+        defaults = kwargs.pop("_defaults", _NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
-            raise ValueError("Positional argument(s) and keyword argument(s) "
-                             "cannot both be specified.")
+            raise ValueError(
+                "Positional argument(s) and keyword argument(s) "
+                "cannot both be specified."
+            )
 
         if len(kwargs) == 0 and len(args) == 0:
-            raise ValueError("Either a positional or keyword "
-                             "argument must be specified.")
+            raise ValueError(
+                "Either a positional or keyword argument must be specified."
+            )
         if len(args) > 1:
             raise ValueError("Only one positional argument allowed.")
 
@@ -245,8 +254,7 @@ class _ValidatedDefaultDict(MutableMapping):
         try:
             validated_value = self._validate_values(item)
         except ValueError as err:
-            raise TypeConversionError(
-                f"For types {list(keys)}: {str(err)}.") from err
+            raise TypeConversionError(f"For types {list(keys)}: {err!s}.") from err
         for key in keys:
             self._single_setitem(key, validated_value)
 
@@ -322,16 +330,22 @@ class _ValidatedDefaultDict(MutableMapping):
                 expected_keys = set(self._type_converter.cond.keys())
             elif isinstance(self._type_converter, Either):
                 mapping = next(
-                    filter(lambda x: isinstance(x, TypeConverterMapping),
-                           self._type_converter.specs))
+                    filter(
+                        lambda x: isinstance(x, TypeConverterMapping),
+                        self._type_converter.specs,
+                    )
+                )
                 expected_keys = set(mapping.keys())
             else:
                 # the code shouldn't reach here so raise an error.
                 raise ValueError("Couid not identify specification.")
             bad_keys = set(validated_value.keys()) - expected_keys
             if len(bad_keys) != 0:
-                raise KeyError("Keys must be a subset of available keys. "
-                               "Bad keys are {}".format(bad_keys))
+                raise KeyError(
+                    "Keys must be a subset of available keys. Bad keys are {}".format(
+                        bad_keys
+                    )
+                )
         # update validated_value with the default (specifically to add dict keys
         # that have defaults and were not manually specified).
         if isinstance(self._default, _SmartDefault):
@@ -406,7 +420,6 @@ class TypeParameterDict(_ValidatedDefaultDict):
     """
 
     def __init__(self, *args, len_keys, **kwargs):
-
         # Validate proper key constraint
         if len_keys < 1 or len_keys != int(len_keys):
             raise ValueError("len_keys must be a positive integer.")
@@ -429,17 +442,20 @@ class TypeParameterDict(_ValidatedDefaultDict):
         # We always attempt to keep the _dict up to date with the C++ values,
         # and isolate existing components otherwise.
         validated_cpp_value = self._validate_values(
-            getattr(self._cpp_obj, self._getter)(key))
+            getattr(self._cpp_obj, self._getter)(key)
+        )
         if isinstance(self._dict[key], _HOOMDSyncedCollection):
             if self._dict[key]._update(validated_cpp_value):
                 return self._dict[key]
             else:
                 self._dict[key]._isolate()
-        self._dict[key] = _to_hoomd_data(root=self,
-                                         schema=self._type_converter,
-                                         data=validated_cpp_value,
-                                         parent=None,
-                                         identity=key)
+        self._dict[key] = _to_hoomd_data(
+            root=self,
+            schema=self._type_converter,
+            data=validated_cpp_value,
+            parent=None,
+            identity=key,
+        )
         return self._dict[key]
 
     def _single_setitem(self, key, item):
@@ -449,11 +465,9 @@ class TypeParameterDict(_ValidatedDefaultDict):
         """
         if isinstance(self._dict.get(key), _HOOMDSyncedCollection):
             self._dict[key]._isolate()
-        self._dict[key] = _to_hoomd_data(root=self,
-                                         schema=self._type_converter,
-                                         data=item,
-                                         parent=None,
-                                         identity=key)
+        self._dict[key] = _to_hoomd_data(
+            root=self, schema=self._type_converter, data=item, parent=None, identity=key
+        )
         if not self._attached:
             return
         # We don't need to set the _dict yet since we will query C++ when
@@ -514,7 +528,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
                 _raise_if_required_arg(parameters[key])
             except IncompleteSpecificationError as err:
                 self._cpp_obj = None
-                raise IncompleteSpecificationError(f"for key {key} {str(err)}")
+                raise IncompleteSpecificationError(f"for key {key} {err!s}")
             self._single_setitem(key, parameters[key])
 
     def _detach(self):
@@ -558,7 +572,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
             "_default": self._default,
             "_type_converter": self._type_converter,
             "_dict": dict_,
-            "_cpp_obj": None
+            "_cpp_obj": None,
         }
 
 
@@ -643,10 +657,9 @@ class ParameterDict(MutableMapping):
         if self._attached:
             try:
                 self._cpp_setting(key, validated_value)
-            except (AttributeError):
+            except AttributeError:
                 raise MutabilityError(key)
-        if key in self._dict and isinstance(self._dict[key],
-                                            _HOOMDSyncedCollection):
+        if key in self._dict and isinstance(self._dict[key], _HOOMDSyncedCollection):
             self._dict[key]._isolate()
         self._dict[key] = self._to_hoomd_data(key, validated_value)
 
@@ -684,7 +697,8 @@ class ParameterDict(MutableMapping):
         """Remove parameter by key."""
         if self._attached:
             raise RuntimeError(
-                "Item deletion is not supported after calling Simulation.run()")
+                "Item deletion is not supported after calling Simulation.run()"
+            )
         del self._type_converter[key]
         self._dict.pop(key, None)
 
@@ -706,8 +720,9 @@ class ParameterDict(MutableMapping):
         """Determine equality between ParameterDict objects."""
         if not isinstance(other, ParameterDict):
             return NotImplemented
-        return (set(self.keys()) == set(other.keys())
-                and np.all([np.all(self[key] == other[key]) for key in self]))
+        return set(self.keys()) == set(other.keys()) and np.all(
+            [np.all(self[key] == other[key]) for key in self]
+        )
 
     def update(self, other):
         """Add keys and values to the dictionary."""
@@ -743,11 +758,13 @@ class ParameterDict(MutableMapping):
         self._cpp_obj = None
 
     def _to_hoomd_data(self, key, value):
-        return _to_hoomd_data(root=self,
-                              schema=self._type_converter[key],
-                              parent=None,
-                              identity=key,
-                              data=value)
+        return _to_hoomd_data(
+            root=self,
+            schema=self._type_converter[key],
+            parent=None,
+            identity=key,
+            data=value,
+        )
 
     def _write(self, obj):
         if self._attached:
@@ -773,7 +790,7 @@ class ParameterDict(MutableMapping):
             "_type_converter": self._type_converter,
             "_cpp_obj": None,
             "_setters": self._setters,
-            "_getters": self._getters
+            "_getters": self._getters,
         }
 
     def __repr__(self):

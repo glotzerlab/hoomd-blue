@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Newtonain Event-Chain Integrators for Hard Particle Monte Carlo."""
@@ -7,6 +7,7 @@ from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
+import inspect
 
 from hoomd.logging import log
 
@@ -21,26 +22,69 @@ class HPMCNECIntegrator(HPMCIntegrator):
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
-    """
-    _cpp_cls = None
 
-    def __init__(self,
-                 default_d=0.1,
-                 default_a=0.1,
-                 chain_probability=0.5,
-                 chain_time=0.5,
-                 update_fraction=0.5,
-                 nselect=1):
+    {inherited}
+
+    ----------
+
+    **Members defined in** `HPMCNECIntegrator`:
+    """
+
+    _cpp_cls = None
+    _doc_inherited = (
+        HPMCIntegrator._doc_inherited
+        + """
+    ----------
+
+    **Members inherited from**
+    `HPMCNECIntegrator <hoomd.hpmc.nec.integrate.HPMCNECIntegrator>`:
+
+    .. py:attribute:: chains_in_space
+
+        Rate of chain events that did neither collide nor end.
+        `Read more... <hoomd.hpmc.nec.integrate.HPMCNECIntegrator.chains_in_space>`
+
+    .. py:attribute:: nec_counters
+
+        Trial move counters
+        `Read more... <hoomd.hpmc.nec.integrate.HPMCNECIntegrator.nec_counters>`
+
+    .. py:attribute:: particles_per_chain
+
+        Particles per chain.
+        `Read more... <hoomd.hpmc.nec.integrate.HPMCNECIntegrator.particles_per_chain>`
+
+    .. py:attribute:: virial_pressure
+
+        Virial pressure.
+        `Read more... <hoomd.hpmc.nec.integrate.HPMCNECIntegrator.virial_pressure>`
+    """
+    )
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
+
+    def __init__(
+        self,
+        default_d=0.1,
+        default_a=0.1,
+        chain_probability=0.5,
+        chain_time=0.5,
+        update_fraction=0.5,
+        nselect=1,
+    ):
         # initialize base class
-        super().__init__(default_d, default_a, 0.5, nselect)
+        super().__init__(default_d, default_a, 0.5, nselect, 1.0)
 
         # Set base parameter dict for hpmc chain integrators
         param_dict = ParameterDict(
             chain_probability=OnlyTypes(
-                float, postprocess=self._process_chain_probability),
+                float, postprocess=self._process_chain_probability
+            ),
             chain_time=OnlyTypes(float, postprocess=self._process_chain_time),
-            update_fraction=OnlyTypes(
-                float, postprocess=self._process_update_fraction))
+            update_fraction=OnlyTypes(float, postprocess=self._process_update_fraction),
+        )
         self._param_dict.update(param_dict)
         self.chain_probability = chain_probability
         self.chain_time = chain_time
@@ -52,16 +96,15 @@ class HPMCNECIntegrator(HPMCIntegrator):
             return value
         else:
             raise ValueError(
-                "chain_probability has to be between 0 and 1 (got {}).".format(
-                    value))
+                "chain_probability has to be between 0 and 1 (got {}).".format(value)
+            )
 
     @staticmethod
     def _process_chain_time(value):
         if 0.0 <= value:
             return value
         else:
-            raise ValueError(
-                "chain_time has to be positive (got {}).".format(value))
+            raise ValueError("chain_time has to be positive (got {}).".format(value))
 
     @staticmethod
     def _process_update_fraction(value):
@@ -69,8 +112,8 @@ class HPMCNECIntegrator(HPMCIntegrator):
             return value
         else:
             raise ValueError(
-                "update_fraction has to be between 0 and 1. (got {})".format(
-                    value))
+                "update_fraction has to be between 0 and 1. (got {})".format(value)
+            )
 
     @property
     def nec_counters(self):
@@ -113,8 +156,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
             The statistics are reset at every `hoomd.Simulation.run`.
         """
         necCounts = self._cpp_obj.getNECCounters(1)
-        return (necCounts.chain_at_collision_count * 1.0
-                / necCounts.chain_start_count)
+        return necCounts.chain_at_collision_count * 1.0 / necCounts.chain_start_count
 
     @log(requires_run=True)
     def chains_in_space(self):
@@ -124,16 +166,16 @@ class HPMCNECIntegrator(HPMCIntegrator):
             The statistics are reset at every `hoomd.Simulation.run`.
         """
         necCounts = self._cpp_obj.getNECCounters(1)
-        return (necCounts.chain_no_collision_count - necCounts.chain_start_count
-                ) / (necCounts.chain_at_collision_count
-                     + necCounts.chain_no_collision_count)
+        return (necCounts.chain_no_collision_count - necCounts.chain_start_count) / (
+            necCounts.chain_at_collision_count + necCounts.chain_no_collision_count
+        )
 
 
 class Sphere(HPMCNECIntegrator):
     """HPMC chain integration for spheres (2D/3D).
 
     Args:
-        default_d (`float`, optional): Default colission search distance
+        default_d (`float`, optional): Default collision search distance
             :math:`[\\mathrm{length}]`, defaults to 0.1.
         chain_time (`float`, optional): Length of a chain
             :math:`[\\mathrm{time}]`, defaults to 0.5.
@@ -163,6 +205,12 @@ class Sphere(HPMCNECIntegrator):
         mc = hoomd.hpmc.integrate.nec.Sphere(d=0.05, update_fraction=0.05)
         mc.chain_time = 0.05
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Sphere`:
+
     Attributes:
         chain_time (float): Length of a chain :math:`[\\mathrm{time}]`.
 
@@ -180,31 +228,32 @@ class Sphere(HPMCNECIntegrator):
               allow rotation moves on this particle type.
     """
 
-    _cpp_cls = 'IntegratorHPMCMonoNECSphere'
+    _cpp_cls = "IntegratorHPMCMonoNECSphere"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCNECIntegrator._doc_inherited)
+    )
 
-    def __init__(self,
-                 default_d=0.1,
-                 chain_time=0.5,
-                 update_fraction=0.5,
-                 nselect=1):
+    def __init__(self, default_d=0.1, chain_time=0.5, update_fraction=0.5, nselect=1):
         # initialize base class
-        super().__init__(default_d=default_d,
-                         default_a=0.1,
-                         chain_probability=1.0,
-                         chain_time=chain_time,
-                         update_fraction=update_fraction,
-                         nselect=nselect)
+        super().__init__(
+            default_d=default_d,
+            default_a=0.1,
+            chain_probability=1.0,
+            chain_time=chain_time,
+            update_fraction=update_fraction,
+            nselect=nselect,
+        )
 
-        typeparam_shape = TypeParameter('shape',
-                                        type_kind='particle_types',
-                                        param_dict=TypeParameterDict(
-                                            diameter=float,
-                                            ignore_statistics=False,
-                                            orientable=False,
-                                            len_keys=1))
+        typeparam_shape = TypeParameter(
+            "shape",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict(
+                diameter=float, ignore_statistics=False, orientable=False, len_keys=1
+            ),
+        )
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category="object")
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -222,7 +271,7 @@ class ConvexPolyhedron(HPMCNECIntegrator):
     """HPMC integration for convex polyhedra (3D) with nec.
 
     Args:
-        default_d (`float`, optional): Default colission search distance
+        default_d (`float`, optional): Default collision search distance
             :math:`[\\mathrm{length}]`, defaults to 0.1.
         default_a (`float`, optional): Default maximum size of rotation trial
             moves :math:`[\\mathrm{dimensionless}]`, defaults to 0.1.
@@ -254,10 +303,27 @@ class ConvexPolyhedron(HPMCNECIntegrator):
 
     Example::
 
-        mc = hoomd.hpmc.nec.integrate.ConvexPolyhedron(d=1.0, a=0.05,
-            chain_probability=0.1, nselect=10)
-        mc.shape['A'] = dict(vertices=[[1,1,1], [1,1,-1], [1,-1,1], [1,-1,-1],
-            [-1,1,1], [-1,1,-1], [-1,-1,1], [-1,-1,-1]])
+        mc = hoomd.hpmc.nec.integrate.ConvexPolyhedron(
+            d=1.0, a=0.05, chain_probability=0.1, nselect=10
+        )
+        mc.shape["A"] = dict(
+            vertices=[
+                [1, 1, 1],
+                [1, 1, -1],
+                [1, -1, 1],
+                [1, -1, -1],
+                [-1, 1, 1],
+                [-1, 1, -1],
+                [-1, -1, 1],
+                [-1, -1, -1],
+            ]
+        )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `ConvexPolyhedron`:
 
     Attributes:
         chain_probability (float): Probability of making a chain move instead
@@ -289,33 +355,43 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
     """
-    _cpp_cls = 'IntegratorHPMCMonoNECConvexPolyhedron'
 
-    def __init__(self,
-                 default_d=0.1,
-                 default_a=0.1,
-                 chain_probability=0.5,
-                 chain_time=0.5,
-                 update_fraction=0.5,
-                 nselect=1):
+    _cpp_cls = "IntegratorHPMCMonoNECConvexPolyhedron"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCNECIntegrator._doc_inherited)
+    )
 
-        super().__init__(default_d=default_d,
-                         default_a=default_a,
-                         chain_probability=chain_probability,
-                         chain_time=chain_time,
-                         update_fraction=update_fraction,
-                         nselect=nselect)
+    def __init__(
+        self,
+        default_d=0.1,
+        default_a=0.1,
+        chain_probability=0.5,
+        chain_time=0.5,
+        update_fraction=0.5,
+        nselect=1,
+    ):
+        super().__init__(
+            default_d=default_d,
+            default_a=default_a,
+            chain_probability=chain_probability,
+            chain_time=chain_time,
+            update_fraction=update_fraction,
+            nselect=nselect,
+        )
 
-        typeparam_shape = TypeParameter('shape',
-                                        type_kind='particle_types',
-                                        param_dict=TypeParameterDict(
-                                            vertices=[(float, float, float)],
-                                            sweep_radius=0.0,
-                                            ignore_statistics=False,
-                                            len_keys=1))
+        typeparam_shape = TypeParameter(
+            "shape",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict(
+                vertices=[(float, float, float)],
+                sweep_radius=0.0,
+                ignore_statistics=False,
+                len_keys=1,
+            ),
+        )
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category="object")
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -326,3 +402,10 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
         """
         return super(ConvexPolyhedron, self)._return_type_shapes()
+
+
+__all__ = [
+    "ConvexPolyhedron",
+    "HPMCNECIntegrator",
+    "Sphere",
+]

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.h
@@ -114,48 +114,48 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
          * \param mask Mask for allowed sending directions
          */
 
-        void markGhostParticles(const GlobalVector<unsigned int>& plans, unsigned int mask);
+        void markGhostParticles(const GPUVector<unsigned int>& plans, unsigned int mask);
 
         //! Copy 'ghost groups' between domains
         /*! Both members of a ghost group are inside the ghost layer
          *
          * \param plans The ghost particle send directions determined by Communicator
          */
-        void exchangeGhostGroups(const GlobalVector<unsigned int>& plans);
+        void exchangeGhostGroups(const GPUVector<unsigned int>& plans);
 
         private:
         CommunicatorGPU& m_gpu_comm;                               //!< The outer class
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
         std::shared_ptr<group_data> m_gdata;                       //!< The group data
 
-        GlobalVector<unsigned int>
+        GPUVector<unsigned int>
             m_rank_mask; //!< Bitfield for every group to keep track of updated rank fields
-        GlobalVector<unsigned int> m_marked_groups; //!< List of group membership
-        GlobalVector<unsigned int>
+        GPUVector<unsigned int> m_marked_groups; //!< List of group membership
+        GPUVector<unsigned int>
             m_scan; //!< Temporary array for exclusive scan of group membership information
 
-        GlobalVector<rank_element_t> m_ranks_out;     //!< Packed ranks data
-        GlobalVector<rank_element_t> m_ranks_sendbuf; //!< Send buffer for ranks information
-        GlobalVector<rank_element_t> m_ranks_recvbuf; //!< Recv buffer for ranks information
+        GPUVector<rank_element_t> m_ranks_out;     //!< Packed ranks data
+        GPUVector<rank_element_t> m_ranks_sendbuf; //!< Send buffer for ranks information
+        GPUVector<rank_element_t> m_ranks_recvbuf; //!< Recv buffer for ranks information
 
-        GlobalVector<group_element_t> m_groups_out;     //!< Packed group data
-        GlobalVector<unsigned int> m_rank_mask_out;     //!< Output buffer for rank update bitfields
-        GlobalVector<group_element_t> m_groups_sendbuf; //!< Send buffer for groups
-        GlobalVector<group_element_t> m_groups_recvbuf; //!< Recv buffer for groups
-        GlobalVector<group_element_t> m_groups_in;      //!< Input buffer of unique groups
+        GPUVector<group_element_t> m_groups_out;     //!< Packed group data
+        GPUVector<unsigned int> m_rank_mask_out;     //!< Output buffer for rank update bitfields
+        GPUVector<group_element_t> m_groups_sendbuf; //!< Send buffer for groups
+        GPUVector<group_element_t> m_groups_recvbuf; //!< Recv buffer for groups
+        GPUVector<group_element_t> m_groups_in;      //!< Input buffer of unique groups
 
-        GlobalVector<unsigned int>
+        GPUVector<unsigned int>
             m_ghost_group_begin; //!< Begin index for every stage and neighbor in send buf
-        GlobalVector<unsigned int>
+        GPUVector<unsigned int>
             m_ghost_group_end; //!< Begin index for every and neighbor in send buf
 
-        GlobalVector<uint2>
+        GPUVector<uint2>
             m_ghost_group_idx_adj; //!< Indices and adjacency relationships of ghosts to send
-        GlobalVector<unsigned int> m_ghost_group_neigh; //!< Neighbor ranks for every ghost group
-        GlobalVector<unsigned int> m_ghost_group_plan;  //!< Plans for every particle
-        GlobalVector<unsigned int>
+        GPUVector<unsigned int> m_ghost_group_neigh; //!< Neighbor ranks for every ghost group
+        GPUVector<unsigned int> m_ghost_group_plan;  //!< Plans for every particle
+        GPUVector<unsigned int>
             m_neigh_counts; //!< List of number of neighbors to send ghost to (temp array)
-        GlobalVector<unsigned int>
+        GPUVector<unsigned int>
             m_ghost_scan; //!< Prefix sum of number of neighbors to send ghost to (temp array)
         };
 
@@ -170,11 +170,11 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     std::vector<int> m_stages;             //!< Communication stage per unique neighbor
 
     /* Particle migration */
-    GlobalVector<detail::pdata_element> m_gpu_sendbuf; //!< Send buffer for particle data
-    GlobalVector<detail::pdata_element> m_gpu_recvbuf; //!< Receive buffer for particle data
-    GlobalVector<unsigned int> m_comm_flags;           //!< Output buffer for communication flags
+    GPUVector<detail::pdata_element> m_gpu_sendbuf; //!< Send buffer for particle data
+    GPUVector<detail::pdata_element> m_gpu_recvbuf; //!< Receive buffer for particle data
+    GPUVector<unsigned int> m_comm_flags;           //!< Output buffer for communication flags
 
-    GlobalVector<unsigned int> m_send_keys; //!< Destination rank for particles
+    GPUVector<unsigned int> m_send_keys; //!< Destination rank for particles
 
     /* Communication of bonded groups */
     GroupCommunicatorGPU<BondData> m_bond_comm; //!< Communication helper for bonds
@@ -205,51 +205,56 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     friend class GroupCommunicatorGPU<TriangleData>;
 
     /* Ghost communication */
-    GlobalVector<unsigned int> m_tag_ghost_sendbuf; //!< Buffer for sending particle tags
-    GlobalVector<unsigned int> m_tag_ghost_recvbuf; //!< Buffer for receiving particle tags
+    GPUVector<unsigned int> m_tag_ghost_sendbuf; //!< Buffer for sending particle tags
+    GPUVector<unsigned int> m_tag_ghost_recvbuf; //!< Buffer for receiving particle tags
 
-    GlobalVector<Scalar4> m_pos_ghost_sendbuf; //<! Buffer for sending ghost positions
-    GlobalVector<Scalar4> m_pos_ghost_recvbuf; //<! Buffer for receiving ghost positions
+    GPUVector<Scalar4> m_pos_ghost_sendbuf; //<! Buffer for sending ghost positions
+    GPUVector<Scalar4> m_pos_ghost_recvbuf; //<! Buffer for receiving ghost positions
 
-    GlobalVector<Scalar4> m_vel_ghost_sendbuf; //<! Buffer for sending ghost velocities
-    GlobalVector<Scalar4> m_vel_ghost_recvbuf; //<! Buffer for receiving ghost velocities
+    GPUVector<Scalar4> m_vel_ghost_sendbuf; //<! Buffer for sending ghost velocities
+    GPUVector<Scalar4> m_vel_ghost_recvbuf; //<! Buffer for receiving ghost velocities
 
-    GlobalVector<Scalar> m_charge_ghost_sendbuf; //!< Buffer for sending ghost charges
-    GlobalVector<Scalar> m_charge_ghost_recvbuf; //!< Buffer for sending ghost charges
+    GPUVector<Scalar> m_charge_ghost_sendbuf; //!< Buffer for sending ghost charges
+    GPUVector<Scalar> m_charge_ghost_recvbuf; //!< Buffer for sending ghost charges
 
-    GlobalVector<Scalar> m_diameter_ghost_sendbuf; //!< Buffer for sending ghost charges
-    GlobalVector<Scalar> m_diameter_ghost_recvbuf; //!< Buffer for sending ghost charges
+    GPUVector<Scalar> m_diameter_ghost_sendbuf; //!< Buffer for sending ghost charges
+    GPUVector<Scalar> m_diameter_ghost_recvbuf; //!< Buffer for sending ghost charges
 
-    GlobalVector<unsigned int> m_body_ghost_sendbuf; //!< Buffer for sending ghost bodys
-    GlobalVector<unsigned int> m_body_ghost_recvbuf; //!< Buffer for sending ghost bodys
+    GPUVector<unsigned int> m_body_ghost_sendbuf; //!< Buffer for sending ghost bodys
+    GPUVector<unsigned int> m_body_ghost_recvbuf; //!< Buffer for sending ghost bodys
 
-    GlobalVector<int3> m_image_ghost_sendbuf; //!< Buffer for sending ghost images
-    GlobalVector<int3> m_image_ghost_recvbuf; //!< Buffer for sending ghost images
+    GPUVector<int3> m_image_ghost_sendbuf; //!< Buffer for sending ghost images
+    GPUVector<int3> m_image_ghost_recvbuf; //!< Buffer for sending ghost images
 
-    GlobalVector<Scalar4> m_orientation_ghost_sendbuf; //<! Buffer for sending ghost orientations
-    GlobalVector<Scalar4> m_orientation_ghost_recvbuf; //<! Buffer for receiving ghost orientations
+    GPUVector<Scalar4> m_orientation_ghost_sendbuf; //<! Buffer for sending ghost orientations
+    GPUVector<Scalar4> m_orientation_ghost_recvbuf; //<! Buffer for receiving ghost orientations
 
-    GlobalVector<Scalar4> m_netforce_ghost_sendbuf; //!< Send buffer for netforce
-    GlobalVector<Scalar4> m_netforce_ghost_recvbuf; //!< Recv buffer for netforce
+    GPUVector<Scalar4> m_netforce_ghost_sendbuf; //!< Send buffer for netforce
+    GPUVector<Scalar4> m_netforce_ghost_recvbuf; //!< Recv buffer for netforce
 
-    GlobalVector<Scalar4> m_nettorque_ghost_sendbuf; //!< Send buffer for nettorque
-    GlobalVector<Scalar4> m_nettorque_ghost_recvbuf; //!< Recv buffer for nettorque
+    GPUVector<Scalar4> m_nettorque_ghost_sendbuf; //!< Send buffer for nettorque
+    GPUVector<Scalar4> m_nettorque_ghost_recvbuf; //!< Recv buffer for nettorque
 
-    GlobalVector<Scalar> m_netvirial_ghost_sendbuf; //!< Send buffer for netvirial
-    GlobalVector<Scalar> m_netvirial_ghost_recvbuf; //!< Recv buffer for netvirial
+    GPUVector<Scalar> m_netvirial_ghost_sendbuf; //!< Send buffer for netvirial
+    GPUVector<Scalar> m_netvirial_ghost_recvbuf; //!< Recv buffer for netvirial
 
-    GlobalVector<unsigned int>
-        m_ghost_begin; //!< Begin index for every stage and neighbor in send buf
-    GlobalVector<unsigned int> m_ghost_end; //!< Begin index for every and neighbor in send buf
+    GPUVector<Scalar4> m_angmom_ghost_sendbuf; //<! Buffer for sending ghost angular momentum
+    GPUVector<Scalar4> m_angmom_ghost_recvbuf; //<! Buffer for receiving ghost angular momentum
 
-    GlobalVector<uint2> m_ghost_idx_adj; //!< Indices and adjacency relationships of ghosts to send
-    GlobalVector<unsigned int> m_ghost_neigh; //!< Neighbor ranks for every ghost particle
-    GlobalVector<unsigned int> m_ghost_plan;  //!< Plans for every particle
-    std::vector<unsigned int> m_idx_offs;     //!< Per-stage offset into ghost idx list
+    GPUVector<Scalar3> m_inertia_ghost_sendbuf; //<! Buffer for sending ghost moment of inertia
+    GPUVector<Scalar3> m_inertia_ghost_recvbuf; //<! Buffer for receiving ghost moment of inertia
 
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int> m_ghost_begin; //!< Begin index for every stage and neighbor in send buf
+    GPUVector<unsigned int> m_ghost_end;   //!< Begin index for every and neighbor in send buf
+
+    GPUVector<uint2> m_ghost_idx_adj; //!< Indices and adjacency relationships of ghosts to send
+    GPUVector<unsigned int> m_ghost_neigh; //!< Neighbor ranks for every ghost particle
+    GPUVector<unsigned int> m_ghost_plan;  //!< Plans for every particle
+    std::vector<unsigned int> m_idx_offs;  //!< Per-stage offset into ghost idx list
+
+    GPUVector<unsigned int>
         m_neigh_counts; //!< List of number of neighbors to send ghost to (temp array)
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_scan; //!< exclusive prefix sum of number of neighbors to send ghost to (temp array)
 
     std::vector<std::vector<unsigned int>>

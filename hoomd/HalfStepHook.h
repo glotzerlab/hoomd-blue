@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HALFSTEPHOOK_H__
@@ -24,7 +24,7 @@ class PYBIND11_EXPORT HalfStepHook
     // Synchronize snapshot with external library after computing forces
     virtual void update(uint64_t timestep) = 0;
 
-    virtual ~HalfStepHook() {};
+    virtual ~HalfStepHook() { };
     };
 
     } // namespace hoomd

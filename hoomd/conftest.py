@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Code to support unit and validation tests.
@@ -14,6 +14,8 @@ import hoomd
 import atexit
 import os
 import numpy
+import math
+
 try:
     import sybil
     import sybil.parsers.rest
@@ -30,10 +32,11 @@ pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
 devices = [hoomd.device.CPU]
 _n_available_gpu = len(hoomd.device.GPU.get_available_devices())
-_github_actions = os.environ.get('GITHUB_ACTIONS') is not None
-if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
-
-    if os.environ.get('_HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_') is not None:
+_require_gpu_tests = (
+    os.environ.get("_HOOMD_REQUIRE_GPU_TESTS_IN_GPU_BUILDS_") is not None
+)
+if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _require_gpu_tests):
+    if os.environ.get("_HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_") is not None:
         devices.pop(0)
 
     devices.append(hoomd.device.GPU)
@@ -42,19 +45,18 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
 def setup_sybil_tests(namespace):
     """Sybil setup function."""
     # Common imports.
-    namespace['numpy'] = numpy
-    namespace['hoomd'] = hoomd
+    namespace["numpy"] = numpy
+    namespace["hoomd"] = hoomd
+    namespace["math"] = math
 
-    namespace['gpu_not_available'] = _n_available_gpu == 0
+    namespace["gpu_not_available"] = _n_available_gpu == 0
 
     try:
         import cupy
     except ImportError:
         cupy = None
 
-    namespace['cupy_not_available'] = cupy is None
-
-    namespace['llvm_not_available'] = not hoomd.version.llvm_enabled
+    namespace["cupy_not_available"] = cupy is None
 
 
 if sybil is not None:
@@ -63,16 +65,13 @@ if sybil is not None:
             sybil.parsers.rest.PythonCodeBlockParser(),
             sybil.parsers.rest.SkipParser(),
         ],
-        pattern='*.py',
-        # exclude files not yet tested with sybil
-        excludes=[
-            'hpmc/pair/user.py',
-        ],
+        pattern="*.py",
         setup=setup_sybil_tests,
-        fixtures=['tmp_path']).pytest()
+        fixtures=["tmp_path"],
+    ).pytest()
 
 
-@pytest.fixture(scope='session', params=devices)
+@pytest.fixture(scope="session", params=devices)
 def device(request):
     """Parameterized Device fixture.
 
@@ -89,7 +88,7 @@ def device(request):
     return d
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def simulation_factory(device):
     """Make a Simulation object from a snapshot.
 
@@ -115,15 +114,17 @@ def simulation_factory(device):
     return make_simulation
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def one_particle_snapshot_factory(device):
     """Make a snapshot with a single particle."""
 
-    def make_snapshot(particle_types=['A'],
-                      dimensions=3,
-                      position=(0, 0, 0),
-                      orientation=(1, 0, 0, 0),
-                      L=20):
+    def make_snapshot(
+        particle_types=["A"],
+        dimensions=3,
+        position=(0, 0, 0),
+        orientation=(1, 0, 0, 0),
+        L=20,
+    ):
         """Make the snapshot.
 
         Args:
@@ -142,8 +143,7 @@ def one_particle_snapshot_factory(device):
         N = 1
 
         if dimensions == 2 and position[2] != 0:
-            raise ValueError(
-                'z component of position must be zero for 2D simulation.')
+            raise ValueError("z component of position must be zero for 2D simulation.")
 
         if s.communicator.rank == 0:
             box = [L, L, L, 0, 0, 0]
@@ -160,11 +160,11 @@ def one_particle_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def two_particle_snapshot_factory(device):
     """Make a snapshot with two particles."""
 
-    def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20):
+    def make_snapshot(particle_types=["A"], dimensions=3, d=1, L=20):
         """Make the snapshot.
 
         Args:
@@ -187,7 +187,7 @@ def two_particle_snapshot_factory(device):
             s.configuration.box = box
             s.particles.N = N
             # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [[-d / 2, 0, .1], [d / 2, 0, .1]]
+            s.particles.position[:] = [[-d / 2, 0, 0.1], [d / 2, 0, 0.1]]
             s.particles.types = particle_types
             if dimensions == 2:
                 box[2] = 0
@@ -198,11 +198,11 @@ def two_particle_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def lattice_snapshot_factory(device):
     """Make a snapshot with particles on a cubic/square lattice."""
 
-    def make_snapshot(particle_types=['A'], dimensions=3, a=1, n=7, r=0):
+    def make_snapshot(particle_types=["A"], dimensions=3, a=1, n=7, r=0):
         """Make the snapshot.
 
         Args:
@@ -243,8 +243,7 @@ def lattice_snapshot_factory(device):
             # create the lattice
             ranges = [numpy.arange(-nx / 2, nx / 2) for nx in n]
             x, y, z = numpy.meshgrid(*ranges)
-            lattice_position = numpy.vstack(
-                (x.flatten(), y.flatten(), z.flatten())).T
+            lattice_position = numpy.vstack((x.flatten(), y.flatten(), z.flatten())).T
             pos = (lattice_position + 0.5) * a
             if dimensions == 2:
                 pos[:, 2] = 0
@@ -261,11 +260,11 @@ def lattice_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def fcc_snapshot_factory(device):
     """Make a snapshot with particles in a fcc structure."""
 
-    def make_snapshot(particle_types=['A'], a=1, n=7, r=0):
+    def make_snapshot(particle_types=["A"], a=1, n=7, r=0):
         """Make a snapshot with particles in a fcc structure.
 
         Args:
@@ -306,39 +305,37 @@ def fcc_snapshot_factory(device):
 @pytest.fixture(autouse=True)
 def skip_mpi(request):
     """Skip tests marked ``serial`` when running with MPI."""
-    if request.node.get_closest_marker('serial'):
-        if 'device' in request.fixturenames:
-            if request.getfixturevalue('device').communicator.num_ranks > 1:
-                pytest.skip('Test does not support MPI execution')
+    if request.node.get_closest_marker("serial"):
+        if "device" in request.fixturenames:
+            if request.getfixturevalue("device").communicator.num_ranks > 1:
+                pytest.skip("Test does not support MPI execution")
         else:
-            raise ValueError('skip_mpi requires the *device* fixture')
+            raise ValueError("skip_mpi requires the *device* fixture")
 
 
 @pytest.fixture(autouse=True)
 def only_gpu(request):
     """Skip CPU tests marked ``gpu``."""
-    if request.node.get_closest_marker('gpu'):
-        if 'device' in request.fixturenames:
-            if not isinstance(request.getfixturevalue('device'),
-                              hoomd.device.GPU):
-                pytest.skip('Test is run only on GPU(s).')
+    if request.node.get_closest_marker("gpu"):
+        if "device" in request.fixturenames:
+            if not isinstance(request.getfixturevalue("device"), hoomd.device.GPU):
+                pytest.skip("Test is run only on GPU(s).")
         else:
-            raise ValueError('only_gpu requires the *device* fixture')
+            raise ValueError("only_gpu requires the *device* fixture")
 
 
 @pytest.fixture(autouse=True)
 def only_cpu(request):
     """Skip GPU tests marked ``cpu``."""
-    if request.node.get_closest_marker('cpu'):
-        if 'device' in request.fixturenames:
-            if not isinstance(request.getfixturevalue('device'),
-                              hoomd.device.CPU):
-                pytest.skip('Test is run only on CPU(s).')
+    if request.node.get_closest_marker("cpu"):
+        if "device" in request.fixturenames:
+            if not isinstance(request.getfixturevalue("device"), hoomd.device.CPU):
+                pytest.skip("Test is run only on CPU(s).")
         else:
-            raise ValueError('only_cpu requires the *device* fixture')
+            raise ValueError("only_cpu requires the *device* fixture")
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def numpy_random_seed():
     """Seed the numpy random number generator.
 
@@ -357,13 +354,12 @@ def rng():
 def pytest_configure(config):
     """Add markers to pytest configuration."""
     config.addinivalue_line(
-        "markers",
-        "serial: Tests that will not execute with more than 1 MPI process")
-    config.addinivalue_line("markers",
-                            "gpu: Tests that should only run on the gpu.")
+        "markers", "serial: Tests that will not execute with more than 1 MPI process"
+    )
+    config.addinivalue_line("markers", "gpu: Tests that should only run on the gpu.")
     config.addinivalue_line(
-        "markers",
-        "cupy_optional: tests that should pass with and without CuPy.")
+        "markers", "cupy_optional: tests that should pass with and without CuPy."
+    )
     config.addinivalue_line("markers", "cpu: Tests that only run on the CPU.")
     config.addinivalue_line("markers", "gpu: Tests that only run on the GPU.")
 
@@ -389,34 +385,13 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 expected_loggable_params = {
-    'energy': {
-        'category': LoggerCategories.scalar,
-        'default': True
-    },
-    'energies': {
-        'category': LoggerCategories.particle,
-        'default': True
-    },
-    'forces': {
-        'category': LoggerCategories.particle,
-        'default': True
-    },
-    'torques': {
-        'category': LoggerCategories.particle,
-        'default': True
-    },
-    'virials': {
-        'category': LoggerCategories.particle,
-        'default': True
-    },
-    'additional_energy': {
-        'category': LoggerCategories.scalar,
-        'default': True
-    },
-    'additional_virial': {
-        'category': LoggerCategories.sequence,
-        'default': True
-    }
+    "energy": {"category": LoggerCategories.scalar, "default": True},
+    "energies": {"category": LoggerCategories.particle, "default": True},
+    "forces": {"category": LoggerCategories.particle, "default": True},
+    "torques": {"category": LoggerCategories.particle, "default": True},
+    "virials": {"category": LoggerCategories.particle, "default": True},
+    "additional_energy": {"category": LoggerCategories.scalar, "default": True},
+    "additional_virial": {"category": LoggerCategories.sequence, "default": True},
 }
 
 
@@ -436,8 +411,10 @@ def logging_check(cls, expected_namespace, expected_loggables):
             expected value of each for the loggable.
     """
     # Check namespace
-    assert all(log_quantity.namespace == expected_namespace + (cls.__name__,)
-               for log_quantity in cls._export_dict.values())
+    assert all(
+        log_quantity.namespace == (*expected_namespace, cls.__name__)
+        for log_quantity in cls._export_dict.values()
+    )
 
     # Check specific loggables
     def check_loggable(cls, name, properties):
@@ -477,8 +454,7 @@ def _check_obj_attr_compatibility(a, b):
     if compatible:
         return True
 
-    logger.debug(f"In equality check, incompatible attrs found "
-                 f"{filtered_differences}.")
+    logger.debug(f"In equality check, incompatible attrs found {filtered_differences}.")
     return False
 
 
@@ -532,8 +508,11 @@ def equality_check(a, b):
             # Check item equality
             for key in keys:
                 for type_, value in a._typeparam_dict[key].items():
-                    check_item(value, b._typeparam_dict[key][type_], ".".join(
-                        (key, str(type_))))
+                    check_item(
+                        value,
+                        b._typeparam_dict[key][type_],
+                        ".".join((key, str(type_))),
+                    )
             continue
 
         check_item(a.__dict__[attr], b.__dict__[attr], attr)
@@ -680,9 +659,8 @@ class Generator:
         well for instance a ``Float`` class which specified the range of values
         to assume would be quite simple to add.
     """
-    alphabet = [
-        char for char in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    ]
+
+    alphabet = [char for char in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"]
 
     def __init__(self, rng, max_float=1e9, max_int=1_000_000):
         self.rng = rng
@@ -708,7 +686,7 @@ class Generator:
             bool: self.bool,
             numpy.ndarray: self.ndarray,
             hoomd.variant.Variant: self.variant,
-            None: self.none
+            None: self.none,
         }[spec]()
 
     def tuple(self, spec):
@@ -745,8 +723,7 @@ class Generator:
         """Return a random string."""
         length = self.int(max_length) + 1
         characters = [
-            self.rng.choice(self.alphabet)
-            for _ in range(self.rng.integers(length))
+            self.rng.choice(self.alphabet) for _ in range(self.rng.integers(length))
         ]
         return "".join(characters)
 
@@ -756,17 +733,19 @@ class Generator:
         A value of None in shape means any length.
         """
         shape = tuple(i if i is not None else self.int(20) for i in shape)
-        return (100 * self.rng.random(numpy.prod(shape))
-                - 50).reshape(shape).astype(dtype)
+        return (
+            (100 * self.rng.random(numpy.prod(shape)) - 50).reshape(shape).astype(dtype)
+        )
 
     def variant(self):
         """Return a random `hoomd.variant.Variant` or `float`."""
-        classes = ((hoomd.variant.Constant, (float,)),
-                   (hoomd.variant.Cycle, (float, float, int, int, int, int,
-                                          int)), (hoomd.variant.Ramp,
-                                                  (float, float, int, int)),
-                   (hoomd.variant.Power, (float, float, int, int,
-                                          int)), (float, (float,)))
+        classes = (
+            (hoomd.variant.Constant, (float,)),
+            (hoomd.variant.Cycle, (float, float, int, int, int, int, int)),
+            (hoomd.variant.Ramp, (float, float, int, int)),
+            (hoomd.variant.Power, (float, float, int, int, int)),
+            (float, (float,)),
+        )
         cls, spec = classes[self.rng.integers(len(classes))]
         return cls(*self(spec))
 
@@ -811,9 +790,7 @@ class ClassDefinition:
 
     def generate_all_attr_change(self):
         """Get arguments to test setting attributes."""
-        return {
-            k: self.generator(spec) for k, spec in self.attribute_spec.items()
-        }
+        return {k: self.generator(spec) for k, spec in self.attribute_spec.items()}
 
 
 class BaseCollectionsTest:
@@ -960,7 +937,8 @@ class BaseCollectionsTest:
             if isinstance(item, numpy.ndarray):
                 contains = any(
                     test_collection._numpy_equality(item, item2)
-                    for item2 in plain_collection)
+                    for item2 in plain_collection
+                )
             else:
                 if any(isinstance(a, numpy.ndarray) for a in plain_collection):
                     contains = False
@@ -992,6 +970,7 @@ class BaseCollectionsTest:
 
 class BaseSequenceTest(BaseCollectionsTest):
     """Basic extensible test suite for tuple-like classes."""
+
     _negative_indexing = True
     _allow_slices = True
 
@@ -1005,10 +984,12 @@ class BaseSequenceTest(BaseCollectionsTest):
         if self._allow_slices:
             assert all(
                 self.is_equal(t, p)
-                for t, p in zip(test_collection[:], plain_collection))
+                for t, p in zip(test_collection[:], plain_collection)
+            )
             assert all(
                 self.is_equal(t, p)
-                for t, p in zip(test_collection[1:], plain_collection[1:]))
+                for t, p in zip(test_collection[1:], plain_collection[1:])
+            )
         if self._negative_indexing:
             for i in range(-1, -len(plain_collection), -1):
                 assert self.is_equal(test_collection[i], plain_collection[i])
@@ -1055,8 +1036,7 @@ class BaseListTest(BaseSequenceTest):
         old_items = test_list[1:]
         del test_list[1:]
         assert len(test_list) == 1
-        assert all(
-            self.to_base(old_item) not in test_list for old_item in old_items)
+        assert all(self.to_base(old_item) not in test_list for old_item in old_items)
         self.final_check(test_list)
 
     def test_append(self, empty_collection, plain_collection):
@@ -1127,8 +1107,9 @@ class BaseListTest(BaseSequenceTest):
         """
         return request.param
 
-    def test_setitem(self, setitem_index, populated_collection,
-                     generate_plain_collection):
+    def test_setitem(
+        self, setitem_index, populated_collection, generate_plain_collection
+    ):
         """Test __setitem__."""
         if not self._negative_indexing and setitem_index < 0:
             return
@@ -1283,7 +1264,7 @@ class BaseMappingTest(BaseCollectionsTest):
         # Test that non-existent keys error appropriately.
         expected_error = (KeyError,)
         if self._deletion_error is not None:
-            expected_error = expected_error + (self._deletion_error,)
+            expected_error = (*expected_error, self._deletion_error)
         with pytest.raises(expected_error):
             for key in self.random_keys():
                 if key not in test_mapping:
@@ -1347,7 +1328,7 @@ class BaseMappingTest(BaseCollectionsTest):
         # Test for error with non-existent keys.
         expected_error = (KeyError,)
         if self._deletion_error is not None:
-            expected_error = expected_error + (self._deletion_error,)
+            expected_error = (*expected_error, self._deletion_error)
         with pytest.raises(expected_error):
             for key in self.random_keys():
                 if key not in test_mapping:

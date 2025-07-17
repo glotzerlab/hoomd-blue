@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _SHAPE_UTILS_H
@@ -37,7 +37,7 @@ class MassPropertiesBase
         m_inertia.resize(6, 0.0);
         }
 
-    virtual ~MassPropertiesBase() {};
+    virtual ~MassPropertiesBase() { };
 
     Scalar getVolume()
         {
@@ -70,7 +70,7 @@ class MassPropertiesBase
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
     std::vector<Scalar> m_inertia; // xx, yy, zz, xy, yz, xz
-    };                             // end class MassPropertiesBase
+    }; // end class MassPropertiesBase
 
 template<class Shape> class MassProperties : public MassPropertiesBase
     {
@@ -86,7 +86,7 @@ template<class Shape> class MassProperties : public MassPropertiesBase
 template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase
     {
     public:
-    MassProperties() : MassPropertiesBase() {};
+    MassProperties() : MassPropertiesBase() { };
 
     MassProperties(const typename ShapeConvexPolyhedron::param_type& param) : MassPropertiesBase()
         {
@@ -154,7 +154,7 @@ template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBa
 
     /*
         algorithm taken from
-        http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
+        https://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
     */
     void compute()
         {
@@ -244,7 +244,7 @@ template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBa
 template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase
     {
     public:
-    MassProperties() : MassPropertiesBase() {};
+    MassProperties() : MassPropertiesBase() { };
 
     MassProperties(const typename ShapeEllipsoid::param_type& param)
         : MassPropertiesBase(), m_param(param)
@@ -326,6 +326,6 @@ void export_MassPropertiesBase(pybind11::module& m);
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name);
 
-    }  // end namespace hpmc
-    }  // namespace hoomd
+    } // end namespace hpmc
+    } // namespace hoomd
 #endif // end inclusion guard

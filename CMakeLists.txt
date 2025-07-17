@@ -1,10 +1,12 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15...3.27 FATAL_ERROR)
 # >= 3.8 is required for CUDA language support
 # >= 3.9 is required for MPI::MPI_CXX target
 
-project (HOOMD LANGUAGES C CXX)
+# Search for Python and other libraries in unix-like locations first and frameworks last.
+# This allows FindPython to find virtual environment Pythons before a homebrew or system Pythons.
+set(CMAKE_FIND_FRAMEWORK LAST)
 
-# enlble compile_commands.json output
+project (HOOMD LANGUAGES C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(GNUInstallDirs)
@@ -14,7 +16,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "4.4.1")
+set(HOOMD_VERSION_RAW "5.2.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -61,12 +63,21 @@ endif()
 # use C++17 as the CUDA standard until CUDA 12.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 14)
-set(CMAKE_HIP_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_HIP_STANDARD 17)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
+    if (NOT (ENABLE_GPU AND HOOMD_GPU_PLATFORM STREQUAL "HIP"))
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wconversion")
+    endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
+
+    # suppress warnings regarding HIP's overly complex vector structs
+    if (CMAKE_COMPILER_IS_GNUCXXH AND OOMD_GPU_PLATFORM STREQUAL "HIP")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
+    endif()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 endif()
 
@@ -90,7 +101,6 @@ SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
 set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
-option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
 # Components
 option(BUILD_MD "Build the md package" on)
@@ -101,29 +111,28 @@ option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
 
-# Optionally use TBB for threading
-option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
+if (ENABLE_GPU AND HOOMD_GPU_PLATFORM STREQUAL "HIP")
+message("Defaulting BUILD_MPCD=off due to HIP GPU platform.")
+option(BUILD_MPCD "Build the mpcd package" off)
+else()
+option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
+endif()
 
 # Add list of plugins
-set(PLUGINS "example_plugins/pair_plugin;example_plugins/updater_plugin;example_plugins/shape_plugin" CACHE STRING "List of plugin directories.")
+set(PLUGINS "" CACHE STRING "List of plugin directories.")
 
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)
 
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-include (hoomd-macros)
 
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
 
-if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
-    option(BUILD_MPCD "Build the mpcd package" on)
-else()
-    option(BUILD_MPCD "Build the mpcd package" off)
-endif()
+include (hoomd-macros)
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)
 if (Eigen3_FOUND)
@@ -137,7 +146,7 @@ if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/OpenRAND/include/openrand/philox.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/include/neighbor/neighbor.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/hipper/include/hipper/hipper_runtime.h
     )
@@ -158,7 +167,7 @@ endif()
 
 #######################
 ## Get the compile date
-exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
+execute_process(COMMAND "date" "+%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 ################################
 # set up unit tests
@@ -204,9 +213,17 @@ configure_package_config_file(hoomd-config.cmake.in
   INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
   PATH_VARS CMAKE_INSTALL_PREFIX)
 
-install(FILES CMake/hoomd/FindTBB.cmake
-              CMake/hoomd/FindCUDALibs.cmake
+install(FILES CMake/hoomd/FindCUDALibs.cmake
               CMake/hoomd/HOOMDHIPSetup.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
+
+# enable compile_commands.json
+if (NOT WIN32)
+  file(CREATE_LINK
+    "${CMAKE_BINARY_DIR}/compile_commands.json"
+    "${CMAKE_SOURCE_DIR}/compile_commands.json"
+    SYMBOLIC
+  )
+endif()

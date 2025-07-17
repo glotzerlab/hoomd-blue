@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cc
@@ -26,14 +26,6 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
       m_pair_comm(*this, m_sysdef->getPairData()), m_meshbond_comm(*this),
       m_meshtriangle_comm(*this)
     {
-    if (m_exec_conf->allConcurrentManagedAccess())
-        {
-        // inform the user to use a cuda-aware MPI
-        m_exec_conf->msg->notice(2)
-            << "Using unified memory with MPI. Make sure to enable CUDA-awareness in your MPI."
-            << std::endl;
-        }
-
     // allocate memory
     allocateBuffers();
 
@@ -63,109 +55,121 @@ void CommunicatorGPU::allocateBuffers()
     /*
      * Particle migration
      */
-    GlobalVector<detail::pdata_element> gpu_sendbuf(m_exec_conf);
+    GPUVector<detail::pdata_element> gpu_sendbuf(m_exec_conf);
     m_gpu_sendbuf.swap(gpu_sendbuf);
 
-    GlobalVector<detail::pdata_element> gpu_recvbuf(m_exec_conf);
+    GPUVector<detail::pdata_element> gpu_recvbuf(m_exec_conf);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
     // Communication flags for every particle sent
-    GlobalVector<unsigned int> comm_flags(m_exec_conf);
+    GPUVector<unsigned int> comm_flags(m_exec_conf);
     m_comm_flags.swap(comm_flags);
 
     // Key for every particle sent
-    GlobalVector<unsigned int> send_keys(m_exec_conf);
+    GPUVector<unsigned int> send_keys(m_exec_conf);
     m_send_keys.swap(send_keys);
 
     /*
      * Ghost communication
      */
 
-    GlobalVector<unsigned int> tag_ghost_sendbuf(m_exec_conf);
+    GPUVector<unsigned int> tag_ghost_sendbuf(m_exec_conf);
     m_tag_ghost_sendbuf.swap(tag_ghost_sendbuf);
 
-    GlobalVector<unsigned int> tag_ghost_recvbuf(m_exec_conf);
+    GPUVector<unsigned int> tag_ghost_recvbuf(m_exec_conf);
     m_tag_ghost_recvbuf.swap(tag_ghost_recvbuf);
 
-    GlobalVector<Scalar4> pos_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar4> pos_ghost_sendbuf(m_exec_conf);
     m_pos_ghost_sendbuf.swap(pos_ghost_sendbuf);
 
-    GlobalVector<Scalar4> pos_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar4> pos_ghost_recvbuf(m_exec_conf);
     m_pos_ghost_recvbuf.swap(pos_ghost_recvbuf);
 
-    GlobalVector<Scalar4> vel_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar4> vel_ghost_sendbuf(m_exec_conf);
     m_vel_ghost_sendbuf.swap(vel_ghost_sendbuf);
 
-    GlobalVector<Scalar4> vel_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar4> vel_ghost_recvbuf(m_exec_conf);
     m_vel_ghost_recvbuf.swap(vel_ghost_recvbuf);
 
-    GlobalVector<Scalar> charge_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar> charge_ghost_sendbuf(m_exec_conf);
     m_charge_ghost_sendbuf.swap(charge_ghost_sendbuf);
 
-    GlobalVector<Scalar> charge_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar> charge_ghost_recvbuf(m_exec_conf);
     m_charge_ghost_recvbuf.swap(charge_ghost_recvbuf);
 
-    GlobalVector<unsigned int> body_ghost_sendbuf(m_exec_conf);
+    GPUVector<unsigned int> body_ghost_sendbuf(m_exec_conf);
     m_body_ghost_sendbuf.swap(body_ghost_sendbuf);
 
-    GlobalVector<unsigned int> body_ghost_recvbuf(m_exec_conf);
+    GPUVector<unsigned int> body_ghost_recvbuf(m_exec_conf);
     m_body_ghost_recvbuf.swap(body_ghost_recvbuf);
 
-    GlobalVector<int3> image_ghost_sendbuf(m_exec_conf);
+    GPUVector<int3> image_ghost_sendbuf(m_exec_conf);
     m_image_ghost_sendbuf.swap(image_ghost_sendbuf);
 
-    GlobalVector<int3> image_ghost_recvbuf(m_exec_conf);
+    GPUVector<int3> image_ghost_recvbuf(m_exec_conf);
     m_image_ghost_recvbuf.swap(image_ghost_recvbuf);
 
-    GlobalVector<Scalar> diameter_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar> diameter_ghost_sendbuf(m_exec_conf);
     m_diameter_ghost_sendbuf.swap(diameter_ghost_sendbuf);
 
-    GlobalVector<Scalar> diameter_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar> diameter_ghost_recvbuf(m_exec_conf);
     m_diameter_ghost_recvbuf.swap(diameter_ghost_recvbuf);
 
-    GlobalVector<Scalar4> orientation_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar4> orientation_ghost_sendbuf(m_exec_conf);
     m_orientation_ghost_sendbuf.swap(orientation_ghost_sendbuf);
 
-    GlobalVector<Scalar4> orientation_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar4> orientation_ghost_recvbuf(m_exec_conf);
     m_orientation_ghost_recvbuf.swap(orientation_ghost_recvbuf);
 
-    GlobalVector<Scalar4> netforce_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar4> netforce_ghost_sendbuf(m_exec_conf);
     m_netforce_ghost_sendbuf.swap(netforce_ghost_sendbuf);
 
-    GlobalVector<Scalar4> netforce_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar4> netforce_ghost_recvbuf(m_exec_conf);
     m_netforce_ghost_recvbuf.swap(netforce_ghost_recvbuf);
 
-    GlobalVector<Scalar4> nettorque_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar4> nettorque_ghost_sendbuf(m_exec_conf);
     m_nettorque_ghost_sendbuf.swap(nettorque_ghost_sendbuf);
 
-    GlobalVector<Scalar4> nettorque_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar4> nettorque_ghost_recvbuf(m_exec_conf);
     m_nettorque_ghost_recvbuf.swap(nettorque_ghost_recvbuf);
 
-    GlobalVector<Scalar> netvirial_ghost_sendbuf(m_exec_conf);
+    GPUVector<Scalar> netvirial_ghost_sendbuf(m_exec_conf);
     m_netvirial_ghost_sendbuf.swap(netvirial_ghost_sendbuf);
 
-    GlobalVector<Scalar> netvirial_ghost_recvbuf(m_exec_conf);
+    GPUVector<Scalar> netvirial_ghost_recvbuf(m_exec_conf);
     m_netvirial_ghost_recvbuf.swap(netvirial_ghost_recvbuf);
 
-    GlobalVector<unsigned int> ghost_begin(m_exec_conf);
+    GPUVector<Scalar4> angmom_ghost_sendbuf(m_exec_conf);
+    m_angmom_ghost_sendbuf.swap(angmom_ghost_sendbuf);
+
+    GPUVector<Scalar4> angmom_ghost_recvbuf(m_exec_conf);
+    m_angmom_ghost_recvbuf.swap(angmom_ghost_recvbuf);
+
+    GPUVector<Scalar3> inertia_ghost_sendbuf(m_exec_conf);
+    m_inertia_ghost_sendbuf.swap(inertia_ghost_sendbuf);
+
+    GPUVector<Scalar3> inertia_ghost_recvbuf(m_exec_conf);
+    m_inertia_ghost_recvbuf.swap(inertia_ghost_recvbuf);
+
+    GPUVector<unsigned int> ghost_begin(m_exec_conf);
     m_ghost_begin.swap(ghost_begin);
 
-    GlobalVector<unsigned int> ghost_end(m_exec_conf);
+    GPUVector<unsigned int> ghost_end(m_exec_conf);
     m_ghost_end.swap(ghost_end);
 
-    GlobalVector<unsigned int> ghost_plan(m_exec_conf);
+    GPUVector<unsigned int> ghost_plan(m_exec_conf);
     m_ghost_plan.swap(ghost_plan);
 
-    GlobalVector<uint2> ghost_idx_adj(m_exec_conf);
+    GPUVector<uint2> ghost_idx_adj(m_exec_conf);
     m_ghost_idx_adj.swap(ghost_idx_adj);
 
-    GlobalVector<unsigned int> ghost_neigh(m_exec_conf);
+    GPUVector<unsigned int> ghost_neigh(m_exec_conf);
     m_ghost_neigh.swap(ghost_neigh);
 
-    GlobalVector<unsigned int> neigh_counts(m_exec_conf);
+    GPUVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
 
-    GlobalVector<unsigned int> scan(m_exec_conf);
+    GPUVector<unsigned int> scan(m_exec_conf);
     m_scan.swap(scan);
     }
 
@@ -366,37 +370,37 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(
       m_ghost_group_idx_adj(m_exec_conf), m_ghost_group_neigh(m_exec_conf),
       m_ghost_group_plan(m_exec_conf), m_neigh_counts(m_exec_conf), m_ghost_scan(m_exec_conf)
     {
-    GlobalVector<unsigned int> rank_mask(m_exec_conf);
+    GPUVector<unsigned int> rank_mask(m_exec_conf);
     m_rank_mask.swap(rank_mask);
 
-    GlobalVector<unsigned int> scan(m_exec_conf);
+    GPUVector<unsigned int> scan(m_exec_conf);
     m_scan.swap(scan);
 
-    GlobalVector<unsigned int> marked_groups(m_exec_conf);
+    GPUVector<unsigned int> marked_groups(m_exec_conf);
     m_marked_groups.swap(marked_groups);
 
-    GlobalVector<rank_element_t> ranks_out(m_exec_conf);
+    GPUVector<rank_element_t> ranks_out(m_exec_conf);
     m_ranks_out.swap(ranks_out);
 
-    GlobalVector<rank_element_t> ranks_sendbuf(m_exec_conf);
+    GPUVector<rank_element_t> ranks_sendbuf(m_exec_conf);
     m_ranks_sendbuf.swap(ranks_sendbuf);
 
-    GlobalVector<rank_element_t> ranks_recvbuf(m_exec_conf);
+    GPUVector<rank_element_t> ranks_recvbuf(m_exec_conf);
     m_ranks_recvbuf.swap(ranks_recvbuf);
 
-    GlobalVector<group_element_t> groups_out(m_exec_conf);
+    GPUVector<group_element_t> groups_out(m_exec_conf);
     m_groups_out.swap(groups_out);
 
-    GlobalVector<unsigned int> rank_mask_out(m_exec_conf);
+    GPUVector<unsigned int> rank_mask_out(m_exec_conf);
     m_rank_mask_out.swap(rank_mask_out);
 
-    GlobalVector<group_element_t> groups_sendbuf(m_exec_conf);
+    GPUVector<group_element_t> groups_sendbuf(m_exec_conf);
     m_groups_sendbuf.swap(groups_sendbuf);
 
-    GlobalVector<group_element_t> groups_recvbuf(m_exec_conf);
+    GPUVector<group_element_t> groups_recvbuf(m_exec_conf);
     m_groups_recvbuf.swap(groups_recvbuf);
 
-    GlobalVector<group_element_t> groups_in(m_exec_conf);
+    GPUVector<group_element_t> groups_in(m_exec_conf);
     m_groups_in.swap(groups_in);
 
     // the size of the bit field must be larger or equal the group size
@@ -410,37 +414,37 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
       m_ghost_group_idx_adj(m_exec_conf), m_ghost_group_neigh(m_exec_conf),
       m_ghost_group_plan(m_exec_conf), m_neigh_counts(m_exec_conf), m_ghost_scan(m_exec_conf)
     {
-    GlobalVector<unsigned int> rank_mask(m_exec_conf);
+    GPUVector<unsigned int> rank_mask(m_exec_conf);
     m_rank_mask.swap(rank_mask);
 
-    GlobalVector<unsigned int> scan(m_exec_conf);
+    GPUVector<unsigned int> scan(m_exec_conf);
     m_scan.swap(scan);
 
-    GlobalVector<unsigned int> marked_groups(m_exec_conf);
+    GPUVector<unsigned int> marked_groups(m_exec_conf);
     m_marked_groups.swap(marked_groups);
 
-    GlobalVector<rank_element_t> ranks_out(m_exec_conf);
+    GPUVector<rank_element_t> ranks_out(m_exec_conf);
     m_ranks_out.swap(ranks_out);
 
-    GlobalVector<rank_element_t> ranks_sendbuf(m_exec_conf);
+    GPUVector<rank_element_t> ranks_sendbuf(m_exec_conf);
     m_ranks_sendbuf.swap(ranks_sendbuf);
 
-    GlobalVector<rank_element_t> ranks_recvbuf(m_exec_conf);
+    GPUVector<rank_element_t> ranks_recvbuf(m_exec_conf);
     m_ranks_recvbuf.swap(ranks_recvbuf);
 
-    GlobalVector<group_element_t> groups_out(m_exec_conf);
+    GPUVector<group_element_t> groups_out(m_exec_conf);
     m_groups_out.swap(groups_out);
 
-    GlobalVector<unsigned int> rank_mask_out(m_exec_conf);
+    GPUVector<unsigned int> rank_mask_out(m_exec_conf);
     m_rank_mask_out.swap(rank_mask_out);
 
-    GlobalVector<group_element_t> groups_sendbuf(m_exec_conf);
+    GPUVector<group_element_t> groups_sendbuf(m_exec_conf);
     m_groups_sendbuf.swap(groups_sendbuf);
 
-    GlobalVector<group_element_t> groups_recvbuf(m_exec_conf);
+    GPUVector<group_element_t> groups_recvbuf(m_exec_conf);
     m_groups_recvbuf.swap(groups_recvbuf);
 
-    GlobalVector<group_element_t> groups_in(m_exec_conf);
+    GPUVector<group_element_t> groups_in(m_exec_conf);
     m_groups_in.swap(groups_in);
     }
 
@@ -704,8 +708,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_gpu_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_gpu_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_gpu_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_gpu_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -733,7 +737,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1059,8 +1063,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_gpu_comm.m_n_unique_neigh];
-            MPI_Status stat[2 * m_gpu_comm.m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_gpu_comm.m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_gpu_comm.m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -1088,7 +1092,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1252,7 +1256,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
 template<class group_data>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
-    const GlobalVector<unsigned int>& plans)
+    const GPUVector<unsigned int>& plans)
     {
     if (m_gdata->getNGlobal())
         {
@@ -1488,8 +1492,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                         = h_ghost_group_end.data[ineigh + stage * m_gpu_comm.m_n_unique_neigh]
                           - h_ghost_group_begin.data[ineigh + stage * m_gpu_comm.m_n_unique_neigh];
 
-                MPI_Request req[2 * m_gpu_comm.m_n_unique_neigh];
-                MPI_Status stat[2 * m_gpu_comm.m_n_unique_neigh];
+                std::vector<MPI_Request> req(2 * m_gpu_comm.m_n_unique_neigh);
+                std::vector<MPI_Status> stat(2 * m_gpu_comm.m_n_unique_neigh);
 
                 unsigned int nreq = 0;
 
@@ -1526,7 +1530,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     recv_bytes += (unsigned int)sizeof(unsigned int);
                     }
 
-                MPI_Waitall(nreq, req, stat);
+                MPI_Waitall(nreq, req.data(), stat.data());
 
                 // total up receive counts
                 for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1703,7 +1707,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 //! Mark ghost particles
 template<class group_data>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
-    const GlobalVector<unsigned int>& plans,
+    const GPUVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
@@ -1902,8 +1906,8 @@ void CommunicatorGPU::migrateParticles()
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
-            MPI_Request req[2 * m_n_unique_neigh];
-            MPI_Status stat[2 * m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -1939,7 +1943,7 @@ void CommunicatorGPU::migrateParticles()
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
@@ -2223,8 +2227,12 @@ void CommunicatorGPU::exchangeGhosts()
         if (flags[comm_flag::diameter])
             m_diameter_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::orientation])
-            {
             m_orientation_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::angmom])
+            m_angmom_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::inertia])
+            {
+            m_inertia_ghost_sendbuf.resize(n_max);
             }
 
             {
@@ -2306,6 +2314,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                                access_location::device,
                                                access_mode::read);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::device,
+                                          access_mode::read);
+            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                           access_location::device,
+                                           access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
                                              access_location::device,
                                              access_mode::read);
@@ -2340,6 +2354,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf,
                                                              access_location::device,
                                                              access_mode::overwrite);
+            ArrayHandle<Scalar4> d_angmom_ghost_sendbuf(m_angmom_ghost_sendbuf,
+                                                        access_location::device,
+                                                        access_mode::overwrite);
+            ArrayHandle<Scalar3> d_inertia_ghost_sendbuf(m_inertia_ghost_sendbuf,
+                                                         access_location::device,
+                                                         access_mode::overwrite);
 
             const BoxDim global_box = m_pdata->getGlobalBox();
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
@@ -2356,6 +2376,8 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_diameter.data,
                                      d_body.data,
                                      d_orientation.data,
+                                     d_angmom.data,
+                                     d_inertia.data,
                                      d_tag_ghost_sendbuf.data,
                                      d_pos_ghost_sendbuf.data,
                                      d_vel_ghost_sendbuf.data,
@@ -2364,6 +2386,8 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_body_ghost_sendbuf.data,
                                      d_image_ghost_sendbuf.data,
                                      d_orientation_ghost_sendbuf.data,
+                                     d_angmom_ghost_sendbuf.data,
+                                     d_inertia_ghost_sendbuf.data,
                                      flags[comm_flag::tag],
                                      flags[comm_flag::position],
                                      flags[comm_flag::velocity],
@@ -2372,6 +2396,8 @@ void CommunicatorGPU::exchangeGhosts()
                                      flags[comm_flag::body],
                                      flags[comm_flag::image],
                                      flags[comm_flag::orientation],
+                                     flags[comm_flag::angmom],
+                                     flags[comm_flag::inertia],
                                      di,
                                      my_pos,
                                      global_box);
@@ -2405,8 +2431,8 @@ void CommunicatorGPU::exchangeGhosts()
                     = h_ghost_end.data[ineigh + stage * m_n_unique_neigh]
                       - h_ghost_begin.data[ineigh + stage * m_n_unique_neigh];
 
-            MPI_Request req[2 * m_n_unique_neigh];
-            MPI_Status stat[2 * m_n_unique_neigh];
+            std::vector<MPI_Request> req(2 * m_n_unique_neigh);
+            std::vector<MPI_Status> stat(2 * m_n_unique_neigh);
 
             unsigned int nreq = 0;
 
@@ -2443,7 +2469,7 @@ void CommunicatorGPU::exchangeGhosts()
                 recv_bytes += (unsigned int)sizeof(unsigned int);
                 }
 
-            MPI_Waitall(nreq, req, stat);
+            MPI_Waitall(nreq, req.data(), stat.data());
 
             // total up receive counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
@@ -2480,6 +2506,10 @@ void CommunicatorGPU::exchangeGhosts()
             m_diameter_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::orientation])
             m_orientation_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::angmom])
+            m_angmom_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::inertia])
+            m_inertia_ghost_recvbuf.resize(n_max);
 
         // first ghost ptl index
         unsigned int first_idx = m_pdata->getN() + m_pdata->getNGhosts();
@@ -2514,6 +2544,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf,
                                                                        access_location::host,
                                                                        access_mode::overwrite);
+            ArrayHandleAsync<Scalar4> angmom_ghost_recvbuf_handle(m_angmom_ghost_recvbuf,
+                                                                  access_location::host,
+                                                                  access_mode::overwrite);
+            ArrayHandleAsync<Scalar3> inertia_ghost_recvbuf_handle(m_inertia_ghost_recvbuf,
+                                                                   access_location::host,
+                                                                   access_mode::overwrite);
             // send buffers
             ArrayHandleAsync<unsigned int> tag_ghost_sendbuf_handle(m_tag_ghost_sendbuf,
                                                                     access_location::host,
@@ -2539,6 +2575,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf,
                                                                        access_location::host,
                                                                        access_mode::read);
+            ArrayHandleAsync<Scalar4> angmom_ghost_sendbuf_handle(m_angmom_ghost_sendbuf,
+                                                                  access_location::host,
+                                                                  access_mode::read);
+            ArrayHandleAsync<Scalar3> inertia_ghost_sendbuf_handle(m_inertia_ghost_sendbuf,
+                                                                   access_location::host,
+                                                                   access_mode::read);
 
             // lump together into one synchronization call
             hipDeviceSynchronize();
@@ -2808,6 +2850,66 @@ void CommunicatorGPU::exchangeGhosts()
                         }
                     recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh] * sizeof(int3));
                     }
+
+                if (flags[comm_flag::angmom])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(angmom_ghost_sendbuf_handle.data
+                                      + h_ghost_begin.data[ineigh + stage * m_n_unique_neigh],
+                                  int(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar4)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  9,
+                                  m_mpi_comm,
+                                  &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar4));
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(angmom_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh]
+                                      + offs,
+                                  int(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar4)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  9,
+                                  m_mpi_comm,
+                                  &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar4));
+                    }
+
+                if (flags[comm_flag::inertia])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(inertia_ghost_sendbuf_handle.data
+                                      + h_ghost_begin.data[ineigh + stage * m_n_unique_neigh],
+                                  int(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar3)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  10,
+                                  m_mpi_comm,
+                                  &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar3));
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(inertia_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh]
+                                      + offs,
+                                  int(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar3)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  10,
+                                  m_mpi_comm,
+                                  &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar3));
+                    }
                 } // end neighbor loop
 
             std::vector<MPI_Status> stats(reqs.size());
@@ -2840,6 +2942,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf,
                                                              access_location::device,
                                                              access_mode::read);
+            ArrayHandle<Scalar4> d_angmom_ghost_recvbuf(m_angmom_ghost_recvbuf,
+                                                        access_location::device,
+                                                        access_mode::read);
+            ArrayHandle<Scalar3> d_inertia_ghost_recvbuf(m_inertia_ghost_recvbuf,
+                                                         access_location::device,
+                                                         access_mode::read);
             // access particle data
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),
                                             access_location::device,
@@ -2865,6 +2973,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                                access_location::device,
                                                access_mode::readwrite);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::device,
+                                          access_mode::readwrite);
+            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                           access_location::device,
+                                           access_mode::readwrite);
 
             // copy recv buf into particle data
             gpu_exchange_ghosts_copy_buf(m_n_recv_ghosts_tot[stage],
@@ -2876,6 +2990,8 @@ void CommunicatorGPU::exchangeGhosts()
                                          d_body_ghost_recvbuf.data,
                                          d_image_ghost_recvbuf.data,
                                          d_orientation_ghost_recvbuf.data,
+                                         d_angmom_ghost_recvbuf.data,
+                                         d_inertia_ghost_recvbuf.data,
                                          d_tag.data + first_idx,
                                          d_pos.data + first_idx,
                                          d_vel.data + first_idx,
@@ -2884,6 +3000,8 @@ void CommunicatorGPU::exchangeGhosts()
                                          d_body.data + first_idx,
                                          d_image.data + first_idx,
                                          d_orientation.data + first_idx,
+                                         d_angmom.data + first_idx,
+                                         d_inertia.data + first_idx,
                                          flags[comm_flag::tag],
                                          flags[comm_flag::position],
                                          flags[comm_flag::velocity],
@@ -2891,7 +3009,9 @@ void CommunicatorGPU::exchangeGhosts()
                                          flags[comm_flag::diameter],
                                          flags[comm_flag::body],
                                          flags[comm_flag::image],
-                                         flags[comm_flag::orientation]);
+                                         flags[comm_flag::orientation],
+                                         flags[comm_flag::angmom],
+                                         flags[comm_flag::inertia]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -2944,6 +3064,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                                access_location::device,
                                                access_mode::read);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::device,
+                                          access_mode::read);
 
             // access ghost send indices
             ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj,
@@ -2963,6 +3086,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
             ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf,
                                                              access_location::device,
                                                              access_mode::overwrite);
+            ArrayHandle<Scalar4> d_angmom_ghost_sendbuf(m_angmom_ghost_sendbuf,
+                                                        access_location::device,
+                                                        access_mode::overwrite);
 
             const BoxDim global_box = m_pdata->getGlobalBox();
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
@@ -2979,6 +3105,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                      NULL,
                                      NULL,
                                      d_orientation.data,
+                                     d_angmom.data,
+                                     NULL,
                                      NULL,
                                      d_pos_ghost_sendbuf.data,
                                      d_vel_ghost_sendbuf.data,
@@ -2987,6 +3115,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                      NULL,
                                      NULL,
                                      d_orientation_ghost_sendbuf.data,
+                                     d_angmom_ghost_sendbuf.data,
+                                     NULL,
                                      false,
                                      flags[comm_flag::position],
                                      flags[comm_flag::velocity],
@@ -2995,6 +3125,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                      false,
                                      false,
                                      flags[comm_flag::orientation],
+                                     flags[comm_flag::angmom],
+                                     false,
                                      di,
                                      my_pos,
                                      global_box);
@@ -3029,6 +3161,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
             ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf,
                                                                   access_location::host,
                                                                   access_mode::overwrite);
+            ArrayHandle<Scalar4> angmom_ghost_recvbuf_handle(m_angmom_ghost_recvbuf,
+                                                             access_location::host,
+                                                             access_mode::overwrite);
 
             // send buffers
             ArrayHandleAsync<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf,
@@ -3040,6 +3175,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
             ArrayHandleAsync<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf,
                                                                        access_location::host,
                                                                        access_mode::read);
+            ArrayHandleAsync<Scalar4> angmom_ghost_sendbuf_handle(m_angmom_ghost_sendbuf,
+                                                                  access_location::host,
+                                                                  access_mode::read);
 
             ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                               access_location::host,
@@ -3157,6 +3295,37 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                         }
                     recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar4));
                     }
+
+                if (flags[comm_flag::angmom])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(angmom_ghost_sendbuf_handle.data
+                                      + h_ghost_begin.data[ineigh + stage * m_n_unique_neigh],
+                                  int(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar4)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  9,
+                                  m_mpi_comm,
+                                  &req);
+                        m_reqs.push_back(req);
+                        }
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar4));
+
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(angmom_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh]
+                                      + offs,
+                                  int(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar4)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  9,
+                                  m_mpi_comm,
+                                  &req);
+                        m_reqs.push_back(req);
+                        }
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar4));
+                    }
                 } // end neighbor loop
 
             if (m_num_stages == 1)
@@ -3186,6 +3355,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf,
                                                                  access_location::device,
                                                                  access_mode::read);
+                ArrayHandle<Scalar4> d_angmom_ghost_recvbuf(m_angmom_ghost_recvbuf,
+                                                            access_location::device,
+                                                            access_mode::read);
                 // access particle data
                 ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                            access_location::device,
@@ -3196,6 +3368,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                                    access_location::device,
                                                    access_mode::readwrite);
+                ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                              access_location::device,
+                                              access_mode::readwrite);
 
                 // copy recv buf into particle data
                 gpu_exchange_ghosts_copy_buf(m_n_recv_ghosts_tot[stage],
@@ -3207,6 +3382,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                              NULL,
                                              NULL,
                                              d_orientation_ghost_recvbuf.data,
+                                             d_angmom_ghost_recvbuf.data,
+                                             NULL,
                                              NULL,
                                              d_pos.data + first_idx,
                                              d_vel.data + first_idx,
@@ -3215,6 +3392,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                              NULL,
                                              NULL,
                                              d_orientation.data + first_idx,
+                                             d_angmom.data + first_idx,
+                                             NULL,
                                              false,
                                              flags[comm_flag::position],
                                              flags[comm_flag::velocity],
@@ -3222,7 +3401,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                              false,
                                              false,
                                              false,
-                                             flags[comm_flag::orientation]);
+                                             flags[comm_flag::orientation],
+                                             flags[comm_flag::angmom],
+                                             false);
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
@@ -3262,6 +3443,9 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
             ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf,
                                                              access_location::device,
                                                              access_mode::read);
+            ArrayHandle<Scalar4> d_angmom_ghost_recvbuf(m_angmom_ghost_recvbuf,
+                                                        access_location::device,
+                                                        access_mode::read);
             // access particle data
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                        access_location::device,
@@ -3272,6 +3456,9 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                                access_location::device,
                                                access_mode::readwrite);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                          access_location::device,
+                                          access_mode::readwrite);
 
             // copy recv buf into particle data
             gpu_exchange_ghosts_copy_buf(m_n_recv_ghosts_tot[stage],
@@ -3283,6 +3470,8 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
                                          NULL,
                                          NULL,
                                          d_orientation_ghost_recvbuf.data,
+                                         d_angmom_ghost_recvbuf.data,
+                                         NULL,
                                          NULL,
                                          d_pos.data + first_idx,
                                          d_vel.data + first_idx,
@@ -3291,6 +3480,8 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
                                          NULL,
                                          NULL,
                                          d_orientation.data + first_idx,
+                                         d_angmom.data + first_idx,
+                                         NULL,
                                          false,
                                          flags[comm_flag::position],
                                          flags[comm_flag::velocity],
@@ -3298,7 +3489,9 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
                                          false,
                                          false,
                                          false,
-                                         flags[comm_flag::orientation]);
+                                         flags[comm_flag::orientation],
+                                         flags[comm_flag::angmom],
+                                         false);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();

@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Bond forces.
-
-Bond force classes apply a force and virial on every particle in the simulation
+r"""Bond force classes apply a force and virial on every particle in the simulation
 state commensurate with the potential energy:
 
 .. math::
@@ -14,7 +12,7 @@ Each bond is defined by an ordered pair of particle tags in the
 `hoomd.State` member ``bond_group``. HOOMD-blue does not construct bond groups,
 users must explicitly define bonds in the initial condition.
 
-.. image:: md-bond.svg
+.. image:: /md-bond.svg
     :alt: Definition of the bond between particles j and k.
 
 In the bond group (j,k), :math:`r` is the length of the bond between the
@@ -40,6 +38,7 @@ from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
 
 import numpy
+import inspect
 
 
 class Bond(Force):
@@ -51,6 +50,8 @@ class Bond(Force):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Force._doc_inherited)
 
     # Module where the C++ class is defined. Reassign this when developing an
     # external plugin.
@@ -79,6 +80,18 @@ class Harmonic(Bond):
 
         U(r) = \frac{1}{2} k \left( r - r_0 \right)^2
 
+    Examples::
+
+        harmonic = bond.Harmonic()
+        harmonic.params["A-A"] = dict(k=3.0, r0=2.38)
+        harmonic.params["A-B"] = dict(k=10.0, r0=1.0)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Harmonic`:
+
     Attributes:
         params (TypeParameter[``bond type``, dict]):
             The parameter of the harmonic bonds for each particle type.
@@ -89,19 +102,18 @@ class Harmonic(Bond):
 
             * ``r0`` (`float`, **required**) - rest length
               :math:`[\mathrm{length}]`
-
-    Examples::
-
-        harmonic = bond.Harmonic()
-        harmonic.params['A-A'] = dict(k=3.0, r0=2.38)
-        harmonic.params['A-B'] = dict(k=10.0, r0=1.0)
     """
+
     _cpp_class_name = "PotentialBondHarmonic"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Bond._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()
-        params = TypeParameter("params", "bond_types",
-                               TypeParameterDict(k=float, r0=float, len_keys=1))
+        params = TypeParameter(
+            "params", "bond_types", TypeParameterDict(k=float, r0=float, len_keys=1)
+        )
         self._add_typeparam(params)
 
 
@@ -131,6 +143,20 @@ class FENEWCA(Bond):
     bond, :math:`\varepsilon` is the repulsive interaction energy, and
     :math:`\sigma` is the repulsive interaction width.
 
+    Examples::
+
+        fenewca = bond.FENEWCA()
+        fenewca.params['A-A'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0,
+                                     delta=0.0)
+        fenewca.params['A-B'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2,
+                                     delta=0.0)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `FENEWCA`:
+
     Attributes:
         params (TypeParameter[``bond type``, dict]):
             The parameter of the FENEWCA potential bonds.
@@ -150,28 +176,22 @@ class FENEWCA(Bond):
 
             * ``delta`` (`float`, **required**) - radial shift :math:`\Delta`
               :math:`[\mathrm{length}]`.
-
-    Examples::
-
-        fenewca = bond.FENEWCA()
-        fenewca.params['A-A'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0,
-                                     delta=0.0)
-        fenewca.params['A-B'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2,
-                                     delta=0.0)
-
     """
+
     _cpp_class_name = "PotentialBondFENE"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Bond._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()
         params = TypeParameter(
-            "params", "bond_types",
-            TypeParameterDict(k=float,
-                              r0=float,
-                              epsilon=float,
-                              sigma=float,
-                              delta=float,
-                              len_keys=1))
+            "params",
+            "bond_types",
+            TypeParameterDict(
+                k=float, r0=float, epsilon=float, sigma=float, delta=float, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -221,8 +241,14 @@ class Table(Bond):
     evenly spaced grid points points between :math:`r_{\\mathrm{min}}` and
     :math:`r_{\\mathrm{max}}`. `Table` linearly interpolates values when
     :math:`r` lies between grid points and between the last grid point and
-    :math:`r=r_{\\mathrm{max}}`.  The force must be specificed commensurate with
+    :math:`r=r_{\\mathrm{max}}`.  The force must be commensurate with
     the potential: :math:`F = -\\frac{\\partial U}{\\partial r}`.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Table`:
 
     Attributes:
         params (`TypeParameter` [``bond type``, `dict`]):
@@ -247,20 +273,27 @@ class Table(Bond):
         width (int): Number of points in the table.
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Bond._doc_inherited)
+    )
+
     def __init__(self, width):
         super().__init__()
         param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
-        param_dict['width'] = width
+        param_dict["width"] = width
         self._param_dict = param_dict
 
         params = TypeParameter(
-            "params", "bond_types",
+            "params",
+            "bond_types",
             TypeParameterDict(
                 r_min=float,
                 r_max=float,
                 U=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 F=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                len_keys=1))
+                len_keys=1,
+            ),
+        )
         self._add_typeparam(params)
 
     def _attach_hook(self):
@@ -279,7 +312,7 @@ class Tether(Bond):
     The tethered network is described in Refs. `Gompper, G. & Kroll, D. M.
     Statistical Mechanics of Membranes and Surfaces 2nd edn (eds Nelson, D. R.
     et al.) 359-426 (World Scientific, 2004)
-    <https://www.worldscientific.com/worldscibooks/10.1142/5473>`__ and
+    <https://doi.org/10.1142/5473>`__ and
     `Noguchi, H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
     <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`__.
 
@@ -309,6 +342,18 @@ class Tether(Bond):
     .. math::
         l_{min} < l_{c1} < l_{c0} < l_{max}
 
+    Examples::
+
+        bond_potential = bond.Tether()
+        bond_potential.params['A-A'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                               l_c0=1.8, l_max=2.1)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Tether`:
+
     Attributes:
         params (TypeParameter[``bond type``, dict]):
             The parameter of the Tethering potential bonds.
@@ -328,23 +373,29 @@ class Tether(Bond):
 
             * ``l_max`` (`float`, **required**) - maximum bond length
               :math:`[\mathrm{length}]`
-
-    Examples::
-
-        bond_potential = bond.Tether()
-        bond_potential.params['A-A'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
-                                               l_c0=1.8, l_max=2.1)
     """
+
     _cpp_class_name = "PotentialBondTether"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Bond._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()
         params = TypeParameter(
-            "params", "bond_types",
-            TypeParameterDict(k_b=float,
-                              l_min=float,
-                              l_c1=float,
-                              l_c0=float,
-                              l_max=float,
-                              len_keys=1))
+            "params",
+            "bond_types",
+            TypeParameterDict(
+                k_b=float, l_min=float, l_c1=float, l_c0=float, l_max=float, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
+
+
+__all__ = [
+    "FENEWCA",
+    "Bond",
+    "Harmonic",
+    "Table",
+    "Tether",
+]

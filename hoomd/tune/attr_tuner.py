@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement tuner utility classes."""
@@ -33,8 +33,9 @@ class _TuneDefinition(metaclass=ABCMeta):
             return True
         else:
             lower_bound, upper_bound = self.domain
-            return ((lower_bound is None or lower_bound <= value)
-                    and (upper_bound is None or value <= upper_bound))
+            return (lower_bound is None or lower_bound <= value) and (
+                upper_bound is None or value <= upper_bound
+            )
 
     def clamp_into_domain(self, value):
         """Return the closest value within the domain.
@@ -161,16 +162,18 @@ class ManualTuneDefinition(_TuneDefinition):
     can return a y of ``None`` to indicate this. `hoomd.tune.SolverStep`
     objects will handle this automatically. Since we check for ``None``
     internally in `hoomd.tune.SolverStep` objects, a `ManualTuneDefinition`
-    object's ``y`` property should be consistant when called multiple times
+    object's ``y`` property should be consistent when called multiple times
     within a timestep.
 
     When setting ``x`` the value is clamped between the given domain via,
 
     .. math::
 
+        \\begin{split}
         x &= x_{max}, \\text{ if } x_n > x_{max},\\\\
         x &= x_{min}, \\text{ if } x_n < x_{min},\\\\
         x &= x_n, \\text{ otherwise}
+        \\end{split}
 
     Args:
         get_y (``callable``): A callable that gets the current value for y.
@@ -217,12 +220,15 @@ class ManualTuneDefinition(_TuneDefinition):
 
     def __hash__(self):
         """Compute a hash of the tune definition."""
-        return hash((self._user_get_x, self._user_set_x, self._user_get_y,
-                     self._target))
+        return hash(
+            (self._user_get_x, self._user_set_x, self._user_get_y, self._target)
+        )
 
     def __eq__(self, other):
         """Test for equality."""
-        return (self._user_get_x == other._user_get_x
-                and self._user_set_x == other._user_set_x
-                and self._user_get_y == other._user_get_y
-                and self._target == other._target)
+        return (
+            self._user_get_x == other._user_get_x
+            and self._user_set_x == other._user_set_x
+            and self._user_get_y == other._user_get_y
+            and self._target == other._target
+        )

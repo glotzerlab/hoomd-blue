@@ -3,7 +3,9 @@
 *.dcd
 *.gsd
 build
+html
 __pycache__
+.gdb_history
 *.pyc
 *.swp
 .vscode/launch.json

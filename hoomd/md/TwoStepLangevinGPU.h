@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
@@ -28,7 +28,7 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
     TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        std::shared_ptr<Variant> T);
-    virtual ~TwoStepLangevinGPU() {};
+    virtual ~TwoStepLangevinGPU() { };
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

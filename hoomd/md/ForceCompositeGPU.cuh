@@ -1,8 +1,8 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/Index1D.h"
 
 /*! \file ForceComposite.cuh
     \brief Defines GPU driver functions for the composite particle integration on the GPU.
@@ -38,7 +38,7 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
                            unsigned int block_size,
                            const hipDeviceProp_t& dev_prop,
                            bool zero_force,
-                           const GPUPartition& gpu_partition);
+                           unsigned int n_local_bodies);
 
 hipError_t gpu_rigid_virial(Scalar* d_virial,
                             const unsigned int* d_molecule_len,
@@ -62,12 +62,15 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
                             size_t virial_pitch,
                             unsigned int block_size,
                             const hipDeviceProp_t& dev_prop,
-                            const GPUPartition& gpu_partition);
+                            unsigned int n_local_bodies);
 
 void gpu_update_composite(unsigned int N,
                           unsigned int n_ghost,
                           Scalar4* d_postype,
+                          Scalar4* d_velocity,
                           Scalar4* d_orientation,
+                          const Scalar4* d_angmom,
+                          const Scalar3* d_inertia,
                           Index2D body_indexer,
                           const unsigned int* d_lookup_center,
                           const Scalar3* d_body_pos,
@@ -81,8 +84,7 @@ void gpu_update_composite(unsigned int N,
                           const BoxDim box,
                           const BoxDim global_box,
                           unsigned int block_size,
-                          uint2* d_flag,
-                          const GPUPartition& gpu_partition);
+                          uint2* d_flag);
 
 hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
                                   const unsigned int* d_tag,

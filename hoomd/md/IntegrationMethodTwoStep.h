@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Autotuned.h"
@@ -114,7 +114,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep : public Autotuned
      */
     virtual void integrateStepTwo(uint64_t timestep) { }
 
-    //! Calculates force which keeps paricles on manifold in RATTLE integrators
+    //! Calculates force which keeps particles on manifold in RATTLE integrators
     /*! \param timestep Current time step
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
@@ -207,9 +207,6 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// The systems's communicator.
     std::shared_ptr<Communicator> m_comm;
 #endif
-
-    /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool areForcesAnisotropic();
     };
 
 namespace detail
