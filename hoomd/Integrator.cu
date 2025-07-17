@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.cuh"
@@ -71,16 +71,13 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
                                                     Scalar4* d_net_torque,
                                                     const gpu_force_list force_list,
                                                     unsigned int nwork,
-                                                    bool clear,
-                                                    unsigned int offset)
+                                                    bool clear)
     {
     // calculate the index we will be handling
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx < nwork)
         {
-        idx += offset;
-
         // set the initial net_force and net_virial to sum into
         Scalar4 net_force;
         Scalar net_virial[6];
@@ -175,8 +172,7 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                         const gpu_force_list& force_list,
                                         unsigned int nparticles,
                                         bool clear,
-                                        bool compute_virial,
-                                        const GPUPartition& gpu_partition)
+                                        bool compute_virial)
     {
     // sanity check
     assert(d_net_force);
@@ -185,45 +181,37 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
 
     const int block_size = 256;
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int nwork = nparticles;
+
+    if (compute_virial)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        if (compute_virial)
-            {
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<1>),
-                               dim3(nwork / block_size + 1),
-                               dim3(block_size),
-                               0,
-                               0,
-                               d_net_force,
-                               d_net_virial,
-                               net_virial_pitch,
-                               d_net_torque,
-                               force_list,
-                               nwork,
-                               clear,
-                               range.first);
-            }
-        else
-            {
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<0>),
-                               dim3(nwork / block_size + 1),
-                               dim3(block_size),
-                               0,
-                               0,
-                               d_net_force,
-                               d_net_virial,
-                               net_virial_pitch,
-                               d_net_torque,
-                               force_list,
-                               nwork,
-                               clear,
-                               range.first);
-            }
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<1>),
+                           dim3(nwork / block_size + 1),
+                           dim3(block_size),
+                           0,
+                           0,
+                           d_net_force,
+                           d_net_virial,
+                           net_virial_pitch,
+                           d_net_torque,
+                           force_list,
+                           nwork,
+                           clear);
+        }
+    else
+        {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<0>),
+                           dim3(nwork / block_size + 1),
+                           dim3(block_size),
+                           0,
+                           0,
+                           d_net_force,
+                           d_net_virial,
+                           net_virial_pitch,
+                           d_net_torque,
+                           force_list,
+                           nwork,
+                           clear);
         }
 
     return hipSuccess;

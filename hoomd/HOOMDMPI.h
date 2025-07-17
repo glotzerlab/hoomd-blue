@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HOOMD_MPI_H__
@@ -33,13 +33,6 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/utility.hpp> // std::pair
 #include <cereal/types/vector.hpp>
-
-#ifdef ENABLE_TBB
-// https://www.threadingbuildingblocks.org/docs/help/reference/appendices/known_issues/linux_os.html
-#include <tbb/concurrent_unordered_map.h>
-#include <tbb/concurrent_unordered_set.h>
-#include <tbb/concurrent_vector.h>
-#endif
 
 namespace cereal
     {
@@ -110,71 +103,6 @@ void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
     ar & q.v;
     }
 
-#ifdef ENABLE_TBB
-//! Serialization for tbb::concurrent_vector
-template<class Archive, class T, class A>
-inline void save(Archive& ar, tbb::concurrent_vector<T, A> const& vector)
-    {
-    ar(make_size_tag(static_cast<size_type>(vector.size()))); // number of elements
-    for (auto&& v : vector)
-        ar(v);
-    }
-
-template<class Archive, class T, class A>
-inline void load(Archive& ar, tbb::concurrent_vector<T, A>& vector)
-    {
-    size_type size;
-    ar(make_size_tag(size));
-
-    vector.resize(static_cast<std::size_t>(size));
-    for (auto&& v : vector)
-        ar(v);
-    }
-
-//! Serialization of tbb::concurrent_unordered_set
-namespace tbb_unordered_set_detail
-    {
-//! @internal
-template<class Archive, class SetT> inline void save(Archive& ar, SetT const& set)
-    {
-    ar(make_size_tag(static_cast<size_type>(set.size())));
-
-    for (const auto& i : set)
-        ar(i);
-    }
-
-//! @internal
-template<class Archive, class SetT> inline void load(Archive& ar, SetT& set)
-    {
-    size_type size;
-    ar(make_size_tag(size));
-
-    set.clear();
-
-    for (size_type i = 0; i < size; ++i)
-        {
-        typename SetT::key_type key;
-
-        ar(key);
-        set.emplace(std::move(key));
-        }
-    }
-    } // namespace tbb_unordered_set_detail
-
-//! Saving for tbb::concurrent_unordered_set
-template<class Archive, class K, class H, class KE, class A>
-inline void save(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A> const& unordered_set)
-    {
-    tbb_unordered_set_detail::save(ar, unordered_set);
-    }
-
-//! Loading for tbb::concurrent_unordered_set
-template<class Archive, class K, class H, class KE, class A>
-inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unordered_set)
-    {
-    tbb_unordered_set_detail::load(ar, unordered_set);
-    }
-#endif
     } // namespace cereal
 
 namespace hoomd
@@ -202,7 +130,7 @@ template<typename T> void bcast(T& val, unsigned int root, const MPI_Comm mpi_co
     MPI_Comm_rank(mpi_comm, &rank);
 
     char* buf = NULL;
-    unsigned int recv_count;
+    int recv_count;
     if (rank == (int)root)
         {
         std::stringstream s(std::ios_base::out | std::ios_base::binary);
@@ -216,7 +144,11 @@ template<typename T> void bcast(T& val, unsigned int root, const MPI_Comm mpi_co
 
         // copy string to send buffer
         std::string str = s.str();
-        recv_count = (unsigned int)str.size();
+        if (str.length() > std::numeric_limits<int>::max())
+            {
+            throw std::runtime_error("Serialized bytes overflow MPI limit");
+            }
+        recv_count = static_cast<int>(str.size());
         buf = new char[recv_count];
         str.copy(buf, recv_count);
         }
@@ -254,7 +186,7 @@ void scatter_v(const std::vector<T>& in_values,
 
     assert(in_values.size() == (unsigned int)size);
 
-    unsigned int recv_count;
+    int recv_count;
     int* send_counts = NULL;
     int* displs = NULL;
 
@@ -266,7 +198,7 @@ void scatter_v(const std::vector<T>& in_values,
         // construct a vector of serialized objects
         typename std::vector<T>::const_iterator it;
         std::vector<std::string> str;
-        unsigned int len = 0;
+        size_t len = 0;
         for (it = in_values.begin(); it != in_values.end(); ++it)
             {
             unsigned int idx = (unsigned int)(it - in_values.begin());
@@ -279,7 +211,11 @@ void scatter_v(const std::vector<T>& in_values,
             str.push_back(s.str());
 
             displs[idx] = (idx > 0) ? displs[idx - 1] + send_counts[idx - 1] : 0;
-            send_counts[idx] = (unsigned int)(str[idx].length());
+            if (str[idx].length() > std::numeric_limits<int>::max())
+                {
+                throw std::runtime_error("Serialized bytes overflow MPI limit");
+                }
+            send_counts[idx] = static_cast<int>(str[idx].length());
             len += send_counts[idx];
             }
 
@@ -334,7 +270,11 @@ void gather_v(const T& in_value,
 
     // copy into send buffer
     std::string str = s.str();
-    unsigned int send_count = (unsigned int)str.length();
+    if (str.length() > std::numeric_limits<int>::max())
+        {
+        throw std::runtime_error("Serialized bytes overflow MPI limit");
+        }
+    int send_count = static_cast<int>(str.length());
 
     int* recv_counts = NULL;
     int* displs = NULL;
@@ -351,7 +291,7 @@ void gather_v(const T& in_value,
     char* rbuf = NULL;
     if (rank == (int)root)
         {
-        unsigned int len = 0;
+        size_t len = 0;
         for (unsigned int i = 0; i < (unsigned int)size; i++)
             {
             displs[i] = (i > 0) ? displs[i - 1] + recv_counts[i - 1] : 0;
@@ -407,7 +347,11 @@ void all_gather_v(const T& in_value, std::vector<T>& out_values, const MPI_Comm 
 
     // copy into send buffer
     std::string str = s.str();
-    unsigned int send_count = (unsigned int)str.length();
+    if (str.length() > std::numeric_limits<int>::max())
+        {
+        throw std::runtime_error("Serialized bytes overflow MPI limit");
+        }
+    int send_count = static_cast<int>(str.length());
 
     // allocate memory for buffer lengths
     out_values.resize(size);
@@ -418,7 +362,7 @@ void all_gather_v(const T& in_value, std::vector<T>& out_values, const MPI_Comm 
     MPI_Allgather(&send_count, 1, MPI_INT, recv_counts, 1, MPI_INT, mpi_comm);
 
     // allocate receiver buffer
-    unsigned int len = 0;
+    size_t len = 0;
     for (unsigned int i = 0; i < (unsigned int)size; i++)
         {
         displs[i] = (i > 0) ? displs[i - 1] + recv_counts[i - 1] : 0;
@@ -472,7 +416,11 @@ template<typename T> void send(const T& val, const unsigned int dest, const MPI_
 
     // copy string to send buffer
     std::string str = s.str();
-    recv_count = (unsigned int)str.size();
+    if (str.length() > std::numeric_limits<int>::max())
+        {
+        throw std::runtime_error("Serialized bytes overflow MPI limit");
+        }
+    recv_count = static_cast<int>(str.size());
     buf = new char[recv_count];
     str.copy(buf, recv_count);
 

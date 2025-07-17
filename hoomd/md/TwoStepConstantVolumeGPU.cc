@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantVolumeGPU.h"
@@ -76,7 +76,7 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
 
         auto limits = getKernelLimitValues(timestep);
 
-        m_exec_conf->beginMultiGPU();
+        m_exec_conf->setDevice();
 
         // perform the update on the GPU
         m_tuner_one->begin();
@@ -90,15 +90,12 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                          m_tuner_one->getParam()[0],
                                          rescalingFactors[0], // m_exp_thermo_fac,
                                          m_deltaT,
-                                         m_group->getGPUPartition(),
                                          limits.first,
                                          limits.second);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_one->end();
-
-        m_exec_conf->endMultiGPU();
         }
 
     if (m_aniso)
@@ -120,14 +117,13 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
         kernel::gpu_nve_angular_step_one(d_orientation.data,
                                          d_angmom.data,
                                          d_inertia.data,
                                          d_net_torque.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          m_deltaT,
                                          rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
@@ -135,7 +131,6 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_angular_one->end();
-        m_exec_conf->endMultiGPU();
         }
 
     // advance thermostat
@@ -149,7 +144,7 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                             access_location::device,
@@ -167,7 +162,7 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
                                      access_mode::readwrite);
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
+        m_exec_conf->setDevice();
 
         // perform the update on the GPU
         m_tuner_two->begin();
@@ -179,13 +174,11 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
                                          m_tuner_two->getParam()[0],
                                          m_deltaT,
                                          rescalingFactors[0],
-                                         m_group->getGPUPartition());
+                                         m_sysdef->getNDimensions());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_two->end();
-
-        m_exec_conf->endMultiGPU();
         }
 
     if (m_aniso)
@@ -204,14 +197,13 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
                                        access_location::device,
                                        access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
         kernel::gpu_nve_angular_step_two(d_orientation.data,
                                          d_angmom.data,
                                          d_inertia.data,
                                          d_net_torque.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          m_deltaT,
                                          rescalingFactors[1],
                                          m_tuner_angular_two->getParam()[0]);
@@ -219,7 +211,6 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_angular_two->end();
-        m_exec_conf->endMultiGPU();
         }
     }
     } // namespace hoomd::md

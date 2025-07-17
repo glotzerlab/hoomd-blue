@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -86,9 +86,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// helper function to determine the ghost communication flags
     virtual CommFlags determineFlags(uint64_t timestep);
 #endif
-
-    /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool areForcesAnisotropic();
 
     /// Updates the rigid body constituent particles
     virtual void updateRigidBodies(uint64_t timestep);

@@ -1,15 +1,16 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PYTHON_LOCAL_DATA_ACCESS_H__
 #define __PYTHON_LOCAL_DATA_ACCESS_H__
 
-#include "GlobalArray.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <string>
 #include <type_traits>
 #include <utility>
+
+#include "GPUArray.h"
 
 namespace hoomd
     {
@@ -179,7 +180,7 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
  *  SEGFAULTS).
  *
  *  The main methods of LocalDataAccess is getBuffer provide a way to automatically convert an
- *  Global/GPUArray into an object of type Output.
+ *  GPUArray into an object of type Output.
  *
  *  This class stores ArrayHandles using a unique pointer to prevent a resource from being dropped
  *  before the object is destroyed. This can be simplified if a move constructor for ArrayHandle is
@@ -214,7 +215,7 @@ template<class Output, class Data> class LocalDataAccess
         }
 
     protected:
-    /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.
+    /** @brief Convert GPUArray or vector into an Ouput object for Python.
      *
      * This function is for general N dimensional arrays. For dimensions greater
      * than 2 strides must be explictly specified.
@@ -225,7 +226,7 @@ template<class Output, class Data> class LocalDataAccess
      *  S: the exposed type of data to Python
      *  U: the templated array class returned by the parameter
      *  get_array_func. It is templated off of T (which means that if
-     *  U=GlobalArray then the full type is GlobalArray<T>)
+     *  U=GPUArray then the full type is GPUArray<T>)
      *
      *  Arguments:
      *  handle: a reference to the unique_ptr that holds the ArrayHandle.
@@ -239,7 +240,7 @@ template<class Output, class Data> class LocalDataAccess
      *  strides: the strides in bytes of the array (defaults to sizeof(T) or {sizeof(S), sizeof(T)}
      *  depending on dimension).
      */
-    template<class T, class S, template<class> class U = GlobalArray>
+    template<class T, class S, template<class> class U = GPUArray>
     Output getBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                      const U<T>& (Data::*get_array_func)() const,
                      const std::vector<size_t>& shape,
@@ -312,7 +313,7 @@ enum class GhostDataFlag
     };
 
 ///
-/** @brief Base class for accessing per-* Global or GPU arrays/vectors in Python.
+/** @brief Base class for accessing per-* GPU arrays/vectors in Python.
  *
  *  Template Parameters:
  *  Output - the output buffer class for the class should be HOOMDDeviceBuffer
@@ -320,7 +321,7 @@ enum class GhostDataFlag
  *  Data - the class of the object we wish to expose data from
  *
  *  The main methods of LocalDataAccess are getLocalBuffer and getGlobalBuffer
- *  which provide a way to automatically convert an Global/GPUArray into an
+ *  which provide a way to automatically convert an GPUArray into an
  *  object of type Output of a MPI local, MPI local with ghosts, or global size
  *  (for particles bonds, etc.).
  */
@@ -335,7 +336,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
     virtual ~GhostLocalDataAccess() = default;
 
     protected:
-    /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.
+    /** @brief Convert GPUArray or vector into an Ouput object for Python.
      *
      *  This function is for arrays that are of a size less than or equal to
      *  their global size. An example is particle positions. On each MPI
@@ -350,7 +351,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
      *  S: the exposed type of data to Python
      *  U: the templated array class returned by the parameter
      *  get_array_func. It is templated off of T (which means that if
-     *  U=GlobalArray then the full type is GlobalArray<T>)
+     *  U=GPUArray then the full type is GPUArray<T>)
      *
      *  Arguments:
      *  handle: a reference to the unique_ptr that holds the ArrayHandle.
@@ -367,7 +368,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
      *  strides: the strides in bytes of the array (defaults to sizeof(T) or
      *  {sizeof(S), sizeof(T)} depending on dimension).
      */
-    template<class T, class S, template<class> class U = GlobalArray>
+    template<class T, class S, template<class> class U = GPUArray>
     Output getLocalBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                           const U<T>& (Data::*get_array_func)() const,
                           GhostDataFlag flag,
@@ -407,7 +408,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
                                                  strides);
         }
 
-    /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.
+    /** @brief Convert GPUArray or vector into an Ouput object for Python.
      *
      *  This function is for arrays that are of a size equal to their global
      *  size. An example is the reverse tag index. On each MPI rank or GPU,
@@ -421,7 +422,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
      *  parameter of the ArrayHandle)
      *  U: the templated array class returned by the parameter
      *  get_array_func. It is templated off of T (which means that if
-     *  U=GlobalArray then the full type is GlobalArray<T>)
+     *  U=GPUArray then the full type is GPUArray<T>)
      *
      *  Arguments:
      *  handle: a reference to the unique_ptr that holds the ArrayHandle.
@@ -429,7 +430,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
      *  of the exposed array in Python.
      *  read_only: whether the array should be read only (defaults to True).
      */
-    template<class T, template<class> class U = GlobalArray>
+    template<class T, template<class> class U = GPUArray>
     Output getGlobalBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                            const U<T>& (Data::*get_array_func)() const,
                            bool bufferWriteable,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLOSTGPUBINNED_CUH__
@@ -6,7 +6,6 @@
 
 #include <hip/hip_runtime.h>
 
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
@@ -57,7 +56,6 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     const unsigned int block_size,
                                     bool filter_body,
                                     const Scalar3& ghost_width,
-                                    const GPUPartition& gpu_partition,
                                     bool use_index,
                                     const hipDeviceProp_t& devprop);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshParameters.h"
@@ -51,8 +51,11 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
 
     virtual pybind11::array_t<Scalar> getVolume()
         {
+        unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+        if (m_ignore_type)
+            n_types = 1;
         ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::read);
-        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), h_volume.data);
+        return pybind11::array(n_types, h_volume.data);
         }
 
 #ifdef ENABLE_MPI

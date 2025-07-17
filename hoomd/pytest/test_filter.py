@@ -1,9 +1,17 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
-from hoomd.filter import (Type, Tags, SetDifference, Union, Intersection, All,
-                          Null, Rigid)
+from hoomd.filter import (
+    Type,
+    Tags,
+    SetDifference,
+    Union,
+    Intersection,
+    All,
+    Null,
+    Rigid,
+)
 from hoomd.snapshot import Snapshot
 from copy import deepcopy
 from itertools import combinations
@@ -13,8 +21,7 @@ import numpy as np
 
 @pytest.fixture(scope="function")
 def make_filter_snapshot(device):
-
-    def filter_snapshot(n=10, particle_types=['A']):
+    def filter_snapshot(n=10, particle_types=["A"]):
         s = Snapshot(device.communicator)
         if s.communicator.rank == 0:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
@@ -28,7 +35,7 @@ def make_filter_snapshot(device):
 
 @pytest.mark.serial
 def test_all_filter(make_filter_snapshot, simulation_factory):
-    particle_types = ['A']
+    particle_types = ["A"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -37,7 +44,7 @@ def test_all_filter(make_filter_snapshot, simulation_factory):
 
 
 def test_null_filter(make_filter_snapshot, simulation_factory):
-    particle_types = ['A']
+    particle_types = ["A"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -50,9 +57,11 @@ def set_types(s, indices, particle_types, particle_type):
         s.particles.typeid[i] = particle_types.index(particle_type)
 
 
-_type_indices = [([0, 3, 4, 8], [1, 2, 5, 6, 7, 9]),
-                 ([2, 3, 5, 6, 7, 8, 9], [0, 1, 4]),
-                 ([3, 7], [0, 1, 2, 4, 5, 6, 8, 9])]
+_type_indices = [
+    ([0, 3, 4, 8], [1, 2, 5, 6, 7, 9]),
+    ([2, 3, 5, 6, 7, 8, 9], [0, 1, 4]),
+    ([3, 7], [0, 1, 2, 4, 5, 6, 8, 9]),
+]
 
 
 @pytest.fixture(scope="function", params=_type_indices)
@@ -62,7 +71,7 @@ def type_indices(request):
 
 @pytest.mark.serial
 def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
-    particle_types = ['A', 'B']
+    particle_types = ["A", "B"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -91,8 +100,14 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     assert AB_filter(sim.state) == list(range(N))
 
 
-_tag_indices = [[0, 3, 4, 8], [1, 2, 5, 6, 7, 9], [2, 3, 5, 6, 7, 8, 9],
-                [0, 1, 4], [3, 7], [0, 1, 2, 4, 5, 6, 8, 9]]
+_tag_indices = [
+    [0, 3, 4, 8],
+    [1, 2, 5, 6, 7, 9],
+    [2, 3, 5, 6, 7, 8, 9],
+    [0, 1, 4],
+    [3, 7],
+    [0, 1, 2, 4, 5, 6, 8, 9],
+]
 
 
 @pytest.fixture(scope="function", params=_tag_indices)
@@ -101,7 +116,7 @@ def tag_indices(request):
 
 
 def test_tags_filter(make_filter_snapshot, simulation_factory, tag_indices):
-    particle_types = ['A']
+    particle_types = ["A"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -110,9 +125,11 @@ def test_tags_filter(make_filter_snapshot, simulation_factory, tag_indices):
     assert tag_filter(sim.state) == indices
 
 
-_set_indices = [([0, 3, 8], [1, 6, 7, 9], [2, 4, 5]),
-                ([2, 3, 5, 7, 8], [0, 1, 4], [6, 9]),
-                ([3], [0, 7, 8], [1, 2, 4, 5, 6, 9])]
+_set_indices = [
+    ([0, 3, 8], [1, 6, 7, 9], [2, 4, 5]),
+    ([2, 3, 5, 7, 8], [0, 1, 4], [6, 9]),
+    ([3], [0, 7, 8], [1, 2, 4, 5, 6, 9]),
+]
 
 
 @pytest.fixture(scope="function", params=_set_indices)
@@ -137,7 +154,7 @@ def type_not_in_combo(combo, particle_types):
 
 
 def test_intersection(make_filter_snapshot, simulation_factory, set_indices):
-    particle_types = ['A', 'B', 'C']
+    particle_types = ["A", "B", "C"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -162,7 +179,7 @@ def test_intersection(make_filter_snapshot, simulation_factory, set_indices):
 
 
 def test_union(make_filter_snapshot, simulation_factory, set_indices):
-    particle_types = ['A', 'B', 'C']
+    particle_types = ["A", "B", "C"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -183,7 +200,7 @@ def test_union(make_filter_snapshot, simulation_factory, set_indices):
 
 
 def test_difference(make_filter_snapshot, simulation_factory, set_indices):
-    particle_types = ['A', 'B', 'C']
+    particle_types = ["A", "B", "C"]
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
@@ -223,18 +240,19 @@ _filter_classes = [
 _constructor_args = [
     (),
     ([1, 2, 3],),
-    ({'a', 'b'},),
-    (('center', 'free'),),
-    (Tags([1, 4, 5]), Type({'a'})),
-    (Tags([1, 4, 5]), Type({'a'})),
-    (Tags([1, 4, 5]), Type({'a'})),
+    ({"a", "b"},),
+    (("center", "free"),),
+    (Tags([1, 4, 5]), Type({"a"})),
+    (Tags([1, 4, 5]), Type({"a"})),
+    (Tags([1, 4, 5]), Type({"a"})),
 ]
 
 
-@pytest.mark.parametrize('constructor, args',
-                         zip(_filter_classes, _constructor_args),
-                         ids=lambda x: None
-                         if isinstance(x, tuple) else x.__name__)
+@pytest.mark.parametrize(
+    "constructor, args",
+    zip(_filter_classes, _constructor_args),
+    ids=lambda x: None if isinstance(x, tuple) else x.__name__,
+)
 def test_pickling(constructor, args):
     filter_ = constructor(*args)
     pickled_filter = pickle.loads(pickle.dumps(filter_))

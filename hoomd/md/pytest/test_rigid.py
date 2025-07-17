@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence
@@ -9,6 +9,7 @@ from hoomd.conftest import autotuned_kernel_parameter_check
 
 try:
     import rowan
+
     skip_rowan = False
 except ImportError:
     skip_rowan = True
@@ -24,10 +25,10 @@ def valid_body_definition():
     return {
         "constituent_types": ["B", "B", "B", "B"],
         "positions": [
-            [1, 0, -1 / (2**(1. / 2.))],
-            [-1, 0, -1 / (2**(1. / 2.))],
-            [0, -1, 1 / (2**(1. / 2.))],
-            [0, 1, 1 / (2**(1. / 2.))],
+            [1, 0, -1 / (2 ** (1.0 / 2.0))],
+            [-1, 0, -1 / (2 ** (1.0 / 2.0))],
+            [0, -1, 1 / (2 ** (1.0 / 2.0))],
+            [0, 1, 1 / (2 ** (1.0 / 2.0))],
         ],
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
     }
@@ -37,8 +38,7 @@ def test_body_setting(valid_body_definition):
     invalid_body_definitions = {
         "constituent_types": [[4], "hello", ("A", 4)],
         "positions": [[(1, 2)], [(1.0, 4.0, "foo")], 1.0, "hello"],
-        "orientations": [[(1, 2, 3)], [(1.0, 4.0, 5.0, "foo")], [1.0], 1.0,
-                         "foo"],
+        "orientations": [[(1, 2, 3)], [(1.0, 4.0, 5.0, "foo")], [1.0], 1.0, "foo"],
     }
 
     rigid = md.constrain.Rigid()
@@ -46,8 +46,11 @@ def test_body_setting(valid_body_definition):
     rigid.body["A"] = current_body_definition
 
     for key, value in rigid.body["A"].items():
-        if (isinstance(value, Sequence) and len(value) > 0
-                and not isinstance(value[0], str)):
+        if (
+            isinstance(value, Sequence)
+            and len(value) > 0
+            and not isinstance(value[0], str)
+        ):
             assert np.allclose(value, current_body_definition[key])
         else:
             assert value == current_body_definition[key]
@@ -83,42 +86,57 @@ def check_bodies(snapshot, definition, charges=None):
             assert snapshot.particles.charge[i + 2] == charges[i]
             assert snapshot.particles.charge[i + 6] == charges[i]
 
-    particle_one = (snapshot.particles.position[0],
-                    snapshot.particles.orientation[0])
-    particle_two = (snapshot.particles.position[1],
-                    snapshot.particles.orientation[1])
+    particle_one = (snapshot.particles.position[0], snapshot.particles.orientation[0])
+    particle_two = (snapshot.particles.position[1], snapshot.particles.orientation[1])
 
     # Check positions
-    def check_position(central_position, central_orientation,
-                       constituent_position, local_position):
+    def check_position(
+        central_position, central_orientation, constituent_position, local_position
+    ):
         d_pos = rowan.rotate(central_orientation, local_position)
         assert np.allclose(central_position + d_pos, constituent_position)
 
     for i in range(4):
-        check_position(*particle_one, snapshot.particles.position[i + 2],
-                       definition["positions"][i])
-        check_position(*particle_two, snapshot.particles.position[i + 6],
-                       definition["positions"][i])
+        check_position(
+            *particle_one,
+            snapshot.particles.position[i + 2],
+            definition["positions"][i],
+        )
+        check_position(
+            *particle_two,
+            snapshot.particles.position[i + 6],
+            definition["positions"][i],
+        )
 
     # check orientation
-    def check_orientation(central_orientation, constituent_orientation,
-                          local_orientation):
+    def check_orientation(
+        central_orientation, constituent_orientation, local_orientation
+    ):
         expected_orientation = rowan.normalize(
-            rowan.multiply(central_orientation, local_orientation))
+            rowan.multiply(central_orientation, local_orientation)
+        )
         assert np.allclose(expected_orientation, local_orientation)
 
     for i in range(4):
-        check_orientation(particle_one[1],
-                          snapshot.particles.orientation[i + 2],
-                          definition["orientations"][i])
-        check_orientation(particle_two[1],
-                          snapshot.particles.orientation[i + 6],
-                          definition["orientations"][i])
+        check_orientation(
+            particle_one[1],
+            snapshot.particles.orientation[i + 2],
+            definition["orientations"][i],
+        )
+        check_orientation(
+            particle_two[1],
+            snapshot.particles.orientation[i + 6],
+            definition["orientations"][i],
+        )
 
 
 @skip_rowan
-def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
-                       lattice_snapshot_factory, valid_body_definition):
+def test_create_bodies(
+    simulation_factory,
+    two_particle_snapshot_factory,
+    lattice_snapshot_factory,
+    valid_body_definition,
+):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
 
@@ -165,16 +183,16 @@ def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
         assert np.all(snapshot.particles.body[56:100] == -1)
         assert np.all(snapshot.particles.body[800:1000] == -1)
         # Check constituent_particles
-        assert np.all(
-            snapshot.particles.body[1000:] == np.repeat(central_tags, 4))
+        assert np.all(snapshot.particles.body[1000:] == np.repeat(central_tags, 4))
 
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
     # Ensure validate bodies passes
     sim.run(0)
 
 
-def test_attaching(simulation_factory, two_particle_snapshot_factory,
-                   valid_body_definition):
+def test_attaching(
+    simulation_factory, two_particle_snapshot_factory, valid_body_definition
+):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
@@ -191,17 +209,20 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.run(0)
 
     for key, value in rigid.body["A"].items():
-        if (isinstance(value, Sequence) and len(value) > 0
-                and not isinstance(value[0], str)):
+        if (
+            isinstance(value, Sequence)
+            and len(value) > 0
+            and not isinstance(value[0], str)
+        ):
             assert np.allclose(value, valid_body_definition[key])
         else:
             assert value == valid_body_definition[key]
 
 
 @pytest.mark.serial
-def test_error_on_invalid_body(simulation_factory,
-                               two_particle_snapshot_factory,
-                               valid_body_definition):
+def test_error_on_invalid_body(
+    simulation_factory, two_particle_snapshot_factory, valid_body_definition
+):
     """Tests that Simulation fails when bodies are not present in state."""
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
@@ -220,8 +241,9 @@ def test_error_on_invalid_body(simulation_factory,
 
 
 @skip_rowan
-def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
-                            valid_body_definition):
+def test_running_simulation(
+    simulation_factory, two_particle_snapshot_factory, valid_body_definition
+):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
@@ -229,7 +251,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
-    lj.r_cut.default = 2**(1.0 / 6.0)
+    lj.r_cut.default = 2 ** (1.0 / 6.0)
     integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
     integrator.rigid = rigid
 
@@ -247,19 +269,19 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     if sim.device.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition, charges)
 
-    autotuned_kernel_parameter_check(instance=rigid,
-                                     activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=rigid, activate=lambda: sim.run(1))
 
 
-def test_running_without_body_definition(simulation_factory,
-                                         two_particle_snapshot_factory):
+def test_running_without_body_definition(
+    simulation_factory, two_particle_snapshot_factory
+):
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
     lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
-    lj.r_cut.default = 2**(1.0 / 6.0)
+    lj.r_cut.default = 2 ** (1.0 / 6.0)
     integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
     integrator.rigid = rigid
 
@@ -274,9 +296,9 @@ def test_running_without_body_definition(simulation_factory,
 
 
 @pytest.mark.serial
-def test_setting_body_after_attaching(simulation_factory,
-                                      two_particle_snapshot_factory,
-                                      valid_body_definition):
+def test_setting_body_after_attaching(
+    simulation_factory, two_particle_snapshot_factory, valid_body_definition
+):
     """Test updating body definition without updating sim particles fails."""
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
@@ -284,7 +306,7 @@ def test_setting_body_after_attaching(simulation_factory,
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
-    lj.r_cut.default = 2**(1.0 / 6.0)
+    lj.r_cut.default = 2 ** (1.0 / 6.0)
     integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
     integrator.rigid = rigid
 
@@ -311,7 +333,7 @@ def test_rigid_body_restart(simulation_factory, valid_body_definition):
         s.particles.N = N
         s.particles.position[:] = [[-0.5, 0, 0]] * N
         s.particles.body[:] = [x for x in range(N)]
-        s.particles.types = ['A', 'B']
+        s.particles.types = ["A", "B"]
         s.particles.typeid[:] = [0] * N
         s.configuration.box = [2, 2, 2, 0, 0, 0]
 
@@ -327,7 +349,7 @@ def test_rigid_body_restart(simulation_factory, valid_body_definition):
     sim.run(0)
 
     snapshot = sim.state.get_snapshot()
-    N_const = len(valid_body_definition['constituent_types'])
+    N_const = len(valid_body_definition["constituent_types"])
     if snapshot.communicator.rank == 0:
         assert np.all(snapshot.particles.typeid[:N] == 0)
         assert np.all(snapshot.particles.typeid[N:] == 1)
@@ -336,16 +358,21 @@ def test_rigid_body_restart(simulation_factory, valid_body_definition):
         assert np.all(snapshot.particles.body[N:] == should_be)
 
 
-@pytest.mark.parametrize("reload_snapshot, n_free",
-                         itertools.product([False, True], [0, 10]))
-def test_rigid_dof(lattice_snapshot_factory, simulation_factory,
-                   valid_body_definition, reload_snapshot, n_free):
+@pytest.mark.parametrize(
+    "reload_snapshot, n_free", itertools.product([False, True], [0, 10])
+)
+def test_rigid_dof(
+    lattice_snapshot_factory,
+    simulation_factory,
+    valid_body_definition,
+    reload_snapshot,
+    n_free,
+):
     n = 7
     n_bodies = n**3 - n_free
-    initial_snapshot = lattice_snapshot_factory(particle_types=['A', 'B'],
-                                                n=n,
-                                                dimensions=3,
-                                                a=5)
+    initial_snapshot = lattice_snapshot_factory(
+        particle_types=["A", "B"], n=n, dimensions=3, a=5
+    )
 
     if initial_snapshot.communicator.rank == 0:
         initial_snapshot.particles.body[:n_bodies] = range(n_bodies)
@@ -366,36 +393,49 @@ def test_rigid_dof(lattice_snapshot_factory, simulation_factory,
     integrator = hoomd.md.Integrator(dt=0.0, integrate_rotational_dof=True)
     integrator.rigid = rigid
 
-    thermo_all = hoomd.md.compute.ThermodynamicQuantities(
-        filter=hoomd.filter.All())
+    thermo_all = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
     thermo_two = hoomd.md.compute.ThermodynamicQuantities(
-        filter=hoomd.filter.Tags([0, 1]))
+        filter=hoomd.filter.Tags([0, 1])
+    )
     thermo_central = hoomd.md.compute.ThermodynamicQuantities(
-        filter=hoomd.filter.Rigid(flags=("center",)))
+        filter=hoomd.filter.Rigid(flags=("center",))
+    )
     thermo_central_free = hoomd.md.compute.ThermodynamicQuantities(
-        filter=hoomd.filter.Rigid(flags=("center", "free")))
+        filter=hoomd.filter.Rigid(flags=("center", "free"))
+    )
     thermo_constituent = hoomd.md.compute.ThermodynamicQuantities(
-        filter=hoomd.filter.Rigid(flags=("constituent",)))
+        filter=hoomd.filter.Rigid(flags=("constituent",))
+    )
 
-    sim.operations.computes.extend([
-        thermo_all, thermo_two, thermo_central, thermo_central_free,
-        thermo_constituent
-    ])
+    sim.operations.computes.extend(
+        [
+            thermo_all,
+            thermo_two,
+            thermo_central,
+            thermo_central_free,
+            thermo_constituent,
+        ]
+    )
     sim.operations.integrator = integrator
     integrator.methods.append(
-        hoomd.md.methods.ConstantVolume(filter=hoomd.filter.Rigid(
-            flags=("center", "free"))))
+        hoomd.md.methods.ConstantVolume(
+            filter=hoomd.filter.Rigid(flags=("center", "free"))
+        )
+    )
 
     sim.run(0)
 
-    assert thermo_all.translational_degrees_of_freedom == (n_bodies
-                                                           + n_free) * 3 - 3
+    assert thermo_all.translational_degrees_of_freedom == (n_bodies + n_free) * 3 - 3
     assert thermo_two.translational_degrees_of_freedom == 2 * 3 - 3 * (
-        2 / (n_bodies + n_free))
+        2 / (n_bodies + n_free)
+    )
     assert thermo_central.translational_degrees_of_freedom == (
-        n_bodies * 3 - 3 * (n_bodies / (n_bodies + n_free)))
-    assert thermo_central_free.translational_degrees_of_freedom == (
-        n_bodies + n_free) * 3 - 3
+        n_bodies * 3 - 3 * (n_bodies / (n_bodies + n_free))
+    )
+    assert (
+        thermo_central_free.translational_degrees_of_freedom
+        == (n_bodies + n_free) * 3 - 3
+    )
     assert thermo_constituent.translational_degrees_of_freedom == 0
 
     # Test again with the rigid body constraints removed. Now the integration
@@ -406,10 +446,177 @@ def test_rigid_dof(lattice_snapshot_factory, simulation_factory,
 
     sim.run(0)
 
-    assert thermo_all.translational_degrees_of_freedom == (n_bodies
-                                                           + n_free) * 3
+    assert thermo_all.translational_degrees_of_freedom == (n_bodies + n_free) * 3
     assert thermo_two.translational_degrees_of_freedom == 2 * 3
     assert thermo_central.translational_degrees_of_freedom == n_bodies * 3
-    assert thermo_central_free.translational_degrees_of_freedom == (
-        n_bodies + n_free) * 3
+    assert (
+        thermo_central_free.translational_degrees_of_freedom == (n_bodies + n_free) * 3
+    )
     assert thermo_constituent.translational_degrees_of_freedom == 0
+
+
+@pytest.mark.parametrize(
+    "com_velocity",
+    [(0, 0, 0), (1, 2, 3)],
+)
+def test_velocity_constituents_constant_torque(
+    com_velocity,
+    simulation_factory,
+    one_particle_snapshot_factory,
+    valid_body_definition,
+):
+    """Test velocity of constituents updates correctly with constant torque."""
+    initial_snapshot = one_particle_snapshot_factory(particle_types=["A", "B"])
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.moment_inertia[:] = [(1, 1, 1)]
+        initial_snapshot.particles.velocity[:] = [com_velocity]
+
+    sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
+
+    rigid = md.constrain.Rigid()
+    rigid.body["A"] = valid_body_definition
+    rigid.create_bodies(sim.state)
+
+    constvol = md.methods.ConstantVolume(filter=hoomd.filter.Rigid())
+    integrator = md.Integrator(
+        dt=0.005,
+        methods=[constvol],
+        integrate_rotational_dof=True,
+    )
+    integrator.rigid = rigid
+    sim.operations += integrator
+    sim.run(1)
+
+    new_snapshot = sim.state.get_snapshot()
+    if new_snapshot.communicator.rank == 0:
+        expected_velocity = [com_velocity] * 5
+        assert np.allclose(expected_velocity, new_snapshot.particles.velocity)
+
+    constant_torque = hoomd.md.force.Constant(filter=hoomd.filter.All())
+    constant_torque.constant_torque["A"] = (0, 0, 1)
+    integrator.forces.append(constant_torque)
+
+    sim.run(1)
+    # Tangential velocities of rigid body described by valid_body_defintion
+    # experiencing constant torque in the z direction after 1 time step was
+    # calculated in independent code.
+    # Expected velocity is tangential velocity plus center of mass velocity.
+    expected_tangential_velocity = [
+        [0, 0, 0],
+        [-6.25e-08, 5.00e-03, 0.00e00],
+        [6.25e-08, -5.00e-03, 0.00e00],
+        [5.00e-03, 6.25e-08, 0.00e00],
+        [-5.00e-03, -6.25e-08, 0.00e00],
+    ]
+    expected_velocity = np.add(expected_tangential_velocity, com_velocity)
+    new_snapshot = sim.state.get_snapshot()
+    if new_snapshot.communicator.rank == 0:
+        assert np.allclose(expected_velocity, new_snapshot.particles.velocity)
+
+
+@pytest.mark.parametrize(
+    "com_velocity",
+    [(0, 0, 0), (1, 2, 3)],
+)
+@pytest.mark.parametrize(
+    "omega",
+    [
+        [10, 0, 0],
+        [0, 10, 0],
+        [0, 0, 10],
+        [3, 4, 10],
+    ],
+)
+@pytest.mark.parametrize(
+    "body_definition,moment_of_inertia,mass",
+    [
+        (
+            {
+                "constituent_types": ["B", "B", "B", "B"],
+                "positions": [
+                    [1, 0, -1 / (2 ** (1.0 / 2.0))],
+                    [-1, 0, -1 / (2 ** (1.0 / 2.0))],
+                    [0, -1, 1 / (2 ** (1.0 / 2.0))],
+                    [0, 1, 1 / (2 ** (1.0 / 2.0))],
+                ],
+                "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
+            },
+            [1, 1, 1],
+            np.array([1, 1 / 16, 1 / 8, 1 / 4, 9 / 16]),
+        ),
+        (
+            {
+                "constituent_types": ["B", "B"],
+                "positions": [[-1.2, 0, 0], [1.2, 0, 0]],
+                "orientations": [[1, 0, 0, 0], [1, 0, 0, 0]],
+            },
+            [0.0, 2.88, 2.88],
+            np.array([2, 1 / 2, 1.5]),
+        ),
+    ],
+    ids=["simple-inertia-body", "dimer-body"],
+)
+def test_velocity_constituents_constant_angmom(
+    com_velocity,
+    omega,
+    body_definition,
+    moment_of_inertia,
+    mass,
+    simulation_factory,
+    one_particle_snapshot_factory,
+):
+    """Test velocity of constituents updates correctly with 0 timestep."""
+    initial_snapshot = one_particle_snapshot_factory(particle_types=["A", "B"])
+    # steps to calculate angular momentum quaternion from desired angular
+    # velocity are typically the following:
+    # 1. Rotate space-frame angular velocity to body frame
+    # 2. Multiply by moment of inertia tensor in body frame
+    # 3. Promote to a quaternion with 0 real part and multiply by orientation
+    # 4. Multiply by 2
+    angmom = np.zeros(4)
+    angmom[1:] = 2 * np.multiply(omega, moment_of_inertia)
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.moment_inertia[:] = [moment_of_inertia]
+        initial_snapshot.particles.angmom[:] = [angmom]
+        initial_snapshot.particles.mass[:] = [mass[0]]
+        initial_snapshot.particles.velocity[:] = [com_velocity]
+
+    sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
+
+    rigid = md.constrain.Rigid()
+    rigid.body["A"] = body_definition
+    rigid.create_bodies(sim.state)
+
+    intermed_snapshot = sim.state.get_snapshot()
+    if intermed_snapshot.communicator.rank == 0:
+        flags = (
+            intermed_snapshot.particles.typeid
+            == intermed_snapshot.particles.types.index("B")
+        )
+        intermed_snapshot.particles.mass[flags] = mass[flags]
+    sim.state.set_snapshot(intermed_snapshot)
+
+    constvol = md.methods.ConstantVolume(filter=hoomd.filter.Rigid())
+    integrator = md.Integrator(
+        dt=0.005, methods=[constvol], integrate_rotational_dof=True
+    )
+    integrator.rigid = rigid
+    sim.operations += integrator
+    sim.run(0)
+
+    # check velocity from snapshot
+    # The tangential velocity is calculated from the angular velocity
+    # cross displacement from the center of mass.
+    # Expected velocity is tangential velocity plus center of mass velocity.
+    new_snapshot = sim.state.get_snapshot()
+    if new_snapshot.communicator.rank == 0:
+        assert np.array_equal(mass, new_snapshot.particles.mass)
+        central_pos = new_snapshot.particles.position[0]
+        for i in range(1, new_snapshot.particles.N):
+            tangential_vel = new_snapshot.particles.velocity[i]
+            displacement = new_snapshot.particles.position[i] - central_pos
+            expected_tangential_velocity = np.cross(omega, displacement)
+            expected_velocity = np.add(expected_tangential_velocity, com_velocity)
+            assert np.allclose(tangential_vel, expected_velocity)

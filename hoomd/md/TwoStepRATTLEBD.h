@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
@@ -150,7 +150,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
 
     const Scalar currentTemp = m_T->operator()(timestep);
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -403,8 +403,8 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
 
     const Scalar currentTemp = m_T->operator()(timestep);
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-    const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 

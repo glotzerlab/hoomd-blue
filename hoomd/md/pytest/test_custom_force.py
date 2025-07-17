@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -7,7 +7,8 @@ import numpy.testing as npt
 
 # cupy works implicitly to set values in GPU force arrays
 try:
-    import cupy  # noqa F401
+    import cupy
+
     CUPY_IMPORTED = True
 except ImportError:
     # Necessary to test failure of using GPU buffers in CPU simulation.
@@ -17,6 +18,7 @@ except ImportError:
 # mpi4py is needed for the ghost data test
 try:
     from mpi4py import MPI
+
     MPI4PY_IMPORTED = True
 except ImportError:
     MPI4PY_IMPORTED = False
@@ -25,27 +27,25 @@ import hoomd
 from hoomd import md
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def local_force_names(device):
     """Get local access properties based on the chosen devices."""
-    names = ['cpu_local_force_arrays']
+    names = ["cpu_local_force_arrays"]
     if isinstance(device, hoomd.device.GPU):
-        names.append('gpu_local_force_arrays')
+        names.append("gpu_local_force_arrays")
     return names
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def force_simulation_factory(simulation_factory):
     """Create a basic simulation where there is only one force."""
 
     def make_sim(force_obj, snapshot=None, domain_decomposition=None):
         sim = simulation_factory(snapshot, domain_decomposition)
         thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
-        npt = md.methods.ConstantPressure(hoomd.filter.All(),
-                                          S=1,
-                                          tauS=1,
-                                          couple="none",
-                                          thermostat=thermostat)
+        npt = md.methods.ConstantPressure(
+            hoomd.filter.All(), S=1, tauS=1, couple="none", thermostat=thermostat
+        )
         integrator = md.Integrator(dt=0.005, forces=[force_obj], methods=[npt])
         sim.operations.integrator = integrator
         return sim
@@ -75,13 +75,12 @@ def _skip_if_gpu_device_and_no_cupy(sim):
 
 
 class MyForce(md.force.Custom):
-
     def __init__(self, local_force_name):
         super().__init__(aniso=True)
         self._local_force_name = local_force_name
 
     def set_forces(self, timestep):
-        if 'gpu' in self._local_force_name:
+        if "gpu" in self._local_force_name:
             array_mod = cupy
         else:
             array_mod = np
@@ -93,8 +92,9 @@ class MyForce(md.force.Custom):
                 arrays.virial[:] = array_mod.arange(6)[None, :]
 
 
-def test_simulation(local_force_names, force_simulation_factory,
-                    lattice_snapshot_factory):
+def test_simulation(
+    local_force_names, force_simulation_factory, lattice_snapshot_factory
+):
     """Make sure custom force can plug into simulation without crashing."""
     for local_force_name in local_force_names:
         snap = lattice_snapshot_factory()
@@ -116,7 +116,6 @@ def test_simulation(local_force_names, force_simulation_factory,
 
 
 class ForceAsFunctionOfTag(md.force.Custom):
-
     def __init__(self):
         super().__init__(aniso=True)
 
@@ -124,29 +123,31 @@ class ForceAsFunctionOfTag(md.force.Custom):
         with self.cpu_local_force_arrays as force_arrays:
             with self._state.cpu_local_snapshot as local_snapshot:
                 tags = local_snapshot.particles.tag
-                force_arrays.force[:] = np.stack((tags * 1, tags * 2, tags * 3),
-                                                 axis=-1)
+                force_arrays.force[:] = np.stack(
+                    (tags * 1, tags * 2, tags * 3), axis=-1
+                )
                 energy = local_snapshot.particles.tag.astype(np.float64) * -10.0
                 force_arrays.potential_energy[:] = energy
                 tags_float = tags.astype(np.float64)
                 force_arrays.torque[:] = np.stack(
-                    (tags_float * -3.0, tags_float * -2.0, tags_float * -1.0),
-                    axis=-1)
+                    (tags_float * -3.0, tags_float * -2.0, tags_float * -1.0), axis=-1
+                )
                 if force_arrays.virial.shape[0] != 0:
-                    force_arrays.virial[:] = np.stack((
-                        tags_float * 1.0,
-                        tags_float * -2.0,
-                        tags_float * -3.0,
-                        tags_float * 4.0,
-                        tags_float * -5.0,
-                        tags_float * 6.0,
-                    ),
-                                                      axis=-1)
+                    force_arrays.virial[:] = np.stack(
+                        (
+                            tags_float * 1.0,
+                            tags_float * -2.0,
+                            tags_float * -3.0,
+                            tags_float * 4.0,
+                            tags_float * -5.0,
+                            tags_float * 6.0,
+                        ),
+                        axis=-1,
+                    )
 
 
 @pytest.mark.cpu
-def test_force_array_ordering(force_simulation_factory,
-                              lattice_snapshot_factory):
+def test_force_array_ordering(force_simulation_factory, lattice_snapshot_factory):
     """Make sure values in force arrays are returned in correct order."""
     snap = lattice_snapshot_factory()
     custom_force = ForceAsFunctionOfTag()
@@ -161,19 +162,28 @@ def test_force_array_ordering(force_simulation_factory,
     if sim.device.communicator.rank == 0:
         npt.assert_array_equal(energies, np.arange(sim.state.N_particles) * -10)
         npt.assert_array_equal(
-            forces, np.stack((indices * 1, indices * 2, indices * 3), axis=-1))
+            forces, np.stack((indices * 1, indices * 2, indices * 3), axis=-1)
+        )
         npt.assert_array_equal(
-            torques,
-            np.stack((indices * -3, indices * -2, indices * -1), axis=-1))
+            torques, np.stack((indices * -3, indices * -2, indices * -1), axis=-1)
+        )
         npt.assert_array_equal(
             virials,
-            np.stack((indices * 1, indices * -2, indices * -3, indices * 4,
-                      indices * -5, indices * 6),
-                     axis=-1))
+            np.stack(
+                (
+                    indices * 1,
+                    indices * -2,
+                    indices * -3,
+                    indices * 4,
+                    indices * -5,
+                    indices * 6,
+                ),
+                axis=-1,
+            ),
+        )
 
 
 class MyPeriodicField(md.force.Custom):
-
     def __init__(self, local_force_name, A, i, p, w):
         super().__init__()
         self._local_force_name = local_force_name
@@ -185,14 +195,14 @@ class MyPeriodicField(md.force.Custom):
 
     def _numpy_array(self, arr):
         """If arr is hoomd array change it to numpy."""
-        if arr.__class__.__name__ == 'HOOMDGPUArray':
+        if arr.__class__.__name__ == "HOOMDGPUArray":
             return arr.get()
         else:
             return arr
 
     def _evaluate_periodic(self, snapshot):
         """Evaluate force and energy in python."""
-        if 'gpu' in self._local_force_name:
+        if "gpu" in self._local_force_name:
             array_mod = cupy
         else:
             array_mod = np
@@ -211,31 +221,36 @@ class MyPeriodicField(md.force.Custom):
         b = {0: b1, 1: b2, 2: b3}.get(self._i)
         dot = array_mod.dot(array_mod.array(positions), array_mod.array(b))
 
-        cos_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.cos(
-            self._p * dot)
-        sin_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.sin(
-            self._p * dot)
+        cos_term = (
+            1 / (2 * array_mod.pi * self._p * self._w) * array_mod.cos(self._p * dot)
+        )
+        sin_term = (
+            1 / (2 * array_mod.pi * self._p * self._w) * array_mod.sin(self._p * dot)
+        )
         energies = self._A * array_mod.tanh(cos_term)
         forces = self._A * sin_term
-        forces *= 1 - array_mod.tanh(cos_term)**2
+        forces *= 1 - array_mod.tanh(cos_term) ** 2
         forces = array_mod.outer(forces, array_mod.array(b))
         return forces, energies
 
     def set_forces(self, timestep):
-        with getattr(self._state, self._local_snap_name) as snap, \
-                getattr(self, self._local_force_name) as arrays:
+        with (
+            getattr(self._state, self._local_snap_name) as snap,
+            getattr(self, self._local_force_name) as arrays,
+        ):
             forces, potential = self._evaluate_periodic(snap)
             arrays.force[:] = forces
             arrays.potential_energy[:] = potential
 
 
-def test_compare_to_periodic(local_force_names, force_simulation_factory,
-                             two_particle_snapshot_factory):
+def test_compare_to_periodic(
+    local_force_names, force_simulation_factory, two_particle_snapshot_factory
+):
     """Test hoomd external periodic compared to a python version."""
     # sim with built-in force
     snap = two_particle_snapshot_factory()
     periodic = md.external.field.Periodic()
-    periodic.params['A'] = dict(A=1, i=0, p=1, w=1)
+    periodic.params["A"] = dict(A=1, i=0, p=1, w=1)
     sim = force_simulation_factory(periodic, snap)
     integrator = sim.operations.integrator
 
@@ -285,9 +300,9 @@ def test_compare_to_periodic(local_force_names, force_simulation_factory,
             npt.assert_allclose(virials1, virials2)
 
 
-def test_nested_context_managers(local_force_names,
-                                 two_particle_snapshot_factory,
-                                 force_simulation_factory):
+def test_nested_context_managers(
+    local_force_names, two_particle_snapshot_factory, force_simulation_factory
+):
     """Ensure we cannot nest local force context managers."""
     for local_force_name in local_force_names:
         snap = two_particle_snapshot_factory()
@@ -301,8 +316,9 @@ def test_nested_context_managers(local_force_names,
                     return
 
 
-def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
-                           force_simulation_factory):
+def test_ghost_data_access(
+    local_force_names, two_particle_snapshot_factory, force_simulation_factory
+):
     """Ensure size of ghost data arrays are correct."""
     # skip this test if mpi4py not imported
     if not MPI4PY_IMPORTED:
@@ -318,7 +334,7 @@ def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
         # make LJ force so there is a ghost width on each rank
         nlist = md.nlist.Cell(buffer=0.2)
         lj_force = md.pair.LJ(nlist, default_r_cut=2.0)
-        lj_force.params[('A', 'A')] = dict(sigma=1, epsilon=1)
+        lj_force.params[("A", "A")] = dict(sigma=1, epsilon=1)
         sim.operations.integrator.forces.append(lj_force)
         sim.run(0)
 
@@ -331,12 +347,12 @@ def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
         N_global = mpi_comm.bcast(N_global, root=0)
 
         # test buffer lengths
-        array_buffers = ['force', 'torque', 'potential_energy', 'virial']
+        array_buffers = ["force", "torque", "potential_energy", "virial"]
         with getattr(custom_force, local_force_name) as arrays:
             for buffer_name in array_buffers:
                 buffer = getattr(arrays, buffer_name)
-                ghost_buffer = getattr(arrays, 'ghost_' + buffer_name)
-                buffer_with_ghost = getattr(arrays, buffer_name + '_with_ghost')
+                ghost_buffer = getattr(arrays, "ghost_" + buffer_name)
+                buffer_with_ghost = getattr(arrays, buffer_name + "_with_ghost")
 
                 # make sure particle numbers add up within the rank
                 assert len(buffer) + len(ghost_buffer) == len(buffer_with_ghost)
@@ -359,12 +375,13 @@ def _assert_buffers_readonly(force_arrays):
         force_arrays.torque[:] = 2345
 
 
-def test_data_buffers_readonly(local_force_names, two_particle_snapshot_factory,
-                               simulation_factory):
+def test_data_buffers_readonly(
+    local_force_names, two_particle_snapshot_factory, simulation_factory
+):
     """Ensure local data buffers for non-custom force classes are read-only."""
     nlist = md.nlist.Cell(buffer=0.2)
     lj = md.pair.LJ(nlist, default_r_cut=2.0)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
 
     snap = two_particle_snapshot_factory()
     sim = simulation_factory(snap)
@@ -380,7 +397,7 @@ def test_data_buffers_readonly(local_force_names, two_particle_snapshot_factory,
                 _assert_buffers_readonly(arrays)
 
 
-def _make_two_particle_snapshot(device, particle_types=['A'], d=1, L=20):
+def _make_two_particle_snapshot(device, particle_types=["A"], d=1, L=20):
     """Make the snapshot.
 
     Args:
@@ -400,7 +417,7 @@ def _make_two_particle_snapshot(device, particle_types=['A'], d=1, L=20):
         s.configuration.box = box
         s.particles.N = 2
         # shift particle positions slightly in z so MPI tests pass
-        s.particles.position[:] = [[-d / 2, 0, .1], [d / 2, 0, .1]]
+        s.particles.position[:] = [[-d / 2, 0, 0.1], [d / 2, 0, 0.1]]
         s.particles.types = particle_types
 
     return s
@@ -412,21 +429,20 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     snap = _make_two_particle_snapshot(device)
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(snap)
-    custom_force = MyForce('gpu_local_force_arrays')
+    custom_force = MyForce("gpu_local_force_arrays")
     thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
-    npt = md.methods.ConstantPressure(hoomd.filter.All(),
-                                      thermostat=thermostat,
-                                      S=1,
-                                      tauS=1,
-                                      couple="none")
+    npt = md.methods.ConstantPressure(
+        hoomd.filter.All(), thermostat=thermostat, S=1, tauS=1, couple="none"
+    )
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[npt])
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):
         sim.run(1)
 
 
-def test_torques_update(local_force_names, two_particle_snapshot_factory,
-                        force_simulation_factory):
+def test_torques_update(
+    local_force_names, two_particle_snapshot_factory, force_simulation_factory
+):
     """Confirm torque'd particles' orientation changes over time."""
     initial_orientations = np.array([[1, 0, 0, 0], [1, 0, 0, 0]])
     for local_force_name in local_force_names:
@@ -440,20 +456,16 @@ def test_torques_update(local_force_names, two_particle_snapshot_factory,
         sim.operations.integrator.integrate_rotational_dof = True
 
         if sim.device.communicator.rank == 0:
-            npt.assert_allclose(snap.particles.orientation,
-                                initial_orientations)
+            npt.assert_allclose(snap.particles.orientation, initial_orientations)
         sim.run(2)
 
         snap = sim.state.get_snapshot()
         if sim.device.communicator.rank == 0:
-            assert np.count_nonzero(snap.particles.orientation
-                                    - initial_orientations)
+            assert np.count_nonzero(snap.particles.orientation - initial_orientations)
 
 
 def test_force_zeroing(force_simulation_factory, two_particle_snapshot_factory):
-
     class TestForceZeroing(hoomd.md.force.Custom):
-
         def __init__(self):
             super().__init__(aniso=True)
 

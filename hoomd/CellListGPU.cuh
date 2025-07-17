@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __CELLLISTGPU_CUH__
@@ -8,7 +8,6 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#include "GPUPartition.cuh"
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.cuh"
@@ -40,8 +39,7 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
                            const Index3D& ci,
                            const Index2D& cli,
                            const Scalar3& ghost_width,
-                           const unsigned int block_size,
-                           const GPUPartition& gpu_partition);
+                           const unsigned int block_size);
 
 //! Driver function to combine the cell lists from different GPUs into one
 hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
@@ -58,8 +56,7 @@ hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
                                   unsigned int ngpu,
                                   const unsigned int block_size,
                                   const unsigned int Nmax,
-                                  uint3* d_conditions,
-                                  const GPUPartition& gpu_partition);
+                                  uint3* d_conditions);
 
 hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                               Scalar4* d_xyzf,

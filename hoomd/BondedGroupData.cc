@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
@@ -829,9 +829,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
             // now, update the actual table
             // zero the number of bonded groups counter (again)
-            memset(h_n_groups.data,
-                   0,
-                   sizeof(unsigned int) * (m_pdata->getN() + m_pdata->getNGhosts()));
+            m_gpu_n_groups.zeroFill();
 
             // loop through all group and add them to each column in the list
             for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)

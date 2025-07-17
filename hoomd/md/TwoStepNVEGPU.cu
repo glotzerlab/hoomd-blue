@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -49,7 +49,6 @@ __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
                                         int3* d_image,
                                         unsigned int* d_group_members,
                                         const unsigned int nwork,
-                                        const unsigned int offset,
                                         BoxDim box,
                                         Scalar deltaT,
                                         bool limit,
@@ -61,7 +60,7 @@ __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // do velocity verlet update
@@ -130,7 +129,7 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
                             const Scalar3* d_accel,
                             int3* d_image,
                             unsigned int* d_group_members,
-                            const GPUPartition& gpu_partition,
+                            const unsigned int group_size,
                             const BoxDim& box,
                             Scalar deltaT,
                             bool limit,
@@ -145,37 +144,29 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_nve_step_one_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_pos,
-                           d_vel,
-                           d_accel,
-                           d_image,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           box,
-                           deltaT,
-                           limit,
-                           limit_val,
-                           zero_force);
-        }
-
+    // run the kernel
+    hipLaunchKernelGGL((gpu_nve_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_image,
+                       d_group_members,
+                       nwork,
+                       box,
+                       deltaT,
+                       limit,
+                       limit_val,
+                       zero_force);
     return hipSuccess;
     }
 
@@ -194,7 +185,6 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4* d_orientation,
                                                 const Scalar4* d_net_torque,
                                                 const unsigned int* d_group_members,
                                                 const unsigned int nwork,
-                                                const unsigned int offset,
                                                 Scalar deltaT,
                                                 Scalar scale)
     {
@@ -203,7 +193,7 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4* d_orientation,
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
@@ -321,7 +311,7 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                                     const Scalar3* d_inertia,
                                     const Scalar4* d_net_torque,
                                     unsigned int* d_group_members,
-                                    const GPUPartition& gpu_partition,
+                                    const unsigned int group_size,
                                     Scalar deltaT,
                                     Scalar scale,
                                     const unsigned int block_size)
@@ -333,173 +323,27 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
+    // run the kernel
+    hipLaunchKernelGGL((gpu_nve_angular_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_torque,
+                       d_group_members,
+                       nwork,
+                       deltaT,
+                       scale);
 
-        // run the kernel
-        hipLaunchKernelGGL((gpu_nve_angular_step_one_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_orientation,
-                           d_angmom,
-                           d_inertia,
-                           d_net_torque,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           deltaT,
-                           scale);
-        }
-
-    return hipSuccess;
-    }
-
-//! Takes the second half-step forward in the velocity-verlet NVE integration on a group of
-//! particles
-/*! \param d_vel array of particle velocities
-    \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indices of the members of the group to integrate
-    \param group_size Number of members in the group
-    \param d_net_force Net force on each particle
-    \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not
-   move a distance further than \a limit_val in one step. \param limit_val Length to limit particle
-   distance movement to \param zero_force Set to true to always assign an acceleration of 0 to all
-   particles in the group
-
-    This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for
-   design details.
-*/
-__global__ void gpu_nve_step_two_kernel(Scalar4* d_vel,
-                                        Scalar3* d_accel,
-                                        unsigned int* d_group_members,
-                                        const unsigned int nwork,
-                                        const unsigned int offset,
-                                        Scalar4* d_net_force,
-                                        Scalar deltaT,
-                                        bool limit,
-                                        Scalar limit_val,
-                                        bool zero_force)
-    {
-    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (work_idx < nwork)
-        {
-        const unsigned int group_idx = work_idx + offset;
-        unsigned int idx = d_group_members[group_idx];
-
-        // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
-        Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-        // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        Scalar4 vel = d_vel[idx];
-
-        if (!zero_force)
-            {
-            Scalar4 net_force = d_net_force[idx];
-            accel = make_scalar3(net_force.x, net_force.y, net_force.z);
-            // MEM TRANSFER: 4 bytes   FLOPS: 3
-            Scalar mass = vel.w;
-            accel.x /= mass;
-            accel.y /= mass;
-            accel.z /= mass;
-            }
-
-        // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-
-        // update the velocity (FLOPS: 6)
-        vel.x += (Scalar(1.0) / Scalar(2.0)) * accel.x * deltaT;
-        vel.y += (Scalar(1.0) / Scalar(2.0)) * accel.y * deltaT;
-        vel.z += (Scalar(1.0) / Scalar(2.0)) * accel.z * deltaT;
-
-        if (limit)
-            {
-            Scalar vel_len = sqrtf(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
-            if ((vel_len * deltaT) > limit_val)
-                {
-                vel.x = vel.x / vel_len * limit_val / deltaT;
-                vel.y = vel.y / vel_len * limit_val / deltaT;
-                vel.z = vel.z / vel_len * limit_val / deltaT;
-                }
-            }
-
-        // write out data (MEM TRANSFER: 32 bytes)
-        d_vel[idx] = vel;
-        // since we calculate the acceleration, we need to write it for the next step
-        d_accel[idx] = accel;
-        }
-    }
-
-/*! \param d_vel array of particle velocities
-    \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indices of the members of the group to integrate
-    \param group_size Number of members in the group
-    \param d_net_force Net force on each particle
-    \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not
-   move a distance further than \a limit_val in one step. \param limit_val Length to limit particle
-   distance movement to \param zero_force Set to true to always assign an acceleration of 0 to all
-   particles in the group
-
-    This is just a driver for gpu_nve_step_two_kernel(), see it for details.
-*/
-hipError_t gpu_nve_step_two(Scalar4* d_vel,
-                            Scalar3* d_accel,
-                            unsigned int* d_group_members,
-                            const GPUPartition& gpu_partition,
-                            Scalar4* d_net_force,
-                            Scalar deltaT,
-                            bool limit,
-                            Scalar limit_val,
-                            bool zero_force,
-                            unsigned int block_size)
-    {
-    unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_two_kernel);
-    max_block_size = attr.maxThreadsPerBlock;
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_nve_step_two_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_vel,
-                           d_accel,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           d_net_force,
-                           deltaT,
-                           limit,
-                           limit_val,
-                           zero_force);
-        }
     return hipSuccess;
     }
 
@@ -518,7 +362,6 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4* d_orientation,
                                                 const Scalar4* d_net_torque,
                                                 unsigned int* d_group_members,
                                                 const unsigned int nwork,
-                                                const unsigned int offset,
                                                 Scalar deltaT,
                                                 Scalar scale)
     {
@@ -527,7 +370,7 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4* d_orientation,
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
@@ -576,7 +419,7 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     const Scalar3* d_inertia,
                                     const Scalar4* d_net_torque,
                                     unsigned int* d_group_members,
-                                    const GPUPartition& gpu_partition,
+                                    const unsigned int group_size,
                                     Scalar deltaT,
                                     Scalar scale,
                                     const unsigned int block_size)
@@ -588,33 +431,26 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_nve_angular_step_two_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_orientation,
-                           d_angmom,
-                           d_inertia,
-                           d_net_torque,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           deltaT,
-                           scale);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_nve_angular_step_two_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_torque,
+                       d_group_members,
+                       nwork,
+                       deltaT,
+                       scale);
 
     return hipSuccess;
     }

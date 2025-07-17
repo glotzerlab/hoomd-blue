@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Writers.
-
-Writers write the state of the simulation, logger quantities, or calculated
+"""Writers write the state of the simulation, logger quantities, or calculated
 results to output files or streams:
 
 * `GSD` and `DCD` save the simulation trajectory to a file.
@@ -23,9 +21,9 @@ Tip:
     including logged per-particle array quantities and particle shapes.
 
 See Also:
-    Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
+    Tutorial: :doc:`/tutorial/00-Introducing-HOOMD-blue/00-index`
 
-    Tutorial: :doc:`tutorial/02-Logging/00-index`
+    Tutorial: :doc:`/tutorial/02-Logging/00-index`
 """
 
 from hoomd.write.custom_writer import CustomWriter
@@ -34,3 +32,12 @@ from hoomd.write.gsd_burst import Burst
 from hoomd.write.dcd import DCD
 from hoomd.write.table import Table
 from hoomd.write.hdf5 import HDF5Log
+
+__all__ = [
+    "DCD",
+    "GSD",
+    "Burst",
+    "CustomWriter",
+    "HDF5Log",
+    "Table",
+]

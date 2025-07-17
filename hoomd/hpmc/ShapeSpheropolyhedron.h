@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolyhedron.h"
@@ -46,25 +46,11 @@ namespace hpmc
    0,0. In fact, it is
     **required** that the origin is inside the shape, and it is best if the origin is the center of
    mass.
-
-    ShapeSpheropolygon interprets two additional fields in the verts struct that
-   ShapeConvexPolyhedron lacks. The first is sweep_radius which defines the radius of the sphere to
-   sweep around the polygon. The 2nd is ignore. When two shapes are checked for overlap, if both of
-   them have ignore set to true (non-zero) then there is assumed to be no collision. This is
-   intended for use with the penetrable hard-sphere model for depletants, but could be useful in
-   other cases.
-
-    \ingroup shape
 */
 struct ShapeSpheropolyhedron
     {
     //! Define the parameter type
     typedef detail::PolyhedronVertices param_type;
-
-    /// Temporary storage for depletant insertion
-    typedef struct
-        {
-        } depletion_storage_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -27,6 +27,21 @@ mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD SRD collision method" << std::endl;
     detachCallbacks();
+    }
+
+void mpcd::SRDCollisionMethod::startAutotuning()
+    {
+    mpcd::CollisionMethod::startAutotuning();
+    if (m_thermo)
+        m_thermo->startAutotuning();
+    }
+
+bool mpcd::SRDCollisionMethod::isAutotuningComplete()
+    {
+    bool result = mpcd::CollisionMethod::isAutotuningComplete();
+    if (m_thermo)
+        result = result && m_thermo->isAutotuningComplete();
+    return result;
     }
 
 void mpcd::SRDCollisionMethod::rule(uint64_t timestep)

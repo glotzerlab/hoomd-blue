@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import warnings
@@ -12,7 +12,6 @@ from hoomd.error import IsolationWarning
 
 
 class MockRoot:
-
     def __init__(self, schema, data):
         self._data = data
         validator = typeconverter.to_type_converter(schema)
@@ -37,7 +36,6 @@ class MockRoot:
 
 
 class TestHoomdList(BaseListTest):
-
     @pytest.fixture(autouse=True, params=("ints", "floats", "strs"))
     def current_list(self, request):
         self._current_list = request.param
@@ -51,10 +49,7 @@ class TestHoomdList(BaseListTest):
         elif self._current_list == "strs":
 
             def generate_one():
-                return [
-                    self.generator.str()
-                    for _ in range(3 + self.generator.int(10))
-                ]
+                return [self.generator.str() for _ in range(3 + self.generator.int(10))]
 
         def generate(n):
             return [generate_one() for _ in range(n)]
@@ -65,26 +60,17 @@ class TestHoomdList(BaseListTest):
         return a == b
 
     def final_check(self, test_list):
-        assert test_list.to_base() == self._data._data["lists"][
-            self._current_list]
+        assert test_list.to_base() == self._data._data["lists"][self._current_list]
         if self._current_list == "strs":
             assert all(
-                isinstance(t_item, collections._HOOMDList)
-                for t_item in test_list)
+                isinstance(t_item, collections._HOOMDList) for t_item in test_list
+            )
 
     @pytest.fixture
     def empty_collection(self):
         self._data = MockRoot(
-            {"lists": {
-                "ints": [int],
-                "floats": [float],
-                "strs": [[str]]
-            }},
-            {"lists": {
-                "ints": [],
-                "floats": [],
-                "strs": []
-            }},
+            {"lists": {"ints": [int], "floats": [float], "strs": [[str]]}},
+            {"lists": {"ints": [], "floats": [], "strs": []}},
         )
         with self._data._sync_data["lists"]._suspend_read_and_write:
             return self._data._sync_data["lists"][self._current_list]
@@ -115,16 +101,16 @@ class TestHoomdList(BaseListTest):
 
 
 class TestHoomdTuple(BaseSequenceTest):
-
     @pytest.fixture
     def generate_plain_collection(self):
-
         def generate(n):
-            strings = [
-                self.generator.str() for _ in range(self.generator.int(10))
-            ]
-            return (self.generator.int(), strings, self.generator.float(),
-                    self.generator.ndarray((None, 3)))
+            strings = [self.generator.str() for _ in range(self.generator.int(10))]
+            return (
+                self.generator.int(),
+                strings,
+                self.generator.float(),
+                self.generator.ndarray((None, 3)),
+            )
 
         return generate
 
@@ -145,12 +131,17 @@ class TestHoomdTuple(BaseSequenceTest):
 
     @pytest.fixture
     def populated_collection(self, plain_collection):
-
         self._data = MockRoot(
             {
-                "tuple": (int, [str], float,
-                          typeconverter.NDArrayValidator("float64", (None, 3)))
-            }, {"tuple": plain_collection})
+                "tuple": (
+                    int,
+                    [str],
+                    float,
+                    typeconverter.NDArrayValidator("float64", (None, 3)),
+                )
+            },
+            {"tuple": plain_collection},
+        )
         return self._data._sync_data["tuple"], plain_collection
 
 
@@ -159,15 +150,18 @@ class TestHoomdDict(BaseMappingTest):
 
     @pytest.fixture
     def generate_plain_collection(self):
-
         def generate(n):
-            tuples = [(self.generator.int(), [
-                self.generator.str() for _ in range(3 + self.generator.int(10))
-            ]) for _ in range(self.generator.int(10) + 3)]
+            tuples = [
+                (
+                    self.generator.int(),
+                    [self.generator.str() for _ in range(3 + self.generator.int(10))],
+                )
+                for _ in range(self.generator.int(10) + 3)
+            ]
             data = {
                 "sigma": self.generator.float(),
                 "epsilon": self.generator.float(),
-                "notes": tuples
+                "notes": tuples,
             }
             return data
 
@@ -182,22 +176,19 @@ class TestHoomdDict(BaseMappingTest):
             return
         assert isinstance(test_mapping["notes"], collections._HOOMDList)
         assert all(
-            isinstance(t, collections._HOOMDTuple)
-            for t in test_mapping["notes"])
+            isinstance(t, collections._HOOMDTuple) for t in test_mapping["notes"]
+        )
         assert all(
             isinstance(str_list, collections._HOOMDList)
-            for i, str_list in test_mapping["notes"])
+            for i, str_list in test_mapping["notes"]
+        )
 
     @pytest.fixture
     def empty_collection(self):
         self._data = MockRoot(
-            {
-                "params": {
-                    "epsilon": float,
-                    "sigma": float,
-                    "notes": [(int, [str])]
-                }
-            }, {"params": {}})
+            {"params": {"epsilon": float, "sigma": float, "notes": [(int, [str])]}},
+            {"params": {}},
+        )
         return self._data._sync_data["params"]
 
     @pytest.fixture(params=(True, False))

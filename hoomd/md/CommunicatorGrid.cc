@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -167,9 +167,9 @@ template<typename T> void CommunicatorGrid<T>::initGridComm()
     // write out send and recv indices
 
     // allocate memory
-    GlobalArray<unsigned int> send_idx_array(idx_map.size(), m_exec_conf);
+    GPUArray<unsigned int> send_idx_array(idx_map.size(), m_exec_conf);
     m_send_idx.swap(send_idx_array);
-    GlobalArray<unsigned int> recv_idx_array(idx_map.size(), m_exec_conf);
+    GPUArray<unsigned int> recv_idx_array(idx_map.size(), m_exec_conf);
     m_recv_idx.swap(recv_idx_array);
 
     ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::overwrite);
@@ -195,14 +195,14 @@ template<typename T> void CommunicatorGrid<T>::initGridComm()
         }
 
     // resize recv and send buffers
-    GlobalArray<T> send_buf(m_send_idx.getNumElements(), m_exec_conf);
+    GPUArray<T> send_buf(m_send_idx.getNumElements(), m_exec_conf);
     m_send_buf.swap(send_buf);
 
-    GlobalArray<T> recv_buf(m_recv_idx.getNumElements(), m_exec_conf);
+    GPUArray<T> recv_buf(m_recv_idx.getNumElements(), m_exec_conf);
     m_recv_buf.swap(recv_buf);
     }
 
-template<typename T> void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
+template<typename T> void CommunicatorGrid<T>::communicate(const GPUArray<T>& grid)
     {
     assert(grid.getNumElements() >= m_embed.x * m_embed.y * m_embed.z);
 

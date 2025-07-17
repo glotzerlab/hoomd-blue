@@ -1,14 +1,17 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Alchemical pair forces."""
+
 from collections.abc import Mapping
+import inspect
 
 import hoomd.data
 from hoomd.logging import log
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
+from typing import Optional
 
 
 def _modify_pair_cls_to_alchemical(cls):
@@ -18,17 +21,15 @@ def _modify_pair_cls_to_alchemical(cls):
     ``_accepted_modes``, and ``_reserved_default_attrs``, and sets ``normalize =
     False`` if not set.
     """
-    new_cpp_name = [
-        'PotentialPair', 'Alchemical', cls.__mro__[0]._cpp_class_name[13:]
-    ]
-    if getattr(cls, 'normalized', False):
-        new_cpp_name.insert(2, 'Normalized')
+    new_cpp_name = ["PotentialPair", "Alchemical", cls.__mro__[0]._cpp_class_name[13:]]
+    if getattr(cls, "normalized", False):
+        new_cpp_name.insert(2, "Normalized")
         cls._dof_cls = _AlchemicalNormalizedDOF
     else:
         cls.normalized = False
         cls._dof_cls = AlchemicalDOF
-    cls._cpp_class_name = ''.join(new_cpp_name)
-    cls._accepted_modes = ('none', 'shift')
+    cls._cpp_class_name = "".join(new_cpp_name)
+    cls._accepted_modes = ("none", "shift")
     return cls
 
 
@@ -37,8 +38,6 @@ class AlchemicalDOFStore(Mapping):
 
     The class acts as a cache so once an alchemical DOF is queried it is
     returned and not recreated when queried again.
-
-    .. versionadded:: 3.1.0
     """
 
     def __init__(self, name, pair_instance, dof_cls):
@@ -58,8 +57,7 @@ class AlchemicalDOFStore(Mapping):
         items = {}
         for k in self._indexer(key):
             if k not in self._data:
-                self._data[k] = self._dof_cls(self._pair_instance, self._name,
-                                              k)
+                self._data[k] = self._dof_cls(self._pair_instance, self._name, k)
             items[k] = self._data[k]
         if len(items) == 1:
             return items.popitem()[1]
@@ -86,7 +84,8 @@ class AlchemicalDOFStore(Mapping):
             if not self._indexer.are_valid_types(key):
                 raise RuntimeError(
                     f"Alchemical DOF ({self._name}) for non-existent type pair "
-                    f"{key} was accessed.")
+                    f"{key} was accessed."
+                )
 
     def _detach(self):
         self._indexer.valid_types = None
@@ -105,6 +104,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
         _dof_cls (AlchemicalDOF): The correct DOF class. Automatically set via
             `_modify_pair_cls_to_alchemical`.
     """
+
     _alchemical_dofs = []
     _dof_cls = None
 
@@ -115,7 +115,8 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
         self._alchemical_params = {}
         for dof in self._alchemical_dofs:
             self._alchemical_params[dof] = AlchemicalDOFStore(
-                name=dof, pair_instance=self, dof_cls=self._dof_cls)
+                name=dof, pair_instance=self, dof_cls=self._dof_cls
+            )
 
     def _setattr_hook(self, attr, value):
         if attr in self._alchemical_dofs:
@@ -140,8 +141,6 @@ class AlchemicalDOF(_HOOMDBaseObject):
         To access an alchemical degree of freedom for a particular type pair,
         query the corresponding attribute in the alchemical pair force instance.
 
-    .. versionadded:: 3.1.0
-
     Attributes:
         mass (float): The mass of the alchemical degree of freedom.
         mu (float): The value of the alchemical potential.
@@ -151,13 +150,15 @@ class AlchemicalDOF(_HOOMDBaseObject):
         alchemical_momentum (float): The momentum of the alchemical parameter.
     """
 
-    def __init__(self,
-                 force: _AlchemicalPairForce,
-                 name: str = '',
-                 typepair: tuple = None,
-                 alpha: float = 1.0,
-                 mass: float = 1.0,
-                 mu: float = 0.0):
+    def __init__(
+        self,
+        force,
+        name: str = "",
+        typepair: Optional[tuple] = None,
+        alpha: float = 1.0,
+        mass: float = 1.0,
+        mu: float = 0.0,
+    ):
         """Cache existing instances of AlchemicalDOF.
 
         Args:
@@ -177,24 +178,25 @@ class AlchemicalDOF(_HOOMDBaseObject):
         if self._force._attached:
             self._attach(force._simulation)
         # store metadata
-        param_dict = ParameterDict(mass=float,
-                                   mu=float,
-                                   alpha=float,
-                                   alchemical_momentum=float)
-        param_dict['mass'] = mass
-        param_dict['mu'] = mu
-        param_dict['alpha'] = alpha
-        param_dict['alchemical_momentum'] = 0.0
+        param_dict = ParameterDict(
+            mass=float, mu=float, alpha=float, alchemical_momentum=float
+        )
+        param_dict["mass"] = mass
+        param_dict["mu"] = mu
+        param_dict["alpha"] = alpha
+        param_dict["alchemical_momentum"] = 0.0
 
         # set defaults
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         if not self._force._attached:
-            raise RuntimeError("Call Simulation.run(0) before attaching "
-                               "alchemical degrees of freedom.")
+            raise RuntimeError(
+                "Call Simulation.run(0) before attaching alchemical degrees of freedom."
+            )
         self._cpp_obj = self._force._cpp_obj.getAlchemicalPairParticle(
-            self.typepair, self.name)
+            self.typepair, self.name
+        )
         self._force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
 
     def _detach_hook(self):
@@ -205,10 +207,9 @@ class AlchemicalDOF(_HOOMDBaseObject):
     @log(requires_run=True)
     def value(self):
         """Current value of alpha multiplied by its corresponding parameter."""
-        return self._force.params[self.typepair][self.name] * (
-            self._cpp_obj.alpha)
+        return self._force.params[self.typepair][self.name] * (self._cpp_obj.alpha)
 
-    @log(default=False, requires_run=True, category='particle')
+    @log(default=False, requires_run=True, category="particle")
     def alchemical_forces(self):
         r"""Per particle forces in alchemical alpha space.
 
@@ -235,18 +236,20 @@ class AlchemicalDOF(_HOOMDBaseObject):
 class _AlchemicalNormalizedDOF(AlchemicalDOF):
     """Alchemical normalized degree of freedom."""
 
-    def __init__(self,
-                 force: _AlchemicalPairForce,
-                 name: str = '',
-                 typepair: tuple = None,
-                 alpha: float = 1.0,
-                 norm_value: float = 0.0,
-                 mass: float = 1.0,
-                 mu: float = 0.0):
+    def __init__(
+        self,
+        force: _AlchemicalPairForce,
+        name: str = "",
+        typepair: Optional[tuple] = None,
+        alpha: float = 1.0,
+        norm_value: float = 0.0,
+        mass: float = 1.0,
+        mu: float = 0.0,
+    ):
         super().__init__(force, name, typepair, alpha, mass, mu)
         self._param_dict.update(dict(norm_value=norm_value))
 
-    @log(default=False, requires_run=True, category='particle')
+    @log(default=False, requires_run=True, category="particle")
     def alchemical_forces(self):
         """Per particle forces in alchemical alpha space."""
         return self._cpp_obj._forces * self._cpp_obj.norm_value
@@ -287,7 +290,11 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
         `hoomd.md.alchemy.pair.LJGauss` does not support MPI parallel
         simulations.
 
-    .. versionadded:: 3.1.0
+    {inherited}
+
+    ----------
+
+    **Members defined in** `LJGauss`:
 
     .. py:attribute:: params
 
@@ -326,13 +333,13 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
         Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
         ``particle_type``], `AlchemicalDOF`])
     """
-    _alchemical_dofs = ['epsilon', 'sigma', 'r0']
 
-    def __init__(self,
-                 nlist,
-                 default_r_cut=None,
-                 default_r_on=0.0,
-                 mode='none'):
+    _alchemical_dofs = ["epsilon", "sigma", "r0"]
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(BaseLJGauss._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         _AlchemicalPairForce.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
@@ -354,13 +361,17 @@ class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
         a single particle type with a single pair force.
 
     """
-    _alchemical_dofs = ['epsilon', 'sigma', 'r0']
+
+    _alchemical_dofs = ["epsilon", "sigma", "r0"]
     normalized = True
 
-    def __init__(self,
-                 nlist,
-                 default_r_cut=None,
-                 default_r_on=0.0,
-                 mode='none'):
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
         _AlchemicalPairForce.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
+
+
+__all__ = [
+    "AlchemicalDOF",
+    "AlchemicalDOFStore",
+    "LJGauss",
+]

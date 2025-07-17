@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellListStencil.cc
@@ -78,7 +78,7 @@ void CellListStencil::compute(uint64_t timestep)
         ArrayHandle<unsigned int> h_n_stencil(m_n_stencil,
                                               access_location::host,
                                               access_mode::overwrite);
-        memset((void*)h_n_stencil.data, 0, sizeof(unsigned int) * m_pdata->getNTypes());
+        m_n_stencil.zeroFill();
         return;
         }
 

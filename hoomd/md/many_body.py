@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Implement many body potentials.
-
-Triplet force classes apply a force and virial on every particle in the
+r"""Triplet force classes apply a force and virial on every particle in the
 simulation state commensurate with the potential energy:
 
 .. math::
@@ -46,6 +44,7 @@ from hoomd.data.typeconverter import positive_real
 from hoomd.data.typeparam import TypeParameter
 from hoomd.md import _md
 from hoomd.md.force import Force
+import inspect
 
 
 class Triplet(Force):
@@ -57,10 +56,22 @@ class Triplet(Force):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
 
+    Warning:
+        Currently HOOMD-blue does not support reverse force communication
+        between MPI domains on the GPU. Since reverse force communication is
+        required for the calculation of three-body forces, attempting to use
+        this potential on the GPU with MPI will result in an error.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Triplet`:
+
     .. py:attribute:: r_cut
 
-        *r_cut* :math:`[\\mathrm{length}]`, *optional*: defaults to the value
-        ``default_r_cut`` specified on construction.
+        *r_cut* :math:`[\\mathrm{length}]`, Cuttoff radius beyond which the energy and
+            force are 0.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
@@ -70,24 +81,40 @@ class Triplet(Force):
         Neighbor list used to compute the triplet potential.
 
         Type: `hoomd.md.nlist.NeighborList`
-
-    Warning:
-        Currently HOOMD-blue does not support reverse force communication
-        between MPI domains on the GPU. Since reverse force communication is
-        required for the calculation of three-body forces, attempting to use
-        this potential on the GPU with MPI will result in an error.
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+    _doc_inherited = (
+        Force._doc_inherited
+        + """
+    ----------
+
+    **Members inherited from**
+    `Triplet <hoomd.md.many_body.Triplet>`:
+
+    .. py:attribute:: r_cut
+
+        Cuttoff radius beyond which the energy and force are 0.
+        `Read more... <hoomd.md.many_body.Triplet.r_cut>`
+
+    .. py:attribute:: nlist
+
+        Neighbor list used to compute the triplet potential.
+        `Read more... <hoomd.md.many_body.Triplet.nlist>`
+    """
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__()
         r_cut_param = TypeParameter(
-            'r_cut', 'particle_types',
-            TypeParameterDict(positive_real, len_keys=2))
+            "r_cut", "particle_types", TypeParameterDict(positive_real, len_keys=2)
+        )
         if default_r_cut is not None:
             r_cut_param.default = default_r_cut
         self._add_typeparam(r_cut_param)
-        self._param_dict.update(
-            ParameterDict(nlist=hoomd.md.nlist.NeighborList))
+        self._param_dict.update(ParameterDict(nlist=hoomd.md.nlist.NeighborList))
         self.nlist = nlist
 
     def _setattr_param(self, attr, value):
@@ -107,7 +134,8 @@ class Triplet(Force):
                 f"{self} object is creating a new equivalent neighbor list."
                 f" This is happending since the force is moving to a new "
                 f"simulation. Explicitly set the nlist to hide this warning.",
-                RuntimeWarning)
+                RuntimeWarning,
+            )
             self.nlist = copy.deepcopy(self.nlist)
         self.nlist._attach(self._simulation)
         self.nlist._cpp_obj.setStorageMode(_md.NeighborList.storageMode.full)
@@ -116,8 +144,7 @@ class Triplet(Force):
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
-                            self.nlist._cpp_obj)
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
 
 
 class Tersoff(Triplet):
@@ -189,6 +216,19 @@ class Tersoff(Triplet):
         g(\theta_{ijk}) = 1 + \frac{c^2}{d^2}
                            - \frac{c^2}{d^2 + |m - \cos(\theta_{ijk})|^2}
 
+
+    Example::
+
+        nl = md.nlist.Cell()
+        tersoff = md.many_body.Tersoff(default_r_cut=1.3, nlist=nl)
+        tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Tersoff`:
+
     .. py:attribute:: params
 
         The Tersoff potential parameters. The dictionary has the following
@@ -224,31 +264,33 @@ class Tersoff(Triplet):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
-
-    Example::
-
-        nl = md.nlist.Cell()
-        tersoff = md.many_body.Tersoff(default_r_cut=1.3, nlist=nl)
-        tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
     """
+
     _cpp_class_name = "PotentialTersoff"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Triplet._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut)
         params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict(cutoff_thickness=0.2,
-                              magnitudes=(1.0, 1.0),
-                              exp_factors=(2.0, 1.0),
-                              lambda3=0.0,
-                              dimer_r=1.5,
-                              n=0.0,
-                              gamma=0.0,
-                              c=0.0,
-                              d=1.0,
-                              m=0.0,
-                              alpha=3.0,
-                              len_keys=2))
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                cutoff_thickness=0.2,
+                magnitudes=(1.0, 1.0),
+                exp_factors=(2.0, 1.0),
+                lambda3=0.0,
+                dimer_r=1.5,
+                n=0.0,
+                gamma=0.0,
+                c=0.0,
+                d=1.0,
+                m=0.0,
+                alpha=3.0,
+                len_keys=2,
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -332,6 +374,22 @@ class RevCross(Triplet):
         three-body term is not enough to compensate the energy of multiple
         bonds, so it may cause nonphysical situations.
 
+    Example::
+
+        nl = md.nlist.Cell()
+        bond_swap = md.many_body.RevCross(default_r_cut=1.3,nlist=nl)
+        bond_swap.params[('A', 'A'), ('B', 'B')] = {
+            "sigma":0,"n": 0, "epsilon": 0, "lambda3": 0}
+        # a bond can be made only between A-B and not A-A or B-B
+        bond_swap.params[('A','B')] = {
+            "sigma": 1, "n": 100, "epsilon": 10, "lambda3": 1}
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `RevCross`:
+
     .. py:attribute:: params
 
         The revcross potential parameters. The dictionary has the following
@@ -351,28 +409,20 @@ class RevCross(Triplet):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
-
-    Example::
-
-        nl = md.nlist.Cell()
-        bond_swap = md.many_body.RevCross(default_r_cut=1.3,nlist=nl)
-        bond_swap.params[('A', 'A'), ('B', 'B')] = {
-            "sigma":0,"n": 0, "epsilon": 0, "lambda3": 0}
-        # a bond can be made only between A-B and not A-A or B-B
-        bond_swap.params[('A','B')] = {
-            "sigma": 1, "n": 100, "epsilon": 10, "lambda3": 1}
     """
+
     _cpp_class_name = "PotentialRevCross"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Triplet._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut)
         params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict(sigma=2.0,
-                              n=1.0,
-                              epsilon=1.0,
-                              lambda3=1.0,
-                              len_keys=2))
+            "params",
+            "particle_types",
+            TypeParameterDict(sigma=2.0, n=1.0, epsilon=1.0, lambda3=1.0, len_keys=2),
+        )
         self._add_typeparam(params)
 
 
@@ -413,6 +463,25 @@ class SquareDensity(Triplet):
         n_i = \sum\limits_{j\neq i} w_{ij}
               \left(\big| \vec r_i - \vec r_j \big|\right)
 
+    Example::
+
+        nl = nlist.Cell()
+        sqd = md.many_body.SquareDensity(nl, default_r_cut=3.0)
+        sqd.params[("A", "B")] = dict(A=1.0, B=2.0)
+        sqd.params[("B", "B")] = dict(A=2.0, B=2.0, default_r_on=1.0)
+
+    For further details regarding this multibody potential, see
+
+    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative
+    particle dynamics" Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68,
+    no. 6 Pt 2, p. 066702, 2003.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `SquareDensity`:
+
     .. py:attribute:: params
 
         The SquareDensity potential parameters. The dictionary has the
@@ -428,24 +497,24 @@ class SquareDensity(Triplet):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
-
-    Example::
-
-        nl = nlist.Cell()
-        sqd = md.many_body.SquareDensity(nl, default_r_cut=3.0)
-        sqd.params[('A', 'B')] = dict(A=1.0, B=2.0)
-        sqd.params[('B', 'B')] = dict(A=2.0, B=2.0, default_r_on=1.0)
-
-    For further details regarding this multibody potential, see
-
-    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative
-    particle dynamics" Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68,
-    no. 6 Pt 2, p. 066702, 2003.
     """
+
     _cpp_class_name = "PotentialSquareDensity"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Triplet._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(A=0.0, B=float, len_keys=2))
+        params = TypeParameter(
+            "params", "particle_types", TypeParameterDict(A=0.0, B=float, len_keys=2)
+        )
         self._add_typeparam(params)
+
+
+__all__ = [
+    "RevCross",
+    "SquareDensity",
+    "Tersoff",
+    "Triplet",
+]

@@ -1,10 +1,9 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMMUNICATOR_GRID_H__
 #define __COMMUNICATOR_GRID_H__
 
-#include "hoomd/GlobalArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/SystemDefinition.h"
 #include <memory>
@@ -30,7 +29,7 @@ template<typename T> class CommunicatorGrid
     virtual ~CommunicatorGrid() { }
 
     //! Communicate grid
-    virtual void communicate(const GlobalArray<T>& grid);
+    virtual void communicate(const GPUArray<T>& grid);
 
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
@@ -43,10 +42,10 @@ template<typename T> class CommunicatorGrid
     bool m_add_outer; //!< True if outer ghost layer is added to inner cells
 
     std::set<unsigned int> m_neighbors; //!< List of unique neighbor ranks
-    GlobalArray<T> m_send_buf;          //!< Send buffer
-    GlobalArray<T> m_recv_buf;
-    GlobalArray<unsigned int> m_send_idx;         //!< Indices of grid cells in send buf
-    GlobalArray<unsigned int> m_recv_idx;         //!< Indices of grid cells in recv buf
+    GPUArray<T> m_send_buf;             //!< Send buffer
+    GPUArray<T> m_recv_buf;
+    GPUArray<unsigned int> m_send_idx;            //!< Indices of grid cells in send buf
+    GPUArray<unsigned int> m_recv_idx;            //!< Indices of grid cells in recv buf
     std::map<unsigned int, unsigned int> m_begin; //!< Begin offset of every rank in send/recv buf
     std::map<unsigned int, unsigned int> m_end;   //!< End offset of every rank in send/recv buf
 

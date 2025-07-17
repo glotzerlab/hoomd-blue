@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from pathlib import Path
@@ -6,6 +6,7 @@ from pathlib import Path
 import hoomd
 import numpy as np
 import pytest
+
 try:
     import gsd.hoomd
 except ImportError:
@@ -16,9 +17,9 @@ from hoomd.pytest.test_snapshot import assert_equivalent_snapshots
 N_RUN_STEPS = 3
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def hoomd_snapshot(lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(particle_types=['t1', 't2'], n=10, a=2.0)
+    snap = lattice_snapshot_factory(particle_types=["t1", "t2"], n=10, a=2.0)
     if snap.communicator.rank == 0:
         Np = snap.particles.N
         snap.particles.typeid[:] = np.repeat([0, 1], int(Np / 2))
@@ -29,27 +30,27 @@ def hoomd_snapshot(lattice_snapshot_factory):
         snap.particles.angmom[:] = np.array([0, 0, 0, 1])
 
         # bonds
-        snap.bonds.types = ['b1', 'b2']
+        snap.bonds.types = ["b1", "b2"]
         snap.bonds.N = 2
         snap.bonds.typeid[:] = [0, 1]
         snap.bonds.group[0] = [0, 1]
         snap.bonds.group[1] = [2, 3]
 
         # angles
-        snap.angles.types = ['a1', 'a2']
+        snap.angles.types = ["a1", "a2"]
         snap.angles.N = 2
         snap.angles.typeid[:] = [1, 0]
         snap.angles.group[0] = [0, 1, 2]
         snap.angles.group[1] = [2, 3, 0]
 
         # dihedrals
-        snap.dihedrals.types = ['d1']
+        snap.dihedrals.types = ["d1"]
         snap.dihedrals.N = 1
         snap.dihedrals.typeid[:] = [0]
         snap.dihedrals.group[0] = [0, 1, 2, 3]
 
         # impropers
-        snap.impropers.types = ['i1']
+        snap.impropers.types = ["i1"]
         snap.impropers.N = 1
         snap.impropers.typeid[:] = [0]
         snap.impropers.group[0] = [3, 2, 1, 0]
@@ -60,7 +61,7 @@ def hoomd_snapshot(lattice_snapshot_factory):
         snap.constraints.value[0] = 2.5
 
         # special pairs
-        snap.pairs.types = ['p1', 'p2']
+        snap.pairs.types = ["p1", "p2"]
         snap.pairs.N = 2
         snap.pairs.typeid[:] = [0, 1]
         snap.pairs.group[0] = [0, 1]
@@ -71,9 +72,8 @@ def hoomd_snapshot(lattice_snapshot_factory):
 
 def lj_integrator():
     integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4),
-                          default_r_cut=2.5)
-    lj.params.default = {'sigma': 1, 'epsilon': 1}
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
+    lj.params.default = {"sigma": 1, "epsilon": 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
@@ -81,7 +81,7 @@ def lj_integrator():
     return integrator
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def sim(simulation_factory, hoomd_snapshot):
     sim = simulation_factory(hoomd_snapshot)
     sim.operations.integrator = lj_integrator()
@@ -98,7 +98,7 @@ def check_write(sim: hoomd.Simulation, filename: str, trigger_period: int):
     sim.operations.writers[0].dump()
     sim.operations.writers[0].flush()
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
             # have to skip first frame which is from the first call.
             for snap, gsd_snap in zip(snaps, traj[1:]):
                 assert_equivalent_snapshots(gsd_snap, snap)
@@ -106,22 +106,26 @@ def check_write(sim: hoomd.Simulation, filename: str, trigger_period: int):
 
 def test_write_on_start(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
-    burst_writer = hoomd.write.Burst(trigger=1,
-                                     filename=filename,
-                                     mode='wb',
-                                     dynamic=['property', 'momentum'],
-                                     max_burst_size=3)
+    burst_writer = hoomd.write.Burst(
+        trigger=1,
+        filename=filename,
+        mode="wb",
+        dynamic=["property", "momentum"],
+        max_burst_size=3,
+    )
     sim.operations.writers.append(burst_writer)
     # Errors when file does not exist
     with pytest.raises(RuntimeError):
         # still creates file before erroring.
         sim.run(0)
     sim.operations.writers.clear()
-    burst_writer = hoomd.write.Burst(trigger=1,
-                                     filename=filename,
-                                     mode='wb',
-                                     dynamic=['property', 'momentum'],
-                                     max_burst_size=3)
+    burst_writer = hoomd.write.Burst(
+        trigger=1,
+        filename=filename,
+        mode="wb",
+        dynamic=["property", "momentum"],
+        max_burst_size=3,
+    )
     sim.operations.writers.append(burst_writer)
     # Errors when file exists without frame
     with pytest.raises(RuntimeError):
@@ -132,12 +136,14 @@ def test_len(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
 
     burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
-    burst_writer = hoomd.write.Burst(trigger=burst_trigger,
-                                     filename=filename,
-                                     mode='wb',
-                                     dynamic=['property', 'momentum'],
-                                     max_burst_size=3,
-                                     write_at_start=True)
+    burst_writer = hoomd.write.Burst(
+        trigger=burst_trigger,
+        filename=filename,
+        mode="wb",
+        dynamic=["property", "momentum"],
+        max_burst_size=3,
+        write_at_start=True,
+    )
     sim.operations.writers.append(burst_writer)
     sim.run(8)
     assert len(burst_writer) == 3
@@ -145,18 +151,22 @@ def test_len(sim, tmp_path):
     assert len(burst_writer) == 0
 
 
-@pytest.mark.parametrize("start, end", [(0, -1), (0, 0), (0, 1), (0, 2), (1, 1),
-                                        (2, 2), (1, 2), (1, -1), (2, -1)])
+@pytest.mark.parametrize(
+    "start, end",
+    [(0, -1), (0, 0), (0, 1), (0, 2), (1, 1), (2, 2), (1, 2), (1, -1), (2, -1)],
+)
 def test_burst_dump(sim, tmp_path, start, end):
     filename = tmp_path / "temporary_test_file.gsd"
 
     burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
-    burst_writer = hoomd.write.Burst(trigger=burst_trigger,
-                                     filename=filename,
-                                     mode='wb',
-                                     dynamic=['property', 'momentum'],
-                                     max_burst_size=3,
-                                     write_at_start=True)
+    burst_writer = hoomd.write.Burst(
+        trigger=burst_trigger,
+        filename=filename,
+        mode="wb",
+        dynamic=["property", "momentum"],
+        max_burst_size=3,
+        write_at_start=True,
+    )
     sim.operations.writers.append(burst_writer)
     sim.run(8)
     burst_writer.flush()
@@ -172,9 +182,10 @@ def test_burst_dump(sim, tmp_path, start, end):
     if sim.device.communicator.rank == 0:
         if end == -1:
             end = len(dumped_frames)
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
-            assert [frame.configuration.step for frame in traj
-                    ] == [0] + dumped_frames[start:end]
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
+            assert [frame.configuration.step for frame in traj] == [0] + dumped_frames[
+                start:end
+            ]
 
 
 @pytest.mark.parametrize("clear_entire_buffer", [True, False])
@@ -186,11 +197,12 @@ def test_burst_dump_with_clear_buffer(sim, tmp_path, clear_entire_buffer):
     burst_writer = hoomd.write.Burst(
         trigger=burst_trigger,
         filename=filename,
-        mode='wb',
-        dynamic=['property', 'momentum'],
+        mode="wb",
+        dynamic=["property", "momentum"],
         max_burst_size=4,
         write_at_start=True,
-        clear_whole_buffer_after_dump=clear_entire_buffer)
+        clear_whole_buffer_after_dump=clear_entire_buffer,
+    )
     sim.operations.writers.append(burst_writer)
     sim.run(12)
     burst_writer.flush()
@@ -204,7 +216,7 @@ def test_burst_dump_with_clear_buffer(sim, tmp_path, clear_entire_buffer):
     burst_writer.flush()
     dumped_frames = [0, 7, 9]
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
             print([frame.configuration.step for frame in traj])
             assert [frame.configuration.step for frame in traj] == dumped_frames
 
@@ -216,19 +228,21 @@ def test_burst_dump_with_clear_buffer(sim, tmp_path, clear_entire_buffer):
     else:
         dumped_frames += [11, 13, 15]
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
             print([frame.configuration.step for frame in traj])
             assert [frame.configuration.step for frame in traj] == dumped_frames
 
 
 def test_burst_max_size(sim, tmp_path):
     filename = Path(tmp_path / "temporary_test_file.gsd")
-    burst_writer = hoomd.write.Burst(filename=str(filename),
-                                     trigger=hoomd.trigger.Periodic(1),
-                                     mode='wb',
-                                     dynamic=['property', 'momentum'],
-                                     max_burst_size=N_RUN_STEPS,
-                                     write_at_start=True)
+    burst_writer = hoomd.write.Burst(
+        filename=str(filename),
+        trigger=hoomd.trigger.Periodic(1),
+        mode="wb",
+        dynamic=["property", "momentum"],
+        max_burst_size=N_RUN_STEPS,
+        write_at_start=True,
+    )
     sim.operations.writers.append(burst_writer)
     # Run 1 extra step to fill the burst which does not include the first frame
     sim.run(N_RUN_STEPS + 1)
@@ -240,11 +254,13 @@ def test_burst_mode_xb(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
     if sim.device.communicator.rank == 0:
         Path(filename).touch()
-    burst_writer = hoomd.write.Burst(filename=filename,
-                                     trigger=hoomd.trigger.Periodic(1),
-                                     mode='xb',
-                                     dynamic=['property', 'momentum'],
-                                     write_at_start=True)
+    burst_writer = hoomd.write.Burst(
+        filename=filename,
+        trigger=hoomd.trigger.Periodic(1),
+        mode="xb",
+        dynamic=["property", "momentum"],
+        write_at_start=True,
+    )
     sim.operations.writers.append(burst_writer)
     if sim.device.communicator.rank == 0:
         with pytest.raises(RuntimeError):
@@ -254,17 +270,18 @@ def test_burst_mode_xb(sim, tmp_path):
     # test mode=xb creates a new file
     filename_xb = tmp_path / "new_temporary_test_file.gsd"
 
-    burst_writer = hoomd.write.Burst(filename=filename_xb,
-                                     trigger=hoomd.trigger.Periodic(1),
-                                     mode='xb',
-                                     dynamic=['property', 'momentum'],
-                                     write_at_start=True)
+    burst_writer = hoomd.write.Burst(
+        filename=filename_xb,
+        trigger=hoomd.trigger.Periodic(1),
+        mode="xb",
+        dynamic=["property", "momentum"],
+        write_at_start=True,
+    )
     sim.operations.writers.append(burst_writer)
     check_write(sim, filename_xb, 1)
 
 
 def test_write_burst_log(sim, tmp_path):
-
     filename = tmp_path / "temporary_test_file.gsd"
 
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
@@ -273,12 +290,14 @@ def test_write_burst_log(sim, tmp_path):
     logger = hoomd.logging.Logger()
     logger.add(thermo)
 
-    burst_writer = hoomd.write.Burst(filename=filename,
-                                     trigger=hoomd.trigger.Periodic(1),
-                                     filter=hoomd.filter.Null(),
-                                     mode='wb',
-                                     logger=logger,
-                                     write_at_start=True)
+    burst_writer = hoomd.write.Burst(
+        filename=filename,
+        trigger=hoomd.trigger.Periodic(1),
+        filter=hoomd.filter.Null(),
+        mode="wb",
+        logger=logger,
+        write_at_start=True,
+    )
     sim.operations.writers.append(burst_writer)
 
     kinetic_energies = []
@@ -289,7 +308,7 @@ def test_write_burst_log(sim, tmp_path):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         key = "md/compute/ThermodynamicQuantities/kinetic_energy"
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
             for frame, sim_ke in zip(traj[1:], kinetic_energies):
                 assert frame.log[key] == sim_ke
 
@@ -301,11 +320,12 @@ def test_burst_dump_empty_buffer(sim, tmp_path, clear_entire_buffer):
     burst_writer = hoomd.write.Burst(
         trigger=burst_trigger,
         filename=filename,
-        mode='wb',
-        dynamic=['property', 'momentum'],
+        mode="wb",
+        dynamic=["property", "momentum"],
         max_burst_size=3,
         write_at_start=True,
-        clear_whole_buffer_after_dump=clear_entire_buffer)
+        clear_whole_buffer_after_dump=clear_entire_buffer,
+    )
     sim.operations.writers.append(burst_writer)
     sim.run(8)
     burst_writer.flush()
@@ -318,12 +338,12 @@ def test_burst_dump_empty_buffer(sim, tmp_path, clear_entire_buffer):
     burst_writer.dump(1, 2)
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
             assert len(traj) == 2
 
     sim.run(4)
     burst_writer.dump()
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
-        with gsd.hoomd.open(name=filename, mode='r') as traj:
+        with gsd.hoomd.open(name=filename, mode="r") as traj:
             assert len(traj) == (4 if clear_entire_buffer else 5)

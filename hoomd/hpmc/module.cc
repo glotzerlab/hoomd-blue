@@ -1,12 +1,11 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
-#include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoNEC.h"
 
-#include "ComputeSDF.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 #include "ShapeConvexPolygon.h"
 #include "ShapeConvexPolyhedron.h"
@@ -21,7 +20,7 @@
 #include "ShapeUnion.h"
 #include "ShapeUtils.h"
 #include "UpdaterBoxMC.h"
-#include "UpdaterClusters.h"
+#include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
 
@@ -71,6 +70,9 @@ using namespace std;
 //! Define the _hpmc python module exports
 PYBIND11_MODULE(_hpmc, m)
     {
+    exportPairPotential(m);
+    exportExternalPotential(m);
+
     export_IntegratorHPMC(m);
 
     export_UpdaterBoxMC(m);
@@ -147,18 +149,13 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &ShapeUnion<ShapeFacetedEllipsoid>::param_type::asDict);
 
-    // export counters
-    export_hpmc_implicit_counters(m);
-
     export_hpmc_muvt_counters(m);
     export_hpmc_clusters_counters(m);
 
     export_hpmc_nec_counters(m);
 
-    exportExternalPotential(m);
     exportExternalPotentialLinear(m);
 
-    exportPairPotential(m);
     exportPairPotentialLennardJones(m);
     exportPairPotentialExpandedGaussian(m);
     exportPairPotentialLJGauss(m);
@@ -166,41 +163,6 @@ PYBIND11_MODULE(_hpmc, m)
     exportPairPotentialAngularStep(m);
     exportPairPotentialStep(m);
     exportPairPotentialUnion(m);
+
+    export_ExternalHarmonicField(m);
     }
-
-/*! \defgroup hpmc_integrators HPMC integrators
- */
-
-/*! \defgroup hpmc_analyzers HPMC analyzers
- */
-
-/*! \defgroup shape Shapes
-    Shape classes define the geometry of shapes and associated overlap checks
-*/
-
-/*! \defgroup vecmath Vector Math
-    Vector, matrix, and quaternion math routines
-*/
-
-/*! \defgroup hpmc_detail Details
-    HPMC implementation details
-    @{
-*/
-
-/*! \defgroup hpmc_data_structs Data structures
-    HPMC internal data structures
-*/
-
-/*! \defgroup hpmc_kernels HPMC kernels
-    HPMC GPU kernels
-*/
-
-/*! \defgroup minkowski Minkowski methods
-    Classes and functions related to Minkowski overlap detection methods
-*/
-
-/*! \defgroup overlap Other overlap methods
-    Classes and functions related to other (brute force) overlap methods
-*/
-
-/*! @} */

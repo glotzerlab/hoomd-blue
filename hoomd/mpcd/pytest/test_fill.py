@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -22,41 +22,41 @@ def snap():
 @pytest.mark.parametrize(
     "cls, init_args",
     [
-        (hoomd.mpcd.geometry.CosineChannel, {
-            "amplitude": 4.0,
-            "repeat_length": 20.0,
-            "separation": 2.0
-        }),
-        (hoomd.mpcd.geometry.CosineExpansionContraction, {
-            "expansion_separation": 8.0,
-            "contraction_separation": 4.0,
-            "repeat_length": 20.0,
-        }),
-        (hoomd.mpcd.geometry.ParallelPlates, {
-            "separation": 8.0
-        }),
-        (hoomd.mpcd.geometry.PlanarPore, {
-            "separation": 8.0,
-            "length": 10.0
-        }),
-        (hoomd.mpcd.geometry.Sphere, {
-            "radius": 4.0
-        }),
+        (
+            hoomd.mpcd.geometry.ConcentricCylinders,
+            {"inner_radius": 4.0, "outer_radius": 8.0},
+        ),
+        (
+            hoomd.mpcd.geometry.CosineChannel,
+            {"amplitude": 4.0, "repeat_length": 20.0, "separation": 2.0},
+        ),
+        (
+            hoomd.mpcd.geometry.CosineExpansionContraction,
+            {
+                "expansion_separation": 8.0,
+                "contraction_separation": 4.0,
+                "repeat_length": 20.0,
+            },
+        ),
+        (hoomd.mpcd.geometry.ParallelPlates, {"separation": 8.0}),
+        (hoomd.mpcd.geometry.PlanarPore, {"separation": 8.0, "length": 10.0}),
+        (hoomd.mpcd.geometry.Sphere, {"radius": 4.0}),
     ],
     ids=[
-        "CosineChannel", "CosineExpansionContraction", "ParallelPlates",
-        "PlanarPore", "Sphere"
+        "ConcentricCylinders",
+        "CosineChannel",
+        "CosineExpansionContraction",
+        "ParallelPlates",
+        "PlanarPore",
+        "Sphere",
     ],
 )
 class TestGeometryFiller:
-
-    def test_create_and_attributes(self, simulation_factory, snap, cls,
-                                   init_args):
+    def test_create_and_attributes(self, simulation_factory, snap, cls, init_args):
         geom = cls(**init_args)
-        filler = hoomd.mpcd.fill.GeometryFiller(type="A",
-                                                density=5.0,
-                                                kT=1.0,
-                                                geometry=geom)
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=5.0, kT=1.0, geometry=geom
+        )
 
         assert filler.geometry is geom
         assert filler.type == "A"
@@ -81,10 +81,9 @@ class TestGeometryFiller:
         assert filler.kT(0) == 2.0
 
     def test_run(self, simulation_factory, snap, cls, init_args):
-        filler = hoomd.mpcd.fill.GeometryFiller(type="A",
-                                                density=5.0,
-                                                kT=1.0,
-                                                geometry=cls(**init_args))
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=5.0, kT=1.0, geometry=cls(**init_args)
+        )
         sim = simulation_factory(snap)
         ig = hoomd.mpcd.Integrator(dt=0.1, virtual_particle_fillers=[filler])
         sim.operations.integrator = ig
@@ -92,10 +91,9 @@ class TestGeometryFiller:
 
     def test_pickling(self, simulation_factory, snap, cls, init_args):
         geom = cls(**init_args)
-        filler = hoomd.mpcd.fill.GeometryFiller(type="A",
-                                                density=5.0,
-                                                kT=1.0,
-                                                geometry=geom)
+        filler = hoomd.mpcd.fill.GeometryFiller(
+            type="A", density=5.0, kT=1.0, geometry=geom
+        )
         pickling_check(filler)
 
         sim = simulation_factory(snap)

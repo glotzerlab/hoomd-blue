@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define ParticleFilter.
@@ -18,9 +18,34 @@ class ParticleFilter(_hoomd.ParticleFilter):
 
     This class provides methods common to all particle filters.
 
-    Attention:
-        Users should instantiate one of the subclasses. Calling `ParticleFilter`
-        directly may result in an error.
+    Note:
+        Users should instantiate one of the subclasses.
+    """
+
+    _doc_inherited = """
+    ----------
+
+    **Members inherited from** `ParticleFilter <hoomd.filter.ParticleFilter>`:
+
+    .. py:method:: __hash__
+
+        Return a hash of the filter parameters.
+        `Read more... <hoomd.filter.ParticleFilter.__hash__>`
+
+    .. py:method:: __eq__
+
+        Test for equality between two particle filters.
+        `Read more... <hoomd.filter.ParticleFilter.__eq__>`
+
+    .. py:method:: __str__
+
+        Format a human readable string describing the filter.
+        `Read more... <hoomd.filter.ParticleFilter.__str__>`
+
+    .. py:method:: __call__
+
+        Evaluate the filter.
+        `Read more... <hoomd.filter.ParticleFilter.__call__>`
     """
 
     def __hash__(self):
@@ -44,8 +69,9 @@ class ParticleFilter(_hoomd.ParticleFilter):
             if filter == other:
                 pass
         """
-        raise NotImplementedError("Equality between {} is not defined.".format(
-            self.__class__))
+        raise NotImplementedError(
+            "Equality between {} is not defined.".format(self.__class__)
+        )
 
     def __str__(self):
         """Format a human readable string describing the filter.

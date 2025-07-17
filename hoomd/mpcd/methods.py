@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""MPCD integration methods.
-
-Extra integration methods for solutes (MD particles) embedded in an MPCD
+r"""Extra integration methods for solutes (MD particles) embedded in an MPCD
 fluid. These methods are not restricted to MPCD simulations: they can be used
 as methods of `hoomd.md.Integrator`. For example, `BounceBack` might be used to
 run DPD simulations with surfaces.
@@ -21,6 +19,7 @@ from hoomd.filter import ParticleFilter
 from hoomd.md.methods import Method
 from hoomd.mpcd import _mpcd
 from hoomd.mpcd.geometry import Geometry
+import inspect
 
 
 class BounceBack(Method):
@@ -56,7 +55,6 @@ class BounceBack(Method):
        reduce density fluctuations.
 
     Warning:
-
         This method does not support anisotropic integration because torques are
         not computed for collisions with the boundary. Rigid bodies will also
         not be treated correctly because the integrator is not aware of the
@@ -70,8 +68,15 @@ class BounceBack(Method):
 
         plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         nve = hoomd.mpcd.methods.BounceBack(
-            filter=hoomd.filter.All(), geometry=plates)
+            filter=hoomd.filter.All(), geometry=plates
+        )
         simulation.operations.integrator.methods.append(nve)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `BounceBack`:
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
@@ -79,10 +84,12 @@ class BounceBack(Method):
 
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from
             (*read only*).
-
     """
 
     _cpp_class_map = {}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Method._doc_inherited)
+    )
 
     def __init__(self, filter, geometry):
         super().__init__()
@@ -127,8 +134,7 @@ class BounceBack(Method):
         assert class_ is not None, "Bounce back method for geometry not found"
 
         group = sim.state._get_group(self.filter)
-        self._cpp_obj = class_(sim.state._cpp_sys_def, group,
-                               self.geometry._cpp_obj)
+        self._cpp_obj = class_(sim.state._cpp_sys_def, group, self.geometry._cpp_obj)
         super()._attach_hook()
 
     def _detach_hook(self):
@@ -138,3 +144,8 @@ class BounceBack(Method):
     @classmethod
     def _register_cpp_class(cls, geometry, module, cpp_class_name):
         cls._cpp_class_map[geometry] = (module, cpp_class_name)
+
+
+__all__ = [
+    "BounceBack",
+]

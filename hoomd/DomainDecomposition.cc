@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DomainDecomposition.cc
@@ -174,10 +174,10 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
     m_index = Index3D(m_nx, m_ny, m_nz);
 
     // map cartesian grid onto ranks
-    GlobalArray<unsigned int> cart_ranks(nranks, m_exec_conf);
+    GPUArray<unsigned int> cart_ranks(nranks, m_exec_conf);
     m_cart_ranks.swap(cart_ranks);
 
-    GlobalArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
+    GPUArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
     m_cart_ranks_inv.swap(cart_ranks_inv);
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks,

@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
-#include "hoomd/GlobalArray.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/managed_allocator.h"
 #include "hoomd/md/EvaluatorExternalPeriodic.h"
@@ -43,8 +42,6 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     //! type of external potential parameters
     typedef typename evaluator::param_type param_type;
     typedef typename evaluator::field_type field_type;
-
-    bool isAnisotropic();
 
     //! Sets parameters of the evaluator
     pybind11::object getParams(std::string type);
@@ -119,9 +116,9 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
     unsigned int nparticles = m_pdata->getN();
 
     // Zero data for force calculation.
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_torque.zeroFill();
+    m_virial.zeroFill();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -169,13 +166,6 @@ void PotentialExternal<evaluator>::validateType(unsigned int type, std::string a
         {
         throw std::runtime_error("Invalid type encountered when " + action);
         }
-    }
-
-//! Returns true if this ForceCompute requires anisotropic integration
-template<class evaluator> bool PotentialExternal<evaluator>::isAnisotropic()
-    {
-    // by default, only translational degrees of freedom are integrated
-    return evaluator::isAnisotropic();
     }
 
 //! Set the parameters for this potential

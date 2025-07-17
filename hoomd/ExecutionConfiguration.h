@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EXECUTION_CONFIGURATION__
@@ -24,10 +24,6 @@
 #include <roctracer/roctracer_ext.h>
 #endif
 #endif
-#endif
-
-#ifdef ENABLE_TBB
-#include <tbb/task_arena.h>
 #endif
 
 #include "Messenger.h"
@@ -81,7 +77,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 
     //! Constructor
     ExecutionConfiguration(executionMode mode = AUTO,
-                           std::vector<int> gpu_id = std::vector<int>(),
+                           int gpu_id = -1,
                            std::shared_ptr<MPIConfiguration> mpi_config
                            = std::shared_ptr<MPIConfiguration>(),
                            std::shared_ptr<Messenger> _msg = std::shared_ptr<Messenger>());
@@ -132,83 +128,67 @@ class PYBIND11_EXPORT ExecutionConfiguration
         m_hip_error_checking = hip_error_checking;
         }
 
-    //! Get the number of active GPUs
-    unsigned int getNumActiveGPUs() const
+    /// Select the active GPU
+    const void setDevice() const
         {
 #if defined(ENABLE_HIP)
-        return (unsigned int)m_gpu_id.size();
+        hipSetDevice(m_gpu_id);
+#endif
+        }
+
+    /// get the device id
+    const unsigned int getGPUId() const
+        {
+#if defined(ENABLE_HIP)
+        return m_gpu_id;
 #else
         return 0;
 #endif
         }
 
 #if defined(ENABLE_HIP)
-    //! Get the IDs of the active GPUs
-    const std::vector<unsigned int>& getGPUIds() const
-        {
-        return m_gpu_id;
-        }
-
     void hipProfileStart() const
         {
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; idev--)
-            {
-            hipSetDevice(m_gpu_id[idev]);
-            hipDeviceSynchronize();
+        hipSetDevice(m_gpu_id);
+        hipDeviceSynchronize();
 
 #ifdef __HIP_PLATFORM_NVCC__
-            hipProfilerStart();
+        hipProfilerStart();
 #elif defined(__HIP_PLATFORM_HCC__)
 #ifdef ENABLE_ROCTRACER
-            roctracer_start();
+        roctracer_start();
 #else
-            msg->warning() << "ROCtracer not enabled, profile start/stop not available"
-                           << std::endl;
+        msg->warning() << "ROCtracer not enabled, profile start/stop not available" << std::endl;
 #endif
 #endif
-            }
         }
 
     void hipProfileStop() const
         {
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; idev--)
-            {
-            hipSetDevice(m_gpu_id[idev]);
-            hipDeviceSynchronize();
+        hipSetDevice(m_gpu_id);
+        hipDeviceSynchronize();
 #ifdef __HIP_PLATFORM_NVCC__
-            hipProfilerStop();
+        hipProfilerStop();
 #elif defined(__HIP_PLATFORM_HCC__)
 #ifdef ENABLE_ROCTRACER
-            roctracer_stop();
+        roctracer_stop();
 #else
-            msg->warning() << "ROCtracer not enabled, profile start/stop not available"
-                           << std::endl;
+        msg->warning() << "ROCtracer not enabled, profile start/stop not available" << std::endl;
 #endif
 #endif
-            }
         }
 #endif
 
-    //! Sync up all active GPUs
-    void multiGPUBarrier() const;
-
-    //! Begin a multi-GPU section
-    void beginMultiGPU() const;
-
-    //! End a multi-GPU section
-    void endMultiGPU() const;
-
     bool allConcurrentManagedAccess() const
         {
-        // return cached value
-        return m_concurrent;
+        return false;
         }
 
 #ifdef ENABLE_HIP
     hipDeviceProp_t dev_prop; //!< Cached device properties of the first GPU
 
     /// Compute capability of the GPU formatted as a tuple (major, minor)
-    std::pair<unsigned int, unsigned int> getComputeCapability(unsigned int igpu = 0) const;
+    std::pair<unsigned int, unsigned int> getComputeCapability() const;
 
     //! Handle hip error message
     void handleHIPError(hipError_t err, const char* file, unsigned int line) const;
@@ -254,32 +234,6 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return m_mpi_config->isRoot();
         }
 
-#ifdef ENABLE_TBB
-    //! set number of TBB threads
-    void setNumThreads(unsigned int num_threads)
-        {
-        m_task_arena = std::make_shared<tbb::task_arena>(num_threads);
-        m_num_threads = num_threads;
-        }
-
-    std::shared_ptr<tbb::task_arena> getTaskArena() const
-        {
-        if (!m_task_arena)
-            throw std::runtime_error("TBB task arena not set.");
-        return m_task_arena;
-        }
-#endif
-
-    //! Return the number of active threads
-    unsigned int getNumThreads() const
-        {
-#ifdef ENABLE_TBB
-        return m_num_threads;
-#else
-        return 0;
-#endif
-        }
-
 #if defined(ENABLE_HIP)
     //! Returns the cached allocator for temporary allocations
     CachedAllocator& getCachedAllocator() const
@@ -305,12 +259,6 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return m_memory_tracing;
         }
 
-    //! Returns true if we are in a multi-GPU block
-    bool inMultiGPUBlock() const
-        {
-        return m_in_multigpu_block;
-        }
-
     /// Get a list of the capable devices
     static std::vector<std::string> getCapableDevices()
         {
@@ -329,10 +277,10 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return s_gpu_scan_messages;
         }
 
-    /// Get the active devices
-    std::vector<std::string> getActiveDevices()
+    /// Get the active device
+    std::string getActiveDevice()
         {
-        return m_active_device_descriptions;
+        return m_active_device_description;
         }
 
     private:
@@ -358,13 +306,11 @@ class PYBIND11_EXPORT ExecutionConfiguration
     */
     static void scanGPUs();
 
-    std::vector<hipEvent_t> m_events; //!< A list of events to synchronize between GPUs
+    /// ID of active GPU
+    unsigned int m_gpu_id;
 
-    /// IDs of active GPUs
-    std::vector<unsigned int> m_gpu_id;
-
-    /// Device configuration of active GPUs
-    std::vector<hipDeviceProp_t> m_dev_prop;
+    /// Device configuration of active GPU
+    hipDeviceProp_t m_dev_prop;
 #endif
 
     /// Execution mode
@@ -388,22 +334,13 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Description of the GPU devices
     static std::vector<std::string> s_capable_gpu_descriptions;
 
-    /// Descriptions of the active devices
-    std::vector<std::string> m_active_device_descriptions;
-
-    bool m_concurrent; //!< True if all GPUs have concurrentManagedAccess flag
-
-    mutable bool m_in_multigpu_block; //!< Tracks whether we are in a multi-GPU block
+    /// Description of the active device
+    std::string m_active_device_description;
 
 #if defined(ENABLE_HIP)
     std::unique_ptr<CachedAllocator> m_cached_alloc; //!< Cached allocator for temporary allocations
     std::unique_ptr<CachedAllocator>
         m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
-#endif
-
-#ifdef ENABLE_TBB
-    std::shared_ptr<tbb::task_arena> m_task_arena; //!< The TBB task arena
-    unsigned int m_num_threads;                    //!<  The number of TBB threads used
 #endif
 
     //! Setup and print out stats on the chosen CPUs/GPUs
@@ -413,17 +350,13 @@ class PYBIND11_EXPORT ExecutionConfiguration
     };
 
 #if defined(ENABLE_HIP)
-#define CHECK_CUDA_ERROR()                                                            \
-        {                                                                             \
-        hipError_t err_sync = hipPeekAtLastError();                                   \
-        this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);              \
-        auto gpu_map = this->m_exec_conf->getGPUIds();                                \
-        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
-            {                                                                         \
-            hipSetDevice(gpu_map[idev]);                                              \
-            hipError_t err_async = hipDeviceSynchronize();                            \
-            this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__);         \
-            }                                                                         \
+#define CHECK_CUDA_ERROR()                                                \
+        {                                                                 \
+        hipError_t err_sync = hipPeekAtLastError();                       \
+        this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);  \
+        this->m_exec_conf->setDevice();                                   \
+        hipError_t err_async = hipDeviceSynchronize();                    \
+        this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__); \
         }
 #else
 #define CHECK_CUDA_ERROR()

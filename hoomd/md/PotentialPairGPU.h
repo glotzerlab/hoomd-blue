@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_GPU_H__
@@ -88,84 +88,87 @@ PotentialPairGPU<evaluator>::PotentialPairGPU(std::shared_ptr<SystemDefinition> 
 
 template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64_t timestep)
     {
-    this->m_nlist->compute(timestep);
-
-    // The GPU implementation CANNOT handle a half neighborlist, error out now
-    bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
-    if (third_law)
         {
-        this->m_exec_conf->msg->error()
-            << "PotentialPairGPU cannot handle a half neighborlist" << std::endl;
-        throw std::runtime_error("Error computing forces in PotentialPairGPU");
-        }
+        this->m_nlist->compute(timestep);
 
-    // access the neighbor list
-    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(),
+        // The GPU implementation CANNOT handle a half neighborlist, error out now
+        bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
+        if (third_law)
+            {
+            this->m_exec_conf->msg->error()
+                << "PotentialPairGPU cannot handle a half neighborlist" << std::endl;
+            throw std::runtime_error("Error computing forces in PotentialPairGPU");
+            }
+
+        // access the neighbor list
+        ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(),
+                                            access_location::device,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
+                                          access_location::device,
+                                          access_mode::read);
+        ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
                                         access_location::device,
                                         access_mode::read);
-    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
-                                      access_location::device,
-                                      access_mode::read);
-    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
-                                    access_location::device,
-                                    access_mode::read);
 
-    // access the particle data
-    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
-                               access_location::device,
-                               access_mode::read);
-    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
-                                 access_location::device,
-                                 access_mode::read);
+        // access the particle data
+        ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
+                                   access_location::device,
+                                   access_mode::read);
+        ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
+                                     access_location::device,
+                                     access_mode::read);
 
-    BoxDim box = this->m_pdata->getBox();
+        BoxDim box = this->m_pdata->getBox();
 
-    // access parameters
-    ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
+        // access parameters
+        ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_force(this->m_force,
+                                     access_location::device,
+                                     access_mode::readwrite);
+        ArrayHandle<Scalar> d_virial(this->m_virial,
+                                     access_location::device,
+                                     access_mode::readwrite);
 
-    // access flags
-    PDataFlags flags = this->m_pdata->getFlags();
+        // access flags
+        PDataFlags flags = this->m_pdata->getFlags();
 
-    this->m_exec_conf->beginMultiGPU();
+        this->m_exec_conf->setDevice();
 
-    m_tuner->begin();
-    auto param = m_tuner->getParam();
-    unsigned int block_size = param[0];
-    unsigned int threads_per_particle = param[1];
+        m_tuner->begin();
+        auto param = m_tuner->getParam();
+        unsigned int block_size = param[0];
+        unsigned int threads_per_particle = param[1];
 
-    kernel::gpu_compute_pair_forces<evaluator>(
-        kernel::pair_args_t(d_force.data,
-                            d_virial.data,
-                            this->m_virial.getPitch(),
-                            this->m_pdata->getN(),
-                            this->m_pdata->getMaxN(),
-                            d_pos.data,
-                            d_charge.data,
-                            box,
-                            d_n_neigh.data,
-                            d_nlist.data,
-                            d_head_list.data,
-                            d_rcutsq.data,
-                            d_ronsq.data,
-                            this->m_nlist->getNListArray().getPitch(),
-                            this->m_pdata->getNTypes(),
-                            block_size,
-                            this->m_shift_mode,
-                            flags[pdata_flag::pressure_tensor],
-                            threads_per_particle,
-                            this->m_pdata->getGPUPartition(),
-                            this->m_exec_conf->dev_prop),
-        this->m_params.data());
+        kernel::gpu_compute_pair_forces<evaluator>(
+            kernel::pair_args_t(d_force.data,
+                                d_virial.data,
+                                this->m_virial.getPitch(),
+                                this->m_pdata->getN(),
+                                this->m_pdata->getMaxN(),
+                                d_pos.data,
+                                d_charge.data,
+                                box,
+                                d_n_neigh.data,
+                                d_nlist.data,
+                                d_head_list.data,
+                                d_rcutsq.data,
+                                d_ronsq.data,
+                                this->m_nlist->getNListArray().getPitch(),
+                                this->m_pdata->getNTypes(),
+                                block_size,
+                                this->m_shift_mode,
+                                flags[pdata_flag::pressure_tensor],
+                                threads_per_particle,
+                                this->m_exec_conf->dev_prop),
+            this->m_params.data());
 
-    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
 
-    m_tuner->end();
-
-    this->m_exec_conf->endMultiGPU();
+        m_tuner->end();
+        }
 
     // energy and pressure corrections
     this->computeTailCorrection();

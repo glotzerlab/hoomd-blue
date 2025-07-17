@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import itertools
@@ -41,8 +41,8 @@ class TestTypeParameterDict(BaseMappingTest):
         else:
             yield from set(
                 tuple(sorted(key))
-                for key in itertools.combinations_with_replacement(
-                    self.alphabet[:n], 2))
+                for key in itertools.combinations_with_replacement(self.alphabet[:n], 2)
+            )
 
     def _generate_value(self):
         if self._spec == "int":
@@ -63,11 +63,8 @@ class TestTypeParameterDict(BaseMappingTest):
 
     @pytest.fixture
     def generate_plain_collection(self, len_keys):
-
         def generate(n):
-            return {
-                key: self._generate_value() for key in self._generate_keys(n)
-            }
+            return {key: self._generate_value() for key in self._generate_keys(n)}
 
         return generate
 
@@ -79,20 +76,14 @@ class TestTypeParameterDict(BaseMappingTest):
         """
         if isinstance(test_type_param, (str, tuple)) or self._spec == "int":
             return test_type_param == mapping
-        return all(
-            test_type_param[key] == value for key, value in mapping.items())
+        return all(test_type_param[key] == value for key, value in mapping.items())
 
     @pytest.fixture
     def empty_collection(self, len_keys, spec):
         """Return an empty type parameter."""
         validator = int
         if spec == "dict":
-            validator = {
-                "foo": 1,
-                "bar": identity,
-                "baz": "hello",
-                "gar": [int]
-            }
+            validator = {"foo": 1, "bar": identity, "baz": "hello", "gar": [int]}
         return TypeParameterDict(validator, len_keys=len_keys)
 
     def check_equivalent(self, test_mapping, other):
@@ -109,11 +100,12 @@ class TestTypeParameterDict(BaseMappingTest):
         if self._len_keys == 1:
             yield from super().random_keys()
         else:
-            yield from (tuple(sorted(k)) for k in zip(super().random_keys(),
-                                                      super().random_keys()))
+            yield from (
+                tuple(sorted(k))
+                for k in zip(super().random_keys(), super().random_keys())
+            )
 
-    @pytest.fixture(params=(True, False),
-                    ids=lambda x: "in_map" if x else "out_map")
+    @pytest.fixture(params=(True, False), ids=lambda x: "in_map" if x else "out_map")
     def setitem_key_value(self, n, request):
         keys = list(self._generate_keys(n))
         value = self._generate_value()
@@ -143,9 +135,9 @@ class TestTypeParameterDict(BaseMappingTest):
             if len(types) > 4:
                 mid_point = len(types) // 2
                 key_spec = (types[:mid_point], types[mid_point:])
-                keys = {(t1, t2)
-                        for t2 in types[mid_point:]
-                        for t1 in types[mid_point:]}
+                keys = {
+                    (t1, t2) for t2 in types[mid_point:] for t1 in types[mid_point:]
+                }
                 yield key_spec, keys
 
         return yield_key_pairs
@@ -174,8 +166,9 @@ class TestTypeParameterDict(BaseMappingTest):
 
     # we use populated_collection to ensure that types are correctly captured
     # for TestTypeParameterDictAttached.
-    def test_invalid_keys(self, populated_collection, valid_key_specs,
-                          invalid_key_specs):
+    def test_invalid_keys(
+        self, populated_collection, valid_key_specs, invalid_key_specs
+    ):
         test_mapping, _ = populated_collection
         for key_spec, expected_keys in valid_key_specs(self._len_keys):
             assert set(test_mapping._indexer(key_spec)) == expected_keys
@@ -238,9 +231,9 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
     @pytest.fixture
     def populated_collection(self, empty_collection, plain_collection, n):
         empty_collection.update(plain_collection)
-        empty_collection._attach(DummyCppObj(),
-                                 param_name="type_param",
-                                 types=self.alphabet[:n])
+        empty_collection._attach(
+            DummyCppObj(), param_name="type_param", types=self.alphabet[:n]
+        )
         return empty_collection, plain_collection
 
     def _generate_value(self):
@@ -268,16 +261,15 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
     def test_premature_attaching(self, empty_collection, plain_collection, n):
         for key, value in plain_collection.items():
             with pytest.raises(IncompleteSpecificationError):
-                empty_collection._attach(DummyCppObj(),
-                                         param_name="type_param",
-                                         types=self.alphabet[:n])
+                empty_collection._attach(
+                    DummyCppObj(), param_name="type_param", types=self.alphabet[:n]
+                )
             empty_collection[key] = value
-        empty_collection._attach(DummyCppObj(),
-                                 param_name="type_param",
-                                 types=self.alphabet[:n])
+        empty_collection._attach(
+            DummyCppObj(), param_name="type_param", types=self.alphabet[:n]
+        )
 
-    def test_unspecified_sequence_errors(self, empty_collection,
-                                         plain_collection, n):
+    def test_unspecified_sequence_errors(self, empty_collection, plain_collection, n):
         if self._spec != "dict":
             return
         last_key, last_value = plain_collection.popitem()
@@ -286,12 +278,12 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
         last_value.pop("gar")
         empty_collection[last_key] = last_value
         with pytest.raises(IncompleteSpecificationError):
-            empty_collection._attach(DummyCppObj(),
-                                     param_name="type_param",
-                                     types=self.alphabet[:n])
+            empty_collection._attach(
+                DummyCppObj(), param_name="type_param", types=self.alphabet[:n]
+            )
 
     def _invalid_key_specs(self, n):
-        invalid_types = list(self.alphabet[n:n + n])
+        invalid_types = list(self.alphabet[n : n + n])
 
         def yield_invalid_key(len_keys):
             yield from super(type(self), self)._invalid_key_specs(n)(len_keys)

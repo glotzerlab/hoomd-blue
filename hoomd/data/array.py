@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement zero-copy array."""
@@ -14,33 +14,32 @@ import hoomd
 
 class HOOMDArrayError(RuntimeError):
     """Error when accessing HOOMD buffers outside a context manager."""
+
     pass
 
 
-def _wrap_class_factory(methods_wrap_func_list,
-                        *args,
-                        allow_exceptions=False,
-                        **kwargs):
+def _wrap_class_factory(
+    methods_wrap_func_list, *args, allow_exceptions=False, **kwargs
+):
     """Factory function for metaclasses that produce methods via a functor.
 
     Applies the functor to each method given in methods. This occurs before
     class creation. The functor can take any number of arguments, but besides
-    for the method name must be the same accross all methods.
+    for the method name must be the same across all methods.
 
     Args:
         methods_wrap_func_list (Sequence[tuple(Sequence[str], Callable]): A
             sequence of method names, functor pairs. For each tuple in the list,
             the provided callable is used to wrap all the methods listed in the
             tuple.
-        ``*args`` (Any): Required position arguments for the functors.
+        *args (Any): Required position arguments for the functors.
         allow_exceptions (bool, optional): A key word only argument that
             defaults to False. When True exceptions are ignored when setting
             class methods, and the method raising the error is skipped.
-        ``**kwargs`` (Any): Required key word arguments for the functors.
+        **kwargs (Any): Required key word arguments for the functors.
     """
 
     class _WrapClass(type):
-
         def __new__(cls, name, bases, class_dict):
             for methods, functor in methods_wrap_func_list:
                 for method in methods:
@@ -94,37 +93,38 @@ def _op_wrap(method, cls=np.ndarray):
 _ndarray_ops_ = (
     [
         # Comparison
-        '__lt__',
-        '__le__',
-        '__gt__',
-        '__ge__',
-        '__eq__',
-        '__ne__',
-        '__bool__',
+        "__lt__",
+        "__le__",
+        "__gt__",
+        "__ge__",
+        "__eq__",
+        "__ne__",
+        "__bool__",
         # Unary
-        '__neg__',
-        '__pos__',
-        '__abs__',
-        '__invert__',
+        "__neg__",
+        "__pos__",
+        "__abs__",
+        "__invert__",
         # Arithmetic
-        '__add__',
-        '__sub__',
-        '__mul__',
-        '__truediv__',
-        '__floordiv__',
-        '__mod__',
-        '__divmod__',
-        '__pow__',
+        "__add__",
+        "__sub__",
+        "__mul__",
+        "__truediv__",
+        "__floordiv__",
+        "__mod__",
+        "__divmod__",
+        "__pow__",
         # Bitwise
-        '__lshift__',
-        '__rshift__',
-        '__and__',
-        '__or__',
-        '__xor__',
+        "__lshift__",
+        "__rshift__",
+        "__and__",
+        "__or__",
+        "__xor__",
         # Matrix
-        '__matmul__',
+        "__matmul__",
     ],
-    _op_wrap)
+    _op_wrap,
+)
 
 # Magic methods that never return an array to the same memory buffer
 # ----------------------------------------------------------------------
@@ -137,21 +137,22 @@ _magic_wrap = _op_wrap
 _ndarray_magic_safe_ = (
     [
         # Copy
-        '__copy__',
-        '__deepcopy__',
+        "__copy__",
+        "__deepcopy__",
         # Pickling
-        '__reduce__',
-        '__setstate__',
+        "__reduce__",
+        "__setstate__",
         # Container based
-        '__len__',
-        '__setitem__',
-        '__contains__',
+        "__len__",
+        "__setitem__",
+        "__contains__",
         # Conversion
-        '__int__',
-        '__float__',
-        '__complex__'
+        "__int__",
+        "__float__",
+        "__complex__",
     ],
-    _magic_wrap)
+    _magic_wrap,
+)
 
 # Magic methods that may return an array pointing to the same buffer
 # ------------------------------------------------------------------
@@ -179,13 +180,14 @@ def _magic_wrap_with_check(method, cls=np.ndarray):
 _ndarray_magic_unsafe_ = (
     [
         # Container based
-        '__getitem__',
+        "__getitem__",
     ],
-    _magic_wrap_with_check)
+    _magic_wrap_with_check,
+)
 
 # Operations that return an array pointing to the same buffer
 # ----------------------------------------------------------
-# These operation are guarenteed to return an array pointing to the same memory
+# These operation are guaranteed to return an array pointing to the same memory
 # buffer. They all modify arrays in place (e.g. +=). We always return a
 # HOOMDArray for these methods that return anything.
 
@@ -206,21 +208,22 @@ def _iop_wrap(method, cls=np.ndarray):
 _ndarray_iops_ = (
     [
         # Inplace Arithmetic
-        '__iadd__',
-        '__isub__',
-        '__imul__',
-        '__itruediv__',
-        '__ifloordiv__',
-        '__imod__',
-        '__ipow__',
+        "__iadd__",
+        "__isub__",
+        "__imul__",
+        "__itruediv__",
+        "__ifloordiv__",
+        "__imod__",
+        "__ipow__",
         # Inplace Bitwise
-        '__ilshift__',
-        '__irshift__',
-        '__iand__',
-        '__ior__',
-        '__ixor__'
+        "__ilshift__",
+        "__irshift__",
+        "__iand__",
+        "__ior__",
+        "__ixor__",
     ],
-    _iop_wrap)
+    _iop_wrap,
+)
 
 # Regular methods that may return an array pointing to the same buffer
 # --------------------------------------------------------------------
@@ -232,15 +235,16 @@ _std_func_with_check = _magic_wrap_with_check
 _ndarray_std_funcs_ = (
     [
         # Select subset of array
-        'diagonal',
+        "diagonal",
         # Reshapes array
-        'reshape',
-        'transpose',
-        'swapaxes',
-        'ravel',
-        'squeeze',
+        "reshape",
+        "transpose",
+        "swapaxes",
+        "ravel",
+        "squeeze",
     ],
-    _std_func_with_check)
+    _std_func_with_check,
+)
 
 # Functions that we disallow
 # --------------------------
@@ -250,17 +254,17 @@ _ndarray_std_funcs_ = (
 
 
 def _disallowed_wrap(method):
-
     def raise_error(self, *args, **kwargs):
         raise HOOMDArrayError(
             "The {} method is not allowed for {} objects.".format(
-                method, self.__class__))
+                method, self.__class__
+            )
+        )
 
     return raise_error
 
 
-_ndarray_disallow_funcs_ = (['view', 'resize', 'flat',
-                             'flatiter'], _disallowed_wrap)
+_ndarray_disallow_funcs_ = (["view", "resize", "flat", "flatiter"], _disallowed_wrap)
 
 # Properties that can return an array pointing to the same buffer
 # ---------------------------------------------------------------
@@ -289,7 +293,7 @@ def _wrap_properties_with_check(prop, cls=np.ndarray):
     return wrapped
 
 
-_ndarray_properties_ = (['T'], _wrap_properties_with_check)
+_ndarray_properties_ = (["T"], _wrap_properties_with_check)
 
 # Properties we disallow
 # --------------------------------
@@ -298,17 +302,18 @@ _ndarray_properties_ = (['T'], _wrap_properties_with_check)
 
 
 def _disallowed_property_wrap(method):
-
     @property
     def raise_error(self):
         raise HOOMDArrayError(
             "The {} property is not allowed for {} objects.".format(
-                method, self.__class__))
+                method, self.__class__
+            )
+        )
 
     return raise_error
 
 
-_ndarray_disallow_properties_ = (['data', 'base'], _disallowed_property_wrap)
+_ndarray_disallow_properties_ = (["data", "base"], _disallowed_property_wrap)
 
 _wrap_list = [
     _ndarray_ops_,
@@ -327,8 +332,7 @@ def coerce_mock_to_array(val):
 
     Coerces ``HOOMDArray`` objects into ``numpy.ndarray`` objects.
     """
-    if isinstance(val, Iterable) and not isinstance(val,
-                                                    (np.ndarray, HOOMDArray)):
+    if isinstance(val, Iterable) and not isinstance(val, (np.ndarray, HOOMDArray)):
         return [coerce_mock_to_array(v) for v in val]
     return val if not isinstance(val, HOOMDArray) else val._coerce_to_ndarray()
 
@@ -390,11 +394,12 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
                 self._read_only = buffer.read_only
             except AttributeError:
                 try:
-                    self._read_only = not buffer.flags['WRITEABLE']
+                    self._read_only = not buffer.flags["WRITEABLE"]
                 except AttributeError:
                     raise ValueError(
                         "Whether the buffer is read only could not be "
-                        "discerned. Pass read_only manually.")
+                        "discerned. Pass read_only manually."
+                    )
         else:
             self._read_only = bool(read_only)
 
@@ -407,8 +412,7 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
         new_inputs = [coerce_mock_to_array(val) for val in args]
         for key, value in kwargs.items():
             if type(value) is tuple:
-                kwargs[key] = tuple(
-                    [coerce_mock_to_array(val) for val in value])
+                kwargs[key] = tuple([coerce_mock_to_array(val) for val in value])
             else:
                 kwargs[key] = coerce_mock_to_array(value)
         arr = func(*new_inputs, **kwargs)
@@ -430,7 +434,7 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
         kwargs = {k: coerce_mock_to_array(v) for k, v in kwargs}
         if out is not None:
             if any(isinstance(o, HOOMDArray) for o in out):
-                kwargs['out'] = tuple((coerce_mock_to_array(v) for v in out))
+                kwargs["out"] = tuple((coerce_mock_to_array(v) for v in out))
                 getattr(ufunc, method)(*new_inputs, **kwargs)
                 return self
         return getattr(ufunc, method)(*new_inputs, **kwargs)
@@ -446,11 +450,10 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
 
         This ensures that calls to functions like `numpy.array` do not cause
         invalid access to the buffer. We must copy because ones we release
-        `numpy.ndarray` pointing to the underlying buffer we cannot guarentee
+        `numpy.ndarray` pointing to the underlying buffer we cannot guarantee
         safety.
         """
-        return np.array(self._coerce_to_ndarray(),
-                        copy=True).__array_interface__
+        return np.array(self._coerce_to_ndarray(), copy=True).__array_interface__
 
     def _coerce_to_ndarray(self):
         """Provide a `numpy.ndarray` interface to the underlying buffer.
@@ -460,7 +463,7 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
         if self._callback():
             if self._read_only:
                 arr = np.array(self._buffer, copy=False)
-                arr.flags['WRITEABLE'] = False
+                arr.flags["WRITEABLE"] = False
                 return arr
             else:
                 return np.array(self._buffer, copy=False)
@@ -468,7 +471,9 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
             raise HOOMDArrayError(
                 "Cannot access {} outside context manager. Use "
                 "numpy.array inside context manager instead.".format(
-                    self.__class__.__name__))
+                    self.__class__.__name__
+                )
+            )
 
     @property
     def shape(self):
@@ -477,9 +482,11 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
 
     @shape.setter
     def shape(self, value):
-        raise HOOMDArrayError("Shape cannot be set on a {}. Use "
-                              "``array.reshape`` instead.".format(
-                                  self.__class__.__name__))
+        raise HOOMDArrayError(
+            "Shape cannot be set on a {}. Use ``array.reshape`` instead.".format(
+                self.__class__.__name__
+            )
+        )
 
     @property
     def read_only(self):
@@ -506,11 +513,11 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
         """str: Format the array in HTML."""
         name = self.__class__.__name__
         if self._callback():
-            return "<emph>" + name + "</emph>" \
-                + "(" + str(self._coerce_to_ndarray()) + ")"
+            return (
+                "<emph>" + name + "</emph>" + "(" + str(self._coerce_to_ndarray()) + ")"
+            )
         else:
-            return "<emph>" + name + "</emph>" \
-                + "(<strong>INVALID</strong>)"
+            return "<emph>" + name + "</emph>" + "(<strong>INVALID</strong>)"
 
 
 if hoomd.version.gpu_enabled:
@@ -547,15 +554,15 @@ if hoomd.version.gpu_enabled:
             return self._buffer.read_only
 
     try:
-        if os.environ.get('_HOOMD_DISABLE_CUPY_') is not None:
+        if os.environ.get("_HOOMD_DISABLE_CUPY_") is not None:
             raise ImportError
         import cupy
     except ImportError:
         _wrap_gpu_array_list = []
 
-        class HOOMDGPUArray(_HOOMDGPUArrayBase,
-                            metaclass=_wrap_class_factory(_wrap_gpu_array_list)
-                            ):
+        class HOOMDGPUArray(
+            _HOOMDGPUArrayBase, metaclass=_wrap_class_factory(_wrap_gpu_array_list)
+        ):
             """Zero copy access to HOOMD data on the GPU."""
 
             def __len__(self):
@@ -566,19 +573,20 @@ if hoomd.version.gpu_enabled:
             def shape(self):
                 """tuple: Array shape."""
                 protocol = self._buffer.__cuda_array_interface__
-                return protocol['shape']
+                return protocol["shape"]
 
             @shape.setter
             def shape(self, value):
-                raise HOOMDArrayError("Shape cannot be set on a {}. Use "
-                                      "``array.reshape`` instead.".format(
-                                          self.__class__.__name__))
+                raise HOOMDArrayError(
+                    "Shape cannot be set on a {}. Use "
+                    "``array.reshape`` instead.".format(self.__class__.__name__)
+                )
 
             @property
             def strides(self):
                 """tuple: Array strides."""
                 protocol = self._buffer.__cuda_array_interface__
-                return protocol['strides']
+                return protocol["strides"]
 
             @property
             def ndim(self):
@@ -589,14 +597,20 @@ if hoomd.version.gpu_enabled:
             def dtype(self):
                 """Data type."""
                 protocol = self._buffer.__cuda_array_interface__
-                return protocol['typestr']
+                return protocol["typestr"]
 
             def __str__(self):
                 """str: Convert array to a string."""
                 name = self.__class__
                 if self._callback():
-                    return name + "(shape=(" + str(self.shape) \
-                        + "), dtype=(" + str(self.dtype) + "))"
+                    return (
+                        name
+                        + "(shape=("
+                        + str(self.shape)
+                        + "), dtype=("
+                        + str(self.dtype)
+                        + "))"
+                    )
                 else:
                     return name + "(INVALID)"
 
@@ -604,8 +618,14 @@ if hoomd.version.gpu_enabled:
                 """str: Convert array to an string that can be evaluated."""
                 name = self.__class__.__name__
                 if self._callback():
-                    return name + "(shape=(" + str(self.shape) \
-                        + "), dtype=(" + str(self.dtype) + "))"
+                    return (
+                        name
+                        + "(shape=("
+                        + str(self.shape)
+                        + "), dtype=("
+                        + str(self.dtype)
+                        + "))"
+                    )
                 else:
                     return name + "(INVALID)"
 
@@ -613,26 +633,41 @@ if hoomd.version.gpu_enabled:
                 """str: Format the array in HTML."""
                 name = self.__class__.__name__
                 if self._callback():
-                    return "<emph>" + name + "</emph>" + "(shape=(" \
-                        + str(self.shape) + "), dtype=(" \
-                        + str(self.dtype) + "))"
+                    return (
+                        "<emph>"
+                        + name
+                        + "</emph>"
+                        + "(shape=("
+                        + str(self.shape)
+                        + "), dtype=("
+                        + str(self.dtype)
+                        + "))"
+                    )
                 else:
                     return "<emph>" + name + "</emph>(<strong>INVALID</strong>)"
     else:
-        _cupy_ndarray_magic_safe_ = ([
-            item for item in _ndarray_magic_safe_[0] if item not in
-            {'__copy__', '__setstate__', '__contains__', '__setitem__'}
-        ], _ndarray_magic_safe_[1])
+        _cupy_ndarray_magic_safe_ = (
+            [
+                item
+                for item in _ndarray_magic_safe_[0]
+                if item
+                not in {"__copy__", "__setstate__", "__contains__", "__setitem__"}
+            ],
+            _ndarray_magic_safe_[1],
+        )
 
         _wrap_gpu_array_list = [
-            _ndarray_iops_, _cupy_ndarray_magic_safe_, _ndarray_std_funcs_,
-            _ndarray_disallow_funcs_, _ndarray_properties_,
-            _ndarray_disallow_properties_
+            _ndarray_iops_,
+            _cupy_ndarray_magic_safe_,
+            _ndarray_std_funcs_,
+            _ndarray_disallow_funcs_,
+            _ndarray_properties_,
+            _ndarray_disallow_properties_,
         ]
 
-        _GPUArrayMeta = _wrap_class_factory(_wrap_gpu_array_list,
-                                            allow_exceptions=True,
-                                            cls=cupy.ndarray)
+        _GPUArrayMeta = _wrap_class_factory(
+            _wrap_gpu_array_list, allow_exceptions=True, cls=cupy.ndarray
+        )
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=_GPUArrayMeta):
             """Zero copy access to HOOMD data on the GPU."""
@@ -662,9 +697,10 @@ if hoomd.version.gpu_enabled:
 
             @shape.setter
             def shape(self, value):
-                raise HOOMDArrayError("Shape cannot be set on a {}. Use "
-                                      "``array.reshape`` instead.".format(
-                                          self.__class__.__name__))
+                raise HOOMDArrayError(
+                    "Shape cannot be set on a {}. Use "
+                    "``array.reshape`` instead.".format(self.__class__.__name__)
+                )
 
             def _coerce_to_ndarray(self):
                 """Provide a `cupy.ndarray` interface to the underlying buffer.
@@ -678,14 +714,14 @@ if hoomd.version.gpu_enabled:
                     raise HOOMDArrayError(
                         "Cannot access {} outside context manager. Use "
                         "cupy.array(obj, copy=True) inside context manager "
-                        "instead.".format(self.__class__.__name__))
+                        "instead.".format(self.__class__.__name__)
+                    )
 
             def __str__(self):
                 """str: Convert array to a string."""
                 name = self.__class__.__name__
                 if self._callback():
-                    return name + "(" \
-                        + str(self._coerce_to_ndarray()) + ")"
+                    return name + "(" + str(self._coerce_to_ndarray()) + ")"
                 else:
                     return name + "(INVALID)"
 
@@ -693,8 +729,7 @@ if hoomd.version.gpu_enabled:
                 """str: Convert array to an string that can be evaluated."""
                 name = self.__class__.__name__
                 if self._callback():
-                    return name + "(" + str(self._coerce_to_ndarray()) \
-                        + ")"
+                    return name + "(" + str(self._coerce_to_ndarray()) + ")"
                 else:
                     return name + "(INVALID)"
 
@@ -702,16 +737,22 @@ if hoomd.version.gpu_enabled:
                 """str: Format the array in HTML."""
                 name = self.__class__.__name__
                 if self._callback():
-                    return "<emph>" + name + "</emph>" \
-                        + "(" + str(self._coerce_to_ndarray()) + ")"
+                    return (
+                        "<emph>"
+                        + name
+                        + "</emph>"
+                        + "("
+                        + str(self._coerce_to_ndarray())
+                        + ")"
+                    )
                 else:
-                    return "<emph>" + name + "</emph>" \
-                        + "(<strong>INVALID</strong>)"
+                    return "<emph>" + name + "</emph>" + "(<strong>INVALID</strong>)"
 else:
     from hoomd.error import _NoGPU
 
     class HOOMDGPUArray(_NoGPU):
         """GPU arrays are not available on the CPU."""
+
         pass
 
 

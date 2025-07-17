@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -44,10 +44,10 @@ template<class Geometry> class PYBIND11_EXPORT BounceBackNVEGPU : public BounceB
         }
 
     //! Performs the first step of the integration
-    virtual void integrateStepOne(uint64_t timestep);
+    void integrateStepOne(uint64_t timestep) override;
 
     //! Performs the second step of the integration
-    virtual void integrateStepTwo(uint64_t timestep);
+    void integrateStepTwo(uint64_t timestep) override;
 
     private:
     std::shared_ptr<Autotuner<1>> m_tuner_1;

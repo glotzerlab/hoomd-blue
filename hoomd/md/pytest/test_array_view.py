@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test the internal wall data lists for C++.
@@ -77,10 +77,9 @@ class TestArrayViewPython(conftest.BaseListTest):
         attrs = {
             "SphereWall": ("radius", "origin", "inside"),
             "CylinderWall": ("radius", "origin", "axis", "inside"),
-            "PlaneWall": ("origin", "normal")
+            "PlaneWall": ("origin", "normal"),
         }[type(a).__name__]
-        return all(
-            np.allclose(getattr(a, attr), getattr(b, attr)) for attr in attrs)
+        return all(np.allclose(getattr(a, attr), getattr(b, attr)) for attr in attrs)
 
     def get_collection_size(self):
         return getattr(self._wall_collection, f"num_{self._mode}s")

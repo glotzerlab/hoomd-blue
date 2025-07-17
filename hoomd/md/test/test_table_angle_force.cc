@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -77,8 +77,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     fc_3->compute(0);
 
         {
-        const GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
-        const GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
+        const GPUArray<Scalar4>& force_array_1 = fc_3->getForceArray();
+        const GPUArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
         size_t pitch = 0;
         ArrayHandle<Scalar4> h_force_1(force_array_1, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_1(virial_array_1, access_location::host, access_mode::read);
@@ -104,8 +104,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     Scalar rough_tol = 0.1;
         {
         // this time there should be a force
-        const GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
-        const GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
+        const GPUArray<Scalar4>& force_array_2 = fc_3->getForceArray();
+        const GPUArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -142,8 +142,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     fc_3->compute(1);
 
         {
-        const GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
-        const GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
+        const GPUArray<Scalar4>& force_array_3 = fc_3->getForceArray();
+        const GPUArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
@@ -185,8 +185,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
 
     fc_3->compute(2);
         {
-        const GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
-        const GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
+        const GPUArray<Scalar4>& force_array_3 = fc_3->getForceArray();
+        const GPUArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
@@ -233,13 +233,13 @@ void angle_force_comparison_tests(angleforce_creator tf_creator1,
 
     // verify that the forces are identical (within roundoff errors)
     {
-    GlobalArray<Scalar4>& force_array_7 =  fc1->getForceArray();
-    GlobalArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
+    GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
+    GPUArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
     size_t pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
-    GlobalArray<Scalar4>& force_array_8 =  fc2->getForceArray();
-    GlobalArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
+    GPUArray<Scalar4>& force_array_8 =  fc2->getForceArray();
+    GPUArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
 

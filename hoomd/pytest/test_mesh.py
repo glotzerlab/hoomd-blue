@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -8,10 +8,9 @@ import pytest
 from hoomd.error import DataAccessError, MutabilityError
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def mesh_snapshot_factory(device):
-
-    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
+    def make_snapshot(d=1.0, phi_deg=45, particle_types=["A"], L=20):
         phi_rad = phi_deg * (numpy.pi / 180)
         # the central particles are along the x-axis, so phi is determined from
         # the angle in the yz plane.
@@ -24,14 +23,12 @@ def mesh_snapshot_factory(device):
             s.particles.N = N
             s.particles.types = particle_types
             # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [[
-                0.0, d * numpy.cos(phi_rad / 2),
-                d * numpy.sin(phi_rad / 2) + 0.1
-            ], [0.0, 0.0, 0.1], [d, 0.0, 0.1],
-                                       [
-                                           d, d * numpy.cos(phi_rad / 2),
-                                           -d * numpy.sin(phi_rad / 2) + 0.1
-                                       ]]
+            s.particles.position[:] = [
+                [0.0, d * numpy.cos(phi_rad / 2), d * numpy.sin(phi_rad / 2) + 0.1],
+                [0.0, 0.0, 0.1],
+                [d, 0.0, 0.1],
+                [d, d * numpy.cos(phi_rad / 2), -d * numpy.sin(phi_rad / 2) + 0.1],
+            ]
 
         return s
 
@@ -39,7 +36,6 @@ def mesh_snapshot_factory(device):
 
 
 def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
-
     sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     mesh = Mesh()
 
@@ -111,4 +107,5 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     assert numpy.array_equal(mesh.triangles, mesh_triangles)
     assert numpy.array_equal(mesh.type_ids, mesh_type_ids)
     assert numpy.array_equal(
-        mesh.bonds, numpy.array([[0, 1], [1, 2], [0, 2], [2, 3], [1, 3]]))
+        mesh.bonds, numpy.array([[0, 1], [1, 2], [0, 2], [2, 3], [1, 3]])
+    )

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -39,17 +39,17 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     protected:
 #ifdef ENABLE_MPI
     //! Begin the calculation of outer cell properties on the GPU
-    virtual void beginOuterCellProperties();
+    void beginOuterCellProperties() override;
 
     //! Finish the calculation of outer cell properties on the GPU
-    virtual void finishOuterCellProperties();
+    void finishOuterCellProperties() override;
 #endif // ENABLE_MPI
 
     //! Calculate the inner cell properties on the GPU
-    virtual void calcInnerCellProperties();
+    void calcInnerCellProperties() override;
 
     //! Compute the net properties from the cell properties
-    virtual void computeNetProperties();
+    void computeNetProperties() override;
 
     private:
     std::shared_ptr<Autotuner<2>> m_begin_tuner; //!< Tuner for cell begin kernel

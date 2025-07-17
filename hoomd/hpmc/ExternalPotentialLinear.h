@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -68,21 +68,26 @@ class ExternalPotentialLinear : public ExternalPotential
 
     /** Implement the evaluation the energy of the external field interacting with one particle.
 
+        @param timestep The current timestep in the simulation
+        @param tag_i Tag of the particle
         @param type_i Type index of the particle.
         @param r_i Posiion of the particle in the box.
         @param q_i Orientation of the particle
         @param charge_i Charge of the particle.
-        @param trial Set to false when evaluating the energy of a current configuration. Set to
-               true when evaluating a trial move.
+        @param trial A value of None indicates that the energy should be evaluated directly.
+          Pass Old or New when evaluating the old or new configuration in a trial move.
+          Hard potentials always return 0 in old configurations to avoid infinity - infinity.
         @returns Energy of the external interaction (possibly INFINITY).
 
         Evaluate the linear potential energy.
     */
-    virtual LongReal particleEnergyImplementation(unsigned int type_i,
+    virtual LongReal particleEnergyImplementation(uint64_t timestep,
+                                                  unsigned int tag_i,
+                                                  unsigned int type_i,
                                                   const vec3<LongReal>& r_i,
                                                   const quat<LongReal>& q_i,
                                                   LongReal charge_i,
-                                                  bool trial);
+                                                  Trial trial);
     };
 
     } // end namespace hpmc

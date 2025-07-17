@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -17,6 +17,17 @@ def small_snap():
         snap.mpcd.N = 1
         snap.mpcd.types = ["A"]
     return snap
+
+
+def test_cell_list(small_snap, simulation_factory):
+    if small_snap.communicator.rank == 0:
+        small_snap.configuration.box = [20, 30, 40, 0, 0, 0]
+    sim = simulation_factory(small_snap)
+
+    cl = hoomd.mpcd.collide.CellList()
+
+    cl._attach(sim)
+    assert cl.num_cells == (20, 30, 40)
 
 
 @pytest.mark.parametrize(
@@ -38,7 +49,6 @@ def small_snap():
     ids=["AndersenThermostat", "StochasticRotationDynamics"],
 )
 class TestCollisionMethod:
-
     def test_create(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
         cm = cls(period=5, **init_args)
@@ -65,16 +75,14 @@ class TestCollisionMethod:
         pickling_check(cm)
 
         sim = simulation_factory(small_snap)
-        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
-                                                          collision_method=cm)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02, collision_method=cm)
         sim.run(0)
         pickling_check(cm)
 
     def test_embed(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
         cm = cls(period=1, embedded_particles=hoomd.filter.All(), **init_args)
-        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
-                                                          collision_method=cm)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02, collision_method=cm)
 
         assert isinstance(cm.embedded_particles, hoomd.filter.All)
         sim.run(0)
@@ -88,8 +96,7 @@ class TestCollisionMethod:
         else:
             kT_required = True
         cm = cls(period=1, **init_args)
-        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
-                                                          collision_method=cm)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02, collision_method=cm)
 
         assert isinstance(cm.kT, hoomd.variant.Constant)
         assert cm.kT(0) == 1.0
@@ -111,8 +118,7 @@ class TestCollisionMethod:
     def test_run(self, small_snap, simulation_factory, cls, init_args):
         sim = simulation_factory(small_snap)
         cm = cls(period=1, **init_args)
-        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02,
-                                                          collision_method=cm)
+        sim.operations.integrator = hoomd.mpcd.Integrator(dt=0.02, collision_method=cm)
 
         # test that one step can run without error with only solvent
         sim.run(1)
@@ -121,5 +127,6 @@ class TestCollisionMethod:
         if "kT" not in init_args:
             init_args["kT"] = 1.0
         sim.operations.integrator.collision_method = cls(
-            period=1, embedded_particles=hoomd.filter.All(), **init_args)
+            period=1, embedded_particles=hoomd.filter.All(), **init_args
+        )
         sim.run(1)

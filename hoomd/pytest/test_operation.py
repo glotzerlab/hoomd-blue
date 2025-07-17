@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -36,28 +36,30 @@ def test_adding_params(base_op, params):
 
 @pytest.fixture()
 def type_param():
-    return TypeParameter(name='type_param',
-                         type_kind='particle_types',
-                         param_dict=TypeParameterDict(foo=1,
-                                                      bar=identity,
-                                                      len_keys=1))
+    return TypeParameter(
+        name="type_param",
+        type_kind="particle_types",
+        param_dict=TypeParameterDict(foo=1, bar=identity, len_keys=1),
+    )
 
 
 def test_adding_typeparams(type_param, base_op):
     base_op._add_typeparam(type_param)
-    assert 'type_param' in base_op._typeparam_dict.keys()
+    assert "type_param" in base_op._typeparam_dict.keys()
     expected_dict = {"foo": 1, "bar": RequiredArg}
-    assert base_op._typeparam_dict['type_param']['A'] == expected_dict
+    assert base_op._typeparam_dict["type_param"]["A"] == expected_dict
 
 
 def test_extending_typeparams(base_op):
-    type_params = (TypeParameter('foo', 'particle', {"a": int}),
-                   TypeParameter('bar', 'particle', {"a": str}),
-                   TypeParameter('baz', 'particle', {"a": 2.5}))
+    type_params = (
+        TypeParameter("foo", "particle", {"a": int}),
+        TypeParameter("bar", "particle", {"a": str}),
+        TypeParameter("baz", "particle", {"a": 2.5}),
+    )
 
     base_op._extend_typeparam(type_params)
     keys = set(base_op._typeparam_dict.keys())
-    expected_keys = {'foo', 'bar', 'baz'}
+    expected_keys = {"foo", "bar", "baz"}
     # That keys are the same
     assert keys.union(expected_keys) == keys and keys - expected_keys == set()
     # That each value is the same
@@ -75,7 +77,7 @@ def full_op(base_op, params, type_param):
 
 def test_getattr(full_op, params, type_param):
     assert type(full_op.type_param) is TypeParameter
-    assert full_op.type_param['A'] == type_param["A"]
+    assert full_op.type_param["A"] == type_param["A"]
     for key, param in params.items():
         assert getattr(full_op, key) == param
 
@@ -83,26 +85,16 @@ def test_getattr(full_op, params, type_param):
 def test_setattr_type_param(full_op):
     new_dict = {"foo": 2, "bar": 3}
     full_op.type_param = {"A": new_dict, "B": new_dict}
-    assert full_op.type_param['A'] == new_dict
-    assert full_op.type_param['B'] == new_dict
+    assert full_op.type_param["A"] == new_dict
+    assert full_op.type_param["B"] == new_dict
     new_new_dict = {"foo": 3, "bar": None}
-    full_op.type_param['A'] = new_new_dict
-    assert full_op.type_param['A'] == new_new_dict
+    full_op.type_param["A"] = new_new_dict
+    assert full_op.type_param["A"] == new_new_dict
 
 
 @pytest.fixture()
 def type_param_non_default():
-    return {
-        "A": {
-            "bar": "world"
-        },
-        "B": {
-            "bar": "hello"
-        },
-        "C": {
-            "bar": "hello world"
-        }
-    }
+    return {"A": {"bar": "world"}, "B": {"bar": "hello"}, "C": {"bar": "hello world"}}
 
 
 def test_apply_typeparam_dict(full_op, type_param_non_default):
@@ -141,8 +133,8 @@ def attached(full_op, type_param_non_default):
 
 
 def test_attached_setattr(attached):
-    attached.type_param['A'] = dict(foo=5., bar='world')
-    assert attached._cpp_obj.getTypeParam('A') == dict(foo=5., bar='world')
+    attached.type_param["A"] = dict(foo=5.0, bar="world")
+    assert attached._cpp_obj.getTypeParam("A") == dict(foo=5.0, bar="world")
     attached.param1 = 4
     assert attached._cpp_obj.param1 == 4
 
@@ -169,13 +161,17 @@ def test_pickling(full_op, attached):
 
 
 def test_operation_lifetime(simulation_factory, two_particle_snapshot_factory):
-
     def drop_sim(attach=False):
         sim = simulation_factory(two_particle_snapshot_factory())
         # Use operation available regardless of build
-        box_resize = hoomd.update.BoxResize(10, hoomd.Box.cube(4),
-                                            hoomd.Box.cube(5),
-                                            hoomd.variant.Ramp(0, 1, 0, 10_000))
+        box_resize = hoomd.update.BoxResize(
+            10,
+            hoomd.variant.box.Interpolate(
+                hoomd.Box.cube(4),
+                hoomd.Box.cube(5),
+                hoomd.variant.Ramp(0, 1, 0, 10_000),
+            ),
+        )
         sim.operations.updaters.append(box_resize)
         if attach:
             sim.run(0)

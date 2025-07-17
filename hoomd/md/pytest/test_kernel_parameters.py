@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -7,19 +7,17 @@ import pytest
 
 @pytest.mark.gpu
 @pytest.mark.validate
-def test_combined_kernel_parameters(simulation_factory,
-                                    lattice_snapshot_factory):
-
-    snap = lattice_snapshot_factory(particle_types=['A'], n=7, a=1.7, r=0.01)
+def test_combined_kernel_parameters(simulation_factory, lattice_snapshot_factory):
+    snap = lattice_snapshot_factory(particle_types=["A"], n=7, a=1.7, r=0.01)
     sim = simulation_factory(snap)
 
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=nlist, default_r_cut=2.5)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
     langevin = hoomd.md.methods.Langevin(kT=1.5, filter=hoomd.filter.All())
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
-                                                    methods=[langevin],
-                                                    forces=[lj])
+    sim.operations.integrator = hoomd.md.Integrator(
+        dt=0.005, methods=[langevin], forces=[lj]
+    )
 
     sim.run(0)
     while not sim.operations.is_tuning_complete:

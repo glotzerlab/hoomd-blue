@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ConstantForceCompute.h"
@@ -21,10 +21,9 @@ ConstantForceCompute::ConstantForceCompute(std::shared_ptr<SystemDefinition> sys
     : ForceCompute(sysdef), m_group(group), m_parameters_updated(false)
     {
     // allocate memory for the per-type constant_force storage and initialize them to (1.0,0,0)
-    GlobalVector<Scalar3> tmp_f(m_pdata->getNTypes(), m_exec_conf);
+    GPUVector<Scalar3> tmp_f(m_pdata->getNTypes(), m_exec_conf);
 
     m_constant_force.swap(tmp_f);
-    TAG_ALLOCATION(m_constant_force);
 
     ArrayHandle<Scalar3> h_constant_force(m_constant_force,
                                           access_location::host,
@@ -33,31 +32,15 @@ ConstantForceCompute::ConstantForceCompute(std::shared_ptr<SystemDefinition> sys
         h_constant_force.data[i] = make_scalar3(0.0, 0.0, 0.0);
 
     // allocate memory for the per-type constant_torque storage and initialize them to (0,0,0)
-    GlobalVector<Scalar3> tmp_t(m_pdata->getNTypes(), m_exec_conf);
+    GPUVector<Scalar3> tmp_t(m_pdata->getNTypes(), m_exec_conf);
 
     m_constant_torque.swap(tmp_t);
-    TAG_ALLOCATION(m_constant_torque);
 
     ArrayHandle<Scalar3> h_constant_torque(m_constant_torque,
                                            access_location::host,
                                            access_mode::overwrite);
     for (unsigned int i = 0; i < m_constant_torque.size(); i++)
         h_constant_torque.data[i] = make_scalar3(0.0, 0.0, 0.0);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_constant_force.get(),
-                      sizeof(Scalar3) * m_constant_force.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-
-        cudaMemAdvise(m_constant_torque.get(),
-                      sizeof(Scalar3) * m_constant_torque.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        }
-#endif
     }
 
 ConstantForceCompute::~ConstantForceCompute()
@@ -168,8 +151,8 @@ void ConstantForceCompute::setForces()
     assert(h_t_actVec.data != NULL);
 
     // zero forces so we don't leave any forces set for indices that are no longer part of our group
-    memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset(h_torque.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    m_force.zeroFill();
+    m_torque.zeroFill();
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {

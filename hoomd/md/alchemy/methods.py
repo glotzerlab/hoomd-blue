@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Alchemical MD integration methods."""
@@ -9,6 +9,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.variant import Variant
+import inspect
 
 
 class Alchemostat(Method):
@@ -19,18 +20,41 @@ class Alchemostat(Method):
         Users should use the subclasses and not instantiate `Alchemostat`
         directly.
 
-    .. versionadded:: 3.1.0
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Alchemostat`:
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Method._doc_inherited)
+    )
+
+    _doc_inherited = (
+        Method._doc_inherited
+        + """
+    ----------
+
+    **Members inherited from**
+    `Alchemostat <hoomd.md.alchemy.methods.Alchemostat>`:
+
+    .. py:attribute:: alchemical_dof
+
+        List of alchemical degrees of freedom.
+        `Read more... <hoomd.md.alchemy.methods.Alchemostat.alchemical_dof>`
+    """
+    )
 
     def __init__(self, alchemical_dof):
         self._alchemical_dof = syncedlist.SyncedList(
-            AlchemicalDOF, syncedlist._PartialGetAttr("_cpp_obj"))
+            AlchemicalDOF, syncedlist._PartialGetAttr("_cpp_obj")
+        )
         if alchemical_dof is not None:
             self._alchemical_dof.extend(alchemical_dof)
 
     def _attach_hook(self):
-        self._alchemical_dof._sync(self._simulation,
-                                   self._cpp_obj.alchemical_dof)
+        self._alchemical_dof._sync(self._simulation, self._cpp_obj.alchemical_dof)
 
     def _detach_hook(self):
         self._alchemical_dof._unsync()
@@ -38,7 +62,8 @@ class Alchemostat(Method):
     @property
     def alchemical_dof(self):
         """`list` [`hoomd.md.alchemy.pair.AlchemicalDOF` ]: List of \
-                alchemical degrees of freedom."""
+                alchemical degrees of freedom.
+        """
         return self._alchemical_dof
 
     @alchemical_dof.setter
@@ -79,20 +104,24 @@ class NVT(Alchemostat):
     See Also:
         `Zhou et al. 2019 <https://doi.org/10.1080/00268976.2019.1680886>`_.
 
-    .. versionadded:: 3.1.0
+    {inherited}
+
+    ----------
+
+    **Members defined in** `NVT`:
 
     Attributes:
         alchemical_kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_dof (`list` [`hoomd.md.alchemy.pair.AlchemicalDOF`]): List of
-            alchemical degrees of freedom.
-
         period (int): Timesteps between applications of the alchemostat.
     """
 
-    def __init__(self, alchemical_kT, alchemical_dof, period=1):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Alchemostat._doc_inherited)
+    )
 
+    def __init__(self, alchemical_kT, alchemical_dof, period=1):
         # store metadata
         param_dict = ParameterDict(alchemical_kT=Variant, period=int)
         param_dict.update(dict(alchemical_kT=alchemical_kT, period=period))
@@ -106,3 +135,9 @@ class NVT(Alchemostat):
         self._cpp_obj = cpp_class(cpp_sys_def, self.period, self.alchemical_kT)
         self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach_hook()
+
+
+__all__ = [
+    "NVT",
+    "Alchemostat",
+]

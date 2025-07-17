@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
@@ -66,12 +66,13 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     /// Autotuner for block size of update kernel.
     std::shared_ptr<Autotuner<1>> m_tuner_update;
 
-    GlobalArray<uint2> m_flag; //!< Flag to read out error condition
+    GPUArray<uint2> m_flag; //!< Flag to read out error condition
 
-    GPUPartition m_gpu_partition; //!< Partition of the rigid bodies
-    GlobalVector<unsigned int>
-        m_rigid_center; //!< Contains particle indices of all central particles
-    GlobalVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
+    /// Number of rigid bodies on the local rank.
+    unsigned int m_n_rigid;
+
+    GPUVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
+    GPUVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
     };
 
     } // end namespace md

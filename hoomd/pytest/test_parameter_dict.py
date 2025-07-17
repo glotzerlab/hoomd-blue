@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -15,7 +15,6 @@ def identity(x):
 
 
 class DummyCppObj:
-
     def __init__(self):
         self._dict = dict()
 
@@ -46,29 +45,26 @@ class TestParameterDict(BaseMappingTest):
     def spec(self, n):
         self._n = n
         if n == 1:
-            spec = {
-                "int": int,
-                "list[int]": [int],
-                "(float, str)": (float, str)
-            }
+            spec = {"int": int, "list[int]": [int], "(float, str)": (float, str)}
         elif n == 2:
             spec = {"dict": {"str": str}, "filter": hoomd.filter.ParticleFilter}
         else:
             spec = {
                 "(float, float, float)": (float, float, float),
-                "list[dict[str, int]]": [{
-                    "foo": int,
-                    "bar": int
-                }],
-                "(float, str)": (float, str)
+                "list[dict[str, int]]": [{"foo": int, "bar": int}],
+                "(float, str)": (float, str),
             }
         self._spec = spec
         return spec
 
     def filter(self):
         return self.generator(
-            Options(hoomd.filter.All(), hoomd.filter.Type(("A", "B")),
-                    hoomd.filter.Tags([1, 2, 25])))
+            Options(
+                hoomd.filter.All(),
+                hoomd.filter.Type(("A", "B")),
+                hoomd.filter.Tags([1, 2, 25]),
+            )
+        )
 
     def _generate_value(self):
         if self._n == 2:
@@ -82,7 +78,6 @@ class TestParameterDict(BaseMappingTest):
 
     @pytest.fixture
     def generate_plain_collection(self):
-
         def generate(n):
             return self._generate_value()
 
@@ -106,8 +101,7 @@ class TestParameterDict(BaseMappingTest):
         for key, value in other.items():
             assert test_mapping[key] == value
 
-    @pytest.fixture(params=(True, False),
-                    ids=lambda x: "in_map" if x else "out_map")
+    @pytest.fixture(params=(True, False), ids=lambda x: "in_map" if x else "out_map")
     def setitem_key_value(self, n, request):
         value = self._generate_value()
         keys = list(value)
@@ -169,7 +163,6 @@ class TestParameterDictAttached(TestParameterDict):
 
 
 class TestSpecialTypes:
-
     def test_variants(self):
         mapping = ParameterDict(variant=hoomd.variant.Variant)
         mapping["variant"] = 4.0
@@ -197,7 +190,6 @@ class TestSpecialTypes:
         assert mapping["filter"] == tag_100
 
         class NewFilter(hoomd.filter.CustomFilter):
-
             def __call__(self, state):
                 return np.array([], dtype=np.uint64)
 
@@ -237,41 +229,31 @@ class TestSpecialTypes:
         mapping["str"] = "abc"
         assert mapping["str"] == "abc"
 
-    @pytest.mark.parametrize("box", ([10, 15, 25, 0, -0.5, 2], {
-        "Lx": 10,
-        "Ly": 15,
-        "Lz": 25,
-        "xy": 0,
-        "xz": -0.5,
-        "yz": 2
-    }, {
-        "Lx": 10,
-        "Ly": 15,
-        "Lz": 25
-    }, {
-        "Lx": 10,
-        "Ly": 15
-    }, {
-        "Lx": 10,
-        "Ly": 15,
-        "xy": 0
-    }, [10, 15]))
+    @pytest.mark.parametrize(
+        "box",
+        (
+            [10, 15, 25, 0, -0.5, 2],
+            {"Lx": 10, "Ly": 15, "Lz": 25, "xy": 0, "xz": -0.5, "yz": 2},
+            {"Lx": 10, "Ly": 15, "Lz": 25},
+            {"Lx": 10, "Ly": 15},
+            {"Lx": 10, "Ly": 15, "xy": 0},
+            [10, 15],
+        ),
+    )
     def test_box_valid(self, box):
         mapping = ParameterDict(box=hoomd.Box)
         mapping["box"] = box
         assert mapping["box"] == hoomd.Box.from_box(box)
 
-    @pytest.mark.parametrize("box", ([10, 15, 25, 0, -0.5], {
-        "Ly": 15,
-        "Lz": 25,
-        "xy": 0,
-        "xz": -0.5,
-        "yz": 2
-    }, {
-        "Lx": 10,
-        "Ly": 15,
-        "xz": 1
-    }, [10]))
+    @pytest.mark.parametrize(
+        "box",
+        (
+            [10, 15, 25, 0, -0.5],
+            {"Ly": 15, "Lz": 25, "xy": 0, "xz": -0.5, "yz": 2},
+            {"Lx": 10, "Ly": 15, "xz": 1},
+            [10],
+        ),
+    )
     def test_box_invalid(self, box):
         mapping = ParameterDict(box=hoomd.Box)
         with pytest.raises(hoomd.error.TypeConversionError):

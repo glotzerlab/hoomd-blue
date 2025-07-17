@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.cuh"
@@ -130,7 +130,6 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
                                             hipfftComplex* d_mesh,
                                             Scalar V_cell,
                                             int order,
-                                            unsigned int offset,
                                             BoxDim box,
                                             const Scalar* d_rho_coeff)
     {
@@ -152,7 +151,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
     if (work_idx >= work_size)
         return;
 
-    unsigned int group_idx = work_idx + offset;
+    unsigned int group_idx = work_idx;
 
     int3 bin_dim = make_int3(mesh_dim.x + 2 * n_ghost_bins.x,
                              mesh_dim.y + 2 * n_ghost_bins.y,
@@ -291,30 +290,6 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
         } // end of loop over neighboring bins
     }
 
-__global__ void gpu_reduce_meshes(const unsigned int mesh_elements,
-                                  const hipfftComplex* d_mesh_scratch,
-                                  hipfftComplex* d_mesh,
-                                  unsigned int ngpu)
-    {
-    unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= mesh_elements)
-        return;
-
-    hipfftComplex res;
-    res.x = 0;
-    res.y = 0;
-
-    // reduce over all temporary meshes
-    for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
-        {
-        hipfftComplex m = d_mesh_scratch[idx + igpu * mesh_elements];
-        res.x += m.x;
-        res.y += m.y;
-        }
-    d_mesh[idx] = res;
-    }
-
 void gpu_assign_particles(const uint3 mesh_dim,
                           const uint3 n_ghost_bins,
                           const uint3 grid_dim,
@@ -329,8 +304,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
                           const BoxDim& box,
                           unsigned int block_size,
                           const Scalar* d_rho_coeff,
-                          const hipDeviceProp_t& dev_prop,
-                          const GPUPartition& gpu_partition)
+                          const hipDeviceProp_t& dev_prop)
     {
     hipMemsetAsync(d_mesh, 0, sizeof(hipfftComplex) * grid_dim.x * grid_dim.y * grid_dim.z);
     Scalar V_cell = box.getVolume() / (Scalar)(mesh_dim.x * mesh_dim.y * mesh_dim.z);
@@ -347,61 +321,26 @@ void gpu_assign_particles(const uint3 mesh_dim,
         run_block_size -= dev_prop.warpSize;
         }
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
-    for (int idev = ngpu - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
+    unsigned int n_blocks = nwork / run_block_size + 1;
+    const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
 
-        if (ngpu > 1)
-            {
-            // zero the temporary mesh array
-            hipMemsetAsync(d_mesh_scratch + idev * mesh_elements,
-                           0,
-                           sizeof(hipfftComplex) * mesh_elements);
-            }
-
-        unsigned int nwork = range.second - range.first;
-        unsigned int n_blocks = nwork / run_block_size + 1;
-        const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
-
-        hipLaunchKernelGGL((gpu_assign_particles_kernel),
-                           dim3(n_blocks),
-                           dim3(run_block_size),
-                           shared_bytes,
-                           0,
-                           mesh_dim,
-                           n_ghost_bins,
-                           nwork,
-                           d_index_array,
-                           d_postype,
-                           d_charge,
-                           ngpu > 1 ? d_mesh_scratch + idev * mesh_elements : d_mesh,
-                           V_cell,
-                           order,
-                           range.first,
-                           box,
-                           d_rho_coeff);
-        }
-    }
-
-//! Reduce temporary arrays for every GPU
-void gpu_reduce_meshes(const unsigned int mesh_elements,
-                       const hipfftComplex* d_mesh_scratch,
-                       hipfftComplex* d_mesh,
-                       const unsigned int ngpu,
-                       const unsigned int block_size)
-    {
-    // reduce meshes on GPU 0
-    hipLaunchKernelGGL((gpu_reduce_meshes),
-                       dim3(mesh_elements / block_size + 1),
-                       dim3(block_size),
+    hipLaunchKernelGGL((gpu_assign_particles_kernel),
+                       dim3(n_blocks),
+                       dim3(run_block_size),
+                       shared_bytes,
                        0,
-                       0,
-                       mesh_elements,
-                       d_mesh_scratch,
+                       mesh_dim,
+                       n_ghost_bins,
+                       nwork,
+                       d_index_array,
+                       d_postype,
+                       d_charge,
                        d_mesh,
-                       ngpu);
+                       V_cell,
+                       order,
+                       box,
+                       d_rho_coeff);
     }
 
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
@@ -561,8 +500,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
                                           const hipfftComplex* inv_fourier_mesh_x,
                                           const hipfftComplex* inv_fourier_mesh_y,
                                           const hipfftComplex* inv_fourier_mesh_z,
-                                          const Scalar* d_rho_coeff,
-                                          const unsigned int offset)
+                                          const Scalar* d_rho_coeff)
     {
     extern __shared__ Scalar s_coeff[];
 
@@ -582,7 +520,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
     if (work_idx >= work_size)
         return;
 
-    unsigned int group_idx = work_idx + offset;
+    unsigned int group_idx = work_idx;
 
     unsigned int idx = d_index_array[group_idx];
 
@@ -692,6 +630,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
     }
 
 void gpu_compute_forces(const unsigned int N,
+                        const unsigned int group_size,
                         const Scalar4* d_postype,
                         Scalar4* d_force,
                         const hipfftComplex* d_inv_fourier_mesh_x,
@@ -703,8 +642,6 @@ void gpu_compute_forces(const unsigned int N,
                         const BoxDim& box,
                         int order,
                         const unsigned int* d_index_array,
-                        const GPUPartition& gpu_partition,
-                        const GPUPartition& all_gpu_partition,
                         const Scalar* d_rho_coeff,
                         unsigned int block_size,
                         bool local_fft,
@@ -717,45 +654,30 @@ void gpu_compute_forces(const unsigned int N,
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = all_gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = all_gpu_partition.getRangeAndSetGPU(idev);
+    hipMemsetAsync(d_force, 0, sizeof(Scalar4) * N);
 
-        // reset force array for ALL particles
-        hipMemsetAsync(d_force + range.first, 0, sizeof(Scalar4) * (range.second - range.first));
-        }
+    unsigned int nwork = group_size;
+    unsigned int n_blocks = nwork / run_block_size + 1;
+    const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-        unsigned int n_blocks = nwork / run_block_size + 1;
-        const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
-
-        hipLaunchKernelGGL(
-            (gpu_compute_forces_kernel),
-            dim3(n_blocks),
-            dim3(run_block_size),
-            shared_bytes,
-            0,
-            nwork,
-            d_postype,
-            d_force,
-            grid_dim,
-            n_ghost_cells,
-            d_charge,
-            box,
-            order,
-            d_index_array,
-            local_fft ? d_inv_fourier_mesh_x + idev * inv_mesh_elements : d_inv_fourier_mesh_x,
-            local_fft ? d_inv_fourier_mesh_y + idev * inv_mesh_elements : d_inv_fourier_mesh_y,
-            local_fft ? d_inv_fourier_mesh_z + idev * inv_mesh_elements : d_inv_fourier_mesh_z,
-            d_rho_coeff,
-            range.first);
-        }
+    hipLaunchKernelGGL((gpu_compute_forces_kernel),
+                       dim3(n_blocks),
+                       dim3(run_block_size),
+                       shared_bytes,
+                       0,
+                       nwork,
+                       d_postype,
+                       d_force,
+                       grid_dim,
+                       n_ghost_cells,
+                       d_charge,
+                       box,
+                       order,
+                       d_index_array,
+                       d_inv_fourier_mesh_x,
+                       d_inv_fourier_mesh_y,
+                       d_inv_fourier_mesh_z,
+                       d_rho_coeff);
     }
 
 __global__ void kernel_calculate_pe_partial(int n_wave_vectors,

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -11,8 +11,7 @@ import numpy
 
 @pytest.fixture
 def make_simulation(simulation_factory, two_particle_snapshot_factory):
-
-    def sim_factory(particle_types=['A'], dimensions=3, d=1, L=20):
+    def sim_factory(particle_types=["A"], dimensions=3, d=1, L=20):
         snap = two_particle_snapshot_factory()
         if snap.communicator.rank == 0:
             snap.constraints.N = 1
@@ -33,7 +32,7 @@ def integrator_elements():
     return {
         "methods": [md.methods.ConstantVolume(hoomd.filter.All())],
         "forces": [lj, gauss],
-        "constraints": [md.constrain.Distance()]
+        "constraints": [md.constrain.Distance()],
     }
 
 
@@ -61,7 +60,7 @@ def test_detaching(make_simulation, integrator_elements):
 
 
 def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
-    snapshot = two_particle_snapshot_factory(particle_types=['R', 'A'])
+    snapshot = two_particle_snapshot_factory(particle_types=["R", "A"])
     if snapshot.communicator.rank == 0:
         snapshot.particles.body[:] = [0, 1]
     CUBE_VERTS = [
@@ -76,16 +75,16 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
     ]
 
     rigid = hoomd.md.constrain.Rigid()
-    rigid.body['R'] = {
-        "constituent_types": ['A'] * 8,
+    rigid.body["R"] = {
+        "constituent_types": ["A"] * 8,
         "positions": CUBE_VERTS,
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 8,
     }
 
     nve1 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
-    integrator = hoomd.md.Integrator(dt=0,
-                                     methods=[nve1],
-                                     integrate_rotational_dof=True)
+    integrator = hoomd.md.Integrator(
+        dt=0, methods=[nve1], integrate_rotational_dof=True
+    )
     integrator.rigid = rigid
     sim = simulation_factory(snapshot)
     sim.operations.integrator = integrator
@@ -128,15 +127,9 @@ def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
     snapshot = lattice_snapshot_factory()
     if snapshot.communicator.rank == 0:
         snapshot.particles.mass[:] = numpy.linspace(1, 5, snapshot.particles.N)
-        snapshot.particles.velocity[:,
-                                    0] = numpy.linspace(-5, 5,
-                                                        snapshot.particles.N)
-        snapshot.particles.velocity[:,
-                                    1] = numpy.linspace(1, 10,
-                                                        snapshot.particles.N)
-        snapshot.particles.velocity[:,
-                                    2] = numpy.linspace(5, 20,
-                                                        snapshot.particles.N)
+        snapshot.particles.velocity[:, 0] = numpy.linspace(-5, 5, snapshot.particles.N)
+        snapshot.particles.velocity[:, 1] = numpy.linspace(1, 10, snapshot.particles.N)
+        snapshot.particles.velocity[:, 2] = numpy.linspace(5, 20, snapshot.particles.N)
 
     sim = simulation_factory(snapshot)
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -146,9 +139,10 @@ def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
     linear_momentum = integrator.linear_momentum
 
     if snapshot.communicator.rank == 0:
-        reference = numpy.sum(snapshot.particles.mass[numpy.newaxis, :].T
-                              * snapshot.particles.velocity,
-                              axis=0)
+        reference = numpy.sum(
+            snapshot.particles.mass[numpy.newaxis, :].T * snapshot.particles.velocity,
+            axis=0,
+        )
         numpy.testing.assert_allclose(linear_momentum, reference)
 
 
@@ -159,8 +153,8 @@ def test_pickling(make_simulation, integrator_elements):
 
 
 def test_logging():
-    hoomd.conftest.logging_check(hoomd.md.Integrator, ("md",), {
-        "linear_momentum": {
-            "category": hoomd.logging.LoggerCategories.sequence
-        }
-    })
+    hoomd.conftest.logging_check(
+        hoomd.md.Integrator,
+        ("md",),
+        {"linear_momentum": {"category": hoomd.logging.LoggerCategories.sequence}},
+    )

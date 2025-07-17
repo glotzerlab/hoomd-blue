@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <pybind11/pybind11.h>
@@ -22,6 +22,7 @@ void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
 void export_ComputeThermo(pybind11::module& m);
 void export_ComputeThermoHMA(pybind11::module& m);
 void export_ConstantForceCompute(pybind11::module& m);
+void export_ShearForceCompute(pybind11::module& m);
 void export_HarmonicAngleForceCompute(pybind11::module& m);
 void export_CosineSqAngleForceCompute(pybind11::module& m);
 void export_TableAngleForceCompute(pybind11::module& m);
@@ -67,6 +68,7 @@ void export_PotentialPairTWF(pybind11::module& m);
 void export_PotentialPairLJGauss(pybind11::module& m);
 void export_PotentialPairForceShiftedLJ(pybind11::module& m);
 void export_PotentialPairTable(pybind11::module& m);
+void export_PotentialPairWangFrenkel(pybind11::module& m);
 
 void export_AnisoPotentialPairALJ2D(pybind11::module& m);
 void export_AnisoPotentialPairALJ3D(pybind11::module& m);
@@ -186,6 +188,7 @@ void export_ActiveForceComputeGPU(pybind11::module& m);
 void export_ComputeThermoGPU(pybind11::module& m);
 void export_ComputeThermoHMAGPU(pybind11::module& m);
 void export_ConstantForceComputeGPU(pybind11::module& m);
+void export_ShearForceComputeGPU(pybind11::module& m);
 void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
 void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
 void export_TableAngleForceComputeGPU(pybind11::module& m);
@@ -224,6 +227,7 @@ void export_PotentialPairDLVOGPU(pybind11::module& m);
 void export_PotentialPairFourierGPU(pybind11::module& m);
 void export_PotentialPairOPPGPU(pybind11::module& m);
 void export_PotentialPairTWFGPU(pybind11::module& m);
+void export_PotentialPairWangFrenkelGPU(pybind11::module&);
 void export_PotentialPairLJGaussGPU(pybind11::module& m);
 void export_PotentialPairForceShiftedLJGPU(pybind11::module& m);
 void export_PotentialPairTableGPU(pybind11::module& m);
@@ -337,6 +341,7 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_ConstantForceCompute(m);
+    export_ShearForceCompute(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -370,6 +375,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJGauss(m);
     export_PotentialPairForceShiftedLJ(m);
     export_PotentialPairTable(m);
+    export_PotentialPairWangFrenkel(m);
 
     export_AlchemicalMDParticles(m);
 
@@ -470,6 +476,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairLJGaussGPU(m);
     export_PotentialPairForceShiftedLJGPU(m);
     export_PotentialPairTableGPU(m);
+    export_PotentialPairWangFrenkelGPU(m);
     export_PotentialPairConservativeDPDGPU(m);
 
     export_PotentialTersoffGPU(m);
@@ -534,6 +541,7 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintComputePrimitiveGPU(m);
     export_ActiveForceConstraintComputeSphereGPU(m);
     export_ConstantForceComputeGPU(m);
+    export_ShearForceComputeGPU(m);
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
     export_PotentialExternalMagneticFieldGPU(m);

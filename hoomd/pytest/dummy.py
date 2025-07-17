@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.trigger import Trigger
@@ -6,7 +6,6 @@ from hoomd.operation import Operation
 
 
 class DummySimulation:
-
     def __init__(self):
         self.state = DummyState()
         self.operations = DummyOperations()
@@ -15,13 +14,11 @@ class DummySimulation:
 
 
 class DummySystem:
-
     def __init__(self):
         self.dummy_list = []
 
 
 class DummyState:
-
     def __init__(self):
         pass
 
@@ -35,7 +32,6 @@ class DummyOperations:
 
 
 class DummyCppObj:
-
     def __init__(self):
         self._dict = dict()
 
@@ -73,6 +69,7 @@ class DummyOperation(Operation):
 
     This is for testing purposes.
     """
+
     _current_obj_number = 0
 
     def __init__(self):
@@ -88,6 +85,5 @@ class DummyOperation(Operation):
 
 
 class DummyTrigger(Trigger):
-
     def __call__(self, ts):
         return True

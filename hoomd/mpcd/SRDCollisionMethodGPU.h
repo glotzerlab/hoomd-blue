@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -34,10 +34,10 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
 
     protected:
     //! Randomly draw cell rotation vectors
-    virtual void drawRotationVectors(uint64_t timestep);
+    void drawRotationVectors(uint64_t timestep) override;
 
     //! Apply rotation matrix to velocities
-    virtual void rotate(uint64_t timestep);
+    void rotate(uint64_t timestep) override;
 
     private:
     std::shared_ptr<Autotuner<1>> m_tuner_rotvec; //!< Tuner for drawing rotation vectors

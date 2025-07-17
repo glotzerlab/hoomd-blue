@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -49,17 +49,13 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int* d_result,
                                                         const unsigned int ntypes,
                                                         const Scalar lambda_min,
                                                         const Scalar3 lambda,
-                                                        const unsigned int checkn,
-                                                        const unsigned int offset)
+                                                        const unsigned int checkn)
     {
     // each thread will compare vs it's old position to see if the list needs updating
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < nwork)
         {
-        // get particle index
-        idx += offset;
-
         Scalar4 cur_postype = d_pos[idx];
         Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
         const unsigned int cur_type = __scalar_as_int(cur_postype.w);
@@ -93,36 +89,29 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
                                             const unsigned int ntypes,
                                             const Scalar lambda_min,
                                             const Scalar3 lambda,
-                                            const unsigned int checkn,
-                                            const GPUPartition& gpu_partition)
+                                            const unsigned int checkn)
     {
     unsigned int block_size = 128;
 
-    // iterate over active GPUs in reverse order
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-        unsigned int nwork = range.second - range.first;
+    unsigned int nwork = N;
 
-        int n_blocks = nwork / block_size + 1;
-        hipLaunchKernelGGL((gpu_nlist_needs_update_check_new_kernel),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           d_result,
-                           d_last_pos,
-                           d_pos,
-                           nwork,
-                           box,
-                           d_rcut_max,
-                           r_buff,
-                           ntypes,
-                           lambda_min,
-                           lambda,
-                           checkn,
-                           range.first);
-        }
+    int n_blocks = nwork / block_size + 1;
+    hipLaunchKernelGGL((gpu_nlist_needs_update_check_new_kernel),
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       d_result,
+                       d_last_pos,
+                       d_pos,
+                       nwork,
+                       box,
+                       d_rcut_max,
+                       r_buff,
+                       ntypes,
+                       lambda_min,
+                       lambda,
+                       checkn);
 
     return hipSuccess;
     }

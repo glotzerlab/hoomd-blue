@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
@@ -35,31 +35,14 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_params.swap(params);
 
     // allocate memory for the per-type normal verctors
-    GlobalArray<Scalar3> tmp_sigma_dash(m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<Scalar3> tmp_sigma_dash(m_pdata->getMaxN(), m_exec_conf);
 
     m_sigma_dash.swap(tmp_sigma_dash);
-    TAG_ALLOCATION(m_sigma_dash);
 
     // allocate memory for the per-type normal verctors
-    GlobalArray<Scalar> tmp_sigma(m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<Scalar> tmp_sigma(m_pdata->getMaxN(), m_exec_conf);
 
     m_sigma.swap(tmp_sigma);
-    TAG_ALLOCATION(m_sigma);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_sigma_dash.get(),
-                      sizeof(Scalar3) * m_sigma_dash.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-
-        cudaMemAdvise(m_sigma.get(),
-                      sizeof(Scalar) * m_sigma.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        }
-#endif
     }
 
 HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
@@ -137,8 +120,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_sigma.data);
     assert(h_sigma_dash.data);
 
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_virial.zeroFill();
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
@@ -419,8 +402,8 @@ void HelfrichMeshForceCompute::computeSigma()
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::overwrite);
 
-    memset((void*)h_sigma.data, 0, sizeof(Scalar) * m_sigma.getNumElements());
-    memset((void*)h_sigma_dash.data, 0, sizeof(Scalar3) * m_sigma_dash.getNumElements());
+    m_sigma.zeroFill();
+    m_sigma_dash.zeroFill();
 
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)

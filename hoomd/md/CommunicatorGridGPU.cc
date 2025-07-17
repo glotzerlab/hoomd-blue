@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -60,13 +60,13 @@ template<typename T> void CommunicatorGridGPU<T>::initGridCommGPU()
     m_n_unique_recv_cells = (unsigned int)unique_cells.size();
 
     // allocate arrays
-    GlobalArray<unsigned int> cell_recv(this->m_recv_idx.getNumElements(), this->m_exec_conf);
+    GPUArray<unsigned int> cell_recv(this->m_recv_idx.getNumElements(), this->m_exec_conf);
     m_cell_recv.swap(cell_recv);
 
-    GlobalArray<unsigned int> cell_recv_begin(m_n_unique_recv_cells, this->m_exec_conf);
+    GPUArray<unsigned int> cell_recv_begin(m_n_unique_recv_cells, this->m_exec_conf);
     m_cell_recv_begin.swap(cell_recv_begin);
 
-    GlobalArray<unsigned int> cell_recv_end(m_n_unique_recv_cells, this->m_exec_conf);
+    GPUArray<unsigned int> cell_recv_end(m_n_unique_recv_cells, this->m_exec_conf);
     m_cell_recv_end.swap(cell_recv_end);
 
     // write out sorted values according to cell idx
@@ -109,7 +109,7 @@ template<typename T> void CommunicatorGridGPU<T>::initGridCommGPU()
         }
     }
 
-template<typename T> void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
+template<typename T> void CommunicatorGridGPU<T>::communicate(const GPUArray<T>& grid)
     {
     assert(grid.getNumElements() >= this->m_embed.x * this->m_embed.y * this->m_embed.z);
 

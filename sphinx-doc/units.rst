@@ -1,6 +1,3 @@
-.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Units
 +++++
 
@@ -44,17 +41,6 @@ Example unit conversions between derived units and base units:
    * - :math:`[\mathrm{charge}]`
      - :math:`\left(4 \pi \epsilon_{0} \cdot [\mathrm{energy}] \cdot [\mathrm{length}] \right)^{1/2}`
        - where :math:`\epsilon_{0}` is permittivity of free space
-
-.. note::
-
-    Most of the units on this page apply to MD simulations.
-
-    In HPMC, the primary unit is that of length. Mass is factored out of the partition function and
-    does not enter into the simulation. In addition, the energy scale is irrelevant in athermal
-    HPMC systems where overlapping energies are infinite and valid configurations have
-    zero potential energy. However, energy does appear implicitly in derived units like
-    :math:`[\mathrm{pressure}] = [\mathrm{energy}] \cdot [\mathrm{length}]^{-3}`.  In
-    HPMC, :math:`kT` is set to 1 :math:`\mathrm{energy}`.
 
 Common unit systems
 ===================

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ParticleData.cuh"
@@ -58,14 +58,12 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
                                                  detail::pdata_element* d_out,
                                                  unsigned int* d_comm_flags,
                                                  unsigned int* d_comm_flags_out,
-                                                 const unsigned int* d_scan,
-                                                 const unsigned int offset)
+                                                 const unsigned int* d_scan)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= nwork)
         return;
-    idx += offset;
     bool remove = d_comm_flags[idx];
 
     unsigned int scan_remove = d_scan[idx];
@@ -204,8 +202,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               unsigned int* d_comm_flags_out,
                               unsigned int max_n_out,
                               unsigned int* d_tmp,
-                              CachedAllocator& alloc,
-                              GPUPartition& gpu_partition)
+                              CachedAllocator& alloc)
     {
     if (!N)
         return 0;
@@ -289,59 +286,51 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     // Don't write past end of buffer
     if (n_out <= max_n_out)
         {
-        // partition particle data into local and removed particles
-        for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-            {
-            auto range = gpu_partition.getRangeAndSetGPU(idev);
+        unsigned int nwork = N;
 
-            unsigned int nwork = range.second - range.first;
-            unsigned int offset = range.first;
+        unsigned int block_size = 256;
+        unsigned int n_blocks = nwork / block_size + 1;
 
-            unsigned int block_size = 256;
-            unsigned int n_blocks = nwork / block_size + 1;
-
-            hipLaunchKernelGGL(gpu_scatter_particle_data_kernel,
-                               dim3(n_blocks),
-                               dim3(block_size),
-                               0,
-                               0,
-                               nwork,
-                               d_pos,
-                               d_vel,
-                               d_accel,
-                               d_charge,
-                               d_diameter,
-                               d_image,
-                               d_body,
-                               d_orientation,
-                               d_angmom,
-                               d_inertia,
-                               d_net_force,
-                               d_net_torque,
-                               d_net_virial,
-                               net_virial_pitch,
-                               d_tag,
-                               d_rtag,
-                               d_pos_alt,
-                               d_vel_alt,
-                               d_accel_alt,
-                               d_charge_alt,
-                               d_diameter_alt,
-                               d_image_alt,
-                               d_body_alt,
-                               d_orientation_alt,
-                               d_angmom_alt,
-                               d_inertia_alt,
-                               d_net_force_alt,
-                               d_net_torque_alt,
-                               d_net_virial_alt,
-                               d_tag_alt,
-                               d_out,
-                               d_comm_flags,
-                               d_comm_flags_out,
-                               d_scan,
-                               offset);
-            }
+        hipLaunchKernelGGL(gpu_scatter_particle_data_kernel,
+                           dim3(n_blocks),
+                           dim3(block_size),
+                           0,
+                           0,
+                           nwork,
+                           d_pos,
+                           d_vel,
+                           d_accel,
+                           d_charge,
+                           d_diameter,
+                           d_image,
+                           d_body,
+                           d_orientation,
+                           d_angmom,
+                           d_inertia,
+                           d_net_force,
+                           d_net_torque,
+                           d_net_virial,
+                           net_virial_pitch,
+                           d_tag,
+                           d_rtag,
+                           d_pos_alt,
+                           d_vel_alt,
+                           d_accel_alt,
+                           d_charge_alt,
+                           d_diameter_alt,
+                           d_image_alt,
+                           d_body_alt,
+                           d_orientation_alt,
+                           d_angmom_alt,
+                           d_inertia_alt,
+                           d_net_force_alt,
+                           d_net_torque_alt,
+                           d_net_virial_alt,
+                           d_tag_alt,
+                           d_out,
+                           d_comm_flags,
+                           d_comm_flags_out,
+                           d_scan);
         }
 
     // free temp buf

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
@@ -18,7 +18,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Trigger> trigger,
                            std::shared_ptr<IntegratorHPMC> mc,
                            std::shared_ptr<Variant> P)
-    : Updater(sysdef, trigger), m_mc(mc), m_beta_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
+    : Updater(sysdef, trigger), m_mc(mc), m_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
       m_ln_volume_delta(0.0), m_ln_volume_weight(0.0), m_volume_mode("standard"), m_volume_A1(0.0),
       m_volume_A2(0.0), m_length_delta {0.0, 0.0, 0.0}, m_length_weight(0.0),
       m_shear_delta {0.0, 0.0, 0.0}, m_shear_weight(0.0), m_shear_reduce(0.0), m_aspect_delta(0.0),
@@ -225,8 +225,10 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                            Scalar xy,
                                            Scalar xz,
                                            Scalar yz,
+                                           Scalar kT,
                                            uint64_t timestep,
                                            double delta_beta_H,
+                                           double log_V_term,
                                            hoomd::RandomGenerator& rng)
     {
     // Make a backup copy of position data
@@ -247,7 +249,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     // energy of old configuration
     delta_U_pair -= m_mc->computeTotalPairEnergy(timestep);
-    delta_U_external -= m_mc->computeTotalExternalEnergy(false);
+    delta_U_external -= m_mc->computeTotalExternalEnergy(timestep, ExternalPotential::Trial::Old);
 
     // Attempt box resize and check for overlaps
     BoxDim newBox = m_pdata->getGlobalBox();
@@ -263,25 +265,14 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     if (allowed)
         {
         delta_U_pair += m_mc->computeTotalPairEnergy(timestep);
-        delta_U_external += m_mc->computeTotalExternalEnergy(true);
-        }
-
-    if (allowed && m_mc->getExternalField())
-        {
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup,
-                                          access_location::host,
-                                          access_mode::readwrite);
-        Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(timestep,
-                                                                      h_pos_backup.data,
-                                                                      NULL,
-                                                                      curBox,
-                                                                      old_origin);
-        delta_U_external += ext_energy;
+        delta_U_external
+            += m_mc->computeTotalExternalEnergy(timestep, ExternalPotential::Trial::New);
         }
 
     double p = hoomd::detail::generate_canonical<double>(rng);
 
-    if (allowed && p < exp(-delta_beta_H) * exp(-delta_U_pair) * exp(-delta_U_external))
+    if (allowed
+        && p < (exp(-(delta_U_pair + delta_U_external) / kT) * exp(-delta_beta_H + log_V_term)))
         {
         return true;
         }
@@ -368,39 +359,41 @@ void UpdaterBoxMC::update(uint64_t timestep)
         m_weight_partial_sums.cbegin(),
         std::lower_bound(m_weight_partial_sums.cbegin(), m_weight_partial_sums.cend(), selected));
 
+    const Scalar kT = (*m_mc->getKT())(timestep);
+
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
     if (move_type_select == 0)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
-        update_V(timestep, rng);
+        update_V(timestep, rng, kT);
         }
     else if (move_type_select == 1)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
-        update_lnV(timestep, rng);
+        update_lnV(timestep, rng, kT);
         }
     else if (move_type_select == 2)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8)
             << "Box length move performed at step " << timestep << std::endl;
-        update_L(timestep, rng);
+        update_L(timestep, rng, kT);
         }
     else if (move_type_select == 3)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
-        update_shear(timestep, rng);
+        update_shear(timestep, rng, kT);
         }
     else if (move_type_select == 4)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8)
             << "Box aspect move performed at step " << timestep << std::endl;
-        update_aspect(timestep, rng);
+        update_aspect(timestep, rng, kT);
         }
     else
         {
@@ -421,10 +414,10 @@ void UpdaterBoxMC::update(uint64_t timestep)
         }
     }
 
-void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng, Scalar kT)
     {
     // Get updater parameters for current timestep
-    Scalar P = (*m_beta_P)(timestep);
+    Scalar beta_P = (*m_P)(timestep) / kT;
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -496,7 +489,8 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        double delta_beta_H = P * dV - Nglobal * log(Vnew / Vold);
+        double delta_beta_H = beta_P * dV;
+        double log_V_term = Nglobal * log(Vnew / Vold);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -505,8 +499,10 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[0],
                                        newShear[1],
                                        newShear[2],
+                                       kT,
                                        timestep,
                                        delta_beta_H,
+                                       log_V_term,
                                        rng);
 
         if (accept)
@@ -521,10 +517,10 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
     }
 
 //! Update the box volume in logarithmic steps
-void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng, Scalar kT)
     {
     // Get updater parameters for current timestep
-    Scalar P = (*m_beta_P)(timestep);
+    Scalar beta_P = (*m_P)(timestep) / kT;
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -579,7 +575,8 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     else
         {
         // Calculate Boltzmann factor
-        double delta_beta_H = P * (new_V - V) - (Nglobal + 1) * log(new_V / V);
+        double delta_beta_H = beta_P * (new_V - V);
+        double log_V_term = (Nglobal + 1) * log(new_V / V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -588,8 +585,10 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[0],
                                        newShear[1],
                                        newShear[2],
+                                       kT,
                                        timestep,
                                        delta_beta_H,
+                                       log_V_term,
                                        rng);
 
         if (accept)
@@ -603,10 +602,10 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
         }
     }
 
-void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng, Scalar kT)
     {
     // Get updater parameters for current timestep
-    Scalar P = (*m_beta_P)(timestep);
+    Scalar beta_P = (*m_P)(timestep) / kT;
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -666,7 +665,8 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
             Vnew *= newL[2];
             }
         // Calculate Boltzmann factor
-        double delta_beta_H = P * dV - Nglobal * log(Vnew / V);
+        double delta_beta_H = beta_P * dV;
+        double log_V_term = Nglobal * log(Vnew / V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -675,8 +675,10 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[0],
                                        newShear[1],
                                        newShear[2],
+                                       kT,
                                        timestep,
                                        delta_beta_H,
+                                       log_V_term,
                                        rng);
 
         if (accept)
@@ -690,7 +692,7 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
         }
     }
 
-void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng, Scalar kT)
     {
     // Get updater parameters for current timestep
     // Get current particle data and box lattice parameters
@@ -726,7 +728,9 @@ void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
                                           newShear[0],
                                           newShear[1],
                                           newShear[2],
+                                          kT,
                                           timestep,
+                                          Scalar(0.0),
                                           Scalar(0.0),
                                           rng);
     if (trial_success)
@@ -739,7 +743,7 @@ void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
         }
     }
 
-void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng, Scalar kT)
     {
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.
@@ -788,7 +792,9 @@ void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
                                           newShear[0],
                                           newShear[1],
                                           newShear[2],
+                                          kT,
                                           timestep,
+                                          Scalar(0.0),
                                           Scalar(0.0),
                                           rng);
     if (trial_success)
@@ -837,7 +843,7 @@ void export_UpdaterBoxMC(pybind11::module& m)
         .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
         .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
         .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
-        .def_property("betaP", &UpdaterBoxMC::getBetaP, &UpdaterBoxMC::setBetaP)
+        .def_property("P", &UpdaterBoxMC::getP, &UpdaterBoxMC::setP)
         .def("getCounters", &UpdaterBoxMC::getCounters)
         .def_property("instance", &UpdaterBoxMC::getInstance, &UpdaterBoxMC::setInstance);
 

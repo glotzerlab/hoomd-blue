@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
@@ -76,10 +76,10 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
-    GlobalVector<Scalar4>
+    GPUVector<Scalar4>
         m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
 
-    GlobalVector<Scalar4>
+    GPUVector<Scalar4>
         m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
 
     private:

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GPUArray.h
@@ -170,133 +170,6 @@ template<class T> class host_deleter
     };
     } // end namespace detail
 
-//! Forward declarations
-template<class T> class ArrayHandleDispatch;
-
-template<class T> class GPUArrayDispatch;
-
-template<class T> class ArrayHandle;
-
-template<class T> class ArrayHandleAsync;
-
-template<class T> class GlobalArray;
-
-//! CRTP (Curiously recurring template pattern) interface for GPUArray/GlobalArray
-template<class T, class Derived> class GPUArrayBase
-    {
-    public:
-    //! Get the number of elements
-    /*!
-     - For 1-D allocated GPUArrays, this is the number of elements allocated.
-     - For 2-D allocated GPUArrays, this is the \b total number of elements (\a pitch * \a height)
-     allocated
-    */
-    size_t getNumElements() const
-        {
-        return static_cast<Derived const&>(*this).getNumElements();
-        }
-
-    //! Test if the GPUArray is NULL
-    bool isNull() const
-        {
-        return static_cast<Derived const&>(*this).isNull();
-        }
-
-    //! Get the width of the allocated rows in elements
-    /*!
-     - For 2-D allocated GPUArrays, this is the total width of a row in memory (including the
-     padding added for coalescing)
-     - For 1-D allocated GPUArrays, this is the simply the number of elements allocated.
-    */
-    size_t getPitch() const
-        {
-        return static_cast<Derived const&>(*this).getPitch();
-        }
-
-    //! Get the number of rows allocated
-    /*!
-     - For 2-D allocated GPUArrays, this is the height given to the constructor
-     - For 1-D allocated GPUArrays, this is the simply 1.
-    */
-    size_t getHeight() const
-        {
-        return static_cast<Derived const&>(*this).getHeight();
-        }
-
-    //! Resize the GPUArray
-    void resize(size_t num_elements)
-        {
-        static_cast<Derived&>(*this).resize(num_elements);
-        }
-
-    //! Resize a 2D GPUArray
-    void resize(size_t width, size_t height)
-        {
-        static_cast<Derived&>(*this).resize(width, height);
-        }
-
-    protected:
-    //! Acquires the data pointer for use
-    inline ArrayHandleDispatch<T> acquire(const access_location::Enum location,
-                                          const access_mode::Enum mode
-#ifdef ENABLE_HIP
-                                          ,
-                                          bool async = false
-#endif
-    ) const
-        {
-        return static_cast<Derived const&>(*this).acquire(location,
-                                                          mode
-#ifdef ENABLE_HIP
-                                                          ,
-                                                          async
-#endif
-        );
-        }
-
-    //! Release the data pointer
-    inline void release() const
-        {
-        return static_cast<Derived const&>(*this).release();
-        }
-
-    //! Returns the acquire state
-    inline bool isAcquired() const
-        {
-        return static_cast<Derived const&>(*this).isAcquired();
-        }
-
-    // need to be friend of the ArrayHandle class
-    friend class ArrayHandle<T>;
-    friend class ArrayHandleAsync<T>;
-
-    private:
-    // Make constructor private to prevent mistakes
-    GPUArrayBase() { };
-    friend Derived;
-    };
-
-//! This base class is the glue between the ArrayHandle and a generic GPUArrayBase<Derived>
-template<class T> class ArrayHandleDispatch
-    {
-    public:
-    //! Constructor
-    ArrayHandleDispatch(T* const _data) : data(_data) { }
-
-    //! Get the data pointer
-    T* const get() const
-        {
-        return data;
-        }
-
-    //! Destructor
-    virtual ~ArrayHandleDispatch() = default;
-
-    private:
-    //! The data pointer
-    T* const data;
-    };
-
 //! Handle to access the data pointer handled by GPUArray
 /*! The data in GPUArray is only accessible via ArrayHandle. The pointer is accessible for the
 lifetime of the ArrayHandle. When the ArrayHandle is destroyed, the GPUArray is notified that the
@@ -323,18 +196,19 @@ template<class T> class ArrayHandle
     {
     public:
     //! Aquires the data and sets \a data
-    /*! \tparam Derived the type of GPUArray implementation
-     */
-    template<class Derived>
-    inline ArrayHandle(const GPUArrayBase<T, Derived>& gpu_array,
+    inline ArrayHandle(const GPUArray<T>& gpu_array,
                        const access_location::Enum location = access_location::host,
                        const access_mode::Enum mode = access_mode::readwrite);
+
     //! Notifies the containing GPUArray that the handle has been released
-    virtual inline ~ArrayHandle() = default;
+    ~ArrayHandle()
+        {
+        assert(gpu_array.isAcquired());
+        gpu_array.release();
+        }
 
     private:
-    ArrayHandleDispatch<T>
-        dispatch; //!< Reference to the dispatch object that manages the acquire/release
+    const GPUArray<T>& gpu_array;
 
     public:
     T* const data; //!< Pointer to data
@@ -372,16 +246,19 @@ template<class T> class ArrayHandleAsync
     //! Aquires the data and sets \a data using asynchronous copies
     /*! \tparam Derived the type of GPUArray implementation
      */
-    template<class Derived>
-    inline ArrayHandleAsync(const GPUArrayBase<T, Derived>& gpu_array,
+    inline ArrayHandleAsync(const GPUArray<T>& gpu_array,
                             const access_location::Enum location = access_location::host,
                             const access_mode::Enum mode = access_mode::readwrite);
 
     //! Notifies the containing GPUArray that the handle has been released
-    virtual inline ~ArrayHandleAsync() = default;
+    ~ArrayHandleAsync()
+        {
+        assert(gpu_array.isAcquired());
+        gpu_array.release();
+        }
 
     private:
-    ArrayHandleDispatch<T> dispatch; //!< Dispatch object that manages the acquire/release
+    const GPUArray<T>& gpu_array;
 
     public:
     T* const data; //!< Pointer to data
@@ -436,7 +313,7 @@ A future modification of GPUArray will allow mirroring or splitting the data acr
 
 \ingroup data_structs
 */
-template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
+template<class T> class GPUArray
     {
     public:
     //! Constructs a NULL GPUArray
@@ -449,7 +326,7 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
     //! Constructs a 2-D GPUArray
     GPUArray(size_t width, size_t height, std::shared_ptr<const ExecutionConfiguration> exec_conf);
     //! Frees memory
-    virtual ~GPUArray() { }
+    ~GPUArray() { }
 
 #ifdef ENABLE_HIP
     //! Constructs a 1-D GPUArray
@@ -560,6 +437,9 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
         return m_exec_conf;
         }
 
+    /// Fill the array with 0's
+    void zeroFill() const;
+
     protected:
     //! Clear memory starting from a given element
     /*! \param first The first element to clear
@@ -567,11 +447,11 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
     inline void memclear(size_t first = 0);
 
     //! Acquires the data pointer for use
-    inline ArrayHandleDispatch<T> acquire(const access_location::Enum location,
-                                          const access_mode::Enum mode
+    inline T* acquire(const access_location::Enum location,
+                      const access_mode::Enum mode
 #ifdef ENABLE_HIP
-                                          ,
-                                          bool async = false
+                      ,
+                      bool async = false
 #endif
     ) const;
 
@@ -586,15 +466,6 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
         {
         return m_acquired;
         }
-
-    //! Need to be friend with dispatch
-    friend class ArrayHandleDispatch<T>;
-    friend class GPUArrayDispatch<T>;
-
-    friend class GPUArrayBase<T, GPUArray<T>>;
-
-    // GlobalArray is our friend, too, to enable fall back
-    friend class GlobalArray<T>;
 
     private:
     size_t m_num_elements; //!< Number of elements
@@ -642,6 +513,12 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
 
     //! Helper function to resize a 2D device array
     inline T* resize2DDeviceArray(size_t pitch, size_t new_pitch, size_t height, size_t new_height);
+
+    friend class ArrayHandle<T>;
+
+#ifdef ENABLE_HIP
+    friend class ArrayHandleAsync<T>;
+#endif
     };
 
 //******************************************
@@ -653,46 +530,22 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
     \param mode Mode to access the data with
 */
 template<class T>
-template<class Derived>
-ArrayHandle<T>::ArrayHandle(const GPUArrayBase<T, Derived>& array,
+ArrayHandle<T>::ArrayHandle(const GPUArray<T>& array,
                             const access_location::Enum location,
                             const access_mode::Enum mode)
-    : dispatch(array.acquire(location, mode)), data(dispatch.get())
+    : gpu_array(array), data(array.acquire(location, mode))
     {
     }
 
 #ifdef ENABLE_HIP
 template<class T>
-template<class Derived>
-ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArrayBase<T, Derived>& array,
+ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArray<T>& array,
                                       const access_location::Enum location,
                                       const access_mode::Enum mode)
-    : dispatch(array.acquire(location, mode, true)), data(dispatch.get())
+    : gpu_array(array), data(array.acquire(location, mode, true))
     {
     }
 #endif
-
-//************************************************
-// ArrayHandleDispatch specialization for GPUArray
-// ***********************************************
-
-template<class T> class GPUArrayDispatch : public ArrayHandleDispatch<T>
-    {
-    public:
-    GPUArrayDispatch(T* const _data, const GPUArray<T>& _gpu_array)
-        : ArrayHandleDispatch<T>(_data), gpu_array(_gpu_array)
-        {
-        }
-
-    virtual ~GPUArrayDispatch()
-        {
-        assert(gpu_array.isAcquired());
-        gpu_array.release();
-        }
-
-    private:
-    const GPUArray<T>& gpu_array;
-    };
 
 //******************************************
 // GPUArray implementation
@@ -1047,6 +900,29 @@ template<class T> void GPUArray<T>::allocate()
 #endif
     }
 
+template<class T> void GPUArray<T>::zeroFill() const
+    {
+    if (!h_data.get())
+        return;
+
+#ifdef ENABLE_HIP
+
+    if (m_data_location == data_location::host || m_data_location == data_location::hostdevice)
+        {
+        memset((void*)h_data.get(), 0, sizeof(T) * m_num_elements);
+        }
+    if (m_data_location == data_location::device || m_data_location == data_location::hostdevice)
+        {
+        hipMemsetAsync(d_data.get(), 0, sizeof(T) * m_num_elements);
+        }
+
+#else
+
+    memset((void*)h_data.get(), 0, sizeof(T) * m_num_elements);
+
+#endif
+    }
+
 /*! \pre allocate() has been called
     \post All allocated memory is set to 0
 */
@@ -1161,11 +1037,11 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
    ArrayHandle.
 */
 template<class T>
-ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location,
-                                            const access_mode::Enum mode
+T* GPUArray<T>::acquire(const access_location::Enum location,
+                        const access_mode::Enum mode
 #ifdef ENABLE_HIP
-                                            ,
-                                            bool async
+                        ,
+                        bool async
 #endif
 ) const
     {
@@ -1178,7 +1054,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
     // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys
     // from being attempted
     if (isNull())
-        return GPUArrayDispatch<T>(nullptr, *this);
+        return nullptr;
 
     // first, break down based on where the data is to be acquired
     if (location == access_location::host)
@@ -1187,7 +1063,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
         if (m_data_location == data_location::host)
             {
             // the state stays on the host regardles of the access mode
-            return GPUArrayDispatch<T>(h_data.get(), *this);
+            return h_data.get();
             }
 #ifdef ENABLE_HIP
         else if (m_data_location == data_location::hostdevice)
@@ -1204,7 +1080,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 throw std::runtime_error("Invalid access mode requested.");
                 }
 
-            return GPUArrayDispatch<T>(h_data.get(), *this);
+            return h_data.get();
             }
         else if (m_data_location == data_location::device)
             {
@@ -1234,13 +1110,13 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 throw std::runtime_error("Invalid access mode requested.");
                 }
 
-            return GPUArrayDispatch<T>(h_data.get(), *this);
+            return h_data.get();
             }
 #endif
         else
             {
             throw std::runtime_error("Invalid data location state.");
-            return ArrayHandleDispatch<T>(nullptr);
+            return nullptr;
             }
         }
 #ifdef ENABLE_HIP
@@ -1289,7 +1165,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 throw std::runtime_error("Invalid access mode requested.");
                 }
 
-            return GPUArrayDispatch<T>(d_data.get(), *this);
+            return d_data.get();
             }
         else if (m_data_location == data_location::hostdevice)
             {
@@ -1304,24 +1180,24 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 {
                 throw std::runtime_error("Invalid access mode requested.");
                 }
-            return GPUArrayDispatch<T>(d_data.get(), *this);
+            return d_data.get();
             }
         else if (m_data_location == data_location::device)
             {
             // the stat stays on the device regardless of the access mode
-            return GPUArrayDispatch<T>(d_data.get(), *this);
+            return d_data.get();
             }
         else
             {
             throw std::runtime_error("Invalid data_location state.");
-            return ArrayHandleDispatch<T>(nullptr);
+            return nullptr;
             }
         }
 #endif
     else
         {
         throw std::runtime_error("Invalid location requested.");
-        return ArrayHandleDispatch<T>(nullptr);
+        return nullptr;
         }
     }
 

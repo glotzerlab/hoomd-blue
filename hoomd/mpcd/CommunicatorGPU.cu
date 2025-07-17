@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -50,21 +50,22 @@ stage_particles(unsigned int* d_comm_flag, const Scalar4* d_pos, unsigned int N,
 
     const Scalar4 postype = d_pos[idx];
     const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-    const Scalar3 lo = box.getLo();
-    const Scalar3 hi = box.getHi();
+    const Scalar3 f = box.makeFraction(pos);
 
     unsigned int flags = 0;
-    if (pos.x >= hi.x)
+    if (f.x >= Scalar(1.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-    else if (pos.x < lo.x)
+    else if (f.x < Scalar(0.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
-    if (pos.y >= hi.y)
+
+    if (f.y >= Scalar(1.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-    else if (pos.y < lo.y)
+    else if (f.y < Scalar(0.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
-    if (pos.z >= hi.z)
+
+    if (f.z >= Scalar(1.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-    else if (pos.z < lo.z)
+    else if (f.z < Scalar(0.0))
         flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
     d_comm_flag[idx] = flags;
@@ -72,7 +73,7 @@ stage_particles(unsigned int* d_comm_flag, const Scalar4* d_pos, unsigned int N,
     } // end namespace kernel
 
 //! Functor to select a particle for migration
-struct get_migrate_key : public thrust::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key
     {
     const uint3 my_pos;             //!< My domain decomposition position
     const Index3D di;               //!< Domain indexer
@@ -270,7 +271,6 @@ namespace gpu
     {
 //! Wrap a particle in a pdata_element
 struct wrap_particle_op
-    : public thrust::unary_function<const mpcd::detail::pdata_element, mpcd::detail::pdata_element>
     {
     const BoxDim box; //!< The box for which we are applying boundary conditions
 

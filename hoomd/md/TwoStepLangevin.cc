@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
@@ -207,7 +207,7 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -280,7 +280,14 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         Scalar minv = Scalar(1.0) / h_vel.data[j].w;
         h_accel.data[j].x = (h_net_force.data[j].x + bd_fx) * minv;
         h_accel.data[j].y = (h_net_force.data[j].y + bd_fy) * minv;
-        h_accel.data[j].z = (h_net_force.data[j].z + bd_fz) * minv;
+        if (D > 2)
+            {
+            h_accel.data[j].z = (h_net_force.data[j].z + bd_fz) * minv;
+            }
+        else
+            {
+            h_accel.data[j].z = Scalar(0.0);
+            }
 
         // then, update the velocity
         h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;

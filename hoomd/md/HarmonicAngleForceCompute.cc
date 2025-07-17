@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HarmonicAngleForceCompute.h"
@@ -118,8 +118,8 @@ void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
     assert(h_rtag.data);
 
     // Zero data for force calculation.
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_virial.zeroFill();
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();

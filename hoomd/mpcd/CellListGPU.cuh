@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_CELL_LIST_GPU_CUH_
@@ -33,9 +33,9 @@ cudaError_t compute_cell_list(unsigned int* d_cell_np,
                               const uchar3& periodic,
                               const int3& origin_idx,
                               const Scalar3& grid_shift,
-                              const Scalar3& global_lo,
+                              const BoxDim& global_box,
                               const uint3& n_global_cell,
-                              const Scalar cell_size,
+                              const uint3& global_cell_dim,
                               const unsigned int cell_np_max,
                               const Index3D& cell_indexer,
                               const Index2D& cell_list_indexer,

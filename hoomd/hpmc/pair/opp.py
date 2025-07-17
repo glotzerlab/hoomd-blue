@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Oscillating pair potential.
@@ -12,11 +12,12 @@
 """
 
 import hoomd
+import inspect
 
 from .pair import Pair
 
 
-@hoomd.logging.modify_namespace(('hpmc', 'pair', 'OPP'))
+@hoomd.logging.modify_namespace(("hpmc", "pair", "OPP"))
 class OPP(Pair):
     """Oscillating pair potential (HPMC).
 
@@ -41,10 +42,22 @@ class OPP(Pair):
     .. code-block:: python
 
         opp = hoomd.hpmc.pair.OPP()
-        opp.params[('A', 'A')] = dict(
-            C1=1., C2=1., eta1=15, eta2=3, k=1.0, phi=3.14, r_cut=3.0
+        opp.params[("A", "A")] = dict(
+            C1=1.0,
+            C2=1.0,
+            eta1=15,
+            eta2=3,
+            k=1.0,
+            phi=3.14,
+            r_cut=3.0,
         )
         simulation.operations.integrator.pair_potentials = [opp]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `OPP`:
 
     .. py:attribute:: params
 
@@ -83,20 +96,25 @@ class OPP(Pair):
 
         .. code-block:: python
 
-            opp.mode = 'shift'
+            opp.mode = "shift"
 
         Type: `str`
     """
-    _cpp_class_name = "PairPotentialOPP"
 
-    def __init__(self, default_r_cut=None, default_r_on=0.0, mode='none'):
+    _cpp_class_name = "PairPotentialOPP"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
+
+    def __init__(self, default_r_cut=None, default_r_on=0.0, mode="none"):
         if default_r_cut is None:
             default_r_cut = float
         else:
             default_r_cut = float(default_r_cut)
 
         params = hoomd.data.typeparam.TypeParameter(
-            'params', 'particle_types',
+            "params",
+            "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(
                 C1=float,
                 C2=float,
@@ -106,11 +124,14 @@ class OPP(Pair):
                 phi=float,
                 r_cut=default_r_cut,
                 r_on=float(default_r_on),
-                len_keys=2))
+                len_keys=2,
+            ),
+        )
         self._add_typeparam(params)
 
         self._param_dict.update(
             hoomd.data.parameterdicts.ParameterDict(
-                mode=hoomd.data.typeconverter.OnlyFrom(("none", "shift",
-                                                        "xplor"))))
+                mode=hoomd.data.typeconverter.OnlyFrom(("none", "shift", "xplor"))
+            )
+        )
         self.mode = mode

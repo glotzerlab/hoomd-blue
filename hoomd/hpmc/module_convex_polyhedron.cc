@@ -1,21 +1,17 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
-#include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoNEC.h"
 
 #include "ComputeSDF.h"
 #include "ShapeConvexPolyhedron.h"
-#include "ShapeUnion.h"
 
-#include "ExternalField.h"
-#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
-#include "UpdaterClusters.h"
+#include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
 #include "ShapeMoves.h"
@@ -25,7 +21,7 @@
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
-#include "UpdaterClustersGPU.h"
+#include "UpdaterGCAGPU.h"
 #endif
 
 namespace hoomd
@@ -42,7 +38,7 @@ void export_convex_polyhedron(pybind11::module& m)
     export_ComputeFreeVolume<ShapeConvexPolyhedron>(m, "ComputeFreeVolumeConvexPolyhedron");
     export_ComputeSDF<ShapeConvexPolyhedron>(m, "ComputeSDFConvexPolyhedron");
     export_UpdaterMuVT<ShapeConvexPolyhedron>(m, "UpdaterMuVTConvexPolyhedron");
-    export_UpdaterClusters<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterGCA<ShapeConvexPolyhedron>(m, "UpdaterGCAConvexPolyhedron");
 
     export_MassProperties<ShapeConvexPolyhedron>(m, "MassPropertiesConvexPolyhedron");
 
@@ -53,15 +49,13 @@ void export_convex_polyhedron(pybind11::module& m)
     export_ElasticShapeMove<ShapeConvexPolyhedron>(m, "ElasticConvexPolyhedron");
     export_ConvexPolyhedronVertexShapeMove(m, "VertexConvexPolyhedron");
 
-    export_ExternalFieldInterface<ShapeConvexPolyhedron>(m, "ExternalFieldConvexPolyhedron");
-    export_HarmonicField<ShapeConvexPolyhedron>(m, "ExternalFieldHarmonicConvexPolyhedron");
     export_ExternalFieldWall<ShapeConvexPolyhedron>(m, "WallConvexPolyhedron");
 
 #ifdef ENABLE_HIP
 
     export_IntegratorHPMCMonoGPU<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoConvexPolyhedronGPU");
     export_ComputeFreeVolumeGPU<ShapeConvexPolyhedron>(m, "ComputeFreeVolumeConvexPolyhedronGPU");
-    export_UpdaterClustersGPU<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedronGPU");
+    export_UpdaterGCAGPU<ShapeConvexPolyhedron>(m, "UpdaterGCAConvexPolyhedronGPU");
 
 #endif
     }

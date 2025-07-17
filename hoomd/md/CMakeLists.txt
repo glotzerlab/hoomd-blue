@@ -47,6 +47,7 @@ set(_md_sources module-md.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
                    PeriodicImproperForceCompute.cc
+		   ShearForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TriangleAreaConservationMeshForceCompute.cc
@@ -131,6 +132,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairTable.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
+                EvaluatorPairWangFrenkel.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
                 EvaluatorWalls.h
@@ -197,6 +199,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PeriodicImproperForceComputeGPU.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
+		ShearForceComputeGPU.h
+                ShearForceCompute.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -262,12 +266,13 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            OPLSDihedralForceComputeGPU.cc
                            PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
+			   ShearForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TriangleAreaConservationMeshForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepLangevinGPU.cc
-                  			   VolumeConservationMeshForceComputeGPU.cc
+                  	   VolumeConservationMeshForceComputeGPU.cc
                            TwoStepConstantVolumeGPU.cc
                            TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
@@ -283,7 +288,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairGBGPUKernel.cu
                       AnisoPotentialPairLubricationCouplingGPUKernel.cu
                       AnisoPotentialPairRotationalCouplingGPUKernel.cu
-            	
 		      BendingRigidityMeshForceComputeGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
@@ -296,7 +300,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       HarmonicAngleForceGPU.cu
                       HarmonicDihedralForceGPU.cu
                       HarmonicImproperForceGPU.cu
-            		      HelfrichMeshForceComputeGPU.cu
+            	      HelfrichMeshForceComputeGPU.cu
                       MolecularForceCompute.cu
                       NeighborListGPUBinned.cu
                       NeighborListGPU.cu
@@ -305,6 +309,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       OPLSDihedralForceGPU.cu
                       PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
+		      ShearForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TriangleAreaConservationMeshForceComputeGPU.cu
@@ -315,7 +320,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepConstantVolumeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
-            		      VolumeConservationMeshForceComputeGPU.cu
+            	      VolumeConservationMeshForceComputeGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
@@ -567,7 +572,8 @@ set(_pair_evaluators Buckingham
                      LJGauss
                      ForceShiftedLJ
                      Table
-                     ExpandedGaussian)
+                     ExpandedGaussian
+                     WangFrenkel)
 
 
 foreach(_evaluator ${_pair_evaluators})

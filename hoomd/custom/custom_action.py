@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Action.
@@ -49,9 +49,11 @@ class Action(metaclass=_AbstractLoggable):
     .. code-block:: python
 
         class ExampleAction(hoomd.custom.Action):
-            flags = [Action.Flags.ROTATIONAL_KINETIC_ENERGY,
-                     Action.Flags.PRESSURE_TENSOR,
-                     Action.Flags.EXTERNAL_FIELD_VIRIAL]
+            flags = [
+                Action.Flags.ROTATIONAL_KINETIC_ENERGY,
+                Action.Flags.PRESSURE_TENSOR,
+                Action.Flags.EXTERNAL_FIELD_VIRIAL,
+            ]
 
             def act(self, timestep):
                 pass
@@ -61,7 +63,6 @@ class Action(metaclass=_AbstractLoggable):
     .. code-block:: python
 
         class ExampleAction(hoomd.custom.Action):
-
             @hoomd.logging.log
             def answer(self):
                 return 42
@@ -69,8 +70,9 @@ class Action(metaclass=_AbstractLoggable):
             def act(self, timestep):
                 pass
 
+
         example_action = ExampleAction()
-        logger.add(example_action, quantities=['answer'])
+        logger.add(example_action, quantities=["answer"])
 
     Attributes:
         flags (list[Action.Flags]): List of flags from the
@@ -85,6 +87,7 @@ class Action(metaclass=_AbstractLoggable):
         * ROTATIONAL_KINETIC_ENERGY = 1
         * EXTERNAL_FIELD_VIRIAL = 2
         """
+
         PRESSURE_TENSOR = 0
         ROTATIONAL_KINETIC_ENERGY = 1
         EXTERNAL_FIELD_VIRIAL = 2
@@ -109,7 +112,7 @@ class Action(metaclass=_AbstractLoggable):
 
     @property
     def _attached(self):
-        return getattr(self, '_state', None) is not None
+        return getattr(self, "_state", None) is not None
 
     def detach(self):
         """Detaches the Action from the `hoomd.Simulation`."""

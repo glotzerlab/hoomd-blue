@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement HOOMD's solver infrastructure.
@@ -88,6 +88,7 @@ class RootSolver(SolverStep):
 
     For solving for a non-zero value, :math:`f(x) - y_t = 0` is solved.
     """
+
     pass
 
 
@@ -131,11 +132,7 @@ class ScaleSolver(RootSolver):
         This solver is only usable when quantities are strictly positive.
     """
 
-    def __init__(self,
-                 max_scale=2.0,
-                 gamma=2.0,
-                 correlation="positive",
-                 tol=1e-5):
+    def __init__(self, max_scale=2.0, gamma=2.0, correlation="positive", tol=1e-5):
         self.max_scale = max_scale
         self.gamma = gamma
         self.correlation = correlation.lower()
@@ -178,7 +175,8 @@ class ScaleSolver(RootSolver):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ("max_scale", "gamma", "correlation", "tol"))
+            for attr in ("max_scale", "gamma", "correlation", "tol")
+        )
 
 
 class _GradientHelper:
@@ -309,11 +307,13 @@ class SecantSolver(RootSolver, _GradientHelper):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ("gamma", "tol", "_counters", "_previous_pair"))
+            for attr in ("gamma", "tol", "_counters", "_previous_pair")
+        )
 
 
 class Optimizer(SolverStep):
     """Abstract base class for optimizing :math:`f(x)`."""
+
     pass
 
 
@@ -372,12 +372,14 @@ class GradientDescent(Optimizer, _GradientHelper):
 
     _max_allowable_counter = 3
 
-    def __init__(self,
-                 alpha: float = 0.1,
-                 kappa: typing.Optional[np.ndarray] = None,
-                 tol: float = 1e-5,
-                 maximize: bool = True,
-                 max_delta: typing.Optional[float] = None):
+    def __init__(
+        self,
+        alpha: float = 0.1,
+        kappa: typing.Optional[np.ndarray] = None,
+        tol: float = 1e-5,
+        maximize: bool = True,
+        max_delta: typing.Optional[float] = None,
+    ):
         self.alpha = alpha
         self.kappa = None if kappa is None else kappa
         if self.kappa is not None:
@@ -426,8 +428,7 @@ class GradientDescent(Optimizer, _GradientHelper):
         elif isinstance(new_alpha, hoomd.variant.Variant):
             self._alpha = new_alpha
         else:
-            raise TypeError(
-                "Expected either a hoomd.variant.variant_like object.")
+            raise TypeError("Expected either a hoomd.variant.variant_like object.")
 
     def solve_one(self, tunable):
         """Solve one step."""
@@ -495,12 +496,11 @@ class GradientDescent(Optimizer, _GradientHelper):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ("alpha", "tol", "_previous_pair")) and np.array_equal(
-                self.kappa, other.kappa)
+            for attr in ("alpha", "tol", "_previous_pair")
+        ) and np.array_equal(self.kappa, other.kappa)
 
 
 class _Repeater:
-
     def __init__(self, value):
         self._a = value
 
@@ -532,10 +532,7 @@ class GridOptimizer(Optimizer):
             function (defaults to ``True``).
     """
 
-    def __init__(self,
-                 n_bins: int = 5,
-                 n_rounds: int = 1,
-                 maximize: bool = True):
+    def __init__(self, n_bins: int = 5, n_rounds: int = 1, maximize: bool = True):
         self._n_bins = n_bins
         self._n_rounds = n_rounds
         self._opt = max if maximize else min
@@ -557,7 +554,7 @@ class GridOptimizer(Optimizer):
         # Need to increment round or finish optimizing
         if len(bin_y) == self._n_bins:
             index = bin_y.index(self._opt(bin_y))
-            boundaries = self._bins[tunable][index:index + 2]
+            boundaries = self._bins[tunable][index : index + 2]
             if self._round[tunable] == self._n_rounds:
                 center = sum(boundaries) / 2
                 tunable.x = center
@@ -591,14 +588,13 @@ class GridOptimizer(Optimizer):
         """Get the initial bin boundaries for a tunable."""
         min_, max_ = tunable.domain
         if max_ is None or min_ is None:
-            raise ValueError(
-                "GridOptimizer requires max and min x value to tune.")
+            raise ValueError("GridOptimizer requires max and min x value to tune.")
         self._bins[tunable] = np.linspace(min_, max_, self._n_bins + 1)
 
     def _get_bin_center(self, tunable, index):
         """Get the bin center for a given tunable and bin index."""
         min_, max_ = tunable.domain
-        return sum(self._bins[tunable][index:index + 2]) / 2
+        return sum(self._bins[tunable][index : index + 2]) / 2
 
     def __eq__(self, other):
         """Test for equality."""
@@ -606,9 +602,13 @@ class GridOptimizer(Optimizer):
             return NotImplemented
         if not isinstance(other, type(self)):
             return False
-        return (all(
-            getattr(self, attr) == getattr(other, attr)
-            for attr in ("_n_bins", "_n_rounds", "_round", "_solved", "_bin_y"))
-                and self._bins.keys() == other._bins.keys() and all(
-                    np.array_equal(a, other._bins[key])
-                    for a, key in self._bins.items()))
+        return (
+            all(
+                getattr(self, attr) == getattr(other, attr)
+                for attr in ("_n_bins", "_n_rounds", "_round", "_solved", "_bin_y")
+            )
+            and self._bins.keys() == other._bins.keys()
+            and all(
+                np.array_equal(a, other._bins[key]) for a, key in self._bins.items()
+            )
+        )

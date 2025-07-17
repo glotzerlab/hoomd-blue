@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -7,14 +7,13 @@ import numpy
 import pytest
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def polymer_snapshot_factory(device):
     """Make a snapshot with polymers and distance constraints."""
 
-    def make_snapshot(polymer_length=10,
-                      N_polymers=10,
-                      polymer_spacing=1.2,
-                      bead_spacing=1.1):
+    def make_snapshot(
+        polymer_length=10, N_polymers=10, polymer_spacing=1.2, bead_spacing=1.1
+    ):
         """Make the snapshot.
 
         Args:
@@ -30,19 +29,33 @@ def polymer_snapshot_factory(device):
 
         if s.communicator.rank == 0:
             s.configuration.box = [
-                polymer_spacing * N_polymers, bead_spacing * polymer_length, 0,
-                0, 0, 0
+                polymer_spacing * N_polymers,
+                bead_spacing * polymer_length,
+                0,
+                0,
+                0,
+                0,
             ]
             s.particles.N = polymer_length * N_polymers
-            s.particles.types = ['A']
-            x_coords = numpy.linspace(-polymer_spacing * N_polymers / 2,
-                                      polymer_spacing * N_polymers / 2,
-                                      num=N_polymers,
-                                      endpoint=False) + polymer_spacing / 2
-            y_coords = numpy.linspace(-bead_spacing * polymer_length / 2,
-                                      bead_spacing * polymer_length / 2,
-                                      num=N_polymers,
-                                      endpoint=False) + bead_spacing / 2
+            s.particles.types = ["A"]
+            x_coords = (
+                numpy.linspace(
+                    -polymer_spacing * N_polymers / 2,
+                    polymer_spacing * N_polymers / 2,
+                    num=N_polymers,
+                    endpoint=False,
+                )
+                + polymer_spacing / 2
+            )
+            y_coords = (
+                numpy.linspace(
+                    -bead_spacing * polymer_length / 2,
+                    bead_spacing * polymer_length / 2,
+                    num=N_polymers,
+                    endpoint=False,
+                )
+                + bead_spacing / 2
+            )
 
             position = []
             constraint_values = []
@@ -121,8 +134,8 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
 
     cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
-    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
-    lj.r_cut[('A', 'A')] = 2**(1 / 6)
+    lj.params[("A", "A")] = dict(epsilon=1, sigma=1)
+    lj.r_cut[("A", "A")] = 2 ** (1 / 6)
 
     integrator.forces.append(lj)
     sim.operations.integrator = integrator
@@ -141,8 +154,6 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
         delta_r = r[constraints[:, 1]] - r[constraints[:, 0]]
         bond_lengths = numpy.sqrt(numpy.sum(delta_r * delta_r, axis=1))
 
-        numpy.testing.assert_allclose(bond_lengths,
-                                      snap.constraints.value,
-                                      rtol=1e-5)
+        numpy.testing.assert_allclose(bond_lengths, snap.constraints.value, rtol=1e-5)
 
     autotuned_kernel_parameter_check(instance=d, activate=lambda: sim.run(1))

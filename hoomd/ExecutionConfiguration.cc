@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
@@ -42,7 +42,7 @@ std::vector<int> ExecutionConfiguration::s_capable_gpu_ids;
 std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
 
 /*! \param mode Execution mode to set (cpu or gpu)
-    \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
+    \param gpu_id GPU ID to select, or -1 to autoselect.
     \param mpi_config MPI configuration object
     \param _msg Messenger to use for status message printing
 
@@ -50,7 +50,7 @@ std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
    default GPU choice is made by not calling hipSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
-                                               std::vector<int> gpu_id,
+                                               int gpu_id,
                                                std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg)
     : msg(_msg), m_hip_error_checking(false), m_mpi_config(mpi_config)
@@ -67,13 +67,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         msg = std::shared_ptr<Messenger>(new Messenger(m_mpi_config));
         }
 
-    ostringstream s;
-    for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
-        {
-        s << *it << " ";
-        }
-
-    msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " << endl;
+    msg->notice(5) << "Constructing ExecutionConfiguration: ( " << gpu_id << ") " << endl;
     exec_mode = mode;
 
 #if defined(ENABLE_HIP)
@@ -91,14 +85,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             exec_mode = CPU;
         }
 
-#ifdef __HIP_PLATFORM_NVCC__
-    m_concurrent = exec_mode == GPU;
-#else
-    m_concurrent = false;
-#endif
-
-    m_in_multigpu_block = false;
-
     // now, exec_mode should be either CPU or GPU - proceed with initialization
 
     // initialize the GPU if that mode was requested
@@ -115,19 +101,19 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
 #endif
 
-        if (!gpu_id.size() && using_mpi)
+        if (gpu_id == -1 && using_mpi)
             {
             int local_rank = guessLocalRank();
             // if we found a local rank, use that to select the GPU
-            gpu_id.push_back((local_rank % dev_count));
+            gpu_id = local_rank % dev_count;
 
             ostringstream s;
-            s << "Selected GPU " << gpu_id[0] << " by MPI rank (" << dev_count << " available)."
+            s << "Selected GPU " << gpu_id << " by MPI rank (" << dev_count << " available)."
               << endl;
             msg->collectiveNoticeStr(4, s.str());
             }
 
-        if (!gpu_id.size())
+        if (gpu_id == -1)
             {
             // auto-detect a single GPU
             msg->collectiveNoticeStr(4, "Asking the driver to choose a GPU.\n");
@@ -135,9 +121,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
         else
             {
-            // initialize all requested GPUs
-            for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
-                initializeGPU(*it);
+            initializeGPU(gpu_id);
             }
         }
 #else
@@ -147,62 +131,20 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 
     exec_mode = CPU;
-    m_concurrent = false;
 #endif
 
     setupStats();
 
-    s.clear();
+    ostringstream s;
     s << "Device is running on ";
-    for (const auto& device_description : m_active_device_descriptions)
-        {
-        s << device_description << " ";
-        }
-    s << endl;
+    s << m_active_device_description << endl;
     msg->collectiveNoticeStr(3, s.str());
 
 #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
-        if (!m_concurrent && gpu_id.size() > 1)
-            {
-            throw runtime_error("Multi-GPU execution requested, but not all GPUs support "
-                                "concurrent managed access");
-            }
-
-#ifndef ALWAYS_USE_MANAGED_MEMORY
-        // disable managed memory when running on single GPU
-        if (m_gpu_id.size() == 1)
-            {
-            m_concurrent = false;
-            }
-#endif
-
-        if (m_concurrent)
-            {
-            // compare compute capabilities
-            for (unsigned int idev = 0; idev < gpu_id.size(); ++idev)
-                {
-                if (m_dev_prop[idev].major != m_dev_prop[0].major
-                    || m_dev_prop[idev].minor != m_dev_prop[0].minor)
-                    {
-                    // the autotuner may pick up different block sizes for different GPUs
-                    msg->warning() << "Multi-GPU execution requested, but GPUs have differing "
-                                      "compute capabilities"
-                                   << endl;
-                    msg->warning() << "Continuing anyways, but autotuner may not work correctly "
-                                      "and simulation may crash."
-                                   << endl;
-                    }
-                }
-            }
-
-        // select first device by default
-        hipSetDevice(m_gpu_id[0]);
-
-        hipError_t err_sync = hipPeekAtLastError();
-        handleHIPError(err_sync, __FILE__, __LINE__);
-
+        // Activate the GPU.
+        setDevice();
         // initialize cached allocator, max allocation 0.5*global mem
         m_cached_alloc.reset(
             new CachedAllocator(false, (unsigned int)(0.5f * (float)dev_prop.totalGlobalMem)));
@@ -231,42 +173,11 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
         }
 #endif
-
-#ifdef ENABLE_TBB
-    unsigned int num_threads = std::thread::hardware_concurrency();
-
-    char* env;
-    if ((env = getenv("OMP_NUM_THREADS")) != NULL)
-        {
-        num_threads = atoi(env);
-        msg->notice(2) << "Setting number of TBB threads to value of OMP_NUM_THREADS="
-                       << num_threads << std::endl;
-        }
-
-    setNumThreads(num_threads);
-#endif
-
-#if defined(ENABLE_HIP)
-    // setup synchronization events
-    m_events.resize(m_gpu_id.size());
-    for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; --idev)
-        {
-        hipSetDevice(m_gpu_id[idev]);
-        hipEventCreateWithFlags(&m_events[idev], hipEventDisableTiming);
-        }
-#endif
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
-
-#if defined(ENABLE_HIP)
-    for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; --idev)
-        {
-        hipEventDestroy(m_events[idev]);
-        }
-#endif
 
 #if defined(ENABLE_HIP)
     // the destructors of these objects can issue hip calls, so free them before the device reset
@@ -277,14 +188,13 @@ ExecutionConfiguration::~ExecutionConfiguration()
 
 #if defined(ENABLE_HIP)
 
-std::pair<unsigned int, unsigned int>
-ExecutionConfiguration::getComputeCapability(unsigned int idev) const
+std::pair<unsigned int, unsigned int> ExecutionConfiguration::getComputeCapability() const
     {
     auto result = std::make_pair(0, 0);
 
     if (exec_mode == GPU)
         {
-        result = std::make_pair(m_dev_prop[idev].major, m_dev_prop[idev].minor);
+        result = std::make_pair(m_dev_prop.major, m_dev_prop.minor);
         }
 
     return result;
@@ -372,8 +282,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     int hip_gpu_id;
     hipGetDevice(&hip_gpu_id);
 
-    // add to list of active GPUs
-    m_gpu_id.push_back(hip_gpu_id);
+    // record the device
+    m_gpu_id = hip_gpu_id;
 
     hipError_t err_sync = hipPeekAtLastError();
     handleHIPError(err_sync, __FILE__, __LINE__);
@@ -509,133 +419,20 @@ void ExecutionConfiguration::setupStats()
 #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
-        m_dev_prop.resize(m_gpu_id.size());
+        hipSetDevice(m_gpu_id);
+        hipGetDeviceProperties(&m_dev_prop, m_gpu_id);
 
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; idev--)
-            {
-            hipSetDevice(m_gpu_id[idev]);
-            hipGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);
-
-#if defined(__HIP_PLATFORM_NVCC__)
-            // hip doesn't currently have the concurrentManagedAccess property, so resort to the
-            // CUDA API
-            cudaDeviceProp cuda_prop;
-            cudaError_t error = cudaGetDeviceProperties(&cuda_prop, m_gpu_id[idev]);
-            if (error != cudaSuccess)
-                {
-                throw runtime_error("Failed to get device properties: "
-                                    + string(cudaGetErrorString(error)));
-                }
-
-            if (cuda_prop.concurrentManagedAccess)
-                {
-                // leave m_concurrent unmodified
-                }
-            else
-#endif
-                {
-                // AMD does not support concurrent access
-                m_concurrent = false;
-                }
-
-            m_active_device_descriptions.push_back(describeGPU(m_gpu_id[idev], m_dev_prop[idev]));
-            }
+        m_active_device_description = describeGPU(m_gpu_id, m_dev_prop);
 
         // initialize dev_prop with device properties of first device for now
-        dev_prop = m_dev_prop[0];
+        dev_prop = m_dev_prop;
         }
 #endif
 
     if (exec_mode == CPU)
         {
-        m_active_device_descriptions.push_back("CPU");
+        m_active_device_description = "CPU";
         }
-    }
-
-void ExecutionConfiguration::multiGPUBarrier() const
-    {
-#if defined(ENABLE_HIP)
-    if (getNumActiveGPUs() > 1)
-        {
-        // record the synchronization point on every GPU after the last kernel has finished, count
-        // down in reverse
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; --idev)
-            {
-            hipSetDevice(m_gpu_id[idev]);
-            hipEventRecord(m_events[idev], 0);
-            }
-
-        // wait for all those events on all GPUs
-        for (int idev_i = (unsigned int)(m_gpu_id.size() - 1); idev_i >= 0; --idev_i)
-            {
-            hipSetDevice(m_gpu_id[idev_i]);
-            for (int idev_j = 0; idev_j < (int)m_gpu_id.size(); ++idev_j)
-                hipStreamWaitEvent(0, m_events[idev_j], 0);
-            }
-        }
-#endif
-    }
-
-void ExecutionConfiguration::beginMultiGPU() const
-    {
-    m_in_multigpu_block = true;
-
-#if defined(ENABLE_HIP)
-    // implement a one-to-n barrier
-    if (getNumActiveGPUs() > 1)
-        {
-        // record a syncrhonization point on GPU 0
-        hipEventRecord(m_events[0], 0);
-
-        // wait for that event on all GPUs (except GPU 0, for which we rely on implicit
-        // synchronization)
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 1; --idev)
-            {
-            hipSetDevice(m_gpu_id[idev]);
-            hipStreamWaitEvent(0, m_events[0], 0);
-            }
-
-        // set GPU 0
-        hipSetDevice(m_gpu_id[0]);
-
-        if (isCUDAErrorCheckingEnabled())
-            {
-            hipError_t err_sync = hipPeekAtLastError();
-            handleHIPError(err_sync, __FILE__, __LINE__);
-            }
-        }
-#endif
-    }
-
-void ExecutionConfiguration::endMultiGPU() const
-    {
-    m_in_multigpu_block = false;
-
-#if defined(ENABLE_HIP)
-    // implement an n-to-one barrier
-    if (getNumActiveGPUs() > 1)
-        {
-        // record the synchronization point on every GPU, except GPU 0
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 1; --idev)
-            {
-            hipSetDevice(m_gpu_id[idev]);
-            hipEventRecord(m_events[idev], 0);
-            }
-
-        // wait for these events on GPU 0
-        hipSetDevice(m_gpu_id[0]);
-        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 1; --idev)
-            {
-            hipStreamWaitEvent(0, m_events[idev], 0);
-            }
-
-        if (isCUDAErrorCheckingEnabled())
-            {
-            hipError_t err_sync = hipPeekAtLastError();
-            handleHIPError(err_sync, __FILE__, __LINE__);
-            }
-        }
-#endif
     }
 
 int ExecutionConfiguration::guessLocalRank()
@@ -680,14 +477,13 @@ void export_ExecutionConfiguration(pybind11::module& m)
         executionconfiguration(m, "ExecutionConfiguration");
     executionconfiguration
         .def(pybind11::init<ExecutionConfiguration::executionMode,
-                            std::vector<int>,
+                            int,
                             std::shared_ptr<MPIConfiguration>,
                             std::shared_ptr<Messenger>>())
         .def("getMPIConfig", &ExecutionConfiguration::getMPIConfig)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("isCUDAErrorCheckingEnabled", &ExecutionConfiguration::isCUDAErrorCheckingEnabled)
-        .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
         .def_readonly("msg", &ExecutionConfiguration::msg)
 #if defined(ENABLE_HIP)
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
@@ -697,15 +493,11 @@ void export_ExecutionConfiguration(pybind11::module& m)
         .def("getPartition", &ExecutionConfiguration::getPartition)
         .def("getNRanks", &ExecutionConfiguration::getNRanks)
         .def("getRank", &ExecutionConfiguration::getRank)
-#ifdef ENABLE_TBB
-        .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
-#endif
-        .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
         .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
         .def("memoryTracingEnabled", &ExecutionConfiguration::memoryTracingEnabled)
         .def_static("getCapableDevices", &ExecutionConfiguration::getCapableDevices)
         .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)
-        .def("getActiveDevices", &ExecutionConfiguration::getActiveDevices);
+        .def("getActiveDevice", &ExecutionConfiguration::getActiveDevice);
 
     pybind11::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
         .value("GPU", ExecutionConfiguration::executionMode::GPU)

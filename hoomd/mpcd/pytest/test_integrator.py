@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -9,7 +9,6 @@ from hoomd.conftest import pickling_check
 
 @pytest.fixture
 def make_simulation(simulation_factory):
-
     def _make_simulation():
         snap = hoomd.Snapshot()
         if snap.communicator.rank == 0:
@@ -170,7 +169,8 @@ def test_attach_and_detach(make_simulation):
     # attach with both methods
     ig.streaming_method = hoomd.mpcd.stream.Bulk(period=1)
     ig.collision_method = hoomd.mpcd.collide.StochasticRotationDynamics(
-        period=1, angle=130)
+        period=1, angle=130
+    )
     ig.mpcd_particle_sorter = hoomd.mpcd.tune.ParticleSorter(trigger=1)
     sim.run(0)
     assert ig.streaming_method._attached

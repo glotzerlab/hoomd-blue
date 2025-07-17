@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement type conversion helpers."""
@@ -17,6 +17,7 @@ import hoomd
 
 class RequiredArg:
     """Define a parameter as required."""
+
     pass
 
 
@@ -59,8 +60,10 @@ def box_preprocessing(box):
         try:
             return hoomd.Box.from_box(box)
         except Exception:
-            raise ValueError(f"{box} is not convertible into a hoomd.Box object"
-                             f". using hoomd.Box.from_box")
+            raise ValueError(
+                f"{box} is not convertible into a hoomd.Box object"
+                f". using hoomd.Box.from_box"
+            )
 
 
 def box_variant_preprocessing(input):
@@ -75,8 +78,10 @@ def box_variant_preprocessing(input):
         try:
             return hoomd.variant.box.Constant(box_preprocessing(input))
         except Exception:
-            raise ValueError(f"{input} is not convertible into a "
-                             f"hoomd.variant.box.BoxVariant object.")
+            raise ValueError(
+                f"{input} is not convertible into a "
+                f"hoomd.variant.box.BoxVariant object."
+            )
 
 
 def positive_real(number):
@@ -84,8 +89,7 @@ def positive_real(number):
     try:
         float_number = float(number)
     except Exception as err:
-        raise TypeConversionError(
-            f"{number} not convertible to float.") from err
+        raise TypeConversionError(f"{number} not convertible to float.") from err
     if float_number <= 0:
         raise TypeConversionError("Expected a number greater than zero.")
     return float_number
@@ -96,11 +100,25 @@ def nonnegative_real(number):
     try:
         float_number = float(number)
     except Exception as err:
-        raise TypeConversionError(
-            f"{number} not convertible to float.") from err
+        raise TypeConversionError(f"{number} not convertible to float.") from err
     if float_number < 0:
         raise TypeConversionError("Expected a nonnegative real number.")
     return float_number
+
+
+def positive_int(number):
+    """Ensures that a value is a positive integer"""
+    if isinstance(number, float) and not number.is_integer():
+        raise TypeConversionError(
+            f"Expected integer, {number} has a non-zero decimal part"
+        )
+    try:
+        int_number = int(number)
+    except Exception as err:
+        raise TypeConversionError(f"{number} is not convertible to int.") from err
+    if int_number <= 0:
+        raise TypeConversionError("Expected a positive integer")
+    return int_number
 
 
 def identity(value):
@@ -135,8 +153,7 @@ class _HelpValidate(ABC):
         except Exception as err:
             if isinstance(err, TypeConversionError):
                 raise err
-            raise TypeConversionError(
-                f"Error raised in conversion: {str(err)}") from err
+            raise TypeConversionError(f"Error raised in conversion: {err!s}") from err
 
     @abstractmethod
     def _validate(self, value):
@@ -164,7 +181,10 @@ class Either(_HelpValidate):
 
     Example::
 
-       e = Either(to_type_converter((float,) * 6), to_type_converter(float))
+       e = Either(
+           to_type_converter((float,) * 6),
+           to_type_converter(float),
+       )
 
     would allow either value to pass.
     """
@@ -179,8 +199,9 @@ class Either(_HelpValidate):
                 return spec(value)
             except Exception:
                 continue
-        raise ValueError(f"value {value} not converible using "
-                         f"{[str(spec) for spec in self.specs]}")
+        raise ValueError(
+            f"value {value} not converible using {[str(spec) for spec in self.specs]}"
+        )
 
     def __str__(self):
         """str: String representation of the validator."""
@@ -194,11 +215,7 @@ class OnlyIf(_HelpValidate):
     pre/post-processing and optionally allows None.
     """
 
-    def __init__(self,
-                 cond,
-                 preprocess=None,
-                 postprocess=None,
-                 allow_none=False):
+    def __init__(self, cond, preprocess=None, postprocess=None, allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.cond = cond
 
@@ -207,7 +224,7 @@ class OnlyIf(_HelpValidate):
 
     def __str__(self):
         """str: String representation of the validator."""
-        return f"OnlyIf({str(self.cond)})"
+        return f"OnlyIf({self.cond!s})"
 
 
 class OnlyTypes(_HelpValidate):
@@ -220,13 +237,15 @@ class OnlyTypes(_HelpValidate):
     order of the ``types`` sequence.
     """
 
-    def __init__(self,
-                 *types,
-                 disallow_types=None,
-                 strict=False,
-                 preprocess=None,
-                 postprocess=None,
-                 allow_none=False):
+    def __init__(
+        self,
+        *types,
+        disallow_types=None,
+        strict=False,
+        preprocess=None,
+        postprocess=None,
+        allow_none=False,
+    ):
         super().__init__(preprocess, postprocess, allow_none)
         # Handle if a class is passed rather than an iterable of classes
         self.types = types
@@ -238,13 +257,13 @@ class OnlyTypes(_HelpValidate):
 
     def _validate(self, value):
         if isinstance(value, self.disallow_types):
-            raise TypeConversionError(
-                f"Value {value} cannot be of type {type(value)}")
+            raise TypeConversionError(f"Value {value} cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
             raise ValueError(
-                f"Value {value} is not an instance of any of {self.types}.")
+                f"Value {value} is not an instance of any of {self.types}."
+            )
         else:
             for type_ in self.types:
                 try:
@@ -252,12 +271,12 @@ class OnlyTypes(_HelpValidate):
                 except Exception:
                     pass
             raise ValueError(
-                f"Value {value} is not convertable into any of these types "
-                f"{self.types}")
+                f"Value {value} is not convertable into any of these types {self.types}"
+            )
 
     def __str__(self):
         """str: String representation of the validator."""
-        return f"OnlyTypes({str(self.types)})"
+        return f"OnlyTypes({self.types!s})"
 
 
 class OnlyFrom(_HelpValidate):
@@ -267,11 +286,7 @@ class OnlyFrom(_HelpValidate):
     that generator expressions are fine.
     """
 
-    def __init__(self,
-                 options,
-                 preprocess=None,
-                 postprocess=None,
-                 allow_none=False):
+    def __init__(self, options, preprocess=None, postprocess=None, allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.options = set(options)
 
@@ -364,13 +379,15 @@ class NDArrayValidator(_HelpValidate):
     in.
     """
 
-    def __init__(self,
-                 dtype,
-                 shape=(None,),
-                 order="K",
-                 preprocess=None,
-                 postprocess=None,
-                 allow_none=False):
+    def __init__(
+        self,
+        dtype,
+        shape=(None,),
+        order="K",
+        preprocess=None,
+        postprocess=None,
+        allow_none=False,
+    ):
         """Create a NDArrayValidator object."""
         super().__init__(preprocess, postprocess, allow_none)
         self._dtype = dtype
@@ -383,37 +400,34 @@ class NDArrayValidator(_HelpValidate):
         if len(typed_and_ordered.shape) != len(self._shape):
             raise ValueError(
                 f"Expected array of {len(self._shape)} dimensions, but "
-                f"recieved array of {len(typed_and_ordered.shape)} dimensions.")
+                f"recieved array of {len(typed_and_ordered.shape)} dimensions."
+            )
 
         for i, dim in enumerate(self._shape):
             if dim is not None:
                 if typed_and_ordered.shape[i] != dim:
                     raise ValueError(
                         f"In dimension {i}, expected size {dim}, but got size "
-                        f"{typed_and_ordered.shape[i]}")
+                        f"{typed_and_ordered.shape[i]}"
+                    )
         return typed_and_ordered
 
 
 class _BaseConverter:
     """Get the base level (i.e. no deeper level exists) validator."""
+
     _conversion_func_dict = {
-        Variant:
-            OnlyTypes(Variant, preprocess=variant_preprocessing),
-        ParticleFilter:
-            OnlyTypes(ParticleFilter, CustomFilter, strict=True),
-        str:
-            OnlyTypes(str, strict=True),
-        Trigger:
-            OnlyTypes(Trigger, preprocess=trigger_preprocessing),
-        hoomd.Box:
-            OnlyTypes(hoomd.Box, preprocess=box_preprocessing),
-        hoomd.variant.box.BoxVariant:
-            OnlyTypes(hoomd.variant.box.BoxVariant,
-                      preprocess=box_variant_preprocessing),
+        Variant: OnlyTypes(Variant, preprocess=variant_preprocessing),
+        ParticleFilter: OnlyTypes(ParticleFilter, CustomFilter, strict=True),
+        str: OnlyTypes(str, strict=True),
+        Trigger: OnlyTypes(Trigger, preprocess=trigger_preprocessing),
+        hoomd.Box: OnlyTypes(hoomd.Box, preprocess=box_preprocessing),
+        hoomd.variant.box.BoxVariant: OnlyTypes(
+            hoomd.variant.box.BoxVariant, preprocess=box_variant_preprocessing
+        ),
         # arrays default to float of one dimension of arbitrary length and
         # ordering
-        np.ndarray:
-            NDArrayValidator(float),
+        np.ndarray: NDArrayValidator(float),
     }
 
     @classmethod
@@ -472,15 +486,15 @@ class TypeConverterSequence(TypeConverter):
         if not _is_iterable(sequence):
             raise TypeConversionError(
                 f"Expected a sequence like instance. Received {sequence} of "
-                f"type {type(sequence)}.")
+                f"type {type(sequence)}."
+            )
         else:
             new_sequence = []
             try:
                 for i, v in enumerate(sequence):
                     new_sequence.append(self.converter(v))
             except (ValueError, TypeError) as err:
-                raise TypeConversionError(
-                    f"In list item number {i}: {str(err)}") from err
+                raise TypeConversionError(f"In list item number {i}: {err!s}") from err
             return new_sequence
 
 
@@ -516,19 +530,20 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         if not _is_iterable(sequence):
             raise TypeConversionError(
                 f"Expected a tuple like object. Received {sequence} of type "
-                f"{type(sequence)}.")
+                f"{type(sequence)}."
+            )
         elif len(sequence) != len(self.converter):
             raise TypeConversionError(
                 f"Expected exactly {len(self.converter)} items. Received "
-                f"{len(sequence)}.")
+                f"{len(sequence)}."
+            )
         else:
             new_sequence = []
             try:
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
             except (ValueError, TypeError) as err:
-                raise TypeConversionError(
-                    f"In tuple item number {i}: {str(err)}") from err
+                raise TypeConversionError(f"In tuple item number {i}: {err!s}") from err
             return tuple(new_sequence)
 
     def __iter__(self):
@@ -559,13 +574,13 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
 
         Example::
 
-            t = TypeConverterMapping({'str': str, 'list_of_floats': [float]})
+            t = TypeConverterMapping({"str": str, "list_of_floats": [float]})
 
             # valid
-            t({'str': 'hello'})
+            t({"str": "hello"})
 
             # invalid
-            t({'new_key': None})
+            t({"new_key": None})
     """
 
     def __init__(self, mapping):
@@ -578,7 +593,8 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
         if not isinstance(mapping, Mapping):
             raise TypeConversionError(
                 f"Expected a dict like value. Recieved {mapping} of type "
-                f"{type(mapping)}.")
+                f"{type(mapping)}."
+            )
 
         new_mapping = {}
         for key, value in mapping.items():
@@ -586,8 +602,7 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
                 try:
                     new_mapping[key] = self.converter[key](value)
                 except (ValueError, TypeError) as err:
-                    raise TypeConversionError(
-                        f"In key {key}: {str(err)}") from err
+                    raise TypeConversionError(f"In key {key}: {err!s}") from err
             else:
                 new_mapping[key] = value
         return new_mapping
@@ -623,7 +638,8 @@ def to_type_converter(value):
 
         # list take a list of tuples of 3 floats each
         validation = to_type_converter(
-            {'str': str, 'list': [(float, float, float)]})
+            {"str": str, "list": [(float, float, float)]}
+        )
     """
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)

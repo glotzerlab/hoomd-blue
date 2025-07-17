@@ -26,22 +26,10 @@ else()
     set(_hpmc_built "False")
 endif()
 
-if (BUILD_METAL)
-    set(_metal_built "True")
-else()
-    set(_metal_built "False")
-endif()
-
 if (BUILD_MPCD)
     set(_mpcd_built "True")
 else()
     set(_mpcd_built "False")
-endif()
-
-if (ENABLE_LLVM)
-    set(_llvm_enabled "True")
-else()
-    set(_llvm_enabled "False")
 endif()
 
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
@@ -139,10 +127,8 @@ set(_hoomd_headers
     Filesystem.h
     ForceCompute.h
     ForceConstraint.h
-    GlobalArray.h
     GPUArray.h
     GPUFlags.h
-    GPUPartition.cuh
     GPUVector.h
     GSD.h
     GSDDequeWriter.h
@@ -266,6 +252,10 @@ target_include_directories(_hoomd PUBLIC
                                   $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
 
 target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}/hoomd/extern/OpenRAND/include>
+                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/OpenRAND/include>)
+
+target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
 
 # specify required definitions
@@ -275,21 +265,12 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SI
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hip-clang")
+    if (HIP_PLATFORM STREQUAL "amd")
         target_link_libraries(_hoomd PUBLIC hip::hipfft)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
     target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
-
-    if(ALWAYS_USE_MANAGED_MEMORY)
-        target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
-    endif()
-
-    if (ENABLE_NVTOOLS)
-        target_link_libraries(_hoomd PUBLIC CUDA::nvToolsExt)
-        target_compile_definitions(_hoomd PUBLIC ENABLE_NVTOOLS)
-    endif()
 
     if (CUSOLVER_AVAILABLE)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
@@ -303,20 +284,6 @@ if (ENABLE_HIP)
     endif()
 endif()
 
-
-# Libraries and compile definitions for TBB enabled builds
-if (ENABLE_TBB)
-    find_package_config_first(TBB 4.3)
-
-    if (TBB_FOUND)
-        get_target_property(_tbb_library TBB::tbb IMPORTED_LOCATION_RELEASE)
-        get_target_property(_tbb_include_dir TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
-        find_package_message(tbb "Found TBB: ${TBB_DIR} ${_tbb_library} ${_tbb_include_dir}" "[${_tbb_library}][${_tbb_include_dir}]")
-    endif()
-
-    target_compile_definitions(_hoomd PUBLIC ENABLE_TBB)
-    target_link_libraries(_hoomd PUBLIC TBB::tbb)
-endif()
 
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
@@ -339,7 +306,6 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files box.py
           communicator.py
-          _compile.py
           conftest.py
           device.py
           __init__.py
@@ -399,10 +365,6 @@ endif()
 
 if (BUILD_HPMC)
     add_subdirectory(hpmc)
-endif()
-
-if (BUILD_METAL AND BUILD_MD)
-    add_subdirectory(metal)
 endif()
 
 if (BUILD_MPCD)

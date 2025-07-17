@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -7,11 +7,11 @@ import pytest
 import numpy
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def two_charged_particle_snapshot_factory(two_particle_snapshot_factory):
     """Make a snapshot with two charged particles."""
 
-    def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20, q=1):
+    def make_snapshot(particle_types=["A"], dimensions=3, d=1, L=20, q=1):
         """Make the snapshot.
 
         Args:
@@ -21,10 +21,9 @@ def two_charged_particle_snapshot_factory(two_particle_snapshot_factory):
             L: Box length
             q: Particle charge
         """
-        s = two_particle_snapshot_factory(particle_types=particle_types,
-                                          dimensions=dimensions,
-                                          d=d,
-                                          L=L)
+        s = two_particle_snapshot_factory(
+            particle_types=particle_types, dimensions=dimensions, d=d, L=L
+        )
 
         if s.communicator.rank == 0:
             s.particles.charge[0] = -q
@@ -34,8 +33,7 @@ def two_charged_particle_snapshot_factory(two_particle_snapshot_factory):
     return make_snapshot
 
 
-def test_attach_detach(simulation_factory,
-                       two_charged_particle_snapshot_factory):
+def test_attach_detach(simulation_factory, two_charged_particle_snapshot_factory):
     """Ensure that md.long_range.pppm.Coulomb can be attached.
 
     Also test that parameters can be set.
@@ -43,7 +41,8 @@ def test_attach_detach(simulation_factory,
     # detached
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
-        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
+        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0
+    )
 
     assert ewald.nlist is nlist
     assert coulomb.nlist is nlist
@@ -87,7 +86,7 @@ def test_attach_detach(simulation_factory,
     assert coulomb.r_cut == 2.5
     assert coulomb.alpha == 1.5
 
-    assert ewald.params[('A', 'A')]['alpha'] == 1.5
+    assert ewald.params[("A", "A")]["alpha"] == 1.5
 
     with pytest.raises(AttributeError):
         coulomb.resolution = (32, 32, 32)
@@ -99,12 +98,12 @@ def test_attach_detach(simulation_factory,
         coulomb.alpha = 3.0
 
 
-def test_kernel_parameters(simulation_factory,
-                           two_charged_particle_snapshot_factory):
+def test_kernel_parameters(simulation_factory, two_charged_particle_snapshot_factory):
     """Test that md.long_range.pppm.Coulomb can be pickled and unpickled."""
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
-        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
+        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0
+    )
 
     sim = simulation_factory(two_charged_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -115,8 +114,7 @@ def test_kernel_parameters(simulation_factory,
 
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=coulomb,
-                                     activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=coulomb, activate=lambda: sim.run(1))
 
 
 def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):
@@ -124,7 +122,8 @@ def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):
     # detached
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
-        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
+        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0
+    )
     pickling_check(coulomb)
 
     # attached
@@ -147,7 +146,8 @@ def test_pppm_energy(simulation_factory, two_charged_particle_snapshot_factory):
     """Test that md.long_range.pppm.Coulomb computes the correct energy."""
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
-        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
+        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0
+    )
 
     sim = simulation_factory(two_charged_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -44,7 +44,6 @@ __global__ void gpu_rattle_nve_step_one_kernel(Scalar4* d_pos,
                                                int3* d_image,
                                                unsigned int* d_group_members,
                                                const unsigned int nwork,
-                                               const unsigned int offset,
                                                BoxDim box,
                                                Scalar deltaT,
                                                bool limit,
@@ -55,7 +54,7 @@ __global__ void gpu_rattle_nve_step_one_kernel(Scalar4* d_pos,
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // do velocity verlet update
@@ -126,7 +125,7 @@ hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
                                    const Scalar3* d_accel,
                                    int3* d_image,
                                    unsigned int* d_group_members,
-                                   const GPUPartition& gpu_partition,
+                                   const unsigned int group_size,
                                    const BoxDim& box,
                                    Scalar deltaT,
                                    bool limit,
@@ -140,35 +139,28 @@ hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_rattle_nve_step_one_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_pos,
-                           d_vel,
-                           d_accel,
-                           d_image,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           box,
-                           deltaT,
-                           limit,
-                           limit_val);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_rattle_nve_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_image,
+                       d_group_members,
+                       nwork,
+                       box,
+                       deltaT,
+                       limit,
+                       limit_val);
 
     return hipSuccess;
     }
@@ -188,7 +180,6 @@ __global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
                                                        const Scalar4* d_net_torque,
                                                        const unsigned int* d_group_members,
                                                        const unsigned int nwork,
-                                                       const unsigned int offset,
                                                        Scalar deltaT,
                                                        Scalar scale)
     {
@@ -197,7 +188,7 @@ __global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
@@ -315,7 +306,7 @@ hipError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
                                            const Scalar3* d_inertia,
                                            const Scalar4* d_net_torque,
                                            unsigned int* d_group_members,
-                                           const GPUPartition& gpu_partition,
+                                           const unsigned int group_size,
                                            Scalar deltaT,
                                            Scalar scale,
                                            const unsigned int block_size)
@@ -327,33 +318,26 @@ hipError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_rattle_nve_angular_step_one_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_orientation,
-                           d_angmom,
-                           d_inertia,
-                           d_net_torque,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           deltaT,
-                           scale);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_rattle_nve_angular_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_torque,
+                       d_group_members,
+                       nwork,
+                       deltaT,
+                       scale);
 
     return hipSuccess;
     }
@@ -374,7 +358,6 @@ __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4* d_orientat
                                                        const Scalar4* d_net_torque,
                                                        unsigned int* d_group_members,
                                                        const unsigned int nwork,
-                                                       const unsigned int offset,
                                                        Scalar deltaT,
                                                        Scalar scale)
     {
@@ -383,7 +366,7 @@ __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4* d_orientat
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
@@ -432,7 +415,7 @@ hipError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
                                            const Scalar3* d_inertia,
                                            const Scalar4* d_net_torque,
                                            unsigned int* d_group_members,
-                                           const GPUPartition& gpu_partition,
+                                           const unsigned int group_size,
                                            Scalar deltaT,
                                            Scalar scale,
                                            const unsigned int block_size)
@@ -444,33 +427,26 @@ hipError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_rattle_nve_angular_step_two_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_orientation,
-                           d_angmom,
-                           d_inertia,
-                           d_net_torque,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           deltaT,
-                           scale);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_rattle_nve_angular_step_two_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_torque,
+                       d_group_members,
+                       nwork,
+                       deltaT,
+                       scale);
 
     return hipSuccess;
     }

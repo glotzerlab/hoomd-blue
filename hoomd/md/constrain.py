@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Constraints.
-
-Constraint force classes apply forces and the resulting virial to particles that
+"""Constraint force classes apply forces and the resulting virial to particles that
 enforce specific constraints on the positions of the particles. The constraint
 is satisfied at all times, so there is no potential energy associated with the
 constraint.
@@ -25,6 +23,7 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.md.force import Force
 import hoomd
+import inspect
 
 
 class Constraint(Force):
@@ -36,6 +35,8 @@ class Constraint(Force):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Force._doc_inherited)
 
     # Module where the C++ class is defined. Reassign this when developing an
     # external plugin.
@@ -100,11 +101,20 @@ class Distance(Constraint):
         issue a warning message. It does not influence the computation of the
         constraint force.
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Distance`:
+
     Attributes:
         tolerance (float): Relative tolerance for constraint violation warnings.
     """
 
     _cpp_class_name = "ForceDistanceConstraint"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Constraint._doc_inherited)
+    )
 
     def __init__(self, tolerance=1e-3):
         self._param_dict.update(ParameterDict(tolerance=float(tolerance)))
@@ -138,9 +148,11 @@ class Rigid(Constraint):
 
     .. math::
 
+        \begin{split}
         \vec{r}_c &= \vec{r}_b
                     + \mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^* \\
         \mathbf{q}_c &= \mathbf{q}_b \mathbf{q}_{c,\mathrm{body}}
+        \end{split}
 
     where :math:`\vec{r}_c` and :math:`\mathbf{q}_c` are the position and
     orientation of a constituent particle in the simulation box,
@@ -187,11 +199,13 @@ class Rigid(Constraint):
 
     .. math::
 
+        \begin{split}
         \vec{F}_b' &= \vec{F}_b + \sum_c \vec{F}_c \\
         \vec{U}_b' &= U_b + \sum_c U_c \\
         \vec{\tau}_b' &= \vec{\tau}_b + \sum_c \vec{\tau}_c +
             (\mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^*)
             \times \vec{F}_c
+        \end{split}
 
     `Rigid` also computes the corrected virial accounting for the effective
     constraint force (see `Glaser 2020
@@ -259,6 +273,12 @@ class Rigid(Constraint):
         changing rigid body definitions or adding/removing particles from the
         simulation.
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Rigid`:
+
     .. py:attribute:: body
 
         `body` is a mapping from the central particle type to a body definition
@@ -286,17 +306,28 @@ class Rigid(Constraint):
     """
 
     _cpp_class_name = "ForceComposite"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Constraint._doc_inherited)
+    )
 
     def __init__(self):
         body = TypeParameter(
-            "body", "particle_types",
-            TypeParameterDict(OnlyIf(to_type_converter({
-                'constituent_types': [str],
-                'positions': [(float,) * 3],
-                'orientations': [(float,) * 4],
-            }),
-                                     allow_none=True),
-                              len_keys=1))
+            "body",
+            "particle_types",
+            TypeParameterDict(
+                OnlyIf(
+                    to_type_converter(
+                        {
+                            "constituent_types": [str],
+                            "positions": [(float,) * 3],
+                            "orientations": [(float,) * 4],
+                        }
+                    ),
+                    allow_none=True,
+                ),
+                len_keys=1,
+            ),
+        )
         self._add_typeparam(body)
         self.body.default = None
 
@@ -314,8 +345,7 @@ class Rigid(Constraint):
         particle ``body`` tags in the state.
         """
         if self._attached:
-            raise RuntimeError(
-                "Cannot call create_bodies after running simulation.")
+            raise RuntimeError("Cannot call create_bodies after running simulation.")
         super()._attach(state._simulation)
         self._cpp_obj.createRigidBodies({} if charges is None else charges)
         # Restore previous state
@@ -327,3 +357,10 @@ class Rigid(Constraint):
         # positions and orientations are accurate before integration.
         self._cpp_obj.validateRigidBodies()
         self._cpp_obj.updateCompositeParticles(0)
+
+
+__all__ = [
+    "Constraint",
+    "Distance",
+    "Rigid",
+]

@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""MPCD geometries.
-
-A geometry defines solid boundaries that cannot be penetrated. These
+r"""A geometry defines solid boundaries that cannot be penetrated. These
 geometries are used for various operations in the MPCD algorithm including:
 
 * Bounce-back streaming for MPCD particles
@@ -25,6 +23,7 @@ particles are allowed. These constraints will be documented by each object.
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.mpcd import _mpcd
 from hoomd.operation import _HOOMDBaseObject
+import inspect
 
 
 class Geometry(_HOOMDBaseObject):
@@ -49,10 +48,24 @@ class Geometry(_HOOMDBaseObject):
 
     """
 
+    _doc_inherited = """
+    ----------
+
+    **Members inherited from**
+    `Geometry <hoomd.mpcd.geometry.Geometry>`:
+
+    .. py:attribute:: no_slip
+
+        Plates have a no-slip boundary condition when True.
+        `Read more... <hoomd.mpcd.geometry.Geometry.no_slip>`
+    """
+
     def __init__(self, no_slip):
         super().__init__()
 
-        param_dict = ParameterDict(no_slip=bool(no_slip),)
+        param_dict = ParameterDict(
+            no_slip=bool(no_slip),
+        )
         self._param_dict.update(param_dict)
 
 
@@ -78,8 +91,9 @@ class ConcentricCylinders(Geometry):
 
     .. code-block:: python
 
-        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(inner_radius=2.0,
-          outer_radius=5.0)
+        cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
+            inner_radius=2.0, outer_radius=5.0
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
         simulation.operations.integrator.streaming_method = stream
 
@@ -88,7 +102,8 @@ class ConcentricCylinders(Geometry):
     .. code-block:: python
 
         cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
-            inner_radius=2.0, outer_radius=5.0, no_slip=False)
+            inner_radius=2.0, outer_radius=5.0, no_slip=False
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
         simulation.operations.integrator.streaming_method = stream
 
@@ -97,9 +112,19 @@ class ConcentricCylinders(Geometry):
     .. code-block:: python
 
         cylinders = hoomd.mpcd.geometry.ConcentricCylinders(
-            inner_radius=2.0, outer_radius=5.0, angular_speed=1.0, no_slip=True)
+            inner_radius=2.0,
+            outer_radius=5.0,
+            angular_speed=1.0,
+            no_slip=True,
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=cylinders)
         simulation.operations.integrator.streaming_method = stream
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `ConcentricCylinders`:
 
     Attributes:
         inner_radius (float): Radius of inner cylinder (*read only*).
@@ -113,11 +138,11 @@ class ConcentricCylinders(Geometry):
 
     """
 
-    def __init__(self,
-                 inner_radius,
-                 outer_radius,
-                 angular_speed=0.0,
-                 no_slip=True):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Geometry._doc_inherited)
+    )
+
+    def __init__(self, inner_radius, outer_radius, angular_speed=0.0, no_slip=True):
         super().__init__(no_slip)
         param_dict = ParameterDict(
             inner_radius=float(inner_radius),
@@ -127,10 +152,9 @@ class ConcentricCylinders(Geometry):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.ConcentricCylinders(self.inner_radius,
-                                                  self.outer_radius,
-                                                  self.angular_speed,
-                                                  self.no_slip)
+        self._cpp_obj = _mpcd.ConcentricCylinders(
+            self.inner_radius, self.outer_radius, self.angular_speed, self.no_slip
+        )
         super()._attach_hook()
 
 
@@ -159,11 +183,16 @@ class CosineChannel(Geometry):
     .. code-block:: python
 
         channel = hoomd.mpcd.geometry.CosineChannel(
-            amplitude=2.0,
-            separation=4.0,
-            repeat_length=10.0)
+            amplitude=2.0, separation=4.0, repeat_length=10.0
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=channel)
         simulation.operations.integrator.streaming_method = stream
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `CosineChannel`:
 
     Attributes:
         amplitude (float): Amplitude of cosine (*read only*).
@@ -171,9 +200,11 @@ class CosineChannel(Geometry):
         repeat_length (float): Repeat length (period) of cosine. (*read only*).
 
         separation (float): Distance between walls (*read only*).
-
-
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Geometry._doc_inherited)
+    )
 
     def __init__(self, amplitude, repeat_length, separation, no_slip=True):
         super().__init__(no_slip)
@@ -186,8 +217,9 @@ class CosineChannel(Geometry):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.CosineChannel(self.amplitude, self.repeat_length,
-                                            self.separation, self.no_slip)
+        self._cpp_obj = _mpcd.CosineChannel(
+            self.amplitude, self.repeat_length, self.separation, self.no_slip
+        )
         super()._attach_hook()
 
 
@@ -220,9 +252,16 @@ class CosineExpansionContraction(Geometry):
         channel = hoomd.mpcd.geometry.CosineExpansionContraction(
             expansion_separation=6.0,
             contraction_separation=3.0,
-            repeat_length=10.0)
+            repeat_length=10.0,
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=channel)
         simulation.operations.integrator.streaming_method = stream
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `CosineExpansionContraction`:
 
     Attributes:
         contraction_separation (float): Distance between channel walls at
@@ -232,14 +271,15 @@ class CosineExpansionContraction(Geometry):
             maximum expansion (*read only*).
 
         repeat_length (float): Repeat length (period) of cosine. (*read only*).
-
     """
 
-    def __init__(self,
-                 expansion_separation,
-                 contraction_separation,
-                 repeat_length,
-                 no_slip=True):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Geometry._doc_inherited)
+    )
+
+    def __init__(
+        self, expansion_separation, contraction_separation, repeat_length, no_slip=True
+    ):
         super().__init__(no_slip)
 
         param_dict = ParameterDict(
@@ -251,8 +291,11 @@ class CosineExpansionContraction(Geometry):
 
     def _attach_hook(self):
         self._cpp_obj = _mpcd.CosineExpansionContraction(
-            self.expansion_separation, self.contraction_separation,
-            self.repeat_length, self.no_slip)
+            self.expansion_separation,
+            self.contraction_separation,
+            self.repeat_length,
+            self.no_slip,
+        )
         super()._attach_hook()
 
 
@@ -287,7 +330,8 @@ class ParallelPlates(Geometry):
     .. code-block:: python
 
         plates = hoomd.mpcd.geometry.ParallelPlates(
-            separation=6.0, no_slip=False)
+            separation=6.0, no_slip=False
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         simulation.operations.integrator.streaming_method = stream
 
@@ -296,9 +340,16 @@ class ParallelPlates(Geometry):
     .. code-block:: python
 
         plates = hoomd.mpcd.geometry.ParallelPlates(
-            separation=6.0, speed=1.0, no_slip=True)
+            separation=6.0, speed=1.0, no_slip=True
+        )
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         simulation.operations.integrator.streaming_method = stream
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `ParallelPlates`:
 
     Attributes:
         separation (float): Distance between plates (*read only*).
@@ -310,6 +361,10 @@ class ParallelPlates(Geometry):
 
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Geometry._doc_inherited)
+    )
+
     def __init__(self, separation, speed=0.0, no_slip=True):
         super().__init__(no_slip)
         param_dict = ParameterDict(
@@ -319,8 +374,7 @@ class ParallelPlates(Geometry):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.ParallelPlates(self.separation, self.speed,
-                                             self.no_slip)
+        self._cpp_obj = _mpcd.ParallelPlates(self.separation, self.speed, self.no_slip)
         super()._attach_hook()
 
 
@@ -349,12 +403,22 @@ class PlanarPore(Geometry):
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=pore)
         simulation.operations.integrator.streaming_method = stream
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `PlanarPore`:
+
     Attributes:
         separation (float): Distance between pore walls (*read only*).
 
         length (float): Pore length (*read only*).
 
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Geometry._doc_inherited)
+    )
 
     def __init__(self, separation, length, no_slip=True):
         super().__init__(no_slip)
@@ -366,8 +430,7 @@ class PlanarPore(Geometry):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.PlanarPore(self.separation, self.length,
-                                         self.no_slip)
+        self._cpp_obj = _mpcd.PlanarPore(self.separation, self.length, self.no_slip)
         super()._attach_hook()
 
 
@@ -400,16 +463,39 @@ class Sphere(Geometry):
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=sphere)
         simulation.operations.integrator.streaming_method = stream
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Sphere`:
+
     Attributes:
         radius (float): Radius of sphere (*read only*).
 
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Geometry._doc_inherited)
+    )
+
     def __init__(self, radius, no_slip=True):
         super().__init__(no_slip)
-        param_dict = ParameterDict(radius=float(radius),)
+        param_dict = ParameterDict(
+            radius=float(radius),
+        )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _mpcd.Sphere(self.radius, self.no_slip)
         super()._attach_hook()
+
+
+__all__ = [
+    "ConcentricCylinders",
+    "CosineChannel",
+    "CosineExpansionContraction",
+    "Geometry",
+    "ParallelPlates",
+    "PlanarPore",
+    "Sphere",
+]

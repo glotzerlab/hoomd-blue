@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_THERMO_GPU_CUH_
@@ -7,7 +7,6 @@
 #include <hip/hip_runtime.h>
 
 #include "ComputeThermoHMATypes.h"
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 
@@ -48,8 +47,7 @@ hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
                                           unsigned int* d_group_members,
                                           unsigned int group_size,
                                           const BoxDim& box,
-                                          const compute_thermo_hma_args& args,
-                                          const GPUPartition& gpu_partition);
+                                          const compute_thermo_hma_args& args);
 
 //! Computes the final sums of thermodynamic properties for ComputeThermo
 hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,

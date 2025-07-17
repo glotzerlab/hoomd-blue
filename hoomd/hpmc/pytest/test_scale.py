@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test HPMC with scaled shapes."""
@@ -9,12 +9,13 @@ import math
 
 
 @pytest.mark.parametrize("scale", [1e-9, 1, 1000, 1e9])
-@pytest.mark.parametrize("shape", ['ConvexPolygon', 'SimplePolygon'])
+@pytest.mark.parametrize("shape", ["ConvexPolygon", "SimplePolygon"])
 @pytest.mark.parametrize("offset", [-100, -10, -1, 1, 10, 100])
 @pytest.mark.serial
 @pytest.mark.cpu
-def test_polygon(scale, shape, offset, simulation_factory,
-                 two_particle_snapshot_factory):
+def test_polygon(
+    scale, shape, offset, simulation_factory, two_particle_snapshot_factory
+):
     """Test polygons at a variety of scales."""
     # make a many sided polygon to ensure that the overlap check is non-trivial
     a = 0.5 * scale
@@ -31,7 +32,7 @@ def test_polygon(scale, shape, offset, simulation_factory,
     sim = simulation_factory(initial_snap)
 
     mc = getattr(hoomd.hpmc.integrate, shape)(default_d=0)
-    mc.shape['A'] = dict(vertices=vertices)
+    mc.shape["A"] = dict(vertices=vertices)
     sim.operations.integrator = mc
     sim.run(0)
 
@@ -45,8 +46,9 @@ def test_polygon(scale, shape, offset, simulation_factory,
 @pytest.mark.parametrize("offset", [-100, -10, -1, 1, 10, 100])
 @pytest.mark.serial
 @pytest.mark.cpu
-def test_convex_polyhedron(scale, offset, simulation_factory,
-                           two_particle_snapshot_factory):
+def test_convex_polyhedron(
+    scale, offset, simulation_factory, two_particle_snapshot_factory
+):
     """Test convex polyhedrons at a variety of scales."""
     # make a many sized prism to ensure that the overlap check is non-trivial
     a = 0.5 * scale
@@ -64,7 +66,7 @@ def test_convex_polyhedron(scale, offset, simulation_factory,
     sim = simulation_factory(initial_snap)
 
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(default_d=0)
-    mc.shape['A'] = dict(vertices=vertices)
+    mc.shape["A"] = dict(vertices=vertices)
     sim.operations.integrator = mc
     sim.run(0)
 

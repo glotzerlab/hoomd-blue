@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -24,7 +24,8 @@ def simulation(simulation_factory, lattice_snapshot_factory, nlist):
     integrator = md.Integrator(
         dt=0.005,
         methods=[md.methods.ConstantVolume(hoomd.filter.All(), thermostat)],
-        forces=[lj])
+        forces=[lj],
+    )
     sim.operations.integrator = integrator
     return sim
 
@@ -33,21 +34,20 @@ def simulation(simulation_factory, lattice_snapshot_factory, nlist):
 def nlist_tuner(nlist, request):
     if request.param == "GradientDescent":
         return md.tune.NeighborListBuffer.with_gradient_descent(
-            trigger=5, nlist=nlist, maximum_buffer=1.5)
-    return md.tune.NeighborListBuffer.with_grid(trigger=5,
-                                                nlist=nlist,
-                                                maximum_buffer=1.5)
+            trigger=5, nlist=nlist, maximum_buffer=1.5
+        )
+    return md.tune.NeighborListBuffer.with_grid(
+        trigger=5, nlist=nlist, maximum_buffer=1.5
+    )
 
 
 class TestMoveSize:
-
     def test_invalid_construction(self, nlist):
         solver = hoomd.tune.solve.ScaleSolver()
         with pytest.raises(ValueError):
-            md.tune.NeighborListBuffer(trigger=5,
-                                       solver=solver,
-                                       nlist=nlist,
-                                       maximum_buffer=1.0)
+            md.tune.NeighborListBuffer(
+                trigger=5, solver=solver, nlist=nlist, maximum_buffer=1.0
+            )
 
         solver = hoomd.tune.solve.GradientDescent()
         with pytest.raises(TypeError):
@@ -55,16 +55,11 @@ class TestMoveSize:
 
     def test_valid_construction(self, nlist):
         solver = hoomd.tune.solve.GradientDescent()
-        attrs = {
-            "solver": solver,
-            "nlist": nlist,
-            "trigger": 5,
-            "maximum_buffer": 1.0
-        }
+        attrs = {"solver": solver, "nlist": nlist, "trigger": 5, "maximum_buffer": 1.0}
         tuner = md.tune.NeighborListBuffer(**attrs)
         for attr, value in attrs.items():
             tuner_attr = getattr(tuner, attr)
-            if attr == 'trigger':
+            if attr == "trigger":
                 assert tuner_attr.period == value
             else:
                 assert tuner_attr is value or tuner_attr == value
@@ -75,13 +70,14 @@ class TestMoveSize:
             "alpha": 0.1,
             "kappa": np.array([0.2, 0.15]),
             "tol": 1e-3,
-            "max_delta": 0.4
+            "max_delta": 0.4,
         }
         tuner = md.tune.NeighborListBuffer.with_gradient_descent(
-            **attrs, **solver_attrs)
+            **attrs, **solver_attrs
+        )
         for attr, value in attrs.items():
             tuner_attr = getattr(tuner, attr)
-            if attr == 'trigger':
+            if attr == "trigger":
                 assert tuner_attr.period == value
             else:
                 assert tuner_attr is value or tuner_attr == value
@@ -109,7 +105,7 @@ class TestMoveSize:
         assert not nlist_tuner._attached
 
     def test_set_params(self, nlist_tuner):
-        max_buffer = 4.
+        max_buffer = 4.0
         nlist_tuner.maximum_buffer_size = max_buffer
         assert nlist_tuner.maximum_buffer_size == max_buffer
         trigger = hoomd.trigger.Before(400)

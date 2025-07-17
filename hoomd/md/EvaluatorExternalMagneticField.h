@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_MAGNETIC_FIELD_H__
@@ -89,11 +89,6 @@ class EvaluatorExternalMagneticField
                                           const field_type& field)
         : m_q(q), m_B(params.B), m_mu(params.mu)
         {
-        }
-
-    DEVICE static bool isAnisotropic()
-        {
-        return true;
         }
 
     //! ExternalMagneticField needs charges

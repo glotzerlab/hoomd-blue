@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PPPM_FORCE_COMPUTE_H__
@@ -129,14 +129,14 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     unsigned int m_n_cells;       //!< Total number of inner cells
     unsigned int m_radius;        //!< Stencil radius (in units of mesh size)
     unsigned int m_n_inner_cells; //!< Number of inner mesh points (without ghost cells)
-    GlobalArray<Scalar> m_inf_f;  //!< Fourier representation of the influence function (real part)
-    GlobalArray<Scalar3> m_k;     //!< Mesh of k values
+    GPUArray<Scalar> m_inf_f;     //!< Fourier representation of the influence function (real part)
+    GPUArray<Scalar3> m_k;        //!< Mesh of k values
     Scalar m_qstarsq;             //!< Short wave length cut-off squared for density harmonics
     bool m_need_initialize;       //!< True if we have not yet computed the influence function
     bool m_params_set;            //!< True if parameters are set
     bool m_box_changed;           //!< True if box has changed since last compute
 
-    GlobalArray<Scalar> m_virial_mesh; //!< k-space mesh of virial tensor values
+    GPUArray<Scalar> m_virial_mesh; //!< k-space mesh of virial tensor values
 
     Scalar m_kappa; //!< Splitting parameter
     Scalar m_rcut;  //!< Cutoff for short-ranged interaction
@@ -146,8 +146,8 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     Scalar m_q;  //!< Total system charge
     Scalar m_q2; //!< Sum of charge squared
 
-    GlobalArray<Scalar> m_rho_coeff; //!< Coefficients for computing the grid based charge density
-    GlobalArray<Scalar> m_gf_b;      //!< Green function coefficients
+    GPUArray<Scalar> m_rho_coeff; //!< Coefficients for computing the grid based charge density
+    GPUArray<Scalar> m_gf_b;      //!< Green function coefficients
 
     Scalar m_body_energy;      //!< Energy correction due to rigid body exclusions
     bool m_ptls_added_removed; //!< True if global particle number changed
@@ -212,20 +212,20 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
 
     bool m_kiss_fft_initialized; //!< True if a local KISS FFT has been set up
 
-    GlobalArray<kiss_fft_cpx> m_mesh;         //!< The particle density mesh
-    GlobalArray<kiss_fft_cpx> m_fourier_mesh; //!< The fourier transformed mesh
-    GlobalArray<kiss_fft_cpx>
+    GPUArray<kiss_fft_cpx> m_mesh;         //!< The particle density mesh
+    GPUArray<kiss_fft_cpx> m_fourier_mesh; //!< The fourier transformed mesh
+    GPUArray<kiss_fft_cpx>
         m_fourier_mesh_G_x; //!< Fourier transformed mesh times the influence function, x-component
-    GlobalArray<kiss_fft_cpx>
+    GPUArray<kiss_fft_cpx>
         m_fourier_mesh_G_y; //!< Fourier transformed mesh times the influence function, y-component
-    GlobalArray<kiss_fft_cpx>
+    GPUArray<kiss_fft_cpx>
         m_fourier_mesh_G_z; //!< Fourier transformed mesh times the influence function, z-component
-    GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_x; //!< Fourier transformed mesh times the
-                                                    //!< influence function, x-component
-    GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_y; //!< Fourier transformed mesh times the
-                                                    //!< influence function, y-component
-    GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_z; //!< Fourier transformed mesh times the
-                                                    //!< influence function, z-component
+    GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_x; //!< Fourier transformed mesh times the
+                                                 //!< influence function, x-component
+    GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_y; //!< Fourier transformed mesh times the
+                                                 //!< influence function, y-component
+    GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_z; //!< Fourier transformed mesh times the
+                                                 //!< influence function, z-component
 
     bool m_dfft_initialized; //! True if host dfft has been initialized
 

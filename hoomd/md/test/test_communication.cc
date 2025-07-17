@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -774,42 +774,44 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator,
     // move particle 7 into domain 0
     pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.51, -0.751, 0.251)), false);
 
-    // validate that placing the particle would send it to the ranks that we expect
-    ArrayHandle<unsigned int> h_cart_ranks(decomposition->getCartRanks(),
-                                           access_location::host,
-                                           access_mode::read);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(0),
-                                                 h_cart_ranks.data),
-                    1);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(1),
-                                                 h_cart_ranks.data),
-                    2);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(2),
-                                                 h_cart_ranks.data),
-                    3);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(3),
-                                                 h_cart_ranks.data),
-                    4);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(4),
-                                                 h_cart_ranks.data),
-                    5);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(5),
-                                                 h_cart_ranks.data),
-                    6);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(6),
-                                                 h_cart_ranks.data),
-                    7);
-    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
-                                                 pdata->getPosition(7),
-                                                 h_cart_ranks.data),
-                    0);
+        {
+        // validate that placing the particle would send it to the ranks that we expect
+        ArrayHandle<unsigned int> h_cart_ranks(decomposition->getCartRanks(),
+                                               access_location::host,
+                                               access_mode::read);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(0),
+                                                     h_cart_ranks.data),
+                        1);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(1),
+                                                     h_cart_ranks.data),
+                        2);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(2),
+                                                     h_cart_ranks.data),
+                        3);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(3),
+                                                     h_cart_ranks.data),
+                        4);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(4),
+                                                     h_cart_ranks.data),
+                        5);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(5),
+                                                     h_cart_ranks.data),
+                        6);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(6),
+                                                     h_cart_ranks.data),
+                        7);
+        UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(),
+                                                     pdata->getPosition(7),
+                                                     h_cart_ranks.data),
+                        0);
+        }
 
     // migrate atoms
     comm->migrateParticles();

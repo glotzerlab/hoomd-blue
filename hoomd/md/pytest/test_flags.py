@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -8,10 +8,10 @@ import numpy
 def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
     cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
-    lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
-    lj.r_cut[('A', 'A')] = 2.5
+    lj.params[("A", "A")] = dict(sigma=1.0, epsilon=1.0)
+    lj.r_cut[("A", "A")] = 2.5
 
-    a = 2**(1.0 / 6.0)
+    a = 2 ** (1.0 / 6.0)
     sim = simulation_factory(lattice_snapshot_factory(n=20, a=a, r=a * 0.01))
 
     assert not sim.always_compute_pressure

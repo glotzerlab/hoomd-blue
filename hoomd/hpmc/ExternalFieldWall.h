@@ -1,32 +1,17 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef _EXTERNAL_FIELD_WALL_H_
-#define _EXTERNAL_FIELD_WALL_H_
+#pragma once
 
-/*! \file ExternalField.h
-    \brief Declaration of ExternalField base class
-*/
 #include "hoomd/Compute.h"
 #include "hoomd/VectorMath.h"
 
-#include "ExternalField.h"
+#include "ExternalPotential.h"
 #include "IntegratorHPMCMono.h"
-
-#include <limits>
-#include <tuple>
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
-#endif
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef __HIPCC__
-#define DEVICE __device__
-#else
-#define DEVICE
 #endif
 
 namespace hoomd
@@ -202,22 +187,22 @@ namespace hoomd
 namespace hpmc
     {
 template<class WallShape, class ParticleShape>
-DEVICE inline bool test_confined(const WallShape& wall,
-                                 const ParticleShape& shape,
-                                 const vec3<Scalar>& position,
-                                 const vec3<Scalar>& box_origin,
-                                 const BoxDim& box)
+inline bool test_confined(const WallShape& wall,
+                          const ParticleShape& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
     {
     return false;
     }
 
 // Spherical Walls and Spheres
 template<>
-DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall,
-                                                          const ShapeSphere& shape,
-                                                          const vec3<Scalar>& position,
-                                                          const vec3<Scalar>& box_origin,
-                                                          const BoxDim& box)
+inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall,
+                                                   const ShapeSphere& shape,
+                                                   const vec3<Scalar>& position,
+                                                   const vec3<Scalar>& box_origin,
+                                                   const BoxDim& box)
     {
     Scalar3 t = vec_to_scalar3(position - box_origin);
     t.x = t.x - wall.origin.x;
@@ -245,11 +230,11 @@ DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall
     }
 
 // Spherical Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const SphereWall& wall,
-                                 const ShapeConvexPolyhedron& shape,
-                                 const vec3<Scalar>& position,
-                                 const vec3<Scalar>& box_origin,
-                                 const BoxDim& box)
+inline bool test_confined(const SphereWall& wall,
+                          const ShapeConvexPolyhedron& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -308,11 +293,11 @@ DEVICE inline bool test_confined(const SphereWall& wall,
     }
 
 // Spherical Walls and Convex Spheropolyhedra
-DEVICE inline bool test_confined(const SphereWall& wall,
-                                 const ShapeSpheropolyhedron& shape,
-                                 const vec3<Scalar>& position,
-                                 const vec3<Scalar>& box_origin,
-                                 const BoxDim& box)
+inline bool test_confined(const SphereWall& wall,
+                          const ShapeSpheropolyhedron& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -387,11 +372,11 @@ DEVICE inline bool test_confined(const SphereWall& wall,
 
 // Cylindrical Walls and Spheres
 template<>
-DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& wall,
-                                                            const ShapeSphere& shape,
-                                                            const vec3<Scalar>& position,
-                                                            const vec3<Scalar>& box_origin,
-                                                            const BoxDim& box)
+inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& wall,
+                                                     const ShapeSphere& shape,
+                                                     const vec3<Scalar>& position,
+                                                     const vec3<Scalar>& box_origin,
+                                                     const BoxDim& box)
     {
     Scalar3 t = vec_to_scalar3(position - box_origin);
     t.x = t.x - wall.origin.x;
@@ -425,11 +410,11 @@ DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& 
     }
 
 // Cylindrical Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const CylinderWall& wall,
-                                 const ShapeConvexPolyhedron& shape,
-                                 const vec3<Scalar>& position,
-                                 const vec3<Scalar>& box_origin,
-                                 const BoxDim& box)
+inline bool test_confined(const CylinderWall& wall,
+                          const ShapeConvexPolyhedron& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -498,11 +483,11 @@ DEVICE inline bool test_confined(const CylinderWall& wall,
 
 // Plane Walls and Spheres
 template<>
-DEVICE inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall,
-                                                         const ShapeSphere& shape,
-                                                         const vec3<Scalar>& position,
-                                                         const vec3<Scalar>& box_origin,
-                                                         const BoxDim& box)
+inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall,
+                                                  const ShapeSphere& shape,
+                                                  const vec3<Scalar>& position,
+                                                  const vec3<Scalar>& box_origin,
+                                                  const BoxDim& box)
     {
     Scalar3 t = vec_to_scalar3(position - box_origin);
     vec3<Scalar> shifted_pos(box.minImage(t));
@@ -512,11 +497,11 @@ DEVICE inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall,
     }
 
 // Plane Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const PlaneWall& wall,
-                                 const ShapeConvexPolyhedron& shape,
-                                 const vec3<Scalar>& position,
-                                 const vec3<Scalar>& box_origin,
-                                 const BoxDim& box)
+inline bool test_confined(const PlaneWall& wall,
+                          const ShapeConvexPolyhedron& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -543,11 +528,11 @@ DEVICE inline bool test_confined(const PlaneWall& wall,
     }
 
 // Plane Walls and Convex Spheropolyhedra
-DEVICE inline bool test_confined(const PlaneWall& wall,
-                                 const ShapeSpheropolyhedron& shape,
-                                 const vec3<Scalar>& position,
-                                 const vec3<Scalar>& box_origin,
-                                 const BoxDim& box)
+inline bool test_confined(const PlaneWall& wall,
+                          const ShapeSpheropolyhedron& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -579,77 +564,41 @@ DEVICE inline bool test_confined(const PlaneWall& wall,
     return accept;
     }
 
-template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
+template<class Shape> class ExternalFieldWall : public ExternalPotential
     {
-    using Compute::m_pdata;
+    using ExternalPotential::m_pdata;
 
     public:
     ExternalFieldWall(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
-        : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
+        : ExternalPotential(sysdef), m_mc(mc)
         {
         }
-    ~ExternalFieldWall() { }
+    virtual ~ExternalFieldWall() { }
 
-    double energydiff(uint64_t timestep,
-                      const unsigned int& index,
-                      const vec3<Scalar>& position_old,
-                      const Shape& shape_old,
-                      const vec3<Scalar>& position_new,
-                      const Shape& shape_new)
+    /// Evaluate the energy between the particles and the walls
+    virtual LongReal particleEnergyImplementation(uint64_t timestep,
+                                                  unsigned int tag_i,
+                                                  unsigned int type_i,
+                                                  const vec3<LongReal>& r_i,
+                                                  const quat<LongReal>& q_i,
+                                                  LongReal charge_i,
+                                                  Trial trial)
         {
-        const BoxDim box = this->m_pdata->getGlobalBox();
-        vec3<Scalar> origin(m_pdata->getOrigin());
-
-        for (size_t i = 0; i < m_Spheres.size(); i++)
+        // Avoid inf - inf by assuming the old energy is always 0
+        if (trial == Trial::Old)
             {
-            if (!test_confined(m_Spheres[i], shape_new, position_new, origin, box))
-                {
-                return INFINITY;
-                }
+            return 0.0;
             }
 
-        for (size_t i = 0; i < m_Cylinders.size(); i++)
-            {
-            set_cylinder_wall_verts(m_Cylinders[i], shape_new);
-            if (!test_confined(m_Cylinders[i], shape_new, position_new, origin, box))
-                {
-                return INFINITY;
-                }
-            }
-
-        for (size_t i = 0; i < m_Planes.size(); i++)
-            {
-            if (!test_confined(m_Planes[i], shape_new, position_new, origin, box))
-                {
-                return INFINITY;
-                }
-            }
-
-        return double(0.0);
-        }
-
-    //! Evaluate the energy of the force.
-    /*! \param box The system box.
-        \param type Particle type.
-        \param r_i Particle position
-        \param q_i Particle orientation.
-        \param diameter Particle diameter.
-        \param charge Particle charge.
-        \returns Energy due to the force
-    */
-    virtual float energy(const BoxDim& box,
-                         unsigned int type,
-                         const vec3<Scalar>& r_i,
-                         const quat<Scalar>& q_i,
-                         Scalar diameter,
-                         Scalar charge)
-        {
         const std::vector<typename Shape::param_type,
                           hoomd::detail::managed_allocator<typename Shape::param_type>>& params
             = m_mc->getParams();
-        Shape shape(q_i, params[type]);
-        vec3<Scalar> origin(m_pdata->getOrigin());
+        Shape shape(q_i, params[type_i]);
+
+        // the new ExternalPotential code path already corrects for the origin
+        vec3<Scalar> origin(0, 0, 0);
+        const auto& box = m_pdata->getGlobalBox();
 
         for (size_t i = 0; i < m_Spheres.size(); i++)
             {
@@ -676,24 +625,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                 }
             }
 
-        return double(0.0);
-        }
-
-    double calculateDeltaE(uint64_t timestep,
-                           const Scalar4* const position_old,
-                           const Scalar4* const orientation_old,
-                           const BoxDim& box_old,
-                           const Scalar3& origin_old)
-        {
-        unsigned int numOverlaps = countOverlaps(0, false);
-        if (numOverlaps > 0)
-            {
-            return INFINITY;
-            }
-        else
-            {
-            return double(0.0);
-            }
+        return 0.0;
         }
 
     std::vector<SphereWall>& GetSphereWalls()
@@ -711,18 +643,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return m_Planes;
         }
 
-    bool wall_overlap(uint64_t timestep,
-                      const unsigned int& index,
-                      const vec3<Scalar>& position_old,
-                      const Shape& shape_old,
-                      const vec3<Scalar>& position_new,
-                      const Shape& shape_new)
-        {
-        double energy
-            = energydiff(timestep, index, position_old, shape_old, position_new, shape_new);
-        return (energy == INFINITY);
-        }
-
     unsigned int countOverlaps(uint64_t timestep, bool early_exit = false)
         {
         unsigned int numOverlaps = 0;
@@ -730,23 +650,34 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                        access_location::host,
                                        access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
+                                        access_location::host,
+                                        access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(),
+                                     access_location::host,
+                                     access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
                                            access_mode::readwrite);
-        const std::vector<typename Shape::param_type,
-                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
-            = m_mc->getParams();
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
+            unsigned int tag_i = h_tag.data[i];
+            Scalar charge_i = h_charge.data[i];
             Scalar4 orientation_i = h_orientation.data[i];
             vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
             int typ_i = __scalar_as_int(postype_i.w);
-            Shape shape_i(quat<Scalar>(orientation_i), params[typ_i]);
 
-            if (wall_overlap(timestep, i, pos_i, shape_i, pos_i, shape_i))
+            if (particleEnergyImplementation(timestep,
+                                             tag_i,
+                                             typ_i,
+                                             pos_i,
+                                             quat<Scalar>(orientation_i),
+                                             charge_i,
+                                             Trial::None)
+                > 0.0)
                 {
                 numOverlaps++;
                 }
@@ -803,7 +734,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     } // namespace hpmc
     } // namespace hoomd
 
-#ifndef __HIPCC__
 namespace hoomd
     {
 namespace hpmc
@@ -813,7 +743,7 @@ namespace detail
 template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalFieldWall<Shape>,
-                     ExternalFieldMono<Shape>,
+                     ExternalPotential,
                      std::shared_ptr<ExternalFieldWall<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
@@ -828,6 +758,3 @@ void export_wall_classes(pybind11::module& m);
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd
-#endif
-#undef DEVICE
-#endif // inclusion guard

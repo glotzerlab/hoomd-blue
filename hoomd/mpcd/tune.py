@@ -1,21 +1,19 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""MPCD tuning operations.
-
-These operations will affect the performance of MPCD simulations but not
+r"""These operations will affect the performance of MPCD simulations but not
 their correctness.
 
 .. invisible-code-block: python
 
     simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
     simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
-
 """
 
 import hoomd
 from hoomd.mpcd import _mpcd
 from hoomd.operation import TriggeredOperation
+import inspect
 
 
 class ParticleSorter(TriggeredOperation):
@@ -38,8 +36,8 @@ class ParticleSorter(TriggeredOperation):
     builds. Typically, using a small multiple (tens) of the collision period
     works best.
 
-    To achieve the best performance, the `ParticleSorter` is not added to
-    `hoomd.Operations.tuners`. Instead, set it in
+    To achieve the best performance, the `hoomd.mpcd.tune.ParticleSorter`
+    is not added to `hoomd.Operations.tuners`. Instead, set it in
     `hoomd.mpcd.Integrator.mpcd_particle_sorter`.
 
     Essentially all MPCD systems benefit from sorting, so it is recommended
@@ -51,18 +49,13 @@ class ParticleSorter(TriggeredOperation):
 
         sorter = hoomd.mpcd.tune.ParticleSorter(trigger=20)
         simulation.operations.integrator.mpcd_particle_sorter = sorter
-
-    Attributes:
-        trigger (hoomd.trigger.Trigger): Number of integration steps
-            between sorting.
-
-            .. rubric:: Example:
-
-            .. code-block:: python
-
-                sorter.trigger = 20
-
     """
+
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(TriggeredOperation._doc_inherited)
+    )
 
     def __init__(self, trigger):
         super().__init__(trigger)
@@ -72,5 +65,9 @@ class ParticleSorter(TriggeredOperation):
             class_ = _mpcd.SorterGPU
         else:
             class_ = _mpcd.Sorter
-        self._cpp_obj = class_(self._simulation.state._cpp_sys_def,
-                               self.trigger)
+        self._cpp_obj = class_(self._simulation.state._cpp_sys_def, self.trigger)
+
+
+__all__ = [
+    "ParticleSorter",
+]

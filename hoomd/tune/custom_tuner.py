@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomTuner.
@@ -13,13 +13,13 @@
     custom_action = ExampleAction()
 """
 
-from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
+from hoomd.custom import Action, CustomOperation
+from hoomd.custom.custom_operation import _InternalCustomOperation
 from hoomd.operation import Tuner
-import warnings
+import inspect
 
 
 class _TunerProperty:
-
     @property
     def tuner(self):
         return self._action
@@ -29,8 +29,7 @@ class _TunerProperty:
         if isinstance(tuner, Action):
             self._action = tuner
         else:
-            raise ValueError(
-                "updater must be an instance of hoomd.custom.Action")
+            raise ValueError("updater must be an instance of hoomd.custom.Action")
 
 
 class CustomTuner(CustomOperation, _TunerProperty, Tuner):
@@ -54,7 +53,8 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
 
             custom_tuner = hoomd.tune.CustomTuner(
                 action=custom_action,
-                trigger=hoomd.trigger.Periodic(1000))
+                trigger=hoomd.trigger.Periodic(1000),
+            )
             simulation.operations.tuners.append(custom_tuner)
 
     See Also:
@@ -64,22 +64,17 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
 
         `hoomd.write.CustomWriter`
     """
-    _cpp_list_name = 'tuners'
-    _cpp_class_name = 'PythonTuner'
+
+    _cpp_list_name = "tuners"
+    _cpp_class_name = "PythonTuner"
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(CustomOperation._doc_inherited)
+    )
 
 
 class _InternalCustomTuner(_InternalCustomOperation, Tuner):
-    _cpp_list_name = 'tuners'
-    _cpp_class_name = 'PythonTuner'
+    _cpp_list_name = "tuners"
+    _cpp_class_name = "PythonTuner"
     _operation_func = "tune"
-
-    def tune(self, timestep):
-        return self._action.act(timestep)
-        """
-        .. deprecated:: 4.5.0
-
-           Use `Simulation` to call the operation.
-        """
-        warnings.warn(
-            "`_InternalCustomTuner.tune` is deprecated,"
-            "use `Simulation` to call the operation.", FutureWarning)

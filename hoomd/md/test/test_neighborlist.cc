@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -53,9 +53,8 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
 
     // test construction of the neighborlist
     std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 0.25));
-    auto r_cut
-        = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
-                                                exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[0] = 3.0;
@@ -357,7 +356,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
     std::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 0.25));
     nlist_3->setStorageMode(NeighborList::full);
     Index2D type_pair_idx = nlist_3->getTypePairIndexer();
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[type_pair_idx(0, 0)] = 1.0;
@@ -542,7 +541,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
 
     std::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 0.05));
     type_pair_idx = nlist_18->getTypePairIndexer();
-    r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
+    r_cut = std::make_shared<GPUArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
 
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
@@ -681,7 +680,7 @@ template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfigu
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.1));
     Index2D type_pair_idx = nlist_6->getTypePairIndexer();
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         for (unsigned int i = 0; i < type_pair_idx.getW(); i++)
@@ -874,9 +873,8 @@ void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_c
         }
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.25));
-    auto r_cut
-        = std::make_shared<GlobalArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
-                                                exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[0] = 3.0;
@@ -991,9 +989,8 @@ void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec
         }
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.25));
-    auto r_cut
-        = std::make_shared<GlobalArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
-                                                exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[0] = 3.0;
@@ -1067,9 +1064,8 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     std::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(0.4)));
-    auto r_cut
-        = std::make_shared<GlobalArray<Scalar>>(nlist1->getTypePairIndexer().getNumElements(),
-                                                exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist1->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[0] = 3.0;
@@ -1157,8 +1153,8 @@ void neighborlist_large_ex_tests(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     std::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(0.4)));
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
-                                                       exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[0] = 8.0;
@@ -1228,7 +1224,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
 
     std::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(0.4)));
     Index2D type_pair_idx = nlist->getTypePairIndexer();
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         // Ignore all interactions
@@ -1353,8 +1349,8 @@ template<class NL> void neighborlist_2d_tests(std::shared_ptr<ExecutionConfigura
     auto pdata = sysdef->getParticleData();
 
     auto nlist = std::make_shared<NL>(sysdef, 0.25);
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
-                                                       exec_conf);
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
         h_r_cut.data[0] = 3.0;

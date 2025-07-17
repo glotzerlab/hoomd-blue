@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -26,6 +26,25 @@ mpcd::ATCollisionMethod::~ATCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD AT collision method" << std::endl;
     detachCallbacks();
+    }
+
+void mpcd::ATCollisionMethod::startAutotuning()
+    {
+    mpcd::CollisionMethod::startAutotuning();
+    if (m_thermo)
+        m_thermo->startAutotuning();
+    if (m_rand_thermo)
+        m_rand_thermo->startAutotuning();
+    }
+
+bool mpcd::ATCollisionMethod::isAutotuningComplete()
+    {
+    bool result = mpcd::CollisionMethod::isAutotuningComplete();
+    if (m_thermo)
+        result = result && m_thermo->isAutotuningComplete();
+    if (m_rand_thermo)
+        result = result && m_rand_thermo->isAutotuningComplete();
+    return result;
     }
 
 /*!

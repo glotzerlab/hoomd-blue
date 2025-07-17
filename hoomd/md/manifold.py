@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Manifolds.
-
-A `Manifold` defines a lower dimensional manifold embedded in 3D space with an
+"""A `Manifold` defines a lower dimensional manifold embedded in 3D space with an
 implicit function :math:`F(x,y,z) = 0`. Use `Manifold` classes to define
 positional constraints to a given set of particles with:
 
@@ -38,8 +36,7 @@ class Manifold(_HOOMDBaseObject):
     def _preprocess_unitcell(value):
         if isinstance(value, Sequence):
             if len(value) != 3:
-                raise ValueError(
-                    "Expected a single int or a sequence of three ints.")
+                raise ValueError("Expected a single int or a sequence of three ints.")
             return tuple(value)
         else:
             return (value, value, value)
@@ -49,8 +46,8 @@ class Manifold(_HOOMDBaseObject):
         if not isinstance(other, type(self)):
             return NotImplemented
         return all(
-            getattr(self, attr) == getattr(other, attr)
-            for attr in self._param_dict)
+            getattr(self, attr) == getattr(other, attr) for attr in self._param_dict
+        )
 
     def _setattr_param(self, attr, value):
         raise MutabilityError(attr)
@@ -73,7 +70,7 @@ class Cylinder(Manifold):
     Example::
 
         cylinder1 = manifold.Cylinder(r=10)
-        cylinder2 = manifold.Cylinder(r=5,P=(1,1,1))
+        cylinder2 = manifold.Cylinder(r=5, P=(1, 1, 1))
     """
 
     def __init__(self, r, P=(0, 0, 0)):
@@ -82,13 +79,14 @@ class Cylinder(Manifold):
             r=float(r),
             P=(float, float, float),
         )
-        param_dict['P'] = P
+        param_dict["P"] = P
 
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldZCylinder(
-            self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
+            self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2])
+        )
 
         super()._attach(self._simulation)
 
@@ -128,23 +126,24 @@ class Diamond(Manifold):
     Example::
 
         diamond1 = manifold.Diamond(N=1)
-        diamond2 = manifold.Diamond(N=(1,2,2))
+        diamond2 = manifold.Diamond(N=(1, 2, 2))
     """
 
     def __init__(self, N, epsilon=0):
-
         # store metadata
         param_dict = ParameterDict(
-            N=OnlyIf(to_type_converter((int,) * 3),
-                     preprocess=self._preprocess_unitcell),
+            N=OnlyIf(
+                to_type_converter((int,) * 3), preprocess=self._preprocess_unitcell
+            ),
             epsilon=float(epsilon),
         )
-        param_dict['N'] = N
+        param_dict["N"] = N
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldDiamond(
-            _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
+            _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon
+        )
 
         super()._attach(self._simulation)
 
@@ -173,8 +172,8 @@ class Ellipsoid(Manifold):
 
     Example::
 
-        ellipsoid1 = manifold.Ellipsoid(a=10,b=5,c=5)
-        ellipsoid2 = manifold.Ellipsoid(a=5,b=10,c=10,P=(1,0.5,1))
+        ellipsoid1 = manifold.Ellipsoid(a=10, b=5, c=5)
+        ellipsoid2 = manifold.Ellipsoid(a=5, b=10, c=10, P=(1, 0.5, 1))
     """
 
     def __init__(self, a, b, c, P=(0, 0, 0)):
@@ -185,14 +184,14 @@ class Ellipsoid(Manifold):
             c=float(c),
             P=(float, float, float),
         )
-        param_dict['P'] = P
+        param_dict["P"] = P
 
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldEllipsoid(
-            self.a, self.b, self.c,
-            _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
+            self.a, self.b, self.c, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2])
+        )
 
         super()._attach(self._simulation)
 
@@ -231,25 +230,26 @@ class Gyroid(Manifold):
     Example::
 
         gyroid1 = manifold.Gyroid(N=1)
-        gyroid2 = manifold.Gyroid(N=(1,2,2))
+        gyroid2 = manifold.Gyroid(N=(1, 2, 2))
     """
 
     def __init__(self, N, epsilon=0):
-
         # initialize the base class
         super().__init__()
         # store metadata
         param_dict = ParameterDict(
-            N=OnlyIf(to_type_converter((int,) * 3),
-                     preprocess=self._preprocess_unitcell),
+            N=OnlyIf(
+                to_type_converter((int,) * 3), preprocess=self._preprocess_unitcell
+            ),
             epsilon=float(epsilon),
         )
-        param_dict['N'] = N
+        param_dict["N"] = N
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldGyroid(
-            _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
+            _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon
+        )
 
         super()._attach(self._simulation)
 
@@ -272,7 +272,9 @@ class Plane(Manifold):
     """
 
     def __init__(self, shift=0):
-        param_dict = ParameterDict(shift=float(shift),)
+        param_dict = ParameterDict(
+            shift=float(shift),
+        )
 
         self._param_dict.update(param_dict)
 
@@ -315,23 +317,24 @@ class Primitive(Manifold):
     Example::
 
         primitive1 = manifold.Primitive(N=1)
-        primitive2 = manifold.Primitive(N=(1,2,2))
+        primitive2 = manifold.Primitive(N=(1, 2, 2))
     """
 
     def __init__(self, N, epsilon=0):
-
         # store metadata
         param_dict = ParameterDict(
-            N=OnlyIf(to_type_converter((int,) * 3),
-                     preprocess=self._preprocess_unitcell),
+            N=OnlyIf(
+                to_type_converter((int,) * 3), preprocess=self._preprocess_unitcell
+            ),
             epsilon=float(epsilon),
         )
-        param_dict['N'] = N
+        param_dict["N"] = N
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldPrimitive(
-            _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
+            _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon
+        )
 
         super()._attach(self._simulation)
 
@@ -353,7 +356,7 @@ class Sphere(Manifold):
     Example::
 
         sphere1 = manifold.Sphere(r=10)
-        sphere2 = manifold.Sphere(r=5,P=(1,0,1.5))
+        sphere2 = manifold.Sphere(r=5, P=(1, 0, 1.5))
     """
 
     def __init__(self, r, P=(0, 0, 0)):
@@ -363,12 +366,25 @@ class Sphere(Manifold):
             r=float(r),
             P=(float, float, float),
         )
-        param_dict['P'] = P
+        param_dict["P"] = P
 
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldSphere(
-            self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
+            self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2])
+        )
 
         super()._attach(self._simulation)
+
+
+__all__ = [
+    "Cylinder",
+    "Diamond",
+    "Ellipsoid",
+    "Gyroid",
+    "Manifold",
+    "Plane",
+    "Primitive",
+    "Sphere",
+]

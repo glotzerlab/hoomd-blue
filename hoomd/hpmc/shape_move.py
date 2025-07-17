@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Shape moves for a for alchemical simulations in extended ensembles.
-
-`ShapeMove` subclasses extend the Hamiltonian of the system by adding degrees of
+"""`ShapeMove` subclasses extend the Hamiltonian of the system by adding degrees of
 freedom to the shape of the hard particle.
 
 See Also:
@@ -18,6 +16,7 @@ from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy
+import inspect
 
 
 class ShapeMove(_HOOMDBaseObject):
@@ -41,17 +40,29 @@ class ShapeMove(_HOOMDBaseObject):
             of shape trial moves.
     """
 
-    _suported_shapes = None
+    _doc_inherited = """
+    ----------
+
+    **Members inherited from** `ShapeMove <hoomd.hpmc.shape_move.ShapeMove>`:
+
+    .. py:attribute:: step_size
+
+        Maximum size of the shape trial moves.
+        `Read more... <hoomd.hpmc.shape_move.ShapeMove.step_size>`
+    """
+
+    _supported_shapes = None
 
     def __init__(self, default_step_size=None):
         if default_step_size is None:
             step_size = float
         else:
             step_size = float(default_step_size)
-        typeparam_step_size = TypeParameter('step_size',
-                                            type_kind='particle_types',
-                                            param_dict=TypeParameterDict(
-                                                step_size, len_keys=1))
+        typeparam_step_size = TypeParameter(
+            "step_size",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict(step_size, len_keys=1),
+        )
         self._add_typeparam(typeparam_step_size)
 
     def _attach_hook(self):
@@ -62,14 +73,14 @@ class ShapeMove(_HOOMDBaseObject):
             raise RuntimeError("Integrator is not attached yet.")
 
         integrator_name = integrator.__class__.__name__
-        if integrator_name in self._suported_shapes:
-            self._move_cls = getattr(_hpmc,
-                                     self.__class__.__name__ + integrator_name)
+        if integrator_name in self._supported_shapes:
+            self._move_cls = getattr(_hpmc, self.__class__.__name__ + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
         self._cpp_obj = self._move_cls(
             self._simulation.state._cpp_sys_def,
-            self._simulation.operations.integrator._cpp_obj)
+            self._simulation.operations.integrator._cpp_obj,
+        )
 
 
 class Elastic(ShapeMove):
@@ -91,7 +102,7 @@ class Elastic(ShapeMove):
         stiffness (hoomd.variant.variant_like): Shape stiffness against
             deformations.
 
-        mc (`type` or `hoomd.hpmc.integrate.HPMCIntegrator`): The class of
+        mc (`hoomd.hpmc.integrate.HPMCIntegrator`): The class of
             the MC shape integrator or an instance (see `hoomd.hpmc.integrate`)
             to use with this elastic shape. Must be a compatible class. We use
             this argument to create validation for `reference_shape`.
@@ -122,12 +133,15 @@ class Elastic(ShapeMove):
         elastic_move.stiffness = 100
         elastic_move.reference_shape["A"] = verts
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Elastic`:
+
     Attributes:
         stiffness (hoomd.variant.Variant): Shape stiffness against
             deformations.
-
-        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
-            of shape trial moves.
 
         reference_shape (`TypeParameter` [``particle type``, `dict`]): Reference
             shape against to which compute the deformation energy.
@@ -136,16 +150,17 @@ class Elastic(ShapeMove):
             deformation trial moves (**default**: 0.5).
     """
 
-    _suported_shapes = {'ConvexPolyhedron'}
+    _supported_shapes = {"ConvexPolyhedron"}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(ShapeMove._doc_inherited)
+    )
 
-    def __init__(self,
-                 stiffness,
-                 mc,
-                 default_step_size=None,
-                 normal_shear_ratio=0.5):
+    def __init__(self, stiffness, mc, default_step_size=None, normal_shear_ratio=0.5):
         super().__init__(default_step_size)
-        param_dict = ParameterDict(normal_shear_ratio=float(normal_shear_ratio),
-                                   stiffness=hoomd.variant.Variant)
+        param_dict = ParameterDict(
+            normal_shear_ratio=float(normal_shear_ratio),
+            stiffness=hoomd.variant.Variant,
+        )
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
         self._add_typeparam(self._get_shape_param(mc))
@@ -155,11 +170,13 @@ class Elastic(ShapeMove):
             cls = mc.__class__
         else:
             cls = mc
-        if cls.__name__ not in self._suported_shapes:
-            raise ValueError(f"Unsupported integrator type {cls}. Supported "
-                             f"types are {self._suported_shapes}")
+        if cls.__name__ not in self._supported_shapes:
+            raise ValueError(
+                f"Unsupported integrator type {cls}. Supported "
+                f"types are {self._supported_shapes}"
+            )
         # Class can only be used for this type of integrator now.
-        self._suported_shapes = {cls.__name__}
+        self._supported_shapes = {cls.__name__}
         shape = cls().shape
         shape.name = "reference_shape"
         return shape
@@ -168,8 +185,9 @@ class Elastic(ShapeMove):
         integrator = self._simulation.operations.integrator
         if isinstance(integrator, integrate.Ellipsoid):
             for shape in integrator.shape.values():
-                is_sphere = numpy.allclose((shape["a"], shape["b"], shape["c"]),
-                                           shape["a"])
+                is_sphere = numpy.allclose(
+                    (shape["a"], shape["b"], shape["c"]), shape["a"]
+                )
                 if not is_sphere:
                     raise ValueError("This updater only works when a=b=c.")
         super()._attach_hook()
@@ -226,6 +244,12 @@ class ShapeSpace(ShapeMove):
                 return dict("vertices":verts, **self.default_dict))
         move = hpmc.shape_move.ShapeSpace(callback = ExampleCallback)
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `ShapeSpace`:
+
     Attributes:
         callback (``callable`` [`str`, `list`], `dict` ]): The python function
             that will be called to map the given shape parameters to a shape
@@ -233,9 +257,6 @@ class ShapeSpace(ShapeMove):
             parameters as arguments and return a dictionary with the shape
             definition whose keys **must** match the shape definition of the
             integrator: ``callable[[str, list], dict]``.
-
-        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
-            of shape trial moves.
 
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
             parameters to be updated. The length of the list defines the
@@ -245,25 +266,24 @@ class ShapeSpace(ShapeMove):
             parameters to change each timestep (**default**: 1).
     """
 
-    _suported_shapes = {
-        'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
-    }
+    _supported_shapes = {"ConvexPolyhedron", "ConvexSpheropolyhedron", "Ellipsoid"}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(ShapeMove._doc_inherited)
+    )
 
-    def __init__(self,
-                 callback,
-                 default_step_size=None,
-                 param_move_probability=1):
+    def __init__(self, callback, default_step_size=None, param_move_probability=1):
         super().__init__(default_step_size)
         param_dict = ParameterDict(
-            param_move_probability=float(param_move_probability),
-            callback=object)
+            param_move_probability=float(param_move_probability), callback=object
+        )
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
-        typeparam_shapeparams = TypeParameter('params',
-                                              type_kind='particle_types',
-                                              param_dict=TypeParameterDict(
-                                                  [float], len_keys=1))
+        typeparam_shapeparams = TypeParameter(
+            "params",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict([float], len_keys=1),
+        )
         self._add_typeparam(typeparam_shapeparams)
 
 
@@ -308,10 +328,13 @@ class Vertex(ShapeMove):
         vertex_move = shape_move.Vertex()
         vertex_move.volume["A"] = 1
 
-    Attributes:
-        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
-            of shape trial moves.
+    {inherited}
 
+    ----------
+
+    **Members defined in** `Vertex`:
+
+    Attributes:
         vertex_move_probability (`float`): Average fraction of vertices to
             change during each shape move.
 
@@ -320,15 +343,28 @@ class Vertex(ShapeMove):
             maintain this volume.
     """
 
-    _suported_shapes = {'ConvexPolyhedron'}
+    _supported_shapes = {"ConvexPolyhedron"}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(ShapeMove._doc_inherited)
+    )
 
     def __init__(self, default_step_size=None, vertex_move_probability=1):
         super().__init__(default_step_size)
         param_dict = ParameterDict(
-            vertex_move_probability=float(vertex_move_probability))
+            vertex_move_probability=float(vertex_move_probability)
+        )
         self._param_dict.update(param_dict)
-        typeparam_volume = TypeParameter('volume',
-                                         type_kind='particle_types',
-                                         param_dict=TypeParameterDict(
-                                             float, len_keys=1))
+        typeparam_volume = TypeParameter(
+            "volume",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict(float, len_keys=1),
+        )
         self._add_typeparam(typeparam_volume)
+
+
+__all__ = [
+    "Elastic",
+    "ShapeMove",
+    "ShapeSpace",
+    "Vertex",
+]

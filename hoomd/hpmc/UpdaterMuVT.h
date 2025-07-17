@@ -1,10 +1,9 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __UPDATER_MUVT_H__
 #define __UPDATER_MUVT_H__
 
-#include "hoomd/HOOMDMPI.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
 #include "hoomd/VectorMath.h"
@@ -135,18 +134,6 @@ template<class Shape> class UpdaterMuVT : public Updater
         m_count_run_start = m_count_total;
         }
 
-    //! Set ntrial parameter for configurational bias attempts per depletant
-    void setNTrial(unsigned int n_trial)
-        {
-        m_n_trial = n_trial;
-        }
-
-    //! Get the number of configurational bias attempts
-    unsigned int getNTrial()
-        {
-        return m_n_trial;
-        }
-
     //! Get the current counter values
     hpmc_muvt_counters_t getCounters(unsigned int mode = 0);
 
@@ -185,19 +172,19 @@ template<class Shape> class UpdaterMuVT : public Updater
      * \param type Type of particle to test
      * \param pos Position of fictitious particle
      * \param orientation Orientation of particle
-     * \param lnboltzmann Log of Boltzmann weight of insertion attempt (return value)
+     * \param delta_u Change in energy from insertion attempt (return value)
      * \returns True if boltzmann weight is non-zero
      */
     virtual bool tryInsertParticle(uint64_t timestep,
                                    unsigned int type,
                                    vec3<Scalar> pos,
                                    quat<Scalar> orientation,
-                                   Scalar& lnboltzmann);
+                                   Scalar& delta_u);
 
     /*! Try removing a particle
         \param timestep Current time step
         \param tag Tag of particle being removed
-        \param lnboltzmann Log of Boltzmann weight of removal attempt (return value)
+        \param delta_u Change in energy from removal attempt (return value)
         \returns True if boltzmann weight is non-zero
      */
     virtual bool tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar& lnboltzmann);
@@ -207,14 +194,14 @@ template<class Shape> class UpdaterMuVT : public Updater
      * \param new_box the old BoxDim
      * \param new_box the new BoxDim
      * \param extra_ndof (return value) extra degrees of freedom added before box resize
-     * \param lnboltzmann (return value) exponent of Boltzmann factor (-delta_E)
+     * \param delta_u (return value) change in energy from the box resize
      * \returns true if no overlaps
      */
     virtual bool boxResizeAndScale(uint64_t timestep,
                                    const BoxDim old_box,
                                    const BoxDim new_box,
                                    unsigned int& extra_ndof,
-                                   Scalar& lnboltzmann);
+                                   Scalar& delta_u);
 
     //! Map particles by type
     virtual void mapTypes();
@@ -227,89 +214,6 @@ template<class Shape> class UpdaterMuVT : public Updater
 
     //! Get number of particles of a given type
     unsigned int getNumParticlesType(unsigned int type);
-
-    /*
-     *! Depletant related methods
-     */
-
-    /*! Insert depletants into such that they overlap with a particle of given tag
-     * \param timestep time step
-     * \param n_insert Number of depletants to insert
-     * \param delta Sphere diameter
-     * \param tag Tag of the particle depletants must overlap with
-     * \param n_trial Number of insertion trials per depletant
-     * \param lnboltzmann Log of Boltzmann factor for insertion (return value)
-     * \param need_overlap_shape If true, successful insertions need to overlap with shape at old
-     * position \param type_d Depletant type \returns True if Boltzmann factor is non-zero
-     */
-    bool moveDepletantsIntoOldPosition(uint64_t timestep,
-                                       unsigned int n_insert,
-                                       Scalar delta,
-                                       unsigned int tag,
-                                       unsigned int n_trial,
-                                       Scalar& lnboltzmann,
-                                       bool need_overlap_shape,
-                                       unsigned int type_d);
-
-    /*! Insert depletants such that they overlap with a fictitious particle at a specified position
-     * \param timestep time step
-     * \param n_insert Number of depletants to insert
-     * \param delta Sphere diameter
-     * \param pos Position of inserted particle
-     * \param orientation Orientation of inserted particle
-     * \param type Type of inserted particle
-     * \param n_trial Number of insertion trials per depletant
-     * \param lnboltzmann Log of Boltzmann factor for insertion (return value)
-     * \param type_d Depletant type
-     * \returns True if Boltzmann factor is non-zero
-     */
-    bool moveDepletantsIntoNewPosition(uint64_t timestep,
-                                       unsigned int n_insert,
-                                       Scalar delta,
-                                       vec3<Scalar> pos,
-                                       quat<Scalar> orientation,
-                                       unsigned int type,
-                                       unsigned int n_trial,
-                                       Scalar& lnboltzmann,
-                                       unsigned int type_d);
-
-    /*! Count overlapping depletants due to insertion of a fictitious particle
-     * \param timestep time step
-     * \param n_insert Number of depletants in circumsphere
-     * \param delta Sphere diameter
-     * \param pos Position of new particle
-     * \param orientation Orientation of new particle
-     * \param type Type of new particle (ignored, if ignore==True)
-     * \param n_free Depletants that were free in old configuration
-     * \param type_d Depletant type
-     * \returns Number of overlapping depletants
-     */
-    unsigned int countDepletantOverlapsInNewPosition(uint64_t timestep,
-                                                     unsigned int n_insert,
-                                                     Scalar delta,
-                                                     vec3<Scalar> pos,
-                                                     quat<Scalar> orientation,
-                                                     unsigned int type,
-                                                     unsigned int& n_free,
-                                                     unsigned int type_d);
-
-    /*! Count overlapping depletants in a sphere of diameter delta
-     * \param timestep time step
-     * \param n_insert Number of depletants in circumsphere
-     * \param delta Sphere diameter
-     * \param pos Center of sphere
-     * \param type_d Depletant type
-     * \returns Number of overlapping depletants
-     */
-    unsigned int countDepletantOverlaps(uint64_t timestep,
-                                        unsigned int n_insert,
-                                        Scalar delta,
-                                        vec3<Scalar> pos,
-                                        unsigned int type_d);
-
-    //! Get the random number of depletants
-    virtual unsigned int
-    getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d);
 
     private:
     //! Handle MaxParticleNumberChange signal
@@ -539,31 +443,6 @@ template<class Shape> unsigned int UpdaterMuVT<Shape>::getNumParticlesType(unsig
     return nptl_type;
     }
 
-//! Get a poisson-distributed number of depletants
-template<class Shape>
-unsigned int
-UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d)
-    {
-    // parameter for Poisson distribution
-    Scalar lambda = this->m_mc->getDepletantFugacity(type_d) * V;
-
-    unsigned int n = 0;
-    if (lambda > Scalar(0.0))
-        {
-        hoomd::PoissonDistribution<Scalar> poisson(lambda);
-
-        // RNG for poisson distribution
-        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTPoisson,
-                                               timestep,
-                                               this->m_sysdef->getSeed()),
-                                   hoomd::Counter(local ? this->m_exec_conf->getRank() : 0,
-                                                  this->m_exec_conf->getPartition()));
-
-        n = poisson(rng);
-        }
-    return n;
-    }
-
 /*! Set new box and scale positions
  */
 template<class Shape>
@@ -571,15 +450,14 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                                            const BoxDim old_box,
                                            const BoxDim new_box,
                                            unsigned int& extra_ndof,
-                                           Scalar& lnboltzmann)
+                                           Scalar& delta_u)
     {
-    lnboltzmann = Scalar(0.0);
-    unsigned int ndim = this->m_sysdef->getNDimensions();
+    delta_u = Scalar(0.0);
 
     unsigned int N_old = m_pdata->getN();
 
     // energy of old configuration
-    lnboltzmann += m_mc->computeTotalPairEnergy(timestep);
+    delta_u += m_mc->computeTotalPairEnergy(timestep);
 
         {
         // Get particle positions
@@ -614,291 +492,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
     if (!overlap)
         {
         // energy of new configuration
-        lnboltzmann -= m_mc->computeTotalPairEnergy(timestep);
-        }
-
-    if (!overlap)
-        {
-        // check depletants
-
-        // update the aabb tree
-        const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
-
-        // update the image list
-        const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
-
-        // access particle data and system box
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
-                                           access_location::host,
-                                           access_mode::read);
-
-        // access parameters
-        auto& params = this->m_mc->getParams();
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(),
-                                             access_location::host,
-                                             access_mode::read);
-
-        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
-
-        bool overlap = false;
-
-        // get old local box
-        BoxDim old_local_box = old_box;
-#ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
-            {
-            old_local_box = this->m_pdata->getDomainDecomposition()->calculateLocalBox(old_box);
-            }
-#endif
-
-        unsigned int overlap_count = 0;
-
-        // loop over depletant types
-        for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
-            {
-            if (m_mc->getDepletantFugacity(type_d) == 0.0)
-                continue;
-
-            if (m_mc->getDepletantFugacity(type_d) < 0.0)
-                throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
-
-            // draw number from Poisson distribution (using old box)
-            unsigned int n = getNumDepletants(timestep, old_local_box.getVolume(), true, type_d);
-
-            unsigned int err_count = 0;
-
-            // draw a random vector in the box
-            hoomd::RandomGenerator rng(
-                hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants4,
-                            timestep,
-                            this->m_sysdef->getSeed()),
-                hoomd::Counter(this->m_exec_conf->getRank(), this->m_exec_conf->getPartition()));
-
-            uint3 dim = make_uint3(1, 1, 1);
-            uint3 grid_pos = make_uint3(0, 0, 0);
-#ifdef ENABLE_MPI
-            if (this->m_pdata->getDomainDecomposition())
-                {
-                Index3D didx = this->m_pdata->getDomainDecomposition()->getDomainIndexer();
-                dim = make_uint3(didx.getW(), didx.getH(), didx.getD());
-                grid_pos = this->m_pdata->getDomainDecomposition()->getGridPos();
-                }
-#endif
-
-            // for every test depletant
-            for (unsigned int k = 0; k < n; ++k)
-                {
-                Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
-
-                Scalar3 f_test = make_scalar3(xrand, yrand, zrand);
-                f_test = (f_test + make_scalar3(grid_pos.x, grid_pos.y, grid_pos.z))
-                         / make_scalar3(dim.x, dim.y, dim.z);
-                vec3<Scalar> pos_test = vec3<Scalar>(new_box.makeCoordinates(f_test));
-
-                Shape shape_test(quat<Scalar>(), params[type_d]);
-                if (shape_test.hasOrientation())
-                    {
-                    // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng, ndim);
-                    }
-
-                // check against overlap in old box
-                overlap = false;
-                bool overlap_old = false;
-                hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
-
-                // All image boxes (including the primary)
-                const unsigned int n_images = (unsigned int)image_list.size();
-                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                    {
-                    vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                    Scalar3 f = new_box.makeFraction(vec_to_scalar3(pos_test_image));
-                    vec3<Scalar> pos_test_image_old = vec3<Scalar>(old_box.makeCoordinates(f));
-
-                    // set up AABB in old coordinates
-                    hoomd::detail::AABB aabb = aabb_test_local;
-                    aabb.translate(pos_test_image_old);
-
-                    // scale AABB to new coordinates (the AABB tree contains new coordinates)
-                    vec3<Scalar> lower, upper;
-                    lower = aabb.getLower();
-                    f = old_box.makeFraction(vec_to_scalar3(lower));
-                    lower = vec3<Scalar>(new_box.makeCoordinates(f));
-                    upper = aabb.getUpper();
-                    f = old_box.makeFraction(vec_to_scalar3(upper));
-                    upper = vec3<Scalar>(new_box.makeCoordinates(f));
-                    aabb = hoomd::detail::AABB(lower, upper);
-
-                    // stackless search
-                    for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
-                         cur_node_idx++)
-                        {
-                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
-                            {
-                            if (aabb_tree.isNodeLeaf(cur_node_idx))
-                                {
-                                for (unsigned int cur_p = 0;
-                                     cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                     cur_p++)
-                                    {
-                                    // read in its position and orientation
-                                    unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                    Scalar4 postype_j;
-                                    Scalar4 orientation_j;
-
-                                    // load the old position and orientation of the j particle
-                                    postype_j = h_postype.data[j];
-                                    orientation_j = h_orientation.data[j];
-
-                                    // compute the particle position scaled in the old box
-                                    f = new_box.makeFraction(
-                                        make_scalar3(postype_j.x, postype_j.y, postype_j.z));
-                                    vec3<Scalar> pos_j_old(old_box.makeCoordinates(f));
-
-                                    // put particles in coordinate system of particle i
-                                    vec3<Scalar> r_ij = pos_j_old - pos_test_image_old;
-
-                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                                    if (h_overlaps.data[overlap_idx(typ_j, type_d)]
-                                        && check_circumsphere_overlap(r_ij, shape_test, shape_j)
-                                        && test_overlap(r_ij, shape_test, shape_j, err_count))
-                                        {
-                                        overlap = true;
-
-                                        // depletant is ignored for any overlap in the old
-                                        // configuration
-                                        overlap_old = true;
-                                        break;
-                                        }
-                                    }
-                                }
-                            }
-                        else
-                            {
-                            // skip ahead
-                            cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                            }
-                        if (overlap)
-                            break;
-                        } // end loop over AABB nodes
-
-                    if (overlap)
-                        break;
-
-                    } // end loop over images
-
-                if (!overlap)
-                    {
-                    // depletant in free volume
-                    extra_ndof++;
-
-                    // check for overlap in new configuration
-
-                    // new depletant coordinates
-                    vec3<Scalar> pos_test(new_box.makeCoordinates(f_test));
-
-                    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                        {
-                        vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                        hoomd::detail::AABB aabb = aabb_test_local;
-                        aabb.translate(pos_test_image);
-
-                        // stackless search
-                        for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
-                             cur_node_idx++)
-                            {
-                            if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
-                                {
-                                if (aabb_tree.isNodeLeaf(cur_node_idx))
-                                    {
-                                    for (unsigned int cur_p = 0;
-                                         cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                         cur_p++)
-                                        {
-                                        // read in its position and orientation
-                                        unsigned int j
-                                            = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                        Scalar4 postype_j;
-                                        Scalar4 orientation_j;
-
-                                        // load the new position and orientation of the j particle
-                                        postype_j = h_postype.data[j];
-                                        orientation_j = h_orientation.data[j];
-
-                                        // put particles in coordinate system of particle i
-                                        vec3<Scalar> r_ij
-                                            = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                        unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                        Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                                        if (h_overlaps.data[overlap_idx(typ_j, type_d)]
-                                            && check_circumsphere_overlap(r_ij, shape_test, shape_j)
-                                            && test_overlap(r_ij, shape_test, shape_j, err_count))
-                                            {
-                                            overlap = true;
-                                            break;
-                                            }
-                                        }
-                                    }
-                                }
-                            else
-                                {
-                                // skip ahead
-                                cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                                }
-
-                            } // end loop over AABB nodes
-
-                        if (overlap)
-                            break;
-                        } // end loop over images
-                    } // end overlap check in new configuration
-
-                if (overlap_old)
-                    {
-                    overlap = false;
-                    continue;
-                    }
-
-                if (overlap)
-                    break;
-                } // end loop over test depletants
-
-            overlap_count = overlap;
-
-#ifdef ENABLE_MPI
-            if (this->m_sysdef->isDomainDecomposed())
-                {
-                MPI_Allreduce(MPI_IN_PLACE,
-                              &overlap_count,
-                              1,
-                              MPI_UNSIGNED,
-                              MPI_SUM,
-                              this->m_exec_conf->getMPICommunicator());
-                MPI_Allreduce(MPI_IN_PLACE,
-                              &extra_ndof,
-                              1,
-                              MPI_UNSIGNED,
-                              MPI_SUM,
-                              this->m_exec_conf->getMPICommunicator());
-                }
-#endif
-
-            if (overlap_count)
-                break;
-            } // end loop over depletant types
-
-        overlap = overlap_count;
+        delta_u -= m_mc->computeTotalPairEnergy(timestep);
         }
 
     return !overlap;
@@ -909,6 +503,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     Updater::update(timestep);
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
+
+    const Scalar kT = (*m_mc->getKT())(timestep);
 
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
@@ -1140,17 +736,17 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                         }
 
                     // acceptance probability
-                    lnboltzmann = log(fugacity * V / (Scalar)(nptl_type + 1));
+                    lnboltzmann = log(fugacity * V / ((Scalar)(nptl_type + 1) * kT));
                     }
 
                 // check if particle can be inserted without overlaps
-                Scalar lnb(0.0);
+                Scalar delta_u(0.0);
                 unsigned int nonzero
-                    = tryInsertParticle(timestep, type, pos_test, shape_test.orientation, lnb);
+                    = tryInsertParticle(timestep, type, pos_test, shape_test.orientation, delta_u);
 
                 if (nonzero)
                     {
-                    lnboltzmann += lnb;
+                    lnboltzmann += delta_u / kT;
                     }
 
 #ifdef ENABLE_MPI
@@ -1280,7 +876,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                     throw std::runtime_error("Error in UpdaterMuVT");
                     }
 
-                lnboltzmann -= log(fugacity);
+                lnboltzmann -= log(fugacity / kT);
                 }
             else
                 {
@@ -1324,10 +920,10 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
             bool accept = true;
 
             // get weight for removal
-            Scalar lnb(0.0);
-            if (tryRemoveParticle(timestep, tag, lnb))
+            Scalar delta_u(0.0);
+            if (tryRemoveParticle(timestep, tag, delta_u))
                 {
-                lnboltzmann += lnb;
+                lnboltzmann += delta_u / kT;
                 }
             else
                 {
@@ -1523,13 +1119,13 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
         unsigned int extra_ndof = 0;
 
         // set new box and rescale coordinates
-        Scalar lnb(0.0);
+        Scalar delta_u(0.0);
         bool has_overlaps
-            = !boxResizeAndScale(timestep, global_box_old, global_box_new, extra_ndof, lnb);
+            = !boxResizeAndScale(timestep, global_box_old, global_box_new, extra_ndof, delta_u);
         ndof += extra_ndof;
 
         unsigned int other_result;
-        Scalar other_lnb;
+        Scalar other_delta_u;
 
         if (is_root)
             {
@@ -1544,7 +1140,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                          0,
                          m_exec_conf->getHOOMDWorldMPICommunicator(),
                          &stat);
-                MPI_Recv(&other_lnb,
+                MPI_Recv(&other_delta_u,
                          1,
                          MPI_HOOMD_SCALAR,
                          m_gibbs_other,
@@ -1562,7 +1158,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                          m_gibbs_other,
                          0,
                          m_exec_conf->getHOOMDWorldMPICommunicator());
-                MPI_Send(&lnb,
+                MPI_Send(&delta_u,
                          1,
                          MPI_HOOMD_SCALAR,
                          m_gibbs_other,
@@ -1590,8 +1186,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 // apply criterion on rank zero
                 Scalar arg = log(V_new / V) * (Scalar)(ndof + 1)
-                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1) + lnb
-                             + other_lnb;
+                             + log(V_new_other / V_other) * (Scalar)(other_ndof + 1)
+                             + (delta_u + other_delta_u) / kT;
 
                 accept = hoomd::detail::generate_canonical<double>(rng_group) < exp(arg);
                 accept &= !(has_overlaps || other_result);
@@ -1682,9 +1278,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar& lnboltzmann)
+bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar& delta_u)
     {
-    lnboltzmann = Scalar(0.0);
+    delta_u = Scalar(0.0);
 
     // guard against trying to modify empty particle data
     bool nonzero = true;
@@ -1696,9 +1292,8 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         bool is_local = this->m_pdata->isParticleLocal(tag);
 
         // do we have to compute a wall contribution?
-        auto field = m_mc->getExternalField();
         unsigned int p = m_exec_conf->getPartition() % m_npartition;
-        bool has_field = field || (!m_mc->getExternalPotentials().empty());
+        bool has_field = !m_mc->getExternalPotentials().empty();
 
         if (has_field && (!m_gibbs || p == 0))
             {
@@ -1709,22 +1304,18 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
             m_pdata->getGlobalBox().wrap(p, tmp);
             vec3<Scalar> pos(p);
 
-            const BoxDim box = this->m_pdata->getGlobalBox();
             unsigned int type = this->m_pdata->getType(tag);
             quat<Scalar> orientation(m_pdata->getOrientation(tag));
-            Scalar diameter = m_pdata->getDiameter(tag);
             Scalar charge = m_pdata->getCharge(tag);
             if (is_local)
                 {
-                lnboltzmann += field->energy(box,
-                                             type,
-                                             pos,
-                                             quat<float>(orientation),
-                                             float(diameter), // diameter i
-                                             float(charge)    // charge i
-                );
-                lnboltzmann
-                    += m_mc->computeOneExternalEnergy(type, pos, orientation, charge, false);
+                delta_u += m_mc->computeOneExternalEnergy(timestep,
+                                                          tag,
+                                                          type,
+                                                          pos,
+                                                          orientation,
+                                                          charge,
+                                                          ExternalPotential::Trial::Old);
                 }
             }
 
@@ -1790,16 +1381,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                         {
                         vec3<Scalar> r_ij = pos - pos_image;
                         // self-energy
-                        lnboltzmann += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
-                                                                  r_ij,
-                                                                  type,
-                                                                  orientation,
-                                                                  diameter,
-                                                                  charge,
-                                                                  type,
-                                                                  orientation,
-                                                                  diameter,
-                                                                  charge);
+                        delta_u += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                              r_ij,
+                                                              type,
+                                                              orientation,
+                                                              diameter,
+                                                              charge,
+                                                              type,
+                                                              orientation,
+                                                              diameter,
+                                                              charge);
                         }
 
                     hoomd::detail::AABB aabb = aabb_local;
@@ -1832,16 +1423,16 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                                     if (h_tag.data[j] == tag)
                                         continue;
 
-                                    lnboltzmann += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
-                                                                              r_ij,
-                                                                              type,
-                                                                              orientation,
-                                                                              diameter,
-                                                                              charge,
-                                                                              typ_j,
-                                                                              orientation_j,
-                                                                              h_diameter.data[j],
-                                                                              h_charge.data[j]);
+                                    delta_u += m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                          r_ij,
+                                                                          type,
+                                                                          orientation,
+                                                                          diameter,
+                                                                          charge,
+                                                                          typ_j,
+                                                                          orientation_j,
+                                                                          h_diameter.data[j],
+                                                                          h_charge.data[j]);
                                     }
                                 }
                             }
@@ -1859,7 +1450,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         if (m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
-                          &lnboltzmann,
+                          &delta_u,
                           1,
                           MPI_HOOMD_SCALAR,
                           MPI_SUM,
@@ -1867,107 +1458,6 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
             }
 #endif
         }
-
-// Depletants
-#ifdef ENABLE_MPI
-    auto& params = this->m_mc->getParams();
-#endif
-
-    for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
-        {
-        if (m_mc->getDepletantFugacity(type_d) == 0.0)
-            continue;
-        if (m_mc->getDepletantFugacity(type_d) < 0.0)
-            throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
-
-#ifdef ENABLE_MPI
-        // Depletant and colloid diameter
-        quat<Scalar> o;
-        Scalar d_dep;
-            {
-            Shape tmp(o, params[type_d]);
-            d_dep = tmp.getCircumsphereDiameter();
-            }
-
-        // number of depletants to insert
-        unsigned int n_insert = 0;
-
-        // zero overlapping depletants after removal
-        unsigned int n_overlap = 0;
-
-        if (this->m_gibbs)
-            {
-            unsigned int other = this->m_gibbs_other;
-
-            if (this->m_exec_conf->getRank() == 0)
-                {
-                MPI_Request req[2];
-                MPI_Status status[2];
-                MPI_Isend(&n_overlap,
-                          1,
-                          MPI_UNSIGNED,
-                          other,
-                          0,
-                          this->m_exec_conf->getHOOMDWorldMPICommunicator(),
-                          &req[0]);
-                MPI_Irecv(&n_insert,
-                          1,
-                          MPI_UNSIGNED,
-                          other,
-                          0,
-                          this->m_exec_conf->getHOOMDWorldMPICommunicator(),
-                          &req[1]);
-                MPI_Waitall(2, req, status);
-                }
-            if (this->m_sysdef->isDomainDecomposed())
-                {
-                bcast(n_insert, 0, this->m_exec_conf->getMPICommunicator());
-                }
-            }
-#endif
-
-        // only if the particle to be removed actually exists
-        if (tag != UINT_MAX)
-            {
-#ifdef ENABLE_MPI
-            // old type
-            unsigned int type = this->m_pdata->getType(tag);
-
-            // Depletant and colloid diameter
-            Scalar d_colloid_old;
-                {
-                Shape shape_old(o, params[type]);
-                d_colloid_old = shape_old.getCircumsphereDiameter();
-                }
-
-            if (this->m_gibbs)
-                {
-                // try inserting depletants in new configuration (where particle is removed)
-                Scalar delta = d_dep + d_colloid_old;
-                Scalar lnb(0.0);
-                if (moveDepletantsIntoOldPosition(timestep,
-                                                  n_insert,
-                                                  delta,
-                                                  tag,
-                                                  m_n_trial,
-                                                  lnb,
-                                                  true,
-                                                  type_d))
-                    {
-                    lnboltzmann += lnb;
-                    }
-                else
-                    {
-                    nonzero = false;
-                    }
-                }
-            else
-#endif
-                {
-                // just accept
-                }
-            } // end if particle exists
-        } // end loop over depletants
 
     return nonzero;
     }
@@ -1977,13 +1467,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                            unsigned int type,
                                            vec3<Scalar> pos,
                                            quat<Scalar> orientation,
-                                           Scalar& lnboltzmann)
+                                           Scalar& delta_u)
     {
     // do we have to compute a wall contribution?
-    auto field = m_mc->getExternalField();
-    bool has_field = field || (!m_mc->getExternalPotentials().empty());
+    bool has_field = !m_mc->getExternalPotentials().empty();
 
-    lnboltzmann = Scalar(0.0);
+    delta_u = Scalar(0.0);
 
     unsigned int overlap = 0;
 
@@ -2020,18 +1509,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         if (has_field && (!m_gibbs || p == 0))
             {
-            lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
-
-            const BoxDim& box = this->m_pdata->getGlobalBox();
-            lnboltzmann -= field->energy(box,
-                                         type,
-                                         pos,
-                                         quat<float>(orientation),
-                                         1.0, // diameter i
-                                         0.0  // charge i
-            );
-
-            lnboltzmann += m_mc->computeOneExternalEnergy(type, pos, orientation, 0.0, true);
+            delta_u -= m_mc->computeOneExternalEnergy(timestep,
+                                                      0, // particle has no tag yet
+                                                      type,
+                                                      pos,
+                                                      orientation,
+                                                      0.0,
+                                                      ExternalPotential::Trial::New);
             }
 
         if (m_mc->hasPairInteractions())
@@ -2081,16 +1565,16 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                         }
 
                     // self-energy
-                    lnboltzmann -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
-                                                              r_ij,
-                                                              type,
-                                                              orientation,
-                                                              1.0, // diameter i
-                                                              0.0, // charge i
-                                                              type,
-                                                              orientation,
-                                                              1.0, // diameter i
-                                                              0.0  // charge i
+                    delta_u -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                          r_ij,
+                                                          type,
+                                                          orientation,
+                                                          1.0, // diameter i
+                                                          0.0, // charge i
+                                                          type,
+                                                          orientation,
+                                                          1.0, // diameter i
+                                                          0.0  // charge i
                     );
                     }
                 }
@@ -2162,16 +1646,16 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                     break;
                                     }
 
-                                lnboltzmann -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
-                                                                          r_ij,
-                                                                          type,
-                                                                          orientation,
-                                                                          1.0, // diameter i
-                                                                          0.0, // charge i
-                                                                          typ_j,
-                                                                          orientation_j,
-                                                                          h_diameter.data[j],
-                                                                          h_charge.data[j]);
+                                delta_u -= m_mc->computeOnePairEnergy(dot(r_ij, r_ij),
+                                                                      r_ij,
+                                                                      type,
+                                                                      orientation,
+                                                                      1.0, // diameter i
+                                                                      0.0, // charge i
+                                                                      typ_j,
+                                                                      orientation_j,
+                                                                      h_diameter.data[j],
+                                                                      h_charge.data[j]);
                                 }
                             }
                         }
@@ -2199,7 +1683,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
-                      &lnboltzmann,
+                      &delta_u,
                       1,
                       MPI_HOOMD_SCALAR,
                       MPI_SUM,
@@ -2214,134 +1698,6 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 #endif
 
     bool nonzero = !overlap;
-
-    quat<Scalar> o;
-    auto& params = this->m_mc->getParams();
-    Shape shape(o, params[type]);
-    Scalar d_colloid = shape.getCircumsphereDiameter();
-
-    // loop over depletant types
-    for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
-        {
-        if (m_mc->getDepletantFugacity(type_d) == 0.0)
-            continue;
-
-        if (m_mc->getDepletantFugacity(type_d) < 0.0)
-            throw std::runtime_error("Negative fugacities not supported in update.muvt()\n");
-
-        // Depletant and colloid diameter
-        Scalar d_dep;
-            {
-            Shape tmp(o, params[type_d]);
-            d_dep = tmp.getCircumsphereDiameter();
-            }
-
-        // test sphere diameter and volume
-        Scalar delta = d_dep + d_colloid;
-        Scalar V = Scalar(M_PI / 6.0) * delta * delta * delta;
-
-        unsigned int n_overlap = 0;
-#ifdef ENABLE_MPI
-        // number of depletants to insert
-        unsigned int n_insert = 0;
-
-        if (this->m_gibbs)
-            {
-            // perform cluster move
-            if (nonzero)
-                {
-                // generate random depletant number
-                unsigned int n_dep = getNumDepletants(timestep, V, false, type_d);
-
-                unsigned int tmp = 0;
-
-                // count depletants overlapping with new config (but ignore overlap in old one)
-                n_overlap = countDepletantOverlapsInNewPosition(timestep,
-                                                                n_dep,
-                                                                delta,
-                                                                pos,
-                                                                orientation,
-                                                                type,
-                                                                tmp,
-                                                                type_d);
-
-                Scalar lnb(0.0);
-
-                // try inserting depletants in old configuration (compute configurational bias
-                // weight factor)
-                if (moveDepletantsIntoNewPosition(timestep,
-                                                  n_overlap,
-                                                  delta,
-                                                  pos,
-                                                  orientation,
-                                                  type,
-                                                  m_n_trial,
-                                                  lnb,
-                                                  type_d))
-                    {
-                    lnboltzmann -= lnb;
-                    }
-                else
-                    {
-                    nonzero = false;
-                    }
-                }
-
-            unsigned int other = this->m_gibbs_other;
-
-            if (this->m_exec_conf->getRank() == 0)
-                {
-                MPI_Request req[2];
-                MPI_Status status[2];
-                MPI_Isend(&n_overlap,
-                          1,
-                          MPI_UNSIGNED,
-                          other,
-                          0,
-                          this->m_exec_conf->getHOOMDWorldMPICommunicator(),
-                          &req[0]);
-                MPI_Irecv(&n_insert,
-                          1,
-                          MPI_UNSIGNED,
-                          other,
-                          0,
-                          this->m_exec_conf->getHOOMDWorldMPICommunicator(),
-                          &req[1]);
-                MPI_Waitall(2, req, status);
-                }
-            if (this->m_sysdef->isDomainDecomposed())
-                {
-                bcast(n_insert, 0, this->m_exec_conf->getMPICommunicator());
-                }
-
-            // if we have to insert depletants in addition, reject
-            if (n_insert)
-                {
-                nonzero = false;
-                }
-            }
-        else
-#endif
-            {
-            if (nonzero)
-                {
-                // generate random depletant number
-                unsigned int n_dep = getNumDepletants(timestep, V, false, type_d);
-
-                // count depletants overlapping with new config (but ignore overlap in old one)
-                unsigned int n_free;
-                n_overlap = countDepletantOverlapsInNewPosition(timestep,
-                                                                n_dep,
-                                                                delta,
-                                                                pos,
-                                                                orientation,
-                                                                type,
-                                                                n_free,
-                                                                type_d);
-                nonzero = !n_overlap;
-                }
-            }
-        } // end loop over depletants
 
     return nonzero;
     }
@@ -2369,789 +1725,6 @@ template<class Shape> hpmc_muvt_counters_t UpdaterMuVT<Shape>::getCounters(unsig
     return result;
     }
 
-template<class Shape>
-bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
-                                                       unsigned int n_insert,
-                                                       Scalar delta,
-                                                       vec3<Scalar> pos,
-                                                       quat<Scalar> orientation,
-                                                       unsigned int type,
-                                                       unsigned int n_trial,
-                                                       Scalar& lnboltzmann,
-                                                       unsigned int type_d)
-    {
-    lnboltzmann = Scalar(0.0);
-    unsigned int zero = 0;
-
-    unsigned int ndim = this->m_sysdef->getNDimensions();
-
-    bool is_local = true;
-#ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        {
-        const BoxDim global_box = this->m_pdata->getGlobalBox();
-        ArrayHandle<unsigned int> h_cart_ranks(
-            this->m_pdata->getDomainDecomposition()->getCartRanks(),
-            access_location::host,
-            access_mode::read);
-        is_local = this->m_exec_conf->getRank()
-                   == this->m_pdata->getDomainDecomposition()->placeParticle(global_box,
-                                                                             vec_to_scalar3(pos),
-                                                                             h_cart_ranks.data);
-        }
-#endif
-
-    // initialize another rng
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants2,
-                                           timestep,
-                                           this->m_sysdef->getSeed()),
-                               hoomd::Counter(this->m_exec_conf->getPartition()));
-
-    // update the aabb tree
-    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
-
-    // update the image list
-    const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
-
-    if (is_local)
-        {
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
-                                           access_location::host,
-                                           access_mode::read);
-        ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
-                                        access_location::host,
-                                        access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(),
-                                             access_location::host,
-                                             access_mode::read);
-
-        auto& params = this->m_mc->getParams();
-
-        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
-
-        // for every test depletant
-        for (unsigned int k = 0; k < n_insert; ++k)
-            {
-            // Number of successfully reinsert depletants
-
-            // we start with one because of super-detailed balance (we already inserted one
-            // overlapping depletant in the trial move)
-            unsigned int n_success = 1;
-
-            // Number of allowed insertion trials (those which overlap with colloid at old position)
-            unsigned int n_overlap_shape = 1;
-
-            for (unsigned int itrial = 0; itrial < n_trial; ++itrial)
-                {
-                // random normalized vector
-                vec3<Scalar> n;
-                hoomd::SpherePointGenerator<Scalar>()(rng, n);
-
-                // draw random radial coordinate in test sphere
-                Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar r = Scalar(0.5) * delta * slow::pow(r3, Scalar(1.0 / 3.0));
-
-                // test depletant position
-                vec3<Scalar> pos_test = pos + r * n;
-
-                Shape shape_test(quat<Scalar>(), params[type_d]);
-                if (shape_test.hasOrientation())
-                    {
-                    // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng, ndim);
-                    }
-
-                // check against overlap with old configuration
-                bool overlap_old = false;
-
-                hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
-
-                unsigned int err_count = 0;
-                // All image boxes (including the primary)
-                const unsigned int n_images = (unsigned int)(image_list.size());
-                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                    {
-                    vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                    hoomd::detail::AABB aabb = aabb_test_local;
-                    aabb.translate(pos_test_image);
-
-                    // stackless search
-                    for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
-                         cur_node_idx++)
-                        {
-                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
-                            {
-                            if (aabb_tree.isNodeLeaf(cur_node_idx))
-                                {
-                                for (unsigned int cur_p = 0;
-                                     cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                     cur_p++)
-                                    {
-                                    // read in its position and orientation
-                                    unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                    Scalar4 postype_j;
-                                    Scalar4 orientation_j;
-
-                                    // load the old position and orientation of the j particle
-                                    postype_j = h_postype.data[j];
-                                    orientation_j = h_orientation.data[j];
-
-                                    // put particles in coordinate system of particle i
-                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                                    if (h_overlaps.data[overlap_idx(type_d, typ_j)]
-                                        && check_circumsphere_overlap(r_ij, shape_test, shape_j)
-                                        && test_overlap(r_ij, shape_test, shape_j, err_count))
-                                        {
-                                        overlap_old = true;
-                                        break;
-                                        }
-                                    }
-                                }
-                            }
-                        else
-                            {
-                            // skip ahead
-                            cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                            }
-                        if (overlap_old)
-                            break;
-                        } // end loop over AABB nodes
-                    if (overlap_old)
-                        break;
-                    } // end loop over images
-
-                // checking the (0,0,0) image is sufficient
-                Shape shape(orientation, params[type]);
-                vec3<Scalar> r_ij = pos - pos_test;
-                if (h_overlaps.data[overlap_idx(type, type_d)]
-                    && check_circumsphere_overlap(r_ij, shape_test, shape)
-                    && test_overlap(r_ij, shape_test, shape, err_count))
-                    {
-                    if (!overlap_old)
-                        {
-                        // insertion counts if it overlaps with inserted particle at new position,
-                        // but not with other particles
-                        n_success++;
-                        }
-                    n_overlap_shape++;
-                    }
-                } // end loop over insertion attempts
-
-            if (n_success)
-                {
-                lnboltzmann += log((Scalar)n_success / (Scalar)n_overlap_shape);
-                }
-            else
-                {
-                zero = 1;
-                }
-            } // end loop over test depletants
-        } // is_local
-
-#ifdef ENABLE_MPI
-    if (this->m_sysdef->isDomainDecomposed())
-        {
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &lnboltzmann,
-                      1,
-                      MPI_HOOMD_SCALAR,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &zero,
-                      1,
-                      MPI_UNSIGNED,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-    return !zero;
-    }
-
-template<class Shape>
-bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
-                                                       unsigned int n_insert,
-                                                       Scalar delta,
-                                                       unsigned int tag,
-                                                       unsigned int n_trial,
-                                                       Scalar& lnboltzmann,
-                                                       bool need_overlap_shape,
-                                                       unsigned int type_d)
-    {
-    lnboltzmann = Scalar(0.0);
-    unsigned int ndim = this->m_sysdef->getNDimensions();
-
-    // getPosition() corrects for grid shift, add it back
-    Scalar3 p = this->m_pdata->getPosition(tag) + this->m_pdata->getOrigin();
-    int3 tmp = make_int3(0, 0, 0);
-    this->m_pdata->getGlobalBox().wrap(p, tmp);
-    vec3<Scalar> pos(p);
-
-    bool is_local = this->m_pdata->isParticleLocal(tag);
-
-    // initialize another rng
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants3,
-                                           timestep,
-                                           this->m_sysdef->getSeed()),
-                               hoomd::Counter(this->m_exec_conf->getPartition()));
-
-    // update the aabb tree
-    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
-
-    // update the image list
-    const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
-
-    unsigned int zero = 0;
-
-    if (is_local)
-        {
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
-                                           access_location::host,
-                                           access_mode::read);
-        ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
-                                        access_location::host,
-                                        access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(),
-                                         access_location::host,
-                                         access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(),
-                                             access_location::host,
-                                             access_mode::read);
-
-        auto& params = this->m_mc->getParams();
-
-        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
-
-        // for every test depletant
-        for (unsigned int k = 0; k < n_insert; ++k)
-            {
-            // Number of successfully reinsert depletants
-            unsigned int n_success = 0;
-
-            // Number of allowed insertion trials (those which overlap with colloid at old position)
-            unsigned int n_overlap_shape = 0;
-
-            for (unsigned int itrial = 0; itrial < n_trial; ++itrial)
-                {
-                // draw a random vector in the excluded volume sphere of the particle to be inserted
-                vec3<Scalar> n;
-                hoomd::SpherePointGenerator<Scalar>()(rng, n);
-
-                // draw random radial coordinate in test sphere
-                Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar r = Scalar(0.5) * delta * slow::pow(r3, Scalar(1.0 / 3.0));
-
-                // test depletant position
-                vec3<Scalar> pos_test = pos + r * n;
-
-                Shape shape_test(quat<Scalar>(), params[type_d]);
-                if (shape_test.hasOrientation())
-                    {
-                    // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng, ndim);
-                    }
-
-                bool overlap_old = false;
-                bool overlap = false;
-
-                hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
-
-                unsigned int err_count = 0;
-                // All image boxes (including the primary)
-                const unsigned int n_images = (unsigned int)(image_list.size());
-                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                    {
-                    vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                    hoomd::detail::AABB aabb = aabb_test_local;
-                    aabb.translate(pos_test_image);
-
-                    // stackless search
-                    for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
-                         cur_node_idx++)
-                        {
-                        if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
-                            {
-                            if (aabb_tree.isNodeLeaf(cur_node_idx))
-                                {
-                                for (unsigned int cur_p = 0;
-                                     cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                     cur_p++)
-                                    {
-                                    // read in its position and orientation
-                                    unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                    Scalar4 postype_j;
-                                    Scalar4 orientation_j;
-
-                                    // load the old position and orientation of the j particle
-                                    postype_j = h_postype.data[j];
-                                    orientation_j = h_orientation.data[j];
-
-                                    if (h_tag.data[j] == tag)
-                                        {
-                                        // do not check against old particle configuration
-                                        continue;
-                                        }
-
-                                    // put particles in coordinate system of particle i
-                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                    unsigned int type = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), params[type]);
-
-                                    if (h_overlaps.data[overlap_idx(type_d, type)]
-                                        && check_circumsphere_overlap(r_ij, shape_test, shape_j)
-                                        && test_overlap(r_ij, shape_test, shape_j, err_count))
-                                        {
-                                        overlap_old = true;
-                                        break;
-                                        }
-                                    }
-                                }
-                            }
-                        else
-                            {
-                            // skip ahead
-                            cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                            }
-
-                        if (overlap_old)
-                            break;
-                        } // end loop over AABB nodes
-                    if (overlap_old)
-                        break;
-                    } // end loop over images
-
-                // resolve the updated particle tag
-                unsigned int j = h_rtag.data[tag];
-                assert(j < this->m_pdata->getN());
-
-                // load the old position and orientation of the updated particle
-                Scalar4 postype_j = h_postype.data[j];
-                Scalar4 orientation_j = h_orientation.data[j];
-
-                // see if it overlaps with depletant
-                // only need to consider (0,0,0) image
-                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test;
-
-                unsigned int typ_j = __scalar_as_int(postype_j.w);
-                Shape shape(quat<Scalar>(orientation_j), params[typ_j]);
-
-                if (h_overlaps.data[overlap_idx(type_d, typ_j)]
-                    && check_circumsphere_overlap(r_ij, shape_test, shape)
-                    && test_overlap(r_ij, shape_test, shape, err_count))
-                    {
-                    overlap = true;
-                    n_overlap_shape++;
-                    }
-
-                if (!overlap_old && (overlap || !need_overlap_shape))
-                    {
-                    // success if it overlaps with the particle identified by the tag
-                    n_success++;
-                    }
-                } // end loop over insertion attempts
-
-            if (n_success)
-                {
-                lnboltzmann += log((Scalar)n_success / (Scalar)n_overlap_shape);
-                }
-            else
-                {
-                zero = 1;
-                }
-            } // end loop over test depletants
-        } // end is_local
-
-#ifdef ENABLE_MPI
-    if (this->m_sysdef->isDomainDecomposed())
-        {
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &lnboltzmann,
-                      1,
-                      MPI_HOOMD_SCALAR,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &zero,
-                      1,
-                      MPI_UNSIGNED,
-                      MPI_MAX,
-                      this->m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-    return !zero;
-    }
-
-template<class Shape>
-unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t timestep,
-                                                                     unsigned int n_insert,
-                                                                     Scalar delta,
-                                                                     vec3<Scalar> pos,
-                                                                     quat<Scalar> orientation,
-                                                                     unsigned int type,
-                                                                     unsigned int& n_free,
-                                                                     unsigned int type_d)
-    {
-    // number of depletants successfully inserted
-    unsigned int n_overlap = 0;
-    unsigned int ndim = this->m_sysdef->getNDimensions();
-
-    bool is_local = true;
-#ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        {
-        const BoxDim global_box = this->m_pdata->getGlobalBox();
-        ArrayHandle<unsigned int> h_cart_ranks(
-            this->m_pdata->getDomainDecomposition()->getCartRanks(),
-            access_location::host,
-            access_mode::read);
-        is_local = this->m_exec_conf->getRank()
-                   == this->m_pdata->getDomainDecomposition()->placeParticle(global_box,
-                                                                             vec_to_scalar3(pos),
-                                                                             h_cart_ranks.data);
-        }
-#endif
-
-    // initialize another rng
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants5,
-                                           timestep,
-                                           this->m_sysdef->getSeed()),
-                               hoomd::Counter(this->m_exec_conf->getPartition()));
-
-    // update the aabb tree
-    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
-
-    // update the image list
-    const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
-
-    n_free = 0;
-
-    if (is_local)
-        {
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
-                                           access_location::host,
-                                           access_mode::read);
-        ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
-                                        access_location::host,
-                                        access_mode::read);
-
-        auto& params = this->m_mc->getParams();
-
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(),
-                                             access_location::host,
-                                             access_mode::read);
-        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
-
-        // for every test depletant
-        for (unsigned int k = 0; k < n_insert; ++k)
-            {
-            // draw a random vector in the excluded volume sphere of the particle to be inserted
-            vec3<Scalar> n;
-            hoomd::SpherePointGenerator<Scalar>()(rng, n);
-
-            // draw random radial coordinate in test sphere
-            Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-            Scalar r = Scalar(0.5) * delta * slow::pow(r3, Scalar(1.0 / 3.0));
-
-            // test depletant position
-            vec3<Scalar> pos_test = pos + r * n;
-
-            Shape shape_test(quat<Scalar>(), params[type_d]);
-            if (shape_test.hasOrientation())
-                {
-                // if the depletant is anisotropic, generate orientation
-                shape_test.orientation = generateRandomOrientation(rng, ndim);
-                }
-
-            // check against overlap with old configuration
-            bool overlap_old = false;
-
-            hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
-
-            unsigned int err_count = 0;
-            // All image boxes (including the primary)
-            const unsigned int n_images = (unsigned int)image_list.size();
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                {
-                vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                hoomd::detail::AABB aabb = aabb_test_local;
-                aabb.translate(pos_test_image);
-
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
-                     cur_node_idx++)
-                    {
-                    if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
-                        {
-                        if (aabb_tree.isNodeLeaf(cur_node_idx))
-                            {
-                            for (unsigned int cur_p = 0;
-                                 cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                 cur_p++)
-                                {
-                                // read in its position and orientation
-                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                Scalar4 postype_j;
-                                Scalar4 orientation_j;
-
-                                // load the old position and orientation of the j particle
-                                postype_j = h_postype.data[j];
-                                orientation_j = h_orientation.data[j];
-
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                                if (h_overlaps.data[overlap_idx(type_d, typ_j)]
-                                    && check_circumsphere_overlap(r_ij, shape_test, shape_j)
-                                    && test_overlap(r_ij, shape_test, shape_j, err_count))
-                                    {
-                                    overlap_old = true;
-                                    break;
-                                    }
-                                }
-                            }
-                        }
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                        }
-                    if (overlap_old)
-                        break;
-                    } // end loop over AABB nodes
-                if (overlap_old)
-                    break;
-                } // end loop over images
-
-            if (!overlap_old)
-                {
-                n_free++;
-                // see if it overlaps with inserted particle
-                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                    {
-                    Shape shape(orientation, params[type]);
-
-                    vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                    vec3<Scalar> r_ij = pos - pos_test_image;
-                    if (h_overlaps.data[overlap_idx(type_d, type)]
-                        && check_circumsphere_overlap(r_ij, shape_test, shape)
-                        && test_overlap(r_ij, shape_test, shape, err_count))
-                        {
-                        n_overlap++;
-                        }
-                    }
-                }
-
-            } // end loop over test depletants
-        } // is_local
-
-#ifdef ENABLE_MPI
-    if (this->m_sysdef->isDomainDecomposed())
-        {
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &n_overlap,
-                      1,
-                      MPI_UNSIGNED,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &n_free,
-                      1,
-                      MPI_UNSIGNED,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-    return n_overlap;
-    }
-
-template<class Shape>
-unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
-                                                        unsigned int n_insert,
-                                                        Scalar delta,
-                                                        vec3<Scalar> pos,
-                                                        unsigned int type_d)
-    {
-    // number of depletants successfully inserted
-    unsigned int n_overlap = 0;
-    unsigned int ndim = this->m_sysdef->getNDimensions();
-
-    bool is_local = true;
-#ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        {
-        const BoxDim global_box = this->m_pdata->getGlobalBox();
-        ArrayHandle<unsigned int> h_cart_ranks(
-            this->m_pdata->getDomainDecomposition()->getCartRanks(),
-            access_location::host,
-            access_mode::read);
-        is_local = this->m_exec_conf->getRank()
-                   == this->m_pdata->getDomainDecomposition()->placeParticle(global_box,
-                                                                             vec_to_scalar3(pos),
-                                                                             h_cart_ranks.data);
-        }
-#endif
-
-    // initialize another rng
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants6,
-                                           timestep,
-                                           this->m_sysdef->getSeed()),
-                               hoomd::Counter(this->m_exec_conf->getPartition()));
-
-    // update the aabb tree
-    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
-
-    // update the image list
-    const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
-
-    if (is_local)
-        {
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
-                                           access_location::host,
-                                           access_mode::read);
-        ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
-                                        access_location::host,
-                                        access_mode::read);
-
-        auto& params = this->m_mc->getParams();
-
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(),
-                                             access_location::host,
-                                             access_mode::read);
-        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
-
-        // for every test depletant
-        for (unsigned int k = 0; k < n_insert; ++k)
-            {
-            // draw a random vector in the excluded volume sphere of the particle to be inserted
-            vec3<Scalar> n;
-            hoomd::SpherePointGenerator<Scalar>()(rng, n);
-
-            // draw random radial coordinate in test sphere
-            Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-            Scalar r = Scalar(0.5) * delta * slow::pow(r3, Scalar(1.0 / 3.0));
-
-            // test depletant position
-            vec3<Scalar> pos_test = pos + r * n;
-
-            Shape shape_test(quat<Scalar>(), params[type_d]);
-            if (shape_test.hasOrientation())
-                {
-                // if the depletant is anisotropic, generate orientation
-                shape_test.orientation = generateRandomOrientation(rng, ndim);
-                }
-
-            // check against overlap with present configuration
-            bool overlap = false;
-
-            hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
-
-            unsigned int err_count = 0;
-            // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                {
-                vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                hoomd::detail::AABB aabb = aabb_test_local;
-                aabb.translate(pos_test_image);
-
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
-                     cur_node_idx++)
-                    {
-                    if (aabb.overlaps(aabb_tree.getNodeAABB(cur_node_idx)))
-                        {
-                        if (aabb_tree.isNodeLeaf(cur_node_idx))
-                            {
-                            for (unsigned int cur_p = 0;
-                                 cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                 cur_p++)
-                                {
-                                // read in its position and orientation
-                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                Scalar4 postype_j;
-                                Scalar4 orientation_j;
-
-                                // load the old position and orientation of the j particle
-                                postype_j = h_postype.data[j];
-                                orientation_j = h_orientation.data[j];
-
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                                if (h_overlaps.data[overlap_idx(typ_j, type_d)]
-                                    && check_circumsphere_overlap(r_ij, shape_test, shape_j)
-                                    && test_overlap(r_ij, shape_test, shape_j, err_count))
-                                    {
-                                    overlap = true;
-                                    break;
-                                    }
-                                }
-                            }
-                        }
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                        }
-                    if (overlap)
-                        break;
-                    } // end loop over AABB nodes
-                if (overlap)
-                    break;
-                } // end loop over images
-
-            if (overlap)
-                {
-                n_overlap++;
-                }
-            } // end loop over test depletants
-        } // is_local
-
-#ifdef ENABLE_MPI
-    if (this->m_sysdef->isDomainDecomposed())
-        {
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &n_overlap,
-                      1,
-                      MPI_UNSIGNED,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-    return n_overlap;
-    }
-
 namespace detail
     {
 //! Export the UpdaterMuVT class to python
@@ -3177,7 +1750,6 @@ template<class Shape> void export_UpdaterMuVT(pybind11::module& m, const std::st
         .def_property("transfer_types",
                       &UpdaterMuVT<Shape>::getTransferTypes,
                       &UpdaterMuVT<Shape>::setTransferTypes)
-        .def_property("ntrial", &UpdaterMuVT<Shape>::getNTrial, &UpdaterMuVT<Shape>::setNTrial)
         .def_property_readonly("N", &UpdaterMuVT<Shape>::getN)
         .def("getCounters", &UpdaterMuVT<Shape>::getCounters);
     }

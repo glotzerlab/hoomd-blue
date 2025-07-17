@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""MPCD particle body forces.
-
-MPCD can apply a body force to each MPCD particle as a function of position.
+r"""MPCD can apply a body force to each MPCD particle as a function of position.
 The external force should be compatible with the chosen
 :class:`~hoomd.mpcd.geometry.Geometry`. Global momentum conservation can be
 broken by adding a body force, so care should be chosen that the entire model
@@ -121,8 +119,7 @@ class BlockForce(BodyForce):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _mpcd.BlockForce(self.force, self.separation,
-                                         self.width)
+        self._cpp_obj = _mpcd.BlockForce(self.force, self.separation, self.width)
         super()._attach_hook()
 
 
@@ -166,7 +163,8 @@ class ConstantForce(BodyForce):
 
     def _attach_hook(self):
         self._cpp_obj = _mpcd.ConstantForce(
-            _hoomd.make_scalar3(self.force[0], self.force[1], self.force[2]))
+            _hoomd.make_scalar3(self.force[0], self.force[1], self.force[2])
+        )
         super()._attach_hook()
 
 
@@ -196,8 +194,8 @@ class SineForce(BodyForce):
 
         Ly = simulation.state.box.Ly
         force = hoomd.mpcd.force.SineForce(
-            amplitude=1.0,
-            wavenumber=2 * numpy.pi / Ly)
+            amplitude=1.0, wavenumber=2 * numpy.pi / Ly
+        )
         stream = hoomd.mpcd.stream.Bulk(period=1, mpcd_particle_force=force)
         simulation.operations.integrator.streaming_method = stream
 
@@ -224,10 +222,19 @@ class SineForce(BodyForce):
     def __init__(self, amplitude, wavenumber):
         super().__init__()
 
-        param_dict = ParameterDict(amplitude=float(amplitude),
-                                   wavenumber=float(wavenumber))
+        param_dict = ParameterDict(
+            amplitude=float(amplitude), wavenumber=float(wavenumber)
+        )
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         self._cpp_obj = _mpcd.SineForce(self.amplitude, self.wavenumber)
         super()._attach_hook()
+
+
+__all__ = [
+    "BlockForce",
+    "BodyForce",
+    "ConstantForce",
+    "SineForce",
+]

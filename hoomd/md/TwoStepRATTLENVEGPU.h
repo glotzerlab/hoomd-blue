@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_H__
@@ -169,14 +169,13 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
     // perform the update on the GPU
     auto limit_params = this->getKernelLimitValues(timestep);
 
-    this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     kernel::gpu_rattle_nve_step_one(d_pos.data,
                                     d_vel.data,
                                     d_accel.data,
                                     d_image.data,
                                     d_index_array.data,
-                                    this->m_group->getGPUPartition(),
+                                    this->m_group->getNumMembers(),
                                     this->m_pdata->getBox(),
                                     this->m_deltaT,
                                     limit_params.first,
@@ -187,7 +186,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
         CHECK_CUDA_ERROR();
 
     m_tuner_one->end();
-    this->m_exec_conf->endMultiGPU();
 
     if (this->m_aniso)
         {
@@ -205,7 +203,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                        access_location::device,
                                        access_mode::read);
 
-        this->m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
         kernel::gpu_rattle_nve_angular_step_one(d_orientation.data,
@@ -213,7 +210,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                                 d_inertia.data,
                                                 d_net_torque.data,
                                                 d_index_array.data,
-                                                this->m_group->getGPUPartition(),
+                                                this->m_group->getNumMembers(),
                                                 this->m_deltaT,
                                                 1.0,
                                                 m_tuner_angular_one->getParam()[0]);
@@ -222,7 +219,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
             CHECK_CUDA_ERROR();
 
         m_tuner_angular_one->end();
-        this->m_exec_conf->endMultiGPU();
         }
     }
 
@@ -231,7 +227,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
 */
 template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(uint64_t timestep)
     {
-    const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = this->m_pdata->getNetForce();
 
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
@@ -249,7 +245,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                             access_mode::read);
 
     // perform the update on the GPU
-    this->m_exec_conf->beginMultiGPU();
     m_tuner_two->begin();
 
     auto limit_params = this->getKernelLimitValues(timestep);
@@ -258,7 +253,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                               d_vel.data,
                                               d_accel.data,
                                               d_index_array.data,
-                                              this->m_group->getGPUPartition(),
+                                              this->m_group->getNumMembers(),
                                               d_net_force.data,
                                               this->m_manifold,
                                               this->m_tolerance,
@@ -272,7 +267,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
-    this->m_exec_conf->endMultiGPU();
 
     if (this->m_aniso)
         {
@@ -290,7 +284,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                        access_location::device,
                                        access_mode::read);
 
-        this->m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
 
         kernel::gpu_rattle_nve_angular_step_two(d_orientation.data,
@@ -298,7 +291,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                                 d_inertia.data,
                                                 d_net_torque.data,
                                                 d_index_array.data,
-                                                this->m_group->getGPUPartition(),
+                                                this->m_group->getNumMembers(),
                                                 this->m_deltaT,
                                                 1.0,
                                                 m_tuner_angular_two->getParam()[0]);
@@ -307,15 +300,14 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
             CHECK_CUDA_ERROR();
 
         m_tuner_angular_two->end();
-        this->m_exec_conf->endMultiGPU();
         }
     }
 
 template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
     // access all the needed data
-    const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
-    const GlobalArray<Scalar>& net_virial = this->m_pdata->getNetVirial();
+    const GPUArray<Scalar4>& net_force = this->m_pdata->getNetForce();
+    const GPUArray<Scalar>& net_virial = this->m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
@@ -336,7 +328,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
     size_t net_virial_pitch = net_virial.getPitch();
 
     // perform the update on the GPU
-    this->m_exec_conf->beginMultiGPU();
+    this->m_exec_conf->setDevice();
     m_tuner_force->begin();
     kernel::gpu_include_rattle_force_nve<Manifold>(d_pos.data,
                                                    d_vel.data,
@@ -344,7 +336,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
                                                    d_net_force.data,
                                                    d_net_virial.data,
                                                    d_index_array.data,
-                                                   this->m_group->getGPUPartition(),
+                                                   this->m_group->getNumMembers(),
                                                    net_virial_pitch,
                                                    this->m_manifold,
                                                    this->m_tolerance,
@@ -356,7 +348,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
         CHECK_CUDA_ERROR();
 
     m_tuner_force->end();
-    this->m_exec_conf->endMultiGPU();
     }
 
 namespace detail

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -44,7 +44,6 @@ namespace kernel
     \param n_types Number of particle types in the simulation
     \param d_noiseless_t If set true, there will be no translational noise (random force)
     \param d_noiseless_r If set true, there will be no rotational noise (random torque)
-    \param offset Offset of this GPU into group indices
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for
    design details.
@@ -74,7 +73,6 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              unsigned int D,
                                              const bool d_noiseless_t,
                                              const bool d_noiseless_r,
-                                             const unsigned int offset,
                                              bool enable_shared_cache)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -108,7 +106,7 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
 
     if (local_idx < nwork)
         {
-        const unsigned int group_idx = local_idx + offset;
+        const unsigned int group_idx = local_idx;
 
         // determine the particle to work on
         unsigned int idx = d_group_members[group_idx];
@@ -156,7 +154,10 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
         // update position
         postype.x += (net_force.x + Fr_x) * deltaT / gamma;
         postype.y += (net_force.y + Fr_y) * deltaT / gamma;
-        postype.z += (net_force.z + Fr_z) * deltaT / gamma;
+        if (D > 2)
+            {
+            postype.z += (net_force.z + Fr_z) * deltaT / gamma;
+            }
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
@@ -336,65 +337,57 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  const Scalar deltaT,
                                  const unsigned int D,
                                  const bool d_noiseless_t,
-                                 const bool d_noiseless_r,
-                                 const GPUPartition& gpu_partition)
+                                 const bool d_noiseless_r)
     {
     unsigned int run_block_size = 256;
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int nwork = group_size;
+
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    auto shared_bytes
+        = (sizeof(Scalar) * langevin_args.n_types + sizeof(Scalar3) * langevin_args.n_types);
+
+    bool enable_shared_cache = true;
+
+    if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        auto shared_bytes
-            = (sizeof(Scalar) * langevin_args.n_types + sizeof(Scalar3) * langevin_args.n_types);
-
-        bool enable_shared_cache = true;
-
-        if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
-            {
-            enable_shared_cache = false;
-            shared_bytes = 0;
-            }
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_brownian_step_one_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           shared_bytes,
-                           0,
-                           d_pos,
-                           d_vel,
-                           d_image,
-                           box,
-                           d_tag,
-                           d_group_members,
-                           nwork,
-                           d_net_force,
-                           d_gamma_r,
-                           d_orientation,
-                           d_torque,
-                           d_inertia,
-                           d_angmom,
-                           langevin_args.d_gamma,
-                           langevin_args.n_types,
-                           langevin_args.timestep,
-                           langevin_args.seed,
-                           langevin_args.T,
-                           aniso,
-                           deltaT,
-                           D,
-                           d_noiseless_t,
-                           d_noiseless_r,
-                           range.first,
-                           enable_shared_cache);
+        enable_shared_cache = false;
+        shared_bytes = 0;
         }
+
+    // run the kernel
+    hipLaunchKernelGGL((gpu_brownian_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       shared_bytes,
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_image,
+                       box,
+                       d_tag,
+                       d_group_members,
+                       nwork,
+                       d_net_force,
+                       d_gamma_r,
+                       d_orientation,
+                       d_torque,
+                       d_inertia,
+                       d_angmom,
+                       langevin_args.d_gamma,
+                       langevin_args.n_types,
+                       langevin_args.timestep,
+                       langevin_args.seed,
+                       langevin_args.T,
+                       aniso,
+                       deltaT,
+                       D,
+                       d_noiseless_t,
+                       d_noiseless_r,
+                       enable_shared_cache);
 
     return hipSuccess;
     }

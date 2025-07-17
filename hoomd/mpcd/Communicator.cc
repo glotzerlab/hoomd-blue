@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -49,23 +49,6 @@ mpcd::Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef)
     GPUArray<unsigned int> adj_mask(neigh_max, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
-    // create new data type for the pdata_element
-    const int nitems = 4;
-    int blocklengths[nitems] = {4, 4, 1, 1};
-    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED};
-    MPI_Aint offsets[nitems];
-    offsets[0] = offsetof(mpcd::detail::pdata_element, pos);
-    offsets[1] = offsetof(mpcd::detail::pdata_element, vel);
-    offsets[2] = offsetof(mpcd::detail::pdata_element, tag);
-    offsets[3] = offsetof(mpcd::detail::pdata_element, comm_flag);
-    // this needs to be made via the resize method to get its upper bound correctly
-    MPI_Datatype tmp;
-    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
-    MPI_Type_commit(&tmp);
-    MPI_Type_create_resized(tmp, 0, sizeof(mpcd::detail::pdata_element), &m_pdata_element);
-    MPI_Type_commit(&m_pdata_element);
-    MPI_Type_free(&tmp);
-
     initializeNeighborArrays();
     }
 
@@ -73,7 +56,6 @@ mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
     detachCallbacks();
-    MPI_Type_free(&m_pdata_element);
     }
 
 void mpcd::Communicator::initializeNeighborArrays()
@@ -349,11 +331,12 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                                                                access_mode::overwrite);
             m_reqs.resize(4);
             int nreq = 0;
+            const MPI_Datatype mpi_pdata_element = m_mpcd_pdata->getElementMPIDatatype();
             if (n_send_right != 0)
                 {
                 MPI_Isend(h_sendbuf.data + n_keep,
                           n_send_right,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           right_neigh,
                           1,
                           m_mpi_comm,
@@ -363,7 +346,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 {
                 MPI_Isend(h_sendbuf.data + n_keep + n_send_right,
                           n_send_left,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           left_neigh,
                           1,
                           m_mpi_comm,
@@ -373,7 +356,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 {
                 MPI_Irecv(h_recvbuf.data + n_recv,
                           n_recv_right,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           right_neigh,
                           1,
                           m_mpi_comm,
@@ -383,7 +366,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 {
                 MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right,
                           n_recv_left,
-                          m_pdata_element,
+                          mpi_pdata_element,
                           left_neigh,
                           1,
                           m_mpi_comm,
@@ -460,27 +443,26 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
                                           access_mode::overwrite);
 
     // since box is orthorhombic, just use branching to compute comm flags
-    const Scalar3 lo = box.getLo();
-    const Scalar3 hi = box.getHi();
     for (unsigned int idx = 0; idx < N; ++idx)
         {
         const Scalar4& postype = h_pos.data[idx];
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        const Scalar3 f = box.makeFraction(pos);
 
         unsigned int flags = 0;
-        if (pos.x >= hi.x)
+        if (f.x >= Scalar(1.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-        else if (pos.x < lo.x)
+        else if (f.x < Scalar(0.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
 
-        if (pos.y >= hi.y)
+        if (f.y >= Scalar(1.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-        else if (pos.y < lo.y)
+        else if (f.y < Scalar(0.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
 
-        if (pos.z >= hi.z)
+        if (f.z >= Scalar(1.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-        else if (pos.z < lo.z)
+        else if (f.z < Scalar(0.0))
             flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
         h_comm_flag.data[idx] = flags;
@@ -654,7 +636,10 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
     periodic.y = (isCommunicating(mpcd::detail::face::north)) ? 1 : 0;
     periodic.z = (isCommunicating(mpcd::detail::face::up)) ? 1 : 0;
 
-    return BoxDim(global_lo + shift, global_hi + shift, periodic);
+    BoxDim wrap_box(global_box);
+    wrap_box.setLoHi(global_lo + shift, global_hi + shift);
+    wrap_box.setPeriodic(periodic);
+    return wrap_box;
     }
 
 void mpcd::Communicator::attachCallbacks()

@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Molecular dynamics.
-
-In molecular dynamics simulations, HOOMD-blue numerically integrates the degrees
+"""In molecular dynamics simulations, HOOMD-blue numerically integrates the degrees
 of freedom in the system as a function of time under the influence of forces. To
 perform MD simulations, assign a MD `Integrator` to the `hoomd.Simulation`
 operations. Provide the `Integrator` with lists of integration methods, forces,
@@ -16,7 +14,7 @@ Use MD computes (`hoomd.md.compute`) to compute the thermodynamic properties of
 the system state.
 
 See Also:
-    Tutorial: :doc:`tutorial/01-Introducing-Molecular-Dynamics/00-index`
+    Tutorial: :doc:`/tutorial/01-Introducing-Molecular-Dynamics/00-index`
 """
 
 from hoomd.md import alchemy
@@ -42,3 +40,29 @@ from hoomd.md import mesh
 from hoomd.md import many_body
 from hoomd.md import tune
 from hoomd.md.half_step_hook import HalfStepHook
+
+__all__ = [
+    "HalfStepHook",
+    "Integrator",
+    "alchemy",
+    "angle",
+    "bond",
+    "compute",
+    "constrain",
+    "data",
+    "dihedral",
+    "external",
+    "force",
+    "improper",
+    "long_range",
+    "manifold",
+    "many_body",
+    "mesh",
+    "methods",
+    "minimize",
+    "nlist",
+    "pair",
+    "special_pair",
+    "tune",
+    "update",
+]

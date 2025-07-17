@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -122,17 +122,17 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     dfft_plan m_dfft_plan_inverse; //!< Forward distributed FFT
 #endif
 
-    GlobalArray<hipfftComplex> m_mesh;         //!< The particle density mesh
-    GlobalArray<hipfftComplex> m_mesh_scratch; //!< The particle density mesh per GPU, staging array
-    GlobalArray<hipfftComplex> m_inv_fourier_mesh_x; //!< The inverse-fourier transformed force mesh
-    GlobalArray<hipfftComplex> m_inv_fourier_mesh_y; //!< The inverse-fourier transformed force mesh
-    GlobalArray<hipfftComplex> m_inv_fourier_mesh_z; //!< The inverse-fourier transformed force mesh
+    GPUArray<hipfftComplex> m_mesh;         //!< The particle density mesh
+    GPUArray<hipfftComplex> m_mesh_scratch; //!< The particle density mesh per GPU, staging array
+    GPUArray<hipfftComplex> m_inv_fourier_mesh_x; //!< The inverse-fourier transformed force mesh
+    GPUArray<hipfftComplex> m_inv_fourier_mesh_y; //!< The inverse-fourier transformed force mesh
+    GPUArray<hipfftComplex> m_inv_fourier_mesh_z; //!< The inverse-fourier transformed force mesh
 
-    GPUFlags<Scalar> m_sum;                   //!< Sum over fourier mesh values
-    GlobalArray<Scalar> m_sum_partial;        //!< Partial sums over fourier mesh values
-    GlobalArray<Scalar> m_sum_virial_partial; //!< Partial sums over virial mesh values
-    GlobalArray<Scalar> m_sum_virial;         //!< Final sum over virial mesh values
-    unsigned int m_block_size;                //!< Block size for fourier mesh reduction
+    GPUFlags<Scalar> m_sum;                //!< Sum over fourier mesh values
+    GPUArray<Scalar> m_sum_partial;        //!< Partial sums over fourier mesh values
+    GPUArray<Scalar> m_sum_virial_partial; //!< Partial sums over virial mesh values
+    GPUArray<Scalar> m_sum_virial;         //!< Final sum over virial mesh values
+    unsigned int m_block_size;             //!< Block size for fourier mesh reduction
     };
 
     } // end namespace md

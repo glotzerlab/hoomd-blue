@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Union pair potential.
@@ -21,11 +21,12 @@ import hoomd
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, OnlyTypes, to_type_converter
+import inspect
 
 from .pair import Pair
 
 
-@hoomd.logging.modify_namespace(('hpmc', 'pair', 'Union'))
+@hoomd.logging.modify_namespace(("hpmc", "pair", "Union"))
 class Union(Pair):
     r"""Treat particles as extended bodies.
 
@@ -52,7 +53,7 @@ class Union(Pair):
     where :math:`N_{\mathrm{constituents},i}` is the number of constituents on
     the :math:`i` particle and :math:`U_\mathrm{constituent}` is the potential
     evaluated by the given ``constituent_potential``. :math:`\vec{P}_{i,a}` and
-    :math:`\mathbf{Q}_{i,a}` are the constituent postitions and orientations
+    :math:`\mathbf{Q}_{i,a}` are the constituent positions and orientations
     with index :math:`a` on the :math:`i` particle.
     :math:`U_\mathrm{constituent}` also depends on the constituent particle
     types and charges (not shown in the equation).
@@ -81,9 +82,11 @@ class Union(Pair):
     .. code-block:: python
 
         union = hoomd.hpmc.pair.Union(constituent_potential=lennard_jones)
-        union.body['R'] = dict(types=['A', 'A', 'A'],
-                               positions=[(-1,0,0), (0,0,0), (1,0,0)])
-        union.body['A'] = None
+        union.body["R"] = dict(
+            types=["A", "A", "A"],
+            positions=[(-1, 0, 0), (0, 0, 0), (1, 0, 0)],
+        )
+        union.body["A"] = None
 
         simulation.operations.integrator.pair_potentials = [union]
 
@@ -91,6 +94,12 @@ class Union(Pair):
     the system state, even when there are no actual particles of that type.
     As shown above, set the body for constituent types to ``None`` (which is
     equivalent to ``dict(types=[], positions=[])``).
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Union`:
 
     .. py:attribute:: body
 
@@ -128,34 +137,42 @@ class Union(Pair):
 
                 union.leaf_capacity = 4
     """
+
     _cpp_class_name = "PairPotentialUnion"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, constituent_potential, leaf_capacity=0):
         body = TypeParameter(
-            'body', 'particle_types',
-            TypeParameterDict(OnlyIf(to_type_converter(
-                dict(types=[str],
-                     positions=[(float,) * 3],
-                     orientations=OnlyIf(to_type_converter([(float,) * 4]),
-                                         allow_none=True),
-                     charges=OnlyIf(to_type_converter([float]),
-                                    allow_none=True))),
-                                     allow_none=True),
-                              len_keys=1,
-                              _defaults={
-                                  'orientations': None,
-                                  'charges': None
-                              }))
+            "body",
+            "particle_types",
+            TypeParameterDict(
+                OnlyIf(
+                    to_type_converter(
+                        dict(
+                            types=[str],
+                            positions=[(float,) * 3],
+                            orientations=OnlyIf(
+                                to_type_converter([(float,) * 4]), allow_none=True
+                            ),
+                            charges=OnlyIf(to_type_converter([float]), allow_none=True),
+                        )
+                    ),
+                    allow_none=True,
+                ),
+                len_keys=1,
+                _defaults={"orientations": None, "charges": None},
+            ),
+        )
         self._add_typeparam(body)
 
-        param_dict = ParameterDict(
-            leaf_capacity=OnlyTypes(int, allow_none=True))
+        param_dict = ParameterDict(leaf_capacity=OnlyTypes(int, allow_none=True))
         param_dict.update(dict(leaf_capacity=leaf_capacity))
         self._param_dict.update(param_dict)
 
         if not isinstance(constituent_potential, hoomd.hpmc.pair.Pair):
-            raise TypeError(
-                "constituent_potential must subclass hoomd.hpmc.pair.Pair")
+            raise TypeError("constituent_potential must subclass hoomd.hpmc.pair.Pair")
         self._constituent_potential = constituent_potential
 
     @property

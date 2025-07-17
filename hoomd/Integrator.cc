@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.h"
@@ -174,9 +174,9 @@ void Integrator::computeNetForce(uint64_t timestep)
     Scalar external_energy;
         {
         // access the net force and virial arrays
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-        const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
-        const GlobalArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
+        const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+        const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque,
@@ -184,9 +184,9 @@ void Integrator::computeNetForce(uint64_t timestep)
                                           access_mode::overwrite);
 
         // start by zeroing the net force and virial arrays
-        memset((void*)h_net_force.data, 0, sizeof(Scalar4) * net_force.getNumElements());
-        memset((void*)h_net_virial.data, 0, sizeof(Scalar) * net_virial.getNumElements());
-        memset((void*)h_net_torque.data, 0, sizeof(Scalar4) * net_torque.getNumElements());
+        net_force.zeroFill();
+        net_virial.zeroFill();
+        net_torque.zeroFill();
 
         for (unsigned int i = 0; i < 6; ++i)
             external_virial[i] = Scalar(0.0);
@@ -204,9 +204,9 @@ void Integrator::computeNetForce(uint64_t timestep)
 
         for (const auto& force : m_forces)
             {
-            const GlobalArray<Scalar4>& h_force_array = force->getForceArray();
-            const GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
-            const GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
+            const GPUArray<Scalar4>& h_force_array = force->getForceArray();
+            const GPUArray<Scalar>& h_virial_array = force->getVirialArray();
+            const GPUArray<Scalar4>& h_torque_array = force->getTorqueArray();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6 * nparticles <= h_virial_array.getNumElements());
@@ -273,9 +273,9 @@ void Integrator::computeNetForce(uint64_t timestep)
 
         {
         // access the net force and virial arrays
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-        const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
-        const GlobalArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
+        const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+        const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque,
@@ -289,9 +289,9 @@ void Integrator::computeNetForce(uint64_t timestep)
         assert(6 * nparticles <= net_virial.getNumElements());
         for (const auto& constraint_force : m_constraint_forces)
             {
-            const GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
-            const GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
-            const GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
+            const GPUArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            const GPUArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+            const GPUArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);
@@ -360,9 +360,9 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
         {
         // access the net force and virial arrays
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-        const GlobalArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
-        const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
+        const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
         size_t net_virial_pitch = net_virial.getPitch();
 
         ArrayHandle<Scalar4> d_net_force(net_force,
@@ -393,9 +393,9 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            hipMemset(d_net_force.data, 0, sizeof(Scalar4) * net_force.getNumElements());
-            hipMemset(d_net_torque.data, 0, sizeof(Scalar4) * net_torque.getNumElements());
-            hipMemset(d_net_virial.data, 0, 6 * sizeof(Scalar) * net_virial_pitch);
+            net_force.zeroFill();
+            net_torque.zeroFill();
+            net_virial.zeroFill();
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -408,15 +408,15 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
             // grab the device pointers for the current set
             kernel::gpu_force_list force_list;
 
-            const GlobalArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
+            const GPUArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
                                           access_location::device,
                                           access_mode::read);
-            const GlobalArray<Scalar>& d_virial_array0 = m_forces[cur_force]->getVirialArray();
+            const GPUArray<Scalar>& d_virial_array0 = m_forces[cur_force]->getVirialArray();
             ArrayHandle<Scalar> d_virial0(d_virial_array0,
                                           access_location::device,
                                           access_mode::read);
-            const GlobalArray<Scalar4>& d_torque_array0 = m_forces[cur_force]->getTorqueArray();
+            const GPUArray<Scalar4>& d_torque_array0 = m_forces[cur_force]->getTorqueArray();
             ArrayHandle<Scalar4> d_torque0(d_torque_array0,
                                            access_location::device,
                                            access_mode::read);
@@ -427,17 +427,15 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
             if (cur_force + 1 < m_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array1
-                    = m_forces[cur_force + 1]->getForceArray();
+                const GPUArray<Scalar4>& d_force_array1 = m_forces[cur_force + 1]->getForceArray();
                 ArrayHandle<Scalar4> d_force1(d_force_array1,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array1
-                    = m_forces[cur_force + 1]->getVirialArray();
+                const GPUArray<Scalar>& d_virial_array1 = m_forces[cur_force + 1]->getVirialArray();
                 ArrayHandle<Scalar> d_virial1(d_virial_array1,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array1
+                const GPUArray<Scalar4>& d_torque_array1
                     = m_forces[cur_force + 1]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque1(d_torque_array1,
                                                access_location::device,
@@ -449,17 +447,15 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 2 < m_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array2
-                    = m_forces[cur_force + 2]->getForceArray();
+                const GPUArray<Scalar4>& d_force_array2 = m_forces[cur_force + 2]->getForceArray();
                 ArrayHandle<Scalar4> d_force2(d_force_array2,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array2
-                    = m_forces[cur_force + 2]->getVirialArray();
+                const GPUArray<Scalar>& d_virial_array2 = m_forces[cur_force + 2]->getVirialArray();
                 ArrayHandle<Scalar> d_virial2(d_virial_array2,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array2
+                const GPUArray<Scalar4>& d_torque_array2
                     = m_forces[cur_force + 2]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque2(d_torque_array2,
                                                access_location::device,
@@ -471,17 +467,15 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 3 < m_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array3
-                    = m_forces[cur_force + 3]->getForceArray();
+                const GPUArray<Scalar4>& d_force_array3 = m_forces[cur_force + 3]->getForceArray();
                 ArrayHandle<Scalar4> d_force3(d_force_array3,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array3
-                    = m_forces[cur_force + 3]->getVirialArray();
+                const GPUArray<Scalar>& d_virial_array3 = m_forces[cur_force + 3]->getVirialArray();
                 ArrayHandle<Scalar> d_virial3(d_virial_array3,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array3
+                const GPUArray<Scalar4>& d_torque_array3
                     = m_forces[cur_force + 3]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque3(d_torque_array3,
                                                access_location::device,
@@ -493,17 +487,15 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 4 < m_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array4
-                    = m_forces[cur_force + 4]->getForceArray();
+                const GPUArray<Scalar4>& d_force_array4 = m_forces[cur_force + 4]->getForceArray();
                 ArrayHandle<Scalar4> d_force4(d_force_array4,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array4
-                    = m_forces[cur_force + 4]->getVirialArray();
+                const GPUArray<Scalar>& d_virial_array4 = m_forces[cur_force + 4]->getVirialArray();
                 ArrayHandle<Scalar> d_virial4(d_virial_array4,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array4
+                const GPUArray<Scalar4>& d_torque_array4
                     = m_forces[cur_force + 4]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque4(d_torque_array4,
                                                access_location::device,
@@ -515,17 +507,15 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 5 < m_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array5
-                    = m_forces[cur_force + 5]->getForceArray();
+                const GPUArray<Scalar4>& d_force_array5 = m_forces[cur_force + 5]->getForceArray();
                 ArrayHandle<Scalar4> d_force5(d_force_array5,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array5
-                    = m_forces[cur_force + 5]->getVirialArray();
+                const GPUArray<Scalar>& d_virial_array5 = m_forces[cur_force + 5]->getVirialArray();
                 ArrayHandle<Scalar> d_virial5(d_virial_array5,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array5
+                const GPUArray<Scalar4>& d_torque_array5
                     = m_forces[cur_force + 5]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque5(d_torque_array5,
                                                access_location::device,
@@ -542,7 +532,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
-            m_exec_conf->beginMultiGPU();
+            m_exec_conf->setDevice();
 
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
@@ -551,13 +541,10 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor],
-                                         m_pdata->getGPUPartition());
+                                         flags[pdata_flag::pressure_tensor]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
-
-            m_exec_conf->endMultiGPU();
             }
         }
 
@@ -594,9 +581,9 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
         {
         // access the net force and virial arrays
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-        const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
-        const GlobalArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
+        const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+        const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
         ArrayHandle<Scalar4> d_net_force(net_force,
                                          access_location::device,
                                          access_mode::readwrite);
@@ -619,17 +606,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
             {
             // grab the device pointers for the current set
             kernel::gpu_force_list force_list;
-            const GlobalArray<Scalar4>& d_force_array0
+            const GPUArray<Scalar4>& d_force_array0
                 = m_constraint_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
                                           access_location::device,
                                           access_mode::read);
-            const GlobalArray<Scalar>& d_virial_array0
+            const GPUArray<Scalar>& d_virial_array0
                 = m_constraint_forces[cur_force]->getVirialArray();
             ArrayHandle<Scalar> d_virial0(d_virial_array0,
                                           access_location::device,
                                           access_mode::read);
-            const GlobalArray<Scalar4>& d_torque_array0
+            const GPUArray<Scalar4>& d_torque_array0
                 = m_constraint_forces[cur_force]->getTorqueArray();
             ArrayHandle<Scalar4> d_torque0(d_torque_array0,
                                            access_location::device,
@@ -641,17 +628,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
             if (cur_force + 1 < m_constraint_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array1
+                const GPUArray<Scalar4>& d_force_array1
                     = m_constraint_forces[cur_force + 1]->getForceArray();
                 ArrayHandle<Scalar4> d_force1(d_force_array1,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array1
+                const GPUArray<Scalar>& d_virial_array1
                     = m_constraint_forces[cur_force + 1]->getVirialArray();
                 ArrayHandle<Scalar> d_virial1(d_virial_array1,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array1
+                const GPUArray<Scalar4>& d_torque_array1
                     = m_constraint_forces[cur_force + 1]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque1(d_torque_array1,
                                                access_location::device,
@@ -663,17 +650,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 2 < m_constraint_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array2
+                const GPUArray<Scalar4>& d_force_array2
                     = m_constraint_forces[cur_force + 2]->getForceArray();
                 ArrayHandle<Scalar4> d_force2(d_force_array2,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array2
+                const GPUArray<Scalar>& d_virial_array2
                     = m_constraint_forces[cur_force + 2]->getVirialArray();
                 ArrayHandle<Scalar> d_virial2(d_virial_array2,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array2
+                const GPUArray<Scalar4>& d_torque_array2
                     = m_constraint_forces[cur_force + 2]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque2(d_torque_array2,
                                                access_location::device,
@@ -685,17 +672,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 3 < m_constraint_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array3
+                const GPUArray<Scalar4>& d_force_array3
                     = m_constraint_forces[cur_force + 3]->getForceArray();
                 ArrayHandle<Scalar4> d_force3(d_force_array3,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array3
+                const GPUArray<Scalar>& d_virial_array3
                     = m_constraint_forces[cur_force + 3]->getVirialArray();
                 ArrayHandle<Scalar> d_virial3(d_virial_array3,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array3
+                const GPUArray<Scalar4>& d_torque_array3
                     = m_constraint_forces[cur_force + 3]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque3(d_torque_array3,
                                                access_location::device,
@@ -707,17 +694,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 4 < m_constraint_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array4
+                const GPUArray<Scalar4>& d_force_array4
                     = m_constraint_forces[cur_force + 4]->getForceArray();
                 ArrayHandle<Scalar4> d_force4(d_force_array4,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array4
+                const GPUArray<Scalar>& d_virial_array4
                     = m_constraint_forces[cur_force + 4]->getVirialArray();
                 ArrayHandle<Scalar> d_virial4(d_virial_array4,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array4
+                const GPUArray<Scalar4>& d_torque_array4
                     = m_constraint_forces[cur_force + 4]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque4(d_torque_array4,
                                                access_location::device,
@@ -729,17 +716,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                 }
             if (cur_force + 5 < m_constraint_forces.size())
                 {
-                const GlobalArray<Scalar4>& d_force_array5
+                const GPUArray<Scalar4>& d_force_array5
                     = m_constraint_forces[cur_force + 5]->getForceArray();
                 ArrayHandle<Scalar4> d_force5(d_force_array5,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar>& d_virial_array5
+                const GPUArray<Scalar>& d_virial_array5
                     = m_constraint_forces[cur_force + 5]->getVirialArray();
                 ArrayHandle<Scalar> d_virial5(d_virial_array5,
                                               access_location::device,
                                               access_mode::read);
-                const GlobalArray<Scalar4>& d_torque_array5
+                const GPUArray<Scalar4>& d_torque_array5
                     = m_constraint_forces[cur_force + 5]->getTorqueArray();
                 ArrayHandle<Scalar4> d_torque5(d_torque_array5,
                                                access_location::device,
@@ -756,7 +743,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
-            m_exec_conf->beginMultiGPU();
+            m_exec_conf->setDevice();
 
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
@@ -765,13 +752,10 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor],
-                                         m_pdata->getGPUPartition());
+                                         flags[pdata_flag::pressure_tensor]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
-
-            m_exec_conf->endMultiGPU();
             }
         }
 
@@ -869,23 +853,6 @@ void Integrator::computeCallback(uint64_t timestep)
         }
     }
 #endif
-
-bool Integrator::areForcesAnisotropic()
-    {
-    bool aniso = false;
-
-    for (const auto& force : m_forces)
-        {
-        aniso |= force->isAnisotropic();
-        }
-
-    for (const auto& constraint_force : m_constraint_forces)
-        {
-        aniso |= constraint_force->isAnisotropic();
-        }
-
-    return aniso;
-    }
 
 namespace detail
     {

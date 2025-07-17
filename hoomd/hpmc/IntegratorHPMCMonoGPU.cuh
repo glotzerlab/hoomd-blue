@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/CachedAllocator.h"
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -70,7 +69,6 @@ __launch_bounds__(max_threads)
                                       const unsigned int* d_reject_out_of_cell,
                                       const unsigned int max_extra_bytes,
                                       const unsigned int max_queue_size,
-                                      const unsigned int work_offset,
                                       const unsigned int nwork)
     {
     __shared__ unsigned int s_overlap_checks;
@@ -144,7 +142,6 @@ __launch_bounds__(max_threads)
     unsigned int idx = blockIdx.x * n_groups + group;
     if (idx >= nwork)
         active = false;
-    idx += work_offset;
 
     unsigned int my_cell;
 
@@ -456,59 +453,53 @@ void narrow_phase_launcher(const hpmc_args_t& args,
 
         dim3 thread(overlap_threads, n_groups, tpp);
 
-        for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-            {
-            auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+        unsigned int nwork = args.N;
+        const unsigned int num_blocks = nwork / n_groups + 1;
 
-            unsigned int nwork = range.second - range.first;
-            const unsigned int num_blocks = nwork / n_groups + 1;
+        dim3 grid(num_blocks, 1, 1);
 
-            dim3 grid(num_blocks, 1, 1);
+        assert(args.d_postype);
+        assert(args.d_orientation);
+        assert(args.d_trial_postype);
+        assert(args.d_trial_orientation);
+        assert(args.d_excell_idx);
+        assert(args.d_excell_size);
+        assert(args.d_counters);
+        assert(args.d_check_overlaps);
+        assert(args.d_reject_in);
+        assert(args.d_reject_out);
+        assert(args.d_reject_out_of_cell);
 
-            assert(args.d_postype);
-            assert(args.d_orientation);
-            assert(args.d_trial_postype);
-            assert(args.d_trial_orientation);
-            assert(args.d_excell_idx);
-            assert(args.d_excell_size);
-            assert(args.d_counters);
-            assert(args.d_check_overlaps);
-            assert(args.d_reject_in);
-            assert(args.d_reject_out);
-            assert(args.d_reject_out_of_cell);
-
-            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>),
-                               grid,
-                               thread,
-                               shared_bytes,
-                               args.streams[idev],
-                               args.d_postype,
-                               args.d_orientation,
-                               args.d_trial_postype,
-                               args.d_trial_orientation,
-                               args.d_trial_move_type,
-                               args.d_excell_idx,
-                               args.d_excell_size,
-                               args.excli,
-                               args.d_counters + idev * args.counters_pitch,
-                               args.num_types,
-                               args.box,
-                               args.ghost_width,
-                               args.cell_dim,
-                               args.ci,
-                               args.N,
-                               args.d_check_overlaps,
-                               args.overlap_idx,
-                               params,
-                               args.d_update_order_by_ptl,
-                               args.d_reject_in,
-                               args.d_reject_out,
-                               args.d_reject_out_of_cell,
-                               max_extra_bytes,
-                               max_queue_size,
-                               range.first,
-                               nwork);
-            }
+        hipLaunchKernelGGL((hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>),
+                           grid,
+                           thread,
+                           shared_bytes,
+                           args.stream,
+                           args.d_postype,
+                           args.d_orientation,
+                           args.d_trial_postype,
+                           args.d_trial_orientation,
+                           args.d_trial_move_type,
+                           args.d_excell_idx,
+                           args.d_excell_size,
+                           args.excli,
+                           args.d_counters,
+                           args.num_types,
+                           args.box,
+                           args.ghost_width,
+                           args.cell_dim,
+                           args.ci,
+                           args.N,
+                           args.d_check_overlaps,
+                           args.overlap_idx,
+                           params,
+                           args.d_update_order_by_ptl,
+                           args.d_reject_in,
+                           args.d_reject_out,
+                           args.d_reject_out_of_cell,
+                           max_extra_bytes,
+                           max_queue_size,
+                           nwork);
         }
     else
         {

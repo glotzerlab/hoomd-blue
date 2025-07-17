@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -20,7 +20,6 @@ def snap():
 
 
 class TestParticleSorter:
-
     def test_create(self, simulation_factory, snap):
         sim = simulation_factory(snap)
 
@@ -45,6 +44,7 @@ class TestParticleSorter:
 
         sim = simulation_factory(snap)
         sim.operations.integrator = hoomd.mpcd.Integrator(
-            dt=0.02, mpcd_particle_sorter=sorter)
+            dt=0.02, mpcd_particle_sorter=sorter
+        )
         sim.run(0)
         pickling_check(sorter)

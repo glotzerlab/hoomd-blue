@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -10,9 +10,7 @@ import hoomd.conftest
 
 @pytest.fixture
 def filter_list():
-
     class NewFilter(hoomd.filter.CustomFilter):
-
         def __call__(self, state):
             return np.array([])
 
@@ -26,7 +24,7 @@ def filter_list():
         hoomd.filter.All(),
         hoomd.filter.Tags([1, 2, 3]),
         hoomd.filter.Type(["A"]),
-        NewFilter()
+        NewFilter(),
     ]
 
 
@@ -53,8 +51,7 @@ def filter_updater(filter_list):
 
 @pytest.fixture(scope="function")
 def simulation(lattice_snapshot_factory, simulation_factory, filter_list):
-    sim = simulation_factory(
-        lattice_snapshot_factory(particle_types=["A", "B"]))
+    sim = simulation_factory(lattice_snapshot_factory(particle_types=["A", "B"]))
     # place filters in state list manually to enable updating the particle
     # groups.
     for filter_ in filter_list:
@@ -115,4 +112,5 @@ def test_pickling(simulation):
         hoomd.filter.Type(["A"]),
     ]
     hoomd.conftest.operation_pickling_check(
-        hoomd.update.FilterUpdater(1, filters), simulation)
+        hoomd.update.FilterUpdater(1, filters), simulation
+    )

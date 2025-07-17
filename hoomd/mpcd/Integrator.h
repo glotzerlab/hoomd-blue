@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -40,13 +40,19 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     virtual ~Integrator();
 
     //! Take one timestep forward
-    virtual void update(uint64_t timestep);
+    void update(uint64_t timestep) override;
 
     //! Change the timestep
-    virtual void setDeltaT(Scalar deltaT);
+    void setDeltaT(Scalar deltaT) override;
 
     //! Prepare for the run
-    virtual void prepRun(uint64_t timestep);
+    void prepRun(uint64_t timestep) override;
+
+    //! Start autotuning kernel launch parameters
+    void startAutotuning() override;
+
+    //! Check if kernel autotuning is complete
+    bool isAutotuningComplete() override;
 
     //! Get the MPCD cell list shared by all methods
     std::shared_ptr<mpcd::CellList> getCellList() const

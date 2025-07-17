@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test that `HalfStepHook` works."""
@@ -11,7 +11,6 @@ from hoomd import md
 
 
 class DistanceCV(md.HalfStepHook):
-
     def __init__(self, sim):
         md.HalfStepHook.__init__(self)
         self.state = sim.state
@@ -26,8 +25,7 @@ class DistanceCV(md.HalfStepHook):
 
 @pytest.fixture
 def make_simulation(simulation_factory, two_particle_snapshot_factory):
-
-    def sim_factory(particle_types=['A'], dimensions=3, d=1, L=20):
+    def sim_factory(particle_types=["A"], dimensions=3, d=1, L=20):
         snap = two_particle_snapshot_factory()
         if snap.communicator.rank == 0:
             snap.constraints.N = 1
@@ -48,7 +46,7 @@ def integrator_elements():
     return {
         "methods": [md.methods.ConstantVolume(hoomd.filter.All())],
         "forces": [lj, gauss],
-        "constraints": [md.constrain.Distance()]
+        "constraints": [md.constrain.Distance()],
     }
 
 

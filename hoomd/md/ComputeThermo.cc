@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ComputeThermo.cc
@@ -30,21 +30,8 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
     assert(m_pdata);
-    GlobalArray<Scalar> properties(thermo_index::num_quantities, m_exec_conf);
+    GPUArray<Scalar> properties(thermo_index::num_quantities, m_exec_conf);
     m_properties.swap(properties);
-    TAG_ALLOCATION(m_properties);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_properties.get(),
-                      m_properties.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetPreferredLocation,
-                      cudaCpuDeviceId);
-        CHECK_CUDA_ERROR();
-        }
-#endif
 
     m_computed_flags.reset();
 
@@ -91,8 +78,8 @@ void ComputeThermo::computeProperties()
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // access the net force, pe, and virial
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-    const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
 

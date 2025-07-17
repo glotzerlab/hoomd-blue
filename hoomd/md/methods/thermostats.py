@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Provide classes for thermostatting simulations.
-
-The thermostat classes are for use with `hoomd.md.methods.ConstantVolume` and
+"""The thermostat classes are for use with `hoomd.md.methods.ConstantVolume` and
 `hoomd.md.methods.ConstantPressure`.
 
 .. invisible-code-block: python
@@ -26,8 +24,8 @@ Important:
     .. code-block:: python
 
         simulation.state.thermalize_particle_momenta(
-            filter=hoomd.filter.All(),
-            kT=1.5)
+            filter=hoomd.filter.All(), kT=1.5
+        )
 
 .. invisible-code-block: python
 
@@ -51,11 +49,13 @@ class Thermostat(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `Thermostat`
         directly.
     """
-    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + ("_thermo",
-                                                                    "_filter")
-    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {
-        "_thermo", "_filter"
-    }
+
+    _remove_for_pickling = (
+        *_HOOMDBaseObject._remove_for_pickling,
+        "_thermo",
+        "_filter",
+    )
+    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {"_thermo", "_filter"}
 
     def __init__(self, kT):
         param_dict = ParameterDict(kT=Variant)
@@ -100,8 +100,10 @@ class MTTK(Thermostat):
 
     .. code-block:: python
 
-        mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
-            tau=simulation.operations.integrator.dt*100)
+        mttk = hoomd.md.methods.thermostats.MTTK(
+            kT=1.5,
+            tau=simulation.operations.integrator.dt * 100,
+        )
         simulation.operations.integrator.methods[0].thermostat = mttk
 
     Attributes:
@@ -116,10 +118,7 @@ class MTTK(Thermostat):
 
             .. code-block:: python
 
-                mttk.kT = hoomd.variant.Ramp(A=1.0,
-                                             B=2.0,
-                                             t_start=0,
-                                             t_ramp=1_000_000)
+                mttk.kT = hoomd.variant.Ramp(A=1.0, B=2.0, t_start=0, t_ramp=1_000_000)
 
         tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`
@@ -143,19 +142,22 @@ class MTTK(Thermostat):
 
             .. code-block:: python
 
-                numpy.save(file=path / 'translational_dof.npy',
-                           arr=mttk.translational_dof)
+                numpy.save(
+                    file=path / "translational_dof.npy",
+                    arr=mttk.translational_dof,
+                )
 
             Load when continuing:
 
             .. code-block:: python
 
-                mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
-                    tau=simulation.operations.integrator.dt*100)
+                mttk = hoomd.md.methods.thermostats.MTTK(
+                    kT=1.5,
+                    tau=simulation.operations.integrator.dt * 100,
+                )
                 simulation.operations.integrator.methods[0].thermostat = mttk
 
-                mttk.translational_dof = numpy.load(
-                    file=path / 'translational_dof.npy')
+                mttk.translational_dof = numpy.load(file=path / "translational_dof.npy")
 
 
         rotational_dof (tuple[float, float]): Additional degrees
@@ -171,34 +173,39 @@ class MTTK(Thermostat):
 
             .. code-block:: python
 
-                numpy.save(file=path / 'rotational_dof.npy',
-                           arr=mttk.rotational_dof)
+                numpy.save(
+                    file=path / "rotational_dof.npy",
+                    arr=mttk.rotational_dof,
+                )
 
             Load when continuing:
 
             .. code-block:: python
 
-                mttk = hoomd.md.methods.thermostats.MTTK(kT=1.5,
-                    tau=simulation.operations.integrator.dt*100)
+                mttk = hoomd.md.methods.thermostats.MTTK(
+                    kT=1.5,
+                    tau=simulation.operations.integrator.dt * 100,
+                )
                 simulation.operations.integrator.methods[0].thermostat = mttk
 
-                mttk.rotational_dof = numpy.load(
-                    file=path / 'rotational_dof.npy')
+                mttk.rotational_dof = numpy.load(file=path / "rotational_dof.npy")
     """
 
     def __init__(self, kT, tau):
         super().__init__(kT)
-        param_dict = ParameterDict(tau=float(tau),
-                                   translational_dof=(float, float),
-                                   rotational_dof=(float, float))
+        param_dict = ParameterDict(
+            tau=float(tau),
+            translational_dof=(float, float),
+            rotational_dof=(float, float),
+        )
         param_dict.update(dict(translational_dof=(0, 0), rotational_dof=(0, 0)))
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = _md.MTTKThermostat(self.kT, group, self._thermo,
-                                           self._simulation.state._cpp_sys_def,
-                                           self.tau)
+        self._cpp_obj = _md.MTTKThermostat(
+            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def, self.tau
+        )
 
     @hoomd.logging.log(requires_run=True)
     def energy(self):
@@ -216,11 +223,11 @@ class MTTK(Thermostat):
     def thermalize_dof(self):
         r"""Set the thermostat momenta to random values.
 
-        `thermalize_dof` sets a random value for the momentum
-        :math:`\xi`. When `Integrator.integrate_rotational_dof` is `True`, it
-        also sets a random value for the rotational thermostat momentum
-        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_dof` to set a
-        new random state for the thermostat.
+        `thermalize_dof` sets a random value for the momentum :math:`\xi`.
+        When `hoomd.md.Integrator.integrate_rotational_dof` is `True`,
+        it also sets a random value for the rotational thermostat
+        momentum :math:`\xi_{\mathrm{rot}}`. Call `thermalize_dof` to set a new
+        random state for the thermostat.
 
         .. rubric:: Example
 
@@ -236,7 +243,8 @@ class MTTK(Thermostat):
         if not self._attached:
             raise RuntimeError(
                 "Call Simulation.run(0) before attempting to thermalize the "
-                "MTTK thermostat.")
+                "MTTK thermostat."
+            )
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostat(self._simulation.timestep)
 
@@ -288,8 +296,9 @@ class Bussi(Thermostat):
 
     .. code-block:: python
 
-        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5,
-            tau=simulation.operations.integrator.dt*20)
+        bussi = hoomd.md.methods.thermostats.Bussi(
+            kT=1.5, tau=simulation.operations.integrator.dt * 20
+        )
         simulation.operations.integrator.methods[0].thermostat = bussi
 
     Attributes:
@@ -304,10 +313,7 @@ class Bussi(Thermostat):
 
             .. code-block:: python
 
-                bussi.kT = hoomd.variant.Ramp(A=1.0,
-                                              B=2.0,
-                                              t_start=0,
-                                              t_ramp=1_000_000)
+                bussi.kT = hoomd.variant.Ramp(A=1.0, B=2.0, t_start=0, t_ramp=1_000_000)
 
         tau (float): Thermostat time constant :math:`[\mathrm{time}].`
 
@@ -326,9 +332,9 @@ class Bussi(Thermostat):
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = _md.BussiThermostat(self.kT, group, self._thermo,
-                                            self._simulation.state._cpp_sys_def,
-                                            self.tau)
+        self._cpp_obj = _md.BussiThermostat(
+            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def, self.tau
+        )
         self._simulation._warn_if_seed_unset()
 
 
@@ -360,8 +366,10 @@ class Berendsen(Thermostat):
 
     .. code-block:: python
 
-        berendsen = hoomd.md.methods.thermostats.Berendsen(kT=1.5,
-            tau=simulation.operations.integrator.dt * 10_000)
+        berendsen = hoomd.md.methods.thermostats.Berendsen(
+            kT=1.5,
+            tau=simulation.operations.integrator.dt * 10_000,
+        )
         simulation.operations.integrator.methods[0].thermostat = berendsen
 
     Attributes:
@@ -376,10 +384,9 @@ class Berendsen(Thermostat):
 
             .. code-block:: python
 
-                berendsen.kT = hoomd.variant.Ramp(A=1.0,
-                                                  B=2.0,
-                                                  t_start=0,
-                                                  t_ramp=1_000_000)
+                berendsen.kT = hoomd.variant.Ramp(
+                    A=1.0, B=2.0, t_start=0, t_ramp=1_000_000
+                )
 
         tau (float): Time constant of thermostat. :math:`[time]`
     """
@@ -393,5 +400,13 @@ class Berendsen(Thermostat):
     def _attach_hook(self):
         group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = _md.BerendsenThermostat(
-            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def,
-            self.tau)
+            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def, self.tau
+        )
+
+
+__all__ = [
+    "MTTK",
+    "Berendsen",
+    "Bussi",
+    "Thermostat",
+]

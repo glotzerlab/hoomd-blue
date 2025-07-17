@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraintGPU.h"
@@ -118,8 +118,8 @@ void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
         ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::overwrite);
 
         // reset matrix elements
-        hipMemset(d_cmatrix.data, 0, sizeof(double) * n_constraint * n_constraint);
-        hipMemset(d_cvec.data, 0, sizeof(double) * n_constraint);
+        m_cmatrix.zeroFill();
+        m_cvec.zeroFill();
         }
 
         {

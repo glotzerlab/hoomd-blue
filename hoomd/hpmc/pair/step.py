@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Step function pair potential.
@@ -12,12 +12,13 @@
 """
 
 import hoomd
+import inspect
 
 from .pair import Pair
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 
 
-@hoomd.logging.modify_namespace(('hpmc', 'pair', 'Step'))
+@hoomd.logging.modify_namespace(("hpmc", "pair", "Step"))
 class Step(Pair):
     r"""Step function pair potential (HPMC).
 
@@ -45,6 +46,12 @@ class Step(Pair):
         step.params[('A', 'A')] = dict(epsilon=[1, -1], r=[0.5, 1.5])
         simulation.operations.integrator.pair_potentials = [step]
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Step`:
+
     .. py:attribute:: params
 
         The potential parameters. The dictionary has the following keys:
@@ -58,16 +65,27 @@ class Step(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
     """
+
     _cpp_class_name = "PairPotentialStep"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self):
         params = hoomd.data.typeparam.TypeParameter(
-            'params', 'particle_types',
-            hoomd.data.parameterdicts.TypeParameterDict(OnlyIf(
-                to_type_converter({
-                    'epsilon': [float],
-                    'r': [float],
-                }),
-                allow_none=True),
-                                                        len_keys=2))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                OnlyIf(
+                    to_type_converter(
+                        {
+                            "epsilon": [float],
+                            "r": [float],
+                        }
+                    ),
+                    allow_none=True,
+                ),
+                len_keys=2,
+            ),
+        )
         self._add_typeparam(params)

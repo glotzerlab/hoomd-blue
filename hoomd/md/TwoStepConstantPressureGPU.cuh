@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __TWOSTEP_NPT_MTK_GPU_CUH__
@@ -6,7 +6,6 @@
 
 #include <hip/hip_runtime.h>
 
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 
@@ -26,7 +25,7 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                     Scalar4* d_vel,
                                     const Scalar3* d_accel,
                                     unsigned int* d_group_members,
-                                    const GPUPartition& gpu_partition,
+                                    const unsigned int group_size,
                                     Scalar thermo_rescale,
                                     Scalar* mat_exp_v,
                                     Scalar* mat_exp_r,
@@ -36,7 +35,7 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                     const unsigned int block_size);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
-hipError_t gpu_npt_rescale_wrap(const GPUPartition& gpu_partition,
+hipError_t gpu_npt_rescale_wrap(const unsigned int N,
                                 Scalar4* d_pos,
                                 int3* d_image,
                                 const BoxDim& box,
@@ -46,15 +45,16 @@ hipError_t gpu_npt_rescale_wrap(const GPUPartition& gpu_partition,
 hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
                                     Scalar3* d_accel,
                                     unsigned int* d_group_members,
-                                    const GPUPartition& gpu_partition,
+                                    const unsigned int group_size,
                                     Scalar4* d_net_force,
                                     Scalar* mat_exp_v,
                                     Scalar deltaT,
                                     Scalar thermo_rescale,
-                                    const unsigned int block_size);
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions);
 
 //! Rescale all positions
-void gpu_npt_rescale_rescale(const GPUPartition& gpu_partition,
+void gpu_npt_rescale_rescale(const unsigned int N,
                              Scalar4* d_postype,
                              Scalar mat_exp_r_xx,
                              Scalar mat_exp_r_xy,

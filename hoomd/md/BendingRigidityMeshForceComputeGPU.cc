@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BendingRigidityMeshForceComputeGPU.h"
@@ -48,6 +48,9 @@ BendingRigidityMeshForceComputeGPU::~BendingRigidityMeshForceComputeGPU() { }
  */
 void BendingRigidityMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
+    const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list
+        = this->m_mesh_data->getMeshBondData()->getGPUTable();
+
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
@@ -56,8 +59,6 @@ void BendingRigidityMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
-    const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list
-        = this->m_mesh_data->getMeshBondData()->getGPUTable();
     const Index2D& gpu_table_indexer = this->m_mesh_data->getMeshBondData()->getGPUTableIndexer();
 
     ArrayHandle<typename MeshBond::members_t> d_gpu_meshbondlist(gpu_meshbond_list,

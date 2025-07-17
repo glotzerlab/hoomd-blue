@@ -1,24 +1,31 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import (Options, Either, Generator, ClassDefinition,
-                            pickling_check, logging_check,
-                            autotuned_kernel_parameter_check)
+from hoomd.conftest import (
+    Options,
+    Either,
+    Generator,
+    ClassDefinition,
+    pickling_check,
+    logging_check,
+    autotuned_kernel_parameter_check,
+)
 from hoomd.logging import LoggerCategories
 
 
 class MethodDefinition(ClassDefinition):
-
-    def __init__(self,
-                 cls,
-                 constructor_spec,
-                 attribute_spec=None,
-                 generator=None,
-                 requires_thermostat=False):
+    def __init__(
+        self,
+        cls,
+        constructor_spec,
+        attribute_spec=None,
+        generator=None,
+        requires_thermostat=False,
+    ):
         super().__init__(cls, constructor_spec, attribute_spec, generator)
         self.requires_thermostat = requires_thermostat
 
@@ -39,47 +46,53 @@ class MethodDefinition(ClassDefinition):
         change_attrs = super().generate_all_attr_change()
         change_attrs["filter"] = hoomd.filter.Type(["A"])
         if self.requires_thermostat:
-            change_attrs["thermostat"] = hoomd.md.methods.thermostats.MTTK(
-                1.5, 0.05)
+            change_attrs["thermostat"] = hoomd.md.methods.thermostats.MTTK(1.5, 0.05)
         return change_attrs
 
 
 generator = Generator(np.random.default_rng(546162595))
 
 _method_definitions = (
-    MethodDefinition(hoomd.md.methods.ConstantVolume, {}, {},
-                     generator,
-                     requires_thermostat=True),
-    MethodDefinition(hoomd.md.methods.ConstantPressure, {
-        "S": Either(hoomd.variant.Variant, (hoomd.variant.Variant,) * 6),
-        "tauS": float,
-        "couple": Options("xy", "xz", "yz", "xyz"),
-        "box_dof": (bool,) * 6,
-        "rescale_all": bool,
-        "gamma": float
-    },
-                     generator=generator,
-                     requires_thermostat=True),
-    MethodDefinition(hoomd.md.methods.DisplacementCapped,
-                     {"maximum_displacement": hoomd.variant.Variant},
-                     generator=generator),
-    MethodDefinition(hoomd.md.methods.Langevin, {
-        "kT": hoomd.variant.Variant,
-        "tally_reservoir_energy": bool
-    },
-                     generator=generator),
-    MethodDefinition(hoomd.md.methods.Brownian, {
-        "kT": hoomd.variant.Variant,
-    },
-                     generator=generator),
-    MethodDefinition(hoomd.md.methods.OverdampedViscous, {},
-                     generator=generator),
+    MethodDefinition(
+        hoomd.md.methods.ConstantVolume, {}, {}, generator, requires_thermostat=True
+    ),
+    MethodDefinition(
+        hoomd.md.methods.ConstantPressure,
+        {
+            "S": Either(hoomd.variant.Variant, (hoomd.variant.Variant,) * 6),
+            "tauS": float,
+            "couple": Options("xy", "xz", "yz", "xyz"),
+            "box_dof": (bool,) * 6,
+            "rescale_all": bool,
+            "gamma": float,
+        },
+        generator=generator,
+        requires_thermostat=True,
+    ),
+    MethodDefinition(
+        hoomd.md.methods.DisplacementCapped,
+        {"maximum_displacement": hoomd.variant.Variant},
+        generator=generator,
+    ),
+    MethodDefinition(
+        hoomd.md.methods.Langevin,
+        {"kT": hoomd.variant.Variant, "tally_reservoir_energy": bool},
+        generator=generator,
+    ),
+    MethodDefinition(
+        hoomd.md.methods.Brownian,
+        {
+            "kT": hoomd.variant.Variant,
+        },
+        generator=generator,
+    ),
+    MethodDefinition(hoomd.md.methods.OverdampedViscous, {}, generator=generator),
 )
 
 
-@pytest.fixture(scope="module",
-                params=_method_definitions,
-                ids=lambda x: x.cls.__name__)
+@pytest.fixture(
+    scope="module", params=_method_definitions, ids=lambda x: x.cls.__name__
+)
 def method_definition(request):
     return request.param
 
@@ -87,33 +100,32 @@ def method_definition(request):
 _thermostat_definition = (
     # Somewhat hacky way of representing None or no thermostat
     ClassDefinition(lambda: None, {}, generator=generator),
-    ClassDefinition(hoomd.md.methods.thermostats.MTTK, {
-        "kT": hoomd.variant.Variant,
-        "tau": float
-    },
-                    generator=generator),
-    ClassDefinition(hoomd.md.methods.thermostats.Bussi, {
-        "kT": hoomd.variant.Variant,
-        "tau": float
-    },
-                    generator=generator),
-    ClassDefinition(hoomd.md.methods.thermostats.Berendsen, {
-        "kT": hoomd.variant.Variant,
-        "tau": float
-    },
-                    generator=generator),
+    ClassDefinition(
+        hoomd.md.methods.thermostats.MTTK,
+        {"kT": hoomd.variant.Variant, "tau": float},
+        generator=generator,
+    ),
+    ClassDefinition(
+        hoomd.md.methods.thermostats.Bussi,
+        {"kT": hoomd.variant.Variant, "tau": float},
+        generator=generator,
+    ),
+    ClassDefinition(
+        hoomd.md.methods.thermostats.Berendsen,
+        {"kT": hoomd.variant.Variant, "tau": float},
+        generator=generator,
+    ),
 )
 
 
-@pytest.fixture(scope="module",
-                params=_thermostat_definition,
-                ids=lambda x: x.cls.__name__)
+@pytest.fixture(
+    scope="module", params=_thermostat_definition, ids=lambda x: x.cls.__name__
+)
 def thermostat_definition(request):
     return request.param
 
 
 def check_instance_attrs(instance, attr_dict, set_attrs=False):
-
     def equality(a, b):
         if isinstance(a, type(b)):
             return a == b
@@ -139,21 +151,24 @@ def check_instance_attrs(instance, attr_dict, set_attrs=False):
 
 
 class TestThermostats:
-
     @pytest.mark.parametrize("n", range(10))
     def test_attributes(self, thermostat_definition, n):
         """Test the construction and setting of attributes."""
         constructor_args = thermostat_definition.generate_init_args()
         thermostat = thermostat_definition.cls(**constructor_args)
         check_instance_attrs(thermostat, constructor_args)
-        check_instance_attrs(thermostat,
-                             thermostat_definition.generate_all_attr_change(),
-                             True)
+        check_instance_attrs(
+            thermostat, thermostat_definition.generate_all_attr_change(), True
+        )
 
     @pytest.mark.parametrize("n", range(10))
-    def test_attributes_attached(self, simulation_factory,
-                                 two_particle_snapshot_factory,
-                                 thermostat_definition, n):
+    def test_attributes_attached(
+        self,
+        simulation_factory,
+        two_particle_snapshot_factory,
+        thermostat_definition,
+        n,
+    ):
         """Test the setting of attributes with attaching."""
         constructor_args = thermostat_definition.generate_init_args()
         thermostat = thermostat_definition.cls(**constructor_args)
@@ -171,11 +186,13 @@ class TestThermostats:
         check_instance_attrs(thermostat, change_attrs, True)
 
     def test_thermostat_thermalize_thermostat_dof(
-            self, simulation_factory, two_particle_snapshot_factory):
+        self, simulation_factory, two_particle_snapshot_factory
+    ):
         """Tests that NVT.thermalize_dof can be called."""
         thermostat = hoomd.md.methods.thermostats.MTTK(1.5, 0.05)
-        nvt = hoomd.md.methods.ConstantVolume(thermostat=thermostat,
-                                              filter=hoomd.filter.All())
+        nvt = hoomd.md.methods.ConstantVolume(
+            thermostat=thermostat, filter=hoomd.filter.All()
+        )
 
         sim = simulation_factory(two_particle_snapshot_factory())
         sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
@@ -200,23 +217,25 @@ class TestThermostats:
         assert eta_rot == 0.0
 
     def test_logging(self):
-        logging_check(hoomd.md.methods.thermostats.MTTK,
-                      ('md', 'methods', 'thermostats'), {
-                          'energy': {
-                              'category': LoggerCategories.scalar,
-                              'default': True
-                          },
-                      })
+        logging_check(
+            hoomd.md.methods.thermostats.MTTK,
+            ("md", "methods", "thermostats"),
+            {
+                "energy": {"category": LoggerCategories.scalar, "default": True},
+            },
+        )
 
-    def test_pickling(self, thermostat_definition, simulation_factory,
-                      two_particle_snapshot_factory):
+    def test_pickling(
+        self, thermostat_definition, simulation_factory, two_particle_snapshot_factory
+    ):
         constructor_args = thermostat_definition.generate_init_args()
         thermostat = thermostat_definition.cls(**constructor_args)
         pickling_check(thermostat)
 
         sim = simulation_factory(two_particle_snapshot_factory())
-        method = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
-                                                 thermostat=thermostat)
+        method = hoomd.md.methods.ConstantVolume(
+            filter=hoomd.filter.All(), thermostat=thermostat
+        )
         integrator = hoomd.md.Integrator(0.05, methods=[method])
         sim.operations.integrator = integrator
         sim.run(0)
@@ -224,20 +243,18 @@ class TestThermostats:
 
 
 class TestMethods:
-
     @pytest.mark.parametrize("n", range(10))
     def test_attributes(self, method_definition, n):
         """Test the construction and setting of attributes."""
         constructor_args = method_definition.generate_init_args()
         method = method_definition.cls(**constructor_args)
         check_instance_attrs(method, constructor_args)
-        check_instance_attrs(method,
-                             method_definition.generate_all_attr_change(), True)
+        check_instance_attrs(method, method_definition.generate_all_attr_change(), True)
 
     @pytest.mark.parametrize("n", range(10))
-    def test_attributes_attached(self, simulation_factory,
-                                 two_particle_snapshot_factory,
-                                 method_definition, n):
+    def test_attributes_attached(
+        self, simulation_factory, two_particle_snapshot_factory, method_definition, n
+    ):
         """Test the setting of attributes with attaching."""
         constructor_args = method_definition.generate_init_args()
         method = method_definition.cls(**constructor_args)
@@ -259,8 +276,7 @@ class TestMethods:
 
         check_instance_attrs(method, change_attrs, True)
 
-    def test_switch_methods(self, simulation_factory,
-                            two_particle_snapshot_factory):
+    def test_switch_methods(self, simulation_factory, two_particle_snapshot_factory):
         all_ = hoomd.filter.All()
         method = hoomd.md.methods.Langevin(all_, 1.5, 0.1)
 
@@ -274,11 +290,13 @@ class TestMethods:
         assert len(sim.operations.integrator.methods) == 0
 
         sim.operations.integrator.methods.append(
-            hoomd.md.methods.ConstantVolume(all_, None))
+            hoomd.md.methods.ConstantVolume(all_, None)
+        )
         assert len(sim.operations.integrator.methods) == 1
 
     def test_constant_pressure_thermalize_barostat_dof(
-            self, simulation_factory, two_particle_snapshot_factory):
+        self, simulation_factory, two_particle_snapshot_factory
+    ):
         """Tests that ConstantPressure.thermalize_barostat_dof can be called."""
         all_ = hoomd.filter.All()
         npt = hoomd.md.methods.ConstantPressure(
@@ -287,7 +305,8 @@ class TestMethods:
             S=[1, 2, 3, 0.125, 0.25, 0.5],
             tauS=2.0,
             box_dof=[True, True, True, True, True, True],
-            couple='xyz')
+            couple="xyz",
+        )
 
         sim = simulation_factory(two_particle_snapshot_factory())
         sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
@@ -298,7 +317,8 @@ class TestMethods:
             assert v != 0.0
 
     def test_constant_pressure_attributes_attached_2d(
-            self, simulation_factory, two_particle_snapshot_factory):
+        self, simulation_factory, two_particle_snapshot_factory
+    ):
         """Test attributes of ConstantPressure specific to 2D simulations."""
         all_ = hoomd.filter.All()
         npt = hoomd.md.methods.ConstantPressure(
@@ -306,7 +326,8 @@ class TestMethods:
             thermostat=hoomd.md.methods.thermostats.Bussi(1.0),
             S=2.0,
             tauS=2.0,
-            couple='xy')
+            couple="xy",
+        )
 
         sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
         sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
@@ -316,55 +337,52 @@ class TestMethods:
             with pytest.raises(ValueError):
                 npt.couple = invalid_couple
 
-        npt.couple = 'none'
-        assert npt.couple == 'none'
+        npt.couple = "none"
+        assert npt.couple == "none"
 
         npt.box_dof = [True, True, True, True, True, True]
         assert npt.box_dof == [True, True, False, True, False, False]
 
-    @pytest.mark.parametrize("cls, init_args", [
-        (hoomd.md.methods.Brownian, {
-            'kT': 1.5
-        }),
-        (hoomd.md.methods.Langevin, {
-            'kT': 1.5
-        }),
-        (hoomd.md.methods.OverdampedViscous, {}),
-        (hoomd.md.methods.rattle.Brownian, {
-            'kT': 1.5,
-            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
-        }),
-        (hoomd.md.methods.rattle.Langevin, {
-            'kT': 1.5,
-            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
-        }),
-        (hoomd.md.methods.rattle.OverdampedViscous, {
-            'manifold_constraint': hoomd.md.manifold.Sphere(r=10)
-        }),
-    ])
+    @pytest.mark.parametrize(
+        "cls, init_args",
+        [
+            (hoomd.md.methods.Brownian, {"kT": 1.5}),
+            (hoomd.md.methods.Langevin, {"kT": 1.5}),
+            (hoomd.md.methods.OverdampedViscous, {}),
+            (
+                hoomd.md.methods.rattle.Brownian,
+                {"kT": 1.5, "manifold_constraint": hoomd.md.manifold.Sphere(r=10)},
+            ),
+            (
+                hoomd.md.methods.rattle.Langevin,
+                {"kT": 1.5, "manifold_constraint": hoomd.md.manifold.Sphere(r=10)},
+            ),
+            (
+                hoomd.md.methods.rattle.OverdampedViscous,
+                {"manifold_constraint": hoomd.md.manifold.Sphere(r=10)},
+            ),
+        ],
+    )
     def test_default_gamma(self, cls, init_args):
         c = cls(filter=hoomd.filter.All(), **init_args)
-        assert c.gamma['A'] == 1.0
-        assert c.gamma_r['A'] == (1.0, 1.0, 1.0)
+        assert c.gamma["A"] == 1.0
+        assert c.gamma_r["A"] == (1.0, 1.0, 1.0)
 
         c = cls(filter=hoomd.filter.All(), **init_args, default_gamma=2.0)
-        assert c.gamma['A'] == 2.0
-        assert c.gamma_r['A'] == (1.0, 1.0, 1.0)
+        assert c.gamma["A"] == 2.0
+        assert c.gamma_r["A"] == (1.0, 1.0, 1.0)
 
-        c = cls(filter=hoomd.filter.All(),
-                **init_args,
-                default_gamma_r=(3.0, 4.0, 5.0))
-        assert c.gamma['A'] == 1.0
-        assert c.gamma_r['A'] == (3.0, 4.0, 5.0)
+        c = cls(filter=hoomd.filter.All(), **init_args, default_gamma_r=(3.0, 4.0, 5.0))
+        assert c.gamma["A"] == 1.0
+        assert c.gamma_r["A"] == (3.0, 4.0, 5.0)
 
-    def test_langevin_reservoir(self, simulation_factory,
-                                two_particle_snapshot_factory):
-
+    def test_langevin_reservoir(
+        self, simulation_factory, two_particle_snapshot_factory
+    ):
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
 
         sim = simulation_factory(two_particle_snapshot_factory())
-        sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
-                                                        methods=[langevin])
+        sim.operations.integrator = hoomd.md.Integrator(dt=0.005, methods=[langevin])
         sim.run(10)
         assert langevin.reservoir_energy == 0.0
 
@@ -373,8 +391,9 @@ class TestMethods:
         sim.run(10)
         assert langevin.reservoir_energy != 0.0
 
-    def test_kernel_parameters(self, method_definition, simulation_factory,
-                               two_particle_snapshot_factory):
+    def test_kernel_parameters(
+        self, method_definition, simulation_factory, two_particle_snapshot_factory
+    ):
         sim = simulation_factory(two_particle_snapshot_factory())
         constructor_args = method_definition.generate_init_args()
         method = method_definition.cls(**constructor_args)
@@ -382,11 +401,11 @@ class TestMethods:
         sim.operations.integrator = integrator
         sim.state.thermalize_particle_momenta(hoomd.filter.All(), 1.0)
         sim.run(0)
-        autotuned_kernel_parameter_check(instance=method,
-                                         activate=lambda: sim.run(1))
+        autotuned_kernel_parameter_check(instance=method, activate=lambda: sim.run(1))
 
-    def test_pickling(self, method_definition, simulation_factory,
-                      two_particle_snapshot_factory):
+    def test_pickling(
+        self, method_definition, simulation_factory, two_particle_snapshot_factory
+    ):
         constructor_args = method_definition.generate_init_args()
         method = method_definition.cls(**constructor_args)
         pickling_check(method)
@@ -399,19 +418,22 @@ class TestMethods:
 
     def test_logging(self):
         logging_check(
-            hoomd.md.methods.ConstantPressure, ('md', 'methods'), {
-                'barostat_energy': {
-                    'category': LoggerCategories.scalar,
-                    'default': True
+            hoomd.md.methods.ConstantPressure,
+            ("md", "methods"),
+            {
+                "barostat_energy": {
+                    "category": LoggerCategories.scalar,
+                    "default": True,
                 },
-            })
-        logging_check(hoomd.md.methods.thermostats.MTTK,
-                      ('md', 'methods', 'thermostats'), {
-                          'energy': {
-                              'category': LoggerCategories.scalar,
-                              'default': True
-                          },
-                      })
+            },
+        )
+        logging_check(
+            hoomd.md.methods.thermostats.MTTK,
+            ("md", "methods", "thermostats"),
+            {
+                "energy": {"category": LoggerCategories.scalar, "default": True},
+            },
+        )
 
 
 @pytest.fixture(scope="function", params=range(7))
@@ -428,12 +450,7 @@ def manifold(request):
 
 
 class RattleDefinition(ClassDefinition):
-
-    def __init__(self,
-                 cls,
-                 constructor_spec,
-                 attribute_spec=None,
-                 generator=None):
+    def __init__(self, cls, constructor_spec, attribute_spec=None, generator=None):
         super().__init__(cls, constructor_spec, attribute_spec, generator)
         self.default_manifold = lambda: hoomd.md.manifold.Sphere(5)
         self.default_filter = hoomd.filter.All()
@@ -452,39 +469,44 @@ class RattleDefinition(ClassDefinition):
 
 
 _rattle_definitions = (
-    RattleDefinition(hoomd.md.methods.rattle.NVE, {"tolerance": float},
-                     generator=generator),
-    RattleDefinition(hoomd.md.methods.rattle.DisplacementCapped, {
-        "maximum_displacement": hoomd.variant.Variant,
-        "tolerance": float
-    },
-                     generator=generator),
-    RattleDefinition(hoomd.md.methods.rattle.Langevin, {
-        "kT": hoomd.variant.Variant,
-        "tally_reservoir_energy": bool,
-        "tolerance": float
-    },
-                     generator=generator),
-    RattleDefinition(hoomd.md.methods.rattle.Brownian, {
-        "kT": hoomd.variant.Variant,
-        "tolerance": float
-    },
-                     generator=generator),
-    RattleDefinition(hoomd.md.methods.rattle.OverdampedViscous,
-                     {"tolerance": float},
-                     generator=generator),
+    RattleDefinition(
+        hoomd.md.methods.rattle.NVE, {"tolerance": float}, generator=generator
+    ),
+    RattleDefinition(
+        hoomd.md.methods.rattle.DisplacementCapped,
+        {"maximum_displacement": hoomd.variant.Variant, "tolerance": float},
+        generator=generator,
+    ),
+    RattleDefinition(
+        hoomd.md.methods.rattle.Langevin,
+        {
+            "kT": hoomd.variant.Variant,
+            "tally_reservoir_energy": bool,
+            "tolerance": float,
+        },
+        generator=generator,
+    ),
+    RattleDefinition(
+        hoomd.md.methods.rattle.Brownian,
+        {"kT": hoomd.variant.Variant, "tolerance": float},
+        generator=generator,
+    ),
+    RattleDefinition(
+        hoomd.md.methods.rattle.OverdampedViscous,
+        {"tolerance": float},
+        generator=generator,
+    ),
 )
 
 
-@pytest.fixture(scope="module",
-                params=_rattle_definitions,
-                ids=lambda x: x.cls.__name__)
+@pytest.fixture(
+    scope="module", params=_rattle_definitions, ids=lambda x: x.cls.__name__
+)
 def rattle_definition(request):
     return request.param
 
 
 class TestRattle:
-
     def test_rattle_attributes(self, rattle_definition, manifold):
         constructor_args = rattle_definition.generate_init_args()
         constructor_args["manifold_constraint"] = manifold
@@ -501,10 +523,13 @@ class TestRattle:
         assert method.tolerance == 1e-5
         check_instance_attrs(method, change_attrs, True)
 
-    def test_rattle_attributes_attached(self, simulation_factory,
-                                        two_particle_snapshot_factory,
-                                        rattle_definition, manifold):
-
+    def test_rattle_attributes_attached(
+        self,
+        simulation_factory,
+        two_particle_snapshot_factory,
+        rattle_definition,
+        manifold,
+    ):
         constructor_args = rattle_definition.generate_init_args()
         constructor_args["manifold_constraint"] = manifold
         method = rattle_definition.cls(**constructor_args)
@@ -528,8 +553,9 @@ class TestRattle:
         assert method.manifold_constraint == manifold
         check_instance_attrs(method, change_attrs, True)
 
-    def test_rattle_switch_methods(self, simulation_factory,
-                                   two_particle_snapshot_factory):
+    def test_rattle_switch_methods(
+        self, simulation_factory, two_particle_snapshot_factory
+    ):
         sim = simulation_factory(two_particle_snapshot_factory())
 
         all_ = hoomd.filter.All()
@@ -543,6 +569,6 @@ class TestRattle:
         assert len(sim.operations.integrator.methods) == 0
 
         sim.operations.integrator.methods.append(
-            hoomd.md.methods.rattle.NVE(filter=all_,
-                                        manifold_constraint=manifold))
+            hoomd.md.methods.rattle.NVE(filter=all_, manifold_constraint=manifold)
+        )
         assert len(sim.operations.integrator.methods) == 1

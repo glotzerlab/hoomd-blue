@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Newtonian event chain Monte Carlo.
-
-The integrators in `hoomd.hpmc.nec` implement Newtonian event chain Monte Carlo
+"""The integrators in `hoomd.hpmc.nec` implement Newtonian event chain Monte Carlo
 as described in `Klement 2021 <https://doi.org/10.1021/acs.jctc.1c00311>`__.
 
 Newtonian event chain Monte Carlo combines rejection free particle chain
@@ -50,3 +48,8 @@ See Also:
 
 from . import integrate
 from . import tune
+
+__all__ = [
+    "integrate",
+    "tune",
+]

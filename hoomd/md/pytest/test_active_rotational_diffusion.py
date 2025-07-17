@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -10,26 +10,25 @@ import hoomd.conftest
 
 @pytest.fixture(
     params=[
-        (hoomd.md.force.Active, {
-            "filter": hoomd.filter.All()
-        }),
+        (hoomd.md.force.Active, {"filter": hoomd.filter.All()}),
         (
             hoomd.md.force.ActiveOnManifold,
             {
                 "filter": hoomd.filter.All(),
                 # this is the shift used by two_particle_snapshot_factory
-                "manifold_constraint": hoomd.md.manifold.Plane(shift=0.1)
-            })
+                "manifold_constraint": hoomd.md.manifold.Plane(shift=0.1),
+            },
+        ),
     ],
-    ids=lambda x: x[0].__name__)
+    ids=lambda x: x[0].__name__,
+)
 def active_force(request):
     cls, kwargs = request.param
     yield cls(**kwargs)
 
 
 def test_construction(active_force):
-    rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
-        10, active_force, 0.1)
+    rd_updater = hoomd.md.update.ActiveRotationalDiffusion(10, active_force, 0.1)
 
     # We want to test identity for active force since the two are linked.
     assert rd_updater.active_force is active_force
@@ -37,9 +36,10 @@ def test_construction(active_force):
     assert rd_updater.rotational_diffusion == hoomd.variant.Constant(0.1)
 
     after_trigger = hoomd.trigger.After(100)
-    ramp_variant = hoomd.variant.Ramp(0.1, 1., 100, 1_000)
+    ramp_variant = hoomd.variant.Ramp(0.1, 1.0, 100, 1_000)
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
-        after_trigger, active_force, ramp_variant)
+        after_trigger, active_force, ramp_variant
+    )
 
     assert rd_updater.active_force is active_force
     assert rd_updater.trigger == after_trigger
@@ -64,8 +64,7 @@ def check_setting(active_force, rd_updater):
 
 
 def test_setting(active_force):
-    rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
-        10, active_force, 0.1)
+    rd_updater = hoomd.md.update.ActiveRotationalDiffusion(10, active_force, 0.1)
     check_setting(active_force, rd_updater)
 
 
@@ -84,10 +83,10 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
         if isinstance(active_force, hoomd.md.force.Active):
             method = hoomd.md.methods.ConstantVolume(hoomd.filter.All())
         else:
-            method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
-                                                 hoomd.md.manifold.Plane(0.1))
-        sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
-                                                        methods=[method])
+            method = hoomd.md.methods.rattle.NVE(
+                hoomd.filter.All(), hoomd.md.manifold.Plane(0.1)
+            )
+        sim.operations.integrator = hoomd.md.Integrator(dt=0.005, methods=[method])
         if active_force is not None:
             sim.operations.integrator.forces.append(active_force)
         if rd_updater is not None:
@@ -99,8 +98,7 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_attaching(active_force, local_simulation_factory):
-    rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
-        10, active_force, 0.1)
+    rd_updater = hoomd.md.update.ActiveRotationalDiffusion(10, active_force, 0.1)
     sim = local_simulation_factory(active_force, rd_updater)
     sim.run(0)
     check_setting(active_force, rd_updater)
@@ -126,9 +124,9 @@ def test_attaching(active_force, local_simulation_factory):
 
 
 def test_update(active_force, local_simulation_factory):
-    active_force.active_force.default = (1., 0., 0.)
+    active_force.active_force.default = (1.0, 0.0, 0.0)
     # Set torque to zero so no angular momentum exists to change orientations.
-    active_force.active_torque.default = (0., 0., 0.)
+    active_force.active_torque.default = (0.0, 0.0, 0.0)
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(1, active_force, 0.1)
     sim = local_simulation_factory(active_force, rd_updater)
     snapshot = sim.state.get_snapshot()

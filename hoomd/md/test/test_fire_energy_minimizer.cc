@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -100,9 +100,9 @@ void randpts(vector<Scalar>& x,
 
     while (i < N)
         {
-        Scalar xi = rand() / (Scalar(RAND_MAX))*box - 0.5 * box;
-        Scalar yi = rand() / (Scalar(RAND_MAX))*box - 0.5 * box;
-        Scalar zi = rand() / (Scalar(RAND_MAX))*box - 0.5 * box;
+        Scalar xi = rand() / (Scalar(RAND_MAX)) * box - 0.5 * box;
+        Scalar yi = rand() / (Scalar(RAND_MAX)) * box - 0.5 * box;
+        Scalar zi = rand() / (Scalar(RAND_MAX)) * box - 0.5 * box;
 
         int overlap = 0;
         for (unsigned int j = 0; j < i; j++)
@@ -268,10 +268,12 @@ void fire_smallsystem_test(fire_creator fire_creator1,
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(0.3)));
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
-                                                       exec_conf);
-    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-    h_r_cut.data[0] = 2.5;
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 2.5;
+        }
     nlist->addRCutMatrix(r_cut);
     std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(2.5));
@@ -355,10 +357,12 @@ void fire_twoparticle_test(fire_creator fire_creator1,
     std::shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
 
     std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(0.3)));
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
-                                                       exec_conf);
-    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-    h_r_cut.data[0] = 3.0;
+    auto r_cut = std::make_shared<GPUArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                                    exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        }
     nlist->addRCutMatrix(r_cut);
     std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(3.0));

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantPressureGPU.cuh"
@@ -135,11 +135,11 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                    access_mode::readwrite);
 
         // perform the update on the GPU
-        m_exec_conf->beginMultiGPU();
+        m_exec_conf->setDevice();
         m_tuner_rescale->begin();
 
         // perform the particle update on the GPU
-        kernel::gpu_npt_rescale_rescale(m_pdata->getGPUPartition(),
+        kernel::gpu_npt_rescale_rescale(m_pdata->getN(),
                                         d_pos.data,
                                         m_mat_exp_r[0],
                                         m_mat_exp_r[1],
@@ -153,7 +153,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
             CHECK_CUDA_ERROR();
 
         m_tuner_rescale->end();
-        m_exec_conf->endMultiGPU();
         }
 
         {
@@ -172,14 +171,13 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // perform the particle update on the GPU
-        m_exec_conf->beginMultiGPU();
         m_tuner_one->begin();
 
         kernel::gpu_npt_rescale_step_one(d_pos.data,
                                          d_vel.data,
                                          d_accel.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          rescalingFactors[0],
                                          m_mat_exp_v,
                                          m_mat_exp_r,
@@ -192,7 +190,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
             CHECK_CUDA_ERROR();
 
         m_tuner_one->end();
-        m_exec_conf->endMultiGPU();
         } // end of GPUArray scope
 
     // Get new (local) box lengths
@@ -207,17 +204,15 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                   access_mode::readwrite);
 
         // Wrap particles
-        m_exec_conf->beginMultiGPU();
         m_tuner_wrap->begin();
 
-        kernel::gpu_npt_rescale_wrap(m_pdata->getGPUPartition(),
+        kernel::gpu_npt_rescale_wrap(m_pdata->getN(),
                                      d_pos.data,
                                      d_image.data,
                                      box,
                                      m_tuner_wrap->getParam()[0]);
 
         m_tuner_wrap->end();
-        m_exec_conf->endMultiGPU();
         }
 
     if (m_aniso)
@@ -239,7 +234,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
         kernel::gpu_nve_angular_step_one(d_orientation.data,
@@ -247,7 +241,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          d_inertia.data,
                                          d_net_torque.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          m_deltaT,
                                          rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
@@ -255,7 +249,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_angular_one->end();
-        m_exec_conf->endMultiGPU();
         }
     if (m_thermostat)
         {
@@ -276,7 +269,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
 */
 void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
     {
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
@@ -302,23 +295,23 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
         // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform second half step of NPT integration (update velocities and accelerations)
-        m_exec_conf->beginMultiGPU();
+        m_exec_conf->setDevice();
         m_tuner_two->begin();
 
         kernel::gpu_npt_rescale_step_two(d_vel.data,
                                          d_accel.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          d_net_force.data,
                                          m_mat_exp_v,
                                          m_deltaT,
                                          rescalingFactors[0], // exp_thermo_fac,
-                                         m_tuner_two->getParam()[0]);
+                                         m_tuner_two->getParam()[0],
+                                         m_sysdef->getNDimensions());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_two->end();
-        m_exec_conf->endMultiGPU();
 
         } // end GPUArray scope
 
@@ -343,7 +336,6 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
 
         // precompute loop invariant quantity
 
-        m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
 
         kernel::gpu_nve_angular_step_two(d_orientation.data,
@@ -351,7 +343,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                          d_inertia.data,
                                          d_net_torque.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          m_deltaT,
                                          rescalingFactors[1], // exp_thermo_fac_rot,
                                          m_tuner_angular_two->getParam()[0]);
@@ -360,7 +352,6 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
             CHECK_CUDA_ERROR();
 
         m_tuner_angular_two->end();
-        m_exec_conf->endMultiGPU();
         }
 
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step

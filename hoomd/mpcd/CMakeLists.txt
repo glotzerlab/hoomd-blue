@@ -15,6 +15,7 @@ set(_mpcd_cc_sources
     ManualVirtualParticleFiller.cc
     ParallelPlateGeometryFiller.cc
     PlanarPoreGeometryFiller.cc
+    ReverseNonequilibriumShearFlow.cc
     Sorter.cc
     SRDCollisionMethod.cc
     StreamingMethod.cc
@@ -41,6 +42,8 @@ set(_mpcd_headers
     ParallelPlateGeometryFiller.h
     PlanarPoreGeometryFiller.h
     RejectionVirtualParticleFiller.h
+    ReverseNonequilibriumShearFlow.h
+    ReverseNonequilibriumShearFlowUtilities.h
     Sorter.h
     SRDCollisionMethod.h
     StreamingMethod.h
@@ -73,6 +76,7 @@ if(ENABLE_HIP)
         CommunicatorGPU.cc
         ParallelPlateGeometryFillerGPU.cc
         PlanarPoreGeometryFillerGPU.cc
+        ReverseNonequilibriumShearFlowGPU.cc
         SorterGPU.cc
         SRDCollisionMethodGPU.cc
         )
@@ -81,6 +85,8 @@ if(ENABLE_HIP)
         ATCollisionMethodGPU.h
         BounceBackNVEGPU.cuh
         BounceBackNVEGPU.h
+        BounceBackStreamingMethodGPU.cuh
+        BounceBackStreamingMethodGPU.h
         BulkStreamingMethodGPU.h
         CellCommunicator.cuh
         CellThermoComputeGPU.cuh
@@ -89,15 +95,15 @@ if(ENABLE_HIP)
         CellListGPU.h
         CommunicatorGPU.cuh
         CommunicatorGPU.h
-        BounceBackStreamingMethodGPU.cuh
-        BounceBackStreamingMethodGPU.h
-        ParticleData.cuh
         ParallelPlateGeometryFillerGPU.cuh
         ParallelPlateGeometryFillerGPU.h
+        ParticleData.cuh
         PlanarPoreGeometryFillerGPU.cuh
         PlanarPoreGeometryFillerGPU.h
         RejectionVirtualParticleFillerGPU.cuh
         RejectionVirtualParticleFillerGPU.h
+        ReverseNonequilibriumShearFlowGPU.cuh
+        ReverseNonequilibriumShearFlowGPU.h
         SorterGPU.cuh
         SorterGPU.h
         SRDCollisionMethodGPU.cuh
@@ -113,6 +119,7 @@ if(ENABLE_HIP)
         ParallelPlateGeometryFillerGPU.cu
         PlanarPoreGeometryFillerGPU.cu
         RejectionVirtualParticleFillerGPU.cu
+        ReverseNonequilibriumShearFlowGPU.cu
         SorterGPU.cu
         SRDCollisionMethodGPU.cu
         )
@@ -265,6 +272,7 @@ set(files
     methods.py
     stream.py
     tune.py
+    update.py
     )
 install(FILES ${files} DESTINATION ${PYTHON_SITE_INSTALL_DIR}/mpcd)
 copy_files_to_build("${files}" "mpcd" "*.py")

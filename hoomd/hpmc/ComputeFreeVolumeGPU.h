@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
@@ -170,24 +170,6 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
                                          access_location::device,
                                          access_mode::read);
 
-    // per-device cell list data
-    const ArrayHandle<unsigned int>& d_cell_size_per_device
-        = this->m_cl->getPerDevice()
-              ? ArrayHandle<unsigned int>(this->m_cl->getCellSizeArrayPerDevice(),
-                                          access_location::device,
-                                          access_mode::read)
-              : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
-                                          access_location::device,
-                                          access_mode::read);
-    const ArrayHandle<unsigned int>& d_cell_idx_per_device
-        = this->m_cl->getPerDevice()
-              ? ArrayHandle<unsigned int>(this->m_cl->getIndexArrayPerDevice(),
-                                          access_location::device,
-                                          access_mode::read)
-              : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
-                                          access_location::device,
-                                          access_mode::read);
-
     ArrayHandle<unsigned int> d_excell_idx(this->m_excell_idx,
                                            access_location::device,
                                            access_mode::readwrite);
@@ -200,13 +182,12 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     gpu::hpmc_excell(d_excell_idx.data,
                      d_excell_size.data,
                      m_excell_list_indexer,
-                     this->m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                     this->m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
+                     d_cell_idx.data,
+                     d_cell_size.data,
                      d_cell_adj.data,
                      this->m_cl->getCellIndexer(),
                      this->m_cl->getCellListIndexer(),
                      this->m_cl->getCellAdjIndexer(),
-                     this->m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
                      this->m_tuner_excell_block_size->getParam()[0]);
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
@@ -153,14 +153,13 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1, 1, 1)].z), 1);
             break;
             }
-
-        // Check the net stats of the system
-        CHECK_CLOSE(thermo->getNetMomentum().x, 1.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().y, 1.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().z, 1.0, tol);
-        CHECK_CLOSE(thermo->getNetEnergy(), 13.5, tol);
-        CHECK_CLOSE(thermo->getTemperature(), 2.0, tol);
         }
+    // Check the net stats of the system
+    CHECK_CLOSE(thermo->getNetMomentum().x, 1.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().y, 1.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().z, 1.0, tol);
+    CHECK_CLOSE(thermo->getNetEnergy(), 13.5, tol);
+    CHECK_CLOSE(thermo->getTemperature(), 2.0, tol);
 
         // scale all particles so that they move into one common cell
         {
@@ -201,14 +200,13 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(h_cell_energy.data[local_idx].x, 13.5, tol);
         CHECK_CLOSE(h_cell_energy.data[local_idx].y, 10. / 9., tol);
         CHECK_CLOSE(__double_as_int(h_cell_energy.data[local_idx].z), 9, tol);
-
-        // Check the net stats of the system
-        CHECK_CLOSE(thermo->getNetMomentum().x, 1.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().y, 1.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().z, 1.0, tol);
-        CHECK_CLOSE(thermo->getNetEnergy(), 13.5, tol);
-        CHECK_CLOSE(thermo->getTemperature(), 10. / 9., tol);
         }
+    // Check the net stats of the system
+    CHECK_CLOSE(thermo->getNetMomentum().x, 1.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().y, 1.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().z, 1.0, tol);
+    CHECK_CLOSE(thermo->getNetEnergy(), 13.5, tol);
+    CHECK_CLOSE(thermo->getTemperature(), 10. / 9., tol);
     }
 
 UP_TEST(mpcd_cell_thermo_basic)

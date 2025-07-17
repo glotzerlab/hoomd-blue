@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Perform user defined computations during the half-step of a \
@@ -28,4 +28,5 @@ class HalfStepHook(_md.HalfStepHook):
         """
         raise TypeError(
             "Use a hoomd.md.HalfStepHook derived class implementing the "
-            "corresponding update method.")
+            "corresponding update method."
+        )

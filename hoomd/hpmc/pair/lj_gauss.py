@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Lennard-Jones-Gauss pair potential.
@@ -12,12 +12,13 @@
 """
 
 import hoomd
+import inspect
 
 from .pair import Pair
 from hoomd.data.typeconverter import positive_real
 
 
-@hoomd.logging.modify_namespace(('hpmc', 'pair', 'LJGauss'))
+@hoomd.logging.modify_namespace(("hpmc", "pair", "LJGauss"))
 class LJGauss(Pair):
     """Lennard-Jones-Gauss pair potential (HPMC).
 
@@ -42,10 +43,16 @@ class LJGauss(Pair):
     .. code-block:: python
 
         lj_gauss = hoomd.hpmc.pair.LJGauss()
-        lj_gauss.params[('A', 'A')] = dict(
-          epsilon=1.0, sigma=0.02, r0=1.6, r_cut=2.5
+        lj_gauss.params[("A", "A")] = dict(
+            epsilon=1.0, sigma=0.02, r0=1.6, r_cut=2.5
         )
         simulation.operations.integrator.pair_potentials = [lj_gauss]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `LJGauss`:
 
     .. py:attribute:: params
 
@@ -76,31 +83,39 @@ class LJGauss(Pair):
 
         .. code-block:: python
 
-            lj_gauss.mode = 'shift'
+            lj_gauss.mode = "shift"
 
         Type: `str`
     """
-    _cpp_class_name = "PairPotentialLJGauss"
 
-    def __init__(self, default_r_cut=None, default_r_on=0.0, mode='none'):
+    _cpp_class_name = "PairPotentialLJGauss"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
+
+    def __init__(self, default_r_cut=None, default_r_on=0.0, mode="none"):
         if default_r_cut is None:
             default_r_cut = float
         else:
             default_r_cut = float(default_r_cut)
 
         params = hoomd.data.typeparam.TypeParameter(
-            'params', 'particle_types',
+            "params",
+            "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(
                 epsilon=float,
                 sigma=positive_real,
                 r0=float,
                 r_cut=default_r_cut,
                 r_on=float(default_r_on),
-                len_keys=2))
+                len_keys=2,
+            ),
+        )
         self._add_typeparam(params)
 
         self._param_dict.update(
             hoomd.data.parameterdicts.ParameterDict(
-                mode=hoomd.data.typeconverter.OnlyFrom(("none", "shift",
-                                                        "xplor"))))
+                mode=hoomd.data.typeconverter.OnlyFrom(("none", "shift", "xplor"))
+            )
+        )
         self.mode = mode

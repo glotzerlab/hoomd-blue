@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Particle filters.
-
-Particle filters describe criteria to select subsets of particles in the
+"""Particle filters describe criteria to select subsets of particles in the
 system for use by various operations throughout HOOMD. To maintain high
 performance, filters are **not** re-evaluated on every use. Instead, each unique
 particular filter (defined by the class name and hash) is mapped to a **group**,
@@ -42,3 +40,17 @@ An object that acts like a particle filter.
 
 Either a subclass of `ParticleFilter` or `CustomFilter`.
 """
+
+__all__ = [
+    "All",
+    "CustomFilter",
+    "Intersection",
+    "Null",
+    "ParticleFilter",
+    "Rigid",
+    "SetDifference",
+    "Tags",
+    "Type",
+    "Union",
+    "filter_like",
+]

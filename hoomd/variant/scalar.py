@@ -1,9 +1,10 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement variants that return scalar values."""
 
 import typing
+import inspect
 
 from hoomd import _hoomd
 
@@ -24,13 +25,13 @@ class Variant(_hoomd.Variant):
                 hoomd.variant.Variant.__init__(self)
 
             def __call__(self, timestep):
-                return (float(timestep)**(1 / 2))
+                return float(timestep) ** (1 / 2)
 
             def _min(self):
                 return 0.0
 
             def _max(self):
-                return float('inf')
+                return float("inf")
 
     Note:
         Provide the minimum and maximum values in the ``_min`` and ``_max``
@@ -44,6 +45,28 @@ class Variant(_hoomd.Variant):
         :type timestep: int
         :return: The value of the function at the given time step.
         :rtype: float
+    """
+
+    _doc_inherited = """
+    ----------
+
+    **Members inherited from**
+    `Variant <hoomd.variant.Variant>`:
+
+    .. py:method:: __call__
+
+        Evaluate the function.
+        `Read more... <hoomd.variant.Variant.__call__>`
+
+    .. py:property:: max
+
+        Maximum value of the variant.
+        `Read more... <hoomd.variant.Variant.max>`
+
+    .. py:property:: min
+
+        Minimum value of the variant.
+        `Read more... <hoomd.variant.Variant.min>`
     """
 
     @property
@@ -72,8 +95,8 @@ class Variant(_hoomd.Variant):
         if not isinstance(other, type(self)):
             return False
         return all(
-            getattr(self, attr) == getattr(other, attr)
-            for attr in self._eq_attrs)
+            getattr(self, attr) == getattr(other, attr) for attr in self._eq_attrs
+        )
 
 
 class Constant(_hoomd.VariantConstant, Variant):
@@ -90,9 +113,16 @@ class Constant(_hoomd.VariantConstant, Variant):
 
             variant = hoomd.variant.Constant(1.0)
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Constant`:
+
     Attributes:
         value (float): The value.
     """
+
     _eq_attrs = ("value",)
 
     def __init__(self, value):
@@ -100,6 +130,9 @@ class Constant(_hoomd.VariantConstant, Variant):
         _hoomd.VariantConstant.__init__(self, value)
 
     __eq__ = Variant._private_eq
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Variant._doc_inherited)
+    )
 
 
 class Ramp(_hoomd.VariantRamp, Variant):
@@ -114,17 +147,22 @@ class Ramp(_hoomd.VariantRamp, Variant):
     `Ramp` holds the value *A* until time *t_start*. Then it ramps linearly from
     *A* to *B* over *t_ramp* steps and holds the value *B*.
 
-    .. image:: variant-ramp.svg
+    .. image:: /variant-ramp.svg
        :alt: Example plot of a ramp variant.
 
     .. rubric:: Example:
 
     .. code-block:: python
 
-            variant = hoomd.variant.Ramp(A=1.0,
-                                         B=2.0,
-                                         t_start=10_000,
-                                         t_ramp=100_000)
+            variant = hoomd.variant.Ramp(
+                A=1.0, B=2.0, t_start=10_000, t_ramp=100_000
+            )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Ramp`:
 
     Attributes:
         A (float): The start value.
@@ -132,7 +170,11 @@ class Ramp(_hoomd.VariantRamp, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
     """
+
     _eq_attrs = ("A", "B", "t_start", "t_ramp")
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Variant._doc_inherited)
+    )
 
     def __init__(self, A, B, t_start, t_ramp):
         Variant.__init__(self)
@@ -159,20 +201,28 @@ class Cycle(_hoomd.VariantCycle, Variant):
     back from *B* to *A* over *t_BA* steps and repeats the cycle starting with
     *t_A*. `Cycle` repeats this cycle indefinitely.
 
-    .. image:: variant-cycle.svg
+    .. image:: /variant-cycle.svg
        :alt: Example plot of a cycle variant.
 
     .. rubric:: Example:
 
     .. code-block:: python
 
-            variant = hoomd.variant.Cycle(A=1.0,
-                                          B=2.0,
-                                          t_start=10_000,
-                                          t_A=100_000,
-                                          t_AB=1_000_000,
-                                          t_B=200_000,
-                                          t_BA=2_000_000)
+            variant = hoomd.variant.Cycle(
+                A=1.0,
+                B=2.0,
+                t_start=10_000,
+                t_A=100_000,
+                t_AB=1_000_000,
+                t_B=200_000,
+                t_BA=2_000_000,
+            )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Cycle`:
 
     Attributes:
         A (float): The first value.
@@ -183,7 +233,11 @@ class Cycle(_hoomd.VariantCycle, Variant):
         t_B (int): The holding time at B.
         t_BA (int): The time spent ramping from B to A.
     """
+
     _eq_attrs = ("A", "B", "t_start", "t_A", "t_AB", "t_B", "t_BA")
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Variant._doc_inherited)
+    )
 
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
         Variant.__init__(self)
@@ -206,17 +260,22 @@ class Power(_hoomd.VariantPower, Variant):
     :math:`t^{\\mathrm{power}}` from *A* to *B* over *t_ramp* steps and holds
     the value *B* after that.
 
-    .. image:: variant-power.svg
+    .. image:: /variant-power.svg
        :alt: Example plot of a power variant.
 
     .. rubric:: Example:
 
     .. code-block:: python
 
-        variant = hoomd.variant.Power(A=2,
-                                      B=8,
-                                      power=1 / 10,
-                                      t_start=10, t_ramp=20)
+        variant = hoomd.variant.Power(
+            A=2, B=8, power=1 / 10, t_start=10, t_ramp=20
+        )
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Power`:
 
     Attributes:
         A (float): The start value.
@@ -225,7 +284,11 @@ class Power(_hoomd.VariantPower, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
     """
+
     _eq_attrs = ("A", "B", "power", "t_start", "t_ramp")
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Variant._doc_inherited)
+    )
 
     def __init__(self, A, B, power, t_start, t_ramp):
         Variant.__init__(self)
@@ -235,15 +298,3 @@ class Power(_hoomd.VariantPower, Variant):
 
 
 variant_like = typing.Union[Variant, float]
-"""
-Objects that are like a variant.
-
-Any subclass of `Variant` is accepted along with float instances and objects
-convertible to float. They are internally converted to variants of type
-`Constant` via ``Constant(float(a))`` where ``a`` is the float or float
-convertible object.
-
-Note:
-    Attributes that are `Variant` objects can be set via a `variant_like`
-    object.
-"""

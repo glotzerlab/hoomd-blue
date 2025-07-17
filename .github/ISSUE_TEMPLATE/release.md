@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release 4.9.1'
+title: 'Release 5.2.0'
 labels: ''
 assignees: 'joaander'
 
@@ -20,12 +20,13 @@ Minor and major releases:
 
 All releases:
 
-- [ ] Update change log.
-  - ``git log --format=oneline --first-parent $(git log -n 1 --pretty=format:%H -- CHANGELOG.rst)...``
+- [ ] Review change log.
 - [ ] Check readthedocs build, especially change log formatting.
 - [ ] Run *bumpversion*.
 - [ ] Tag and push.
 - [ ] Update conda-forge recipe.
 - [ ] Update *glotzerlab-software*.
 - [ ] Update *hoomd-component-template*.
+- [ ] Update *hoomd-md-pair-template*.
+- [ ] Update *hoomd-hpmc-shape-template*.
 - [ ] Update *hpmc-energy-template*.

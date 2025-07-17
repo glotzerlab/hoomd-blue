@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -54,7 +54,7 @@ class PYBIND11_EXPORT RejectionVirtualParticleFillerGPU
 
     protected:
     //! Fill the volume outside the confinement
-    virtual void fill(unsigned int timestep);
+    void fill(uint64_t timestep) override;
 
     private:
     GPUArray<bool> m_keep_particles; // Track whether particles are in/out of bounds for geometry
@@ -64,11 +64,16 @@ class PYBIND11_EXPORT RejectionVirtualParticleFillerGPU
     std::shared_ptr<Autotuner<1>> m_tuner2; //!< Autotuner for particle tagging
     };
 
-template<class Geometry>
-void RejectionVirtualParticleFillerGPU<Geometry>::fill(unsigned int timestep)
+template<class Geometry> void RejectionVirtualParticleFillerGPU<Geometry>::fill(uint64_t timestep)
     {
-    // Number of particles that we need to draw (constant)
     const BoxDim& box = this->m_pdata->getBox();
+    if (box.getTiltFactorXY() != Scalar(0.0) || box.getTiltFactorXZ() != Scalar(0.0)
+        || box.getTiltFactorYZ() != Scalar(0.0))
+        {
+        throw std::runtime_error("Rejection particle filler does not work with skewed boxes");
+        }
+
+    // Number of particles that we need to draw (constant)
     const Scalar3 lo = box.getLo();
     const Scalar3 hi = box.getHi();
     const unsigned int num_virtual_max
@@ -182,10 +187,8 @@ template<class Geometry> void export_RejectionVirtualParticleFillerGPU(pybind11:
     namespace py = pybind11;
     const std::string name = Geometry::getName() + "GeometryFillerGPU";
     py::class_<mpcd::RejectionVirtualParticleFillerGPU<Geometry>,
-               std::shared_ptr<mpcd::RejectionVirtualParticleFillerGPU<Geometry>>>(
-        m,
-        name.c_str(),
-        py::base<mpcd::RejectionVirtualParticleFiller<Geometry>>())
+               mpcd::RejectionVirtualParticleFiller<Geometry>,
+               std::shared_ptr<mpcd::RejectionVirtualParticleFillerGPU<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             const std::string&,
                             Scalar,

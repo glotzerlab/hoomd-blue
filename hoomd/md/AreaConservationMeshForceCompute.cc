@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshForceCompute.h"
@@ -95,6 +95,8 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
  */
 void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
+    unsigned int triN = m_mesh_data->getSize();
+
     precomputeParameter(); // precompute area
 
     assert(m_pdata);
@@ -121,8 +123,8 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_rtag.data);
     assert(h_triangles.data);
 
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_virial.zeroFill();
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
@@ -136,8 +138,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     Scalar area_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         area_virial[i] = Scalar(0.0);
-
-    unsigned int triN = m_mesh_data->getSize();
 
     // loop over mesh triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -290,10 +290,11 @@ void AreaConservationMeshForceCompute::precomputeParameter()
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
-    const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+    unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+    if (m_ignore_type)
+        n_types = 1;
 
     std::vector<Scalar> global_area(n_types);
-
     for (unsigned int i = 0; i < n_types; i++)
         global_area[i] = 0;
 

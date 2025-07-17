@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -15,6 +15,30 @@ mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
                                Scalar cell_size,
                                bool shift)
     : mpcd::CellList(sysdef, cell_size, shift)
+    {
+    m_tuner_cell.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "mpcd_cell"));
+    m_tuner_sort.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "mpcd_cell_sort"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_cell, m_tuner_sort});
+
+#ifdef ENABLE_MPI
+    m_tuner_embed_migrate.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                                 m_exec_conf,
+                                                 "mpcd_cell_embed_migrate"));
+    m_autotuners.push_back(m_tuner_embed_migrate);
+
+    GPUFlags<unsigned int> migrate_flag(m_exec_conf);
+    m_migrate_flag.swap(migrate_flag);
+#endif // ENABLE_MPI
+    }
+
+mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
+                               const uint3& global_cell_dim,
+                               bool shift)
+    : mpcd::CellList(sysdef, global_cell_dim, shift)
     {
     m_tuner_cell.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
@@ -90,9 +114,9 @@ void mpcd::CellListGPU::buildCellList()
                                      m_pdata->getBox().getPeriodic(),
                                      m_origin_idx,
                                      m_grid_shift,
-                                     m_pdata->getGlobalBox().getLo(),
+                                     m_pdata->getGlobalBox(),
                                      n_global_cells,
-                                     m_cell_size,
+                                     m_global_cell_dim,
                                      m_cell_np_max,
                                      m_cell_indexer,
                                      m_cell_list_indexer,
@@ -117,9 +141,9 @@ void mpcd::CellListGPU::buildCellList()
                                      m_pdata->getBox().getPeriodic(),
                                      m_origin_idx,
                                      m_grid_shift,
-                                     m_pdata->getGlobalBox().getLo(),
+                                     m_pdata->getGlobalBox(),
                                      n_global_cells,
-                                     m_cell_size,
+                                     m_global_cell_dim,
                                      m_cell_np_max,
                                      m_cell_indexer,
                                      m_cell_list_indexer,

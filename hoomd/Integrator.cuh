@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Integrator.cuh
@@ -8,7 +8,6 @@
 #ifndef __INTEGRATOR_CUH__
 #define __INTEGRATOR_CUH__
 
-#include "GPUPartition.cuh"
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 
@@ -69,8 +68,7 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                         const gpu_force_list& force_list,
                                         unsigned int nparticles,
                                         bool clear,
-                                        bool compute_virial,
-                                        const GPUPartition& gpu_partition);
+                                        bool compute_virial);
 
     } // end namespace kernel
 

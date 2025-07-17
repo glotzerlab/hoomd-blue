@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.h"
@@ -48,8 +48,8 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
     // unsigned int N = m_pdata->getNGlobal();
     // unsigned int group_size = m_group->getNumMembersGlobal();
     unsigned int type = m_pdata->getNTypes();
-    GlobalVector<Scalar4> tmp_f_activeVec(type, m_exec_conf);
-    GlobalVector<Scalar4> tmp_t_activeVec(type, m_exec_conf);
+    GPUVector<Scalar4> tmp_f_activeVec(type, m_exec_conf);
+    GPUVector<Scalar4> tmp_t_activeVec(type, m_exec_conf);
 
         {
         ArrayHandle<Scalar4> old_f_activeVec(m_f_activeVec, access_location::host);
@@ -99,6 +99,9 @@ void ActiveForceComputeGPU::setForces()
     assert(d_index_array.data != NULL);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
+
+    m_force.zeroFill();
+    m_torque.zeroFill();
 
     // compute the forces on the GPU
     m_tuner_force->begin();

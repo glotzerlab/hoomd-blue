@@ -1,6 +1,3 @@
-.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 ==========
 HOOMD-blue
 ==========
@@ -59,7 +56,7 @@ Related tools
 
 - `freud <https://freud.readthedocs.io/>`_:
   Analyze HOOMD-blue simulation results with the **freud** Python library.
-- `signac <https://signac.io/>`_:
+- `signac <https://signac.readthedocs.io/>`_:
   Manage your workflow with **signac**.
 - `Molecular Simulation Design Framework (MoSDeF)`_ tools:
 
@@ -142,10 +139,10 @@ Molecular dynamics:
    :maxdepth: 1
    :caption: Python API
 
-   package-hoomd
-   package-hpmc
-   package-md
-   package-mpcd
+   module-hoomd
+   hoomd/module-hpmc
+   hoomd/module-md
+   hoomd/module-mpcd
 
 .. toctree::
    :maxdepth: 2

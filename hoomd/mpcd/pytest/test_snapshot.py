@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -70,10 +70,12 @@ def test_resize(snap):
         # grow the snapshot by one, and make sure first entry is retained, and
         # it is padded by zeros
         snap.mpcd.N = 2
-        np.testing.assert_array_equal(snap.mpcd.position,
-                                      [test_positions[0], [0, 0, 0]])
-        np.testing.assert_array_equal(snap.mpcd.velocity,
-                                      [test_velocities[0], [0, 0, 0]])
+        np.testing.assert_array_equal(
+            snap.mpcd.position, [test_positions[0], [0, 0, 0]]
+        )
+        np.testing.assert_array_equal(
+            snap.mpcd.velocity, [test_velocities[0], [0, 0, 0]]
+        )
         np.testing.assert_array_equal(snap.mpcd.typeid, [test_typeids[0], 0])
 
         # grow the snapshot to the "standard" size and fill it back in
@@ -149,10 +151,9 @@ def test_create_and_restore_from_snap(snap, simulation_factory):
             vel_i = pdata.getVelocity(i)
             type_i = pdata.getType(i)
             tag_i = pdata.getTag(i)
-            dat += [[
-                tag_i, pos_i.x, pos_i.y, pos_i.z, vel_i.x, vel_i.y, vel_i.z,
-                type_i
-            ]]
+            dat += [
+                [tag_i, pos_i.x, pos_i.y, pos_i.z, vel_i.x, vel_i.y, vel_i.z, type_i]
+            ]
         return np.array(sorted(dat, key=lambda p: p[0]))
 
     # set snap values and initialize

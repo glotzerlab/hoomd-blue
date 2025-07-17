@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -75,9 +75,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                                                 const Scalar r_buff,
                                                 const unsigned int ntypes,
                                                 const Scalar3 ghost_width,
-                                                const unsigned int offset,
-                                                const unsigned int nwork,
-                                                const unsigned int ngpu)
+                                                const unsigned int nwork)
     {
     // cache the r_listsq parameters into shared memory
     Index2D typpair_idx(ntypes);
@@ -114,9 +112,6 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     if (my_pidx >= nwork)
         return;
 
-    // get particle index
-    my_pidx += offset;
-
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
 
@@ -145,9 +140,6 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
 
     // index of current neighbor
     unsigned int cur_adj = 0;
-
-    // current device portion in cell list
-    unsigned int igpu = 0;
 
     // current cell
     unsigned int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
@@ -178,21 +170,14 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
             cur_adj++;
             if (cur_adj >= cadji.getW())
                 {
-                if (++igpu < ngpu)
-                    {
-                    cur_adj = 0;
-                    }
-                else
-                    {
-                    // we are past the end of the cell neighbors
-                    done = true;
-                    neigh_size = 0;
-                    }
+                // we are past the end of the cell neighbors
+                done = true;
+                neigh_size = 0;
                 }
             if (!done)
                 {
                 neigh_cell = __ldg(d_cell_adj + cadji(cur_adj, my_cell));
-                neigh_size = __ldg(d_cell_size + neigh_cell + igpu * ci.getNumElements());
+                neigh_size = __ldg(d_cell_size + neigh_cell);
                 }
             }
         // check for a neighbor if thread is still working
@@ -205,7 +190,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 cur_xyzf = __ldg(d_cell_xyzf + cli(cur_offset, neigh_cell));
             else
                 {
-                j = __ldg(d_cell_idx + cli(cur_offset, neigh_cell) + igpu * cli.getNumElements());
+                j = __ldg(d_cell_idx + cli(cur_offset, neigh_cell));
                 postype_j = d_pos[j];
                 cur_xyzf = make_scalar4(postype_j.x, postype_j.y, postype_j.z, __int_as_scalar(j));
                 }
@@ -336,9 +321,7 @@ inline void launcher(unsigned int* d_nlist,
                      unsigned int tpp,
                      bool filter_body,
                      unsigned int block_size,
-                     std::pair<unsigned int, unsigned int> range,
                      bool use_index,
-                     const unsigned int ngpu,
                      const hipDeviceProp_t& devprop)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
@@ -353,8 +336,7 @@ inline void launcher(unsigned int* d_nlist,
         shared_size = 0;
         }
 
-    unsigned int offset = range.first;
-    unsigned int nwork = range.second - range.first;
+    unsigned int nwork = N;
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
@@ -396,9 +378,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             else if (filter_body && !enable_shared)
                 {
@@ -436,9 +416,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             else if (!filter_body && enable_shared)
                 {
@@ -476,9 +454,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             else if (filter_body && enable_shared)
                 {
@@ -516,9 +492,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             }
         else // use_index
@@ -559,9 +533,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             else if (filter_body && !enable_shared)
                 {
@@ -599,9 +571,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             else if (!filter_body && enable_shared)
                 {
@@ -639,9 +609,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             else if (filter_body && enable_shared)
                 {
@@ -679,9 +647,7 @@ inline void launcher(unsigned int* d_nlist,
                                    r_buff,
                                    ntypes,
                                    ghost_width,
-                                   offset,
-                                   nwork,
-                                   ngpu);
+                                   nwork);
                 }
             }
         }
@@ -712,9 +678,7 @@ inline void launcher(unsigned int* d_nlist,
                               tpp,
                               filter_body,
                               block_size,
-                              range,
                               use_index,
-                              ngpu,
                               devprop);
         }
     }
@@ -746,9 +710,7 @@ inline void launcher<min_threads_per_particle / 2>(unsigned int* d_nlist,
                                                    unsigned int tpp,
                                                    bool filter_body,
                                                    unsigned int block_size,
-                                                   std::pair<unsigned int, unsigned int> range,
                                                    bool use_index,
-                                                   const unsigned int ngpu,
                                                    const hipDeviceProp_t& devprop)
     {
     }
@@ -778,47 +740,36 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     const unsigned int block_size,
                                     bool filter_body,
                                     const Scalar3& ghost_width,
-                                    const GPUPartition& gpu_partition,
                                     bool use_index,
                                     const hipDeviceProp_t& devprop)
     {
-    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
-
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        launcher<max_threads_per_particle>(d_nlist,
-                                           d_n_neigh,
-                                           d_last_updated_pos,
-                                           d_conditions,
-                                           d_Nmax,
-                                           d_head_list,
-                                           d_pos,
-                                           d_body,
-                                           N,
-                                           d_cell_size,
-                                           d_cell_xyzf,
-                                           d_cell_idx,
-                                           d_cell_type_body,
-                                           d_cell_adj,
-                                           ci,
-                                           cli,
-                                           cadji,
-                                           box,
-                                           d_r_cut,
-                                           r_buff,
-                                           ntypes,
-                                           ghost_width,
-                                           threads_per_particle,
-                                           filter_body,
-                                           block_size,
-                                           range,
-                                           use_index,
-                                           ngpu,
-                                           devprop);
-        }
+    launcher<max_threads_per_particle>(d_nlist,
+                                       d_n_neigh,
+                                       d_last_updated_pos,
+                                       d_conditions,
+                                       d_Nmax,
+                                       d_head_list,
+                                       d_pos,
+                                       d_body,
+                                       N,
+                                       d_cell_size,
+                                       d_cell_xyzf,
+                                       d_cell_idx,
+                                       d_cell_type_body,
+                                       d_cell_adj,
+                                       ci,
+                                       cli,
+                                       cadji,
+                                       box,
+                                       d_r_cut,
+                                       r_buff,
+                                       ntypes,
+                                       ghost_width,
+                                       threads_per_particle,
+                                       filter_body,
+                                       block_size,
+                                       use_index,
+                                       devprop);
     return hipSuccess;
     }
 

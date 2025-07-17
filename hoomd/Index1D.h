@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __INDEX1D_H__
@@ -71,16 +71,6 @@ struct Index2D
     HOSTDEVICE inline unsigned int getH() const
         {
         return m_h;
-        }
-
-    //! Get the inverse mapping 1D-index -> coordinate pair
-    HOSTDEVICE inline uint2 getPair(const unsigned int idx) const
-        {
-        uint2 t;
-
-        t.y = idx / m_w;
-        t.x = idx % m_w;
-        return t;
         }
 
     private:

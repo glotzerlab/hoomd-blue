@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -57,90 +57,36 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
 
     // allocate r_cut pairwise storage
-    GlobalArray<Scalar> r_cut(m_typpair_idx.getNumElements(), m_exec_conf);
+    GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), m_exec_conf);
     m_r_cut.swap(r_cut);
-    TAG_ALLOCATION(m_r_cut);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_r_cut.get(),
-                      m_r_cut.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
 
     // holds the maximum rcut on a per type basis
-    GlobalArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
+    GPUArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
     m_rcut_max.swap(rcut_max);
-    TAG_ALLOCATION(m_rcut_max);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_rcut_max.get(),
-                      m_rcut_max.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
 
     // holds the base rcut on a per type basis
-    GlobalArray<Scalar> rcut_base(m_typpair_idx.getNumElements(), m_exec_conf);
+    GPUArray<Scalar> rcut_base(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcut_base.swap(rcut_base);
-    TAG_ALLOCATION(m_rcut_base);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_rcut_base.get(),
-                      m_rcut_base.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
 
     // allocate the r_listsq array which accelerates CPU calculations
-    GlobalArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), m_exec_conf);
+    GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_r_listsq.swap(r_listsq);
-    TAG_ALLOCATION(m_r_listsq);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_r_listsq.get(),
-                      m_r_listsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
 
     // allocate the number of neighbors (per particle)
-    GlobalArray<unsigned int> n_neigh(m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), m_exec_conf);
     m_n_neigh.swap(n_neigh);
-    TAG_ALLOCATION(m_n_neigh);
 
     // default allocation of 4 neighbors per particle for the neighborlist
-    GlobalArray<unsigned int> nlist(4 * m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<unsigned int> nlist(4 * m_pdata->getMaxN(), m_exec_conf);
     m_nlist.swap(nlist);
-    TAG_ALLOCATION(m_nlist);
 
     // allocate head list indexer
-    GlobalArray<size_t> head_list(m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<size_t> head_list(m_pdata->getMaxN(), m_exec_conf);
     m_head_list.swap(head_list);
-    TAG_ALLOCATION(m_head_list);
 
     // allocate the max number of neighbors per type allowed
-    GlobalArray<unsigned int> Nmax(m_pdata->getNTypes(), m_exec_conf);
+    GPUArray<unsigned int> Nmax(m_pdata->getNTypes(), m_exec_conf);
     m_Nmax.swap(Nmax);
-    TAG_ALLOCATION(m_Nmax);
 
         // flood Nmax with 4s initially
         {
@@ -151,66 +97,37 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
             }
         }
 
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_Nmax.get(),
-                      m_Nmax.getNumElements() * sizeof(unsigned int),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
     // allocate overflow flags for the number of neighbors per type
-    GlobalArray<unsigned int> conditions(m_pdata->getNTypes(), m_exec_conf);
+    GPUArray<unsigned int> conditions(m_pdata->getNTypes(), m_exec_conf);
     m_conditions.swap(conditions);
-    TAG_ALLOCATION(m_conditions);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_conditions.get(),
-                      m_conditions.getNumElements() * sizeof(unsigned int),
-                      cudaMemAdviseSetPreferredLocation,
-                      cudaCpuDeviceId);
-        CHECK_CUDA_ERROR();
-        }
-#endif
 
         {
         // initially reset conditions
         ArrayHandle<unsigned int> h_conditions(m_conditions,
                                                access_location::host,
                                                access_mode::overwrite);
-        memset(h_conditions.data, 0, sizeof(unsigned int) * m_pdata->getNTypes());
+        m_conditions.zeroFill();
         }
 
     // allocate m_last_pos
-    GlobalArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
     m_last_pos.swap(last_pos);
-    TAG_ALLOCATION(m_last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified
     // exclusions)
 
     // note: this breaks O(N/P) memory scaling
-    GlobalVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), m_exec_conf);
+    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), m_exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
-    TAG_ALLOCATION(m_n_ex_tag);
 
-    GlobalArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, m_exec_conf);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, m_exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
-    TAG_ALLOCATION(m_ex_list_tag);
 
-    GlobalArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), m_exec_conf);
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), m_exec_conf);
     m_n_ex_idx.swap(n_ex_idx);
-    TAG_ALLOCATION(m_n_ex_idx);
 
-    GlobalArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, m_exec_conf);
+    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, m_exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
-    TAG_ALLOCATION(m_ex_list_idx);
 
     // reset exclusions
     resizeAndClearExclusions();
@@ -259,11 +176,6 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_update_periods.resize(100);
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-#endif
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -648,8 +560,8 @@ void NeighborList::resizeAndClearExclusions()
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int) * m_n_ex_tag.getNumElements());
-    memset(h_n_ex_idx.data, 0, sizeof(unsigned int) * m_n_ex_idx.getNumElements());
+    m_n_ex_tag.zeroFill();
+    m_n_ex_idx.zeroFill();
     m_exclusions_set = false;
 
     forceUpdate();
@@ -1621,7 +1533,7 @@ void NeighborList::resetConditions()
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
                                            access_mode::overwrite);
-    memset(h_conditions.data, 0, sizeof(unsigned int) * m_pdata->getNTypes());
+    m_conditions.zeroFill();
     }
 
 void NeighborList::growExclusionList()
@@ -1649,82 +1561,6 @@ bool NeighborList::peekUpdate(uint64_t timestep)
     bool result = needsUpdating(timestep);
 
     return result;
-    }
-#endif
-
-#ifdef ENABLE_HIP
-//! Update GPU memory locality
-void NeighborList::updateMemoryMapping()
-    {
-#ifdef _HIP_PLATFORM_NVCC__
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        auto gpu_map = m_exec_conf->getGPUIds();
-
-        const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
-
-        // stash this partition for the future, so we can unset hints again
-        m_last_gpu_partition = gpu_partition;
-
-            // split preferred location of neighbor list across GPUs
-            {
-            ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
-
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                auto range = gpu_partition.getRange(idev);
-
-                size_t start = h_head_list.data[range.first];
-                unsigned int end = (range.second == m_pdata->getN())
-                                       ? m_nlist.getNumElements()
-                                       : h_head_list.data[range.second];
-
-                if (end - start > 0)
-                    // set preferred location
-                    cudaMemAdvise(m_nlist.get() + h_head_list.data[range.first],
-                                  sizeof(unsigned int) * (end - start),
-                                  cudaMemAdviseSetPreferredLocation,
-                                  gpu_map[idev]);
-                }
-            }
-        CHECK_CUDA_ERROR();
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            // set preferred location
-            auto range = gpu_partition.getRange(idev);
-            unsigned int nelem = range.second - range.first;
-
-            if (nelem == 0)
-                continue;
-
-            cudaMemAdvise(m_head_list.get() + range.first,
-                          sizeof(size_t) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-            cudaMemAdvise(m_n_neigh.get() + range.first,
-                          sizeof(unsigned int) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-            cudaMemAdvise(m_last_pos.get() + range.first,
-                          sizeof(Scalar4) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-
-            // pin to that device by prefetching
-            cudaMemPrefetchAsync(m_head_list.get() + range.first,
-                                 sizeof(size_t) * nelem,
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_n_neigh.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_last_pos.get() + range.first,
-                                 sizeof(Scalar4) * nelem,
-                                 gpu_map[idev]);
-            }
-        CHECK_CUDA_ERROR();
-        }
-#endif // __HIP_PLATFORM_NVCC__
     }
 #endif
 

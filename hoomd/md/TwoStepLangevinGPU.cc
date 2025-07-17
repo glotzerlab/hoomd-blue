@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinGPU.h"
@@ -79,7 +79,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                               access_location::device,
                               access_mode::readwrite);
 
-    m_exec_conf->beginMultiGPU();
+    m_exec_conf->setDevice();
     m_tuner_one->begin();
     // perform the update on the GPU
     kernel::gpu_nve_step_one(d_pos.data,
@@ -87,7 +87,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                              d_accel.data,
                              d_image.data,
                              d_index_array.data,
-                             m_group->getGPUPartition(),
+                             m_group->getNumMembers(),
                              box,
                              m_deltaT,
                              false,
@@ -98,7 +98,6 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
-    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -116,7 +115,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                                        access_location::device,
                                        access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
+        m_exec_conf->setDevice();
         m_tuner_angular_one->begin();
 
         kernel::gpu_nve_angular_step_one(d_orientation.data,
@@ -124,13 +123,12 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                                          d_inertia.data,
                                          d_net_torque.data,
                                          d_index_array.data,
-                                         m_group->getGPUPartition(),
+                                         m_group->getNumMembers(),
                                          m_deltaT,
                                          1.0,
                                          m_tuner_angular_one->getParam()[0]);
 
         m_tuner_angular_one->end();
-        m_exec_conf->endMultiGPU();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -142,7 +140,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
 */
 void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
     {
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // get the dimensionality of the system
     const unsigned int D = m_sysdef->getNDimensions();

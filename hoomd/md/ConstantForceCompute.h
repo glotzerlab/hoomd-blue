@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
@@ -68,10 +68,10 @@ class PYBIND11_EXPORT ConstantForceCompute : public ForceCompute
     virtual void setForces();
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
-    GlobalVector<Scalar3>
+    GPUVector<Scalar3>
         m_constant_force; //! constant force unit vectors and magnitudes for each particle type
 
-    GlobalVector<Scalar3>
+    GPUVector<Scalar3>
         m_constant_torque; //! constant torque unit vectors and magnitudes for each particle type
 
     bool m_parameters_updated; //!< True if forces need to be rearranged

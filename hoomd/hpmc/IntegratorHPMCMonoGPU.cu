@@ -1,8 +1,7 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUTypes.cuh"
-#include "hoomd/GPUPartition.cuh"
 
 namespace hoomd
     {
@@ -22,7 +21,6 @@ namespace kernel
     \param ci Cell indexer
     \param cli Cell list indexer
     \param cadji Cell adjacency indexer
-    \param ngpu Number of active devices
 
     gpu_hpmc_excell_kernel executes one thread per cell. It gathers the particle indices from all
    neighboring cells into the output expanded cell.
@@ -35,8 +33,7 @@ __global__ void hpmc_excell(unsigned int* d_excell_idx,
                             const unsigned int* d_cell_adj,
                             const Index3D ci,
                             const Index2D cli,
-                            const Index2D cadji,
-                            const unsigned int ngpu)
+                            const Index2D cadji)
     {
     // compute the output cell
     unsigned int my_cell = 0;
@@ -52,18 +49,14 @@ __global__ void hpmc_excell(unsigned int* d_excell_idx,
         {
         unsigned int neigh_cell = d_cell_adj[cadji(offset, my_cell)];
 
-        // iterate over per-device cell lists
-        for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
-            {
-            unsigned int neigh_cell_size = d_cell_size[neigh_cell + igpu * ci.getNumElements()];
+        unsigned int neigh_cell_size = d_cell_size[neigh_cell];
 
-            for (unsigned int k = 0; k < neigh_cell_size; k++)
-                {
-                // read in the index of the new particle to add to our cell
-                unsigned int new_idx = d_cell_idx[cli(k, neigh_cell) + igpu * cli.getNumElements()];
-                d_excell_idx[excli(my_cell_size, my_cell)] = new_idx;
-                my_cell_size++;
-                }
+        for (unsigned int k = 0; k < neigh_cell_size; k++)
+            {
+            // read in the index of the new particle to add to our cell
+            unsigned int new_idx = d_cell_idx[cli(k, neigh_cell)];
+            d_excell_idx[excli(my_cell_size, my_cell)] = new_idx;
+            my_cell_size++;
             }
         }
 
@@ -117,14 +110,13 @@ __global__ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
                                        unsigned int* d_reject_in,
                                        unsigned int* d_reject_out,
                                        unsigned int* d_condition,
-                                       const unsigned int nwork,
-                                       const unsigned work_offset)
+                                       const unsigned int nwork)
     {
     // the particle we are handling
     unsigned int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (work_idx >= nwork)
         return;
-    unsigned int i = work_idx + work_offset;
+    unsigned int i = work_idx;
 
     // is this particle considered?
     bool move_active = d_trial_move_type[i] > 0;
@@ -158,7 +150,6 @@ void __attribute__((visibility("default"))) hpmc_excell(unsigned int* d_excell_i
                                                         const Index3D& ci,
                                                         const Index2D& cli,
                                                         const Index2D& cadji,
-                                                        const unsigned int ngpu,
                                                         const unsigned int block_size)
     {
     assert(d_excell_idx);
@@ -191,8 +182,7 @@ void __attribute__((visibility("default"))) hpmc_excell(unsigned int* d_excell_i
                        d_cell_adj,
                        ci,
                        cli,
-                       cadji,
-                       ngpu);
+                       cadji);
     }
 
 //! Kernel driver for kernel::hpmc_shift()
@@ -231,7 +221,7 @@ hpmc_check_convergence(const unsigned int* d_trial_move_type,
                        unsigned int* d_reject_in,
                        unsigned int* d_reject_out,
                        unsigned int* d_condition,
-                       const GPUPartition& gpu_partition,
+                       const unsigned int N,
                        const unsigned int block_size)
     {
     // determine the maximum block size and clamp the input block size down
@@ -245,27 +235,21 @@ hpmc_check_convergence(const unsigned int* d_trial_move_type,
 
     dim3 threads(run_block_size, 1, 1);
 
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = N;
+    const unsigned int num_blocks = nwork / run_block_size + 1;
+    dim3 grid(num_blocks, 1, 1);
 
-        unsigned int nwork = range.second - range.first;
-        const unsigned int num_blocks = nwork / run_block_size + 1;
-        dim3 grid(num_blocks, 1, 1);
-
-        hipLaunchKernelGGL(kernel::hpmc_check_convergence,
-                           grid,
-                           threads,
-                           0,
-                           0,
-                           d_trial_move_type,
-                           d_reject_out_of_cell,
-                           d_reject_in,
-                           d_reject_out,
-                           d_condition,
-                           nwork,
-                           range.first);
-        }
+    hipLaunchKernelGGL(kernel::hpmc_check_convergence,
+                       grid,
+                       threads,
+                       0,
+                       0,
+                       d_trial_move_type,
+                       d_reject_out_of_cell,
+                       d_reject_in,
+                       d_reject_out,
+                       d_condition,
+                       nwork);
     }
 
     } // end namespace gpu

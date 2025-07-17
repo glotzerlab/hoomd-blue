@@ -1,26 +1,23 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "ComputeSDF.h"
-#include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
 #include "ShapeFacetedEllipsoid.h"
 #include "ShapeUnion.h"
 
-#include "ExternalField.h"
-#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
-#include "UpdaterClusters.h"
+#include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
-#include "UpdaterClustersGPU.h"
+#include "UpdaterGCAGPU.h"
 #endif
 
 namespace hoomd
@@ -40,16 +37,8 @@ void export_union_faceted_ellipsoid(pybind11::module& m)
         "ComputeFreeVolumeFacetedEllipsoidUnion");
     export_ComputeSDF<ShapeUnion<ShapeFacetedEllipsoid>>(m, "ComputeSDFFacetedEllipsoidUnion");
     export_UpdaterMuVT<ShapeUnion<ShapeFacetedEllipsoid>>(m, "UpdaterMuVTFacetedEllipsoidUnion");
-    export_UpdaterClusters<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "UpdaterClustersFacetedEllipsoidUnion");
+    export_UpdaterGCA<ShapeUnion<ShapeFacetedEllipsoid>>(m, "UpdaterGCAFacetedEllipsoidUnion");
 
-    export_ExternalFieldInterface<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "ExternalFieldFacetedEllipsoidUnion");
-    export_HarmonicField<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "ExternalFieldHarmonicFacetedEllipsoidUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(m, "WallFacetedEllipsoidUnion");
 
 #ifdef ENABLE_HIP
@@ -60,9 +49,8 @@ void export_union_faceted_ellipsoid(pybind11::module& m)
     export_ComputeFreeVolumeGPU<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
         "ComputeFreeVolumeFacetedEllipsoidUnionGPU");
-    export_UpdaterClustersGPU<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "UpdaterClustersFacetedEllipsoidUnionGPU");
+    export_UpdaterGCAGPU<ShapeUnion<ShapeFacetedEllipsoid>>(m,
+                                                            "UpdaterGCAFacetedEllipsoidUnionGPU");
 
 #endif
     }

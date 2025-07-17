@@ -1,17 +1,20 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 import pytest
 import time
+
 try:
     from mpi4py import MPI
+
     mpi4py_available = True
 except ImportError:
     mpi4py_available = False
 
-skip_mpi4py = pytest.mark.skipif(not mpi4py_available,
-                                 reason='mpi4py could not be imported.')
+skip_mpi4py = pytest.mark.skipif(
+    not mpi4py_available, reason="mpi4py could not be imported."
+)
 
 
 def test_communicator_methods():
@@ -69,8 +72,7 @@ def test_commuicator_walltime():
 
 
 @skip_mpi4py
-@pytest.mark.skipif(not hoomd.version.mpi_enabled,
-                    reason='This test requires MPI')
+@pytest.mark.skipif(not hoomd.version.mpi_enabled, reason="This test requires MPI")
 def test_communicator_mpi4py():
     """Check that Communicator can be initialized with mpi4py."""
     world_communicator = hoomd.communicator.Communicator()

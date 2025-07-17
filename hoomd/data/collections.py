@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement various data structures for syncing C++ and Python data."""
@@ -273,11 +273,13 @@ class _HOOMDSyncedCollection(abc.Collection):
         self._isolated = True
 
     def _to_hoomd_data(self, schema, data):
-        validated_value = _to_hoomd_data(root=self,
-                                         schema=schema,
-                                         parent=self._parent,
-                                         identity=self._identity,
-                                         data=data)
+        validated_value = _to_hoomd_data(
+            root=self,
+            schema=schema,
+            parent=self._parent,
+            identity=self._identity,
+            data=data,
+        )
 
         if isinstance(validated_value, _HOOMDSyncedCollection):
             if self._isolated:
@@ -562,8 +564,7 @@ class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
         return self._data.count(obj)
 
     def _update(self, new_value):
-        if (not isinstance(new_value, abc.Sequence)
-                or len(new_value) != len(self._data)):
+        if not isinstance(new_value, abc.Sequence) or len(new_value) != len(self._data):
             self._isolate()
             warnings.warn(hoomd.error.IsolationWarning())
             return False
@@ -592,20 +593,20 @@ def _to_hoomd_data(root, schema, parent=None, identity=None, data=None):
     # remains a ndarray and not a list when the validation is for an array. In
     # addition, this would error if we allowed the MutableSequence conditional
     # to execute.
-    if (isinstance(data, np.ndarray)
-            and isinstance(schema, _typeconverter.NDArrayValidator)):
+    if isinstance(data, np.ndarray) and isinstance(
+        schema, _typeconverter.NDArrayValidator
+    ):
         return data
     if isinstance(data, abc.MutableMapping):
-        spec = _find_structural_validator(schema,
-                                          _typeconverter.TypeConverterMapping)
+        spec = _find_structural_validator(schema, _typeconverter.TypeConverterMapping)
         return _HOOMDDict(root, spec, parent, identity, data)
     if isinstance(data, abc.MutableSequence):
-        spec = _find_structural_validator(schema,
-                                          _typeconverter.TypeConverterSequence)
+        spec = _find_structural_validator(schema, _typeconverter.TypeConverterSequence)
         return _HOOMDList(root, spec.converter, parent, identity, data)
     if not isinstance(data, str) and isinstance(data, abc.Sequence):
         spec = _find_structural_validator(
-            schema, _typeconverter.TypeConverterFixedLengthSequence)
+            schema, _typeconverter.TypeConverterFixedLengthSequence
+        )
         return _HOOMDTuple(root, spec, parent, identity, data)
     return data
 
@@ -617,10 +618,7 @@ def _to_base(collection):
         # Suspending reading and writing will also prevent isolation warnings.
         with collection._suspend_read_and_write:
             if isinstance(collection, _HOOMDDict):
-                return {
-                    key: _to_base(value)
-                    for key, value in collection._data.items()
-                }
+                return {key: _to_base(value) for key, value in collection._data.items()}
             if isinstance(collection, _HOOMDList):
                 return [_to_base(value) for value in collection._data]
             if isinstance(collection, _HOOMDTuple):

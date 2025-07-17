@@ -17,7 +17,7 @@ on:
 jobs:
   start_action_runners:
     name: Start
-    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@98f840ba341f72bf412100f2180d38c06e792b84 # v1.3.1
+    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yaml@9ef0cf7995c9209bfa77d45baa124f15df669393 # v1.4.0
     secrets: inherit
 
   typical:
@@ -42,7 +42,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - config: [clang, 18, -py, 313, -mpi, -tbb]
+        - config: [clang, 18, -py, 313, -mpi]
           validate: true
 
         - config: [gcc, 14, -py, 313]
@@ -51,15 +51,15 @@ jobs:
         - config: [gcc, 14, -py, 313, -nomd]
         - config: [gcc, 14, -py, 313, -nohpmc]
         - config: [gcc, 14, -py, 313, -nomd, -nohpmc]
-        - config: [gcc, 10, -py, 39, -mpi, -tbb]
+        - config: [gcc, 10, -py, 39, -mpi]
 
-        - config: [cuda, 125, -py, 313, -mpi]
+        - config: [cuda, 124, -py, 313, -mpi]
           validate: true
 
-        - config: [cuda, 125, -py, 313]
+        - config: [cuda, 124, -py, 313]
           validate: true
 
-        - config: [cuda, 125, -py, 313, -mpi, -debug]
+        - config: [cuda, 124, -py, 313, -mpi, -debug]
 
 
   release:
@@ -85,17 +85,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - config: [clang, 17, -py, 313, -mpi, -tbb]
-        - config: [clang, 17, -py, 312, -mpi, -tbb]
-        - config: [clang, 16, -py, 312, -mpi, -tbb]
-        - config: [clang, 15, -py, 311, -mpi, -tbb]
-        - config: [clang, 14, -py, 310, -mpi, -tbb]
-        - config: [clang, 13, -py, 39, -mpi, -tbb]
-        - config: [gcc, 13, -py, 313, -mpi, -tbb]
-        - config: [gcc, 13, -py, 312, -mpi, -tbb]
-        - config: [gcc, 12, -py, 311, -mpi, -tbb]
-        - config: [gcc, 11, -py, 310, -mpi, -tbb]
-        - config: [gcc, 10, -py, 310, -mpi, -tbb]
+        - config: [clang, 17, -py, 313, -mpi]
+        - config: [clang, 17, -py, 312, -mpi]
+        - config: [clang, 16, -py, 312, -mpi]
+        - config: [clang, 15, -py, 311, -mpi]
+        - config: [clang, 14, -py, 310, -mpi]
+        - config: [clang, 13, -py, 39, -mpi]
+        - config: [gcc, 13, -py, 313, -mpi]
+        - config: [gcc, 13, -py, 312, -mpi]
+        - config: [gcc, 12, -py, 311, -mpi]
+        - config: [gcc, 11, -py, 310, -mpi]
+        - config: [gcc, 10, -py, 310, -mpi]
 
   tests_complete:
     name: Unit test

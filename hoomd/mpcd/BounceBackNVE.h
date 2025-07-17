@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -46,10 +46,10 @@ class PYBIND11_EXPORT BounceBackNVE : public hoomd::md::IntegrationMethodTwoStep
     virtual ~BounceBackNVE();
 
     //! Performs the first step of the integration
-    virtual void integrateStepOne(uint64_t timestep);
+    void integrateStepOne(uint64_t timestep) override;
 
     //! Performs the second step of the integration
-    virtual void integrateStepTwo(uint64_t timestep);
+    void integrateStepTwo(uint64_t timestep) override;
 
     //! Get the streaming geometry
     std::shared_ptr<Geometry> getGeometry()
@@ -188,13 +188,13 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
  */
 template<class Geometry> bool BounceBackNVE<Geometry>::checkParticles()
     {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
     ArrayHandle<unsigned int> h_group(m_group->getIndexArray(),
                                       access_location::host,
                                       access_mode::read);
     const unsigned int group_size = m_group->getNumMembers();
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     bool out_of_bounds = false;
     for (unsigned int idx = 0; idx < group_size; ++idx)

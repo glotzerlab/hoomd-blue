@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMMUNICATOR_GRID_GPU_H__
@@ -25,7 +25,7 @@ template<typename T> class CommunicatorGridGPU : public CommunicatorGrid<T>
                         bool add_outer_layer_to_inner);
 
     //! Communicate grid
-    virtual void communicate(const GlobalArray<T>& grid);
+    virtual void communicate(const GPUArray<T>& grid);
 
     protected:
     unsigned int m_n_unique_recv_cells; //!< Number of unique receiving cells
@@ -34,10 +34,9 @@ template<typename T> class CommunicatorGridGPU : public CommunicatorGrid<T>
     virtual void initGridCommGPU();
 
     private:
-    GlobalArray<unsigned int>
-        m_cell_recv; //!< Array of per-cell receive elements (multiple possible)
-    GlobalArray<unsigned int> m_cell_recv_begin; //!< Begin of recv indices per cell
-    GlobalArray<unsigned int> m_cell_recv_end;   //!< End of recv indices per cell
+    GPUArray<unsigned int> m_cell_recv; //!< Array of per-cell receive elements (multiple possible)
+    GPUArray<unsigned int> m_cell_recv_begin; //!< Begin of recv indices per cell
+    GPUArray<unsigned int> m_cell_recv_end;   //!< End of recv indices per cell
     };
 
     } // end namespace md

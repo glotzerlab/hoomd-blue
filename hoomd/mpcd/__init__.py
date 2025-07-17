@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Multiparticle collision dynamics.
@@ -63,8 +63,20 @@ from hoomd.mpcd import collide
 from hoomd.mpcd import fill
 from hoomd.mpcd import force
 from hoomd.mpcd import geometry
-from hoomd.mpcd import integrate
 from hoomd.mpcd.integrate import Integrator
 from hoomd.mpcd import methods
 from hoomd.mpcd import stream
 from hoomd.mpcd import tune
+from hoomd.mpcd import update
+
+__all__ = [
+    "Integrator",
+    "collide",
+    "fill",
+    "force",
+    "geometry",
+    "methods",
+    "stream",
+    "tune",
+    "update",
+]

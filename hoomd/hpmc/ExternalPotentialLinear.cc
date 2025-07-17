@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExternalPotentialLinear.h"
@@ -20,11 +20,13 @@ LongReal ExternalPotentialLinear::getAlpha(const std::string& particle_type)
     return m_alpha[particle_type_id];
     }
 
-LongReal ExternalPotentialLinear::particleEnergyImplementation(unsigned int type_i,
+LongReal ExternalPotentialLinear::particleEnergyImplementation(uint64_t timestep,
+                                                               unsigned int tag_i,
+                                                               unsigned int type_i,
                                                                const vec3<LongReal>& r_i,
                                                                const quat<LongReal>& q_i,
                                                                LongReal charge_i,
-                                                               bool trial)
+                                                               Trial trial)
     {
     return m_alpha[type_i] * dot(m_plane_normal, r_i - m_plane_origin);
     }

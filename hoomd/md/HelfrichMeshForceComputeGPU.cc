@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceComputeGPU.h"
@@ -44,8 +44,8 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
 
     m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_sigma});
 
-    GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
-    GlobalVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
+    GPUVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
+    GPUVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
 
         {
         ArrayHandle<Scalar3> old_sigma_dash(m_sigma_dash, access_location::host);
@@ -135,6 +135,9 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
  */
 void HelfrichMeshForceComputeGPU::computeSigma()
     {
+    const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list
+        = this->m_mesh_data->getMeshBondData()->getGPUTable();
+
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
@@ -148,8 +151,6 @@ void HelfrichMeshForceComputeGPU::computeSigma()
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
-    const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list
-        = this->m_mesh_data->getMeshBondData()->getGPUTable();
     const Index2D& gpu_table_indexer = this->m_mesh_data->getMeshBondData()->getGPUTableIndexer();
 
     ArrayHandle<typename MeshBond::members_t> d_gpu_meshbondlist(gpu_meshbond_list,

@@ -1,11 +1,71 @@
-.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Migrating to the latest version
 ===============================
 
-Migrating to HOOMD v4
----------------------
+Migrating to HOOMD-blue 5
+-------------------------
+
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* ``hoomd.snapshot.from_gsd_snapshot``
+
+  * Use `hoomd.Snapshot.from_gsd_frame`.
+
+* ``hoomd.util.GPUNotAvailableError``
+
+  * use `hoomd.error.GPUNotAvailableError`.
+
+* ``box1``, ``box2``, and ``variant`` arguments to ``hoomd.update.BoxResize``.
+
+  * Use ``box``.
+
+* ``hpmc.pair.user.CPPPotentialBase``, ``hpmc.pair.user.CPPPotential``,
+  ``hpmc.pair.user.CPPPotentialUnion``, ``hpmc.integrate.HPMCIntegrator.pair_potential``
+
+  * Use a `hoomd.hpmc.pair.Pair` potential with `hpmc.integrate.HPMCIntegrator.pair_potentials`.
+
+* ``hoomd.hpmc.external.user.CPPExternalPotential``
+
+  * Use `hoomd.hpmc.external.Linear` or a custom component (compiled).
+
+* ``hoomd.hpmc.update.BoxMC.betaP``
+
+  * Set `hoomd.hpmc.update.BoxMC.P` to ``P = betaP / beta`` and set the appropriate ``kT = 1/beta``
+    in the integrator.
+
+* ``hoomd.hpmc.update.Clusters`` is renamed to ``hoomd.hpmc.update.GCA``.
+
+* ``Device.gpu_ids``.
+
+  * Use ``Device.gpu_id``.
+
+* ``HPMCIntegrator.external_potential``.
+
+  * Use ``HPMCIntegrator.external_potentials``
+
+* ``hoomd.hpmc.external.wall.WallPotential`` is now ``hoomd.hpmc.external.WallPotential``.
+
+* ``hoomd.hpmc.external.field.Harmonic`` is now ``hoomd.hpmc.external.Harmonic``.
+
+Removed functionalities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* ``_InternalCustomUpdater.update``
+
+* ``_InternalCustomTuner.tune``
+
+* ``_InternalCustomWriter.write``
+
+* ``HDF5Log.write``
+
+* Implicit depletants from HPMC.
+
+* ``Device.num_cpu_threads``.
+
+* Single-process multi-GPU code path.
+
+Migrating to HOOMD-blue 4
+-------------------------
 
 Breaking changes to existing functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -91,7 +151,7 @@ For some functionalities, you will need to update your scripts to use a new API:
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
+HOOMD-blue 4 removes functionalities deprecated in v3.x releases:
 
 * ``hoomd.md.pair.aniso.ALJ.mode`` parameter
 * ``hoomd.md.pair.aniso.Dipole.mode`` parameter
@@ -178,8 +238,8 @@ Components
 * Replace any use of ``hpmc::OverlapReal`` with ``ShortReal``.
 * Remove ``needsDiameter`` and ``setDiameter`` methods in potential evaluator classes.
 
-Migrating to HOOMD v3
----------------------
+Migrating to HOOMD-blue 3
+-------------------------
 
 HOOMD v3 introduces many breaking changes for both users and developers
 in order to provide a cleaner Python interface, enable new functionalities, and
@@ -188,7 +248,7 @@ move away from unsupported tools. This guide highlights those changes.
 Overview of API changes
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-HOOMD v3 introduces a completely new API. All classes have been renamed to match
+HOOMD-blue 3 introduces a completely new API. All classes have been renamed to match
 PEP8 naming guidelines and have new or renamed parameters, methods, and
 properties. See the tutorials and the Python module documentation for full
 class-level details.
@@ -247,9 +307,9 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.md.update.constraint_ellipsoid``
      - `hoomd.md.manifold.Ellipsoid`
    * - ``hoomd.jit.patch``
-     - `hoomd.hpmc.pair.user`
+     - ``hoomd.hpmc.pair.user``
    * - ``hoomd.jit.external``
-     - `hoomd.hpmc.external.user`
+     - ``hoomd.hpmc.external.user``
 
 Removed functionality
 ^^^^^^^^^^^^^^^^^^^^^

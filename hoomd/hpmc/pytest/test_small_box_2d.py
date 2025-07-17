@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test Image list generation for small box / large move size simulations."""
@@ -17,18 +17,20 @@ def one_square_simulation(simulation_factory):
     """
     snap = hoomd.Snapshot()
     snap.particles.N = 1
-    snap.particles.types = ['A']
+    snap.particles.types = ["A"]
     snap.particles.position[:] = [[0, 0, 0]]
     snap.configuration.box = [1.2, 1.2, 0, 0, 0, 0]
 
     sim = simulation_factory(snap)
     mc = hoomd.hpmc.integrate.ConvexPolygon()
-    mc.shape['A'] = dict(vertices=[
-        (-0.5, -0.5),
-        (0.5, -0.5),
-        (0.5, 0.5),
-        (-0.5, 0.5),
-    ])
+    mc.shape["A"] = dict(
+        vertices=[
+            (-0.5, -0.5),
+            (0.5, -0.5),
+            (0.5, 0.5),
+            (-0.5, 0.5),
+        ]
+    )
     sim.operations.integrator = mc
     return sim
 
@@ -63,7 +65,10 @@ def test_self_interaction_overlap(one_square_simulation):
 
     with sim.state.cpu_local_snapshot as data:
         data.particles.orientation[0, :] = [
-            0.9238795325112867, 0, 0, 0.3826834323650898
+            0.9238795325112867,
+            0,
+            0,
+            0.3826834323650898,
         ]
 
     sim.operations._schedule()
@@ -113,15 +118,17 @@ def test_large_moves(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(dimensions=2, a=2, n=16)
 
     sim = simulation_factory(snap)
-    mc = hoomd.hpmc.integrate.ConvexPolygon(translation_move_probability=1.0,
-                                            nselect=4,
-                                            default_d=100)
-    mc.shape['A'] = dict(vertices=[
-        (-0.5, -0.5),
-        (0.5, -0.5),
-        (0.5, 0.5),
-        (-0.5, 0.5),
-    ])
+    mc = hoomd.hpmc.integrate.ConvexPolygon(
+        translation_move_probability=1.0, nselect=4, default_d=100
+    )
+    mc.shape["A"] = dict(
+        vertices=[
+            (-0.5, -0.5),
+            (0.5, -0.5),
+            (0.5, 0.5),
+            (-0.5, 0.5),
+        ]
+    )
     sim.operations.integrator = mc
 
     translate_moves = numpy.zeros(2, dtype=numpy.uint64)

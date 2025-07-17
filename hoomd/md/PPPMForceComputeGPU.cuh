@@ -1,11 +1,9 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-
-#include "hoomd/GPUPartition.cuh"
 
 #include "hip/hip_runtime.h"
 
@@ -38,14 +36,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
                           const BoxDim& box,
                           unsigned int block_size,
                           const Scalar* d_rho_coeff,
-                          const hipDeviceProp_t& dev_prop,
-                          const GPUPartition& gpu_partition);
-
-void gpu_reduce_meshes(const unsigned int mesh_elements,
-                       const hipfftComplex* d_mesh_scratch,
-                       hipfftComplex* d_mesh,
-                       const unsigned int ngpu,
-                       const unsigned int block_size);
+                          const hipDeviceProp_t& dev_prop);
 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              hipfftComplex* d_fourier_mesh,
@@ -66,6 +57,7 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                        unsigned int block_size);
 
 void gpu_compute_forces(const unsigned int N,
+                        const unsigned int group_size,
                         const Scalar4* d_postype,
                         Scalar4* d_force,
                         const hipfftComplex* d_inv_fourier_mesh_x,
@@ -77,8 +69,6 @@ void gpu_compute_forces(const unsigned int N,
                         const BoxDim& box,
                         int order,
                         const unsigned int* d_index_array,
-                        const GPUPartition& gpu_partition,
-                        const GPUPartition& all_gpu_partition,
                         const Scalar* d_rho_coeff,
                         unsigned int block_size,
                         bool local_fft,
@@ -130,7 +120,7 @@ hipError_t gpu_fix_exclusions(Scalar4* d_force,
                               unsigned int group_size,
                               int block_size);
 
-void gpu_initialize_coeff(Scalar* CPU_rho_coeff, int order, const GPUPartition& gpu_partition);
+void gpu_initialize_coeff(Scalar* CPU_rho_coeff, int order);
 
     } // end namespace kernel
     } // end namespace md

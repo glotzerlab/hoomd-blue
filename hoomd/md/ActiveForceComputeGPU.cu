@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.cuh"
@@ -152,7 +152,6 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipMemset(d_force, 0, sizeof(Scalar4) * N);
     hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel),
                        dim3(grid),
                        dim3(threads),

@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""MPCD streaming methods.
-
-An MPCD streaming method is required to update the particle positions over time.
+r"""An MPCD streaming method is required to update the particle positions over time.
 It is meant to be used in conjunction with an :class:`.mpcd.Integrator` and
 :class:`~hoomd.mpcd.collide.CollisionMethod`. Particle positions are propagated
 ballistically according to Newton's equations using a velocity-Verlet scheme for
@@ -11,12 +9,12 @@ a time :math:`\Delta t`:
 
 .. math::
 
-    \mathbf{v}(t + \Delta t/2) &= \mathbf{v}(t) + (\mathbf{f}/m)(\Delta t / 2)
-
-    \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t
-
+    \begin{split}
+    \mathbf{v}(t + \Delta t/2) &= \mathbf{v}(t) + (\mathbf{f}/m)(\Delta t / 2) \\
+    \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t \\
     \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) +
     (\mathbf{f}/m)(\Delta t / 2)
+    \end{split}
 
 where **r** and **v** are the particle position and velocity, respectively, and
 **f** is the external force acting on the particles of mass *m*. For a list of
@@ -36,6 +34,7 @@ from hoomd.mpcd import _mpcd
 from hoomd.mpcd.force import BodyForce
 from hoomd.mpcd.geometry import Geometry
 from hoomd.operation import Operation
+import inspect
 
 
 class StreamingMethod(Operation):
@@ -44,6 +43,12 @@ class StreamingMethod(Operation):
     Args:
         period (int): Number of integration steps covered by streaming step.
         mpcd_particle_force (BodyForce): Force on MPCD particles.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `StreamingMethod`:
 
     Attributes:
         period (int): Number of integration steps covered by streaming step
@@ -63,8 +68,31 @@ class StreamingMethod(Operation):
             The `mpcd_particle_force` cannot be changed after the
             `StreamingMethod` is constructed, but its attributes can be
             modified.
-
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Operation._doc_inherited)
+    )
+
+    _doc_inherited = (
+        Operation._doc_inherited
+        + """
+    ----------
+
+    **Members inherited from**
+    `StreamingMethod <hoomd.mpcd.stream.StreamingMethod>`:
+
+    .. py:attribute:: period
+
+        Number of integration steps covered by streaming step.
+        `Read more... <hoomd.mpcd.stream.StreamingMethod.period>`
+
+    .. py:attribute:: mpcd_particle_force
+
+        Body force on MPCD particles.
+        `Read more... <hoomd.mpcd.stream.StreamingMethod.mpcd_particle_force>`
+    """
+    )
 
     def __init__(self, period, mpcd_particle_force=None):
         super().__init__()
@@ -103,10 +131,16 @@ class Bulk(StreamingMethod):
 
         stream = hoomd.mpcd.stream.Bulk(
             period=1,
-            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)),
+        )
         simulation.operations.integrator.streaming_method = stream
-
     """
+
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(StreamingMethod._doc_inherited)
+    )
 
     def _attach_hook(self):
         sim = self._simulation
@@ -135,8 +169,7 @@ class Bulk(StreamingMethod):
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
         class_ = getattr(*class_info, None)
-        assert class_ is not None, ("C++ streaming method could not be "
-                                    "determined")
+        assert class_ is not None, "C++ streaming method could not be determined"
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,
@@ -200,7 +233,9 @@ class BounceBack(StreamingMethod):
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.ParallelPlates(
-                separation=6.0, speed=1.0, no_slip=True))
+                separation=6.0, speed=1.0, no_slip=True
+            ),
+        )
         simulation.operations.integrator.streaming_method = stream
 
     Pressure driven flow between parallel plates.
@@ -210,17 +245,27 @@ class BounceBack(StreamingMethod):
         stream = hoomd.mpcd.stream.BounceBack(
             period=1,
             geometry=hoomd.mpcd.geometry.ParallelPlates(
-                separation=6.0, no_slip=True),
-            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)))
+                separation=6.0, no_slip=True
+            ),
+            mpcd_particle_force=hoomd.mpcd.force.ConstantForce((1, 0, 0)),
+        )
         simulation.operations.integrator.streaming_method = stream
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `BounceBack`:
 
     Attributes:
         geometry (hoomd.mpcd.geometry.Geometry): Surface to bounce back from
             (*read only*).
-
     """
 
     _cpp_class_map = {}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(StreamingMethod._doc_inherited)
+    )
 
     def __init__(self, period, geometry, mpcd_particle_force=None):
         super().__init__(period, mpcd_particle_force)
@@ -303,3 +348,10 @@ class BounceBack(StreamingMethod):
         if force is None:
             force = type(None)
         cls._cpp_cpp_class_map[geometry, force] = (module, cpp_class_name)
+
+
+__all__ = [
+    "BounceBack",
+    "Bulk",
+    "StreamingMethod",
+]

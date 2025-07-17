@@ -1,6 +1,3 @@
-.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Code style
 ==========
 
@@ -20,26 +17,20 @@ Python
 ------
 
 Python code in HOOMD-blue should follow `PEP8`_ with the formatting performed by
-`yapf`_ (configuration in ``setup.cfg``). Code should pass all **flake8** tests
-and formatted by **yapf**.
+`ruff`_ (configuration in ``ruff.toml``). Code should pass all **ruff** checks
+and be formatted by **ruff**.
 
 .. _PEP8: https://www.python.org/dev/peps/pep-0008
-.. _yapf: https://github.com/google/yapf
+.. _ruff: https://astral.sh/ruff
 
 Tools
 ^^^^^
 
-* Linter: `flake8 <https://flake8.pycqa.org/en/latest/>`_
+* Linter: `ruff`_
 
-  * With these plugins:
+  * Configure the `ruff`_ language server in your editor to see violations in real time.
 
-    * `pep8-naming <https://github.com/PyCQA/pep8-naming>`_
-    * `flake8-docstrings <https://pypi.org/project/flake8-docstrings/>`_
-    * `flake8-rst-docstrings <https://github.com/peterjc/flake8-rst-docstrings>`_
-
-  * Configure flake8 in your editor to see violations on save.
-
-* Autoformatter: `yapf <https://github.com/google/yapf>`_
+* Autoformatter: `ruff`_
 
   * Run: ``pre-commit run --all-files`` to apply style changes to the whole
     repository.
@@ -156,10 +147,3 @@ apply:
 * 100 character line width.
 * 4 spaces per indent level.
 * 4 space indent.
-
-Editor configuration
---------------------
-
-`Visual Studio Code <https://code.visualstudio.com/>`_ users: Open the provided
-workspace file (``hoomd.code-workspace``) which provides configuration
-settings for these style guidelines.

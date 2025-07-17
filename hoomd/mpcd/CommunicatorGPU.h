@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -57,7 +57,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     //@{
 
     //! Migrate particle data to local domain
-    virtual void migrateParticles(uint64_t timestep);
+    void migrateParticles(uint64_t timestep) override;
     //@}
 
     //! Set maximum number of communication stages
@@ -71,7 +71,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
 
     protected:
     //! Set the communication flags for the particle data on the GPU
-    virtual void setCommFlags(const BoxDim& box);
+    void setCommFlags(const BoxDim& box) override;
 
     private:
     /* General communication */

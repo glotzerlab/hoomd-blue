@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
@@ -31,12 +31,6 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
     // connect to the ParticleData to receive notifications when particles change order in memory
     m_pdata->getParticleSortSignal()
         .connect<MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
-
-    TAG_ALLOCATION(m_molecule_tag);
-    TAG_ALLOCATION(m_molecule_list);
-    TAG_ALLOCATION(m_molecule_length);
-    TAG_ALLOCATION(m_molecule_order);
-    TAG_ALLOCATION(m_molecule_idx);
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
@@ -189,67 +183,6 @@ void MolecularForceCompute::initMoleculesGPU()
 
         m_tuner_fill->end();
         }
-
-    // distribute molecules evenly over GPUs
-    // NOTE: going forward we could slave the GPU partition of the molecules
-    // to that of the local particles in the ParticleData
-    m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-    m_gpu_partition.setN(n_local_molecules);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->allConcurrentManagedAccess())
-        {
-        auto gpu_map = m_exec_conf->getGPUIds();
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            std::pair<unsigned int, unsigned int> range = m_gpu_partition.getRange(idev);
-            unsigned int nelem = range.second - range.first;
-
-            if (nelem == 0)
-                continue;
-
-            cudaMemAdvise(m_molecule_length.get() + range.first,
-                          sizeof(unsigned int) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-            cudaMemPrefetchAsync(m_molecule_length.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
-                                 gpu_map[idev]);
-
-            if (m_molecule_indexer.getW() == 0)
-                continue;
-
-            cudaMemAdvise(m_molecule_list.get() + m_molecule_indexer(0, range.first),
-                          sizeof(unsigned int) * nelem * m_molecule_indexer.getW(),
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-            cudaMemPrefetchAsync(m_molecule_list.get() + m_molecule_indexer(0, range.first),
-                                 sizeof(unsigned int) * nelem * m_molecule_indexer.getW(),
-                                 gpu_map[idev]);
-            }
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            auto range = m_pdata->getGPUPartition().getRange(idev);
-            unsigned int nelem = range.second - range.first;
-
-            // skip if no hint set
-            if (!nelem)
-                continue;
-
-            cudaMemAdvise(m_molecule_idx.get() + range.first,
-                          sizeof(unsigned int) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-            cudaMemPrefetchAsync(m_molecule_idx.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
-                                 gpu_map[idev]);
-            }
-
-        CHECK_CUDA_ERROR();
-        }
-#endif
     }
 #endif
 
@@ -384,9 +317,7 @@ void MolecularForceCompute::initMolecules()
     ArrayHandle<unsigned int> h_molecule_order(m_molecule_order,
                                                access_location::host,
                                                access_mode::overwrite);
-    memset(h_molecule_order.data,
-           0,
-           sizeof(unsigned int) * (m_pdata->getN() + m_pdata->getNGhosts()));
+    m_molecule_order.zeroFill();
 
     // resize reverse-lookup
     m_molecule_idx.resize(nptl_local);
@@ -400,7 +331,7 @@ void MolecularForceCompute::initMolecules()
                                              access_mode::overwrite);
 
     // reset reverse lookup
-    memset(h_molecule_idx.data, 0, sizeof(unsigned int) * nptl_local);
+    m_molecule_idx.zeroFill();
 
     unsigned int i_mol = 0;
     for (auto it_mol = local_molecules_sorted.begin(); it_mol != local_molecules_sorted.end();

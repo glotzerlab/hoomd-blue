@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLISTGPUTREE_CUH__
@@ -7,6 +7,7 @@
 /*! \file NeighborListGPUTree.cuh
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
+#include <vector>
 
 #include <hip/hip_runtime.h>
 

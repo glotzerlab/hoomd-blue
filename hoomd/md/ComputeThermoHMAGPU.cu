@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermoHMAGPU.cuh"
@@ -31,12 +31,11 @@ extern __shared__ Scalar3 compute_thermo_hma_final_sdata[];
     \param d_position Particle position array from ParticleData
     \param d_lattice_site Particle lattice site array
     \param d_image Image array from ParticleData
-    \param d_body Particle body id
+    \param d_body Particle body i
     \param d_tag Particle tag
-    \param d_group_members List of group members for which to sum properties
+
+        \param d_group_members List of group members for which to sum properties
     \param work_size Number of particles in the group this GPU processes
-    \param offset Offset of this GPU in list of group members
-    \param block_offset Offset of this GPU in the array of partial sums
 
     All partial sums are packaged up in a Scalar3 to keep pointer management down.
      - force * dr is summed in .x
@@ -60,9 +59,7 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3* d_scratch,
                                                     unsigned int* d_body,
                                                     unsigned int* d_tag,
                                                     unsigned int* d_group_members,
-                                                    unsigned int work_size,
-                                                    unsigned int offset,
-                                                    unsigned int block_offset)
+                                                    unsigned int work_size)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -74,7 +71,7 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3* d_scratch,
 
     if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx + offset];
+        unsigned int idx = d_group_members[group_idx];
 
         // ignore rigid body constituent particles in the sum
         unsigned int body = d_body[idx];
@@ -128,7 +125,7 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3* d_scratch,
     if (threadIdx.x == 0)
         {
         Scalar3 res = compute_thermo_hma_sdata[0];
-        d_scratch[block_offset + blockIdx.x] = make_scalar3(res.x, res.y, res.z);
+        d_scratch[blockIdx.x] = make_scalar3(res.x, res.y, res.z);
         }
     }
 
@@ -252,7 +249,6 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar* d_properties,
     \param group_size Number of group members
     \param box Box the particles are in
     \param args Additional arguments
-    \param gpu_partition Load balancing info for multi-GPU reduction
 
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them
    for details.
@@ -266,8 +262,7 @@ hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
                                           unsigned int* d_group_members,
                                           unsigned int group_size,
                                           const BoxDim& box,
-                                          const compute_thermo_hma_args& args,
-                                          const GPUPartition& gpu_partition)
+                                          const compute_thermo_hma_args& args)
     {
     assert(d_pos);
     assert(d_group_members);
@@ -275,40 +270,25 @@ hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
     assert(args.d_net_virial);
     assert(args.d_scratch);
 
-    unsigned int block_offset = 0;
+    unsigned int nwork = group_size;
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    dim3 grid(nwork / args.block_size + 1, 1, 1);
+    dim3 threads(args.block_size, 1, 1);
 
-        unsigned int nwork = range.second - range.first;
+    const size_t shared_bytes = sizeof(Scalar3) * args.block_size;
 
-        dim3 grid(nwork / args.block_size + 1, 1, 1);
-        dim3 threads(args.block_size, 1, 1);
-
-        const size_t shared_bytes = sizeof(Scalar3) * args.block_size;
-
-        gpu_compute_thermo_hma_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch,
-                                                                             box,
-                                                                             args.d_net_force,
-                                                                             args.d_net_virial,
-                                                                             args.virial_pitch,
-                                                                             d_pos,
-                                                                             d_lattice_site,
-                                                                             d_image,
-                                                                             d_body,
-                                                                             d_tag,
-                                                                             d_group_members,
-                                                                             nwork,
-                                                                             range.first,
-                                                                             block_offset);
-
-        block_offset += grid.x;
-        }
-
-    assert(block_offset <= args.n_blocks);
-
+    gpu_compute_thermo_hma_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch,
+                                                                         box,
+                                                                         args.d_net_force,
+                                                                         args.d_net_virial,
+                                                                         args.virial_pitch,
+                                                                         d_pos,
+                                                                         d_lattice_site,
+                                                                         d_image,
+                                                                         d_body,
+                                                                         d_tag,
+                                                                         d_group_members,
+                                                                         nwork);
     return hipSuccess;
     }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -24,14 +24,17 @@ namespace mpcd
 class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     {
     public:
-    //! Constructor
+    //! Constructor by size (deprecated)
     CellListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift);
+
+    //! Constructor by dimension
+    CellListGPU(std::shared_ptr<SystemDefinition> sysdef, const uint3& global_cell_dim, bool shift);
 
     virtual ~CellListGPU();
 
     protected:
     //! Compute the cell list of particles on the GPU
-    virtual void buildCellList();
+    void buildCellList() override;
 
     //! Callback to sort cell list on the GPU when particle data is sorted
     virtual void sort(uint64_t timestep,

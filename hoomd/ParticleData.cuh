@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
 #ifdef ENABLE_HIP
 #include "BoxDim.h"
-#include "GPUPartition.cuh"
 
 #include "hoomd/CachedAllocator.h"
 
@@ -95,8 +94,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               unsigned int* d_comm_flags_out,
                               unsigned int max_n_out,
                               unsigned int* d_tmp,
-                              CachedAllocator& alloc,
-                              GPUPartition& gpu_partition);
+                              CachedAllocator& alloc);
 
 //! Update particle data with new particles
 void gpu_pdata_add_particles(const unsigned int old_nparticles,

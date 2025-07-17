@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <pybind11/pybind11.h>
@@ -28,6 +28,8 @@ void export_CollisionMethod(pybind11::module&);
 #ifdef ENABLE_MPI
 void export_Communicator(pybind11::module&);
 #endif // ENABLE_MPI
+void export_ConcentricCylindersGeometry(pybind11::module&);
+void export_ConcentricCylindersGeometryFiller(pybind11::module&);
 void export_ConstantForce(pybind11::module&);
 void export_CosineChannelGeometry(pybind11::module&);
 void export_CosineChannelGeometryFiller(pybind11::module&);
@@ -36,12 +38,11 @@ void export_CosineExpansionContractionGeometryFiller(pybind11::module&);
 void export_Integrator(pybind11::module&);
 void export_ManualVirtualParticleFiller(pybind11::module&);
 void export_NoForce(pybind11::module&);
-void export_ConcentricCylindersGeometry(pybind11::module&);
-void export_ConcentricCylindersGeometryFiller(pybind11::module&);
 void export_ParallelPlateGeometry(pybind11::module&);
 void export_ParallelPlateGeometryFiller(pybind11::module&);
 void export_PlanarPoreGeometry(pybind11::module&);
 void export_PlanarPoreGeometryFiller(pybind11::module&);
+void export_ReverseNonequilibriumShearFlow(pybind11::module&);
 void export_Sorter(pybind11::module&);
 void export_SphereGeometry(pybind11::module&);
 void export_SphereGeometryFiller(pybind11::module&);
@@ -56,10 +57,12 @@ void export_CellThermoComputeGPU(pybind11::module&);
 #ifdef ENABLE_MPI
 void export_CommunicatorGPU(pybind11::module&);
 #endif // ENABLE_MPI
+void export_ConcentricCylindersGeometryFillerGPU(pybind11::module&);
 void export_CosineChannelGeometryFillerGPU(pybind11::module&);
 void export_CosineExpansionContractionGeometryFillerGPU(pybind11::module&);
 void export_ParallelPlateGeometryFillerGPU(pybind11::module&);
 void export_PlanarPoreGeometryFillerGPU(pybind11::module&);
+void export_ReverseNonequilibriumShearFlowGPU(pybind11::module&);
 void export_SorterGPU(pybind11::module&);
 void export_SphereGeometryFillerGPU(pybind11::module&);
 void export_SRDCollisionMethodGPU(pybind11::module&);
@@ -203,6 +206,8 @@ PYBIND11_MODULE(_mpcd, m)
 #ifdef ENABLE_MPI
     export_Communicator(m);
 #endif // ENABLE_MPI
+    export_ConcentricCylindersGeometry(m);
+    export_ConcentricCylindersGeometryFiller(m);
     export_ConstantForce(m);
     export_CosineChannelGeometry(m);
     export_CosineChannelGeometryFiller(m);
@@ -211,13 +216,11 @@ PYBIND11_MODULE(_mpcd, m)
     export_Integrator(m);
     export_ManualVirtualParticleFiller(m);
     export_NoForce(m);
-    export_ConcentricCylindersGeometry(m);
-    export_ConcentricCylindersGeometryFiller(m);
     export_ParallelPlateGeometry(m);
     export_ParallelPlateGeometryFiller(m);
-    ;
     export_PlanarPoreGeometry(m);
     export_PlanarPoreGeometryFiller(m);
+    export_ReverseNonequilibriumShearFlow(m);
     export_Sorter(m);
     export_SphereGeometry(m);
     export_SphereGeometryFiller(m);
@@ -230,10 +233,12 @@ PYBIND11_MODULE(_mpcd, m)
 #ifdef ENABLE_MPI
     export_CommunicatorGPU(m);
 #endif // ENABLE_MPI
+    export_ConcentricCylindersGeometryFillerGPU(m);
     export_CosineChannelGeometryFillerGPU(m);
     export_CosineExpansionContractionGeometryFillerGPU(m);
     export_ParallelPlateGeometryFillerGPU(m);
     export_PlanarPoreGeometryFillerGPU(m);
+    export_ReverseNonequilibriumShearFlowGPU(m);
     export_SorterGPU(m);
     export_SphereGeometryFillerGPU(m);
     export_SRDCollisionMethodGPU(m);

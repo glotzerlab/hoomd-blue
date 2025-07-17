@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -364,7 +364,7 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint6
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                access_location::host,
@@ -523,8 +523,8 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uin
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-    const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import copy as cp
@@ -11,17 +11,22 @@ import random
 import collections
 from pathlib import Path
 from hoomd.md.nlist import Cell, Stencil, Tree
-from hoomd.conftest import (logging_check, pickling_check,
-                            autotuned_kernel_parameter_check)
+from hoomd.conftest import (
+    logging_check,
+    pickling_check,
+    autotuned_kernel_parameter_check,
+)
 
 try:
     from mpi4py import MPI
+
     MPI4PY_IMPORTED = True
 except ImportError:
     MPI4PY_IMPORTED = False
 
 try:
     import cupy
+
     CUPY_IMPORTED = True
 except ImportError:
     CUPY_IMPORTED = False
@@ -36,9 +41,7 @@ def _nlist_params():
     return nlists
 
 
-@pytest.fixture(scope="function",
-                params=_nlist_params(),
-                ids=(lambda x: x[0].__name__))
+@pytest.fixture(scope="function", params=_nlist_params(), ids=(lambda x: x[0].__name__))
 def nlist_params(request):
     return cp.deepcopy(request.param)
 
@@ -47,9 +50,7 @@ def _assert_nlist_params(nlist, param_dict):
     """Assert the params of the nlist are the same as in the dictionary."""
     for param, item in param_dict.items():
         if isinstance(item, (tuple, list)):
-            assert all(
-                a == b
-                for a, b in zip(getattr(nlist, param), param_dict[param]))
+            assert all(a == b for a, b in zip(getattr(nlist, param), param_dict[param]))
         else:
             assert getattr(nlist, param) == param_dict[param]
 
@@ -59,23 +60,29 @@ def test_common_params(nlist_params):
     nlist = nlist_cls(**required_args, buffer=0.4)
     default_params_dict = {
         "buffer": 0.4,
-        "exclusions": ('bond',),
+        "exclusions": ("bond",),
         "rebuild_check_delay": 1,
         "check_dist": True,
     }
     _assert_nlist_params(nlist, default_params_dict)
     new_params_dict = {
-        "buffer":
-            np.random.uniform(5.0),
-        "exclusions":
-            random.sample([
-                'bond', '1-4', 'angle', 'dihedral', 'special_pair', 'body',
-                '1-3', 'constraint', 'meshbond'
-            ], np.random.randint(9)),
-        "rebuild_check_delay":
-            np.random.randint(8),
-        "check_dist":
-            False,
+        "buffer": np.random.uniform(5.0),
+        "exclusions": random.sample(
+            [
+                "bond",
+                "1-4",
+                "angle",
+                "dihedral",
+                "special_pair",
+                "body",
+                "1-3",
+                "constraint",
+                "meshbond",
+            ],
+            np.random.randint(9),
+        ),
+        "rebuild_check_delay": np.random.randint(8),
+        "check_dist": False,
     }
     for param in new_params_dict.keys():
         setattr(nlist, param, new_params_dict[param])
@@ -92,26 +99,23 @@ def test_cell_specific_params():
 def test_stencil_specific_params():
     cell_width = np.random.uniform(12.1)
     nlist = Stencil(cell_width=cell_width, buffer=0.4)
-    _assert_nlist_params(nlist, dict(deterministic=False,
-                                     cell_width=cell_width))
+    _assert_nlist_params(nlist, dict(deterministic=False, cell_width=cell_width))
     nlist.deterministic = True
     x = np.random.uniform(25.5)
     nlist.cell_width = x
     _assert_nlist_params(nlist, dict(deterministic=True, cell_width=x))
 
 
-def test_simple_simulation(nlist_params, simulation_factory,
-                           lattice_snapshot_factory):
+def test_simple_simulation(nlist_params, simulation_factory, lattice_snapshot_factory):
     nlist_cls, required_args = nlist_params
     nlist = nlist_cls(**required_args, buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
-    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
-    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "A")] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "B")] = dict(epsilon=1, sigma=1)
+    lj.params[("B", "B")] = dict(epsilon=1, sigma=1)
     integrator = hoomd.md.Integrator(0.005)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
 
     sim = simulation_factory(lattice_snapshot_factory(n=10))
     sim.operations.integrator = integrator
@@ -120,25 +124,23 @@ def test_simple_simulation(nlist_params, simulation_factory,
     # Force nlist to update every step to ensure autotuning occurs.
     nlist.check_dist = False
     nlist.rebuild_check_delay = 1
-    autotuned_kernel_parameter_check(instance=nlist,
-                                     activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=nlist, activate=lambda: sim.run(1))
 
 
-def test_auto_detach_simulation(simulation_factory,
-                                two_particle_snapshot_factory):
+def test_auto_detach_simulation(simulation_factory, two_particle_snapshot_factory):
     nlist = Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
-    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
-    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "A")] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "B")] = dict(epsilon=1, sigma=1)
+    lj.params[("B", "B")] = dict(epsilon=1, sigma=1)
     lj_2 = cp.deepcopy(lj)
     lj_2.nlist = nlist
     integrator = hoomd.md.Integrator(0.005, forces=[lj, lj_2])
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
 
     sim = simulation_factory(
-        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0))
+        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0)
+    )
     sim.operations.integrator = integrator
     sim.run(0)
     del integrator.forces[1]
@@ -153,15 +155,15 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     nlist = Cell(0.4)
     pickling_check(nlist)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
-    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
-    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "A")] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "B")] = dict(epsilon=1, sigma=1)
+    lj.params[("B", "B")] = dict(epsilon=1, sigma=1)
     integrator = hoomd.md.Integrator(0.005, forces=[lj])
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
 
     sim = simulation_factory(
-        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0))
+        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0)
+    )
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(nlist)
@@ -170,13 +172,12 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 def test_cell_properties(simulation_factory, lattice_snapshot_factory):
     nlist = hoomd.md.nlist.Cell(buffer=0)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
-    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
-    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "A")] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "B")] = dict(epsilon=1, sigma=1)
+    lj.params[("B", "B")] = dict(epsilon=1, sigma=1)
     integrator = hoomd.md.Integrator(0.005)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
 
     sim = simulation_factory(lattice_snapshot_factory(n=10))
     sim.operations.integrator = integrator
@@ -193,29 +194,23 @@ def test_cell_properties(simulation_factory, lattice_snapshot_factory):
 
 def test_logging():
     base_loggables = {
-        'shortest_rebuild': {
-            'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'num_builds': {
-            'category': LoggerCategories.scalar,
-            'default': False
-        }
+        "shortest_rebuild": {"category": LoggerCategories.scalar, "default": True},
+        "num_builds": {"category": LoggerCategories.scalar, "default": False},
     }
-    logging_check(hoomd.md.nlist.NeighborList, ('md', 'nlist'), base_loggables)
+    logging_check(hoomd.md.nlist.NeighborList, ("md", "nlist"), base_loggables)
 
     logging_check(
-        hoomd.md.nlist.Cell, ('md', 'nlist'), {
+        hoomd.md.nlist.Cell,
+        ("md", "nlist"),
+        {
             **base_loggables,
-            'dimensions': {
-                'category': LoggerCategories.sequence,
-                'default': False
+            "dimensions": {"category": LoggerCategories.sequence, "default": False},
+            "allocated_particles_per_cell": {
+                "category": LoggerCategories.scalar,
+                "default": False,
             },
-            'allocated_particles_per_cell': {
-                'category': LoggerCategories.scalar,
-                'default': False
-            },
-        })
+        },
+    )
 
 
 _path = Path(__file__).parent / "true_pair_list.json"
@@ -246,7 +241,7 @@ def _setup_set_rcut_later(sim_factory, snap_factory):
     sim.operations.computes.append(nlist)
     sim.run(0)
 
-    nlist.r_cut[('A', 'A')] = 1.1
+    nlist.r_cut[("A", "A")] = 1.1
 
     return sim, nlist, True
 
@@ -258,10 +253,9 @@ def _setup_with_force_no_rcut(sim_factory, snap_factory):
 
     integrator = hoomd.md.Integrator(0.005)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -275,14 +269,13 @@ def _setup_with_force_rcut_later(sim_factory, snap_factory):
 
     integrator = hoomd.md.Integrator(0.005)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
-    lj.r_cut[('A', 'A')] = 1.1
+    lj.r_cut[("A", "A")] = 1.1
 
     return sim, nlist, True
 
@@ -294,10 +287,9 @@ def _setup_with_force_rcut_on_nlist(sim_factory, snap_factory):
 
     integrator = hoomd.md.Integrator(0.005)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -311,10 +303,9 @@ def _setup_with_force_drop_nlist(sim_factory, snap_factory):
 
     integrator = hoomd.md.Integrator(0.005)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -330,10 +321,9 @@ def _setup_with_force_drop_force(sim_factory, snap_factory):
 
     integrator = hoomd.md.Integrator(0.005)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    lj.params[("A", "A")] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
-    integrator.methods.append(
-        hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
+    integrator.methods.append(hoomd.md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -343,10 +333,14 @@ def _setup_with_force_drop_force(sim_factory, snap_factory):
 
 
 pair_setup_funcs = [
-    _setup_standard_rcut, _setup_no_rcut, _setup_set_rcut_later,
-    _setup_with_force_no_rcut, _setup_with_force_rcut_later,
-    _setup_with_force_rcut_on_nlist, _setup_with_force_drop_nlist,
-    _setup_with_force_drop_force
+    _setup_standard_rcut,
+    _setup_no_rcut,
+    _setup_set_rcut_later,
+    _setup_with_force_no_rcut,
+    _setup_with_force_rcut_later,
+    _setup_with_force_rcut_on_nlist,
+    _setup_with_force_drop_nlist,
+    _setup_with_force_drop_force,
 ]
 
 
@@ -361,7 +355,6 @@ def _check_pair_set(sim, nlist, truth_set):
 
 @pytest.mark.parametrize("setup", pair_setup_funcs)
 def test_global_pair_list(simulation_factory, lattice_snapshot_factory, setup):
-
     sim, nlist, full = setup(simulation_factory, lattice_snapshot_factory)
 
     if full:
@@ -373,7 +366,6 @@ def test_global_pair_list(simulation_factory, lattice_snapshot_factory, setup):
 
 
 def _check_local_pairs_with_mpi(tag_pair_list, broadcast=False):
-
     tag_pair_list = np.array(tag_pair_list, dtype=np.int32)
 
     comm = MPI.COMM_WORLD
@@ -410,7 +402,6 @@ def _check_local_pairs_with_mpi(tag_pair_list, broadcast=False):
 
 
 def _check_local_pair_counts(sim, global_pairs, half_nlist=True):
-
     if half_nlist:
         local_count = 1
     else:
@@ -434,9 +425,7 @@ def _check_local_pair_counts(sim, global_pairs, half_nlist=True):
 
 
 @pytest.mark.parametrize("setup", pair_setup_funcs)
-def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory,
-                              setup):
-
+def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory, setup):
     sim, nlist, full = setup(simulation_factory, lattice_snapshot_factory)
 
     if full:
@@ -455,16 +444,13 @@ def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory,
     assert set_tag_pair_list.issubset(truth_set)
 
     if full and MPI4PY_IMPORTED:
-        global_pairs = _check_local_pairs_with_mpi(tag_pair_list,
-                                                   broadcast=True)
+        global_pairs = _check_local_pairs_with_mpi(tag_pair_list, broadcast=True)
 
         _check_local_pair_counts(sim, global_pairs)
 
 
 @pytest.mark.parametrize("setup", pair_setup_funcs)
-def test_cpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
-                                setup):
-
+def test_cpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory, setup):
     sim, nlist, full = setup(simulation_factory, lattice_snapshot_factory)
 
     if full:
@@ -475,7 +461,6 @@ def test_cpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
     tag_pair_list = []
     with nlist.cpu_local_nlist_arrays as data:
         with sim.state.cpu_local_snapshot as snap_data:
-
             half_nlist = data.half_nlist
 
             tags = snap_data.particles.tag_with_ghost
@@ -488,16 +473,13 @@ def test_cpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
     assert set_tag_pair_list.issubset(truth_set)
 
     if full and MPI4PY_IMPORTED:
-        global_pairs = _check_local_pairs_with_mpi(tag_pair_list,
-                                                   broadcast=True)
+        global_pairs = _check_local_pairs_with_mpi(tag_pair_list, broadcast=True)
 
         _check_local_pair_counts(sim, global_pairs, half_nlist)
 
 
 @pytest.mark.parametrize("setup", pair_setup_funcs)
-def test_gpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
-                                setup):
-
+def test_gpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory, setup):
     sim, nlist, full = setup(simulation_factory, lattice_snapshot_factory)
 
     if full:
@@ -515,7 +497,7 @@ def test_gpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
         pytest.skip("Cupy is not installed")
 
     get_local_pairs = cupy.RawKernel(
-        r'''
+        r"""
 extern "C" __global__
 void get_local_pairs(
         const unsigned int N,
@@ -538,7 +520,9 @@ void get_local_pairs(
         pair[offset + idx] = make_uint2(tag_i, tags[j]);
     }
 }
-''', 'get_local_pairs')
+""",
+        "get_local_pairs",
+    )
 
     with nlist.gpu_local_nlist_arrays as data:
         with sim.state.gpu_local_snapshot as snap_data:
@@ -552,15 +536,16 @@ void get_local_pairs(
 
             N = int(head_list.size)
             n_pairs = int(cupy.sum(n_neigh))
-            offsets = cupy.cumsum(n_neigh.astype(cupy.uint64)) \
-                - n_neigh[0]
+            offsets = cupy.cumsum(n_neigh.astype(cupy.uint64)) - n_neigh[0]
             device_local_pairs = cupy.zeros((n_pairs, 2), dtype=cupy.uint32)
 
             block = 256
             n_grid = (N + 255) // 256
-            get_local_pairs((n_grid,), (block,),
-                            (N, head_list, n_neigh, raw_nlist, tags, offsets,
-                             device_local_pairs))
+            get_local_pairs(
+                (n_grid,),
+                (block,),
+                (N, head_list, n_neigh, raw_nlist, tags, offsets, device_local_pairs),
+            )
 
     local_pairs = cupy.asnumpy(device_local_pairs)
 

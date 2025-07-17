@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBDGPU.h"
@@ -48,7 +48,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                                             access_mode::read);
     unsigned int group_size = m_group->getNumMembers();
     const unsigned int D = m_sysdef->getNDimensions();
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                access_location::device,
@@ -95,26 +95,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 
     bool aniso = m_aniso;
 
-#ifdef __HIP_PLATFORM_NVCC__
-    if (m_exec_conf->allConcurrentManagedAccess())
-        {
-        // prefetch gammas
-        auto& gpu_map = m_exec_conf->getGPUIds();
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            cudaMemPrefetchAsync(m_gamma.get(),
-                                 sizeof(Scalar) * m_gamma.getNumElements(),
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_gamma_r.get(),
-                                 sizeof(Scalar) * m_gamma_r.getNumElements(),
-                                 gpu_map[idev]);
-            }
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_exec_conf->beginMultiGPU();
+    m_exec_conf->setDevice();
     m_tuner->begin();
     args.block_size = m_tuner->getParam()[0];
 
@@ -137,14 +118,12 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                           m_deltaT,
                           D,
                           m_noiseless_t,
-                          m_noiseless_r,
-                          m_group->getGPUPartition());
+                          m_noiseless_r);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner->end();
-    m_exec_conf->endMultiGPU();
     }
 
 /*! \param timestep Current time step

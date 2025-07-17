@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -27,7 +27,6 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
                                             const Scalar3* d_accel,
                                             unsigned int* d_group_members,
                                             const unsigned int nwork,
-                                            const unsigned int offset,
                                             Scalar thermo_rescale,
                                             Scalar mat_exp_v_xx,
                                             Scalar mat_exp_v_xy,
@@ -56,7 +55,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
     // initialize eigenvectors
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // fetch particle position
@@ -118,7 +117,7 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                     Scalar4* d_vel,
                                     const Scalar3* d_accel,
                                     unsigned int* d_group_members,
-                                    const GPUPartition& gpu_partition,
+                                    const unsigned int group_size,
                                     Scalar thermo_rescale,
                                     Scalar* mat_exp_v,
                                     Scalar* mat_exp_r,
@@ -134,51 +133,44 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_npt_mtk_step_one_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_pos,
-                           d_vel,
-                           d_accel,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           thermo_rescale,
-                           mat_exp_v[0],
-                           mat_exp_v[1],
-                           mat_exp_v[2],
-                           mat_exp_v[3],
-                           mat_exp_v[4],
-                           mat_exp_v[5],
-                           mat_exp_r[0],
-                           mat_exp_r[1],
-                           mat_exp_r[2],
-                           mat_exp_r[3],
-                           mat_exp_r[4],
-                           mat_exp_r[5],
-                           mat_exp_r_int[0],
-                           mat_exp_r_int[1],
-                           mat_exp_r_int[2],
-                           mat_exp_r_int[3],
-                           mat_exp_r_int[4],
-                           mat_exp_r_int[5],
-                           deltaT,
-                           rescale_all);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_npt_mtk_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_group_members,
+                       nwork,
+                       thermo_rescale,
+                       mat_exp_v[0],
+                       mat_exp_v[1],
+                       mat_exp_v[2],
+                       mat_exp_v[3],
+                       mat_exp_v[4],
+                       mat_exp_v[5],
+                       mat_exp_r[0],
+                       mat_exp_r[1],
+                       mat_exp_r[2],
+                       mat_exp_r[3],
+                       mat_exp_r[4],
+                       mat_exp_r[5],
+                       mat_exp_r_int[0],
+                       mat_exp_r_int[1],
+                       mat_exp_r_int[2],
+                       mat_exp_r_int[3],
+                       mat_exp_r_int[4],
+                       mat_exp_r_int[5],
+                       deltaT,
+                       rescale_all);
 
     return hipSuccess;
     }
@@ -190,11 +182,8 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
 
     Wrap particle positions for all particles in the box
 */
-__global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
-                                        const unsigned int offset,
-                                        Scalar4* d_pos,
-                                        int3* d_image,
-                                        BoxDim box)
+__global__ void
+gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, int3* d_image, BoxDim box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -202,8 +191,6 @@ __global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
     // wrap ALL particles in the box
     if (idx < nwork)
         {
-        idx += offset;
-
         // fetch particle position
         Scalar4 postype = d_pos[idx];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
@@ -227,7 +214,7 @@ __global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
 
     This is just a kernel driver for gpu_npt_mtk_wrap_kernel(). See it for more details.
 */
-hipError_t gpu_npt_rescale_wrap(const GPUPartition& gpu_partition,
+hipError_t gpu_npt_rescale_wrap(const unsigned int N,
                                 Scalar4* d_pos,
                                 int3* d_image,
                                 const BoxDim& box,
@@ -240,29 +227,22 @@ hipError_t gpu_npt_rescale_wrap(const GPUPartition& gpu_partition,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = N;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_npt_mtk_wrap_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           nwork,
-                           range.first,
-                           d_pos,
-                           d_image,
-                           box);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_npt_mtk_wrap_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       nwork,
+                       d_pos,
+                       d_image,
+                       box);
 
     return hipSuccess;
     }
@@ -273,7 +253,6 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
                                             const Scalar4* d_net_force,
                                             unsigned int* d_group_members,
                                             const unsigned int nwork,
-                                            const unsigned int offset,
                                             Scalar mat_exp_v_xx,
                                             Scalar mat_exp_v_xy,
                                             Scalar mat_exp_v_xz,
@@ -281,14 +260,15 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
                                             Scalar mat_exp_v_yz,
                                             Scalar mat_exp_v_zz,
                                             Scalar deltaT,
-                                            Scalar thermo_rescale)
+                                            Scalar thermo_rescale,
+                                            unsigned int n_dimensions)
     {
     // determine which particle this thread works on
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (work_idx < nwork)
         {
-        const unsigned int group_idx = work_idx + offset;
+        const unsigned int group_idx = work_idx;
         unsigned int idx = d_group_members[group_idx];
 
         // fetch particle velocity and acceleration
@@ -297,6 +277,12 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
         // compute acceleration
         Scalar minv = Scalar(1.0) / vel.w;
         Scalar4 net_force = d_net_force[idx];
+
+        if (n_dimensions == 2)
+            {
+            net_force.z = Scalar(0.0);
+            }
+
         Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
         accel *= minv;
 
@@ -335,12 +321,13 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
 hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
                                     Scalar3* d_accel,
                                     unsigned int* d_group_members,
-                                    const GPUPartition& gpu_partition,
+                                    const unsigned int group_size,
                                     Scalar4* d_net_force,
                                     Scalar* mat_exp_v,
                                     Scalar deltaT,
                                     Scalar thermo_rescale,
-                                    const unsigned int block_size)
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -349,44 +336,37 @@ hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = group_size;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_npt_mtk_step_two_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           d_vel,
-                           d_accel,
-                           d_net_force,
-                           d_group_members,
-                           nwork,
-                           range.first,
-                           mat_exp_v[0],
-                           mat_exp_v[1],
-                           mat_exp_v[2],
-                           mat_exp_v[3],
-                           mat_exp_v[4],
-                           mat_exp_v[5],
-                           deltaT,
-                           thermo_rescale);
-        }
+    // run the kernel
+    hipLaunchKernelGGL((gpu_npt_mtk_step_two_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_vel,
+                       d_accel,
+                       d_net_force,
+                       d_group_members,
+                       nwork,
+                       mat_exp_v[0],
+                       mat_exp_v[1],
+                       mat_exp_v[2],
+                       mat_exp_v[3],
+                       mat_exp_v[4],
+                       mat_exp_v[5],
+                       deltaT,
+                       thermo_rescale,
+                       n_dimensions);
 
     return hipSuccess;
     }
 
 __global__ void gpu_npt_mtk_rescale_kernel(const unsigned int nwork,
-                                           const unsigned int offset,
                                            Scalar4* d_postype,
                                            Scalar mat_exp_r_xx,
                                            Scalar mat_exp_r_xy,
@@ -399,7 +379,6 @@ __global__ void gpu_npt_mtk_rescale_kernel(const unsigned int nwork,
 
     if (idx >= nwork)
         return;
-    idx += offset;
 
     // rescale position
     Scalar4 postype = d_postype[idx];
@@ -412,7 +391,7 @@ __global__ void gpu_npt_mtk_rescale_kernel(const unsigned int nwork,
     d_postype[idx] = make_scalar4(r.x, r.y, r.z, postype.w);
     }
 
-void gpu_npt_rescale_rescale(const GPUPartition& gpu_partition,
+void gpu_npt_rescale_rescale(const unsigned int N,
                              Scalar4* d_postype,
                              Scalar mat_exp_r_xx,
                              Scalar mat_exp_r_xy,
@@ -429,32 +408,25 @@ void gpu_npt_rescale_rescale(const GPUPartition& gpu_partition,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+    unsigned int nwork = N;
 
-        unsigned int nwork = range.second - range.first;
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        hipLaunchKernelGGL((gpu_npt_mtk_rescale_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           0,
-                           0,
-                           nwork,
-                           range.first,
-                           d_postype,
-                           mat_exp_r_xx,
-                           mat_exp_r_xy,
-                           mat_exp_r_xz,
-                           mat_exp_r_yy,
-                           mat_exp_r_yz,
-                           mat_exp_r_zz);
-        }
+    hipLaunchKernelGGL((gpu_npt_mtk_rescale_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       nwork,
+                       d_postype,
+                       mat_exp_r_xx,
+                       mat_exp_r_xy,
+                       mat_exp_r_xz,
+                       mat_exp_r_yy,
+                       mat_exp_r_yz,
+                       mat_exp_r_zz);
     }
     } // end namespace kernel
     } // end namespace md

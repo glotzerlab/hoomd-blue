@@ -1,7 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Test hoomd.hpmc.external.wall."""
+"""Test hoomd.hpmc.external.WallPotential."""
 
 from collections import defaultdict
 
@@ -14,7 +14,7 @@ import pytest
 wall_instances = [
     hoomd.wall.Cylinder(1.0, (0, 0, 1)),
     hoomd.wall.Plane((0, 0, 0), (1, 1, 1)),
-    hoomd.wall.Sphere(1.0)
+    hoomd.wall.Sphere(1.0),
 ]
 valid_wall_lists = []
 for r in 1, 2, 3:
@@ -26,36 +26,31 @@ for r in 1, 2, 3:
 @pytest.mark.parametrize("wall_list", valid_wall_lists)
 def test_valid_construction(device, wall_list):
     """Test that WallPotential can be constructed with valid arguments."""
-    walls = hoomd.hpmc.external.wall.WallPotential(wall_list)
+    walls = hoomd.hpmc.external.WallPotential(wall_list)
 
     # validate the params were set properly
-    for wall_input, wall_in_object in itertools.zip_longest(
-            wall_list, walls.walls):
+    for wall_input, wall_in_object in itertools.zip_longest(wall_list, walls.walls):
         assert wall_input == wall_in_object
 
 
 default_wall_args = {
     hoomd.wall.Sphere: (1.0,),
     hoomd.wall.Cylinder: (1.0, (0, 0, 1)),
-    hoomd.wall.Plane: ((0, 0, 0), (1, 1, 1))
+    hoomd.wall.Plane: ((0, 0, 0), (1, 1, 1)),
 }
 
 
 @pytest.fixture(scope="module")
 def add_default_integrator():
-
-    def add(simulation,
-            integrator_class,
-            wall_types,
-            use_default_wall_args=True):
+    def add(simulation, integrator_class, wall_types, use_default_wall_args=True):
         mc = integrator_class()
-        mc.shape['A'] = mc_params[integrator_class]
+        mc.shape["A"] = mc_params[integrator_class]
         if use_default_wall_args:
             wall_list = [wt(*default_wall_args[wt]) for wt in wall_types]
         else:
             wall_list = wall_types
-        walls = hoomd.hpmc.external.wall.WallPotential(wall_list)
-        mc.external_potential = walls
+        walls = hoomd.hpmc.external.WallPotential(wall_list)
+        mc.external_potentials = [walls]
         simulation.operations.integrator = mc
         return mc, walls
 
@@ -77,44 +72,52 @@ def default_wall_compatibility():
     return {
         hoomd.wall.Sphere: False,
         hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
+        hoomd.wall.Plane: False,
     }
 
 
 shape_wall_compatibilities = defaultdict(default_wall_compatibility)
-shape_wall_compatibilities.update({
-    hoomd.hpmc.integrate.ConvexPolyhedron: {
-        hoomd.wall.Sphere: True,
-        hoomd.wall.Cylinder: True,
-        hoomd.wall.Plane: True
-    },
-    hoomd.hpmc.integrate.ConvexSpheropolyhedron: {
-        hoomd.wall.Sphere: True,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: True
-    },
-    hoomd.hpmc.integrate.Sphere: {
-        hoomd.wall.Sphere: True,
-        hoomd.wall.Cylinder: True,
-        hoomd.wall.Plane: True
-    },
-})
+shape_wall_compatibilities.update(
+    {
+        hoomd.hpmc.integrate.ConvexPolyhedron: {
+            hoomd.wall.Sphere: True,
+            hoomd.wall.Cylinder: True,
+            hoomd.wall.Plane: True,
+        },
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron: {
+            hoomd.wall.Sphere: True,
+            hoomd.wall.Cylinder: False,
+            hoomd.wall.Plane: True,
+        },
+        hoomd.hpmc.integrate.Sphere: {
+            hoomd.wall.Sphere: True,
+            hoomd.wall.Cylinder: True,
+            hoomd.wall.Plane: True,
+        },
+    }
+)
 
 valid_flattened_shape_wall_combos = []
 invalid_flattened_shape_wall_combos = []
 for shape in _integrator_classes:
     wall_info = shape_wall_compatibilities[shape]
     valid_flattened_shape_wall_combos.extend(
-        [shape, wall] for wall, v in wall_info.items() if v)
+        [shape, wall] for wall, v in wall_info.items() if v
+    )
     invalid_flattened_shape_wall_combos.extend(
-        [shape, wall] for wall, v in wall_info.items() if not v)
+        [shape, wall] for wall, v in wall_info.items() if not v
+    )
 
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("shape_cls, wall", invalid_flattened_shape_wall_combos)
-def test_attaching_invalid_combos(simulation_factory,
-                                  two_particle_snapshot_factory,
-                                  add_default_integrator, shape_cls, wall):
+def test_attaching_invalid_combos(
+    simulation_factory,
+    two_particle_snapshot_factory,
+    add_default_integrator,
+    shape_cls,
+    wall,
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     mc, walls = add_default_integrator(sim, shape_cls, [wall])
     with pytest.raises(NotImplementedError):
@@ -123,9 +126,13 @@ def test_attaching_invalid_combos(simulation_factory,
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("shape_cls, wall", valid_flattened_shape_wall_combos)
-def test_attaching_valid_combos(simulation_factory,
-                                two_particle_snapshot_factory,
-                                add_default_integrator, shape_cls, wall):
+def test_attaching_valid_combos(
+    simulation_factory,
+    two_particle_snapshot_factory,
+    add_default_integrator,
+    shape_cls,
+    wall,
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     mc, walls = add_default_integrator(sim, shape_cls, [wall])
     sim.run(0)
@@ -135,8 +142,13 @@ def test_attaching_valid_combos(simulation_factory,
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("shape_cls, wall", valid_flattened_shape_wall_combos)
-def test_detaching(simulation_factory, two_particle_snapshot_factory,
-                   add_default_integrator, shape_cls, wall):
+def test_detaching(
+    simulation_factory,
+    two_particle_snapshot_factory,
+    add_default_integrator,
+    shape_cls,
+    wall,
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     mc, walls = add_default_integrator(sim, shape_cls, [wall])
     sim.run(0)
@@ -149,15 +161,18 @@ shape_multiwall_combos = []
 for shape in _integrator_classes:
     wall_info = shape_wall_compatibilities[shape]
     if any((v for v in wall_info.values())):
-        shape_multiwall_combos.append(
-            (shape, [(w, v) for w, v in wall_info.items()]))
+        shape_multiwall_combos.append((shape, [(w, v) for w, v in wall_info.items()]))
 
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("shape_cls, wall_validity", shape_multiwall_combos)
-def test_multiple_wall_geometries(simulation_factory, shape_cls, wall_validity,
-                                  two_particle_snapshot_factory,
-                                  add_default_integrator):
+def test_multiple_wall_geometries(
+    simulation_factory,
+    shape_cls,
+    wall_validity,
+    two_particle_snapshot_factory,
+    add_default_integrator,
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     walls = [x[0] for x in wall_validity]
     is_valids = [x[1] for x in wall_validity]
@@ -170,21 +185,22 @@ def test_multiple_wall_geometries(simulation_factory, shape_cls, wall_validity,
 
 
 @pytest.mark.cpu
-def test_replace_with_invalid(simulation_factory, two_particle_snapshot_factory,
-                              add_default_integrator):
+def test_replace_with_invalid(
+    simulation_factory, two_particle_snapshot_factory, add_default_integrator
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
     wall_types = [hoomd.wall.Sphere, hoomd.wall.Plane]
     mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     with pytest.raises(NotImplementedError):
-        mc.external_potential.walls = [hoomd.wall.Cylinder(1.2345, (0, 0, 0))]
+        mc.external_potentials[0].walls = [hoomd.wall.Cylinder(1.2345, (0, 0, 0))]
 
 
 @pytest.mark.cpu
-def test_replace_with_invalid_by_append(simulation_factory,
-                                        two_particle_snapshot_factory,
-                                        add_default_integrator):
+def test_replace_with_invalid_by_append(
+    simulation_factory, two_particle_snapshot_factory, add_default_integrator
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
     wall_types = [hoomd.wall.Sphere, hoomd.wall.Plane]
@@ -192,13 +208,13 @@ def test_replace_with_invalid_by_append(simulation_factory,
     sim.run(0)
     with pytest.raises(NotImplementedError):
         new_wall = hoomd.wall.Cylinder(1.2345, (0, 0, 0))
-        mc.external_potential.walls.append(new_wall)
+        mc.external_potentials[0].walls.append(new_wall)
 
 
 @pytest.mark.cpu
-def test_replace_with_invalid_by_extend(simulation_factory,
-                                        two_particle_snapshot_factory,
-                                        add_default_integrator):
+def test_replace_with_invalid_by_extend(
+    simulation_factory, two_particle_snapshot_factory, add_default_integrator
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
     wall_types = [hoomd.wall.Sphere, hoomd.wall.Plane]
@@ -206,47 +222,47 @@ def test_replace_with_invalid_by_extend(simulation_factory,
     sim.run(0)
     with pytest.raises(NotImplementedError):
         new_walls = [hoomd.wall.Cylinder(1.2345, (0, 0, 0))]
-        mc.external_potential.walls.extend(new_walls)
+        mc.external_potentials[0].walls.extend(new_walls)
 
 
 @pytest.mark.cpu
-def test_replace_with_valid(simulation_factory, two_particle_snapshot_factory,
-                            add_default_integrator):
+def test_replace_with_valid(
+    simulation_factory, two_particle_snapshot_factory, add_default_integrator
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
     wall_types = [hoomd.wall.Plane]
     mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
-    mc.external_potential.walls = [hoomd.wall.Sphere(1.0)]
+    mc.external_potentials[0].walls = [hoomd.wall.Sphere(1.0)]
 
 
 @pytest.mark.cpu
-def test_replace_with_valid_by_append(simulation_factory,
-                                      two_particle_snapshot_factory,
-                                      add_default_integrator):
+def test_replace_with_valid_by_append(
+    simulation_factory, two_particle_snapshot_factory, add_default_integrator
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
     wall_types = [hoomd.wall.Plane]
     mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
-    mc.external_potential.walls.append(hoomd.wall.Sphere(1.0))
+    mc.external_potentials[0].walls.append(hoomd.wall.Sphere(1.0))
 
 
 @pytest.mark.cpu
-def test_replace_with_valid_by_extend(simulation_factory,
-                                      two_particle_snapshot_factory,
-                                      add_default_integrator):
+def test_replace_with_valid_by_extend(
+    simulation_factory, two_particle_snapshot_factory, add_default_integrator
+):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
     wall_types = [hoomd.wall.Plane]
     mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
-    mc.external_potential.walls.extend([hoomd.wall.Sphere(1.0)])
+    mc.external_potentials[0].walls.extend([hoomd.wall.Sphere(1.0)])
 
 
 L_cube = 1.0
-cube_vertices = np.array(
-    list(itertools.product((-L_cube / 2, L_cube / 2), repeat=3)))
+cube_vertices = np.array(list(itertools.product((-L_cube / 2, L_cube / 2), repeat=3)))
 cube_rc = max(np.linalg.norm(cube_vertices, axis=1))  # circumsphere radius
 cube_face_rc = np.sqrt(2) / 2
 cube_r_s = 0.1  # sweep radius for spherocube
@@ -515,7 +531,6 @@ overlap_test_info = [
         dict(diameter=1.0),
         False,
     ),
-
     # cube in middle of cylindrical pore with larger radius than the
     # circumsphere radius of the cube projected onto the circular cross-section
     # of the cylinder (i.e., the square face of the cube)
@@ -562,19 +577,25 @@ overlap_test_info = [
 
 @pytest.mark.cpu
 @pytest.mark.parametrize(
-    "pos, orientation, shape, wall_list, shapedef, expecting_overlap",
-    overlap_test_info)
-def test_overlaps(simulation_factory, one_particle_snapshot_factory,
-                  add_default_integrator, pos, orientation, shape, wall_list,
-                  shapedef, expecting_overlap):
+    "pos, orientation, shape, wall_list, shapedef, expecting_overlap", overlap_test_info
+)
+def test_overlaps(
+    simulation_factory,
+    one_particle_snapshot_factory,
+    add_default_integrator,
+    pos,
+    orientation,
+    shape,
+    wall_list,
+    shapedef,
+    expecting_overlap,
+):
     sim = simulation_factory(
-        one_particle_snapshot_factory(position=pos,
-                                      orientation=orientation,
-                                      L=100))
-    mc, walls = add_default_integrator(sim,
-                                       shape,
-                                       wall_list,
-                                       use_default_wall_args=False)
-    mc.shape['A'] = shapedef
+        one_particle_snapshot_factory(position=pos, orientation=orientation, L=100)
+    )
+    mc, walls = add_default_integrator(
+        sim, shape, wall_list, use_default_wall_args=False
+    )
+    mc.shape["A"] = shapedef
     sim.run(0)
-    assert (mc.external_potential.overlaps > 0) == expecting_overlap
+    assert (mc.external_potentials[0].overlaps > 0) == expecting_overlap

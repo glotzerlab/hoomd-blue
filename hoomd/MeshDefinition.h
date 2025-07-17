@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshDefinition.h
@@ -8,8 +8,6 @@
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
-
-#include "hoomd/GlobalArray.h"
 
 #include "BondedGroupData.h"
 #include "MeshGroupData.h"
@@ -87,7 +85,7 @@ class PYBIND11_EXPORT MeshDefinition
         return triangles.getSize();
         }
 
-    const GlobalArray<unsigned int>& getPerTypeSize() const
+    const GPUArray<unsigned int>& getPerTypeSize() const
         {
         return m_globalN;
         }
@@ -103,7 +101,7 @@ class PYBIND11_EXPORT MeshDefinition
     void setTriangulationData(pybind11::dict triangulation);
 
     private:
-    GlobalArray<unsigned int> m_globalN;
+    GPUArray<unsigned int> m_globalN;
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh

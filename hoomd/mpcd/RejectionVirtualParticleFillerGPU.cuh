@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -38,7 +38,7 @@ struct draw_virtual_particles_args_t
                                   const Scalar _vel_factor,
                                   const unsigned int _type,
                                   const unsigned int _N_virt_max,
-                                  const unsigned int _timestep,
+                                  const uint64_t _timestep,
                                   const unsigned int _seed,
                                   const unsigned int _filler_id,
                                   const unsigned int _block_size)
@@ -58,7 +58,7 @@ struct draw_virtual_particles_args_t
     const Scalar vel_factor;
     const unsigned int type;
     const unsigned int N_virt_max;
-    const unsigned int timestep;
+    const uint64_t timestep;
     const unsigned int seed;
     const unsigned int filler_id;
     const unsigned int block_size;
@@ -126,7 +126,7 @@ __global__ void draw_virtual_particles(Scalar4* d_tmp_pos,
                                        const Scalar vel_factor,
                                        const unsigned int type,
                                        const unsigned int N_virt_max,
-                                       const unsigned int timestep,
+                                       const uint64_t timestep,
                                        const unsigned int seed,
                                        const unsigned int filler_id,
                                        const unsigned int block_size,

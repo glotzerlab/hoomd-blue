@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.snapshot import Snapshot
@@ -7,7 +7,7 @@ import numpy
 import pytest
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def snap(device):
     s = Snapshot(device.communicator)
     N = 1000
@@ -25,83 +25,80 @@ def snap(device):
         s.particles.orientation[:] = numpy.random.uniform(-1, 1, size=(N, 4))
         s.particles.moment_inertia[:] = numpy.random.uniform(1, 5, size=(N, 3))
         s.particles.angmom[:] = numpy.random.uniform(-1, 1, size=(N, 4))
-        s.particles.types = ['A', 'B', 'C', 'D']
+        s.particles.types = ["A", "B", "C", "D"]
 
         s.bonds.N = N - 1
         for i in range(s.bonds.N):
             s.bonds.group[i, :] = [i, i + 1]
 
         s.bonds.typeid[:] = numpy.random.randint(0, 3, size=s.bonds.N)
-        s.bonds.types = ['bondA', 'bondB', 'bondC', 'bondD']
+        s.bonds.types = ["bondA", "bondB", "bondC", "bondD"]
 
         s.angles.N = N - 2
         for i in range(s.angles.N):
             s.angles.group[i, :] = [i, i + 1, i + 2]
 
         s.angles.typeid[:] = numpy.random.randint(0, 3, size=s.angles.N)
-        s.angles.types = ['angleA', 'angleB', 'angleC', 'angleD']
+        s.angles.types = ["angleA", "angleB", "angleC", "angleD"]
 
         s.dihedrals.N = N - 3
         for i in range(s.dihedrals.N):
             s.dihedrals.group[i, :] = [i, i + 1, i + 2, i + 3]
 
         s.dihedrals.typeid[:] = numpy.random.randint(0, 3, size=s.dihedrals.N)
-        s.dihedrals.types = ['dihedralA', 'dihedralB', 'dihedralC', 'dihedralD']
+        s.dihedrals.types = ["dihedralA", "dihedralB", "dihedralC", "dihedralD"]
 
         s.impropers.N = N - 3
         for i in range(s.impropers.N):
             s.impropers.group[i, :] = [i, i + 1, i + 2, i + 3]
 
         s.impropers.typeid[:] = numpy.random.randint(0, 3, size=s.impropers.N)
-        s.impropers.types = ['improperA', 'improperB', 'improperC', 'improperD']
+        s.impropers.types = ["improperA", "improperB", "improperC", "improperD"]
 
         s.pairs.N = N - 1
         for i in range(s.pairs.N):
             s.pairs.group[i, :] = [i, i + 1]
 
         s.pairs.typeid[:] = numpy.random.randint(0, 3, size=s.pairs.N)
-        s.pairs.types = ['pairA', 'pairB', 'pairC', 'pairD']
+        s.pairs.types = ["pairA", "pairB", "pairC", "pairD"]
 
         s.constraints.N = N - 1
         for i in range(s.constraints.N):
             s.constraints.group[i, :] = [i, i + 1]
 
-        s.constraints.value[:] = numpy.random.uniform(1,
-                                                      10,
-                                                      size=s.constraints.N)
+        s.constraints.value[:] = numpy.random.uniform(1, 10, size=s.constraints.N)
 
     return s
 
 
 def assert_snapshots_equal(s1, s2):
     if s1.communicator.rank == 0:
-        numpy.testing.assert_allclose(s1.configuration.box,
-                                      s2.configuration.box)
-        numpy.testing.assert_allclose(s1.configuration.dimensions,
-                                      s2.configuration.dimensions)
+        numpy.testing.assert_allclose(s1.configuration.box, s2.configuration.box)
+        numpy.testing.assert_allclose(
+            s1.configuration.dimensions, s2.configuration.dimensions
+        )
 
         assert s1.particles.N == s2.particles.N
         assert s1.particles.types == s2.particles.types
-        numpy.testing.assert_allclose(s1.particles.position,
-                                      s2.particles.position)
-        numpy.testing.assert_allclose(s1.particles.velocity,
-                                      s2.particles.velocity)
-        numpy.testing.assert_allclose(s1.particles.acceleration,
-                                      s2.particles.acceleration)
+        numpy.testing.assert_allclose(s1.particles.position, s2.particles.position)
+        numpy.testing.assert_allclose(s1.particles.velocity, s2.particles.velocity)
+        numpy.testing.assert_allclose(
+            s1.particles.acceleration, s2.particles.acceleration
+        )
         numpy.testing.assert_equal(s1.particles.typeid, s2.particles.typeid)
         numpy.testing.assert_allclose(s1.particles.mass, s2.particles.mass)
         numpy.testing.assert_allclose(s1.particles.charge, s2.particles.charge)
-        numpy.testing.assert_allclose(s1.particles.diameter,
-                                      s2.particles.diameter)
+        numpy.testing.assert_allclose(s1.particles.diameter, s2.particles.diameter)
         numpy.testing.assert_equal(s1.particles.image, s2.particles.image)
         numpy.testing.assert_equal(s1.particles.body, s2.particles.body)
-        numpy.testing.assert_allclose(s1.particles.orientation,
-                                      s2.particles.orientation)
-        numpy.testing.assert_allclose(s1.particles.moment_inertia,
-                                      s2.particles.moment_inertia)
+        numpy.testing.assert_allclose(
+            s1.particles.orientation, s2.particles.orientation
+        )
+        numpy.testing.assert_allclose(
+            s1.particles.moment_inertia, s2.particles.moment_inertia
+        )
         numpy.testing.assert_allclose(s1.particles.angmom, s2.particles.angmom)
-        numpy.testing.assert_allclose(s1.particles.diameter,
-                                      s2.particles.diameter)
+        numpy.testing.assert_allclose(s1.particles.diameter, s2.particles.diameter)
 
         assert s1.bonds.N == s2.bonds.N
         assert s1.bonds.types == s2.bonds.types
@@ -129,8 +126,7 @@ def assert_snapshots_equal(s1, s2):
         numpy.testing.assert_equal(s1.pairs.group, s2.pairs.group)
 
         assert s1.constraints.N == s2.constraints.N
-        numpy.testing.assert_allclose(s1.constraints.value,
-                                      s2.constraints.value)
+        numpy.testing.assert_allclose(s1.constraints.value, s2.constraints.value)
         numpy.testing.assert_equal(s1.constraints.group, s2.constraints.group)
 
 
@@ -176,8 +172,7 @@ def test_modify_snapshot(simulation_factory, snap):
     assert_snapshots_equal(snap, snap2)
 
 
-def test_thermalize_particle_velocity(simulation_factory,
-                                      lattice_snapshot_factory):
+def test_thermalize_particle_velocity(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory()
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
@@ -191,15 +186,14 @@ def test_thermalize_particle_velocity(simulation_factory,
 
         numpy.testing.assert_allclose(p_com, [0, 0, 0], atol=1e-14)
 
-        K = numpy.sum(1 / 2 * m * (v[:, 0]**2 + v[:, 1]**2 + v[:, 2]**2))
+        K = numpy.sum(1 / 2 * m * (v[:, 0] ** 2 + v[:, 1] ** 2 + v[:, 2] ** 2))
         # check that K is somewhat close to the target - the fluctuations are
         # too large for an allclose check.
         expected_K = (3 * snap.particles.N - 3) / 2 * 1.5
         assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3
 
 
-def test_thermalize_angular_momentum(simulation_factory,
-                                     lattice_snapshot_factory):
+def test_thermalize_angular_momentum(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory()
     I = [1, 2, 3]  # noqa: E741 - allow ambiguous variable name
 
@@ -216,7 +210,8 @@ def test_thermalize_angular_momentum(simulation_factory,
         L = snapshot.particles.angmom[:, 1:4] / 2
 
         K = numpy.sum(
-            1 / 2 * (L[:, 0]**2 / I[0] + L[:, 1]**2 / I[1] + L[:, 2]**2 / I[2]))
+            1 / 2 * (L[:, 0] ** 2 / I[0] + L[:, 1] ** 2 / I[1] + L[:, 2] ** 2 / I[2])
+        )
         # check that K is somewhat close to the target - the fluctuations are
         # too large for an allclose check.
         expected_K = (3 * snap.particles.N) / 2 * 1.5
@@ -228,10 +223,9 @@ def test_thermalize_body_particle_momenta(simulation_factory):
     if snapshot.communicator.rank == 0:
         snapshot.configuration.box = (10, 10, 10, 0, 0, 0)
         snapshot.particles.N = 6
-        snapshot.particles.types = ['A']
+        snapshot.particles.types = ["A"]
         snapshot.particles.body[:] = [0, 1, -2, 0, 1, -2]
-        snapshot.particles.moment_inertia[:] = [[1, 1, 1]
-                                                ] * snapshot.particles.N
+        snapshot.particles.moment_inertia[:] = [[1, 1, 1]] * snapshot.particles.N
 
     sim = simulation_factory(snapshot)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.0)
@@ -267,24 +261,26 @@ def test_replicate(simulation_factory, lattice_snapshot_factory):
 
     initial_snapshot.replicate(2, 2, 2)
     if initial_snapshot.communicator.rank == 0:
-        numpy.testing.assert_allclose(initial_snapshot.particles.position, [
-            [-5, -5, -5],
-            [-5, -5, 5],
-            [-5, 5, -5],
-            [-5, 5, 5],
-            [5, -5, -5],
-            [5, -5, 5],
-            [5, 5, -5],
-            [5, 5, 5],
-        ])
+        numpy.testing.assert_allclose(
+            initial_snapshot.particles.position,
+            [
+                [-5, -5, -5],
+                [-5, -5, 5],
+                [-5, 5, -5],
+                [-5, 5, 5],
+                [5, -5, -5],
+                [5, -5, 5],
+                [5, 5, -5],
+                [5, 5, 5],
+            ],
+        )
 
     sim.state.replicate(2, 2, 2)
     new_snapshot = sim.state.get_snapshot()
     assert_snapshots_equal(initial_snapshot, new_snapshot)
 
 
-def test_domain_decomposition(device, simulation_factory,
-                              lattice_snapshot_factory):
+def test_domain_decomposition(device, simulation_factory, lattice_snapshot_factory):
     snapshot = lattice_snapshot_factory()
 
     if device.communicator.num_ranks == 1:
@@ -312,11 +308,10 @@ def test_domain_decomposition(device, simulation_factory,
         assert sim.state.domain_decomposition == (1, 2, 1)
         assert sim.state.domain_decomposition_split_fractions == ([], [0.5], [])
 
-        sim = simulation_factory(snapshot,
-                                 domain_decomposition=(None, None, [0.25,
-                                                                    0.75]))
+        sim = simulation_factory(
+            snapshot, domain_decomposition=(None, None, [0.25, 0.75])
+        )
         assert sim.state.domain_decomposition == (1, 1, 2)
-        assert sim.state.domain_decomposition_split_fractions == ([], [],
-                                                                  [0.25])
+        assert sim.state.domain_decomposition_split_fractions == ([], [], [0.25])
     else:
         raise RuntimeError("Test only supports 1 and 2 ranks")

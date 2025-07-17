@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implements intelligent and nested defaults for TypeParameters."""
@@ -16,7 +16,6 @@ class _NoDefault:
 
 
 class _SmartDefault(ABC):
-
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -31,15 +30,12 @@ class _SmartDefault(ABC):
 
 
 class _SmartDefaultSequence(_SmartDefault):
-
     def __init__(self, sequence, default):
         if _is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
-        self.default = [
-            _to_default(item, dft) for item, dft in zip(sequence, dft_iter)
-        ]
+        self.default = [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)]
 
     def __call__(self, sequence):
         if sequence is None:
@@ -78,14 +74,14 @@ class _SmartDefaultSequence(_SmartDefault):
 
 
 class _SmartDefaultFixedLengthSequence(_SmartDefault):
-
     def __init__(self, sequence, default):
         if _is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
         self.default = tuple(
-            [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)])
+            [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)]
+        )
 
     def __call__(self, sequence):
         if sequence is None:
@@ -114,12 +110,10 @@ class _SmartDefaultFixedLengthSequence(_SmartDefault):
 
 
 class _SmartDefaultMapping(_SmartDefault):
-
     def __init__(self, mapping, defaults):
         if defaults is _NoDefault:
             self.default = {
-                key: _to_default(value, _NoDefault)
-                for key, value in mapping.items()
+                key: _to_default(value, _NoDefault) for key, value in mapping.items()
             }
         else:
             self.default = {
@@ -199,8 +193,7 @@ def _to_base_defaults(value, _defaults=_NoDefault):
             if isinstance(_defaults, Mapping):
                 for key, dft in value.items():
                     sub_explicit_default = _defaults.get(key, _NoDefault)
-                    new_default[key] = _to_base_defaults(
-                        dft, sub_explicit_default)
+                    new_default[key] = _to_base_defaults(dft, sub_explicit_default)
             else:
                 return None
         else:

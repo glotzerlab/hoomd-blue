@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
@@ -83,7 +83,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         }
 
     //! Return molecule list
-    const GlobalVector<unsigned int>& getMoleculeList()
+    const GPUVector<unsigned int>& getMoleculeList()
         {
         checkParticlesSorted();
 
@@ -91,7 +91,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         }
 
     //! Return molecule lengths
-    const GlobalVector<unsigned int>& getMoleculeLengths()
+    const GPUVector<unsigned int>& getMoleculeLengths()
         {
         checkParticlesSorted();
 
@@ -99,7 +99,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         }
 
     //! Return molecule order
-    const GlobalVector<unsigned int>& getMoleculeOrder()
+    const GPUVector<unsigned int>& getMoleculeOrder()
         {
         checkParticlesSorted();
 
@@ -107,7 +107,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         }
 
     //! Return reverse lookup array
-    const GlobalVector<unsigned int>& getMoleculeIndex()
+    const GPUVector<unsigned int>& getMoleculeIndex()
         {
         checkParticlesSorted();
 
@@ -121,8 +121,8 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         }
 
     protected:
-    GlobalVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
-    unsigned int m_n_molecules_global;         //!< Global number of molecules
+    GPUVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
+    unsigned int m_n_molecules_global;      //!< Global number of molecules
 
     bool m_rebuild_molecules; //!< True if we need to rebuild indices
 
@@ -143,18 +143,18 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     /// m_molecule_list[
     ///     m_molecule_indexer(particle_molecule_index, molecule_index)
     /// ] == local_particle_index
-    GlobalVector<unsigned int> m_molecule_list;
+    GPUVector<unsigned int> m_molecule_list;
 
     /// List of molecule lengths
-    GlobalVector<unsigned int> m_molecule_length;
+    GPUVector<unsigned int> m_molecule_length;
 
     /// Index of particle in a molecule. Accessed through local particle index.
-    GlobalVector<unsigned int> m_molecule_order;
+    GPUVector<unsigned int> m_molecule_order;
 
     /// Reverse-lookup into molecule list, specifically
     /// m_molecule_idx[particle_index] == / molecule_index (note that this is the temporary
     /// particle index not the permanent particle tag).
-    GlobalVector<unsigned int> m_molecule_idx;
+    GPUVector<unsigned int> m_molecule_idx;
 
 #ifdef ENABLE_HIP
     std::shared_ptr<Autotuner<1>>
@@ -176,10 +176,6 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
 #ifdef ENABLE_HIP
     //! construct a list of local molecules on the GPU
     virtual void initMoleculesGPU();
-#endif
-
-#ifdef ENABLE_HIP
-    GPUPartition m_gpu_partition; //!< Partition of the molecules on GPUs
 #endif
     };
 

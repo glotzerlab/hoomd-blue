@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraint.h"
@@ -171,7 +171,7 @@ void ForceDistanceConstraint::fillMatrixVector(uint64_t timestep)
     ArrayHandle<double> h_cvec(m_cvec, access_location::host, access_mode::overwrite);
 
     // clear matrix
-    memset(h_cmatrix.data, 0, sizeof(double) * m_cmatrix.size());
+    m_cmatrix.zeroFill();
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -440,8 +440,8 @@ void ForceDistanceConstraint::computeConstraintForces(uint64_t timestep)
     unsigned int n_ptl = m_pdata->getN();
 
     // reset force array
-    memset(h_force.data, 0, sizeof(Scalar4) * n_ptl);
-    memset(h_virial.data, 0, sizeof(Scalar) * 6 * m_virial_pitch);
+    m_force.zeroFill();
+    m_virial.zeroFill();
 
     unsigned int n_constraint = m_cdata->getN() + m_cdata->getNGhosts();
 

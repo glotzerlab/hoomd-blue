@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CustomForceCompute.h"
@@ -41,18 +41,18 @@ void CustomForceCompute::computeForces(uint64_t timestep)
         // zero necessary arrays
         {
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-        memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
+        m_force.zeroFill();
         }
     if (m_aniso)
         {
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
-        memset(h_torque.data, 0, sizeof(Scalar4) * m_pdata->getN());
+        m_torque.zeroFill();
         }
 
     if (m_pdata->getFlags()[pdata_flag::pressure_tensor])
         {
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+        m_virial.zeroFill();
         }
     // execute python callback to update the forces, if present
     m_setForces(timestep);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterQuickCompress.h"
@@ -86,16 +86,20 @@ void UpdaterQuickCompress::performBoxScale(uint64_t timestep, const BoxDim& targ
     auto n_overlaps = m_mc->countOverlaps(false);
     if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getNGlobal())
         {
-        // the box move generated too many overlaps, undo the move
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::read);
-        unsigned int N = m_pdata->getN();
-        assert(N == N_backup);
-        memcpy(h_pos.data, h_pos_backup.data, sizeof(Scalar4) * N);
-        m_pdata->setGlobalBox(old_box);
-        m_pdata->translateOrigin(-origin_shift);
+            {
+            // the box move generated too many overlaps, undo the move
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos_backup(m_pos_backup,
+                                              access_location::host,
+                                              access_mode::read);
+            unsigned int N = m_pdata->getN();
+            assert(N == N_backup);
+            memcpy(h_pos.data, h_pos_backup.data, sizeof(Scalar4) * N);
+            m_pdata->setGlobalBox(old_box);
+            m_pdata->translateOrigin(-origin_shift);
+            }
 
         // we have moved particles, communicate those changes
         m_mc->communicate(false);

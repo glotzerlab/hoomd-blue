@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement BoxResize.
@@ -14,8 +14,6 @@
         t_ramp=21_000)
 """
 
-import warnings
-
 import hoomd
 from hoomd.operation import Updater
 from hoomd.box import Box
@@ -23,6 +21,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
 from hoomd.trigger import Periodic
+import inspect
 
 
 class BoxResize(Updater):
@@ -31,12 +30,6 @@ class BoxResize(Updater):
     Args:
         trigger (hoomd.trigger.trigger_like): The trigger to activate this
             updater.
-        box1 (hoomd.box.box_like): The box associated with the minimum of the
-            passed variant.
-        box2 (hoomd.box.box_like): The box associated with the maximum of the
-            passed variant.
-        variant (hoomd.variant.variant_like): A variant used to interpolate
-            between the two boxes.
         filter (hoomd.filter.filter_like): The subset of particle positions
             to update (defaults to `hoomd.filter.All`).
         box (hoomd.variant.box.BoxVariant): Box as a function of time.
@@ -69,14 +62,6 @@ class BoxResize(Updater):
         \\vec{r_j} \\leftarrow \\mathrm{minimum\\_image}_{\\vec{a}_k}'
                                (\\vec{r}_j)
 
-    Note:
-        For backward compatibility, you may set ``box1``, ``box2``, and
-        ``variant`` which is equivalent to::
-
-            box = hoomd.variant.box.Interpolate(initial_box=box1,
-                                                final_box=box2,
-                                                variant=variant)
-
     Warning:
         Rescaling particles in HPMC simulations with hard particles may
         introduce overlaps.
@@ -88,17 +73,21 @@ class BoxResize(Updater):
         deformed. `hoomd.md.Integrator` will run after the last updater and
         resets the constituent particle positions before computing forces.
 
-    .. deprecated:: 4.6.0
-        The arguments ``box1``, ``box2``, and ``variant`` are deprecated. Use
-        ``box``.
-
     .. rubric:: Example:
 
     .. code-block:: python
 
-        box_resize = hoomd.update.BoxResize(trigger=hoomd.trigger.Periodic(10),
-                                            box=inverse_volume_ramp)
+        box_resize = hoomd.update.BoxResize(
+            trigger=hoomd.trigger.Periodic(10),
+            box=inverse_volume_ramp,
+        )
         simulation.operations.updaters.append(box_resize)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `BoxResize`:
 
     Attributes:
         box (hoomd.variant.box.BoxVariant): The box as a function of time.
@@ -119,40 +108,19 @@ class BoxResize(Updater):
                 filter_ = box_resize.filter
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
+
     def __init__(
-            self,
-            trigger,
-            box1=None,
-            box2=None,
-            variant=None,
-            filter=All(),
-            box=None,
+        self,
+        trigger,
+        box,
+        filter=All(),
     ):
-        params = ParameterDict(box=hoomd.variant.box.BoxVariant,
-                               filter=ParticleFilter)
+        params = ParameterDict(box=hoomd.variant.box.BoxVariant, filter=ParticleFilter)
 
-        if box is not None and (box1 is not None or box2 is not None
-                                or variant is not None):
-            raise ValueError(
-                'box1, box2, and variant must be None when box is set')
-
-        if box is None and not (box1 is not None and box2 is not None
-                                and variant is not None):
-            raise ValueError(
-                'box1, box2, and variant must not be None when box is None')
-
-        if box is not None:
-            self._using_deprecated_box = False
-        else:
-            warnings.warn('box1, box2, and variant are deprecated, use `box`',
-                          FutureWarning)
-
-            box = hoomd.variant.box.Interpolate(initial_box=box1,
-                                                final_box=box2,
-                                                variant=variant)
-            self._using_deprecated_box = True
-
-        params.update({'box': box, 'filter': filter})
+        params.update({"box": box, "filter": filter})
         self._param_dict.update(params)
         super().__init__(trigger)
 
@@ -160,78 +128,12 @@ class BoxResize(Updater):
         group = self._simulation.state._get_group(self.filter)
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _hoomd.BoxResizeUpdater(
-                self._simulation.state._cpp_sys_def, self.trigger, self.box,
-                group)
+                self._simulation.state._cpp_sys_def, self.trigger, self.box, group
+            )
         else:
             self._cpp_obj = _hoomd.BoxResizeUpdaterGPU(
-                self._simulation.state._cpp_sys_def, self.trigger, self.box,
-                group)
-
-    @property
-    def box1(self):
-        """hoomd.Box: The box associated with the minimum of the passed variant.
-
-        .. deprecated:: 4.6.0
-
-            Use `box`.
-        """
-        warnings.warn('box1 is deprecated, use `box`.', FutureWarning)
-        if self._using_deprecated_box:
-            return self.box.initial_box
-
-        raise RuntimeError('box1 is not available when box is not None.')
-
-    @box1.setter
-    def box1(self, box):
-        warnings.warn('box1 is deprecated, use `box`.', FutureWarning)
-        if self._using_deprecated_box:
-            self.box.initial_box = box
-
-        raise RuntimeError('box1 is not available when box is not None.')
-
-    @property
-    def box2(self):
-        """hoomd.Box: The box associated with the maximum of the passed variant.
-
-        .. deprecated:: 4.6.0
-
-            Use `box`.
-        """
-        warnings.warn('box2 is deprecated, use `box`.', FutureWarning)
-        if self._using_deprecated_box:
-            return self.box.final_box
-
-        raise RuntimeError('box2 is not available when box is not None.')
-
-    @box2.setter
-    def box2(self, box):
-        warnings.warn('box2 is deprecated, use `box`.', FutureWarning)
-        if self._using_deprecated_box:
-            self.box.final_box = box
-
-        raise RuntimeError('box2 is not available when box is not None.')
-
-    @property
-    def variant(self):
-        """hoomd.variant.Variant: A variant used to interpolate boxes.
-
-        .. deprecated:: 4.6.0
-
-            Use `box`.
-        """
-        warnings.warn('variant is deprecated, use `box`.', FutureWarning)
-        if self._using_deprecated_box:
-            return self.box.variant
-
-        raise RuntimeError('variant is not available when box is not None.')
-
-    @variant.setter
-    def variant(self, variant):
-        warnings.warn('variant is deprecated, use `box`.', FutureWarning)
-        if self._using_deprecated_box:
-            self.box.final_box = variant
-
-        raise RuntimeError('variant is not available when box is not None.')
+                self._simulation.state._cpp_sys_def, self.trigger, self.box, group
+            )
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -272,18 +174,18 @@ class BoxResize(Updater):
 
         .. code-block:: python
 
-            hoomd.update.BoxResize.update(state=simulation.state,
-                                          box=box)
+            hoomd.update.BoxResize.update(state=simulation.state, box=box)
         """
         group = state._get_group(filter)
 
         box_variant = hoomd.variant.box.Constant(box)
 
         if isinstance(state._simulation.device, hoomd.device.CPU):
-            updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, Periodic(1),
-                                              box_variant, group)
+            updater = _hoomd.BoxResizeUpdater(
+                state._cpp_sys_def, Periodic(1), box_variant, group
+            )
         else:
-            updater = _hoomd.BoxResizeUpdaterGPU(state._cpp_sys_def,
-                                                 Periodic(1), box_variant,
-                                                 group)
+            updater = _hoomd.BoxResizeUpdaterGPU(
+                state._cpp_sys_def, Periodic(1), box_variant, group
+            )
         updater.update(state._simulation.timestep)

@@ -88,15 +88,9 @@ User documentation
 Write user documentation
 ________________________
 
-Document public-facing API with Python docstrings in Google style.
-
-Document version status
-_______________________
-
-Add `versionadded, versionchanged, and deprecated Sphinx directives
-<https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded>`__
-to each user-facing Python class, method, etc., so that users will be aware of how functionality
-changes from version to version. Remove this when breaking APIs in major releases.
+Document public-facing API with Python docstrings in Google style, use the ``_doc_inherited``
+member as documented in ``ARCHITECTURE.md`` and list new public classes and functions in
+``__all__``.
 
 Add developer to the credits
 ____________________________

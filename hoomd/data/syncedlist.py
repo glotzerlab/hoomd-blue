@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Synced list utility classes."""
@@ -64,12 +64,14 @@ class SyncedList(MutableSequence):
 
     # Also guarantees that lists remain in same order when using the public API.
 
-    def __init__(self,
-                 validation,
-                 to_synced_list=None,
-                 iterable=None,
-                 callable_class=False,
-                 attach_members=True):
+    def __init__(
+        self,
+        validation,
+        to_synced_list=None,
+        iterable=None,
+        callable_class=False,
+        attach_members=True,
+    ):
         self._attach_members = attach_members
         self._simulation_ = None
         if to_synced_list is None:
@@ -103,8 +105,7 @@ class SyncedList(MutableSequence):
         # If synced need to change cpp_list and detach operation before
         # changing python list
         if self._synced:
-            self._synced_list[index] = \
-                self._to_synced_list_conversion(value)
+            self._synced_list[index] = self._to_synced_list_conversion(value)
         self._unregister_item(self._list[index])
         self._list[index] = value
 
@@ -148,8 +149,7 @@ class SyncedList(MutableSequence):
         else:
             index = self._handle_int(index)
         if self._synced:
-            self._synced_list.insert(index,
-                                     self._to_synced_list_conversion(value))
+            self._synced_list.insert(index, self._to_synced_list_conversion(value))
         self._list.insert(index, value)
 
     def _handle_int(self, integer):
@@ -158,12 +158,13 @@ class SyncedList(MutableSequence):
             if -integer > len(self):
                 raise IndexError(
                     f"Negative index {integer} is too small for list of length "
-                    f"{len(self)}")
+                    f"{len(self)}"
+                )
             return integer % max(1, len(self))
         if integer >= len(self):
             raise IndexError(
-                f"Index {integer} is outside bounds of a length {len(self)}"
-                f"list.")
+                f"Index {integer} is outside bounds of a length {len(self)}list."
+            )
         return integer
 
     def _handle_index(self, index):
@@ -191,8 +192,7 @@ class SyncedList(MutableSequence):
             return
         else:
             if value._attached:
-                raise RuntimeError(
-                    f"Cannot place {value} into two simulations.")
+                raise RuntimeError(f"Cannot place {value} into two simulations.")
 
     def _unregister_item(self, value):
         """Detaches and/or removes value to simulation if attached.
@@ -263,11 +263,10 @@ class SyncedList(MutableSequence):
     def __getstate__(self):
         """Get state for pickling."""
         state = copy(self.__dict__)
-        state['_simulation_'] = None
-        state.pop('_synced_list', None)
+        state["_simulation_"] = None
+        state.pop("_synced_list", None)
         return state
 
     def __eq__(self, other):
         """Test for equality."""
-        return (len(self) == len(other)
-                and all(a == b for a, b in zip(self, other)))
+        return len(self) == len(other) and all(a == b for a, b in zip(self, other))

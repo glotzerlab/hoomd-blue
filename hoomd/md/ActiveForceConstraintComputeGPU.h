@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.cuh"
@@ -96,8 +96,8 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
                               {m_tuner_force, m_tuner_diffusion, m_tuner_constraint});
 
     unsigned int type = this->m_pdata->getNTypes();
-    GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
-    GlobalVector<Scalar4> tmp_t_activeVec(type, this->m_exec_conf);
+    GPUVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
+    GPUVector<Scalar4> tmp_t_activeVec(type, this->m_exec_conf);
 
         {
         ArrayHandle<Scalar4> old_f_activeVec(this->m_f_activeVec, access_location::host);

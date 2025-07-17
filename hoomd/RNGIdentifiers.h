@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file RNGIdentifiers.h
@@ -27,23 +27,23 @@ struct RNGIdentifier
     static const uint8_t HPMCMonoShuffle = 1;
     static const uint8_t HPMCMonoTrialMove = 2;
     static const uint8_t HPMCMonoShift = 3;
-    static const uint8_t HPMCDepletants = 4;
-    static const uint8_t HPMCDepletantNum = 5;
+    static const uint8_t Unused1 = 4;
+    static const uint8_t Unused2 = 5;
     static const uint8_t HPMCMonoAccept = 6;
     static const uint8_t UpdaterBoxMC = 7;
-    static const uint8_t UpdaterClusters = 8;
-    static const uint8_t UpdaterClustersPairwise = 9;
+    static const uint8_t UpdaterGCA = 8;
+    static const uint8_t UpdaterGCAPairwise = 9;
     static const uint8_t UpdaterExternalFieldWall = 10;
     static const uint8_t UpdaterMuVTGroup = 11;
-    static const uint8_t UpdaterMuVTDepletants1 = 12;
-    static const uint8_t UpdaterMuVTDepletants2 = 13;
-    static const uint8_t UpdaterMuVTDepletants3 = 14;
-    static const uint8_t UpdaterMuVTDepletants4 = 15;
-    static const uint8_t UpdaterMuVTDepletants5 = 16;
-    static const uint8_t UpdaterMuVTDepletants6 = 17;
-    static const uint8_t UpdaterMuVTPoisson = 18;
+    static const uint8_t Unused3 = 12;
+    static const uint8_t Unused4 = 13;
+    static const uint8_t Unused5 = 14;
+    static const uint8_t Unused6 = 15;
+    static const uint8_t Unused7 = 16;
+    static const uint8_t Unused8 = 17;
+    static const uint8_t Unused9 = 18;
     static const uint8_t UpdaterMuVTInsertRemove = 19;
-    static const uint8_t Unused1 = 20;
+    static const uint8_t Unused10 = 20;
     static const uint8_t ActiveForceCompute = 21;
     static const uint8_t EvaluatorPairDPDThermo = 22;
     static const uint8_t IntegrationMethodTwoStep = 23;
@@ -58,11 +58,11 @@ struct RNGIdentifier
     static const uint8_t VirtualParticleFiller = 32;
     static const uint8_t UpdaterQuickCompress = 34;
     static const uint8_t ParticleGroupThermalize = 35;
-    static const uint8_t HPMCDepletantsAccept = 36;
-    static const uint8_t HPMCDepletantsClusters = 37;
-    static const uint8_t HPMCDepletantNumClusters = 38;
+    static const uint8_t Unused11 = 36;
+    static const uint8_t Unused12 = 37;
+    static const uint8_t Unused13 = 38;
     static const uint8_t HPMCMonoPatch = 39;
-    static const uint8_t UpdaterClusters2 = 40;
+    static const uint8_t UpdaterGCA2 = 40;
     static const uint8_t HPMCMonoChainMove = 41;
     static const uint8_t UpdaterShapeUpdate = 42;
     static const uint8_t UpdaterShapeConstruct = 43;

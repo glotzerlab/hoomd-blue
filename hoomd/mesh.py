@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Triangulated mesh data structure.
-
-The mesh data structure combines particles into a connected triangulated
+"""The mesh data structure combines particles into a connected triangulated
 network. The particles act as vertices of the triangulation and are
 linked with their neighbors in both pairs via mesh bonds and triplets via
 mesh triangles.
@@ -53,8 +51,15 @@ class Mesh(_HOOMDBaseObject):
 
         mesh_obj = hoomd.mesh.Mesh()
         mesh_obj.types = ["mesh"]
-        mesh_obj.triangulation = dict(type_ids = [0,0,0,0],
-              triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]])
+        mesh_obj.triangulation = dict(
+            type_ids=[0, 0, 0, 0],
+            triangles=[
+                [0, 1, 2],
+                [0, 2, 3],
+                [0, 1, 3],
+                [1, 2, 3],
+            ],
+        )
 
     .. py:attribute:: types
 
@@ -76,50 +81,52 @@ class Mesh(_HOOMDBaseObject):
     """
 
     def __init__(self):
-
         param_dict = ParameterDict(
             types=[str],
-            triangulation=OnlyIf(to_type_converter({
-                "type_ids": NDArrayValidator(np.uint),
-                "triangles": NDArrayValidator(np.uint, shape=(None, 3))
-            }),
-                                 postprocess=self._ensure_same_size))
+            triangulation=OnlyIf(
+                to_type_converter(
+                    {
+                        "type_ids": NDArrayValidator(np.uint),
+                        "triangles": NDArrayValidator(np.uint, shape=(None, 3)),
+                    }
+                ),
+                postprocess=self._ensure_same_size,
+            ),
+        )
 
         param_dict["types"] = ["mesh"]
-        param_dict["triangulation"] = dict(type_ids=np.zeros(0, dtype=int),
-                                           triangles=np.zeros((0, 3),
-                                                              dtype=int))
+        param_dict["triangulation"] = dict(
+            type_ids=np.zeros(0, dtype=int), triangles=np.zeros((0, 3), dtype=int)
+        )
 
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-
         self._cpp_obj = _hoomd.MeshDefinition(
-            self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
+            self._simulation.state._cpp_sys_def, len(self._param_dict["types"])
+        )
 
-        self._cpp_obj.setTypes(list(self._param_dict['types']))
+        self._cpp_obj.setTypes(list(self._param_dict["types"]))
 
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
-                self._simulation._system_communicator.addMeshDefinition(
-                    self._cpp_obj)
+                self._simulation._system_communicator.addMeshDefinition(self._cpp_obj)
 
     def _ensure_same_size(self, triangulation):
         if triangulation is None:
             return None
         if len(triangulation["triangles"]) != len(triangulation["type_ids"]):
-            raise ValueError(
-                "Number of type_ids do not match number of triangles.")
+            raise ValueError("Number of type_ids do not match number of triangles.")
         return triangulation
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def type_ids(self):
         """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
         return self.triangulation["type_ids"]
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def triangles(self):
         """((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangulation.
 
@@ -128,7 +135,7 @@ class Mesh(_HOOMDBaseObject):
         """
         return self.triangulation["triangles"]
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def bonds(self):
         """((*N*, 2) `numpy.ndarray` of ``uint32``): Mesh bonds.
 
@@ -145,3 +152,6 @@ class Mesh(_HOOMDBaseObject):
         if self.triangulation is None:
             return 0
         return len(self.triangulation["triangles"])
+
+
+__all__ = ["Mesh"]

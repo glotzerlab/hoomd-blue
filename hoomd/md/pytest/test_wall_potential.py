@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -7,8 +7,11 @@ import pytest
 import hoomd
 import hoomd.md as md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import (logging_check, pickling_check,
-                            autotuned_kernel_parameter_check)
+from hoomd.conftest import (
+    logging_check,
+    pickling_check,
+    autotuned_kernel_parameter_check,
+)
 
 import itertools
 
@@ -33,9 +36,7 @@ class WallGenerator:
         origin = (cls.float(), cls.float(), cls.float())
         inside = cls.rng.choice((True, False))
         if type == "Sphere":
-            return hoomd.wall.Sphere(radius=cls.float(),
-                                     origin=origin,
-                                     inside=inside)
+            return hoomd.wall.Sphere(radius=cls.float(), origin=origin, inside=inside)
         if type == "Cylinder":
             return hoomd.wall.Cylinder(
                 radius=cls.float(),
@@ -102,33 +103,12 @@ def _params(r_cut=None, r_extrap=None):
             parameters.
     """
     base = (
-        {
-            "sigma": 1.0,
-            "epsilon": 1.0
-        },
-        {
-            "sigma": 1.0,
-            "epsilon": 5.5
-        },
-        {
-            "kappa": 1.0,
-            "epsilon": 1.5
-        },
-        {
-            "r0": 1.0,
-            "D0": 1.0,
-            "alpha": 1.0
-        },
-        {
-            "sigma": 1.0,
-            "epsilon": 1.0
-        },
-        {
-            "sigma": 1.0,
-            "epsilon": 1.0,
-            "m": 10,
-            "n": 20
-        },
+        {"sigma": 1.0, "epsilon": 1.0},
+        {"sigma": 1.0, "epsilon": 5.5},
+        {"kappa": 1.0, "epsilon": 1.5},
+        {"r0": 1.0, "D0": 1.0, "alpha": 1.0},
+        {"sigma": 1.0, "epsilon": 1.0},
+        {"sigma": 1.0, "epsilon": 1.0, "m": 10, "n": 20},
     )
     for p in base:
         if r_cut is None:
@@ -172,10 +152,12 @@ def test_attaching(simulation, cls, params):
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_plane(simulation, cls, params):
     """Test that particles stay in box slice defined by two plane walls."""
-    wall_pot = cls([
-        hoomd.wall.Plane(normal=(0, 0, -1), origin=(0, 0, 1)),
-        hoomd.wall.Plane(normal=(0, 0, 1), origin=(0, 0, -1)),
-    ])
+    wall_pot = cls(
+        [
+            hoomd.wall.Plane(normal=(0, 0, -1), origin=(0, 0, 1)),
+            hoomd.wall.Plane(normal=(0, 0, 1), origin=(0, 0, -1)),
+        ]
+    )
     simulation.operations.integrator.forces.append(wall_pot)
     wall_pot.params["A"] = params
     for _ in range(10):
@@ -189,15 +171,13 @@ def test_plane(simulation, cls, params):
 def test_sphere(simulation, cls, params):
     """Test that particles stay within a sphere wall."""
     radius = 5
-    wall_pot = cls(
-        [hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=True)])
+    wall_pot = cls([hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=True)])
     simulation.operations.integrator.forces.append(wall_pot)
     wall_pot.params["A"] = params
     for _ in range(10):
         simulation.run(10)
         with simulation.state.cpu_local_snapshot as snap:
-            assert np.all(
-                np.linalg.norm(snap.particles.position, axis=1) < radius)
+            assert np.all(np.linalg.norm(snap.particles.position, axis=1) < radius)
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
@@ -205,12 +185,9 @@ def test_cylinder(simulation, cls, params):
     """Test that particles stay within the pipe defined by a cylinder wall."""
     n = np.array([1, 1, 1])
     radius = 5
-    wall_pot = cls([
-        hoomd.wall.Cylinder(radius=radius,
-                            origin=(0, 0, 0),
-                            axis=n,
-                            inside=True)
-    ])
+    wall_pot = cls(
+        [hoomd.wall.Cylinder(radius=radius, origin=(0, 0, 0), axis=n, inside=True)]
+    )
     simulation.operations.integrator.forces.append(wall_pot)
     wall_pot.params["A"] = params
     for _ in range(10):
@@ -225,8 +202,7 @@ def test_cylinder(simulation, cls, params):
 def test_outside(simulation, cls, params):
     """Test that particles stay outside a sphere wall when inside=False."""
     radius = 5.0
-    wall_pot = cls(
-        [hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=False)])
+    wall_pot = cls([hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=False)])
     simulation.operations.integrator.forces.append(wall_pot)
     wall_pot.params["A"] = params
     snap = simulation.state.get_snapshot()
@@ -237,16 +213,14 @@ def test_outside(simulation, cls, params):
     for _ in range(10):
         simulation.run(50)
         with simulation.state.cpu_local_snapshot as snap:
-            assert np.all(
-                np.linalg.norm(snap.particles.position, axis=1) > radius)
+            assert np.all(np.linalg.norm(snap.particles.position, axis=1) > radius)
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 1.1)))
 def test_r_extrap(simulation, cls, params):
     """Test a force is generated in the other half space with r_extrap set."""
     radius = 5.0
-    wall_pot = cls(
-        [hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=False)])
+    wall_pot = cls([hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=False)])
     simulation.operations.integrator.forces.append(wall_pot)
     wall_pot.params["A"] = params
     snap = simulation.state.get_snapshot()
@@ -264,9 +238,13 @@ def test_r_extrap(simulation, cls, params):
 
 # Test Logging
 @pytest.mark.parametrize(
-    'cls, expected_namespace, expected_loggables',
-    zip(_potential_cls, itertools.repeat(('md', 'external', 'wall')),
-        itertools.repeat(expected_loggable_params)))
+    "cls, expected_namespace, expected_loggables",
+    zip(
+        _potential_cls,
+        itertools.repeat(("md", "external", "wall")),
+        itertools.repeat(expected_loggable_params),
+    ),
+)
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
@@ -279,8 +257,9 @@ def test_kernel_parameters(simulation, cls, params):
 
     simulation.run(0)
 
-    autotuned_kernel_parameter_check(instance=wall_pot,
-                                     activate=lambda: simulation.run(1))
+    autotuned_kernel_parameter_check(
+        instance=wall_pot, activate=lambda: simulation.run(1)
+    )
 
 
 # Pickle Testing

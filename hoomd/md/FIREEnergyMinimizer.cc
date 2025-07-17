@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "FIREEnergyMinimizer.h"
@@ -150,7 +150,7 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
     unsigned int total_group_size = 0;
 
         {
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+        const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
         // total potential energy

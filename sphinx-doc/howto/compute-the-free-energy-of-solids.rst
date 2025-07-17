@@ -34,7 +34,7 @@ HPMC simulations
 ----------------
 
 1. Initialize your system in the ideal crystal structure.
-2. Apply the harmonic external potential (`hoomd.hpmc.external.field.Harmonic`), using variants
+2. Apply the harmonic external potential (`hoomd.hpmc.external.Harmonic`), using variants
    to adjust the spring constants as needed during the simulation.
 3. Apply trial moves to the mobile particles.
 

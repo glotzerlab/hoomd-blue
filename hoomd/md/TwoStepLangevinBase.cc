@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
@@ -25,32 +25,16 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GlobalVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
+    GPUVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
     m_gamma.swap(gamma);
-    TAG_ALLOCATION(m_gamma);
 
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
 
     // allocate memory for the per-type gamma_r storage
-    GlobalVector<Scalar3> gamma_r(m_pdata->getNTypes(), m_exec_conf);
+    GPUVector<Scalar3> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
-    TAG_ALLOCATION(m_gamma_r);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_gamma.get(),
-                      sizeof(Scalar) * m_gamma.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        cudaMemAdvise(m_gamma_r.get(),
-                      sizeof(Scalar3) * m_gamma_r.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        }
-#endif
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma_r.size(); i++)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_H__
@@ -12,7 +12,6 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
-#include "hoomd/GlobalArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/managed_allocator.h"
@@ -226,8 +225,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
     Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
-    GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
-    GlobalArray<Scalar> m_ronsq;  //!< ron squared per type pair
+    GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared per type pair
+    GPUArray<Scalar> m_ronsq;     //!< ron squared per type pair
 
     /// Per type pair potential parameters
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
@@ -237,7 +236,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     bool m_tail_correction_enabled = false;
     /// r_cut (not squared) given to the neighbor list
-    std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
+    std::shared_ptr<GPUArray<Scalar>> m_r_cut_nlist;
 
     /// Keep track of number of each type of particle
     std::vector<unsigned int> m_num_particles_by_type;
@@ -357,17 +356,16 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     assert(m_pdata);
     assert(m_nlist);
 
-    GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
+    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
+    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
     m_params = std::vector<param_type, hoomd::detail::managed_allocator<param_type>>(
         m_typpair_idx.getNumElements(),
         param_type(),
         hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
-    m_r_cut_nlist
-        = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
+    m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
@@ -378,36 +376,9 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
                       m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
                       0);
-        auto& gpu_map = m_exec_conf->getGPUIds();
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            cudaMemPrefetchAsync(m_params.data(),
-                                 sizeof(param_type) * m_params.size(),
-                                 gpu_map[idev]);
-            }
-
-        // m_rcutsq and m_ronsq only in unified memory if allConcurrentManagedAccess
-        if (m_exec_conf->allConcurrentManagedAccess())
-            {
-            cudaMemAdvise(m_rcutsq.get(),
-                          m_rcutsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_ronsq.get(),
-                          m_ronsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                // prefetch data on all GPUs
-                cudaMemPrefetchAsync(m_rcutsq.get(),
-                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_ronsq.get(),
-                                     sizeof(Scalar) * m_ronsq.getNumElements(),
-                                     gpu_map[idev]);
-                }
-            }
+        cudaMemPrefetchAsync(m_params.data(),
+                             sizeof(param_type) * m_params.size(),
+                             m_exec_conf->getGPUId());
         }
 #endif
 
@@ -586,207 +557,220 @@ void PotentialPair<evaluator>::setROnPython(pybind11::tuple types, Scalar r_on)
 */
 template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t timestep)
     {
-    // start by updating the neighborlist
-    m_nlist->compute(timestep);
+        {
+        // start by updating the neighborlist
+        m_nlist->compute(timestep);
 
-    // depending on the neighborlist settings, we can take advantage of newton's third law
-    // to reduce computations at the cost of memory access complexity: set that flag now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+        // depending on the neighborlist settings, we can take advantage of newton's third law
+        // to reduce computations at the cost of memory access complexity: set that flag now
+        bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 
-    // access the neighbor list, particle data, and system box
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+        // access the neighbor list, particle data, and system box
+        ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+                                          access_location::host,
+                                          access_mode::read);
+        //     Index2D nli = m_nlist->getNListIndexer();
+        ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
                                         access_location::host,
                                         access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
-                                      access_location::host,
-                                      access_mode::read);
-    //     Index2D nli = m_nlist->getNListIndexer();
-    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
-                                    access_location::host,
-                                    access_mode::read);
 
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(),
+                                     access_location::host,
+                                     access_mode::read);
 
-    // force arrays
-    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
+        // force arrays
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
-    const BoxDim box = m_pdata->getGlobalBox();
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+        const BoxDim box = m_pdata->getGlobalBox();
+        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
 
-    PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor];
+        PDataFlags flags = this->m_pdata->getFlags();
+        bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-    // need to start from a zero force, energy and virial
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+        // need to start from a zero force, energy and virial
+        m_force.zeroFill();
+        m_virial.zeroFill();
 
-    // for each particle
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
-        {
-        // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-
-        // sanity check
-        assert(typei < m_pdata->getNTypes());
-
-        // access charge (if needed)
-        Scalar qi = Scalar(0.0);
-        if (evaluator::needsCharge())
-            qi = h_charge.data[i];
-
-        // initialize current particle force, potential energy, and virial to 0
-        Scalar3 fi = make_scalar3(0, 0, 0);
-        Scalar pei = 0.0;
-        Scalar virialxxi = 0.0;
-        Scalar virialxyi = 0.0;
-        Scalar virialxzi = 0.0;
-        Scalar virialyyi = 0.0;
-        Scalar virialyzi = 0.0;
-        Scalar virialzzi = 0.0;
-
-        // loop over all of the neighbors of this particle
-        const size_t myHead = h_head_list.data[i];
-        const unsigned int size = (unsigned int)h_n_neigh.data[i];
-        for (unsigned int k = 0; k < size; k++)
+        // for each particle
+        for (int i = 0; i < (int)m_pdata->getN(); i++)
             {
-            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int j = h_nlist.data[myHead + k];
-            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+            // access the particle's position and type (MEM TRANSFER: 4 scalars)
+            Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+            unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
-            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-            Scalar3 dx = pi - pj;
-
-            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-            assert(typej < m_pdata->getNTypes());
+            // sanity check
+            assert(typei < m_pdata->getNTypes());
 
             // access charge (if needed)
-            Scalar qj = Scalar(0.0);
+            Scalar qi = Scalar(0.0);
             if (evaluator::needsCharge())
-                qj = h_charge.data[j];
+                qi = h_charge.data[i];
 
-            // apply periodic boundary conditions
-            dx = box.minImage(dx);
+            // initialize current particle force, potential energy, and virial to 0
+            Scalar3 fi = make_scalar3(0, 0, 0);
+            Scalar pei = 0.0;
+            Scalar virialxxi = 0.0;
+            Scalar virialxyi = 0.0;
+            Scalar virialxzi = 0.0;
+            Scalar virialyyi = 0.0;
+            Scalar virialyzi = 0.0;
+            Scalar virialzzi = 0.0;
 
-            // calculate r_ij squared (FLOPS: 5)
-            Scalar rsq = dot(dx, dx);
-
-            // get parameters for this type pair
-            unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            const param_type& param = m_params[typpair_idx];
-            Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            Scalar ronsq = Scalar(0.0);
-            if (m_shift_mode == xplor)
-                ronsq = h_ronsq.data[typpair_idx];
-
-            // design specifies that energies are shifted if
-            // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
-            bool energy_shift = false;
-            if (m_shift_mode == shift)
-                energy_shift = true;
-            else if (m_shift_mode == xplor)
+            // loop over all of the neighbors of this particle
+            const size_t myHead = h_head_list.data[i];
+            const unsigned int size = (unsigned int)h_n_neigh.data[i];
+            for (unsigned int k = 0; k < size; k++)
                 {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
+                // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+                unsigned int j = h_nlist.data[myHead + k];
+                assert(j < m_pdata->getN() + m_pdata->getNGhosts());
 
-            // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
-            evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj);
+                // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+                Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+                Scalar3 dx = pi - pj;
 
-            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+                // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+                unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+                assert(typej < m_pdata->getNTypes());
 
-            if (evaluated)
-                {
-                // modify the potential for xplor shifting
+                // access charge (if needed)
+                Scalar qj = Scalar(0.0);
+                if (evaluator::needsCharge())
+                    qj = h_charge.data[j];
+
+                // apply periodic boundary conditions
+                dx = box.minImage(dx);
+
+                // calculate r_ij squared (FLOPS: 5)
+                Scalar rsq = dot(dx, dx);
+
+                // get parameters for this type pair
+                unsigned int typpair_idx = m_typpair_idx(typei, typej);
+                const param_type& param = m_params[typpair_idx];
+                Scalar rcutsq = h_rcutsq.data[typpair_idx];
+                Scalar ronsq = Scalar(0.0);
                 if (m_shift_mode == xplor)
+                    ronsq = h_ronsq.data[typpair_idx];
+
+                // design specifies that energies are shifted if
+                // 1) shift mode is set to shift
+                // or 2) shift mode is explor and ron > rcut
+                bool energy_shift = false;
+                if (m_shift_mode == shift)
+                    energy_shift = true;
+                else if (m_shift_mode == xplor)
                     {
-                    if (rsq >= ronsq && rsq < rcutsq)
+                    if (ronsq > rcutsq)
+                        energy_shift = true;
+                    }
+
+                // compute the force and potential energy
+                Scalar force_divr = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+                evaluator eval(rsq, rcutsq, param);
+                if (evaluator::needsCharge())
+                    eval.setCharge(qi, qj);
+
+                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+                if (evaluated)
+                    {
+                    // modify the potential for xplor shifting
+                    if (m_shift_mode == xplor)
                         {
-                        // Implement XPLOR smoothing (FLOPS: 16)
-                        Scalar old_pair_eng = pair_eng;
-                        Scalar old_force_divr = force_divr;
+                        if (rsq >= ronsq && rsq < rcutsq)
+                            {
+                            // Implement XPLOR smoothing (FLOPS: 16)
+                            Scalar old_pair_eng = pair_eng;
+                            Scalar old_force_divr = force_divr;
 
-                        // calculate 1.0 / (xplor denominator)
-                        Scalar xplor_denom_inv
-                            = Scalar(1.0)
-                              / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+                            // calculate 1.0 / (xplor denominator)
+                            Scalar xplor_denom_inv
+                                = Scalar(1.0)
+                                  / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
 
-                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
-                                   * (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq)
-                                   * xplor_denom_inv;
-                        Scalar ds_dr_divr
-                            = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+                            Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                            Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                                       * (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq)
+                                       * xplor_denom_inv;
+                            Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq
+                                                * xplor_denom_inv;
 
-                        // make modifications to the old pair energy and force
-                        pair_eng = old_pair_eng * s;
-                        // note: I'm not sure why the minus sign needs to be there: my notes have a
-                        // + But this is verified correct via plotting
-                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                            // make modifications to the old pair energy and force
+                            pair_eng = old_pair_eng * s;
+                            // note: I'm not sure why the minus sign needs to be there: my notes
+                            // have a
+                            // + But this is verified correct via plotting
+                            force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                            }
                         }
-                    }
 
-                Scalar force_div2r = force_divr * Scalar(0.5);
-                // add the force, potential energy and virial to the particle i
-                // (FLOPS: 8)
-                fi += dx * force_divr;
-                pei += pair_eng * Scalar(0.5);
-                if (compute_virial)
-                    {
-                    virialxxi += force_div2r * dx.x * dx.x;
-                    virialxyi += force_div2r * dx.x * dx.y;
-                    virialxzi += force_div2r * dx.x * dx.z;
-                    virialyyi += force_div2r * dx.y * dx.y;
-                    virialyzi += force_div2r * dx.y * dx.z;
-                    virialzzi += force_div2r * dx.z * dx.z;
-                    }
-
-                // add the force to particle j if we are using the third law (MEM TRANSFER: 10
-                // scalars / FLOPS: 8) only add force to local particles
-                if (third_law && j < m_pdata->getN())
-                    {
-                    unsigned int mem_idx = j;
-                    h_force.data[mem_idx].x -= dx.x * force_divr;
-                    h_force.data[mem_idx].y -= dx.y * force_divr;
-                    h_force.data[mem_idx].z -= dx.z * force_divr;
-                    h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
+                    Scalar force_div2r = force_divr * Scalar(0.5);
+                    // add the force, potential energy and virial to the particle i
+                    // (FLOPS: 8)
+                    fi += dx * force_divr;
+                    pei += pair_eng * Scalar(0.5);
                     if (compute_virial)
                         {
-                        h_virial.data[0 * m_virial_pitch + mem_idx] += force_div2r * dx.x * dx.x;
-                        h_virial.data[1 * m_virial_pitch + mem_idx] += force_div2r * dx.x * dx.y;
-                        h_virial.data[2 * m_virial_pitch + mem_idx] += force_div2r * dx.x * dx.z;
-                        h_virial.data[3 * m_virial_pitch + mem_idx] += force_div2r * dx.y * dx.y;
-                        h_virial.data[4 * m_virial_pitch + mem_idx] += force_div2r * dx.y * dx.z;
-                        h_virial.data[5 * m_virial_pitch + mem_idx] += force_div2r * dx.z * dx.z;
+                        virialxxi += force_div2r * dx.x * dx.x;
+                        virialxyi += force_div2r * dx.x * dx.y;
+                        virialxzi += force_div2r * dx.x * dx.z;
+                        virialyyi += force_div2r * dx.y * dx.y;
+                        virialyzi += force_div2r * dx.y * dx.z;
+                        virialzzi += force_div2r * dx.z * dx.z;
+                        }
+
+                    // add the force to particle j if we are using the third law (MEM TRANSFER: 10
+                    // scalars / FLOPS: 8) only add force to local particles
+                    if (third_law && j < m_pdata->getN())
+                        {
+                        unsigned int mem_idx = j;
+                        h_force.data[mem_idx].x -= dx.x * force_divr;
+                        h_force.data[mem_idx].y -= dx.y * force_divr;
+                        h_force.data[mem_idx].z -= dx.z * force_divr;
+                        h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
+                        if (compute_virial)
+                            {
+                            h_virial.data[0 * m_virial_pitch + mem_idx]
+                                += force_div2r * dx.x * dx.x;
+                            h_virial.data[1 * m_virial_pitch + mem_idx]
+                                += force_div2r * dx.x * dx.y;
+                            h_virial.data[2 * m_virial_pitch + mem_idx]
+                                += force_div2r * dx.x * dx.z;
+                            h_virial.data[3 * m_virial_pitch + mem_idx]
+                                += force_div2r * dx.y * dx.y;
+                            h_virial.data[4 * m_virial_pitch + mem_idx]
+                                += force_div2r * dx.y * dx.z;
+                            h_virial.data[5 * m_virial_pitch + mem_idx]
+                                += force_div2r * dx.z * dx.z;
+                            }
                         }
                     }
                 }
-            }
 
-        // finally, increment the force, potential energy and virial for particle i
-        unsigned int mem_idx = i;
-        h_force.data[mem_idx].x += fi.x;
-        h_force.data[mem_idx].y += fi.y;
-        h_force.data[mem_idx].z += fi.z;
-        h_force.data[mem_idx].w += pei;
-        if (compute_virial)
-            {
-            h_virial.data[0 * m_virial_pitch + mem_idx] += virialxxi;
-            h_virial.data[1 * m_virial_pitch + mem_idx] += virialxyi;
-            h_virial.data[2 * m_virial_pitch + mem_idx] += virialxzi;
-            h_virial.data[3 * m_virial_pitch + mem_idx] += virialyyi;
-            h_virial.data[4 * m_virial_pitch + mem_idx] += virialyzi;
-            h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
+            // finally, increment the force, potential energy and virial for particle i
+            unsigned int mem_idx = i;
+            h_force.data[mem_idx].x += fi.x;
+            h_force.data[mem_idx].y += fi.y;
+            h_force.data[mem_idx].z += fi.z;
+            h_force.data[mem_idx].w += pei;
+            if (compute_virial)
+                {
+                h_virial.data[0 * m_virial_pitch + mem_idx] += virialxxi;
+                h_virial.data[1 * m_virial_pitch + mem_idx] += virialxyi;
+                h_virial.data[2 * m_virial_pitch + mem_idx] += virialxzi;
+                h_virial.data[3 * m_virial_pitch + mem_idx] += virialyyi;
+                h_virial.data[4 * m_virial_pitch + mem_idx] += virialyzi;
+                h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
+                }
             }
         }
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
@@ -6,12 +6,12 @@ import pytest
 
 from hoomd import hpmc
 from hoomd.conftest import operation_pickling_check
-from hoomd.hpmc.tune.move_size import (_MoveSizeTuneDefinition, MoveSize)
+from hoomd.hpmc.tune.move_size import _MoveSizeTuneDefinition, MoveSize
 
 
 @pytest.fixture
 def move_definition_dict():
-    return dict(attr='d', type='A', target=0.5, domain=(1e-5, None))
+    return dict(attr="d", type="A", target=0.5, domain=(1e-5, None))
 
 
 @pytest.fixture
@@ -24,25 +24,23 @@ def simulation(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(dimensions=2, r=1e-3, n=20)  # 400 particles
     sim = simulation_factory(snap)
     integrator = hpmc.integrate.Sphere(default_d=0.01)
-    integrator.shape['A'] = dict(diameter=0.9)
+    integrator.shape["A"] = dict(diameter=0.9)
     sim.operations.integrator = integrator
     return sim
 
 
 class TestMoveSizeTuneDefinition:
-
     def test_getting_attrs(self, move_definition_dict, move_size_definition):
         for attr in move_definition_dict:
-            assert move_definition_dict[attr] == getattr(
-                move_size_definition, attr)
+            assert move_definition_dict[attr] == getattr(move_size_definition, attr)
 
     def test_setting_attrs(self, move_size_definition):
         move_size_definition.domain = (None, 5)
         assert move_size_definition.domain == (None, 5)
-        move_size_definition.attr = 'a'
-        assert move_size_definition.attr == 'a'
-        move_size_definition.type = 'B'
-        assert move_size_definition.type == 'B'
+        move_size_definition.attr = "a"
+        assert move_size_definition.attr == "a"
+        move_size_definition.type = "B"
+        assert move_size_definition.type == "B"
         move_size_definition.target = 0.9
         assert move_size_definition.target == 0.9
 
@@ -67,48 +65,55 @@ class TestMoveSizeTuneDefinition:
     def test_getting_setting_move_size(self, move_size_definition, simulation):
         integrator = simulation.operations.integrator
         move_size_definition.integrator = integrator
-        assert move_size_definition.x == integrator.d['A']
-        d = integrator.d['A'] * 1.1
-        integrator.d['A'] = d
+        assert move_size_definition.x == integrator.d["A"]
+        d = integrator.d["A"] * 1.1
+        integrator.d["A"] = d
         assert move_size_definition.x == d
         d *= 1.1
         move_size_definition.x = d
-        assert integrator.d['A'] == d
+        assert integrator.d["A"] == d
 
     def test_hash(self, move_size_definition, move_definition_dict, simulation):
         identical_definition = _MoveSizeTuneDefinition(**move_definition_dict)
         assert hash(identical_definition) == hash(move_size_definition)
-        move_definition_dict['domain'] = (None, 5)
+        move_definition_dict["domain"] = (None, 5)
         different_definition = _MoveSizeTuneDefinition(**move_definition_dict)
         assert hash(different_definition) != hash(move_size_definition)
 
     def test_eq(self, move_size_definition, move_definition_dict, simulation):
         identical_definition = _MoveSizeTuneDefinition(**move_definition_dict)
         assert identical_definition == move_size_definition
-        move_definition_dict['domain'] = (None, 5)
+        move_definition_dict["domain"] = (None, 5)
         different_definition = _MoveSizeTuneDefinition(**move_definition_dict)
         assert different_definition != move_size_definition
 
 
-_move_size_options = [(MoveSize.scale_solver,
-                       dict(trigger=300,
-                            moves=['d'],
-                            target=0.5,
-                            types=['A'],
-                            max_translation_move=5,
-                            max_rotation_move=3.,
-                            tol=1e-1)),
-                      (MoveSize.secant_solver,
-                       dict(
-                           trigger=300,
-                           moves=['d'],
-                           target=0.6,
-                           types=['A'],
-                       ))]
+_move_size_options = [
+    (
+        MoveSize.scale_solver,
+        dict(
+            trigger=300,
+            moves=["d"],
+            target=0.5,
+            types=["A"],
+            max_translation_move=5,
+            max_rotation_move=3.0,
+            tol=1e-1,
+        ),
+    ),
+    (
+        MoveSize.secant_solver,
+        dict(
+            trigger=300,
+            moves=["d"],
+            target=0.6,
+            types=["A"],
+        ),
+    ),
+]
 
 
-@pytest.fixture(params=_move_size_options,
-                ids=lambda x: 'MoveSize-' + x[0].__name__)
+@pytest.fixture(params=_move_size_options, ids=lambda x: "MoveSize-" + x[0].__name__)
 def move_size_tuner_pairs(request):
     return request.param
 
@@ -119,14 +124,13 @@ def move_size_tuner(move_size_tuner_pairs):
 
 
 class TestMoveSize:
-
     def test_construction(self, move_size_tuner_pairs):
         move_size_dict = move_size_tuner_pairs[1]
         move_size = move_size_tuner_pairs[0](**move_size_dict)
         for attr in move_size_dict:
-            if attr == 'trigger':
+            if attr == "trigger":
                 assert getattr(move_size, attr).period == move_size_dict[attr]
-            elif attr in ['max_rotation_move', 'max_translation_move']:
+            elif attr in ["max_rotation_move", "max_translation_move"]:
                 assert getattr(move_size, attr).default == move_size_dict[attr]
             else:
                 try:
@@ -135,8 +139,7 @@ class TestMoveSize:
                 # have an attribute. This allows us to check that all attributes
                 # are getting set correctly.
                 except AttributeError:
-                    assert getattr(move_size.solver,
-                                   attr) == move_size_dict[attr]
+                    assert getattr(move_size.solver, attr) == move_size_dict[attr]
 
     def test_attach(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
@@ -168,7 +171,7 @@ class TestMoveSize:
         assert all(target == t.target for t in move_size_tuner._tunables)
         assert target == move_size_tuner.target
 
-        max_move = 4.
+        max_move = 4.0
         move_size_tuner.max_translation_move.default = max_move
         assert move_size_tuner.max_translation_move.default == max_move
 
@@ -176,12 +179,12 @@ class TestMoveSize:
         assert move_size_tuner.max_rotation_move.default == max_move
 
         with pytest.raises(ValueError):
-            move_size_tuner.moves = ['f', 'a']
-        move_size_tuner.moves = ['a']
+            move_size_tuner.moves = ["f", "a"]
+        move_size_tuner.moves = ["a"]
 
-        move_size_tuner.types = ['A', 'B']
+        move_size_tuner.types = ["A", "B"]
         with pytest.raises(ValueError):
-            move_size_tuner.types = 'foo'
+            move_size_tuner.types = "foo"
 
     # All tests (using differnt fixtures) combined take about 17 seconds, so
     # only test during validation

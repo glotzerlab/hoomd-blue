@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Mesh Conservation potential.
-
-Mesh conservation force classes apply a force and virial to every mesh vertex
+r"""Mesh conservation force classes apply a force and virial to every mesh vertex
 particle based on a global or local quantity :math:`A` of the given mesh
 triangulation :math:`T`.
 
@@ -27,10 +25,17 @@ from hoomd.md.mesh.potential import MeshPotential, MeshConservationPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.logging import log
+import inspect
 
 
 class Area(MeshConservationPotential):
     r"""Area conservation potential.
+
+    Args:
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
+        ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
+            and calculates the conservation energy considering all triangles in
+            the mesh. Defaults to `False`.
 
     `Area` specifies a global area conservation energy for each
     mesh type.
@@ -42,11 +47,18 @@ class Area(MeshConservationPotential):
     with :math:`A_t` is the instantaneous total area of all triangles
     of type :math:`t`.
 
-    Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
-        ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
-            and calculates the conservation energy considering all triangles in
-            the mesh. Defaults to `False`.
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        area_conservation_potential = hoomd.md.mesh.conservation.Area(mesh)
+        area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Area`:
 
     Attributes:
         parameter (TypeParameter[dict]):
@@ -58,19 +70,17 @@ class Area(MeshConservationPotential):
 
             * ``A0`` (`float`, **required**) - targeted global surface area
               :math:`[\mathrm{length}]^2]`
-
-    .. rubric:: Example:
-
-    .. code-block:: python
-
-        area_conservation_potential = hoomd.md.mesh.conservation.Area(mesh)
-        area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
     """
+
     _cpp_class_name = "AreaConservationMeshForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshConservationPotential._doc_inherited)
+    )
 
     def __init__(self, mesh, ignore_type=False):
-        params = TypeParameter("params", "types",
-                               TypeParameterDict(k=float, A0=float, len_keys=1))
+        params = TypeParameter(
+            "params", "types", TypeParameterDict(k=float, A0=float, len_keys=1)
+        )
         self._add_typeparam(params)
 
         super().__init__(mesh, ignore_type)
@@ -83,6 +93,9 @@ class Area(MeshConservationPotential):
 
 class TriangleArea(MeshPotential):
     r"""Triangle Area conservation potential.
+
+    Args:
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
 
     `TriangleArea` specifies an area conservation energy by
     applying an area constraint to each triangle of the mesh.
@@ -98,8 +111,19 @@ class TriangleArea(MeshPotential):
     mesh. The number of triangles in the mesh are symbolized by
     :math:`N_\mathrm{tri}`.
 
-    Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        tringle_area_conservation_potential = \
+            hoomd.md.mesh.conservation.TriangleArea(mesh)
+        tringle_area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `TriangleArea`:
 
     Attributes:
         parameter (TypeParameter[dict]):
@@ -112,20 +136,17 @@ class TriangleArea(MeshPotential):
             * ``A0`` (`float`, **required**) - target surface area
               of a single triangle in the mesh
               :math:`[\mathrm{length}]^2`
-
-    .. rubric:: Example:
-
-    .. code-block:: python
-
-        tringle_area_conservation_potential = \
-            hoomd.md.mesh.conservation.TriangleArea(mesh)
-        tringle_area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
     """
+
     _cpp_class_name = "TriangleAreaConservationMeshForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshConservationPotential._doc_inherited)
+    )
 
     def __init__(self, mesh):
-        params = TypeParameter("params", "types",
-                               TypeParameterDict(k=float, A0=float, len_keys=1))
+        params = TypeParameter(
+            "params", "types", TypeParameterDict(k=float, A0=float, len_keys=1)
+        )
         self._add_typeparam(params)
 
         super().__init__(mesh)
@@ -139,6 +160,12 @@ class TriangleArea(MeshPotential):
 class Volume(MeshConservationPotential):
     r"""Volume conservation potential.
 
+    Args:
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
+        ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
+            and calculates the conservation energy considering all triangles in
+            the mesh. Defaults to `False`.
+
     :py:class:`Volume` specifies a volume constraint on the whole mesh
     surface:
 
@@ -146,11 +173,18 @@ class Volume(MeshConservationPotential):
 
         U(r) = k \frac{( V(r) - V_0 )^2}{2 \cdot V_0}
 
-    Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure.
-        ignore_type (`bool`, *optional*): ignores mesh type if set to `True`
-            and calculates the conservation energy considering all triangles in
-            the mesh. Defaults to `False`.
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        volume = hoomd.md.mesh.conservation.Volume(mesh)
+        volume.params["mesh"] = dict(k=10.0, V0=100)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Volume`:
 
     Attributes:
         parameter (TypeParameter[dict]):
@@ -162,19 +196,17 @@ class Volume(MeshConservationPotential):
 
             * ``V0`` (`float`, **required**) - target volume
               :math:`[\mathrm{length}^{3}]`
-
-    .. rubric:: Example:
-
-    .. code-block:: python
-
-        volume = hoomd.md.mesh.conservation.Volume(mesh)
-        volume.params["mesh"] = dict(k=10.0, V0=100)
     """
+
     _cpp_class_name = "VolumeConservationMeshForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshConservationPotential._doc_inherited)
+    )
 
     def __init__(self, mesh, ignore_type=False):
-        params = TypeParameter("params", "types",
-                               TypeParameterDict(k=float, V0=float, len_keys=1))
+        params = TypeParameter(
+            "params", "types", TypeParameterDict(k=float, V0=float, len_keys=1)
+        )
         self._add_typeparam(params)
 
         super().__init__(mesh, ignore_type)
@@ -183,3 +215,11 @@ class Volume(MeshConservationPotential):
     def volume(self):
         """Volume of the mesh triangulation."""
         return self._cpp_obj.getVolume()
+
+
+__all__ = [
+    "Area",
+    "MeshConservationPotential",
+    "TriangleArea",
+    "Volume",
+]

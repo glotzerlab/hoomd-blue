@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -25,7 +25,7 @@ namespace hoomd
  * \param deltaT Fundamental integration timestep
  */
 mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : IntegratorTwoStep(sysdef, deltaT)
+    : md::IntegratorTwoStep(sysdef, deltaT)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
 
@@ -98,7 +98,7 @@ void mpcd::Integrator::update(uint64_t timestep)
         m_stream->stream(timestep);
 
     // execute MD steps
-    IntegratorTwoStep::update(timestep);
+    md::IntegratorTwoStep::update(timestep);
     }
 
 /*!
@@ -107,7 +107,7 @@ void mpcd::Integrator::update(uint64_t timestep)
  */
 void mpcd::Integrator::setDeltaT(Scalar deltaT)
     {
-    IntegratorTwoStep::setDeltaT(deltaT);
+    md::IntegratorTwoStep::setDeltaT(deltaT);
     if (m_stream)
         m_stream->setDeltaT(deltaT);
     }
@@ -119,7 +119,7 @@ void mpcd::Integrator::setDeltaT(Scalar deltaT)
  */
 void mpcd::Integrator::prepRun(uint64_t timestep)
     {
-    IntegratorTwoStep::prepRun(timestep);
+    md::IntegratorTwoStep::prepRun(timestep);
 
     // synchronize cell list in mpcd methods
     syncCellList();
@@ -135,6 +135,67 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
         m_mpcd_comm->communicate(timestep);
         }
 #endif // ENABLE_MPI
+    }
+
+void mpcd::Integrator::startAutotuning()
+    {
+    md::IntegratorTwoStep::startAutotuning();
+
+    m_sysdef->getMPCDParticleData()->startAutotuning();
+
+    if (m_collide)
+        {
+        m_collide->startAutotuning();
+        }
+    if (m_stream)
+        {
+        m_stream->startAutotuning();
+        }
+    if (m_sorter)
+        {
+        m_sorter->startAutotuning();
+        }
+#ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        {
+        m_mpcd_comm->startAutotuning();
+        }
+#endif
+    for (auto& filler : m_fillers)
+        {
+        filler->startAutotuning();
+        }
+    }
+
+bool mpcd::Integrator::isAutotuningComplete()
+    {
+    bool result = md::IntegratorTwoStep::isAutotuningComplete();
+
+    result = result && m_sysdef->getMPCDParticleData()->isAutotuningComplete();
+
+    if (m_collide)
+        {
+        result = result && m_collide->isAutotuningComplete();
+        }
+    if (m_stream)
+        {
+        result = result && m_stream->isAutotuningComplete();
+        }
+    if (m_sorter)
+        {
+        result = result && m_sorter->isAutotuningComplete();
+        }
+#ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        {
+        result = result && m_mpcd_comm->isAutotuningComplete();
+        }
+#endif
+    for (auto& filler : m_fillers)
+        {
+        result = result && filler->isAutotuningComplete();
+        }
+    return result;
     }
 
 void mpcd::Integrator::syncCellList()

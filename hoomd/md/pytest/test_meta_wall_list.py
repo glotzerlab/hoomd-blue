@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections import defaultdict
@@ -11,10 +11,8 @@ from hoomd import conftest
 
 
 class TestWallMetaList(conftest.BaseListTest):
-
     @pytest.fixture
     def generate_plain_collection(self):
-
         def generate(n):
             return [self.generate_wall() for _ in range(n)]
 
@@ -31,11 +29,7 @@ class TestWallMetaList(conftest.BaseListTest):
             kwargs.update({"radius": float, "inside": bool})
             return hoomd.wall.Sphere(**self.generator(kwargs))
         elif random_type == 1:
-            kwargs.update({
-                "radius": float,
-                "axis": (float,) * 3,
-                "inside": bool
-            })
+            kwargs.update({"radius": float, "axis": (float,) * 3, "inside": bool})
             return hoomd.wall.Cylinder(**self.generator(kwargs))
         normal = self.generator.ndarray((3,))
         vector_norm = np.linalg.norm(normal)
@@ -54,8 +48,7 @@ class TestWallMetaList(conftest.BaseListTest):
             item_type = type(item)
             assert item_type is backend_index.type
             assert type_counter[item_type] == backend_index.index
-            assert test_list._backend_lists[item_type][
-                backend_index.index] is item
+            assert test_list._backend_lists[item_type][backend_index.index] is item
             type_counter[item_type] += 1
 
     def test_construction(self):

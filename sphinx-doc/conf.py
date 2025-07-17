@@ -1,91 +1,108 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Sphinx configuration."""
 
 import sys
 import os
-import sphinx
 import datetime
+from importlib.util import find_spec
 
 from sphinx.domains.python import PythonDomain
 
 # allows typing objects like variant_like to be documented correctly.
 # See: https://github.com/sphinx-doc/sphinx/issues/9560
-PythonDomain.object_types['class'].roles = ('class', 'exc', 'data', 'obj')
-PythonDomain.object_types['data'].roles = ('data', 'class', 'obj')
+PythonDomain.object_types["class"].roles = ("class", "exc", "data", "obj")
+PythonDomain.object_types["data"].roles = ("data", "class", "obj")
 
-sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(".."))
 
-os.environ['SPHINX'] = '1'
+os.environ["SPHINX"] = "1"
 
 extensions = [
-    'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
-    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting',
-    'sphinx_copybutton'
+    "nbsphinx",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
 ]
 
+if find_spec("sphinxcontrib.katex") is not None:
+    extensions.append("sphinxcontrib.katex")
+else:
+    extensions.append("sphinx.ext.mathjax")
+
 if os.getenv("READTHEDOCS"):
+    extensions.append("sphinx_copybutton")
+    extensions.append("notfound.extension")
     extensions.append("sphinxcontrib.googleanalytics")
     googleanalytics_id = "G-ZR0DNZD21E"
 
+    katex_prerender = True
+
 napoleon_include_special_with_doc = True
 
+notfound_context = {
+    "title": "Page not found",
+    "body": (
+        "<h1>Page not found</h1>\n\nThis URL is invalid, sorry. "
+        "Please use the navigation bar or search to continue."
+    ),
+}
+
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/doc/stable', None),
-    'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "gsd": ("https://gsd.readthedocs.io/en/stable/", None),
 }
 autodoc_docstring_signature = True
-autodoc_typehints_format = 'short'
+autodoc_typehints_format = "short"
 
 autodoc_mock_imports = [
-    'hoomd._hoomd',
-    'hoomd.version_config',
-    'hoomd.md._md',
-    'hoomd.metal._metal',
-    'hoomd.mpcd._mpcd',
-    'hoomd.minimize._minimize',
-    'hoomd.hpmc._jit',
-    'hoomd.hpmc._hpmc',
+    "hoomd._hoomd",
+    "hoomd.version_config",
+    "hoomd.md._md",
+    "hoomd.metal._metal",
+    "hoomd.mpcd._mpcd",
+    "hoomd.minimize._minimize",
+    "hoomd.hpmc._hpmc",
 ]
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'figures', '**/create-figures.ipynb']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "figures", "**/create-figures.ipynb"]
 
-source_suffix = '.rst'
+source_suffix = ".rst"
 
-master_doc = 'index'
+master_doc = "index"
 
-project = 'HOOMD-blue'
+project = "HOOMD-blue"
 year = datetime.date.today().year
-copyright = f'2009-{year} The Regents of the University of Michigan'
-author = 'The Regents of the University of Michigan'
+copyright = f"2009-{year} The Regents of the University of Michigan"
+author = "The Regents of the University of Michigan"
 
-version = '4.9.1'
-release = '4.9.1'
+version = "5.2.0"
+release = "5.2.0"
 
-language = 'en'
+language = "en"
 
-default_role = 'any'
+default_role = "any"
 
 pygments_style = "friendly"
 pygments_dark_style = "native"
 
 todo_include_todos = False
 
-html_theme = 'furo'
-html_static_path = ['_static']
-html_logo = 'hoomdblue-logo-vertical.svg'
+html_theme = "furo"
+html_static_path = ["_static"]
+html_logo = "hoomdblue-logo-vertical.svg"
 html_theme_options = {
-    'sidebar_hide_name': True,
-    'top_of_page_buttons': [],
+    "sidebar_hide_name": True,
+    "top_of_page_buttons": [],
     "navigation_with_keys": True,
     "dark_css_variables": {
         "color-brand-primary": "#5187b2",
@@ -96,9 +113,9 @@ html_theme_options = {
         "color-brand-content": "#406a8c",
     },
 }
-html_favicon = 'hoomdblue-logo-favicon.svg'
+html_favicon = "hoomdblue-logo-favicon.svg"
 
-IGNORE_MODULES = ['hoomd._hoomd']
+IGNORE_MODULES = ["hoomd._hoomd"]
 IGNORE_CLASSES = []
 
 copybutton_prompt_text = "$ "
@@ -111,8 +128,11 @@ def autodoc_process_bases(app, name, obj, options, bases):
     # bases must be modified in place.
     remove_indices = []
     for i, base in enumerate(bases):
-        if (base.__module__ in IGNORE_MODULES or base.__name__.startswith("_")
-                or base.__name__ in IGNORE_CLASSES):
+        if (
+            base.__module__ in IGNORE_MODULES
+            or base.__name__.startswith("_")
+            or base.__name__ in IGNORE_CLASSES
+        ):
             remove_indices.append(i)
     for i in reversed(remove_indices):
         del bases[i]
@@ -120,4 +140,4 @@ def autodoc_process_bases(app, name, obj, options, bases):
 
 def setup(app):
     """Configure the Sphinx app."""
-    app.connect('autodoc-process-bases', autodoc_process_bases)
+    app.connect("autodoc-process-bases", autodoc_process_bases)

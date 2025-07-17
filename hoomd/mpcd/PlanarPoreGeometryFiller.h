@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -38,6 +38,8 @@ class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::ManualVirtualParti
 
     virtual ~PlanarPoreGeometryFiller();
 
+    virtual void fill(uint64_t timestep) override;
+
     std::shared_ptr<const mpcd::PlanarPoreGeometry> getGeometry() const
         {
         return m_geom;
@@ -58,14 +60,14 @@ class PYBIND11_EXPORT PlanarPoreGeometryFiller : public mpcd::ManualVirtualParti
     GPUArray<uint2> m_ranges;                //!< Particle tag ranges for filling
 
     //! Compute the total number of particles to fill
-    virtual void computeNumFill();
+    void computeNumFill() override;
 
     //! Draw particles within the fill volume
-    virtual void drawParticles(uint64_t timestep);
+    void drawParticles(uint64_t timestep) override;
 
     private:
     bool m_needs_recompute;
-    Scalar3 m_recompute_cache;
+    Scalar4 m_recompute_cache;
     void notifyRecompute()
         {
         m_needs_recompute = true;

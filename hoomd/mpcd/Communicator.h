@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -198,7 +198,6 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
 
-    MPI_Datatype m_pdata_element;                     //!< MPI struct for pdata_element
     GPUVector<mpcd::detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
     GPUVector<mpcd::detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
     std::vector<MPI_Request> m_reqs;                  //!< MPI requests

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -25,13 +25,13 @@ def snap():
 def integrator():
     bb = hoomd.mpcd.methods.BounceBack(
         filter=hoomd.filter.All(),
-        geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0))
+        geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0),
+    )
     ig = hoomd.mpcd.Integrator(dt=0.1, methods=[bb])
     return ig
 
 
 class TestBounceBack:
-
     def test_pickling(self, simulation_factory, snap, integrator):
         pickling_check(integrator.methods[0])
 
@@ -50,31 +50,33 @@ class TestBounceBack:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
+                snap.particles.position, [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
+            )
 
         # take another step where one particle will now hit the wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.95, 3.95, 4.95], [-0.2, -4.0, -0.2]])
+                snap.particles.position, [[-4.95, 3.95, 4.95], [-0.2, -4.0, -0.2]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity,
-                [[-1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[-1.0, -1.0, 1.0], [-1.0, -1.0, -1.0]]
+            )
 
         # take another step, reflecting the second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[4.95, 3.85, -4.95], [-0.1, -3.9, -0.1]])
+                snap.particles.position, [[4.95, 3.85, -4.95], [-0.1, -3.9, -0.1]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, 1.0]])
+                snap.particles.velocity, [[-1.0, -1.0, 1.0], [1.0, 1.0, 1.0]]
+            )
 
     def test_step_slip(self, simulation_factory, snap, integrator):
         """Test step with slip boundary conditions."""
@@ -88,31 +90,33 @@ class TestBounceBack:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
+                snap.particles.position, [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
+            )
 
         # take another step where one particle will now hit the wall
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.85, 3.95, 4.85], [-0.2, -4.0, -0.2]])
+                snap.particles.position, [[-4.85, 3.95, 4.85], [-0.2, -4.0, -0.2]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity,
-                [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]]
+            )
 
         # take another step, reflecting perpendicular motion of second particle
         sim.run(1)
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.75, 3.85, 4.75], [-0.3, -3.9, -0.3]])
+                snap.particles.position, [[-4.75, 3.85, 4.75], [-0.3, -3.9, -0.3]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, -1.0, -1.0], [-1.0, 1.0, -1.0]])
+                snap.particles.velocity, [[1.0, -1.0, -1.0], [-1.0, 1.0, -1.0]]
+            )
 
     def test_step_moving_wall(self, simulation_factory, snap, integrator):
         integrator.dt = 0.3
@@ -128,10 +132,11 @@ class TestBounceBack:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.75, 3.85, -4.95], [-0.4, -3.9, -0.1]])
+                snap.particles.position, [[-4.75, 3.85, -4.95], [-0.4, -3.9, -0.1]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]])
+                snap.particles.velocity, [[1.0, -1.0, 1.0], [0.0, 1.0, 1.0]]
+            )
 
     def test_accel(self, simulation_factory, snap, integrator):
         force = hoomd.md.force.Constant(filter=hoomd.filter.All())
@@ -147,14 +152,16 @@ class TestBounceBack:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[0.11, 0.12, -0.11], [-0.095, -0.09, -0.105]])
+                snap.particles.position, [[0.11, 0.12, -0.11], [-0.095, -0.09, -0.105]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.2, 1.4, -1.2], [-0.9, -0.8, -1.1]])
+                snap.particles.velocity, [[1.2, 1.4, -1.2], [-0.9, -0.8, -1.1]]
+            )
 
     @pytest.mark.parametrize("H,expected_result", [(4.0, True), (3.8, False)])
-    def test_check_particles(self, simulation_factory, snap, integrator, H,
-                             expected_result):
+    def test_check_particles(
+        self, simulation_factory, snap, integrator, H, expected_result
+    ):
         """Test box validation raises an error on run."""
         integrator.methods[0].geometry.separation = 2 * H
 
@@ -168,7 +175,8 @@ class TestBounceBack:
         """Test we can also attach to a normal MD integrator."""
         bb = hoomd.mpcd.methods.BounceBack(
             filter=hoomd.filter.All(),
-            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0))
+            geometry=hoomd.mpcd.geometry.ParallelPlates(separation=8.0),
+        )
         integrator = hoomd.md.Integrator(dt=0.1, methods=[bb])
 
         sim = simulation_factory(snap)
@@ -179,7 +187,8 @@ class TestBounceBack:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             np.testing.assert_array_almost_equal(
-                snap.particles.position,
-                [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]])
+                snap.particles.position, [[-4.95, 3.95, 4.95], [-0.1, -3.9, -0.1]]
+            )
             np.testing.assert_array_almost_equal(
-                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
+                snap.particles.velocity, [[1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]]
+            )

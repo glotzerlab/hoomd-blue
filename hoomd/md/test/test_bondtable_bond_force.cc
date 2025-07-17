@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
@@ -54,8 +54,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
 
     // compute the force and check the results
     fc_2->compute(0);
-    const GlobalArray<Scalar4>& force_array_1 = fc_2->getForceArray();
-    const GlobalArray<Scalar>& virial_array_1 = fc_2->getVirialArray();
+    const GPUArray<Scalar4>& force_array_1 = fc_2->getForceArray();
+    const GPUArray<Scalar>& virial_array_1 = fc_2->getVirialArray();
 
         {
         size_t pitch = virial_array_1.getPitch();
@@ -98,8 +98,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
     fc_2->compute(1);
 
         {
-        const GlobalArray<Scalar4>& force_array_3 = fc_2->getForceArray();
-        const GlobalArray<Scalar>& virial_array_3 = fc_2->getVirialArray();
+        const GPUArray<Scalar4>& force_array_3 = fc_2->getForceArray();
+        const GPUArray<Scalar>& virial_array_3 = fc_2->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
@@ -138,8 +138,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
     fc_2->compute(2);
 
         {
-        const GlobalArray<Scalar4>& force_array_4 = fc_2->getForceArray();
-        const GlobalArray<Scalar>& virial_array_4 = fc_2->getVirialArray();
+        const GPUArray<Scalar4>& force_array_4 = fc_2->getForceArray();
+        const GPUArray<Scalar>& virial_array_4 = fc_2->getVirialArray();
         size_t pitch = virial_array_4.getPitch();
         ArrayHandle<Scalar4> h_force_4(force_array_4, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_4(virial_array_4, access_location::host, access_mode::read);
@@ -214,8 +214,8 @@ void bond_force_type_test(bondforce_creator bf_creator,
     fc_2->compute(0);
 
         {
-        const GlobalArray<Scalar4>& force_array_6 = fc_2->getForceArray();
-        const GlobalArray<Scalar>& virial_array_6 = fc_2->getVirialArray();
+        const GPUArray<Scalar4>& force_array_6 = fc_2->getForceArray();
+        const GPUArray<Scalar>& virial_array_6 = fc_2->getVirialArray();
         size_t pitch = virial_array_6.getPitch();
         ArrayHandle<Scalar4> h_force_6(force_array_6, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_6(virial_array_6, access_location::host, access_mode::read);

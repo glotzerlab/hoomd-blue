@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
@@ -112,14 +112,18 @@ void IntegratorTwoStep::update(uint64_t timestep)
         method->includeRATTLEForce(timestep + 1);
         }
 
-    /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
-       in the second step.
-
-       Otherwise we would have to update ghost positions for central particles
-       here in order to update the constituent particles.
-
-       TODO: check this assumptions holds for all integrators
-     */
+    // update rigid body constituent particles at end of step
+    if (m_rigid_bodies)
+        {
+#ifdef ENABLE_MPI
+        if (m_sysdef->isDomainDecomposed())
+            {
+            m_comm->beginUpdateGhosts(timestep + 1);
+            m_comm->finishUpdateGhosts(timestep + 1);
+            }
+#endif
+        updateRigidBodies(timestep + 1);
+        }
     }
 
 /*! \param deltaT new deltaT to set
@@ -226,18 +230,6 @@ const bool IntegratorTwoStep::getIntegrateRotationalDOF()
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
     Integrator::prepRun(timestep);
-    if (m_integrate_rotational_dof && !areForcesAnisotropic())
-        {
-        m_exec_conf->msg->warning() << "Requested integration of orientations, but no forces"
-                                       " provide torques."
-                                    << endl;
-        }
-    if (!m_integrate_rotational_dof && areForcesAnisotropic())
-        {
-        m_exec_conf->msg->warning() << "Forces provide torques, but integrate_rotational_dof is"
-                                       " false."
-                                    << endl;
-        }
 
     for (auto& method : m_methods)
         method->setAnisotropic(m_integrate_rotational_dof);
@@ -370,17 +362,6 @@ CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
     return flags;
     }
 #endif
-
-/// Check if any forces introduce anisotropic degrees of freedom
-bool IntegratorTwoStep::areForcesAnisotropic()
-    {
-    auto is_anisotropic = Integrator::areForcesAnisotropic();
-    if (m_rigid_bodies)
-        {
-        is_anisotropic |= m_rigid_bodies->isAnisotropic();
-        }
-    return is_anisotropic;
-    }
 
 void IntegratorTwoStep::validateGroups()
     {

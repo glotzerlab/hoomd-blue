@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -73,6 +73,29 @@ void mpcd::CellThermoCompute::compute(uint64_t timestep)
 
     computeCellProperties(timestep);
     m_needs_net_reduce = true;
+    }
+
+void mpcd::CellThermoCompute::startAutotuning()
+    {
+    Compute::startAutotuning();
+#ifdef ENABLE_MPI
+    if (m_vel_comm)
+        m_vel_comm->startAutotuning();
+    if (m_energy_comm)
+        m_energy_comm->startAutotuning();
+#endif // ENABLE_MPI
+    }
+
+bool mpcd::CellThermoCompute::isAutotuningComplete()
+    {
+    bool result = Compute::isAutotuningComplete();
+#ifdef ENABLE_MPI
+    if (m_vel_comm)
+        result = result && m_vel_comm->isAutotuningComplete();
+    if (m_energy_comm)
+        result = result && m_energy_comm->isAutotuningComplete();
+#endif // ENABLE_MPI
+    return result;
     }
 
 void mpcd::CellThermoCompute::computeCellProperties(uint64_t timestep)

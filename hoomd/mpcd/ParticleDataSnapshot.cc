@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -70,13 +70,30 @@ bool mpcd::ParticleDataSnapshot::validate() const
  * \param root Root rank to broadcast from
  * \param mpi_comm MPI communicator to use for broadcasting
  */
-void mpcd::ParticleDataSnapshot::bcast(unsigned int root, MPI_Comm mpi_comm)
+void mpcd::ParticleDataSnapshot::bcast(unsigned int root,
+                                       MPI_Comm mpi_comm,
+                                       std::shared_ptr<MPIConfiguration> mpi_config)
     {
-    hoomd::bcast(size, root, mpi_comm);
-    hoomd::bcast(position, root, mpi_comm);
-    hoomd::bcast(velocity, root, mpi_comm);
-    hoomd::bcast(type, root, mpi_comm);
-    hoomd::bcast(mass, root, mpi_comm);
+    int rank;
+    MPI_Comm_rank(mpi_comm, &rank);
+
+    // broadcast size and resize
+    int N;
+    if (rank == static_cast<int>(root))
+        {
+        N = size;
+        }
+    MPI_Bcast(&N, 1, MPI_UNSIGNED, root, mpi_comm);
+    if (rank != static_cast<int>(root))
+        {
+        resize(N);
+        }
+
+    const MPI_Datatype mpi_vec3 = mpi_config->getVec3ScalarDatatype();
+    MPI_Bcast(position.data(), size, mpi_vec3, root, mpi_comm);
+    MPI_Bcast(velocity.data(), size, mpi_vec3, root, mpi_comm);
+    MPI_Bcast(type.data(), size, MPI_UNSIGNED, root, mpi_comm);
+    MPI_Bcast(&mass, 1, MPI_HOOMD_SCALAR, root, mpi_comm);
     hoomd::bcast(type_mapping, root, mpi_comm);
     }
 #endif

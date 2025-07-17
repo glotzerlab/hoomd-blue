@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -63,7 +63,7 @@ class PYBIND11_EXPORT BounceBackStreamingMethod : public mpcd::StreamingMethod
         }
 
     //! Implementation of the streaming rule
-    virtual void stream(uint64_t timestep);
+    void stream(uint64_t timestep) override;
 
     //! Get the streaming geometry
     std::shared_ptr<Geometry> getGeometry() const

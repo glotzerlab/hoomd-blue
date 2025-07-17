@@ -1,14 +1,15 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement generic classes for move acceptance ratio tuning."""
+
 import abc
 
-from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.tune.attr_tuner import _TuneDefinition
 from hoomd.tune import RootSolver
+from hoomd.custom.custom_action import _InternalAction
 
 
 class _MCTuneDefinition(_TuneDefinition):
@@ -48,19 +49,24 @@ class _MCTuneDefinition(_TuneDefinition):
             return None
 
         # Called twice in same step return computed value
-        elif (self.previous_total == total_moves
-              and self.previous_accepted_moves == accepted_moves):
+        elif (
+            self.previous_total == total_moves
+            and self.previous_accepted_moves == accepted_moves
+        ):
             return self.previous_acceptance_rate
 
         # If we have recorded a previous total then this condition implies a new
         # run call. We should be able to tune here as we have no other
         # indication the system has changed.
-        elif (self.previous_total >= total_moves
-              or self.previous_accepted_moves >= accepted_moves):
+        elif (
+            self.previous_total >= total_moves
+            or self.previous_accepted_moves >= accepted_moves
+        ):
             acceptance_rate = accepted_moves / total_moves
         else:
-            acceptance_rate = (accepted_moves - self.previous_accepted_moves) \
-                               / (total_moves - self.previous_total)
+            acceptance_rate = (accepted_moves - self.previous_accepted_moves) / (
+                total_moves - self.previous_total
+            )
 
         # We store the previous information becuase this lets us find the
         # acceptance rate since this has last been called which allows for us to
@@ -73,6 +79,7 @@ class _MCTuneDefinition(_TuneDefinition):
 
 class _TuneMCMove(_InternalAction):
     """Internal class for the MoveSize tuner."""
+
     _min_move_size = 1e-7
 
     def __init__(self, target, solver):
@@ -90,9 +97,10 @@ class _TuneMCMove(_InternalAction):
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
-        param_dict = ParameterDict(target=OnlyTypes(
-            float, postprocess=self._target_postprocess),
-                                   solver=RootSolver)
+        param_dict = ParameterDict(
+            target=OnlyTypes(float, postprocess=self._target_postprocess),
+            solver=RootSolver,
+        )
 
         self._param_dict.update(param_dict)
         self.target = target
@@ -137,6 +145,6 @@ class _TuneMCMove(_InternalAction):
         if not (0 <= target <= 1):
             raise ValueError(f"target {target} should be between 0 and 1.")
 
-        self._update_tunables_attr('target', target)
+        self._update_tunables_attr("target", target)
         self._tuned = 0
         return target

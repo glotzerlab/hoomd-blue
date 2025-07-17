@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 import pytest
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def snapshot_factory(device):
     """Make a test snapshot for update_group_dof testing."""
 
@@ -25,7 +25,7 @@ def snapshot_factory(device):
                 [1, 1, 1],
             ]
             snap.particles.angmom[:] = [[0, 2, 4, 6]] * 3
-            snap.particles.types = ['A', 'B']
+            snap.particles.types = ["A", "B"]
 
         return snap
 
@@ -112,8 +112,7 @@ def test_set_integrator(simulation_factory, snapshot_factory):
         integrate_rotational_dof=True,
     )
     thermostat = hoomd.md.methods.thermostats.Bussi(kT=1.0)
-    method2 = hoomd.md.methods.ConstantVolume(filter=filter_all,
-                                              thermostat=thermostat)
+    method2 = hoomd.md.methods.ConstantVolume(filter=filter_all, thermostat=thermostat)
     integrator2 = hoomd.md.Integrator(
         0.005,
         methods=[method2],
@@ -149,8 +148,7 @@ def test_set_method(simulation_factory, snapshot_factory):
         integrate_rotational_dof=True,
     )
     thermostat = hoomd.md.methods.thermostats.Bussi(kT=1.0)
-    method2 = hoomd.md.methods.ConstantVolume(filter=filter_all,
-                                              thermostat=thermostat)
+    method2 = hoomd.md.methods.ConstantVolume(filter=filter_all, thermostat=thermostat)
 
     sim.operations.integrator = integrator
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=filter_all)
@@ -207,7 +205,7 @@ def test_filter_updater(simulation_factory, snapshot_factory):
     snapshot = snapshot_factory()
 
     sim = simulation_factory(snapshot)
-    filter_type = hoomd.filter.Type(['A'])
+    filter_type = hoomd.filter.Type(["A"])
     method = hoomd.md.methods.Langevin(filter=filter_type, kT=1.0)
     integrator = hoomd.md.Integrator(
         0.005,
@@ -235,7 +233,8 @@ def test_filter_updater(simulation_factory, snapshot_factory):
 
     # add the filter updater and trigger it to change the DOF
     filter_updater = hoomd.update.FilterUpdater(
-        trigger=hoomd.trigger.Periodic(1), filters=[filter_type])
+        trigger=hoomd.trigger.Periodic(1), filters=[filter_type]
+    )
     sim.operations.updaters.append(filter_updater)
 
     sim.run(1)

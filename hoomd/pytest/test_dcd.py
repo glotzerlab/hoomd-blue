@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -11,8 +11,7 @@ from hoomd.error import MutabilityError
 def test_attach(simulation_factory, two_particle_snapshot_factory, tmp_path):
     filename = tmp_path / "temporary_test_file.dcd"
     sim = simulation_factory(two_particle_snapshot_factory())
-    dcd_dump = hoomd.write.DCD(filename=filename,
-                               trigger=hoomd.trigger.Periodic(1))
+    dcd_dump = hoomd.write.DCD(filename=filename, trigger=hoomd.trigger.Periodic(1))
     sim.operations.add(dcd_dump)
     sim.run(10)
 
@@ -25,8 +24,7 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     dcd_reader = garnett.reader.DCDFileReader()
     filename = tmp_path / "temporary_test_file.dcd"
     sim = simulation_factory(two_particle_snapshot_factory())
-    dcd_dump = hoomd.write.DCD(filename=filename,
-                               trigger=hoomd.trigger.Periodic(1))
+    dcd_dump = hoomd.write.DCD(filename=filename, trigger=hoomd.trigger.Periodic(1))
     sim.operations.add(dcd_dump)
     positions = []
 
@@ -39,7 +37,7 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     sim.run(1)
 
     if sim.device.communicator.rank == 0:
-        with open(filename, 'rb') as dcdfile:
+        with open(filename, "rb") as dcdfile:
             traj = dcd_reader.read(dcdfile)
             traj.load()
         for i in range(len(traj)):
@@ -50,13 +48,11 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
 def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path):
     filename = tmp_path / "temporary_test_file.dcd"
     sim = simulation_factory(two_particle_snapshot_factory())
-    dcd_dump = hoomd.write.DCD(filename=filename,
-                               trigger=hoomd.trigger.Periodic(1))
+    dcd_dump = hoomd.write.DCD(filename=filename, trigger=hoomd.trigger.Periodic(1))
     operation_pickling_check(dcd_dump, sim)
 
 
-def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
-                          tmp_path):
+def test_mutability_error(simulation_factory, two_particle_snapshot_factory, tmp_path):
     sim = simulation_factory(two_particle_snapshot_factory())
     trig = hoomd.trigger.Periodic(1)
 

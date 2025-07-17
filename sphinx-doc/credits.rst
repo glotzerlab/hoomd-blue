@@ -1,6 +1,3 @@
-.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Credits
 =======
 
@@ -75,10 +72,11 @@ The following people have contributed to HOOMD-blue:
 * Khalid Ahmed, University of Michigan
 * Kody Takada, University of Michigan
 * Kristi Pepa, University of Michigan
+* Kwabena Darko, University of Houston
 * Kwanghwi Je, University of Michigan
 * Kieran Nehil-Puleo, Vanderbilt University
 * Lin Yang, Iowa State University
-* Ludwig Schneider, Georg-August Univeristy Goettingen
+* Ludwig Schneider, Georg-August University Goettingen
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
@@ -87,6 +85,7 @@ The following people have contributed to HOOMD-blue:
 * Matthew Spellings, University of Michgan
 * Melody Zhang, University of Michigan
 * Michael Howard, Auburn University
+* Michaela Bush, Auburn University
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
@@ -115,6 +114,7 @@ The following people have contributed to HOOMD-blue:
 * Stephen Thomas, Boise State University
 * Steve Barr, Princeton University
 * Sumedh R. Risbud, Massachusetts Institute of Technology
+* Suraj Kannur, University of Michigan
 * Thi Vo, University of Michigan
 * Tim Moore, University of Michigan
 * Tobias Dwyer, University of Michigan

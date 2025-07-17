@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
@@ -97,11 +97,6 @@ class EvaluatorExternalPeriodic
         : m_pos(X), m_box(box), m_index(params.i), m_orderParameter(params.A),
           m_interfaceWidth(params.w), m_periodicity(params.p)
         {
-        }
-
-    DEVICE static bool isAnisotropic()
-        {
-        return false;
         }
 
     //! External Periodic doesn't need charges

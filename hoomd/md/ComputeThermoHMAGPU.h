@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermoHMA.h"
@@ -35,9 +35,8 @@ class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
     virtual ~ComputeThermoHMAGPU();
 
     protected:
-    GlobalVector<Scalar3> m_scratch; //!< Scratch space for partial sums
-    unsigned int m_block_size;       //!< Block size executed
-    hipEvent_t m_event;              //!< CUDA event for synchronization
+    GPUVector<Scalar3> m_scratch; //!< Scratch space for partial sums
+    unsigned int m_block_size;    //!< Block size executed
 
     //! Does the actual computation
     virtual void computeProperties();

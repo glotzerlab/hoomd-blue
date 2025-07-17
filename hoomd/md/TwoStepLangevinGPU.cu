@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -138,7 +138,14 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
         Scalar minv = Scalar(1.0) / mass;
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
-        accel.z = (accel.z + bd_force.z) * minv;
+        if (D > 2)
+            {
+            accel.z = (accel.z + bd_force.z) * minv;
+            }
+        else
+            {
+            accel.z = Scalar(0.0);
+            }
 
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)

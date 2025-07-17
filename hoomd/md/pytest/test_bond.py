@@ -1,11 +1,14 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import (logging_check, pickling_check,
-                            autotuned_kernel_parameter_check)
+from hoomd.conftest import (
+    logging_check,
+    pickling_check,
+    autotuned_kernel_parameter_check,
+)
 import pytest
 import numpy as np
 
@@ -87,23 +90,23 @@ bond_test_parameters = [
 ]
 
 
-@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
-                         bond_test_parameters)
+@pytest.mark.parametrize(
+    "bond_cls, bond_args, params, force, energy", bond_test_parameters
+)
 def test_before_attaching(bond_cls, bond_args, params, force, energy):
     potential = bond_cls(**bond_args)
-    potential.params['A-A'] = params
+    potential.params["A-A"] = params
     for key in params:
-        assert potential.params['A-A'][key] == pytest.approx(params[key])
+        assert potential.params["A-A"][key] == pytest.approx(params[key])
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def snapshot_factory(two_particle_snapshot_factory):
-
     def make_snapshot():
         snapshot = two_particle_snapshot_factory(d=0.969, L=5)
         if snapshot.communicator.rank == 0:
             snapshot.bonds.N = 1
-            snapshot.bonds.types = ['A-A']
+            snapshot.bonds.types = ["A-A"]
             snapshot.bonds.typeid[0] = 0
             snapshot.bonds.group[0] = (0, 1)
 
@@ -112,34 +115,36 @@ def snapshot_factory(two_particle_snapshot_factory):
     return make_snapshot
 
 
-@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
-                         bond_test_parameters)
-def test_after_attaching(snapshot_factory, simulation_factory, bond_cls,
-                         bond_args, params, force, energy):
+@pytest.mark.parametrize(
+    "bond_cls, bond_args, params, force, energy", bond_test_parameters
+)
+def test_after_attaching(
+    snapshot_factory, simulation_factory, bond_cls, bond_args, params, force, energy
+):
     sim = simulation_factory(snapshot_factory())
 
     potential = bond_cls(**bond_args)
-    potential.params['A-A'] = params
+    potential.params["A-A"] = params
 
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
-                                                    forces=[potential])
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, forces=[potential])
     sim.run(0)
 
     for key in params:
-        assert potential.params['A-A'][key] == pytest.approx(params[key])
+        assert potential.params["A-A"][key] == pytest.approx(params[key])
 
 
-@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
-                         bond_test_parameters)
-def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
-                             bond_args, params, force, energy):
+@pytest.mark.parametrize(
+    "bond_cls, bond_args, params, force, energy", bond_test_parameters
+)
+def test_forces_and_energies(
+    snapshot_factory, simulation_factory, bond_cls, bond_args, params, force, energy
+):
     sim = simulation_factory(snapshot_factory())
 
     potential = bond_cls(**bond_args)
-    potential.params['A-A'] = params
+    potential.params["A-A"] = params
 
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
-                                                    forces=[potential])
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, forces=[potential])
 
     sim.run(0)
 
@@ -147,50 +152,61 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
     sim_forces = potential.forces
     if sim.device.communicator.rank == 0:
         assert sum(sim_energies) == pytest.approx(energy, rel=1e-2)
-        np.testing.assert_allclose(sim_forces[0], [force, 0.0, 0.0],
-                                   rtol=1e-2,
-                                   atol=1e-5)
-        np.testing.assert_allclose(sim_forces[1], [-1 * force, 0.0, 0.0],
-                                   rtol=1e-2,
-                                   atol=1e-5)
+        np.testing.assert_allclose(
+            sim_forces[0], [force, 0.0, 0.0], rtol=1e-2, atol=1e-5
+        )
+        np.testing.assert_allclose(
+            sim_forces[1], [-1 * force, 0.0, 0.0], rtol=1e-2, atol=1e-5
+        )
 
 
-@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
-                         bond_test_parameters)
-def test_kernel_parameters(snapshot_factory, simulation_factory, bond_cls,
-                           bond_args, params, force, energy):
+@pytest.mark.parametrize(
+    "bond_cls, bond_args, params, force, energy", bond_test_parameters
+)
+def test_kernel_parameters(
+    snapshot_factory, simulation_factory, bond_cls, bond_args, params, force, energy
+):
     sim = simulation_factory(snapshot_factory())
 
     potential = bond_cls(**bond_args)
-    potential.params['A-A'] = params
+    potential.params["A-A"] = params
 
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
-                                                    forces=[potential])
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, forces=[potential])
 
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=potential,
-                                     activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=potential, activate=lambda: sim.run(1))
 
 
 # Test Logging
 @pytest.mark.parametrize(
-    'cls, expected_namespace, expected_loggables',
-    zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA, md.bond.Table,
-         md.bond.Tether), itertools.repeat(('md', 'bond')),
-        itertools.repeat(expected_loggable_params)))
+    "cls, expected_namespace, expected_loggables",
+    zip(
+        (
+            md.bond.Bond,
+            md.bond.Harmonic,
+            md.bond.FENEWCA,
+            md.bond.Table,
+            md.bond.Tether,
+        ),
+        itertools.repeat(("md", "bond")),
+        itertools.repeat(expected_loggable_params),
+    ),
+)
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
 
 # Pickle Testing
-@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
-                         bond_test_parameters)
-def test_pickling(simulation_factory, snapshot_factory, bond_cls, bond_args,
-                  params, force, energy):
+@pytest.mark.parametrize(
+    "bond_cls, bond_args, params, force, energy", bond_test_parameters
+)
+def test_pickling(
+    simulation_factory, snapshot_factory, bond_cls, bond_args, params, force, energy
+):
     sim = simulation_factory(snapshot_factory())
     potential = bond_cls(**bond_args)
-    potential.params['A-A'] = params
+    potential.params["A-A"] = params
 
     pickling_check(potential)
     integrator = hoomd.md.Integrator(0.05, forces=[potential])

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
@@ -7,11 +7,18 @@ import pytest
 import hoomd
 from hoomd import hpmc
 from hoomd.conftest import operation_pickling_check
-from hoomd.hpmc.tune.boxmc_move_size import (_MoveSizeTuneDefinition,
-                                             BoxMCMoveSize)
+from hoomd.hpmc.tune.boxmc_move_size import _MoveSizeTuneDefinition, BoxMCMoveSize
 
-MOVE_TYPES = ("aspect", "volume", "shear_x", "shear_y", "shear_z", "length_x",
-              "length_y", "length_z")
+MOVE_TYPES = (
+    "aspect",
+    "volume",
+    "shear_x",
+    "shear_y",
+    "shear_z",
+    "length_x",
+    "length_y",
+    "length_z",
+)
 
 
 def generate_move_definition(rng, move=None):
@@ -45,8 +52,7 @@ def simulation(device, simulation_factory, lattice_snapshot_factory):
         n = (4, 4, 8)
     else:
         n = (6, 6, 8)
-    snap = lattice_snapshot_factory(dimensions=3, r=1e-2, n=n,
-                                    a=2)  # 72 particles
+    snap = lattice_snapshot_factory(dimensions=3, r=1e-2, n=n, a=2)  # 72 particles
     sim = simulation_factory(snap)
     integrator = hpmc.integrate.Sphere(default_d=0.01)
     integrator.shape["A"] = dict(diameter=0.9)
@@ -58,7 +64,7 @@ def simulation(device, simulation_factory, lattice_snapshot_factory):
 def boxmc(move_definition_dict):
     split = move_definition_dict["attr"].split("_")
     attr = split[0]
-    boxmc = hpmc.update.BoxMC(trigger=1, betaP=0)
+    boxmc = hpmc.update.BoxMC(trigger=1, P=0)
     getattr(boxmc, attr)["weight"] = 1.0
     if len(split) > 1:
         getattr(boxmc, attr)["delta"] = (1e-1,) * 3
@@ -77,15 +83,14 @@ def move_size_definition(move_definition_dict, boxmc):
 
 
 class TestMoveSizeTuneDefinition:
-
     def test_getting_attrs(self, move_definition_dict, move_size_definition):
         for attr in move_definition_dict:
             if attr == "attr":
                 assert move_definition_dict[attr].split("_")[0] == getattr(
-                    move_size_definition, attr)
+                    move_size_definition, attr
+                )
                 continue
-            assert move_definition_dict[attr] == getattr(
-                move_size_definition, attr)
+            assert move_definition_dict[attr] == getattr(move_size_definition, attr)
 
     def test_setting_attrs(self, move_size_definition):
         move_size_definition.domain = (None, 5)
@@ -95,8 +100,7 @@ class TestMoveSizeTuneDefinition:
         move_size_definition.target = 0.9
         assert move_size_definition.target == 0.9
 
-    def test_getting_acceptance_rate(self, move_size_definition, simulation,
-                                     boxmc):
+    def test_getting_acceptance_rate(self, move_size_definition, simulation, boxmc):
         simulation.operations += boxmc
         simulation.run(0)
         # needed to set previous values need to to calculate acceptance rate
@@ -114,8 +118,9 @@ class TestMoveSizeTuneDefinition:
         calc_acceptance_rate = (accepted) / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
 
-    def test_getting_setting_move_size(self, rng, boxmc, move_size_definition,
-                                       simulation):
+    def test_getting_setting_move_size(
+        self, rng, boxmc, move_size_definition, simulation
+    ):
         attr = move_size_definition.attr
 
         def set_move_size(new_value):
@@ -141,24 +146,26 @@ class TestMoveSizeTuneDefinition:
         move_size_definition.x = rng.uniform(0, 10)
         assert move_size_definition.x == get_move_size()
 
-    def test_hash(self, move_size_definition, move_definition_dict, simulation,
-                  boxmc):
-        identical_definition = _MoveSizeTuneDefinition(**move_definition_dict,
-                                                       boxmc=boxmc)
+    def test_hash(self, move_size_definition, move_definition_dict, simulation, boxmc):
+        identical_definition = _MoveSizeTuneDefinition(
+            **move_definition_dict, boxmc=boxmc
+        )
         assert hash(identical_definition) == hash(move_size_definition)
         move_definition_dict["domain"] = (None, 5)
-        different_definition = _MoveSizeTuneDefinition(**move_definition_dict,
-                                                       boxmc=boxmc)
+        different_definition = _MoveSizeTuneDefinition(
+            **move_definition_dict, boxmc=boxmc
+        )
         assert hash(different_definition) != hash(move_size_definition)
 
-    def test_eq(self, move_size_definition, move_definition_dict, simulation,
-                boxmc):
-        identical_definition = _MoveSizeTuneDefinition(**move_definition_dict,
-                                                       boxmc=boxmc)
+    def test_eq(self, move_size_definition, move_definition_dict, simulation, boxmc):
+        identical_definition = _MoveSizeTuneDefinition(
+            **move_definition_dict, boxmc=boxmc
+        )
         assert identical_definition == move_size_definition
         move_definition_dict["domain"] = (None, 5)
-        different_definition = _MoveSizeTuneDefinition(**move_definition_dict,
-                                                       boxmc=boxmc)
+        different_definition = _MoveSizeTuneDefinition(
+            **move_definition_dict, boxmc=boxmc
+        )
         assert different_definition != move_size_definition
 
 
@@ -182,7 +189,7 @@ def boxmc_tuner_method_and_kwargs(request, rng):
 def boxmc_with_tuner(rng, boxmc_tuner_method_and_kwargs):
     cls, move_size_kwargs = boxmc_tuner_method_and_kwargs
     move = move_size_kwargs["moves"][0]
-    boxmc = hpmc.update.BoxMC(1, betaP=1.0)
+    boxmc = hpmc.update.BoxMC(1, P=1.0)
     if move == "aspect":
         boxmc.aspect = {"weight": 1.0, "delta": 0.4}
     elif move == "volume":
@@ -190,11 +197,7 @@ def boxmc_with_tuner(rng, boxmc_tuner_method_and_kwargs):
     elif move.startswith("l"):
         delta = [0.0, 0.0, 0.0]
         delta[["x", "y", "z"].index(move[-1])] = 0.05
-        setattr(boxmc,
-                move.split("_")[0], {
-                    "weight": 1.0,
-                    "delta": tuple(delta)
-                })
+        setattr(boxmc, move.split("_")[0], {"weight": 1.0, "delta": tuple(delta)})
     else:
         boxmc.shear = {"weight": 1.0, "delta": (1e-1,) * 3, "reduce": 1.0}
     cls_methods = (BoxMCMoveSize.secant_solver, BoxMCMoveSize.scale_solver)
@@ -203,7 +206,6 @@ def boxmc_with_tuner(rng, boxmc_tuner_method_and_kwargs):
 
 
 class TestMoveSize:
-
     def test_construction(self, boxmc_tuner_method_and_kwargs, boxmc):
         cls, params = boxmc_tuner_method_and_kwargs
         move_size = cls(**params, boxmc=boxmc)
@@ -248,7 +250,7 @@ class TestMoveSize:
         assert all(target == t.target for t in move_size_tuner._tunables)
         assert target == move_size_tuner.target
 
-        max_move = 4.
+        max_move = 4.0
         move_size_tuner.max_move_size["volume"] = max_move
         assert move_size_tuner.max_move_size["volume"] == max_move
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
@@ -15,6 +15,7 @@ from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.md.manifold import Manifold
 import numpy
+import inspect
 
 
 class Force(Compute):
@@ -34,8 +35,10 @@ class Force(Compute):
 
     .. math::
 
+        \begin{split}
         U & = U_\mathrm{additional} + \sum_{i=0}^{N_\mathrm{particles}-1} U_i \\
         W & = W_\mathrm{additional} + \sum_{i=0}^{N_\mathrm{particles}-1} W_i
+        \end{split}
 
     `Force` represents virial tensors as six element arrays listing the
     components of the tensor in this order:
@@ -69,7 +72,72 @@ class Force(Compute):
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Force`:
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
+
+    _doc_inherited = (
+        Compute._doc_inherited
+        + """
+    ----------
+
+    **Members inherited from**
+    `Force <hoomd.md.force.Force>`:
+
+    .. py:attribute:: additional_energy
+
+        Additional energy term.
+        `Read more... <hoomd.md.force.Force.additional_energy>`
+
+    .. py:attribute:: additional_virial
+
+        Additional virial tensor term :math:`W_\\mathrm{additional}`.
+        `Read more... <hoomd.md.force.Force.additional_virial>`
+
+    .. py:attribute:: cpu_local_force_arrays
+
+        Local force arrays on the CPU.
+        `Read more... <hoomd.md.force.Force.cpu_local_force_arrays>`
+
+    .. py:attribute:: energies
+
+        Energy contribution :math:`U_i` from each particle.
+        `Read more... <hoomd.md.force.Force.energies>`
+
+    .. py:attribute:: energy
+
+        The potential energy :math:`U` of the system from this force.
+        `Read more... <hoomd.md.force.Force.energy>`
+
+    .. py:attribute:: forces
+
+        The force :math:`\\vec{F}_i` applied to each particle.
+        `Read more... <hoomd.md.force.Force.forces>`
+
+    .. py:attribute:: gpu_local_force_arrays
+
+        Local force arrays on the GPU.
+        `Read more... <hoomd.md.force.Force.gpu_local_force_arrays>`
+
+    .. py:attribute:: torques
+
+        The torque :math:`\\vec{\\tau}_i` applied to each particle.
+        `Read more... <hoomd.md.force.Force.torques>`
+
+    .. py:attribute:: virials
+
+        Virial tensor contribution :math:`W_i` from each particle.
+        `Read more... <hoomd.md.force.Force.virials>`
+    """
+    )
 
     def __init__(self):
         self._in_context_manager = False
@@ -77,7 +145,8 @@ class Force(Compute):
     @log(requires_run=True)
     def energy(self):
         """float: The potential energy :math:`U` of the system from this force \
-        :math:`[\\mathrm{energy}]`."""
+        :math:`[\\mathrm{energy}]`.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.calcEnergySum()
 
@@ -96,7 +165,8 @@ class Force(Compute):
     @log(requires_run=True)
     def additional_energy(self):
         """float: Additional energy term :math:`U_\\mathrm{additional}` \
-        :math:`[\\mathrm{energy}]`."""
+        :math:`[\\mathrm{energy}]`.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getExternalEnergy()
 
@@ -149,7 +219,8 @@ class Force(Compute):
     @log(category="sequence", requires_run=True)
     def additional_virial(self):
         """(1, 6) `numpy.ndarray` of ``float``: Additional virial tensor \
-        term :math:`W_\\mathrm{additional}` :math:`[\\mathrm{energy}]`."""
+        term :math:`W_\\mathrm{additional}` :math:`[\\mathrm{energy}]`.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         virial = []
         for i in range(6):
@@ -158,7 +229,7 @@ class Force(Compute):
 
     @property
     def cpu_local_force_arrays(self):
-        """hoomd.md.data.ForceLocalAccess: Expose force arrays on the CPU.
+        """hoomd.md.data.ForceLocalAccess: Local force arrays on the CPU.
 
         Provides direct access to the force, potential energy, torque, and
         virial data of the particles in the system on the cpu through a context
@@ -180,16 +251,18 @@ class Force(Compute):
                 arrays.virial[:] = ...
         """
         if self._in_context_manager:
-            raise RuntimeError("Cannot enter cpu_local_force_arrays context "
-                               "manager inside another local_force_arrays "
-                               "context manager")
+            raise RuntimeError(
+                "Cannot enter cpu_local_force_arrays context "
+                "manager inside another local_force_arrays "
+                "context manager"
+            )
         if not self._attached:
             raise hoomd.error.DataAccessError("cpu_local_force_arrays")
         return hoomd.md.data.ForceLocalAccess(self, self._simulation.state)
 
     @property
     def gpu_local_force_arrays(self):
-        """hoomd.md.data.ForceLocalAccessGPU: Expose force arrays on the GPU.
+        """hoomd.md.data.ForceLocalAccessGPU: Local force arrays on the GPU.
 
         Provides direct access to the force, potential energy, torque, and
         virial data of the particles in the system on the gpu through a context
@@ -216,11 +289,13 @@ class Force(Compute):
         """
         if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
-                "Cannot access gpu_local_force_arrays without a GPU device")
+                "Cannot access gpu_local_force_arrays without a GPU device"
+            )
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot enter gpu_local_force_arrays context manager inside "
-                "another local_force_arrays context manager")
+                "another local_force_arrays context manager"
+            )
         if not self._attached:
             raise hoomd.error.DataAccessError("gpu_local_force_arrays")
         return hoomd.md.data.ForceLocalAccessGPU(self, self._simulation.state)
@@ -231,11 +306,13 @@ class Custom(Force):
 
     Derive a custom force class from `Custom`, and override the `set_forces`
     method to compute forces on particles. Users have direct, zero-copy access
-    to the C++ managed buffers via either the `cpu_local_force_arrays` or
-    `gpu_local_force_arrays` property. Choose the property that corresponds to
-    the device you wish to alter the data on. In addition to zero-copy access to
-    force buffers, custom forces have access to the local snapshot API via the
-    ``_state.cpu_local_snapshot`` or the ``_state.gpu_local_snapshot`` property.
+    to the C++ managed buffers via either the
+    `cpu_local_force_arrays <Force.cpu_local_force_arrays>` or
+    `gpu_local_force_arrays <Force.gpu_local_force_arrays>` property. Choose the
+    property that corresponds to the device you wish to alter the data on. In
+    addition to zero-copy access to force buffers, custom forces have access
+    to the local snapshot API via the ``_state.cpu_local_snapshot`` or the
+    ``_state.gpu_local_snapshot`` property.
 
     See Also:
       See the documentation in `hoomd.State` for more information on the local
@@ -293,9 +370,11 @@ class Custom(Force):
     Note:
         Access to the force buffers is constant (O(1)) time.
 
-    .. versionchanged:: 3.1.0
-        `Custom` zeros the force, torque, energy, and virial arrays before
-        calling the user-provided `set_forces`.
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Custom`:
     """
 
     def __init__(self, aniso=False):
@@ -306,8 +385,9 @@ class Custom(Force):
 
     def _attach_hook(self):
         self._state = self._simulation.state
-        self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
-                                               self.set_forces, self._aniso)
+        self._cpp_obj = _md.CustomForceCompute(
+            self._state._cpp_sys_def, self.set_forces, self._aniso
+        )
 
     @abstractmethod
     def set_forces(self, timestep):
@@ -360,8 +440,13 @@ class Active(Force):
         sim.operations += rotational_diffusion_updater
 
     Note:
-
         The energy and virial associated with the active force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Active`:
 
     Attributes:
         filter (`hoomd.filter`): Subset of particles on which to
@@ -385,6 +470,10 @@ class Active(Force):
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
 
     def __init__(self, filter):
         super().__init__()
@@ -414,7 +503,6 @@ class Active(Force):
         self._set_cpp_obj()
 
     def _set_cpp_obj(self):
-
         # initialize the reflected c++ class
         sim = self._simulation
 
@@ -423,8 +511,9 @@ class Active(Force):
         else:
             my_class = _md.ActiveForceComputeGPU
 
-        self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter))
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter)
+        )
 
     def create_diffusion_updater(self, trigger, rotational_diffusion):
         """Create a rotational diffusion updater for this active force.
@@ -440,7 +529,8 @@ class Active(Force):
                 The rotational diffusion updater.
         """
         return hoomd.md.update.ActiveRotationalDiffusion(
-            trigger, self, rotational_diffusion)
+            trigger, self, rotational_diffusion
+        )
 
 
 class ActiveOnManifold(Active):
@@ -474,11 +564,18 @@ class ActiveOnManifold(Active):
         all = filter.All()
         sphere = hoomd.md.manifold.Sphere(r=10)
         active = hoomd.md.force.ActiveOnManifold(
-            filter=hoomd.filter.All(), rotation_diff=0.01,
-            manifold_constraint = sphere
-            )
-        active.active_force['A','B'] = (1,0,0)
-        active.active_torque['A','B'] = (0,0,0)
+            filter=hoomd.filter.All(),
+            rotation_diff=0.01,
+            manifold_constraint=sphere,
+        )
+        active.active_force["A", "B"] = (1, 0, 0)
+        active.active_torque["A", "B"] = (0, 0, 0)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `ActiveOnManifold`:
 
     Attributes:
         filter (`hoomd.filter`): Subset of particles on which to
@@ -504,36 +601,40 @@ class ActiveOnManifold(Active):
         `float`]]
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
     def __init__(self, filter, manifold_constraint):
         # store metadata
         super().__init__(filter)
         param_dict = ParameterDict(
-            manifold_constraint=OnlyTypes(Manifold, allow_none=False))
+            manifold_constraint=OnlyTypes(Manifold, allow_none=False)
+        )
         param_dict["manifold_constraint"] = manifold_constraint
         self._param_dict.update(param_dict)
 
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
-            raise AttributeError(
-                "Cannot set manifold_constraint after construction.")
+            raise AttributeError("Cannot set manifold_constraint after construction.")
         super()._setattr_param(attr, value)
 
     def _set_cpp_obj(self):
-
         # initialize the reflected c++ class
         sim = self._simulation
 
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach(sim)
 
-        base_class_str = 'ActiveForceConstraintCompute'
+        base_class_str = "ActiveForceConstraintCompute"
         base_class_str += self.manifold_constraint.__class__.__name__
         if isinstance(sim.device, hoomd.device.GPU):
             base_class_str += "GPU"
-        self._cpp_obj = getattr(
-            _md, base_class_str)(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter),
-                                 self.manifold_constraint._cpp_obj)
+        self._cpp_obj = getattr(_md, base_class_str)(
+            sim.state._cpp_sys_def,
+            sim.state._get_group(self.filter),
+            self.manifold_constraint._cpp_obj,
+        )
 
 
 class Constant(Force):
@@ -549,15 +650,18 @@ class Constant(Force):
 
     Examples::
 
-        constant = hoomd.md.force.Constant(
-            filter=hoomd.filter.All()
-            )
-        constant.constant_force['A'] = (1,0,0)
-        constant.constant_torque['A'] = (0,0,0)
+        constant = hoomd.md.force.Constant(filter=hoomd.filter.All())
+        constant.constant_force["A"] = (1, 0, 0)
+        constant.constant_torque["A"] = (0, 0, 0)
 
     Note:
-
         The energy and virial associated with the constant force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Constant`:
 
     Attributes:
         filter (`hoomd.filter`): Subset of particles on which to
@@ -581,6 +685,10 @@ class Constant(Force):
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
 
     def __init__(self, filter):
         super().__init__()
@@ -612,5 +720,77 @@ class Constant(Force):
         else:
             my_class = _md.ConstantForceComputeGPU
 
-        self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter))
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter)
+        )
+
+class Shear(Force):
+    r"""Shear force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `Shear` applies a y-position dependent constant force on all
+    particles selected by the filter. `Shear` sets the force
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        shear = hoomd.md.force.Shear(filter=hoomd.filter.All(),max_shear_force=10)
+
+    Note:
+        The energy and virial associated with the shear force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Shear`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply shear forces.
+        max_shear_force (`float`): maximal shear force magnitude at box
+            borders
+
+        Shear force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter, max_shear_force):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+        self.m_s_f = max_shear_force
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.ShearForceCompute
+        else:
+            my_class = _md.ShearForceComputeGPU
+
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+            self.m_s_f
+        )
+
+__all__ = [
+    "Active",
+    "ActiveOnManifold",
+    "Constant",
+    "Custom",
+    "Force",
+    "Shear",
+]

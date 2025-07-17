@@ -83,12 +83,16 @@ jobs:
         elif [[ "${{ inputs.compiler_family }}" == "cuda" ]]
         then
           echo "cuda=cuda${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
-          echo 'test_runner=["self-hosted", "GPU"]' >> "$GITHUB_OUTPUT"
+          echo 'test_runner=["self-hosted", "jetstream2", "GPU"]' >> "$GITHUB_OUTPUT"
           echo 'test_docker_options=--gpus=all' >> "$GITHUB_OUTPUT"
 
           case "${{ inputs.compiler_version }}" in
             125)
               echo "image=nvidia/cuda:12.5.0-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
+            124)
+              echo "image=nvidia/cuda:12.4.1-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
+            122)
+              echo "image=nvidia/cuda:12.2.2-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
             *)
               echo "Unknown compiler" && exit 1;;
             esac
@@ -122,7 +126,7 @@ jobs:
         submodules: true
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@617811f69075e3fd3ae68ca64220ad065877f246 # v2.0.0
+      uses: mamba-org/setup-micromamba@0dea6379afdaffa5d528b3d1dabc45da37f443fc # v2.0.4
       with:
         micromamba-version: '2.0.2-2'
         environment-name: test
@@ -156,21 +160,16 @@ jobs:
                                -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
                                -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                                -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
-                               -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
-                               -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
                                -DBUILD_MD=${BUILD_MD:-"ON"} \
                                -DBUILD_MPCD=${BUILD_MD:-"ON"} \
                                -DBUILD_METAL=${BUILD_MD:-"ON"} \
                                -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                                -DCUDA_ARCH_LIST="60;70" \
-                               -DENABLE_DEBUG_JIT=ON \
                                -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
                                -DPLUGINS=""
       env:
         ENABLE_GPU: ${{ contains(inputs.config, 'cuda') }}
         ENABLE_MPI: ${{ contains(inputs.config, 'mpi') }}
-        ENABLE_TBB: ${{ contains(inputs.config, 'tbb') }}
-        ENABLE_LLVM: ${{ contains(inputs.config, 'llvm') }}
         BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
@@ -178,18 +177,6 @@ jobs:
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
       working-directory: build
-
-    - name: Configure plugins
-      run : |
-        if [[ ${BUILD_DEBUG} == "true" ]]; then BUILD_TYPE="Debug"; else BUILD_TYPE="Release"; fi
-        echo "BUILD_TYPE=${BUILD_TYPE}"
-        CMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install cmake -S code/example_plugins -B build-example-plugins -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-      env:
-        BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
-
-    - name: Build plugins
-      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
-      working-directory: build-example-plugins
 
     - name: Remove object files
       run: find build -type f -name '*.o' -delete
@@ -201,13 +188,13 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
 
     - name: 'Upload build'
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
         path: install.tar
@@ -236,7 +223,7 @@ jobs:
         path: code
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@617811f69075e3fd3ae68ca64220ad065877f246 # v2.0.0
+      uses: mamba-org/setup-micromamba@0dea6379afdaffa5d528b3d1dabc45da37f443fc # v2.0.4
       with:
         micromamba-version: '2.0.2-2'
         environment-name: test
@@ -252,7 +239,7 @@ jobs:
         echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
 
     - name: Download install
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
     - name: Untar install
@@ -266,6 +253,15 @@ jobs:
     # - name: Install cupy
     #   if: ${{ contains(inputs.config, 'cuda') }}
     #   run: uv pip install --no-deps fastrlock==0.8.2 cupy-cuda12x==12.3.0
+
+    - name: Run nvidia-smi
+      if: ${{ contains(inputs.config, 'cuda') }}
+      run: nvidia-smi
+
+    - name: Check for devices
+      if: ${{ contains(inputs.config, 'cuda') }}
+      run: >
+        python3 -c "import hoomd; print('available:', hoomd.device.GPU.get_available_devices()); print('unavailable:', hoomd.device.GPU.get_unavailable_device_reasons());"
 
     ### Python unit tests
     - name: Run pytest (serial)
@@ -287,6 +283,21 @@ jobs:
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
+    ### compute-sanitizer checks: These checks are slow, so run them only when validation is
+    # requested, but no on the actual long validation tests. Every class's basic test should ensure
+    # that the GPU kernel is called for at least a few timesteps for these checks to be effective.
+    - name: Run memcheck
+      if: ${{ contains(inputs.config, 'cuda') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' && !contains(inputs.config, 'mpi')}}
+      run: compute-sanitizer --tool memcheck --launch-timeout=120 --error-exitcode 1 python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1
+
+    - name: Run racecheck
+      if: ${{ contains(inputs.config, 'cuda') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' && !contains(inputs.config, 'mpi')}}
+      run: compute-sanitizer --tool racecheck --launch-timeout=120 --error-exitcode 1 python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1
+
+    - name: Run synccheck
+      if: ${{ contains(inputs.config, 'cuda') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' && !contains(inputs.config, 'mpi')}}
+      run: compute-sanitizer --tool synccheck --launch-timeout=120 --error-exitcode 1 python3 -m pytest --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1
+
     ### Validation tests
     - name: Run pytest -m validate (serial)
       if: ${{ !contains(inputs.config, 'mpi') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
@@ -297,7 +308,7 @@ jobs:
       run: mpirun --timeout 3000 -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh --pyargs hoomd -x -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
     - name: Run howto guides (serial)
-      if: ${{ contains(inputs.config, 'llvm') && contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}  # some examples require LLVM
+      if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && inputs.validate == 'true' }}
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
       working-directory: code/sphinx-doc/howto
 
@@ -310,7 +321,7 @@ jobs:
         echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
     - name: Download build
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
     - name: Untar build

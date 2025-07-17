@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceCompute.h"
@@ -91,6 +91,9 @@ template<class Manifold>
 void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotational_diffusion,
                                                                  uint64_t timestep)
     {
+    // getNumMembers might allocate the tag array handle. Access it first, then aquire the handles.
+    const unsigned int num_members = m_group->getNumMembers();
+
     //  array handles
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -103,7 +106,7 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotation
     assert(h_tag.data != NULL);
 
     const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
-    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
+    for (unsigned int i = 0; i < num_members; i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int ptag = h_tag.data[idx];
@@ -131,6 +134,9 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotation
  */
 template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstraint()
     {
+    // getNumMembers might allocate the tag array handle. Access it first, then aquire the handles.
+    const unsigned int num_members = m_group->getNumMembers();
+
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -142,7 +148,7 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
     assert(h_pos.data != NULL);
     assert(h_orientation.data != NULL);
 
-    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
+    for (unsigned int i = 0; i < num_members; i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);

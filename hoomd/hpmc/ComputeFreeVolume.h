@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME__H__
@@ -53,14 +53,14 @@ template<class Shape> class ComputeFreeVolume : public Compute
         m_n_sample = n_sample;
         }
 
-    //! Get the type of depletant particle
+    //! Get the type of particle to insert
     std::string getTestParticleType()
         {
         std::string type = m_sysdef->getParticleData()->getNameByType(m_type);
         return type;
         }
 
-    //! Set the type of depletant particle
+    //! Set the type of particle to insert
     //! \param type particle type to set test particle to
     void setTestParticleType(std::string type)
         {
@@ -78,8 +78,8 @@ template<class Shape> class ComputeFreeVolume : public Compute
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
     std::shared_ptr<CellList> m_cl;                  //!< The cell list
 
-    unsigned int m_type;     //!< Type of depletant particle to generate
-    unsigned int m_n_sample; //!< Number of sampling depletants to generate
+    unsigned int m_type;     //!< Type of particle to insert
+    unsigned int m_n_sample; //!< Number of particles to insert
 
     GPUArray<unsigned int> m_n_overlap_all; //!< Number of overlap volume particles in box
 
@@ -157,7 +157,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
                                              access_mode::read);
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
-        // generate n_sample random test depletants in the global box
+        // generate n_sample random test particles
         unsigned int n_sample = m_n_sample;
 
 #ifdef ENABLE_MPI
@@ -285,7 +285,7 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
                                               access_location::host,
                                               access_mode::read);
 
-    // generate n_sample random test depletants in the global box
+    // generate n_sample random test particles in the global box
     unsigned int n_sample = m_n_sample;
 
 #ifdef ENABLE_MPI

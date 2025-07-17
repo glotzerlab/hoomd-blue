@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement MPCD Integrator."""
@@ -13,6 +13,7 @@ from hoomd.mpcd.collide import CellList, CollisionMethod
 from hoomd.mpcd.fill import VirtualParticleFiller
 from hoomd.mpcd.stream import StreamingMethod
 from hoomd.mpcd.tune import ParticleSorter
+import inspect
 
 
 @hoomd.logging.modify_namespace(("mpcd", "Integrator"))
@@ -90,13 +91,14 @@ class Integrator(_MDIntegrator):
 
         stream = hoomd.mpcd.stream.Bulk(period=1)
         collide = hoomd.mpcd.collide.StochasticRotationDynamics(
-            period=1,
-            angle=130)
+            period=1, angle=130
+        )
         integrator = hoomd.mpcd.Integrator(
             dt=0.1,
             streaming_method=stream,
             collision_method=collide,
-            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
+            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20),
+        )
         simulation.operations.integrator = integrator
 
     MPCD integrator with solutes.
@@ -104,15 +106,17 @@ class Integrator(_MDIntegrator):
     .. code-block:: python
 
         dt_md = 0.005
-        md_steps_per_collision = 20 # collision time = 0.1
+        md_steps_per_collision = 20  # collision time = 0.1
 
         stream = hoomd.mpcd.stream.Bulk(period=md_steps_per_collision)
         collide = hoomd.mpcd.collide.StochasticRotationDynamics(
             period=md_steps_per_collision,
             angle=130,
-            embedded_particles=hoomd.filter.All())
+            embedded_particles=hoomd.filter.All(),
+        )
         solute_method = hoomd.md.methods.ConstantVolume(
-            filter=collide.embedded_particles)
+            filter=collide.embedded_particles
+        )
 
         integrator = hoomd.mpcd.Integrator(
             dt=dt_md,
@@ -120,8 +124,9 @@ class Integrator(_MDIntegrator):
             streaming_method=stream,
             collision_method=collide,
             mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(
-                trigger=20*md_steps_per_collision)
-            )
+                trigger=20 * md_steps_per_collision
+            ),
+        )
         simulation.operations.integrator = integrator
 
     MPCD integrator with virtual particle filler.
@@ -131,22 +136,26 @@ class Integrator(_MDIntegrator):
         plates = hoomd.mpcd.geometry.ParallelPlates(separation=6.0)
         stream = hoomd.mpcd.stream.BounceBack(period=1, geometry=plates)
         collide = hoomd.mpcd.collide.StochasticRotationDynamics(
-            period=1,
-            angle=130,
-            kT=1.0)
+            period=1, angle=130, kT=1.0
+        )
         filler = hoomd.mpcd.fill.GeometryFiller(
-            type="A",
-            density=5.0,
-            kT=1.0,
-            geometry=plates)
+            type="A", density=5.0, kT=1.0, geometry=plates
+        )
 
         integrator = hoomd.mpcd.Integrator(
             dt=0.1,
             streaming_method=stream,
             collision_method=collide,
             virtual_particle_fillers=[filler],
-            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20))
+            mpcd_particle_sorter=hoomd.mpcd.tune.ParticleSorter(trigger=20),
+        )
         simulation.operations.integrator = integrator
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `hoomd.mpcd.Integrator`:
 
     Attributes:
         collision_method (hoomd.mpcd.collide.CollisionMethod): Collision method
@@ -157,8 +166,11 @@ class Integrator(_MDIntegrator):
 
         streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
             for the MPCD particles.
-
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(_MDIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -186,8 +198,9 @@ class Integrator(_MDIntegrator):
 
         self._cell_list = CellList()
 
-        virtual_particle_fillers = ([] if virtual_particle_fillers is None else
-                                    virtual_particle_fillers)
+        virtual_particle_fillers = (
+            [] if virtual_particle_fillers is None else virtual_particle_fillers
+        )
         self._virtual_particle_fillers = syncedlist.SyncedList(
             VirtualParticleFiller,
             syncedlist._PartialGetAttr("_cpp_obj"),
@@ -204,7 +217,8 @@ class Integrator(_MDIntegrator):
                 streaming_method=streaming_method,
                 collision_method=collision_method,
                 mpcd_particle_sorter=mpcd_particle_sorter,
-            ))
+            )
+        )
         self._param_dict.update(param_dict)
 
     @property
@@ -220,7 +234,8 @@ class Integrator(_MDIntegrator):
     @property
     def virtual_particle_fillers(self):
         """Sequence[hoomd.mpcd.fill.VirtualParticleFiller]: MPCD \
-        virtual-particle fillers."""
+        virtual-particle fillers.
+        """
         return self._virtual_particle_fillers
 
     @virtual_particle_fillers.setter
@@ -236,10 +251,8 @@ class Integrator(_MDIntegrator):
         if self.mpcd_particle_sorter is not None:
             self.mpcd_particle_sorter._attach(self._simulation)
 
-        self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def,
-                                         self.dt)
-        self._virtual_particle_fillers._sync(self._simulation,
-                                             self._cpp_obj.fillers)
+        self._cpp_obj = _mpcd.Integrator(self._simulation.state._cpp_sys_def, self.dt)
+        self._virtual_particle_fillers._sync(self._simulation, self._cpp_obj.fillers)
         self._cpp_obj.cell_list = self._cell_list._cpp_obj
 
         super(_MDIntegrator, self)._attach_hook()
@@ -257,8 +270,7 @@ class Integrator(_MDIntegrator):
         super()._detach_hook()
 
     def _setattr_param(self, attr, value):
-        if attr in ("streaming_method", "collision_method",
-                    "mpcd_particle_sorter"):
+        if attr in ("streaming_method", "collision_method", "mpcd_particle_sorter"):
             cur_value = getattr(self, attr)
             if value is cur_value:
                 return

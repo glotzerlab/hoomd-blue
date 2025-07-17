@@ -1,10 +1,9 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Compute.h"
 #include "hoomd/GPUFlags.h"
 #include "hoomd/GPUVector.h"
-#include "hoomd/GlobalArray.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/MeshDefinition.h"
 #include "hoomd/PythonLocalDataAccess.h"
@@ -148,7 +147,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Consumers should call notifyRCutMatrixChange() when they any element of of their matrix.
     They should call removeRCutMatrix() when they no longer need to use the neighbor list.
     */
-    void addRCutMatrix(const std::shared_ptr<GlobalArray<Scalar>>& r_cut_matrix)
+    void addRCutMatrix(const std::shared_ptr<GPUArray<Scalar>>& r_cut_matrix)
         {
         if (r_cut_matrix->getNumElements() != m_r_cut.getNumElements())
             {
@@ -182,7 +181,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Remove a r_cut matrix from the neighbor list. The given matrix will no longer be included
     in the min & max r_cuts when computing the neighbor list.
     */
-    void removeRCutMatrix(const std::shared_ptr<GlobalArray<Scalar>>& r_cut_matrix)
+    void removeRCutMatrix(const std::shared_ptr<GPUArray<Scalar>>& r_cut_matrix)
         {
         auto p = std::find(m_consumer_r_cut.begin(), m_consumer_r_cut.end(), r_cut_matrix);
         if (p == m_consumer_r_cut.end())
@@ -294,31 +293,31 @@ class PYBIND11_EXPORT NeighborList : public Compute
     // @{
 
     //! Get the number of neighbors array
-    const GlobalArray<unsigned int>& getNNeighArray() const
+    const GPUArray<unsigned int>& getNNeighArray() const
         {
         return m_n_neigh;
         }
 
     //! Get the neighbor list
-    const GlobalArray<unsigned int>& getNListArray() const
+    const GPUArray<unsigned int>& getNListArray() const
         {
         return m_nlist;
         }
 
     //! Get the head list
-    const GlobalArray<size_t>& getHeadList() const
+    const GPUArray<size_t>& getHeadList() const
         {
         return m_head_list;
         }
 
     //! Get the number of exclusions array
-    const GlobalArray<unsigned int>& getNExArray()
+    const GPUArray<unsigned int>& getNExArray()
         {
         return m_n_ex_idx;
         }
 
     //! Get the exclusion list
-    const GlobalArray<unsigned int>& getExListArray()
+    const GPUArray<unsigned int>& getExListArray()
         {
         return m_ex_list_idx;
         }
@@ -470,14 +469,14 @@ class PYBIND11_EXPORT NeighborList : public Compute
     virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
 
     protected:
-    Index2D m_typpair_idx;           //!< Indexer for full type pair storage
-    GlobalArray<Scalar> m_r_cut;     //!< The potential cutoffs stored by pair type
-    GlobalArray<Scalar> m_r_listsq;  //!< The neighborlist cutoff radius squared stored by pair type
-    GlobalArray<Scalar> m_rcut_max;  //!< The maximum value of rcut per particle type
-    GlobalArray<Scalar> m_rcut_base; //!< The base rcut values
+    Index2D m_typpair_idx;        //!< Indexer for full type pair storage
+    GPUArray<Scalar> m_r_cut;     //!< The potential cutoffs stored by pair type
+    GPUArray<Scalar> m_r_listsq;  //!< The neighborlist cutoff radius squared stored by pair type
+    GPUArray<Scalar> m_rcut_max;  //!< The maximum value of rcut per particle type
+    GPUArray<Scalar> m_rcut_base; //!< The base rcut values
 
     /// List of r_cut matrices from neighborlist consumers
-    std::vector<std::shared_ptr<GlobalArray<Scalar>>> m_consumer_r_cut;
+    std::vector<std::shared_ptr<GPUArray<Scalar>>> m_consumer_r_cut;
 
     Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
     Scalar m_rcut_min;          //!< The smallest cutoff radius of any pair (that is > 0)
@@ -485,25 +484,24 @@ class PYBIND11_EXPORT NeighborList : public Compute
     bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
     storageMode m_storage_mode; //!< The storage mode
 
-    GlobalArray<unsigned int> m_nlist;   //!< Neighbor list data
-    GlobalArray<unsigned int> m_n_neigh; //!< Number of neighbors for each particle
-    GlobalArray<Scalar4> m_last_pos;     //!< coordinates of last updated particle positions
-    Scalar3 m_last_L;                    //!< Box lengths at last update
-    Scalar3 m_last_L_local;              //!< Local Box lengths at last update
+    GPUArray<unsigned int> m_nlist;   //!< Neighbor list data
+    GPUArray<unsigned int> m_n_neigh; //!< Number of neighbors for each particle
+    GPUArray<Scalar4> m_last_pos;     //!< coordinates of last updated particle positions
+    Scalar3 m_last_L;                 //!< Box lengths at last update
+    Scalar3 m_last_L_local;           //!< Local Box lengths at last update
 
-    GlobalArray<size_t> m_head_list; //!< Indexes for particles to read from the neighbor list
-    GlobalArray<unsigned int>
-        m_Nmax; //!< Holds the maximum number of neighbors for each particle type
-    GlobalArray<unsigned int>
+    GPUArray<size_t> m_head_list;  //!< Indexes for particles to read from the neighbor list
+    GPUArray<unsigned int> m_Nmax; //!< Holds the maximum number of neighbors for each particle type
+    GPUArray<unsigned int>
         m_conditions; //!< Holds the max number of computed particles by type for resizing
 
-    GlobalArray<unsigned int> m_ex_list_tag; //!< List of excluded particles referenced by tag
-    GlobalArray<unsigned int> m_ex_list_idx; //!< List of excluded particles referenced by index
-    GlobalVector<unsigned int> m_n_ex_tag;   //!< Number of exclusions for a given particle tag
-    GlobalArray<unsigned int> m_n_ex_idx;    //!< Number of exclusions for a given particle index
-    Index2D m_ex_list_indexer;               //!< Indexer for accessing the exclusion list
-    Index2D m_ex_list_indexer_tag;           //!< Indexer for accessing the by-tag exclusion list
-    bool m_exclusions_set;                   //!< True if any exclusions have been set
+    GPUArray<unsigned int> m_ex_list_tag; //!< List of excluded particles referenced by tag
+    GPUArray<unsigned int> m_ex_list_idx; //!< List of excluded particles referenced by index
+    GPUVector<unsigned int> m_n_ex_tag;   //!< Number of exclusions for a given particle tag
+    GPUArray<unsigned int> m_n_ex_idx;    //!< Number of exclusions for a given particle index
+    Index2D m_ex_list_indexer;            //!< Indexer for accessing the exclusion list
+    Index2D m_ex_list_indexer_tag;        //!< Indexer for accessing the by-tag exclusion list
+    bool m_exclusions_set;                //!< True if any exclusions have been set
 
     std::shared_ptr<MeshBondData> m_meshbond_data;
 
@@ -560,14 +558,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
         return flags;
         }
-#endif
-
-#ifdef ENABLE_HIP
-    //! Reset memory usage hints
-    void unsetMemoryMapping();
-
-    //! Update memory usage hints
-    void updateMemoryMapping();
 #endif
 
     private:
@@ -652,10 +642,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     //! Add an exclusion for every 1,4 pair
     void addOneFourExclusionsFromTopology();
-
-#ifdef ENABLE_HIP
-    GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
-#endif
     };
 
 /// Make the local particle data available to python via zero-copy access.

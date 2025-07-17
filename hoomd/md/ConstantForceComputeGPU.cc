@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ConstantForceComputeGPU.h"
@@ -63,6 +63,9 @@ void ConstantForceComputeGPU::setForces()
     assert(d_index_array.data != NULL);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
+
+    m_force.zeroFill();
+    m_torque.zeroFill();
 
     // compute the forces on the GPU
     m_tuner->begin();

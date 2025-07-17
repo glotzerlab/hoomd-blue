@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ComputeThermoHMAGPU.cc
@@ -7,7 +7,6 @@
 
 #include "ComputeThermoHMAGPU.h"
 #include "ComputeThermoHMAGPU.cuh"
-#include "hoomd/GPUPartition.cuh"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -41,35 +40,10 @@ ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysde
         }
 
     m_block_size = 512;
-
-#ifdef __HIP_PLATFORM_NVCC__
-    if (m_exec_conf->allConcurrentManagedAccess())
-        {
-        auto gpu_map = m_exec_conf->getGPUIds();
-
-        // set up GPU memory mappings
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            // only optimize access for those fields used in force computation
-            // (i.e. no net_force/virial/torque, also angmom and inertia are only used by the
-            // integrator)
-            cudaMemAdvise(m_lattice_site.get(),
-                          sizeof(Scalar3) * m_lattice_site.getNumElements(),
-                          cudaMemAdviseSetAccessedBy,
-                          gpu_map[idev]);
-            }
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
-ComputeThermoHMAGPU::~ComputeThermoHMAGPU()
-    {
-    hipEventDestroy(m_event);
-    }
+ComputeThermoHMAGPU::~ComputeThermoHMAGPU() { }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
  */
@@ -83,9 +57,8 @@ void ComputeThermoHMAGPU::computeProperties()
 
     assert(m_pdata);
 
-    // number of blocks in reduction (round up for every GPU)
-    unsigned int num_blocks
-        = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
+    // number of blocks in reduction (round up)
+    unsigned int num_blocks = m_group->getNumMembers() / m_block_size + 1;
 
     // resize work space
     size_t old_size = m_scratch.size();
@@ -94,24 +67,7 @@ void ComputeThermoHMAGPU::computeProperties()
 
     if (m_scratch.size() != old_size)
         {
-#ifdef __HIP_PLATFORM_NVCC__
-        if (m_exec_conf->allConcurrentManagedAccess())
-            {
-            auto& gpu_map = m_exec_conf->getGPUIds();
-
-            // map scratch array into memory of all GPUs
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                cudaMemAdvise(m_scratch.get(),
-                              sizeof(Scalar3) * m_scratch.getNumElements(),
-                              cudaMemAdviseSetAccessedBy,
-                              gpu_map[idev]);
-                }
-            CHECK_CUDA_ERROR();
-            }
-#endif
-
-        // reset to zero, to be on the safe side
+        // reset to zero
         ArrayHandle<Scalar3> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
         hipMemset(d_scratch.data, 0, sizeof(Scalar3) * m_scratch.size());
@@ -129,8 +85,8 @@ void ComputeThermoHMAGPU::computeProperties()
 
         { // scope these array handles so they are released before the additional terms are added
         // access the net force, pe, and virial
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-        const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+        const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
         ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
@@ -143,7 +99,7 @@ void ComputeThermoHMAGPU::computeProperties()
                                                 access_location::device,
                                                 access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
+        m_exec_conf->setDevice();
 
         // build up args list
         kernel::compute_thermo_hma_args args;
@@ -170,14 +126,10 @@ void ComputeThermoHMAGPU::computeProperties()
                                        d_index_array.data,
                                        group_size,
                                        box,
-                                       args,
-                                       m_group->getGPUPartition());
+                                       args);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-
-        // converge GPUs
-        m_exec_conf->endMultiGPU();
 
         // perform the computation on GPU 0
         gpu_compute_thermo_hma_final(d_properties.data,

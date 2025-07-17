@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshDefinition.cc
@@ -29,9 +29,8 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigne
 
     {
     // allocate the max number of neighbors per type allowed
-    GlobalArray<unsigned int> globalN(n_types, m_sysdef->getParticleData()->getExecConf());
+    GPUArray<unsigned int> globalN(n_types, m_sysdef->getParticleData()->getExecConf());
     m_globalN.swap(globalN);
-    TAG_ALLOCATION(m_globalN);
     }
 
 void MeshDefinition::setTypes(pybind11::list types)

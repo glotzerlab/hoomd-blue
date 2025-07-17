@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshForceComputeGPU.h"
@@ -59,6 +59,8 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
  */
 void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
+    unsigned int triN = m_mesh_data->getSize();
+
     precomputeParameter();
 
     // access the particle data arrays
@@ -101,7 +103,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               m_virial.getPitch(),
                                               m_pdata->getN(),
                                               d_pts.data,
-                                              this->m_mesh_data->getSize(),
+                                              triN,
                                               d_pos.data,
                                               box,
                                               d_area.data,
@@ -147,33 +149,37 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         access_location::device,
         access_mode::read);
 
-    ArrayHandle<Scalar> d_partial_sumArea(m_partial_sum,
-                                          access_location::device,
-                                          access_mode::overwrite);
-    ArrayHandle<Scalar> d_sumArea(m_sum, access_location::device, access_mode::overwrite);
-
     unsigned int NTypes = m_mesh_data->getMeshTriangleData()->getNTypes();
 
     if (this->m_ignore_type)
-        NTypes = 1;
-
-    kernel::gpu_compute_area_constraint_area(d_sumArea.data,
-                                             d_partial_sumArea.data,
-                                             m_pdata->getN(),
-                                             NTypes,
-                                             d_pos.data,
-                                             box,
-                                             d_gpu_meshtrianglelist.data,
-                                             d_gpu_meshtriangle_pos_list.data,
-                                             gpu_table_indexer,
-                                             this->m_ignore_type,
-                                             d_gpu_n_meshtriangle.data,
-                                             m_block_size,
-                                             m_num_blocks);
-
-    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
-        CHECK_CUDA_ERROR();
+        NTypes = 1;
+        }
+
+        {
+        ArrayHandle<Scalar> d_partial_sumArea(m_partial_sum,
+                                              access_location::device,
+                                              access_mode::overwrite);
+        ArrayHandle<Scalar> d_sumArea(m_sum, access_location::device, access_mode::overwrite);
+
+        kernel::gpu_compute_area_constraint_area(d_sumArea.data,
+                                                 d_partial_sumArea.data,
+                                                 m_pdata->getN(),
+                                                 NTypes,
+                                                 d_pos.data,
+                                                 box,
+                                                 d_gpu_meshtrianglelist.data,
+                                                 d_gpu_meshtriangle_pos_list.data,
+                                                 gpu_table_indexer,
+                                                 this->m_ignore_type,
+                                                 d_gpu_n_meshtriangle.data,
+                                                 m_block_size,
+                                                 m_num_blocks);
+
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            {
+            CHECK_CUDA_ERROR();
+            }
         }
 
     ArrayHandle<Scalar> h_sumArea(m_sum, access_location::host, access_mode::read);

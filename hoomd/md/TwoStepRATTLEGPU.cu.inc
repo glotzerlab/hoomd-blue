@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // See md/CMakeLists.txt for the source of these variables to be processed by CMake's
@@ -40,8 +40,7 @@ gpu_rattle_brownian_step_one<MANIFOLD_CLASS>(Scalar4* d_pos,
                                              const Scalar deltaT,
                                              const unsigned int D,
                                              const bool d_noiseless_t,
-                                             const bool d_noiseless_r,
-                                             const GPUPartition& gpu_partition);
+                                             const bool d_noiseless_r);
 
 template hipError_t
 gpu_include_rattle_force_bd<MANIFOLD_CLASS>(const Scalar4* d_pos,
@@ -54,8 +53,7 @@ gpu_include_rattle_force_bd<MANIFOLD_CLASS>(const Scalar4* d_pos,
                                             MANIFOLD_CLASS manifold,
                                             size_t net_virial_pitch,
                                             const Scalar deltaT,
-                                            const bool d_noiseless_t,
-                                            const GPUPartition& gpu_partition);
+                                            const bool d_noiseless_t);
 
 template hipError_t gpu_rattle_langevin_step_two<MANIFOLD_CLASS>(
     const Scalar4* d_pos,
@@ -74,7 +72,7 @@ template hipError_t gpu_rattle_nve_step_two<MANIFOLD_CLASS>(Scalar4* d_pos,
                                                             Scalar4* d_vel,
                                                             Scalar3* d_accel,
                                                             unsigned int* d_group_members,
-                                                            const GPUPartition& gpu_partition,
+                                                            const unsigned int group_size,
                                                             Scalar4* d_net_force,
                                                             MANIFOLD_CLASS manifold,
                                                             Scalar eta,
@@ -90,7 +88,7 @@ template hipError_t gpu_include_rattle_force_nve<MANIFOLD_CLASS>(const Scalar4* 
                                                                  Scalar4* d_net_force,
                                                                  Scalar* d_net_virial,
                                                                  unsigned int* d_group_members,
-                                                                 const GPUPartition& gpu_partition,
+                                                                 const unsigned int group_size,
                                                                  size_t net_virial_pitch,
                                                                  MANIFOLD_CLASS manifold,
                                                                  Scalar eta,

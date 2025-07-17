@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -42,10 +42,10 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     std::shared_ptr<Autotuner<1>> m_apply_tuner;
 
     //! Compute the sorting order at the current timestep on the GPU
-    virtual void computeOrder(uint64_t timestep);
+    void computeOrder(uint64_t timestep) override;
 
     //! Apply the sorting order on the GPU
-    virtual void applyOrder() const;
+    void applyOrder() const override;
     };
     } // end namespace mpcd
     } // end namespace hoomd

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
@@ -84,16 +84,16 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)].x, 9.0, tol);
         CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)].y, 0.0, tol);
         UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(0, 1, 1)].z), 1);
-
-        // Check the net stats of the system
-        CHECK_CLOSE(thermo->getNetMomentum().x, 4.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().y, -4.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().z, -1.0, tol);
-        CHECK_CLOSE(thermo->getNetEnergy(), 28.5, tol);
-        CHECK_CLOSE(thermo->getTemperature(),
-                    0.5 * (2.0 * 0.5 * 0.5 / 3.0 + 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0),
-                    tol);
         }
+
+    // Check the net stats of the system
+    CHECK_CLOSE(thermo->getNetMomentum().x, 4.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().y, -4.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().z, -1.0, tol);
+    CHECK_CLOSE(thermo->getNetEnergy(), 28.5, tol);
+    CHECK_CLOSE(thermo->getTemperature(),
+                0.5 * (2.0 * 0.5 * 0.5 / 3.0 + 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0),
+                tol);
 
     // increase the mass and make sure that energies depend on mass, but velocities don't
     pdata_5->setMass(4.0);
@@ -141,16 +141,16 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)].x, 4.0 * 9.0, tol);
         CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)].y, 0.0, tol);
         UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(0, 1, 1)].z), 1);
-
-        // Check the net stats of the system
-        CHECK_CLOSE(thermo->getNetMomentum().x, 4.0 * 4.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().y, 4.0 * -4.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().z, 4.0 * -1.0, tol);
-        CHECK_CLOSE(thermo->getNetEnergy(), 4.0 * 28.5, tol);
-        CHECK_CLOSE(thermo->getTemperature(),
-                    4.0 * 0.5 * (2.0 * 0.5 * 0.5 / 3.0 + 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0),
-                    tol);
         }
+
+    // Check the net stats of the system
+    CHECK_CLOSE(thermo->getNetMomentum().x, 4.0 * 4.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().y, 4.0 * -4.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().z, 4.0 * -1.0, tol);
+    CHECK_CLOSE(thermo->getNetEnergy(), 4.0 * 28.5, tol);
+    CHECK_CLOSE(thermo->getTemperature(),
+                4.0 * 0.5 * (2.0 * 0.5 * 0.5 / 3.0 + 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0),
+                tol);
 
     // switch a particle into a different cell, and make sure the DOF are reduced accordingly
     pdata_5->setMass(1.0);
@@ -204,16 +204,14 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)].x, 9.0, tol);
         CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)].y, 0.0, tol);
         UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(0, 1, 1)].z), 1);
-
-        // Check the net stats of the system, only average temperature should change now
-        CHECK_CLOSE(thermo->getNetMomentum().x, 4.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().y, -4.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().z, -1.0, tol);
-        CHECK_CLOSE(thermo->getNetEnergy(), 28.5, tol);
-        CHECK_CLOSE(thermo->getTemperature(),
-                    (2 * 1.0 * 1.0 + 2 * 1.0 * 1.0 + 2.0 * 2.0) / 6.0,
-                    tol);
         }
+
+    // Check the net stats of the system, only average temperature should change now
+    CHECK_CLOSE(thermo->getNetMomentum().x, 4.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().y, -4.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().z, -1.0, tol);
+    CHECK_CLOSE(thermo->getNetEnergy(), 28.5, tol);
+    CHECK_CLOSE(thermo->getTemperature(), (2 * 1.0 * 1.0 + 2 * 1.0 * 1.0 + 2.0 * 2.0) / 6.0, tol);
     }
 
 //! Test for correct calculation of cell thermo properties with embedded particles
@@ -315,14 +313,14 @@ template<class CT> void cell_thermo_embed_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 1)].x, 75.0, tol);
         CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 1)].y, 0.0, tol);
         UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1, 1, 1)].z), 2);
-
-        // Check the net stats of the system
-        CHECK_CLOSE(thermo->getNetMomentum().x, -1.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().y, -15.0, tol);
-        CHECK_CLOSE(thermo->getNetMomentum().z, -30.0, tol);
-        CHECK_CLOSE(thermo->getNetEnergy(), 107.0, tol);
-        CHECK_CLOSE(thermo->getTemperature(), (4.0 + 0.0 + 0.0 + 0.0) / 4., tol);
         }
+
+    // Check the net stats of the system
+    CHECK_CLOSE(thermo->getNetMomentum().x, -1.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().y, -15.0, tol);
+    CHECK_CLOSE(thermo->getNetMomentum().z, -30.0, tol);
+    CHECK_CLOSE(thermo->getNetEnergy(), 107.0, tol);
+    CHECK_CLOSE(thermo->getTemperature(), (4.0 + 0.0 + 0.0 + 0.0) / 4., tol);
     }
 
 UP_TEST(mpcd_cell_thermo_basic)

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -28,8 +28,7 @@ class TestCustomWriter:
     wrapping the class in a custom operation instance.
     """
 
-    def test_attach_detach(self, simulation_factory,
-                           two_particle_snapshot_factory):
+    def test_attach_detach(self, simulation_factory, two_particle_snapshot_factory):
         sim = simulation_factory(two_particle_snapshot_factory())
         writer = hoomd.write.CustomWriter(2, WriteTimestep())
         sim.operations += writer
@@ -42,8 +41,7 @@ class TestCustomWriter:
         assert not writer.action._attached
         assert not writer._attached
 
-    @pytest.mark.skipif(not hoomd.version.md_built,
-                        reason="BUILD_MD=on required")
+    @pytest.mark.skipif(not hoomd.version.md_built, reason="BUILD_MD=on required")
     def test_flags(self, simulation_factory, two_particle_snapshot_factory):
         sim = simulation_factory(two_particle_snapshot_factory())
         action = WriteTimestep()
@@ -55,7 +53,8 @@ class TestCustomWriter:
         sim.operations += hoomd.md.Integrator(
             0.005,
             methods=[hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1.0)],
-            forces=[gauss])
+            forces=[gauss],
+        )
         # WriteTimestep is not run so pressure is not available
         sim.run(1)
         virials = gauss.virials
@@ -69,17 +68,19 @@ class TestCustomWriter:
     def test_logging(self):
         expected_namespace = ("pytest", "test_custom_writer")
         conftest.logging_check(
-            WriteTimestep, ("pytest", "test_custom_writer"), {
+            WriteTimestep,
+            ("pytest", "test_custom_writer"),
+            {
                 "fourty_two": {
                     "category": hoomd.logging.LoggerCategories.scalar,
-                    "default": True
+                    "default": True,
                 }
-            })
+            },
+        )
         writer = hoomd.write.CustomWriter(2, WriteTimestep())
         # Check namespace
         log_quantity = writer._export_dict["fourty_two"]
-        assert log_quantity.namespace == expected_namespace + (
-            WriteTimestep.__name__,)
+        assert log_quantity.namespace == (*expected_namespace, WriteTimestep.__name__)
         assert log_quantity.default
         assert log_quantity.category == hoomd.logging.LoggerCategories.scalar
 

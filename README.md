@@ -37,7 +37,7 @@ types of particle simulations.
 
 - [freud](https://freud.readthedocs.io/):
   Analyze HOOMD-blue simulation results with the **freud** Python library.
-- [signac](https://signac.io/):
+- [signac](https://signac.readthedocs.io/):
   Manage your workflow with **signac**.
 
 ## Example scripts

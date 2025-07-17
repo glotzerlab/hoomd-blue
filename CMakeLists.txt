@@ -16,7 +16,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "4.9.1")
+set(HOOMD_VERSION_RAW "5.2.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -63,8 +63,8 @@ endif()
 # use C++17 as the CUDA standard until CUDA 12.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 14)
-set(CMAKE_HIP_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_HIP_STANDARD 17)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -74,6 +74,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
 
+    # suppress warnings regarding HIP's overly complex vector structs
+    if (CMAKE_COMPILER_IS_GNUCXXH AND OOMD_GPU_PLATFORM STREQUAL "HIP")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
+    endif()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 endif()
 
@@ -97,7 +101,6 @@ SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
 set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
-option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
 # Components
 option(BUILD_MD "Build the md package" on)
@@ -115,11 +118,8 @@ else()
 option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
 endif()
 
-# Optionally use TBB for threading
-option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
-
 # Add list of plugins
-set(PLUGINS "example_plugins/pair_plugin;example_plugins/updater_plugin;example_plugins/shape_plugin" CACHE STRING "List of plugin directories.")
+set(PLUGINS "" CACHE STRING "List of plugin directories.")
 
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)
@@ -146,7 +146,7 @@ if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/OpenRAND/include/openrand/philox.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/include/neighbor/neighbor.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/hipper/include/hipper/hipper_runtime.h
     )
@@ -213,8 +213,7 @@ configure_package_config_file(hoomd-config.cmake.in
   INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
   PATH_VARS CMAKE_INSTALL_PREFIX)
 
-install(FILES CMake/hoomd/FindTBB.cmake
-              CMake/hoomd/FindCUDALibs.cmake
+install(FILES CMake/hoomd/FindCUDALibs.cmake
               CMake/hoomd/HOOMDHIPSetup.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake

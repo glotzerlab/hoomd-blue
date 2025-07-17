@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolygon.h"
@@ -42,11 +42,6 @@ struct ShapeSimplePolygon
     {
     //! Define the parameter type
     typedef detail::PolygonVertices param_type;
-
-    //! Temporary storage for depletant insertion
-    typedef struct
-        {
-        } depletion_storage_type;
 
     //! Initialize a polygon
     DEVICE ShapeSimplePolygon(const quat<Scalar>& _orientation, const param_type& _params)

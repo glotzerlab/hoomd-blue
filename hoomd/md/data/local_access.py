@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Access simulation state data directly."""
@@ -8,7 +8,7 @@ import hoomd
 
 
 class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
-    __slots__ = ('_entered', '_accessed_fields', '_cpp_obj', '_force_obj')
+    __slots__ = ("_accessed_fields", "_cpp_obj", "_entered", "_force_obj")
 
     @property
     @abstractmethod
@@ -16,17 +16,18 @@ class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
         pass
 
     _fields = {
-        'force': 'getForce',
-        'potential_energy': 'getPotentialEnergy',
-        'torque': 'getTorque',
-        'virial': 'getVirial'
+        "force": "getForce",
+        "potential_energy": "getPotentialEnergy",
+        "torque": "getTorque",
+        "virial": "getVirial",
     }
 
     def __init__(self, force_obj, state):
         super().__init__()
         self._force_obj = force_obj
-        self._cpp_obj = self._cpp_cls(force_obj._cpp_obj,
-                                      state._cpp_sys_def.getParticleData())
+        self._cpp_obj = self._cpp_cls(
+            force_obj._cpp_obj, state._cpp_sys_def.getParticleData()
+        )
 
     def __enter__(self):
         self._force_obj._in_context_manager = True
@@ -39,7 +40,7 @@ class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
 
 
 class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
-    __slots__ = ('_entered', '_accessed_fields', '_cpp_obj', '_nlist_obj')
+    __slots__ = ("_accessed_fields", "_cpp_obj", "_entered", "_nlist_obj")
 
     @property
     @abstractmethod
@@ -50,9 +51,9 @@ class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
 
     # Prevents the usage of extensions
     _global_fields = {
-        'head_list': 'getHeadList',
-        'n_neigh': 'getNNeigh',
-        'nlist': 'getNList'
+        "head_list": "getHeadList",
+        "n_neigh": "getNNeigh",
+        "nlist": "getNList",
     }
 
     @property
@@ -63,8 +64,8 @@ class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
         super().__init__()
         self._nlist_obj = nlist_obj
         self._cpp_obj = self._cpp_cls(
-            nlist_obj._cpp_obj,
-            state._cpp_sys_def.getParticleData().getN())
+            nlist_obj._cpp_obj, state._cpp_sys_def.getParticleData().getN()
+        )
 
     def __enter__(self):
         self._nlist_obj._in_context_manager = True

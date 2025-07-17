@@ -1,30 +1,40 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Wall potentials HPMC simulations.
 
 Set :math:`U_{\\mathrm{external},i}` evaluated in
 `hoomd.hpmc.integrate.HPMCIntegrator` to a hard particle-wall interaction.
+
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation()
+    sphere = hoomd.hpmc.integrate.Sphere()
+    sphere.shape['A'] = dict(diameter=0.0)
+    simulation.operations.integrator = sphere
 """
 
 import hoomd
 from hoomd.wall import _WallsMetaList
 from hoomd.data.syncedlist import identity
-from hoomd.hpmc.external.field import ExternalField
 from hoomd.logging import log
 from hoomd import hpmc
+import inspect
+
+from .external import External
 
 
 def _to_hpmc_cpp_wall(wall):
     if isinstance(wall, hoomd.wall.Sphere):
-        return hoomd.hpmc._hpmc.SphereWall(wall.radius, wall.origin.to_base(),
-                                           wall.inside)
+        return hoomd.hpmc._hpmc.SphereWall(
+            wall.radius, wall.origin.to_base(), wall.inside
+        )
     if isinstance(wall, hoomd.wall.Cylinder):
-        return hoomd.hpmc._hpmc.CylinderWall(wall.radius, wall.origin.to_base(),
-                                             wall.axis.to_base(), wall.inside)
+        return hoomd.hpmc._hpmc.CylinderWall(
+            wall.radius, wall.origin.to_base(), wall.axis.to_base(), wall.inside
+        )
     if isinstance(wall, hoomd.wall.Plane):
-        return hoomd.hpmc._hpmc.PlaneWall(wall.origin.to_base(),
-                                          wall.normal.to_base())
+        return hoomd.hpmc._hpmc.PlaneWall(wall.origin.to_base(), wall.normal.to_base())
     raise TypeError(f"Unknown wall type encountered {type(wall)}.")
 
 
@@ -36,16 +46,19 @@ class _HPMCWallsMetaList(_WallsMetaList):
     compatible with integrator in the simulation to which the `WallPotential` is
     attached.
     """
+
     _supported_shape_wall_pairs = {
         hpmc.integrate.Sphere: [
-            hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
+            hoomd.wall.Sphere,
+            hoomd.wall.Cylinder,
+            hoomd.wall.Plane,
         ],
         hpmc.integrate.ConvexPolyhedron: [
-            hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
+            hoomd.wall.Sphere,
+            hoomd.wall.Cylinder,
+            hoomd.wall.Plane,
         ],
-        hpmc.integrate.ConvexSpheropolyhedron: [
-            hoomd.wall.Sphere, hoomd.wall.Plane
-        ]
+        hpmc.integrate.ConvexSpheropolyhedron: [hoomd.wall.Sphere, hoomd.wall.Plane],
     }
 
     def _check_wall_compatibility(self, wall):
@@ -53,10 +66,9 @@ class _HPMCWallsMetaList(_WallsMetaList):
             return
         integrator = self._wall_potential._simulation.operations.integrator
         integrator_type = type(integrator)
-        if type(wall) not in self._supported_shape_wall_pairs.get(
-                integrator_type, []):
-            msg = f'Overlap checks between {type(wall)} and {integrator_type} '
-            msg += 'are not supported.'
+        if type(wall) not in self._supported_shape_wall_pairs.get(integrator_type, []):
+            msg = f"Overlap checks between {type(wall)} and {integrator_type} "
+            msg += "are not supported."
             raise NotImplementedError(msg)
 
     def _validate_walls(self):
@@ -82,7 +94,7 @@ class _HPMCWallsMetaList(_WallsMetaList):
         super().append(wall)
 
 
-class WallPotential(ExternalField):
+class WallPotential(External):
     r"""HPMC wall potential.
 
     Args:
@@ -123,8 +135,8 @@ class WallPotential(ExternalField):
     wall.
 
 
-    Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
-    to `hpmc.integrate.HPMCIntegrator.external_potential` to activate the wall
+    Walls are enforced by the HPMC integrator. Append a `WallPotential` instance
+    to `hpmc.integrate.HPMCIntegrator.external_potentials` to activate the wall
     potential. Not all combinations of HPMC integrators and wall geometries have
     overlap checks implemented, and a `NotImplementedError` is raised if a wall
     geometry is attached to a simulation with a specific HPMC integrator
@@ -138,43 +150,55 @@ class WallPotential(ExternalField):
     See Also:
         `hoomd.wall`
 
-    Example::
+    .. rubric:: Example
 
-        mc = hoomd.hpmc.integrate.Sphere()
+    .. code-block:: python
+
         walls = [hoomd.wall.Sphere(radius=4.0)]
         wall_potential = hoomd.hpmc.external.wall.WallPotential(walls)
-        mc.external_potential = wall_potential
+        simulation.operations.integrator.external_potentials = [wall_potential]
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `WallPotential`:
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(External._doc_inherited)
+    )
 
     def __init__(self, walls):
         self._walls = _HPMCWallsMetaList(self, walls, _to_hpmc_cpp_wall)
 
-    def _attach_hook(self):
-        if isinstance(self._simulation.device, hoomd.device.GPU):
-            raise RuntimeError('HPMC walls are not supported on the GPU.')
+    def _make_cpp_obj(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, hoomd.hpmc.integrate.HPMCIntegrator):
-            raise RuntimeError('Walls require a valid HPMC integrator.')
-
         cpp_cls_name = "Wall"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(hoomd.hpmc._hpmc, cpp_cls_name)
 
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj)
-        self._walls._validate_walls()
-        self._walls._sync({
-            hoomd.wall.Sphere: self._cpp_obj.SphereWalls,
-            hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
-            hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
-        })
+        cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, integrator._cpp_obj)
+        self._walls._sync(
+            {
+                hoomd.wall.Sphere: cpp_obj.SphereWalls,
+                hoomd.wall.Cylinder: cpp_obj.CylinderWalls,
+                hoomd.wall.Plane: cpp_obj.PlaneWalls,
+            }
+        )
+
+        return cpp_obj
+
+    def _attach_hook(self):
         super()._attach_hook()
+
+        self._walls._validate_walls()
 
     @property
     def walls(self):
         """`list` [`hoomd.wall.WallGeometry`]: \
-            The wall geometries associated with this potential."""
+            The wall geometries associated with this potential.
+        """
         return self._walls
 
     @walls.setter
@@ -183,11 +207,13 @@ class WallPotential(ExternalField):
             return
         self._walls = _HPMCWallsMetaList(self, wall_list, _to_hpmc_cpp_wall)
         if self._attached:
-            self._walls._sync({
-                hoomd.wall.Sphere: self._cpp_obj.SphereWalls,
-                hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
-                hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
-            })
+            self._walls._sync(
+                {
+                    hoomd.wall.Sphere: self._cpp_obj.SphereWalls,
+                    hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
+                    hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
+                }
+            )
 
     @log(requires_run=True)
     def overlaps(self):

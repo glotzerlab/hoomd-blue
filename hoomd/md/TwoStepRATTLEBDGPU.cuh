@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -16,8 +16,6 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/VectorMath.h"
-
-#include "hoomd/GPUPartition.cuh"
 
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
@@ -78,8 +76,7 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                                         const Scalar deltaT,
                                         const unsigned int D,
                                         const bool d_noiseless_t,
-                                        const bool d_noiseless_r,
-                                        const GPUPartition& gpu_partition);
+                                        const bool d_noiseless_r);
 
 template<class Manifold>
 hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
@@ -92,8 +89,7 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
                                        Manifold manifold,
                                        size_t net_virial_pitch,
                                        const Scalar deltaT,
-                                       const bool d_noiseless_t,
-                                       const GPUPartition& gpu_partition);
+                                       const bool d_noiseless_t);
 
 #ifdef __HIPCC__
 
@@ -121,8 +117,7 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
                                                     const Scalar deltaT,
                                                     unsigned int D,
                                                     const bool d_noiseless_t,
-                                                    const bool d_noiseless_r,
-                                                    const unsigned int offset)
+                                                    const bool d_noiseless_r)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
 
@@ -152,7 +147,7 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
 
     if (local_idx < nwork)
         {
-        const unsigned int group_idx = local_idx + offset;
+        const unsigned int group_idx = local_idx;
 
         // determine the particle to work on
         unsigned int idx = d_group_members[group_idx];
@@ -374,63 +369,55 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                                         const Scalar deltaT,
                                         const unsigned int D,
                                         const bool d_noiseless_t,
-                                        const bool d_noiseless_r,
-                                        const GPUPartition& gpu_partition)
+                                        const bool d_noiseless_r)
     {
     unsigned int run_block_size = 256;
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int nwork = group_size;
+
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    const auto shared_bytes
+        = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
+
+    if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        const auto shared_bytes
-            = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
-
-        if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
-            {
-            throw std::runtime_error("Brownian gamma parameters exceed the available shared "
-                                     "memory per block.");
-            }
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_rattle_brownian_step_one_kernel<Manifold>),
-                           dim3(grid),
-                           dim3(threads),
-                           shared_bytes,
-                           0,
-                           d_pos,
-                           d_image,
-                           d_vel,
-                           box,
-                           d_tag,
-                           d_group_members,
-                           nwork,
-                           d_net_force,
-                           d_gamma_r,
-                           d_orientation,
-                           d_torque,
-                           d_inertia,
-                           d_angmom,
-                           rattle_bd_args.d_gamma,
-                           rattle_bd_args.n_types,
-                           rattle_bd_args.timestep,
-                           rattle_bd_args.seed,
-                           rattle_bd_args.T,
-                           manifold,
-                           aniso,
-                           deltaT,
-                           D,
-                           d_noiseless_t,
-                           d_noiseless_r,
-                           range.first);
+        throw std::runtime_error("Brownian gamma parameters exceed the available shared "
+                                 "memory per block.");
         }
+
+    // run the kernel
+    hipLaunchKernelGGL((gpu_rattle_brownian_step_one_kernel<Manifold>),
+                       dim3(grid),
+                       dim3(threads),
+                       shared_bytes,
+                       0,
+                       d_pos,
+                       d_image,
+                       d_vel,
+                       box,
+                       d_tag,
+                       d_group_members,
+                       nwork,
+                       d_net_force,
+                       d_gamma_r,
+                       d_orientation,
+                       d_torque,
+                       d_inertia,
+                       d_angmom,
+                       rattle_bd_args.d_gamma,
+                       rattle_bd_args.n_types,
+                       rattle_bd_args.timestep,
+                       rattle_bd_args.seed,
+                       rattle_bd_args.T,
+                       manifold,
+                       aniso,
+                       deltaT,
+                       D,
+                       d_noiseless_t,
+                       d_noiseless_r);
 
     return hipSuccess;
     }
@@ -451,8 +438,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
                                                    Manifold manifold,
                                                    size_t net_virial_pitch,
                                                    const Scalar deltaT,
-                                                   const bool d_noiseless_t,
-                                                   const unsigned int offset)
+                                                   const bool d_noiseless_t)
     {
     HIP_DYNAMIC_SHARED(char, s_data2)
 
@@ -473,7 +459,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
 
     if (local_idx < nwork)
         {
-        const unsigned int group_idx = local_idx + offset;
+        const unsigned int group_idx = local_idx;
 
         // determine the particle to work on
         unsigned int idx = d_group_members[group_idx];
@@ -619,55 +605,47 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
                                        Manifold manifold,
                                        size_t net_virial_pitch,
                                        const Scalar deltaT,
-                                       const bool d_noiseless_t,
-                                       const GPUPartition& gpu_partition)
+                                       const bool d_noiseless_t)
     {
     unsigned int run_block_size = 256;
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int nwork = group_size;
+
+    // setup the grid to run the kernel
+    dim3 grid((nwork / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    const auto shared_bytes
+        = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
+
+    if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-
-        // setup the grid to run the kernel
-        dim3 grid((nwork / run_block_size) + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-
-        const auto shared_bytes
-            = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
-
-        if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
-            {
-            throw std::runtime_error("Brownian gamma parameters exceed the available shared "
-                                     "memory per block.");
-            }
-
-        // run the kernel
-        hipLaunchKernelGGL((gpu_include_rattle_force_bd_kernel<Manifold>),
-                           dim3(grid),
-                           dim3(threads),
-                           shared_bytes,
-                           0,
-                           d_pos,
-                           d_net_force,
-                           d_net_virial,
-                           d_tag,
-                           d_group_members,
-                           nwork,
-                           rattle_bd_args.d_gamma,
-                           rattle_bd_args.n_types,
-                           rattle_bd_args.timestep,
-                           rattle_bd_args.seed,
-                           rattle_bd_args.T,
-                           rattle_bd_args.tolerance,
-                           manifold,
-                           net_virial_pitch,
-                           deltaT,
-                           d_noiseless_t,
-                           range.first);
+        throw std::runtime_error("Brownian gamma parameters exceed the available shared "
+                                 "memory per block.");
         }
+
+    // run the kernel
+    hipLaunchKernelGGL((gpu_include_rattle_force_bd_kernel<Manifold>),
+                       dim3(grid),
+                       dim3(threads),
+                       shared_bytes,
+                       0,
+                       d_pos,
+                       d_net_force,
+                       d_net_virial,
+                       d_tag,
+                       d_group_members,
+                       nwork,
+                       rattle_bd_args.d_gamma,
+                       rattle_bd_args.n_types,
+                       rattle_bd_args.timestep,
+                       rattle_bd_args.seed,
+                       rattle_bd_args.T,
+                       rattle_bd_args.tolerance,
+                       manifold,
+                       net_virial_pitch,
+                       deltaT,
+                       d_noiseless_t);
 
     return hipSuccess;
     }

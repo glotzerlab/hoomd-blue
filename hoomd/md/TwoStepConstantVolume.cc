@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantVolume.h"
@@ -217,7 +217,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
     auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
                                           : std::array<Scalar, 2> {1., 1.};
 
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -239,6 +239,11 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
         Scalar3 accel = h_accel.data[j];
         Scalar3 net_force
             = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
+
+        if (m_sysdef->getNDimensions() == 2)
+            {
+            net_force.z = Scalar(0.0);
+            }
 
         // first, calculate acceleration from the net force
         Scalar m = h_vel.data[j].w;

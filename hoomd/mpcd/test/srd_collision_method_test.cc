@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/SRDCollisionMethod.h"
@@ -73,7 +73,9 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
             CHECK_CLOSE(h_vel.data[i].y, orig_vel[i].y, tol_small);
             CHECK_CLOSE(h_vel.data[i].z, orig_vel[i].z, tol_small);
             }
+        }
 
+        {
         // check net properties of cells, which should match our inputs
         thermo->compute(0);
         const Scalar3 mom = thermo->getNetMomentum();

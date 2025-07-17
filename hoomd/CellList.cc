@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellList.cc
@@ -31,7 +31,7 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_box_changed = false;
     m_multiple = 1;
 
-    GlobalArray<uint3> conditions(1, m_exec_conf);
+    GPUArray<uint3> conditions(1, m_exec_conf);
     std::swap(m_conditions, conditions);
 
         {
@@ -248,9 +248,8 @@ void CellList::initializeMemory()
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
 
     // allocate memory
-    GlobalArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
+    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
-    TAG_ALLOCATION(m_cell_size);
 
     if (m_compute_adj_list)
         {
@@ -274,67 +273,62 @@ void CellList::initializeMemory()
 
         m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
 
-        GlobalArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
+        GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
         m_cell_adj.swap(cell_adj);
-        TAG_ALLOCATION(m_cell_adj);
         }
     else
         {
         m_cell_adj_indexer = Index2D();
 
         // array is not needed, discard it
-        GlobalArray<unsigned int> cell_adj;
+        GPUArray<unsigned int> cell_adj;
         m_cell_adj.swap(cell_adj);
         }
 
     if (m_compute_xyzf)
         {
-        GlobalArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_xyzf.swap(xyzf);
-        TAG_ALLOCATION(m_xyzf);
         }
     else
         {
-        GlobalArray<Scalar4> xyzf;
+        GPUArray<Scalar4> xyzf;
         m_xyzf.swap(xyzf);
         }
 
     if (m_compute_type_body)
         {
-        GlobalArray<uint2> type_body(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GPUArray<uint2> type_body(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_type_body.swap(type_body);
-        TAG_ALLOCATION(m_type_body);
         }
     else
         {
         // array is no longer needed, discard it
-        GlobalArray<uint2> type_body;
+        GPUArray<uint2> type_body;
         m_type_body.swap(type_body);
         }
 
     if (m_compute_orientation)
         {
-        GlobalArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
-        TAG_ALLOCATION(m_orientation);
         }
     else
         {
         // array is no longer needed, discard it
-        GlobalArray<Scalar4> orientation;
+        GPUArray<Scalar4> orientation;
         m_orientation.swap(orientation);
         }
 
     if (m_compute_idx || m_sort_cell_list)
         {
-        GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
-        TAG_ALLOCATION(m_idx);
         }
     else
         {
         // array is no longer needed, discard it
-        GlobalArray<unsigned int> idx;
+        GPUArray<unsigned int> idx;
         m_idx.swap(idx);
         }
 
@@ -431,7 +425,7 @@ void CellList::computeCellList()
     Index2D cli = m_cell_list_indexer;
 
     // clear the bin sizes to 0
-    memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
+    m_cell_size.zeroFill();
 
     Scalar3 ghost_width = getGhostWidth();
 

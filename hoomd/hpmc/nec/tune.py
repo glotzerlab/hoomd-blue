@@ -1,15 +1,17 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Tune Newtonian event chain parameters."""
 
-from hoomd.custom import _InternalAction
+from hoomd.custom.custom_action import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
-from hoomd.tune import _InternalCustomTuner
+from hoomd.tune.custom_tuner import _InternalCustomTuner
 from hoomd.tune.attr_tuner import _TuneDefinition
 from hoomd.tune import RootSolver, ScaleSolver, SecantSolver
 from hoomd.hpmc.nec.integrate import HPMCNECIntegrator
+from hoomd.operation import Tuner
+import inspect
 
 
 class _ChainTimeTuneDefinition(_TuneDefinition):
@@ -55,11 +57,9 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         # If we have recorded a previous total larger than the current one
         # then this condition implies a new run call. We should be able to
         # tune here as we have no other indication the system has changed.
-        elif ((self.previous_start > chain_start)
-              or (self.previous_hit > chain_hit)):
+        elif (self.previous_start > chain_start) or (self.previous_hit > chain_hit):
             particles_per_chain = chain_hit / chain_start
         else:
-            # yapf incorrectly formats this when written on one line
             delta_prev = chain_hit - self.previous_hit
             delta_start = chain_start - self.previous_start
             particles_per_chain = delta_prev / delta_start
@@ -82,15 +82,15 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         return hash(("chain_time", self._target, self._domain))
 
     def __eq__(self, other):
-        return (self._target == other._target and self._domain == other._domain)
+        return self._target == other._target and self._domain == other._domain
 
 
 class _InternalChainTime(_InternalAction):
     """Internal class for the ChainTime tuner."""
+
     _min_chain_time = 1e-7
 
     def __init__(self, target, solver, max_chain_time=None):
-
         # A flag for knowing when to update the maximum move sizes
         self._update_chain_time = False
 
@@ -105,18 +105,17 @@ class _InternalChainTime(_InternalAction):
         self._is_attached = False
 
         self._chain_time_def = _ChainTimeTuneDefinition(
-            target, (self._min_chain_time, max_chain_time))
+            target, (self._min_chain_time, max_chain_time)
+        )
 
         param_dict = ParameterDict(
-            target=OnlyTypes(float,
-                             postprocess=self._process_chain_time_target),
+            target=OnlyTypes(float, postprocess=self._process_chain_time_target),
             solver=RootSolver,
             max_chain_time=OnlyTypes(
-                float,
-                allow_none=True,
-                postprocess=self._process_chain_time_range),
-            min_chain_time=OnlyTypes(
-                float, postprocess=self._process_chain_time_range))
+                float, allow_none=True, postprocess=self._process_chain_time_range
+            ),
+            min_chain_time=OnlyTypes(float, postprocess=self._process_chain_time_range),
+        )
 
         self._param_dict.update(param_dict)
         self.target = target
@@ -134,8 +133,7 @@ class _InternalChainTime(_InternalAction):
     def _process_chain_time_target(self, target):
         # check range
         if not (0 <= target <= 1000):
-            raise ValueError(
-                "Value {} should be between 0 and 1000.".format(target))
+            raise ValueError("Value {} should be between 0 and 1000.".format(target))
 
         self._chain_time_def.target = target
         self._tuned = 0
@@ -144,7 +142,8 @@ class _InternalChainTime(_InternalAction):
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCNECIntegrator):
             raise RuntimeError(
-                "ChainTimeTuner can only be used in HPMC-NEC simulations.")
+                "ChainTimeTuner can only be used in HPMC-NEC simulations."
+            )
         self._chain_time_def.integrator = simulation.operations.integrator
         self._is_attached = True
 
@@ -176,8 +175,7 @@ class _InternalChainTime(_InternalAction):
         if self._is_attached:
             # update maximum chain time
             if self._update_chain_time:
-                self._chain_time_def.domain = (self.min_chain_time,
-                                               self.max_chain_time)
+                self._chain_time_def.domain = (self.min_chain_time, self.max_chain_time)
 
             tuned = self.solver.solve([self._chain_time_def])
             self._tuned = self._tuned + 1 if tuned else 0
@@ -199,25 +197,29 @@ class ChainTime(_InternalCustomTuner):
             reach the specified target.
         max_chain_time (float): The maximum value of chain time to attempt.
 
+    {inherited}
+
+    ----------
+
+    **Members defined in** `ChainTime`:
+
     Attributes:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (hoomd.tune.RootSolver): A solver that tunes move sizes to reach
             the specified target.
         max_chain_time (float): The maximum value of chain time to attempt.
     """
+
     _internal_class = _InternalChainTime
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     @classmethod
-    def scale_solver(cls,
-                     trigger,
-                     target,
-                     max_chain_time=None,
-                     max_scale=2.,
-                     gamma=1.,
-                     tol=1e-2):
+    def scale_solver(
+        cls, trigger, target, max_chain_time=None, max_scale=2.0, gamma=1.0, tol=1e-2
+    ):
         """Create a `ChainTime` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
@@ -238,16 +240,11 @@ class ChainTime(_InternalCustomTuner):
                 than the default of 0.01 as acceptance rates can vary
                 significantly at typical tuning rates.
         """
-        solver = ScaleSolver(max_scale, gamma, 'positive', tol)
+        solver = ScaleSolver(max_scale, gamma, "positive", tol)
         return cls(trigger, target, solver, max_chain_time)
 
     @classmethod
-    def secant_solver(cls,
-                      trigger,
-                      target,
-                      max_chain_time=None,
-                      gamma=0.8,
-                      tol=1e-2):
+    def secant_solver(cls, trigger, target, max_chain_time=None, gamma=0.8, tol=1e-2):
         """Create a `ChainTime` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
@@ -278,3 +275,8 @@ class ChainTime(_InternalCustomTuner):
         """
         solver = SecantSolver(gamma, tol)
         return cls(trigger, target, solver, max_chain_time)
+
+
+__all__ = [
+    "ChainTime",
+]

@@ -1,0 +1,50 @@
+include = ["*.py"]
+extend-exclude = [".git",
+  "__pycache__",
+  "build",
+  "hoomd/extern",
+  "sphinx-doc/tutorial",
+  "hoomd/_hoomd.py",
+  "hoomd/version_config.py",
+  "hoomd/md/_md.py",
+  "hoomd/hpmc/_hpmc.py",
+  "hoomd/mpcd/_mpcd.py",
+  "hoomd/metal"
+  ]
+line-length = 88
+indent-width = 4
+
+[lint]
+select = [
+    "E",
+    "F",
+    "N",
+    "W",
+    "D",
+    "NPY",
+    "RUF",
+]
+ignore = [
+  "D105", # Magic methods don't require documentation
+  "D107", # do not document __init__ separately from the class
+  "D301", # Allow backslashes in docstrings
+  "D205", "D415", # Allow no summary line. The rendered Sphinx documentation is cleaner without them.
+  "N816", "N806","N803", # allow occasional use of uppercase variable and argument names
+  "D214", # ignore overindented sections in Trigger - this is Google napoleon formatting
+  "RUF012", # hoomd does not use typing annotations
+  "NPY002", # TODO: refactor tests to use modern numpy Generator API.
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+# do not require docstrings in unit test or documentation example files
+"**/pytest/*" = ["D", "F811", "N999"]
+"sphinx-doc/howto/*.py" = ["D"]
+
+[format]
+indent-style = "space"
+line-ending = "auto"
+docstring-code-line-length = 72
+docstring-code-format = true

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -16,80 +16,109 @@ def _test_callback(typeid, param_list):
 
 
 # vertices of a regular cube: used for testing vertex and elastic shape moves
-verts = np.asarray([[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5],
-                    [0.5, -0.5, -0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5],
-                    [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]])
+verts = np.asarray(
+    [
+        [-0.5, -0.5, -0.5],
+        [-0.5, -0.5, 0.5],
+        [-0.5, 0.5, -0.5],
+        [0.5, -0.5, -0.5],
+        [-0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5],
+        [0.5, 0.5, -0.5],
+        [0.5, 0.5, 0.5],
+    ]
+)
 
 shape_move_constructor_args = [
     (Vertex, dict(vertex_move_probability=0.7)),
     (ShapeSpace, dict(callback=_test_callback, param_move_probability=1)),
-    (Elastic,
-     dict(stiffness=hoomd.variant.Constant(10),
-          mc=hpmc.integrate.ConvexPolyhedron,
-          normal_shear_ratio=0.5)),
+    (
+        Elastic,
+        dict(
+            stiffness=hoomd.variant.Constant(10),
+            mc=hpmc.integrate.ConvexPolyhedron,
+            normal_shear_ratio=0.5,
+        ),
+    ),
 ]
 
 shape_move_valid_attrs = [
     (Vertex(), "vertex_move_probability", 0.1),
     (ShapeSpace(callback=_test_callback), "param_move_probability", 0.1),
-    (ShapeSpace(callback=_test_callback), "callback",
-     lambda type, param_list: {}),
+    (ShapeSpace(callback=_test_callback), "callback", lambda type, param_list: {}),
     (Elastic(1, hpmc.integrate.ConvexPolyhedron), "normal_shear_ratio", 0.5),
-    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
-     hoomd.variant.Constant(10)),
-    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
-     hoomd.variant.Ramp(1, 5, 0, 100)),
-    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
-     hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
-    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
-     hoomd.variant.Power(1, 5, 3, 0, 100))
+    (
+        Elastic(1, hpmc.integrate.ConvexPolyhedron),
+        "stiffness",
+        hoomd.variant.Constant(10),
+    ),
+    (
+        Elastic(1, hpmc.integrate.ConvexPolyhedron),
+        "stiffness",
+        hoomd.variant.Ramp(1, 5, 0, 100),
+    ),
+    (
+        Elastic(1, hpmc.integrate.ConvexPolyhedron),
+        "stiffness",
+        hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15),
+    ),
+    (
+        Elastic(1, hpmc.integrate.ConvexPolyhedron),
+        "stiffness",
+        hoomd.variant.Power(1, 5, 3, 0, 100),
+    ),
 ]
 
-shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
-                             ("trigger", hoomd.trigger.After(100)),
-                             ("trigger", hoomd.trigger.Before(100)),
-                             ("type_select", 2), ("nweeps", 4),
-                             ("shape_move", Vertex()),
-                             ("shape_move",
-                              ShapeSpace(callback=_test_callback)),
-                             ("shape_move",
-                              Elastic(stiffness=10,
-                                      mc=hpmc.integrate.ConvexPolyhedron))]
+shape_updater_valid_attrs = [
+    ("trigger", hoomd.trigger.Periodic(10)),
+    ("trigger", hoomd.trigger.After(100)),
+    ("trigger", hoomd.trigger.Before(100)),
+    ("type_select", 2),
+    ("nweeps", 4),
+    ("shape_move", Vertex()),
+    ("shape_move", ShapeSpace(callback=_test_callback)),
+    ("shape_move", Elastic(stiffness=10, mc=hpmc.integrate.ConvexPolyhedron)),
+]
 
 updater_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10), shape_move=ShapeMove()),
-    dict(trigger=hoomd.trigger.After(100),
-         shape_move=Vertex(),
-         type_select=4,
-         nsweeps=2),
-    dict(trigger=hoomd.trigger.Before(100),
-         shape_move=ShapeSpace(callback=_test_callback),
-         nsweeps=4),
-    dict(trigger=hoomd.trigger.Periodic(1000),
-         shape_move=ShapeSpace(callback=_test_callback),
-         type_select=1),
-    dict(trigger=hoomd.trigger.Periodic(10),
-         shape_move=Elastic(stiffness=10, mc=hpmc.integrate.ConvexPolyhedron),
-         type_select=3,
-         pretend=True)
+    dict(
+        trigger=hoomd.trigger.After(100), shape_move=Vertex(), type_select=4, nsweeps=2
+    ),
+    dict(
+        trigger=hoomd.trigger.Before(100),
+        shape_move=ShapeSpace(callback=_test_callback),
+        nsweeps=4,
+    ),
+    dict(
+        trigger=hoomd.trigger.Periodic(1000),
+        shape_move=ShapeSpace(callback=_test_callback),
+        type_select=1,
+    ),
+    dict(
+        trigger=hoomd.trigger.Periodic(10),
+        shape_move=Elastic(stiffness=10, mc=hpmc.integrate.ConvexPolyhedron),
+        type_select=3,
+        pretend=True,
+    ),
 ]
 
 type_parameters = [
     (ShapeSpace(callback=_test_callback), "params", [0.1, 0.3, 0.4]),
     (ShapeSpace(callback=_test_callback), "step_size", 0.4),
-    (Vertex(), "volume", 1.2), (Vertex(), "step_size", 0.1),
-    (Elastic(stiffness=10.0,
-             mc=hpmc.integrate.ConvexPolyhedron), "reference_shape", {
-                 "vertices": verts
-             }),
-    (Elastic(stiffness=10.0,
-             mc=hpmc.integrate.ConvexPolyhedron), "step_size", 0.2)
+    (Vertex(), "volume", 1.2),
+    (Vertex(), "step_size", 0.1),
+    (
+        Elastic(stiffness=10.0, mc=hpmc.integrate.ConvexPolyhedron),
+        "reference_shape",
+        {"vertices": verts},
+    ),
+    (Elastic(stiffness=10.0, mc=hpmc.integrate.ConvexPolyhedron), "step_size", 0.2),
 ]
 
 
 @pytest.mark.parametrize("shape_move_class,params", shape_move_constructor_args)
 def test_valid_construction_shape_moves(shape_move_class, params):
-
     move = shape_move_class(**params)
 
     # validate the params were set properly
@@ -100,7 +129,6 @@ def test_valid_construction_shape_moves(shape_move_class, params):
 
 @pytest.mark.parametrize("updater_constructor_args", updater_constructor_args)
 def test_valid_construction_shape_updater(updater_constructor_args):
-
     updater = hpmc.update.Shape(**updater_constructor_args)
 
     # validate the params were set properly
@@ -131,7 +159,6 @@ def test_type_parameters(obj, attr, value):
 
 
 def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
-
     move = Vertex(default_step_size=0.2)
     move.volume["A"] = 1
 
@@ -173,13 +200,13 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
     assert np.isclose(updater.particle_volumes[0], 1)
 
 
-def test_python_callback_shape_move_ellipsoid(simulation_factory,
-                                              lattice_snapshot_factory):
+def test_python_callback_shape_move_ellipsoid(
+    simulation_factory, lattice_snapshot_factory
+):
     """Test ShapeSpace with a toy class that randomly squashes spheres \
            into oblate ellipsoids with constant volume."""
 
     class ScaleEllipsoid:
-
         def __init__(self, a, b, c):
             self.vol_factor = 4 * np.pi / 3
             self.volume = self.vol_factor * a * b * c
@@ -187,14 +214,13 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
 
         def __call__(self, type_id, param_list):
             x = param_list[0]
-            b = (self.volume / x / (self.vol_factor))**(1 / 3)
+            b = (self.volume / x / (self.vol_factor)) ** (1 / 3)
             ret = dict(a=x * b, b=b, c=b, **self.default_dict)
             return ret
 
     ellipsoid = dict(a=1, b=1, c=1)
 
-    move = ShapeSpace(callback=ScaleEllipsoid(**ellipsoid),
-                      default_step_size=0.2)
+    move = ShapeSpace(callback=ScaleEllipsoid(**ellipsoid), default_step_size=0.2)
     move.params["A"] = [1]
 
     updater = hpmc.update.Shape(trigger=1, shape_move=move, nsweeps=2)
@@ -244,17 +270,21 @@ def test_python_callback_shape_move_ellipsoid(simulation_factory,
     assert not np.allclose(move.params["A"], [1])
 
     # Check that the shape parameters map back to the correct geometry
-    assert np.allclose(move.params["A"], [
-        mc.shape["A"]["a"] / mc.shape["A"]["b"],
-        mc.shape["A"]["a"] / mc.shape["A"]["c"]
-    ])
+    assert np.allclose(
+        move.params["A"],
+        [
+            mc.shape["A"]["a"] / mc.shape["A"]["b"],
+            mc.shape["A"]["a"] / mc.shape["A"]["c"],
+        ],
+    )
 
     # Check that the callback is conserving volume properly
     assert np.allclose(updater.particle_volumes, 4 * np.pi / 3)
 
 
-def test_python_callback_shape_move_pyramid(simulation_factory,
-                                            two_particle_snapshot_factory):
+def test_python_callback_shape_move_pyramid(
+    simulation_factory, two_particle_snapshot_factory
+):
     """Test ShapeSpace with a toy class that randomly stretches square \
         pyramids."""
 
@@ -262,13 +292,12 @@ def test_python_callback_shape_move_pyramid(simulation_factory,
         """Generate a square pyramid with unit volume."""
         theta = np.arange(0, 2 * np.pi, np.pi / 2)
         base_vertices = np.array(
-            [np.cos(theta), np.sin(theta),
-             np.zeros_like(theta)]).T * np.sqrt(3 / 2)
+            [np.cos(theta), np.sin(theta), np.zeros_like(theta)]
+        ).T * np.sqrt(3 / 2)
         vertices = np.vstack([base_vertices, [0, 0, h]])
         return vertices / np.cbrt(h), base_vertices
 
     class ScalePyramid:
-
         def __init__(self, h=1.1):
             _, self.base_vertices = square_pyramid_factory(h=1.1)
             self.default_dict = dict(sweep_radius=0, ignore_statistics=True)
@@ -331,14 +360,14 @@ def test_python_callback_shape_move_pyramid(simulation_factory,
 
     # Check that the shape parameters map back to the correct geometry
     assert np.allclose(
-        square_pyramid_factory(current_h + 0.1)[0], mc.shape["A"]["vertices"])
+        square_pyramid_factory(current_h + 0.1)[0], mc.shape["A"]["vertices"]
+    )
 
     # Check that the callback is conserving volume properly
     assert np.allclose(updater.particle_volumes, 1)
 
 
 def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
-
     mc = hoomd.hpmc.integrate.ConvexPolyhedron()
     mc.d["A"] = 0
     mc.a["A"] = 0

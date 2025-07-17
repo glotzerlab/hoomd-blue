@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -94,11 +94,6 @@ struct ShapeEllipsoid
     {
     /// Define the parameter type
     typedef EllipsoidParams param_type;
-
-    //! Temporary storage for depletant insertion
-    typedef struct
-        {
-        } depletion_storage_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)

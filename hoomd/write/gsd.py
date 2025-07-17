@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Write GSD files storing simulation trajectories and logging data.
@@ -22,6 +22,7 @@ import numpy as np
 import json
 import atexit
 import weakref
+import inspect
 
 # Track open gsd writers to flush at exit.
 _open_gsd_writers = []
@@ -43,8 +44,8 @@ def _array_to_strings(value):
         string_list = []
         for string in value:
             string_list.append(
-                string.view(
-                    dtype='|S{}'.format(value.shape[1])).decode('UTF-8'))
+                string.view(dtype="|S{}".format(value.shape[1])).decode("UTF-8")
+            )
         return string_list
     else:
         return value
@@ -175,9 +176,17 @@ class GSD(Writer):
 
     .. code-block:: python
 
-        gsd = hoomd.write.GSD(trigger=hoomd.trigger.Periodic(1_000_000),
-                              filename=gsd_filename)
+        gsd = hoomd.write.GSD(
+            trigger=hoomd.trigger.Periodic(1_000_000),
+            filename=gsd_filename,
+        )
         simulation.operations.writers.append(gsd)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `GSD`:
 
     Attributes:
         filename (str): File name to write (*read-only*).
@@ -221,17 +230,19 @@ class GSD(Writer):
 
             .. code-block:: python
 
-                gsd.dynamic = ['property']
+                gsd.dynamic = ["property"]
 
             .. code-block:: python
 
-                gsd.dynamic = ['property', 'momentum']
+                gsd.dynamic = ["property", "momentum"]
 
             .. code-block:: python
 
-                gsd.dynamic = ['property',
-                               'particles/image',
-                               'particles/typeid']
+                gsd.dynamic = [
+                    "property",
+                    "particles/image",
+                    "particles/typeid",
+                ]
 
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
@@ -253,68 +264,83 @@ class GSD(Writer):
                 gsd.maximum_write_buffer_size = 128 * 1024**2
     """
 
-    def __init__(self,
-                 trigger,
-                 filename,
-                 filter=All(),
-                 mode='ab',
-                 truncate=False,
-                 dynamic=None,
-                 logger=None):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
+    def __init__(
+        self,
+        trigger,
+        filename,
+        filter=All(),
+        mode="ab",
+        truncate=False,
+        dynamic=None,
+        logger=None,
+    ):
         super().__init__(trigger)
 
-        dynamic_validation = OnlyFrom([
-            'attribute',
-            'property',
-            'momentum',
-            'topology',
-            'configuration/box',
-            'particles/N',
-            'particles/position',
-            'particles/orientation',
-            'particles/velocity',
-            'particles/angmom',
-            'particles/image',
-            'particles/types',
-            'particles/typeid',
-            'particles/mass',
-            'particles/charge',
-            'particles/diameter',
-            'particles/body',
-            'particles/moment_inertia',
-        ],
-                                      preprocess=_array_to_strings)
+        dynamic_validation = OnlyFrom(
+            [
+                "attribute",
+                "property",
+                "momentum",
+                "topology",
+                "configuration/box",
+                "particles/N",
+                "particles/position",
+                "particles/orientation",
+                "particles/velocity",
+                "particles/angmom",
+                "particles/image",
+                "particles/types",
+                "particles/typeid",
+                "particles/mass",
+                "particles/charge",
+                "particles/diameter",
+                "particles/body",
+                "particles/moment_inertia",
+            ],
+            preprocess=_array_to_strings,
+        )
 
-        dynamic = ['property'] if dynamic is None else dynamic
+        dynamic = ["property"] if dynamic is None else dynamic
         self._param_dict.update(
-            ParameterDict(filename=str(filename),
-                          filter=ParticleFilter,
-                          mode=str(mode),
-                          truncate=bool(truncate),
-                          dynamic=[dynamic_validation],
-                          write_diameter=False,
-                          maximum_write_buffer_size=64 * 1024 * 1024,
-                          _defaults=dict(filter=filter, dynamic=dynamic)))
+            ParameterDict(
+                filename=str(filename),
+                filter=ParticleFilter,
+                mode=str(mode),
+                truncate=bool(truncate),
+                dynamic=[dynamic_validation],
+                write_diameter=False,
+                maximum_write_buffer_size=64 * 1024 * 1024,
+                _defaults=dict(filter=filter, dynamic=dynamic),
+            )
+        )
 
         self._logger = None if logger is None else _GSDLogWriter(logger)
 
     def _attach_hook(self):
         self._cpp_obj = _hoomd.GSDDumpWriter(
-            self._simulation.state._cpp_sys_def, self.trigger, self.filename,
-            self._simulation.state._get_group(self.filter), self.mode,
-            self.truncate)
+            self._simulation.state._cpp_sys_def,
+            self.trigger,
+            self.filename,
+            self._simulation.state._get_group(self.filter),
+            self.mode,
+            self.truncate,
+        )
 
         self._cpp_obj.log_writer = self.logger
 
         # Maintain a list of open gsd writers
         weak_writer = weakref.ref(self)
         _open_gsd_writers.append(weak_writer)
-        self._finalizer = weakref.finalize(self, _finalize_gsd, weak_writer,
-                                           self._cpp_obj),
+        self._finalizer = (
+            weakref.finalize(self, _finalize_gsd, weak_writer, self._cpp_obj),
+        )
 
     @staticmethod
-    def write(state, filename, filter=All(), mode='wb', logger=None):
+    def write(state, filename, filter=All(), mode="wb", logger=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
@@ -326,12 +352,17 @@ class GSD(Writer):
 
         The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
-        if mode != 'wb' and mode != 'xb':
+        if mode != "wb" and mode != "xb":
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1),
-                                      str(filename), state._get_group(filter),
-                                      mode, False)
+        writer = _hoomd.GSDDumpWriter(
+            state._cpp_sys_def,
+            Periodic(1),
+            str(filename),
+            state._get_group(filter),
+            mode,
+            False,
+        )
 
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)
@@ -368,12 +399,14 @@ class GSD(Writer):
         Flush all write buffers::
 
             for writer in simulation.operations.writers:
-                if hasattr(writer, 'flush'):
+                if hasattr(writer, "flush"):
                     writer.flush()
         """
         if not self._attached:
-            raise RuntimeError("The GSD file is unavailable until the"
-                               "simulation runs for 0 or more steps.")
+            raise RuntimeError(
+                "The GSD file is unavailable until the"
+                "simulation runs for 0 or more steps."
+            )
 
         self._cpp_obj.flush()
 
@@ -385,8 +418,11 @@ def _iterable_is_incomplete(iterable):
     ensure that no RequiredArg values exist at any depth in a state loggable
     key. Otherwise, the GSD backend will fail in its conversion to NumPy arrays.
     """
-    if (not isinstance(iterable, Collection) or isinstance(iterable, str)
-            or len(iterable) == 0):
+    if (
+        not isinstance(iterable, Collection)
+        or isinstance(iterable, str)
+        or len(iterable) == 0
+    ):
         return False
     incomplete = False
 
@@ -418,14 +454,14 @@ class _GSDLogWriter:
         _global_prepend (`str`): a str that gets prepending into the namespace
             of each logged quantity.
     """
-    _per_categories = LoggerCategories.any([
-        'angle', 'bond', 'constraint', 'dihedral', 'improper', 'pair',
-        'particle'
-    ])
-    _convert_categories = LoggerCategories.any(['string', 'strings'])
-    _skip_categories = LoggerCategories['object']
-    _special_keys = ['type_shapes']
-    _global_prepend = 'log'
+
+    _per_categories = LoggerCategories.any(
+        ["angle", "bond", "constraint", "dihedral", "improper", "pair", "particle"]
+    )
+    _convert_categories = LoggerCategories.any(["string", "strings"])
+    _skip_categories = LoggerCategories["object"]
+    _special_keys = ["type_shapes"]
+    _global_prepend = "log"
 
     def __init__(self, logger):
         self.logger = logger
@@ -434,7 +470,7 @@ class _GSDLogWriter:
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
         for key, value in _dict_flatten(self.logger.log()).items():
-            if 'state' in key and _iterable_is_incomplete(value[0]):
+            if "state" in key and _iterable_is_incomplete(value[0]):
                 pass
             log_value, type_category = value
             type_category = LoggerCategories[type_category]
@@ -453,15 +489,20 @@ class _GSDLogWriter:
                     # log/particles/{remaining namespace}. This preserves OVITO
                     # intergration.
                     if type_category in self._per_categories:
-                        log['/'.join((self._global_prepend, type_category.name
-                                      + 's') + key)] = log_value
+                        log[
+                            "/".join(
+                                (self._global_prepend, type_category.name + "s", *key)
+                            )
+                        ] = log_value
                     elif type_category in self._convert_categories:
                         self._log_convert_value(
-                            log, '/'.join((self._global_prepend,) + key),
-                            type_category, log_value)
+                            log,
+                            "/".join((self._global_prepend, *key)),
+                            type_category,
+                            log_value,
+                        )
                     else:
-                        log['/'.join((self._global_prepend,) + key)] = \
-                            log_value
+                        log["/".join((self._global_prepend, *key))] = log_value
             else:
                 pass
         return log
@@ -472,25 +513,25 @@ class _GSDLogWriter:
         When adding a key to this make sure this is the only option. In general,
         special cases like this should be avoided if possible.
         """
-        if key == 'type_shapes':
+        if key == "type_shapes":
             shape_list = [
-                bytes(json.dumps(type_shape) + '\0', 'UTF-8')
-                for type_shape in value
+                bytes(json.dumps(type_shape) + "\0", "UTF-8") for type_shape in value
             ]
             max_len = np.max([len(shape) for shape in shape_list])
             num_shapes = len(shape_list)
             str_array = np.array(shape_list)
-            dict_['particles/type_shapes'] = \
-                str_array.view(dtype=np.int8).reshape(num_shapes, max_len)
+            dict_["particles/type_shapes"] = str_array.view(dtype=np.int8).reshape(
+                num_shapes, max_len
+            )
 
     def _log_convert_value(self, dict_, key, category, value):
         """Convert loggable types that cannot be directly stored by GSD."""
         if category == LoggerCategories.string:
-            value = bytes(value, 'UTF-8')
+            value = bytes(value, "UTF-8")
             value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
             value = value.view(dtype=np.int8)
         elif category == LoggerCategories.strings:
-            value = [bytes(v + '\0', 'UTF-8') for v in value]
+            value = [bytes(v + "\0", "UTF-8") for v in value]
             max_len = np.max([len(string) for string in value])
             num_strings = len(value)
             value = np.array(value)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Communicator.h
@@ -13,7 +13,6 @@
 #include "BondedGroupData.h"
 #include "DomainDecomposition.h"
 #include "GPUVector.h"
-#include "GlobalArray.h"
 #include "HOOMDMath.h"
 #include "MeshDefinition.h"
 #include "MeshGroupData.h"
@@ -71,7 +70,9 @@ struct comm_flag
         net_force,         //! Communicate net force
         reverse_net_force, //! Communicate net force on ghost particles. Added by Vyas
         net_torque,        //! Communicate net torque
-        net_virial         //! Communicate net virial
+        net_virial,        //! Communicate net virial
+        angmom,            //! Bit id in CommFlags for particle angular momentum
+        inertia            //! Bit id in CommFlags for particle moment of inertia
         };
     };
 
@@ -213,7 +214,7 @@ class PYBIND11_EXPORT Communicator
      * \param subscriber The callback
      * \returns a connection to this class
      */
-    Nano::Signal<void(const GlobalArray<unsigned int>&)>& getCommunicationCallbackSignal()
+    Nano::Signal<void(const GPUArray<unsigned int>&)>& getCommunicationCallbackSignal()
         {
         return m_comm_callbacks;
         }
@@ -244,13 +245,13 @@ class PYBIND11_EXPORT Communicator
         }
 
     //! Get the array of unique neighbors
-    const GlobalArray<unsigned int>& getUniqueNeighbors() const
+    const GPUArray<unsigned int>& getUniqueNeighbors() const
         {
         return m_unique_neighbors;
         }
 
     //! Get the current ghost layer width array
-    const GlobalArray<Scalar>& getGhostLayerWidth() const
+    const GPUArray<Scalar>& getGhostLayerWidth() const
         {
         return m_r_ghost;
         }
@@ -420,7 +421,7 @@ class PYBIND11_EXPORT Communicator
          * \param plans Array of particle plans to write to
          * \param mask Mask for allowed sending directions
          */
-        void markGhostParticles(const GlobalVector<unsigned int>& plans, unsigned int mask);
+        void markGhostParticles(const GPUVector<unsigned int>& plans, unsigned int mask);
 
         //! Copy 'ghost groups' between domains
         /*! Both members of a ghost group are inside the ghost layer
@@ -428,7 +429,7 @@ class PYBIND11_EXPORT Communicator
          * \param plans The ghost particle send directions determined by Communicator
          * \param mask Mask for allowed sending directions
          */
-        void exchangeGhostGroups(const GlobalArray<unsigned int>& plans, unsigned int mask);
+        void exchangeGhostGroups(const GPUArray<unsigned int>& plans, unsigned int mask);
 
         private:
         Communicator& m_comm;                                      //!< The outer class
@@ -480,50 +481,52 @@ class PYBIND11_EXPORT Communicator
     unsigned int m_is_at_boundary[6]; //!< Array of flags indicating whether this box lies at a
                                       //!< global boundary
 
-    GlobalArray<unsigned int> m_neighbors;        //!< Neighbor ranks
-    GlobalArray<unsigned int> m_unique_neighbors; //!< Neighbor ranks w/duplicates removed
-    GlobalArray<unsigned int> m_adj_mask;         //!< Adjacency mask for every neighbor
-    unsigned int m_nneigh;                        //!< Number of neighbors
-    unsigned int m_n_unique_neigh;                //!< Number of unique neighbors
-    GlobalArray<unsigned int> m_begin;            //!< Begin index for every neighbor in send buf
-    GlobalArray<unsigned int> m_end;              //!< End index for every neighbor in send buf
+    GPUArray<unsigned int> m_neighbors;        //!< Neighbor ranks
+    GPUArray<unsigned int> m_unique_neighbors; //!< Neighbor ranks w/duplicates removed
+    GPUArray<unsigned int> m_adj_mask;         //!< Adjacency mask for every neighbor
+    unsigned int m_nneigh;                     //!< Number of neighbors
+    unsigned int m_n_unique_neigh;             //!< Number of unique neighbors
+    GPUArray<unsigned int> m_begin;            //!< Begin index for every neighbor in send buf
+    GPUArray<unsigned int> m_end;              //!< End index for every neighbor in send buf
 
-    GlobalVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
-    GlobalVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
-    GlobalVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
-    GlobalVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied
-    GlobalVector<int3> m_image_copybuf;          //!< Buffer for particle body ids to be copied
-    GlobalVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
-    GlobalVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
-    GlobalVector<unsigned int> m_plan_copybuf;   //!< Buffer for particle plans
-    GlobalVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
-    GlobalVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
-    GlobalVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
-    GlobalVector<Scalar> m_netvirial_copybuf;    //!< Buffer for net virial
-    GlobalVector<Scalar> m_netvirial_recvbuf;    //!< Buffer for net virial (receive)
+    GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
+    GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
+    GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
+    GPUVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied
+    GPUVector<int3> m_image_copybuf;          //!< Buffer for particle body ids to be copied
+    GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
+    GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
+    GPUVector<Scalar4> m_angmom_copybuf;      //!< Buffer for particle angular momenta to be copied
+    GPUVector<Scalar3> m_inertia_copybuf;   //!< Buffer for particle moment of inertias to be copied
+    GPUVector<unsigned int> m_plan_copybuf; //!< Buffer for particle plans
+    GPUVector<unsigned int> m_tag_copybuf;  //!< Buffer for particle tags
+    GPUVector<Scalar4> m_netforce_copybuf;  //!< Buffer for net force
+    GPUVector<Scalar4> m_nettorque_copybuf; //!< Buffer for net torque
+    GPUVector<Scalar> m_netvirial_copybuf;  //!< Buffer for net virial
+    GPUVector<Scalar> m_netvirial_recvbuf;  //!< Buffer for net virial (receive)
 
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
     unsigned int
         m_num_copy_ghosts[6]; //!< Number of local particles that are sent to neighboring processors
     unsigned int m_num_recv_ghosts[6]; //!< Number of ghosts received per direction
 
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_plan; //!< Array of per-direction flags that determine the sending route
 
     // Variables needed for sending ghost particles backwards
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_plan_reverse; //!< Array of flags that determine the reverse sending route for ghosts
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_tag_reverse; //!< Array of flags that determine which ghost particles are being sent back.
                        //!< This has no analog normally because particles actually store their tags,
                        //!< but in this case we don't want to so we have to make a vector. This
                        //!< vector corresponds to the m_copy_ghosts_reverse copybuf (m_copy_ghosts
                        //!< writes directly to m_pdata->getTags())
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_copy_ghosts_reverse[6]; //!< Per-direction list of indices of particles to send back as
                                   //!< ghosts. Copy buffer for m_tag_reverse
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_plan_reverse_copybuf[6]; //!< Per-direction buffer for reverse particle plans. Copy buffer
                                    //!< for m_plan_reverse
     unsigned int m_num_copy_local_ghosts_reverse[6]; //!< Number of ghost particles in local domain
@@ -544,19 +547,19 @@ class PYBIND11_EXPORT Communicator
     unsigned int m_num_recv_forward_ghosts_reverse[6]; //!< Number of reverse ghosts received per
                                                        //!< direction. Receive buffer corresponding
                                                        //!< to m_num_forward_ghosts_reverse
-    GlobalVector<unsigned int>
+    GPUVector<unsigned int>
         m_forward_ghosts_reverse[6]; //!< Indicates the index in the forwarded ghosts array
                                      //!< containing a given particle in the received array
 
     // Variables for sending forces in reverse
-    GlobalVector<Scalar4> m_netforce_reverse_copybuf; //!< Buffer for reverse net force from ghosts
-    GlobalVector<Scalar4> m_netforce_reverse_recvbuf; //!< Buffer for the reverse net force. Receive
-                                                      //!< buffer for m_netforce_reverse_copybuf
+    GPUVector<Scalar4> m_netforce_reverse_copybuf; //!< Buffer for reverse net force from ghosts
+    GPUVector<Scalar4> m_netforce_reverse_recvbuf; //!< Buffer for the reverse net force. Receive
+                                                   //!< buffer for m_netforce_reverse_copybuf
 
-    BoxDim m_global_box;                //!< Global simulation box
-    GlobalArray<Scalar> m_r_ghost;      //!< Width of ghost layer
-    GlobalArray<Scalar> m_r_ghost_body; //!< Extra ghost width for rigid bodies
-    Scalar m_r_ghost_max;               //!< Maximum ghost layer width
+    BoxDim m_global_box;             //!< Global simulation box
+    GPUArray<Scalar> m_r_ghost;      //!< Width of ghost layer
+    GPUArray<Scalar> m_r_ghost_body; //!< Extra ghost width for rigid bodies
+    Scalar m_r_ghost_max;            //!< Maximum ghost layer width
 
     unsigned int m_ghosts_added; //!< Number of ghosts added
     bool m_has_ghost_particles;  //!< True if we have a current copy of ghost particles
@@ -582,7 +585,7 @@ class PYBIND11_EXPORT Communicator
     Nano::Signal<void(uint64_t timestep)>
         m_compute_callbacks; //!< List of functions that are called after ghost communication
 
-    Nano::Signal<void(const GlobalArray<unsigned int>&)>
+    Nano::Signal<void(const GPUArray<unsigned int>&)>
         m_comm_callbacks; //!< List of functions that are called after the compute callbacks
 
     CommFlags m_flags;      //!< The ghost communication flags

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
@@ -29,15 +29,14 @@ def base_box(box_dict):
 def test_cpp_python_correspondence(base_box):
     cpp_obj = base_box._cpp_obj
     cpp_L = cpp_obj.getL()
-    assert base_box.Lx == cpp_L.x and base_box.Ly == cpp_L.y \
-        and base_box.Lz == cpp_L.z
+    assert base_box.Lx == cpp_L.x and base_box.Ly == cpp_L.y and base_box.Lz == cpp_L.z
     assert base_box.xy == cpp_obj.getTiltFactorXY()
     assert base_box.xz == cpp_obj.getTiltFactorXZ()
     assert base_box.yz == cpp_obj.getTiltFactorYZ()
 
 
 def test_setting_lengths(base_box):
-    for attr in ['Lx', 'Ly', 'Lz']:
+    for attr in ["Lx", "Ly", "Lz"]:
         for L in np.linspace(1, 100, 10):
             setattr(base_box, attr, L)
             assert getattr(base_box, attr) == L
@@ -49,7 +48,7 @@ def test_setting_lengths(base_box):
 
 
 def test_setting_tilts(base_box):
-    for attr in ['xy', 'xz', 'yz']:
+    for attr in ["xy", "xz", "yz"]:
         for tilt in np.linspace(1, 100, 10):
             setattr(base_box, attr, tilt)
             assert getattr(base_box, attr) == tilt
@@ -118,14 +117,17 @@ def test_periodic(base_box):
 
 @fixture
 def expected_matrix(box_dict):
-    return np.array([
+    return np.array(
         [
-            box_dict['Lx'], box_dict['Ly'] * box_dict['xy'],
-            box_dict['Lz'] * box_dict['xz']
-        ],
-        [0, box_dict['Ly'], box_dict['Lz'] * box_dict['yz']],
-        [0, 0, box_dict['Lz']],
-    ])
+            [
+                box_dict["Lx"],
+                box_dict["Ly"] * box_dict["xy"],
+                box_dict["Lz"] * box_dict["xz"],
+            ],
+            [0, box_dict["Ly"], box_dict["Lz"] * box_dict["yz"]],
+            [0, 0, box_dict["Lz"]],
+        ]
+    )
 
 
 def test_matrix(base_box, expected_matrix):
@@ -142,8 +144,7 @@ def test_matrix(base_box, expected_matrix):
 def new_box_matrix_dict():
     Lx, Ly, Lz = 2, 4, 8
     xy, xz, yz = 1, 3, 5
-    new_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
-                               [0, 0, Lz]])
+    new_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz], [0, 0, Lz]])
     return dict(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz, matrix=new_box_matrix)
 
 
@@ -162,27 +163,41 @@ def test_square():
 
 
 def test_from_matrix(new_box_matrix_dict):
-    box = Box.from_matrix(new_box_matrix_dict['matrix'])
-    assert np.allclose(new_box_matrix_dict['matrix'], box.to_matrix())
-    assert np.allclose(box.L, [
-        new_box_matrix_dict['Lx'], new_box_matrix_dict['Ly'],
-        new_box_matrix_dict['Lz']
-    ])
-    assert np.allclose(box.tilts, [
-        new_box_matrix_dict['xy'], new_box_matrix_dict['xz'],
-        new_box_matrix_dict['yz']
-    ])
+    box = Box.from_matrix(new_box_matrix_dict["matrix"])
+    assert np.allclose(new_box_matrix_dict["matrix"], box.to_matrix())
+    assert np.allclose(
+        box.L,
+        [
+            new_box_matrix_dict["Lx"],
+            new_box_matrix_dict["Ly"],
+            new_box_matrix_dict["Lz"],
+        ],
+    )
+    assert np.allclose(
+        box.tilts,
+        [
+            new_box_matrix_dict["xy"],
+            new_box_matrix_dict["xz"],
+            new_box_matrix_dict["yz"],
+        ],
+    )
 
 
-@pytest.mark.parametrize("theta",
-                         [np.pi, np.pi / 2, np.pi / 3, np.pi / 4, np.pi * 1.23])
+@pytest.mark.parametrize(
+    "theta", [np.pi, np.pi / 2, np.pi / 3, np.pi / 4, np.pi * 1.23]
+)
 def test_from_basis_vectors_non_triangular(theta):
-    box_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
-                           [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
+    box_matrix = np.array(
+        [
+            [np.cos(theta), -np.sin(theta), 0],
+            [np.sin(theta), np.cos(theta), 0],
+            [0, 0, 1],
+        ]
+    )
     box, rotation = Box.from_basis_vectors(box_matrix.T)
-    assert np.allclose([box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz],
-                       [1, 1, 1, 0, 0, 0],
-                       atol=1e-6)
+    assert np.allclose(
+        [box.Lx, box.Ly, box.Lz, box.xy, box.xz, box.yz], [1, 1, 1, 0, 0, 0], atol=1e-6
+    )
     rotated_matrix = box.to_matrix()
     rotated_points = rotation @ box_matrix
     assert np.allclose(rotated_matrix, rotated_points)
@@ -194,11 +209,17 @@ def test_from_matrix_two_dimensional():
     assert box.is2D and box.dimensions == 2
 
 
-@pytest.mark.parametrize("theta",
-                         [np.pi, np.pi / 2, np.pi / 3, np.pi / 4, np.pi * 1.23])
+@pytest.mark.parametrize(
+    "theta", [np.pi, np.pi / 2, np.pi / 3, np.pi / 4, np.pi * 1.23]
+)
 def test_rotation_matrix_from_basis_vectors_two_dimensional(theta):
-    box_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
-                           [np.sin(theta), np.cos(theta), 0], [0, 0, 0]])
+    box_matrix = np.array(
+        [
+            [np.cos(theta), -np.sin(theta), 0],
+            [np.sin(theta), np.cos(theta), 0],
+            [0, 0, 0],
+        ]
+    )
     box, rotation = Box.from_basis_vectors(box_matrix.T)
     rotated_matrix = box.to_matrix()
     rotated_points = rotation @ box_matrix
@@ -209,6 +230,7 @@ def test_rotation_matrix_from_basis_vectors_two_dimensional(theta):
 def test_invalid_from_basis_vectors_two_dimensional():
     box_matrix = np.array([[1, 0, 0], [0, 1, 1], [0, 0, 0]])
     import pytest
+
     with pytest.raises(ValueError):
         Box.from_basis_vectors(box_matrix)
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -10,8 +10,7 @@ from hoomd import Snapshot
 
 @pytest.fixture(scope="function")
 def make_filter_snapshot(device):
-
-    def filter_snapshot(n=10, particle_types=['A']):
+    def filter_snapshot(n=10, particle_types=["A"]):
         s = Snapshot(device.communicator)
         if s.communicator.rank == 0:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
@@ -30,10 +29,10 @@ def test_rigid_filter(make_filter_snapshot, simulation_factory):
     rigid.body["A"] = {
         "constituent_types": ["B", "B", "B", "B"],
         "positions": [
-            [1, 0, -1 / (2**(1. / 2.))],
-            [-1, 0, -1 / (2**(1. / 2.))],
-            [0, -1, 1 / (2**(1. / 2.))],
-            [0, 1, 1 / (2**(1. / 2.))],
+            [1, 0, -1 / (2 ** (1.0 / 2.0))],
+            [-1, 0, -1 / (2 ** (1.0 / 2.0))],
+            [0, -1, 1 / (2 ** (1.0 / 2.0))],
+            [0, 1, 1 / (2 ** (1.0 / 2.0))],
         ],
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
     }
@@ -58,23 +57,26 @@ def test_rigid_filter(make_filter_snapshot, simulation_factory):
     only_centers = Rigid()
     check_tags(only_centers, sim.state, np.arange(50))
 
-    only_free = Rigid(('free',))
+    only_free = Rigid(("free",))
     check_tags(only_free, sim.state, np.arange(50, 100))
 
-    only_constituent = Rigid(('constituent',))
+    only_constituent = Rigid(("constituent",))
     check_tags(only_constituent, sim.state, np.arange(100, 300))
 
-    free_and_centers = Rigid(('free', 'center'))
+    free_and_centers = Rigid(("free", "center"))
     check_tags(free_and_centers, sim.state, np.arange(0, 100))
 
-    constituent_and_centers = Rigid(('constituent', 'center'))
-    check_tags(constituent_and_centers, sim.state,
-               np.concatenate((np.arange(0, 50), np.arange(100, 300))))
+    constituent_and_centers = Rigid(("constituent", "center"))
+    check_tags(
+        constituent_and_centers,
+        sim.state,
+        np.concatenate((np.arange(0, 50), np.arange(100, 300))),
+    )
 
-    constituent_and_free = Rigid(('free', 'constituent'))
+    constituent_and_free = Rigid(("free", "constituent"))
     check_tags(constituent_and_free, sim.state, np.arange(50, 300))
 
-    all_ = Rigid(('free', 'constituent', 'center'))
+    all_ = Rigid(("free", "constituent", "center"))
     check_tags(all_, sim.state, np.arange(0, 300))
 
 
@@ -108,9 +110,9 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
         # depending on how many particles are local to the MPI ranks.
         local_Np = snap.particles.charge.shape[0]
         N_negative_charge = max(0, max(1, int(local_Np * 0.5)))
-        negative_charge_ind = np.random.choice(local_Np,
-                                               N_negative_charge,
-                                               replace=False)
+        negative_charge_ind = np.random.choice(
+            local_Np, N_negative_charge, replace=False
+        )
         # Get the expected tags returned by the custom filter and the positions
         # that should vary and remain static for testing after running.
         snap.particles.charge[negative_charge_ind] = -1.0
@@ -130,7 +132,9 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     sim.run(100)
     snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
-        assert not np.allclose(snap.particles.position[negative_charge_ind],
-                               original_positions)
-        assert np.allclose(snap.particles.position[positive_charge_tags],
-                           static_positions)
+        assert not np.allclose(
+            snap.particles.position[negative_charge_ind], original_positions
+        )
+        assert np.allclose(
+            snap.particles.position[positive_charge_tags], static_positions
+        )

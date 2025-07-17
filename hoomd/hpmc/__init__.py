@@ -1,12 +1,10 @@
-# Copyright (c) 2009-2024 The Regents of the University of Michigan.
+# Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Hard particle Monte Carlo.
-
-In hard particle Monte Carlo (HPMC) simulations, the particles in the system
+"""In hard particle Monte Carlo (HPMC) simulations, the particles in the system
 state have extended shapes. The potential energy of the system is infinite when
-any particle shapes overlap. Pair (:doc:`module-hpmc-pair`) and external
-(:doc:`module-hpmc-external`) potentials compute the potential energy when there
+any particle shapes overlap. Pair (`hoomd.hpmc.pair`) and external
+(`hoomd.hpmc.external`) potentials compute the potential energy when there
 are no shape overlaps. `hpmc` employs the Metropolis Monte Carlo algorithm to
 sample equilibrium configurations of the system.
 
@@ -33,3 +31,14 @@ from hoomd.hpmc import pair
 from hoomd.hpmc import external
 from hoomd.hpmc import nec
 from hoomd.hpmc import shape_move
+
+__all__ = [
+    "compute",
+    "external",
+    "integrate",
+    "nec",
+    "pair",
+    "shape_move",
+    "tune",
+    "update",
+]

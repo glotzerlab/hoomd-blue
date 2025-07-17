@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -44,7 +44,7 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     m_pdata->getBoxChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     // reset virial
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_virial.zeroFill();
 
     m_mesh_points = make_uint3(0, 0, 0);
     m_global_dim = make_uint3(0, 0, 0);
@@ -123,10 +123,10 @@ void PPPMForceCompute::setParams(unsigned int nx,
     m_ghost_offset = 0;
 #endif // ENABLE_MPI
 
-    GlobalArray<Scalar> n_gf_b(order, m_exec_conf);
+    GPUArray<Scalar> n_gf_b(order, m_exec_conf);
     m_gf_b.swap(n_gf_b);
 
-    GlobalArray<Scalar> n_rho_coeff(order * (2 * order + 1), m_exec_conf);
+    GPUArray<Scalar> n_rho_coeff(order * (2 * order + 1), m_exec_conf);
     m_rho_coeff.swap(n_rho_coeff);
 
     m_need_initialize = true;
@@ -400,13 +400,13 @@ void PPPMForceCompute::setupMesh()
     m_n_inner_cells = m_mesh_points.x * m_mesh_points.y * m_mesh_points.z;
 
     // allocate memory for influence function and k values
-    GlobalArray<Scalar> inf_f(m_n_inner_cells, m_exec_conf);
+    GPUArray<Scalar> inf_f(m_n_inner_cells, m_exec_conf);
     m_inf_f.swap(inf_f);
 
-    GlobalArray<Scalar3> k(m_n_inner_cells, m_exec_conf);
+    GPUArray<Scalar3> k(m_n_inner_cells, m_exec_conf);
     m_k.swap(k);
 
-    GlobalArray<Scalar> virial_mesh(6 * m_n_inner_cells, m_exec_conf);
+    GPUArray<Scalar> virial_mesh(6 * m_n_inner_cells, m_exec_conf);
     m_virial_mesh.swap(virial_mesh);
 
     initializeFFT();
@@ -550,30 +550,30 @@ void PPPMForceCompute::initializeFFT()
     // allocate mesh and transformed mesh
 
     // pad with offset
-    GlobalArray<kiss_fft_cpx> mesh(m_n_cells + m_ghost_offset, m_exec_conf);
+    GPUArray<kiss_fft_cpx> mesh(m_n_cells + m_ghost_offset, m_exec_conf);
     m_mesh.swap(mesh);
 
-    GlobalArray<kiss_fft_cpx> fourier_mesh(m_n_inner_cells, m_exec_conf);
+    GPUArray<kiss_fft_cpx> fourier_mesh(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh.swap(fourier_mesh);
 
-    GlobalArray<kiss_fft_cpx> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
+    GPUArray<kiss_fft_cpx> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_x.swap(fourier_mesh_G_x);
 
-    GlobalArray<kiss_fft_cpx> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
+    GPUArray<kiss_fft_cpx> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_y.swap(fourier_mesh_G_y);
 
-    GlobalArray<kiss_fft_cpx> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
+    GPUArray<kiss_fft_cpx> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
     // pad with offset
 
-    GlobalArray<kiss_fft_cpx> inv_fourier_mesh_x(m_n_cells + m_ghost_offset, m_exec_conf);
+    GPUArray<kiss_fft_cpx> inv_fourier_mesh_x(m_n_cells + m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GlobalArray<kiss_fft_cpx> inv_fourier_mesh_y(m_n_cells + m_ghost_offset, m_exec_conf);
+    GPUArray<kiss_fft_cpx> inv_fourier_mesh_y(m_n_cells + m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GlobalArray<kiss_fft_cpx> inv_fourier_mesh_z(m_n_cells + m_ghost_offset, m_exec_conf);
+    GPUArray<kiss_fft_cpx> inv_fourier_mesh_z(m_n_cells + m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
     }
 
@@ -605,8 +605,8 @@ void PPPMForceCompute::computeInfluenceFunction()
     ArrayHandle<Scalar3> h_k(m_k, access_location::host, access_mode::overwrite);
 
     // reset arrays
-    memset(h_inf_f.data, 0, sizeof(Scalar) * m_inf_f.getNumElements());
-    memset(h_k.data, 0, sizeof(Scalar3) * m_k.getNumElements());
+    m_inf_f.zeroFill();
+    m_k.zeroFill();
 
     const BoxDim& global_box = m_pdata->getGlobalBox();
 
@@ -786,7 +786,7 @@ void PPPMForceCompute::assignParticles()
     const BoxDim& box = m_pdata->getBox();
 
     // set mesh to zero
-    memset(h_mesh.data, 0, sizeof(kiss_fft_cpx) * m_mesh.getNumElements());
+    m_mesh.zeroFill();
 
     Scalar V_cell = box.getVolume() / (Scalar)(m_mesh_points.x * m_mesh_points.y * m_mesh_points.z);
 
@@ -1102,7 +1102,7 @@ void PPPMForceCompute::interpolateForces()
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
 
     // reset force for ALL particles
-    memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
+    m_force.zeroFill();
 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
 
@@ -1593,7 +1593,7 @@ void PPPMForceCompute::fixExclusions()
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
 
     // reset virial (but not forces, we reset them above)
-    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_virial.zeroFill();
 
     size_t virial_pitch = m_virial.getPitch();
 

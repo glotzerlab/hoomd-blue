@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceComputeGPU.cuh"
@@ -164,6 +164,7 @@ __global__ void gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum,
                 if (threadIdx.x < offs)
                     volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
                 offs >>= 1;
+                __syncthreads();
                 }
 
             // everybody sums up sum2K

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2024 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -35,7 +35,13 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     //! Destructor
     virtual ~SRDCollisionMethod();
 
-    void setCellList(std::shared_ptr<mpcd::CellList> cl);
+    //! Start autotuning kernel launch parameters
+    void startAutotuning() override;
+
+    //! Check if kernel autotuning is complete
+    bool isAutotuningComplete() override;
+
+    void setCellList(std::shared_ptr<mpcd::CellList> cl) override;
 
     //! Get the MPCD rotation angles
     Scalar getRotationAngle() const
@@ -95,7 +101,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     GPUVector<double> m_factors;  //!< Cell-level rescale factors
 
     //! Implementation of the collision rule
-    virtual void rule(uint64_t timestep);
+    void rule(uint64_t timestep) override;
 
     //! Randomly draw cell rotation vectors
     virtual void drawRotationVectors(uint64_t timestep);
