@@ -160,8 +160,6 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
         m_charge_j = qj;
         }
 
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj) { }
-
     DEVICE static bool needsShape()
         {
         return true;
@@ -174,12 +172,6 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
         }
 
     HOSTDEVICE static bool needsTags()
-        {
-        return false;
-        }
-
-    //! Whether the pair potential needs particle angular momentum
-    HOSTDEVICE static bool needsAngularMomentum()
         {
         return false;
         }
