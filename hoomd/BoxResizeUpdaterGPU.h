@@ -30,7 +30,8 @@ class PYBIND11_EXPORT BoxResizeUpdaterGPU : public BoxResizeUpdater
     BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<Trigger> trigger,
                         std::shared_ptr<VectorVariantBox> box,
-                        std::shared_ptr<ParticleGroup> m_group);
+                        std::shared_ptr<ParticleGroup> m_group,
+			bool with_scale);
 
     /// Destructor
     virtual ~BoxResizeUpdaterGPU();

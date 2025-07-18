@@ -116,6 +116,7 @@ class BoxResize(Updater):
         self,
         trigger,
         box,
+        with_scaling=True,
         filter=All(),
     ):
         params = ParameterDict(box=hoomd.variant.box.BoxVariant, filter=ParticleFilter)
@@ -123,16 +124,17 @@ class BoxResize(Updater):
         params.update({"box": box, "filter": filter})
         self._param_dict.update(params)
         super().__init__(trigger)
+        self.with_scaling = with_scaling
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _hoomd.BoxResizeUpdater(
-                self._simulation.state._cpp_sys_def, self.trigger, self.box, group
+                self._simulation.state._cpp_sys_def, self.trigger, self.box, group, self.with_scaling
             )
         else:
             self._cpp_obj = _hoomd.BoxResizeUpdaterGPU(
-                self._simulation.state._cpp_sys_def, self.trigger, self.box, group
+                self._simulation.state._cpp_sys_def, self.trigger, self.box, group, self.with_scaling
             )
 
     def get_box(self, timestep):
@@ -182,10 +184,10 @@ class BoxResize(Updater):
 
         if isinstance(state._simulation.device, hoomd.device.CPU):
             updater = _hoomd.BoxResizeUpdater(
-                state._cpp_sys_def, Periodic(1), box_variant, group
+                state._cpp_sys_def, Periodic(1), box_variant, group, self.with_scaling
             )
         else:
             updater = _hoomd.BoxResizeUpdaterGPU(
-                state._cpp_sys_def, Periodic(1), box_variant, group
+                state._cpp_sys_def, Periodic(1), box_variant, group, self.with_scaling
             )
         updater.update(state._simulation.timestep)

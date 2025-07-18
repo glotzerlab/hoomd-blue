@@ -13,8 +13,9 @@ namespace hoomd
 BoxResizeUpdaterGPU::BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
                                          std::shared_ptr<Trigger> trigger,
                                          std::shared_ptr<VectorVariantBox> box,
-                                         std::shared_ptr<ParticleGroup> group)
-    : BoxResizeUpdater(sysdef, trigger, box, group)
+                                         std::shared_ptr<ParticleGroup> group,
+					 bool with_scale)
+    : BoxResizeUpdater(sysdef, trigger, box, group, with_scale)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -46,18 +47,22 @@ void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const Box
                               access_location::device,
                               access_mode::readwrite);
 
-    unsigned int group_size = m_group->getNumMembers();
-    ArrayHandle<unsigned int> d_group_members(m_group->getIndexArray(),
-                                              access_location::device,
-                                              access_mode::read);
-    m_tuner_scale->begin();
-    kernel::gpu_box_resize_scale(d_pos.data,
-                                 cur_box,
-                                 new_box,
-                                 d_group_members.data,
-                                 group_size,
-                                 m_tuner_scale->getParam()[0]);
-    m_tuner_scale->end();
+    if(m_ws)
+    	{
+
+        unsigned int group_size = m_group->getNumMembers();
+        ArrayHandle<unsigned int> d_group_members(m_group->getIndexArray(),
+                                                  access_location::device,
+                                                  access_mode::read);
+        m_tuner_scale->begin();
+        kernel::gpu_box_resize_scale(d_pos.data,
+                                     cur_box,
+                                     new_box,
+                                     d_group_members.data,
+                                     group_size,
+                                     m_tuner_scale->getParam()[0]);
+        m_tuner_scale->end();
+	}
 
     m_tuner_wrap->begin();
     kernel::gpu_box_resize_wrap(m_pdata->getN(),
@@ -78,7 +83,8 @@ void export_BoxResizeUpdaterGPU(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Trigger>,
                             std::shared_ptr<VectorVariantBox>,
-                            std::shared_ptr<ParticleGroup>>());
+                            std::shared_ptr<ParticleGroup>,
+			    bool>());
     }
 
     } // end namespace detail

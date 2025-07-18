@@ -23,8 +23,9 @@ namespace hoomd
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<Trigger> trigger,
                                    std::shared_ptr<VectorVariantBox> box,
-                                   std::shared_ptr<ParticleGroup> group)
-    : Updater(sysdef, trigger), m_box(box), m_group(group)
+                                   std::shared_ptr<ParticleGroup> group,
+				   bool with_scale)
+    : Updater(sysdef, trigger), m_box(box), m_group(group), m_ws(with_scale)
     {
     assert(m_pdata);
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
@@ -77,22 +78,25 @@ void BoxResizeUpdater::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim
                                access_location::host,
                                access_mode::readwrite);
 
-    for (unsigned int group_idx = 0; group_idx < m_group->getNumMembers(); group_idx++)
-        {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        // obtain scaled coordinates in the old global box
-        Scalar3 fractional_pos
-            = cur_box.makeFraction(make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z));
+    if(m_ws)
+	{
+        for (unsigned int group_idx = 0; group_idx < m_group->getNumMembers(); group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            // obtain scaled coordinates in the old global box
+            Scalar3 fractional_pos
+                = cur_box.makeFraction(make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z));
 
-        // intentionally scale both rigid body and free particles, this
-        // may waste a few cycles but it enables the debug inBox checks
-        // to be left as is (otherwise, setRV cannot fixup rigid body
-        // positions without failing the check)
-        Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
-        h_pos.data[j].x = scaled_pos.x;
-        h_pos.data[j].y = scaled_pos.y;
-        h_pos.data[j].z = scaled_pos.z;
-        }
+            // intentionally scale both rigid body and free particles, this
+            // may waste a few cycles but it enables the debug inBox checks
+            // to be left as is (otherwise, setRV cannot fixup rigid body
+            // positions without failing the check)
+            Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
+            h_pos.data[j].x = scaled_pos.x;
+            h_pos.data[j].y = scaled_pos.y;
+            h_pos.data[j].z = scaled_pos.z;
+            }
+	}
 
     // ensure that the particles are still in their
     // local boxes by wrapping them if they are not
@@ -118,7 +122,8 @@ void export_BoxResizeUpdater(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Trigger>,
                             std::shared_ptr<VectorVariantBox>,
-                            std::shared_ptr<ParticleGroup>>())
+                            std::shared_ptr<ParticleGroup>,
+			    bool>())
         .def_property("box", &BoxResizeUpdater::getBox, &BoxResizeUpdater::setBox)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<BoxResizeUpdater> method)

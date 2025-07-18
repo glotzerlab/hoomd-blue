@@ -38,7 +38,8 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<Trigger> trigger,
                      std::shared_ptr<VectorVariantBox> box,
-                     std::shared_ptr<ParticleGroup> m_group);
+                     std::shared_ptr<ParticleGroup> m_group,
+		     bool with_scale);
 
     /// Destructor
     virtual ~BoxResizeUpdater();
@@ -76,6 +77,8 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
 
     /// Selected particles to scale when resizing the box.
     std::shared_ptr<ParticleGroup> m_group;
+
+    bool m_ws;
     };
 
 namespace detail
