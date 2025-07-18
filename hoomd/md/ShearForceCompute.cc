@@ -19,7 +19,7 @@ ShearForceCompute::ShearForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
 					   Scalar shear_force)
 
-    : ForceCompute(sysdef), m_group(group), m_shear_force(shear_force)
+    : ForceCompute(sysdef), m_group(group), m_shear_force(2/m_pdata->getBox().getL().y*shear_force)
     {
     }
 
@@ -35,14 +35,13 @@ void ShearForceCompute::setForces()
     //  array handles
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    const Scalar s_f = 2/m_pdata->getBox().getL().y*m_shear_force;
     m_force.zeroFill();
 
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
-        vec3<Scalar> fi(s_f*h_pos.data[idx].y, 0, 0);
+        vec3<Scalar> fi(m_shear_force*h_pos.data[idx].y, 0, 0);
         h_force.data[idx] = vec_to_scalar4(fi, 0);
         }
     }

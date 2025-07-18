@@ -53,7 +53,6 @@ void ShearForceComputeGPU::setForces()
     assert(d_index_array.data != NULL);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
-    const Scalar s_f = 2/m_pdata->getBox().getL().y*m_shear_force;
 
     m_force.zeroFill();
     // compute the forces on the GPU
@@ -63,7 +62,7 @@ void ShearForceComputeGPU::setForces()
                                                   d_index_array.data,
                                                   d_force.data,
                                                   d_pos.data,
-                                                  s_f,
+                                                  m_shear_force,
                                                   N,
                                                   m_tuner->getParam()[0]);
 

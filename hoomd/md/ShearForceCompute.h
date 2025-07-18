@@ -44,13 +44,13 @@ class PYBIND11_EXPORT ShearForceCompute : public ForceCompute
     */
     void setShearForce(Scalar shear_force)
 	{
-	m_shear_force = shear_force;
+	m_shear_force = 2/m_pdata->getBox().getL().y*shear_force;
 	};
 
     /// Gets constant force vector for a given particle type
     Scalar getShearForce()
    	{
-	return m_shear_force;
+	return m_pdata->getBox().getL().y*m_shear_force/2;
     	}
 
     std::shared_ptr<ParticleGroup>& getGroup()
