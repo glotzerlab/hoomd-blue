@@ -1359,6 +1359,71 @@ class TWF(GeodesicPair):
         )
         self._add_typeparam(params)
 
+class LJ(GeodesicPair):
+    r"""Lennard-Jones pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+        tail_correction (bool): Whether to apply the isotropic integrated long
+            range tail correction.
+
+    `LJ` computes the Lennard-Jones pair force on every particle in the
+    simulation state.
+
+    .. math::
+        U(r) = 4 \varepsilon \left[ \left(
+        \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r}
+        \right)^{6} \right]
+
+    Example::
+
+        nl = nlist.Cell()
+        lj = pair.LJ(nl, default_r_cut=3.0)
+        lj.params[("A", "A")] = {"sigma": 1.0, "epsilon": 1.0}
+        lj.r_cut[("A", "B")] = 3.0
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `LJ`:
+
+    .. py:attribute:: params
+
+        The LJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: tail_correction
+
+        Whether to apply the isotropic integrated long range tail correction.
+
+        Type: `bool`
+    """
+
+    _cpp_class_name = "GeodesicPotentialPairLJ"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(GeodesicPair._doc_inherited)
+    )
+
+    def __init__(self, nlist, R, default_r_cut=None, mode="none"):
+        super().__init__(nlist, R, default_r_cut, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2),
+        )
+        self._add_typeparam(params)
+
 
 class LJGauss(GeodesicPair):
     r"""Lennard-Jones-Gauss pair potential.
