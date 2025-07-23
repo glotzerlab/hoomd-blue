@@ -428,8 +428,9 @@ struct
 
         if (m_periodic.x)
             {
-            r.x -= L.x * slow::rint(r.x * m_Linv.x);
-            v.x -= m_L_rate.x * slow::rint(r.x * m_Linv.x);
+            Scalar img = slow::rint(r.x * m_Linv.x);
+            r.x -= L.x * img;
+            v.x -= m_L_rate.x * img;
             }
 #else
         // on the cpu, branches are faster than calling rint
@@ -771,24 +772,16 @@ struct
         }
 
     //! Shift a particle by a multiple of the lattice vectors
-    /*! \param r The position vector to shift (and the new shifted position)
-        \param v The velocity vector to shift (and the new shifted velocity)
-        \param shift The displacement in lattice coordinates
+    /*! \param pos The position vector to shift (and the new shifted position)
+        \param vel The velocity vector to shift (and the new shifted velocity)
+        \param _shift The displacement in lattice coordinates
      */
-    HOSTDEVICE void shift(Scalar3& r, Scalar3& v, const int3& shift) const
+    HOSTDEVICE void shift(Scalar3& pos, Scalar3& vel, const int3& _shift) const
         {
-        Scalar3 pos = r;
-        Scalar3 vel = v;
-        
-        pos += Scalar(shift.x) * make_scalar3(m_L.x, 0.0, 0.0);
-        pos += Scalar(shift.y) * make_scalar3(m_L.y * m_xy, m_L.y, 0.0);
-        pos += Scalar(shift.z) * make_scalar3(m_L.z * m_xz, m_L.z * m_yz, m_L.z);
-        vel += Scalar(shift.x) * make_scalar3(m_L_rate.x, 0.0, 0.0);
-        vel += Scalar(shift.y) * make_scalar3(m_L.y * m_xy_rate, m_L_rate.y, 0.0);
-        vel += Scalar(shift.z) * make_scalar3(m_L.z * m_xz_rate, m_L.z * m_yz_rate, m_L_rate.z);
-    
-        r = pos;
-        v = vel;
+        shift(pos, _shift);        
+        vel += Scalar(_shift.x) * make_scalar3(m_L_rate.x, 0.0, 0.0);
+        vel += Scalar(_shift.y) * make_scalar3(m_L.y * m_xy_rate, m_L_rate.y, 0.0);
+        vel += Scalar(_shift.z) * make_scalar3(m_L.z * m_xz_rate, m_L.z * m_yz_rate, m_L_rate.z);
         }
 
     //! Shift a vec3
