@@ -6,6 +6,7 @@
 from abc import abstractmethod
 import functools
 import itertools
+import inspect
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
@@ -41,7 +42,9 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     **Members defined in** `CustomOperation`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", TriggeredOperation._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(TriggeredOperation._doc_inherited)
+    )
 
     _doc_inherited = (
         TriggeredOperation._doc_inherited
@@ -73,7 +76,7 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     def __init__(self, trigger, action):
         if not isinstance(action, Action):
             raise ValueError(
-                "action must be a subclass of " "hoomd.custom_action.custom.Action."
+                "action must be a subclass of hoomd.custom_action.custom.Action."
             )
         self._action = action
         self._export_dict = action._export_dict

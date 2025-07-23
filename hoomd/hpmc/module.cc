@@ -54,6 +54,8 @@ void exportPairPotentialLJGauss(pybind11::module& m);
 
 void exportPairPotentialOPP(pybind11::module& m);
 
+void exportPairPotentialZetterling(pybind11::module& m);
+
 void exportPairPotentialAngularStep(pybind11::module& m);
 
 void exportPairPotentialStep(pybind11::module& m);
@@ -160,6 +162,7 @@ PYBIND11_MODULE(_hpmc, m)
     exportPairPotentialExpandedGaussian(m);
     exportPairPotentialLJGauss(m);
     exportPairPotentialOPP(m);
+    exportPairPotentialZetterling(m);
     exportPairPotentialAngularStep(m);
     exportPairPotentialStep(m);
     exportPairPotentialUnion(m);

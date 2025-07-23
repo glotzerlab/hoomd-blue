@@ -4,6 +4,88 @@ Change Log
 5.x
 ---
 
+5.3.1 (2025-07-18)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Ensure that GPU devices have concurrent unified memory capabilities
+  (`#2099 <https://github.com/glotzerlab/hoomd-blue/pull/2099>`__).
+* Fix segfault when attaching nlists with meshes
+  (`#2089 <https://github.com/glotzerlab/hoomd-blue/pull/2089>`__).
+* Install cuh headers
+  (`#2091 <https://github.com/glotzerlab/hoomd-blue/pull/2091>`__).
+* Reduce the time needed to generate mesh bonds
+  (`#2097 <https://github.com/glotzerlab/hoomd-blue/pull/2097>`__).
+* Equations displayed in ``hoomd.hpmc.compute.SDF`` documentation
+  (`#2096 <https://github.com/glotzerlab/hoomd-blue/discussions/2096>`__).
+* Support CUDA 12.9
+  (`#2102 <https://github.com/glotzerlab/hoomd-blue/discussions/2102>`__).
+
+5.3.0 (2025-06-26)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The Zetterling pair potential: ``hoomd.hpmc.pair.Zetterling``
+  (`#2057 <https://github.com/glotzerlab/hoomd-blue/pull/2057>`__).
+* ``hoomd.write.GSD`` now automatically flushes on frame writes 10 seconds
+  or longer since the previous flush. Configure this time with
+  ``auto_flush_period``. The flush does not occur on a timer -- it is only
+  called after a normally scheduled frame write
+  (`#2085 <https://github.com/glotzerlab/hoomd-blue/pull/2085>`__).
+
+*Changed*
+
+* The ``GSD`` write buffer size now defaults to 1 MiB. Files will thus
+  grow in size more continuiously (the previous default was 64 MiB).
+  File size changes are subject to additional buffering by the OS
+  and may or may not be predictable.
+  At the same time, new frames will no longer be available for reading
+  until after the file is flushed (which occurs on write after 10 seconds
+  by default) or closed
+  (`#2085 <https://github.com/glotzerlab/hoomd-blue/pull/2085>`__).
+
+*Fixed*
+
+* The formulas in the docs for ``variant.box.Interpolate`` are now consistent
+  (`#2060 <https://github.com/glotzerlab/hoomd-blue/pull/2060>`__).
+* Do not increment z image in 2D simulation boxes
+  (`#2071 <https://github.com/glotzerlab/hoomd-blue/pull/2071>`__).
+* Code block example in ``hoomd.md.pair.DPDConservative``
+  (`#2084 <https://github.com/glotzerlab/hoomd-blue/pull/2084>`__).
+* Equations displayed in ``hoomd.md.methods.thermostats.Bussi`` documentation
+  (`#2081 <https://github.com/glotzerlab/hoomd-blue/pull/2081>`__).
+* Do not issue "Cannot acquire access to array in use" error when using FIRE on the GPU with
+  ``integrate_rotational_dof=True``
+  (`#2082 <https://github.com/glotzerlab/hoomd-blue/pull/2082>`__).
+
+5.2.0 (2025-05-06)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Set constituent particle velocities for rigid bodies
+  (`#2024 <https://github.com/glotzerlab/hoomd-blue/pull/2024>`__).
+* Mesh tutorial
+  (`hoomd-examples#160 <https://github.com/glotzerlab/hoomd-examples/pull/160>`__).
+
+*Changed*
+
+* Use KaTeX to render math equations in the documentation
+  (`#2053 <https://github.com/glotzerlab/hoomd-blue/pull/2053>`__).
+* The "Organizing and Executing Simulations" tutorial now demonstrates the use of **row**
+  (`hoomd-examples#155 <https://github.com/glotzerlab/hoomd-examples/pull/155>`__).
+
+*Fixed*
+
+* The documentation builds without warnings in Python 3.13 environments
+  (`#2049 <https://github.com/glotzerlab/hoomd-blue/pull/2049>`__).
+* Remove the error message that NEC prints when one particle simultaneously collides with two
+  others (`#2029 <https://github.com/glotzerlab/hoomd-blue/pull/2029>`__).
+* Compile without errors with recent versions of clang
+  (`#2042 <https://github.com/glotzerlab/hoomd-blue/pull/2042>`__).
+
 5.1.1 (2025-03-19)
 ^^^^^^^^^^^^^^^^^^
 
@@ -13,7 +95,7 @@ Change Log
   (`#2015 <https://github.com/glotzerlab/hoomd-blue/pull/2015>`__).
 * Compile without errors or warnings with CUDA 12.8
   (`#2019 <https://github.com/glotzerlab/hoomd-blue/pull/2019>`__).
-* `force.Active` applies torques correctly when the filter is not `All`
+* ``force.Active`` applies torques correctly when the filter is not ``All``
   (`#2020 <https://github.com/glotzerlab/hoomd-blue/pull/2020>`__).
 * MD integrators no longer integrate the z degree of freedom in 2D simulation boxes
   (`#2021 <https://github.com/glotzerlab/hoomd-blue/pull/2021>`__).

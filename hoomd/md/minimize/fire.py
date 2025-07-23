@@ -97,10 +97,14 @@ class FIRE(_DynamicIntegrator):
 
     .. math::
 
-        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < \\mathrm{\\text{force_tol}}
-        \\;\\;, \\;\\ \\Delta \\frac{\\sum|E|}{N} <
-        \\mathrm{\\text{energy_tol}} \\;\\;, and \\;\\ \\frac{\\sum|L|}{N} <
-        \\mathrm{\\text{angmom_tol}}
+        \\frac{\\sum |F|}{N\\sqrt{N_{dof}}} \\le \\mathrm{force\\_tol}
+
+    .. math::
+
+        \\Delta \\frac{\\sum|E|}{N} \\le \\mathrm{energy\\_tol}
+
+    .. math::
+        \\frac{\\sum|L|}{N} \\le \\mathrm{angmom\\_tol}
 
     where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the
     minimization is acting over. Any of the criterion can be effectively

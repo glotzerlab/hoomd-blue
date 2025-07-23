@@ -128,6 +128,7 @@ interactions between pairs of particles in multiple box images:
 
 .. math::
 
+    \begin{split}
     U_{\mathrm{pair}} = &
             \sum_{i=0}^{N_\mathrm{particles}-1}
             \sum_{j=i+1}^{N_\mathrm{particles}-1}
@@ -140,6 +141,7 @@ interactions between pairs of particles in multiple box images:
             U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
                                  \mathbf{q}_i,
                                  \mathbf{q}_j)
+    \end{split}
 
 where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
 translates by periodic box images and the set of box images includes all image
@@ -217,6 +219,7 @@ The complete hard shape interaction energy for a given configuration is:
 
 .. math::
 
+    \begin{split}
     U_\mathrm{shape} = \quad & \infty
             \cdot
             \sum_{i=0}^{N_\mathrm{particles}-1}
@@ -237,6 +240,7 @@ The complete hard shape interaction energy for a given configuration is:
             S_j(\mathbf{q}_j, \vec{r}_j - (\vec{r}_i + \vec{A}))
             \right) \ne \emptyset
             \right]
+    \end{split}
 
 where the square brackets denote the Iverson bracket.
 
@@ -265,6 +269,7 @@ from hoomd.operation import Integrator
 from hoomd.logging import log
 import hoomd
 import json
+import inspect
 
 
 class HPMCIntegrator(Integrator):
@@ -338,7 +343,9 @@ class HPMCIntegrator(Integrator):
     _remove_for_pickling = (*Integrator._remove_for_pickling, "_cpp_cell")
     _skip_for_equality = Integrator._skip_for_equality | {"_cpp_cell"}
     _cpp_cls = None
-    __doc__ = __doc__.replace("{inherited}", Integrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Integrator._doc_inherited)
+    )
     _doc_inherited = (
         Integrator._doc_inherited
         + """
@@ -724,7 +731,9 @@ class Sphere(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoSphere"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -841,7 +850,9 @@ class ConvexPolygon(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoConvexPolygon"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -972,7 +983,9 @@ class ConvexSpheropolygon(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoSpheropolygon"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1090,7 +1103,9 @@ class SimplePolygon(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoSimplePolygon"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1246,7 +1261,9 @@ class Polyhedron(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoPolyhedron"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1366,7 +1383,9 @@ class ConvexPolyhedron(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoConvexPolyhedron"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1523,7 +1542,9 @@ class FacetedEllipsoid(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoFacetedEllipsoid"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1621,7 +1642,9 @@ class Sphinx(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoSphinx"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1723,7 +1746,9 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoSpheropolyhedron"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1828,7 +1853,9 @@ class Ellipsoid(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoEllipsoid"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -1949,7 +1976,9 @@ class SphereUnion(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoSphereUnion"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -2097,7 +2126,9 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoConvexPolyhedronUnion"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -2258,7 +2289,9 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
     """
 
     _cpp_cls = "IntegratorHPMCMonoFacetedEllipsoidUnion"
-    __doc__ = __doc__.replace("{inherited}", HPMCIntegrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(HPMCIntegrator._doc_inherited)
+    )
 
     def __init__(
         self,

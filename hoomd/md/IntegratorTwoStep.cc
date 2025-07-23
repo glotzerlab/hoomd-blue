@@ -112,14 +112,18 @@ void IntegratorTwoStep::update(uint64_t timestep)
         method->includeRATTLEForce(timestep + 1);
         }
 
-    /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
-       in the second step.
-
-       Otherwise we would have to update ghost positions for central particles
-       here in order to update the constituent particles.
-
-       TODO: check this assumptions holds for all integrators
-     */
+    // update rigid body constituent particles at end of step
+    if (m_rigid_bodies)
+        {
+#ifdef ENABLE_MPI
+        if (m_sysdef->isDomainDecomposed())
+            {
+            m_comm->beginUpdateGhosts(timestep + 1);
+            m_comm->finishUpdateGhosts(timestep + 1);
+            }
+#endif
+        updateRigidBodies(timestep + 1);
+        }
     }
 
 /*! \param deltaT new deltaT to set

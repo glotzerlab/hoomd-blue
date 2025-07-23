@@ -21,6 +21,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes, variant_preprocessing
 from hoomd.mpcd import _mpcd
 from hoomd.operation import Compute, Operation
+import inspect
 
 
 class CellList(Compute):
@@ -66,7 +67,9 @@ class CellList(Compute):
 
     """
 
-    __doc__ = __doc__.replace("{inherited}", Operation._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Operation._doc_inherited)
+    )
 
     def __init__(self, shift=True):
         super().__init__()
@@ -139,7 +142,9 @@ class CollisionMethod(Operation):
 
     """
 
-    __doc__ = __doc__.replace("{inherited}", Operation._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Operation._doc_inherited)
+    )
     _doc_inherited = (
         Operation._doc_inherited
         + """
@@ -243,7 +248,9 @@ class AndersenThermostat(CollisionMethod):
 
     """
 
-    __doc__ = __doc__.replace("{inherited}", CollisionMethod._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(CollisionMethod._doc_inherited)
+    )
 
     def __init__(self, period, kT, embedded_particles=None):
         super().__init__(period, embedded_particles)
@@ -368,7 +375,9 @@ class StochasticRotationDynamics(CollisionMethod):
 
     """
 
-    __doc__ = __doc__.replace("{inherited}", CollisionMethod._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(CollisionMethod._doc_inherited)
+    )
 
     def __init__(self, period, angle, kT=None, embedded_particles=None):
         super().__init__(period, embedded_particles)

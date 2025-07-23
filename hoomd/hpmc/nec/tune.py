@@ -11,6 +11,7 @@ from hoomd.tune.attr_tuner import _TuneDefinition
 from hoomd.tune import RootSolver, ScaleSolver, SecantSolver
 from hoomd.hpmc.nec.integrate import HPMCNECIntegrator
 from hoomd.operation import Tuner
+import inspect
 
 
 class _ChainTimeTuneDefinition(_TuneDefinition):
@@ -211,7 +212,9 @@ class ChainTime(_InternalCustomTuner):
     """
 
     _internal_class = _InternalChainTime
-    __doc__ = __doc__.replace("{inherited}", Tuner._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     @classmethod
     def scale_solver(

@@ -121,8 +121,7 @@ class Operations(Collection):
                 container = self._get_proper_container(operation)
             except TypeError:
                 raise TypeError(
-                    f"Type {type(operation)} is not a valid "
-                    f"type to add to Operations."
+                    f"Type {type(operation)} is not a valid type to add to Operations."
                 )
             container.append(operation)
 
@@ -394,9 +393,7 @@ class Operations(Collection):
             simulation.operations.tune_kernel_parameters()
         """
         if not self._scheduled:
-            raise RuntimeError(
-                "Call Simulation.run() before " "tune_kernel_parameters."
-            )
+            raise RuntimeError("Call Simulation.run() before tune_kernel_parameters.")
 
         for op in self:
             op.tune_kernel_parameters()

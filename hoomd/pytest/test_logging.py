@@ -48,7 +48,7 @@ class TestLoggerQuantity:
             else:
                 break
         user_defined_namespace = next(quantity.yield_names("USER"))
-        assert user_defined_namespace == dummy_namespace[:-1] + ("USER", name)
+        assert user_defined_namespace == (*dummy_namespace[:-1], "USER", name)
 
     def test_generate_namespace(self):
         assert _LoggerQuantity._generate_namespace(TestLoggerQuantity) == (
@@ -324,7 +324,8 @@ class TestLogger:
         assert log_value.attr == log_quantity.name
         assert log_value.category == log_quantity.category
         blank_logger._add_single_quantity([], log_quantity, None)
-        namespace = log_quantity.namespace[:-1] + (
+        namespace = (
+            *log_quantity.namespace[:-1],
             log_quantity.namespace[-1] + "_1",
             log_quantity.name,
         )
@@ -403,8 +404,8 @@ class TestLogger:
         # Test adding a user specified identifier into the namespace
         user_name = "UserName"
         logger.add(logged_obj, user_name=user_name)
-        assert base_namespace[:-1] + (user_name, "prop") in logger
-        assert base_namespace[:-1] + (user_name, "proplist") in logger
+        assert (*base_namespace[:-1], user_name, "prop") in logger
+        assert (*base_namespace[:-1], user_name, "proplist") in logger
 
     def test_remove(self, logged_obj, base_namespace):
         # Test removing all properties
@@ -451,17 +452,18 @@ class TestLogger:
         assert prop_namespace in log
         assert list_namespace in log
         assert (
-            prop_namespace[:-2] + (prop_namespace[-2] + "_1", prop_namespace[-1])
-            not in log
-        )
+            *prop_namespace[:-2],
+            prop_namespace[-2] + "_1",
+            prop_namespace[-1],
+        ) not in log
 
     def test_remove_with_user_name(self, logged_obj, base_namespace):
         # Test remove using a user specified namespace identifier
         logger = Logger()
         user_name = "UserName"
         logger.add(logged_obj, user_name=user_name)
-        assert base_namespace[:-1] + (user_name, "prop") in logger
-        assert base_namespace[:-1] + (user_name, "proplist") in logger
+        assert (*base_namespace[:-1], user_name, "prop") in logger
+        assert (*base_namespace[:-1], user_name, "proplist") in logger
 
     def test_iadd(self, blank_logger, logged_obj):
         blank_logger.add(logged_obj)

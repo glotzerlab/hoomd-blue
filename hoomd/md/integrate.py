@@ -12,6 +12,7 @@ from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
+import inspect
 
 
 def _set_synced_list(old_list, new_list):
@@ -171,20 +172,24 @@ class Integrator(_DynamicIntegrator):
 
     .. math::
 
+        \begin{split}
         \vec{F}_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
         \vec{\tau}_{\mathrm{net},i} &=
         \sum_{f \in \mathrm{forces}} \vec{\tau}_i^f \\
         U_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} U_i^f \\
         W_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} W_i^f \\
+        \end{split}
 
     `Integrator` also computes the net additional energy and virial
 
     .. math::
 
+        \begin{split}
         U_{\mathrm{net},\mathrm{additional}} &= \sum_{f \in \mathrm{forces}}
         U_\mathrm{additional}^f \\
         W_{\mathrm{net},\mathrm{additional}} &= \sum_{f \in \mathrm{forces}}
         W_\mathrm{additional}^f \\
+        \end{split}
 
     See `md.force.Force` for definitions of these terms. Constraints are a
     special type of force used to enforce specific constraints on the system
@@ -272,7 +277,9 @@ class Integrator(_DynamicIntegrator):
             simulation associated with the integrator.
     """
 
-    __doc__ = __doc__.replace("{inherited}", hoomd.operation.Integrator._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(hoomd.operation.Integrator._doc_inherited)
+    )
     _doc_inherited = (
         hoomd.operation.Integrator._doc_inherited
         + """

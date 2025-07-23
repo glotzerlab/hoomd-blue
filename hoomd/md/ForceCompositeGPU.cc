@@ -267,9 +267,18 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::readwrite);
+    ArrayHandle<Scalar4> d_velocity(m_pdata->getVelocities(),
+                                    access_location::device,
+                                    access_mode::readwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                        access_location::device,
                                        access_mode::readwrite);
+    ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::device,
+                                  access_mode::read);
+    ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::device,
+                                   access_mode::read);
     ArrayHandle<int3> d_image(m_pdata->getImages(),
                               access_location::device,
                               access_mode::readwrite);
@@ -300,7 +309,10 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         kernel::gpu_update_composite(m_pdata->getN(),
                                      m_pdata->getNGhosts(),
                                      d_postype.data,
+                                     d_velocity.data,
                                      d_orientation.data,
+                                     d_angmom.data,
+                                     d_inertia.data,
                                      m_body_idx,
                                      d_lookup_center.data,
                                      d_body_pos.data,

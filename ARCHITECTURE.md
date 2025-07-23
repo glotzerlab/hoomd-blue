@@ -498,7 +498,8 @@ Sybil parses only docstrings, so there can be no Sybil codeblock examples in
 `_doc_inherited`. At the same time, Sphinx always adds autodoc members **after** the
 docstring contents. To work around this and provide documentation in a consistent and
 meaningful order: class docstrints should include the text `{inherited}` and update the
-docstring with `__doc__ = __doc__.replace("{inherited}", Parent._doc_inherited)`.
+docstring with
+`__doc__ = inspect.cleandoc(__doc__).replace("{inherited}", inspect.cleandoc(Parent._doc_inherited))`.
 
 After `{inherited}`, the docstring should include the lines
 ```

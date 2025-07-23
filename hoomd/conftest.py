@@ -454,9 +454,7 @@ def _check_obj_attr_compatibility(a, b):
     if compatible:
         return True
 
-    logger.debug(
-        f"In equality check, incompatible attrs found " f"{filtered_differences}."
-    )
+    logger.debug(f"In equality check, incompatible attrs found {filtered_differences}.")
     return False
 
 

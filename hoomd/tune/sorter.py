@@ -9,6 +9,7 @@ from hoomd.operation import Tuner
 from hoomd import _hoomd
 import hoomd
 from math import log2, ceil
+import inspect
 
 
 class ParticleSorter(Tuner):
@@ -45,7 +46,9 @@ class ParticleSorter(Tuner):
             of the system).
     """
 
-    __doc__ = __doc__.replace("{inherited}", Tuner._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     def __init__(self, trigger=200, grid=None):
         super().__init__(trigger)

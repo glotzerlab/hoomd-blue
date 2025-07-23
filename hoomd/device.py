@@ -36,6 +36,7 @@ See Also:
 """
 
 import contextlib
+import inspect
 import hoomd
 from hoomd import _hoomd
 
@@ -338,7 +339,9 @@ class GPU(Device):
     **Members defined in** `GPU`:
     """
 
-    __doc__ = __doc__.replace("{inherited}", Device._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Device._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -470,7 +473,9 @@ class CPU(Device):
         cpu = hoomd.device.CPU()
     """
 
-    __doc__ += Device._doc_inherited
+    __doc__ = (
+        inspect.cleandoc(__doc__) + "\n\n" + inspect.cleandoc(Device._doc_inherited)
+    )
 
     def __init__(
         self,

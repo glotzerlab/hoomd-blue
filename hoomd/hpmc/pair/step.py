@@ -12,6 +12,7 @@
 """
 
 import hoomd
+import inspect
 
 from .pair import Pair
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
@@ -41,7 +42,7 @@ class Step(Pair):
 
     .. code-block:: python
 
-        step =  hoomd.hpmc.pair.Step()
+        step = hoomd.hpmc.pair.Step()
         step.params[('A', 'A')] = dict(epsilon=[1, -1], r=[0.5, 1.5])
         simulation.operations.integrator.pair_potentials = [step]
 
@@ -66,7 +67,9 @@ class Step(Pair):
     """
 
     _cpp_class_name = "PairPotentialStep"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self):
         params = hoomd.data.typeparam.TypeParameter(

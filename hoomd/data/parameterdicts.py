@@ -223,7 +223,7 @@ class _ValidatedDefaultDict(MutableMapping):
 
         if len(kwargs) == 0 and len(args) == 0:
             raise ValueError(
-                "Either a positional or keyword " "argument must be specified."
+                "Either a positional or keyword argument must be specified."
             )
         if len(args) > 1:
             raise ValueError("Only one positional argument allowed.")
@@ -342,8 +342,9 @@ class _ValidatedDefaultDict(MutableMapping):
             bad_keys = set(validated_value.keys()) - expected_keys
             if len(bad_keys) != 0:
                 raise KeyError(
-                    "Keys must be a subset of available keys. "
-                    "Bad keys are {}".format(bad_keys)
+                    "Keys must be a subset of available keys. Bad keys are {}".format(
+                        bad_keys
+                    )
                 )
         # update validated_value with the default (specifically to add dict keys
         # that have defaults and were not manually specified).

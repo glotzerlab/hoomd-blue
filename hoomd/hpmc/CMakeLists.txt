@@ -43,6 +43,7 @@ set(_hpmc_sources   module.cc
                     PairPotentialExpandedGaussian.cc
                     PairPotentialLJGauss.cc
                     PairPotentialOPP.cc
+                    PairPotentialZetterling.cc
                     PairPotentialStep.cc
                     PairPotentialUnion.cc
                     PairPotentialAngularStep.cc
@@ -83,6 +84,7 @@ set(_hpmc_headers
     PairPotentialExpandedGaussian.h
     PairPotentialLJGauss.h
     PairPotentialOPP.h
+    PairPotentialZetterling.h
     PairPotentialStep.h
     PairPotentialUnion.h
     PairPotentialAngularStep.h

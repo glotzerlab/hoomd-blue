@@ -20,6 +20,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.mpcd import _mpcd
 from hoomd.mpcd.geometry import Geometry, ParallelPlates
 from hoomd.operation import Operation
+import inspect
 
 
 class VirtualParticleFiller(Operation):
@@ -83,7 +84,9 @@ class VirtualParticleFiller(Operation):
 
     """
 
-    __doc__ = __doc__.replace("{inherited}", Operation._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Operation._doc_inherited)
+    )
     _doc_inherited = (
         Operation._doc_inherited
         + """
@@ -164,7 +167,9 @@ class GeometryFiller(VirtualParticleFiller):
             (*read only*).
     """
 
-    __doc__ = __doc__.replace("{inherited}", VirtualParticleFiller._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(VirtualParticleFiller._doc_inherited)
+    )
     _cpp_class_map = {}
 
     def __init__(self, type, density, kT, geometry):
@@ -192,7 +197,7 @@ class GeometryFiller(VirtualParticleFiller):
         if isinstance(sim.device, hoomd.device.GPU):
             class_info[1] += "GPU"
         class_ = getattr(*class_info, None)
-        assert class_ is not None, "Virtual particle filler for geometry " "not found"
+        assert class_ is not None, "Virtual particle filler for geometry not found"
 
         self._cpp_obj = class_(
             sim.state._cpp_sys_def,

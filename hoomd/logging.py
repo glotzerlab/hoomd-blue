@@ -265,10 +265,10 @@ class _LoggerQuantity:
         if user_name is None:
             namespace = self.namespace
         else:
-            namespace = self.namespace[:-1] + (user_name,)
+            namespace = (*self.namespace[:-1], user_name)
         yield (*namespace, self.name)
         for i in count(start=1, step=1):
-            yield namespace[:-1] + (namespace[-1] + "_" + str(i), self.name)
+            yield (*namespace[:-1], namespace[-1] + "_" + str(i), self.name)
 
     def update_cls(self, cls):
         """Allow updating the class/namespace of the object.
@@ -542,7 +542,7 @@ class _LoggerEntry:
             category = LoggerCategories[category]
         elif not isinstance(category, LoggerCategories):
             raise ValueError(
-                "category must be a string or hoomd.logging.LoggerCategories " "object."
+                "category must be a string or hoomd.logging.LoggerCategories object."
             )
         return cls(entry[0], method, category)
 

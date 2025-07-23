@@ -34,6 +34,7 @@ from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
+import inspect
 
 
 class AnisotropicPair(Pair):
@@ -46,7 +47,7 @@ class AnisotropicPair(Pair):
         for `isinstance` or `issubclass` checks.
     """
 
-    __doc__ += Pair._doc_inherited
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Pair._doc_inherited)
     _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, default_r_cut=None, mode="none"):
@@ -70,21 +71,20 @@ class Dipole(AnisotropicPair):
 
     .. math::
 
-        U &= U_{dd} + U_{de} + U_{ee}
-
+        \begin{split}
+        U &= U_{dd} + U_{de} + U_{ee} \\
         U_{dd} &= A e^{-\kappa r}
             \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3}
                   - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})
                            (\vec{\mu_j}\cdot \vec{r_{ji}})}
                           {r^5}
-            \right)
-
+            \right) \\
         U_{de} &= A e^{-\kappa r}
             \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3}
                 - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}
-            \right)
-
+            \right) \\
         U_{ee} &= A e^{-\kappa r} \frac{q_i q_j}{r}
+        \end{split} \\
 
     Note:
        All units are documented electronic dipole moments. However, `Dipole`
@@ -129,7 +129,9 @@ class Dipole(AnisotropicPair):
     """
 
     _cpp_class_name = "AnisoPotentialPairDipole"
-    __doc__ = __doc__.replace("{inherited}", AnisotropicPair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut, "none")
@@ -172,15 +174,15 @@ class GayBerne(AnisotropicPair):
 
     .. math::
 
+        \begin{split}
         \zeta &= \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}
-                           {\sigma_{\mathrm{min}}}\right),
-
+                           {\sigma_{\mathrm{min}}}\right), \\
         \sigma^{-2} &= \frac{1}{2} \hat{\vec{r}}
-            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}},
-
+            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}}, \\
         \vec{H} &= 2 \ell_\perp^2 \vec{1}
             + (\ell_\parallel^2 - \ell_\perp^2)
               (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j}),
+        \end{split}
 
     and :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
     The parallel direction is aligned with *z* axis in the particle's
@@ -225,7 +227,9 @@ class GayBerne(AnisotropicPair):
     """
 
     _cpp_class_name = "AnisoPotentialPairGB"
-    __doc__ = __doc__.replace("{inherited}", AnisotropicPair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, mode="none"):
         super().__init__(nlist, default_r_cut, mode)
@@ -275,12 +279,13 @@ class ALJ(AnisotropicPair):
 
     .. math::
 
-        &U_0(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-        \left( \frac{\sigma}{r} \right)^{6} \right]
-
-        &U_c(r_c) = 4 \varepsilon_c(\varepsilon) \left[ \left(
+        \begin{split}
+        U_0(r) &= 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+        \left( \frac{\sigma}{r} \right)^{6} \right] \\
+        U_c(r_c) &= 4 \varepsilon_c(\varepsilon) \left[ \left(
         \frac{\sigma_c}{r_c} \right)^{12} - \left( \frac{\sigma_c}{r_c}
         \right)^{6} \right]
+        \end{split}
 
     where :math:`\varepsilon` (`epsilon <params>`) affects strength of both the
     central and contact interactions, :math:`\varepsilon_c` is an energy
@@ -293,11 +298,11 @@ class ALJ(AnisotropicPair):
 
     .. math::
 
-        \sigma_c &= \frac{1}{2} \left[\sigma_{ci} + \sigma_{cj} \right]
-
-        \sigma_{ci} &= \beta_i \cdot \sigma_i
-
+        \begin{split}
+        \sigma_c &= \frac{1}{2} \left[\sigma_{ci} + \sigma_{cj} \right] \\
+        \sigma_{ci} &= \beta_i \cdot \sigma_i \\
         \sigma_{cj} &= \beta_j \cdot \sigma_j
+        \end{split}
 
     The total potential energy is therefore the sum of two interactions, a
     central Lennard-Jones potential and a radially-shifted Lennard-Jones
@@ -366,43 +371,51 @@ class ALJ(AnisotropicPair):
 
       .. math::
 
+        \begin{split}
         r_{\mathrm{cut},ij} = \max \bigg( & \frac{\lambda_{min}}{2}
         (\sigma_i + \sigma_j), \\
         & R_i + R_j + R_{\mathrm{rounding},i} +
         R_{\mathrm{rounding},j} + \frac{\lambda_{min}}{2}
         (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+        \end{split}
 
     * For alpha=1:
 
       .. math::
 
+            \begin{split}
             r_{\mathrm{cut},ij} =
             \max \bigg( & \frac{\lambda_{cut}^{attractive}}{2}
             (\sigma_i + \sigma_j),  \\
             & R_i + R_j  + R_{\mathrm{rounding},i} +
             R_{\mathrm{rounding},j}+ \frac{\lambda_{min}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+            \end{split}
 
     * For alpha=2:
 
       .. math::
 
+            \begin{split}
             r_{\mathrm{cut},ij} = \max \bigg( & \frac{\lambda_{min}}{2}
             (\sigma_i + \sigma_j)),  \\
             & R_i + R_j + R_{\mathrm{rounding},i} +
             R_{\mathrm{rounding},j} + \frac{\lambda_{cut}^{attractive}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+            \end{split}
 
     * For alpha=3:
 
       .. math::
 
+            \begin{split}
             r_{\mathrm{cut},ij} =
             \max \bigg( & \frac{\lambda_{cut}^{attractive}}{2}
             (\sigma_i + \sigma_j),  \\
             & R_i + R_j + R_{\mathrm{rounding},i} +
             R_{\mathrm{rounding},j} + \frac{\lambda_{cut}^{attractive}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+            \end{split}
 
     Warning:
         Changing dimension in a simulation will invalidate this force and will
@@ -533,7 +546,9 @@ class ALJ(AnisotropicPair):
         Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", AnisotropicPair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
 
     # We don't define a _cpp_class_name since the dimension is a template
     # parameter in C++, so use an instance level attribute instead that is
@@ -633,12 +648,12 @@ class Patchy(AnisotropicPair):
     :math:`\alpha` and patch steepness :math:`\omega`:
 
     .. math::
-        \begin{align}
+        \begin{split}
         f(\theta, \alpha, \omega) &= \frac{\big(1+e^{-\omega (\cos{\theta} -
         \cos{\alpha}) }\big)^{-1} - f_{min}}{f_{max} - f_{min}}\\
         f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
         f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
-        \end{align}
+        \end{split}
 
     .. image:: /patchy-pair.svg
          :align: center
@@ -746,7 +761,9 @@ class Patchy(AnisotropicPair):
 
     """
 
-    __doc__ = __doc__.replace("{inherited}", AnisotropicPair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
     _doc_inherited = (
         AnisotropicPair._doc_inherited
         + r"""
@@ -845,7 +862,9 @@ class PatchyLJ(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyLJ"
     _pair_params = {"epsilon": float, "sigma": float}
 
@@ -907,7 +926,9 @@ class PatchyExpandedGaussian(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
@@ -966,7 +987,9 @@ class PatchyExpandedLJ(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedLJ"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
@@ -1029,7 +1052,9 @@ class PatchyExpandedMie(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyExpandedMie"
     _pair_params = {
         "epsilon": float,
@@ -1098,7 +1123,9 @@ class PatchyGaussian(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyGauss"
     _pair_params = {"epsilon": float, "sigma": float}
 
@@ -1158,7 +1185,9 @@ class PatchyMie(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
 
@@ -1214,7 +1243,9 @@ class PatchyYukawa(Patchy):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Patchy._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Patchy._doc_inherited)
+    )
     _cpp_class_name = "AnisoPotentialPairPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
 

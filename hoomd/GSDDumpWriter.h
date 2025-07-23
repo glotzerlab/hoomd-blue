@@ -5,7 +5,6 @@
 
 #include "Analyzer.h"
 #include "ParticleGroup.h"
-#include "SharedSignal.h"
 
 #include "hoomd/extern/gsd.h"
 #include <memory>
@@ -127,6 +126,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     /// Get the maximum write buffer size (in bytes)
     uint64_t getMaximumWriteBufferSize();
+
+    /// Set the automatic flush period (in seconds)
+    void setAutoFlushPeriod(double period);
+
+    /// Get the automatic flush period (in seconds)
+    double getAutoFlushPeriod();
 
     protected:
     gsd_handle m_handle; //!< Handle to the file
@@ -253,6 +258,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     /// Working array to sort local particles by tag
     std::vector<unsigned int> m_index;
+
+    /// Time of last flush.
+    double m_last_flush_time = 0.0;
+
+    /// Time (in seconds) between automatic calls to flush.
+    double m_auto_flush_period = 10;
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);

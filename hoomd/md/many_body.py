@@ -44,6 +44,7 @@ from hoomd.data.typeconverter import positive_real
 from hoomd.data.typeparam import TypeParameter
 from hoomd.md import _md
 from hoomd.md.force import Force
+import inspect
 
 
 class Triplet(Force):
@@ -82,7 +83,9 @@ class Triplet(Force):
         Type: `hoomd.md.nlist.NeighborList`
     """
 
-    __doc__ = __doc__.replace("{inherited}", Force._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
     _doc_inherited = (
         Force._doc_inherited
         + """
@@ -264,7 +267,9 @@ class Tersoff(Triplet):
     """
 
     _cpp_class_name = "PotentialTersoff"
-    __doc__ = __doc__.replace("{inherited}", Triplet._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Triplet._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut)
@@ -407,7 +412,9 @@ class RevCross(Triplet):
     """
 
     _cpp_class_name = "PotentialRevCross"
-    __doc__ = __doc__.replace("{inherited}", Triplet._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Triplet._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut)
@@ -493,7 +500,9 @@ class SquareDensity(Triplet):
     """
 
     _cpp_class_name = "PotentialSquareDensity"
-    __doc__ = __doc__.replace("{inherited}", Triplet._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Triplet._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None):
         super().__init__(nlist, default_r_cut)

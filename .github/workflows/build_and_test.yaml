@@ -126,7 +126,7 @@ jobs:
         submodules: true
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@0dea6379afdaffa5d528b3d1dabc45da37f443fc # v2.0.4
+      uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
       with:
         micromamba-version: '2.0.2-2'
         environment-name: test
@@ -188,13 +188,13 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
 
     - name: 'Upload build'
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
         path: install.tar
@@ -223,7 +223,7 @@ jobs:
         path: code
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@0dea6379afdaffa5d528b3d1dabc45da37f443fc # v2.0.4
+      uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
       with:
         micromamba-version: '2.0.2-2'
         environment-name: test
@@ -239,7 +239,7 @@ jobs:
         echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
 
     - name: Download install
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
     - name: Untar install
@@ -257,6 +257,11 @@ jobs:
     - name: Run nvidia-smi
       if: ${{ contains(inputs.config, 'cuda') }}
       run: nvidia-smi
+
+    - name: Check for devices
+      if: ${{ contains(inputs.config, 'cuda') }}
+      run: >
+        python3 -c "import hoomd; print('available:', hoomd.device.GPU.get_available_devices()); print('unavailable:', hoomd.device.GPU.get_unavailable_device_reasons());"
 
     ### Python unit tests
     - name: Run pytest (serial)
@@ -316,7 +321,7 @@ jobs:
         echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
     - name: Download build
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
     - name: Untar build

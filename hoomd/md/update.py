@@ -10,6 +10,7 @@ from hoomd.operation import Updater
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.logging import log
+import inspect
 
 
 class ZeroMomentum(Updater):
@@ -46,7 +47,9 @@ class ZeroMomentum(Updater):
         )
     """
 
-    __doc__ += Updater._doc_inherited
+    __doc__ = (
+        inspect.cleandoc(__doc__) + "\n\n" + inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(self, trigger):
         # initialize base class
@@ -154,7 +157,9 @@ class ReversePerturbationFlow(Updater):
             searched for.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(
         self,
@@ -304,7 +309,9 @@ class ActiveRotationalDiffusion(Updater):
             as a function of time.
     """
 
-    __doc__ = __doc__.replace("{inherited}", Updater._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
     def __init__(self, trigger, active_force, rotational_diffusion):
         super().__init__(trigger)

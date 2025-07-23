@@ -6,6 +6,7 @@
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, OnlyIf, to_type_converter
+import inspect
 
 from hoomd.tune.custom_tuner import _InternalCustomTuner
 from hoomd.tune import ScaleSolver, SecantSolver
@@ -259,7 +260,9 @@ class BoxMCMoveSize(_InternalCustomTuner):
 
     _internal_class = _InternalBoxMCMoveSize
     _wrap_methods = ("tuned",)
-    __doc__ = __doc__.replace("{inherited}", Tuner._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     @classmethod
     def scale_solver(

@@ -27,6 +27,7 @@
 import copy
 import functools
 from pathlib import PurePath
+import inspect
 
 import numpy as np
 
@@ -184,7 +185,7 @@ class _HDF5LogInternal(_InternalAction):
             shape,
             dtype=dtype,
             chunks=chunk_size,
-            maxshape=(None,) + shape[1:],
+            maxshape=(None, *shape[1:]),
         )
 
     @_skip_fh
@@ -217,7 +218,8 @@ class _HDF5LogInternal(_InternalAction):
                 dtype = value.dtype
                 chunk_size = (
                     max(self._MULTIFRAME_ARRAY_CHUNK_MAXIMUM // value.nbytes, 1),
-                ) + data_shape[1:]
+                    *data_shape[1:],
+                )
             self._create_dataset(
                 "/".join(("hoomd-data", *key)), data_shape, dtype, chunk_size
             )
@@ -335,7 +337,9 @@ class HDF5Log(_InternalCustomWriter):
 
     _internal_class = _HDF5LogInternal
     _wrap_methods = ("flush",)
-    __doc__ = __doc__.replace("{inherited}", Writer._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
 
 __all__ = ["HDF5Log"]

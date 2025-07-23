@@ -453,3 +453,170 @@ def test_rigid_dof(
         thermo_central_free.translational_degrees_of_freedom == (n_bodies + n_free) * 3
     )
     assert thermo_constituent.translational_degrees_of_freedom == 0
+
+
+@pytest.mark.parametrize(
+    "com_velocity",
+    [(0, 0, 0), (1, 2, 3)],
+)
+def test_velocity_constituents_constant_torque(
+    com_velocity,
+    simulation_factory,
+    one_particle_snapshot_factory,
+    valid_body_definition,
+):
+    """Test velocity of constituents updates correctly with constant torque."""
+    initial_snapshot = one_particle_snapshot_factory(particle_types=["A", "B"])
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.moment_inertia[:] = [(1, 1, 1)]
+        initial_snapshot.particles.velocity[:] = [com_velocity]
+
+    sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
+
+    rigid = md.constrain.Rigid()
+    rigid.body["A"] = valid_body_definition
+    rigid.create_bodies(sim.state)
+
+    constvol = md.methods.ConstantVolume(filter=hoomd.filter.Rigid())
+    integrator = md.Integrator(
+        dt=0.005,
+        methods=[constvol],
+        integrate_rotational_dof=True,
+    )
+    integrator.rigid = rigid
+    sim.operations += integrator
+    sim.run(1)
+
+    new_snapshot = sim.state.get_snapshot()
+    if new_snapshot.communicator.rank == 0:
+        expected_velocity = [com_velocity] * 5
+        assert np.allclose(expected_velocity, new_snapshot.particles.velocity)
+
+    constant_torque = hoomd.md.force.Constant(filter=hoomd.filter.All())
+    constant_torque.constant_torque["A"] = (0, 0, 1)
+    integrator.forces.append(constant_torque)
+
+    sim.run(1)
+    # Tangential velocities of rigid body described by valid_body_defintion
+    # experiencing constant torque in the z direction after 1 time step was
+    # calculated in independent code.
+    # Expected velocity is tangential velocity plus center of mass velocity.
+    expected_tangential_velocity = [
+        [0, 0, 0],
+        [-6.25e-08, 5.00e-03, 0.00e00],
+        [6.25e-08, -5.00e-03, 0.00e00],
+        [5.00e-03, 6.25e-08, 0.00e00],
+        [-5.00e-03, -6.25e-08, 0.00e00],
+    ]
+    expected_velocity = np.add(expected_tangential_velocity, com_velocity)
+    new_snapshot = sim.state.get_snapshot()
+    if new_snapshot.communicator.rank == 0:
+        assert np.allclose(expected_velocity, new_snapshot.particles.velocity)
+
+
+@pytest.mark.parametrize(
+    "com_velocity",
+    [(0, 0, 0), (1, 2, 3)],
+)
+@pytest.mark.parametrize(
+    "omega",
+    [
+        [10, 0, 0],
+        [0, 10, 0],
+        [0, 0, 10],
+        [3, 4, 10],
+    ],
+)
+@pytest.mark.parametrize(
+    "body_definition,moment_of_inertia,mass",
+    [
+        (
+            {
+                "constituent_types": ["B", "B", "B", "B"],
+                "positions": [
+                    [1, 0, -1 / (2 ** (1.0 / 2.0))],
+                    [-1, 0, -1 / (2 ** (1.0 / 2.0))],
+                    [0, -1, 1 / (2 ** (1.0 / 2.0))],
+                    [0, 1, 1 / (2 ** (1.0 / 2.0))],
+                ],
+                "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
+            },
+            [1, 1, 1],
+            np.array([1, 1 / 16, 1 / 8, 1 / 4, 9 / 16]),
+        ),
+        (
+            {
+                "constituent_types": ["B", "B"],
+                "positions": [[-1.2, 0, 0], [1.2, 0, 0]],
+                "orientations": [[1, 0, 0, 0], [1, 0, 0, 0]],
+            },
+            [0.0, 2.88, 2.88],
+            np.array([2, 1 / 2, 1.5]),
+        ),
+    ],
+    ids=["simple-inertia-body", "dimer-body"],
+)
+def test_velocity_constituents_constant_angmom(
+    com_velocity,
+    omega,
+    body_definition,
+    moment_of_inertia,
+    mass,
+    simulation_factory,
+    one_particle_snapshot_factory,
+):
+    """Test velocity of constituents updates correctly with 0 timestep."""
+    initial_snapshot = one_particle_snapshot_factory(particle_types=["A", "B"])
+    # steps to calculate angular momentum quaternion from desired angular
+    # velocity are typically the following:
+    # 1. Rotate space-frame angular velocity to body frame
+    # 2. Multiply by moment of inertia tensor in body frame
+    # 3. Promote to a quaternion with 0 real part and multiply by orientation
+    # 4. Multiply by 2
+    angmom = np.zeros(4)
+    angmom[1:] = 2 * np.multiply(omega, moment_of_inertia)
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.moment_inertia[:] = [moment_of_inertia]
+        initial_snapshot.particles.angmom[:] = [angmom]
+        initial_snapshot.particles.mass[:] = [mass[0]]
+        initial_snapshot.particles.velocity[:] = [com_velocity]
+
+    sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
+
+    rigid = md.constrain.Rigid()
+    rigid.body["A"] = body_definition
+    rigid.create_bodies(sim.state)
+
+    intermed_snapshot = sim.state.get_snapshot()
+    if intermed_snapshot.communicator.rank == 0:
+        flags = (
+            intermed_snapshot.particles.typeid
+            == intermed_snapshot.particles.types.index("B")
+        )
+        intermed_snapshot.particles.mass[flags] = mass[flags]
+    sim.state.set_snapshot(intermed_snapshot)
+
+    constvol = md.methods.ConstantVolume(filter=hoomd.filter.Rigid())
+    integrator = md.Integrator(
+        dt=0.005, methods=[constvol], integrate_rotational_dof=True
+    )
+    integrator.rigid = rigid
+    sim.operations += integrator
+    sim.run(0)
+
+    # check velocity from snapshot
+    # The tangential velocity is calculated from the angular velocity
+    # cross displacement from the center of mass.
+    # Expected velocity is tangential velocity plus center of mass velocity.
+    new_snapshot = sim.state.get_snapshot()
+    if new_snapshot.communicator.rank == 0:
+        assert np.array_equal(mass, new_snapshot.particles.mass)
+        central_pos = new_snapshot.particles.position[0]
+        for i in range(1, new_snapshot.particles.N):
+            tangential_vel = new_snapshot.particles.velocity[i]
+            displacement = new_snapshot.particles.position[i] - central_pos
+            expected_tangential_velocity = np.cross(omega, displacement)
+            expected_velocity = np.add(expected_tangential_velocity, com_velocity)
+            assert np.allclose(tangential_vel, expected_velocity)

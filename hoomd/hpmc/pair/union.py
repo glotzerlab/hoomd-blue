@@ -21,6 +21,7 @@ import hoomd
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, OnlyTypes, to_type_converter
+import inspect
 
 from .pair import Pair
 
@@ -138,7 +139,9 @@ class Union(Pair):
     """
 
     _cpp_class_name = "PairPotentialUnion"
-    __doc__ = __doc__.replace("{inherited}", Pair._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self, constituent_potential, leaf_capacity=0):
         body = TypeParameter(

@@ -70,7 +70,9 @@ struct comm_flag
         net_force,         //! Communicate net force
         reverse_net_force, //! Communicate net force on ghost particles. Added by Vyas
         net_torque,        //! Communicate net torque
-        net_virial         //! Communicate net virial
+        net_virial,        //! Communicate net virial
+        angmom,            //! Bit id in CommFlags for particle angular momentum
+        inertia            //! Bit id in CommFlags for particle moment of inertia
         };
     };
 
@@ -494,12 +496,14 @@ class PYBIND11_EXPORT Communicator
     GPUVector<int3> m_image_copybuf;          //!< Buffer for particle body ids to be copied
     GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
     GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
-    GPUVector<unsigned int> m_plan_copybuf;   //!< Buffer for particle plans
-    GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
-    GPUVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
-    GPUVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
-    GPUVector<Scalar> m_netvirial_copybuf;    //!< Buffer for net virial
-    GPUVector<Scalar> m_netvirial_recvbuf;    //!< Buffer for net virial (receive)
+    GPUVector<Scalar4> m_angmom_copybuf;      //!< Buffer for particle angular momenta to be copied
+    GPUVector<Scalar3> m_inertia_copybuf;   //!< Buffer for particle moment of inertias to be copied
+    GPUVector<unsigned int> m_plan_copybuf; //!< Buffer for particle plans
+    GPUVector<unsigned int> m_tag_copybuf;  //!< Buffer for particle tags
+    GPUVector<Scalar4> m_netforce_copybuf;  //!< Buffer for net force
+    GPUVector<Scalar4> m_nettorque_copybuf; //!< Buffer for net torque
+    GPUVector<Scalar> m_netvirial_copybuf;  //!< Buffer for net virial
+    GPUVector<Scalar> m_netvirial_recvbuf;  //!< Buffer for net virial (receive)
 
     GPUVector<unsigned int>
         m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts

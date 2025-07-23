@@ -381,9 +381,9 @@ def check_shape(data, prop_dict, tags):
         if len(tags) == 0:
             assert data.shape == (0,)
         else:
-            assert data.shape == (len(tags),) + prop_dict["shape"][1:]
+            assert data.shape == (len(tags), *prop_dict["shape"][1:])
     else:
-        assert data.shape == (len(tags),) + prop_dict["shape"][1:]
+        assert data.shape == (len(tags), *prop_dict["shape"][1:])
 
 
 def check_getting(data, prop_dict, tags):

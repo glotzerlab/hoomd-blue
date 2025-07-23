@@ -382,7 +382,7 @@ angular_step_test_parameters_two_types = [
 
 
 @pytest.mark.parametrize(
-    "params_0, params_1, theta_0, theta_1, d," "expected_energy",
+    "params_0, params_1, theta_0, theta_1, d,expected_energy",
     angular_step_test_parameters_two_types,
 )
 @pytest.mark.cpu

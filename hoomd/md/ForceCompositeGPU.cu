@@ -639,7 +639,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
                                             unsigned int n_ghost,
                                             const unsigned int* d_lookup_center,
                                             Scalar4* d_postype,
+                                            Scalar4* d_velocity,
                                             Scalar4* d_orientation,
+                                            const Scalar4* d_angmom,
+                                            const Scalar3* d_inertia,
                                             Index2D body_indexer,
                                             const Scalar3* d_body_pos,
                                             const Scalar4* d_body_orientation,
@@ -713,6 +716,48 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     quat<Scalar> local_orientation(d_body_orientation[body_indexer(body_type, idx_in_body)]);
     quat<Scalar> updated_orientation = orientation * local_orientation;
 
+    /* Update velocity of constituents
+     *
+     * Calculate the angular momentum in the body frame as a vector,
+     * then divide by the moment of inertia to get the angular velocity.
+     * The tangential velocity in the body frame is the angular velocity
+     * cross the position relative to the center of mass, which is then
+     * rotated into the space frame and added to the velocity of the center
+     * of mass.
+     */
+    const quat<Scalar> angmom(d_angmom[central_idx]);
+    const vec3<Scalar> inertia(d_inertia[central_idx]);
+    const quat<Scalar> angvel_body_quat = Scalar(0.5) * conj(orientation) * angmom;
+    vec3<Scalar> angvel_body = angvel_body_quat.v;
+    if (inertia.x != Scalar(0))
+        {
+        angvel_body.x /= inertia.x;
+        }
+    else
+        {
+        angvel_body.x = Scalar(0);
+        }
+
+    if (inertia.y != Scalar(0))
+        {
+        angvel_body.y /= inertia.y;
+        }
+    else
+        {
+        angvel_body.y = Scalar(0);
+        }
+
+    if (inertia.z != Scalar(0))
+        {
+        angvel_body.z /= inertia.z;
+        }
+    else
+        {
+        angvel_body.z = Scalar(0);
+        }
+
+    const vec3<Scalar> updated_vel = vec3<Scalar>(d_velocity[central_idx])
+                                     + rotate(orientation, cross(angvel_body, local_pos));
     // this runs before the ForceComputes,
     // wrap into box, allowing rigid bodies to span multiple images
     int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
@@ -720,12 +765,14 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     updated_pos = global_box.shift(updated_pos, negimgi);
 
     unsigned int type = __scalar_as_int(d_postype[idx].w);
+    const Scalar mass = d_velocity[idx].w;
 
     d_postype[idx]
         = make_scalar4(updated_pos.x,
                        updated_pos.y,
                        updated_pos.z,
                        __int_as_scalar(d_body_types[body_indexer(body_type, idx_in_body)]));
+    d_velocity[idx] = make_scalar4(updated_vel.x, updated_vel.y, updated_vel.z, mass);
     d_orientation[idx] = quat_to_scalar4(updated_orientation);
     d_image[idx] = img + imgi;
     }
@@ -733,7 +780,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 void gpu_update_composite(unsigned int N,
                           unsigned int n_ghost,
                           Scalar4* d_postype,
+                          Scalar4* d_velocity,
                           Scalar4* d_orientation,
+                          const Scalar4* d_angmom,
+                          const Scalar3* d_inertia,
                           Index2D body_indexer,
                           const unsigned int* d_lookup_center,
                           const Scalar3* d_body_pos,
@@ -774,7 +824,10 @@ void gpu_update_composite(unsigned int N,
                        n_ghost,
                        d_lookup_center,
                        d_postype,
+                       d_velocity,
                        d_orientation,
+                       d_angmom,
+                       d_inertia,
                        body_indexer,
                        d_body_pos,
                        d_body_orientation,

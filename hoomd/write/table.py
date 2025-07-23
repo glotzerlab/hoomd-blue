@@ -13,6 +13,7 @@ import copy
 from numbers import Integral
 from math import log10
 from sys import stdout
+import inspect
 
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.custom.custom_action import _InternalAction
@@ -503,7 +504,9 @@ class Table(_InternalCustomWriter):
     """
 
     _internal_class = _TableInternal
-    __doc__ = __doc__.replace("{inherited}", Writer._doc_inherited)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
 
     def write(self):
         """Write out data to ``self.output``.

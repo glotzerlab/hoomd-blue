@@ -63,6 +63,7 @@ def test_common_params(nlist_params):
         "exclusions": ("bond",),
         "rebuild_check_delay": 1,
         "check_dist": True,
+        "mesh": None,
     }
     _assert_nlist_params(nlist, default_params_dict)
     new_params_dict = {
@@ -83,6 +84,7 @@ def test_common_params(nlist_params):
         ),
         "rebuild_check_delay": np.random.randint(8),
         "check_dist": False,
+        "mesh": hoomd.mesh.Mesh(),
     }
     for param in new_params_dict.keys():
         setattr(nlist, param, new_params_dict[param])
@@ -125,6 +127,28 @@ def test_simple_simulation(nlist_params, simulation_factory, lattice_snapshot_fa
     nlist.check_dist = False
     nlist.rebuild_check_delay = 1
     autotuned_kernel_parameter_check(instance=nlist, activate=lambda: sim.run(1))
+
+
+def test_mesh_simulation(nlist_params, simulation_factory, lattice_snapshot_factory):
+    nlist_cls, required_args = nlist_params
+    mesh = hoomd.mesh.Mesh()
+    nlist = nlist_cls(**required_args, buffer=0.4, mesh=mesh)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[("A", "A")] = dict(epsilon=1, sigma=1)
+    lj.params[("A", "B")] = dict(epsilon=1, sigma=1)
+    lj.params[("B", "B")] = dict(epsilon=1, sigma=1)
+    integrator = hoomd.md.Integrator(0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+
+    sim = simulation_factory(lattice_snapshot_factory(n=10))
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    mesh1 = hoomd.mesh.Mesh()
+    with pytest.raises(hoomd.error.MutabilityError):
+        nlist.mesh = mesh1
+    assert nlist.mesh == mesh
 
 
 def test_auto_detach_simulation(simulation_factory, two_particle_snapshot_factory):

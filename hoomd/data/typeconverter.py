@@ -200,8 +200,7 @@ class Either(_HelpValidate):
             except Exception:
                 continue
         raise ValueError(
-            f"value {value} not converible using "
-            f"{[str(spec) for spec in self.specs]}"
+            f"value {value} not converible using {[str(spec) for spec in self.specs]}"
         )
 
     def __str__(self):
@@ -272,8 +271,7 @@ class OnlyTypes(_HelpValidate):
                 except Exception:
                     pass
             raise ValueError(
-                f"Value {value} is not convertable into any of these types "
-                f"{self.types}"
+                f"Value {value} is not convertable into any of these types {self.types}"
             )
 
     def __str__(self):
