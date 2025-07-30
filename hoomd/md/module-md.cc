@@ -23,6 +23,7 @@ void export_ComputeThermo(pybind11::module& m);
 void export_ComputeThermoHMA(pybind11::module& m);
 void export_ConstantForceCompute(pybind11::module& m);
 void export_ShearForceCompute(pybind11::module& m);
+void export_WallCouplingForceCompute(pybind11::module& m);
 void export_HarmonicAngleForceCompute(pybind11::module& m);
 void export_CosineSqAngleForceCompute(pybind11::module& m);
 void export_TableAngleForceCompute(pybind11::module& m);
@@ -342,6 +343,7 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermoHMA(m);
     export_ConstantForceCompute(m);
     export_ShearForceCompute(m);
+    export_WallCouplingForceCompute(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);

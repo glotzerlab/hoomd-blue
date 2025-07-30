@@ -48,6 +48,7 @@ set(_md_sources module-md.cc
                    PPPMForceCompute.cc
                    PeriodicImproperForceCompute.cc
 		   ShearForceCompute.cc
+		   WallCouplingForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TriangleAreaConservationMeshForceCompute.cc
@@ -201,6 +202,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PPPMForceCompute.h
 		ShearForceComputeGPU.h
                 ShearForceCompute.h
+                WallCouplingForceCompute.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h

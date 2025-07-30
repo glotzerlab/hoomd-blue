@@ -786,6 +786,70 @@ class Shear(Force):
             self.m_s_f
         )
 
+class WallCoupling(Force):
+    r"""WallCoupling force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `WallCoupling` applies a y-position dependent constant force on all
+    particles selected by the filter. `WallCoupling` sets the force
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        shear = hoomd.md.force.WallCoupling(filter=hoomd.filter.All(),max_shear_force=10)
+
+    Note:
+        The energy and virial associated with the shear force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `WallCoupling`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply shear forces.
+        max_shear_force (`float`): maximal shear force magnitude at box
+            borders
+
+        WallCoupling force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter, radial_factor, tangential_factor, R):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+        self.r_f = radial_factor
+        self.t_f = tangential_factor
+        self.R = R
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.WallCouplingForceCompute
+        else:
+            my_class = _md.WallCouplingForceComputeGPU
+
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+            self.r_f, self.t_f, self.R
+        )
+
 __all__ = [
     "Active",
     "ActiveOnManifold",
@@ -793,4 +857,5 @@ __all__ = [
     "Custom",
     "Force",
     "Shear",
+    "WallCoupling",
 ]
