@@ -151,10 +151,10 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
     const Scalar currentTemp = m_T->operator()(timestep);
 
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                access_location::host,
                                access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);

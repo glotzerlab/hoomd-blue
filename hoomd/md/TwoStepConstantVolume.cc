@@ -262,7 +262,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
         h_vel.data[j].z = v.z;
 
         // store acceleration
-        h_accel.data[j] = accel;   
+        h_accel.data[j] = accel;
         }
 
     if (m_aniso)

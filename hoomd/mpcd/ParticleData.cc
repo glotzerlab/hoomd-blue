@@ -525,20 +525,18 @@ void mpcd::ParticleData::takeSnapshot(mpcd::ParticleDataSnapshot& snapshot,
                 {
                 const auto particle = particles[idx];
 
-                // wrapped position
+                // wrapped position and velocity
                 const Scalar4 postype = particle.pos;
                 Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+                const Scalar4 velcell = particle.vel;
+                Scalar3 vel = make_scalar3(velcell.x, velcell.y, velcell.z);
                 int3 img = make_int3(0, 0, 0);
-                global_box->wrap(pos, img);
+                global_box->wrap(pos, vel, img);
                 snapshot.position[idx] = vec3<Scalar>(pos);
+                snapshot.velocity[idx] = vec3<Scalar>(vel);
 
                 // typeid
                 snapshot.type[idx] = __scalar_as_int(postype.w);
-
-                // velocity
-                const Scalar4 velcell = particle.vel;
-                const Scalar3 vel = make_scalar3(velcell.x, velcell.y, velcell.z);
-                snapshot.velocity[idx] = vec3<Scalar>(vel);
                 }
             }
         }
@@ -563,20 +561,18 @@ void mpcd::ParticleData::takeSnapshot(mpcd::ParticleDataSnapshot& snapshot,
             {
             const unsigned int pidx = tag_index[idx].second;
 
-            // wrapped position
+            // wrapped position and velocity
             const Scalar4 postype = h_pos.data[pidx];
             Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+            const Scalar4 velcell = h_vel.data[pidx];
+            Scalar3 vel = make_scalar3(velcell.x, velcell.y, velcell.z);
             int3 img = make_int3(0, 0, 0);
-            global_box->wrap(pos, img);
+            global_box->wrap(pos, vel, img);
             snapshot.position[idx] = vec3<Scalar>(pos);
+            snapshot.velocity[idx] = vec3<Scalar>(vel);
 
             // typeid
             snapshot.type[idx] = __scalar_as_int(postype.w);
-
-            // velocity
-            const Scalar4 velcell = h_vel.data[pidx];
-            const Scalar3 vel = make_scalar3(velcell.x, velcell.y, velcell.z);
-            snapshot.velocity[idx] = vec3<Scalar>(vel);
             }
         }
 

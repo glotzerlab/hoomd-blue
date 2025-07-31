@@ -101,8 +101,8 @@ class UpdaterRemoveDrift : public Updater
                                            access_location::host,
                                            access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel(this->m_pdata->getVelocities(),
-                                           access_location::host,
-                                           access_mode::readwrite);
+                                       access_location::host,
+                                       access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
                                             access_location::host,
                                             access_mode::read);

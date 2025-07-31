@@ -80,6 +80,8 @@ struct
         m_lo = m_hi = m_Linv = m_L = make_scalar3(0, 0, 0);
         m_xz = m_xy = m_yz = Scalar(0.0);
         m_periodic = make_uchar3(1, 1, 1);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     //! Constructs a box from -Len/2 to Len/2
@@ -92,6 +94,8 @@ struct
         setL(make_scalar3(Len, Len, Len));
         m_periodic = make_uchar3(1, 1, 1);
         m_xz = m_xy = m_yz = Scalar(0.0);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     //! Constructs a box from -Len_x/2 to Len_x/2 for each dimension
@@ -105,6 +109,8 @@ struct
         setL(make_scalar3(Len_x, Len_y, Len_z));
         m_periodic = make_uchar3(1, 1, 1);
         m_xz = m_xy = m_yz = Scalar(0.0);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     //! Constructs a box from -L/2 to L/2 for each dimension
@@ -116,6 +122,8 @@ struct
         setL(L);
         m_periodic = make_uchar3(1, 1, 1);
         m_xz = m_xy = m_yz = Scalar(0.0);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     //! Constructs a tilted box with edges of length len for each dimension
@@ -129,6 +137,8 @@ struct
         setL(make_scalar3(Len, Len, Len));
         setTiltFactors(xy, xz, yz);
         m_periodic = make_uchar3(1, 1, 1);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     //! Construct a box from specific lo and hi values
@@ -141,6 +151,8 @@ struct
         setLoHi(lo, hi);
         m_periodic = periodic;
         m_xz = m_xy = m_yz = Scalar(0.0);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     /// Constructs a box from a std::array<Scalar, 6>
@@ -151,6 +163,8 @@ struct
         setL(make_scalar3(array[0], array[1], array[2]));
         setTiltFactors(array[3], array[4], array[5]);
         m_periodic = make_uchar3(1, 1, 1);
+        m_L_rate = make_scalar3(0, 0, 0);
+        m_xz_rate = m_xy_rate = m_yz_rate = 0;
         }
 
     //! Get the periodic flags
@@ -260,6 +274,51 @@ struct
     HOSTDEVICE Scalar getTiltFactorYZ() const
         {
         return m_yz;
+        }
+
+    //! Update the box deformation in each dimension
+    /*! \param L_rate box deformation rate in each dimension
+     */
+    HOSTDEVICE void setLDeformationRate(const Scalar3& L_rate)
+        {
+        m_L_rate = L_rate;
+        }
+
+    //! Return the deformation rates of the box lengths in each dimension
+    HOSTDEVICE Scalar3 getLDeformationRate() const
+        {
+        return m_L_rate;
+        }
+
+    //! Update the deformation rates in box tilts
+    /*! \param xy_rate Deformation rate in xy
+        \param xz_rate Deformation rate in xz
+        \param yz_rate Deformation rate in yz
+     */
+    HOSTDEVICE void
+    setTiltDeformationRates(const Scalar xy_rate, const Scalar xz_rate, const Scalar yz_rate)
+        {
+        m_xy_rate = xy_rate;
+        m_xz_rate = xz_rate;
+        m_yz_rate = yz_rate;
+        }
+
+    //! Returns the xy deformation rate
+    HOSTDEVICE Scalar getTiltDeformationRateXY() const
+        {
+        return m_xy_rate;
+        }
+
+    //! Returns the xz deformation rate
+    HOSTDEVICE Scalar getTiltDeformationRateXZ() const
+        {
+        return m_xz_rate;
+        }
+
+    //! Returns the yz deformation rate
+    HOSTDEVICE Scalar getTiltDeformationRateYZ() const
+        {
+        return m_yz_rate;
         }
 
     //! Compute fractional coordinates, allowing for a ghost layer
@@ -394,7 +453,7 @@ struct
         }
 
     //! Compute minimum image
-    /*! 
+    /*!
         \param dr Position vector to compute / Minimum image vector returned
         \param dv Velocity vector to compute / Minimum image vector returned
         \note \a dr must not extend more than 1 image beyond the box
@@ -465,7 +524,6 @@ struct
                 r.x -= (Scalar)i * L.y * m_xy;
                 v.y -= m_L_rate.y;
                 v.x -= L.y * m_xy_rate;
-
                 }
             else if (r.y < m_lo.y)
                 {
@@ -473,7 +531,7 @@ struct
                 r.y += (Scalar)i * L.y;
                 r.x += (Scalar)i * L.y * m_xy;
                 v.y += m_L_rate.y;
-                v.x += L.y * m_xy_rate;            
+                v.x += L.y * m_xy_rate;
                 }
             }
 
@@ -616,10 +674,11 @@ struct
         \param vel Vector to wrap according to deformation rates, obeying the periodic settings
         \param img Image of the vector, updated to reflect the new image
         \param flags Vector of flags to force wrapping along certain directions
-        \post \a img and \a v are updated appropriately
-        \note \a v must not extend more than 1 image beyond the box
+        \post \a img and \a pos are updated appropriately
+        \note \a pos must not extend more than 1 image beyond the box
     */
-    HOSTDEVICE void wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+    HOSTDEVICE void
+    wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
         Scalar3 L = getL();
 
@@ -699,9 +758,10 @@ struct
                 }
             }
         }
-    
+
     //! Wrap a vec3
-    HOSTDEVICE void wrap(vec3<Scalar>& pos, vec3<Scalar>& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+    HOSTDEVICE void
+    wrap(vec3<Scalar>& pos, vec3<Scalar>& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
         Scalar3 pos_scalar = vec_to_scalar3(pos);
         Scalar3 vel_scalar = vec_to_scalar3(vel);
@@ -716,8 +776,9 @@ struct
 
     //! Wrap a Scalar4
     /*! \note The 4th element remains unchanged
-    */
-    HOSTDEVICE void wrap(Scalar4& pos, Scalar4& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
+     */
+    HOSTDEVICE void
+    wrap(Scalar4& pos, Scalar4& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
         Scalar3 p = make_scalar3(pos.x, pos.y, pos.z);
         Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
@@ -771,28 +832,28 @@ struct
         return vec3<Scalar>(shift(vec_to_scalar3(v), _shift));
         }
 
-    //! Shift a particle by a multiple of the lattice vectors
+    //! Shift a vector by a multiple of the lattice vectors
     /*! \param pos The position vector to shift (and the new shifted position)
         \param vel The velocity vector to shift (and the new shifted velocity)
         \param _shift The displacement in lattice coordinates
      */
     HOSTDEVICE void shift(Scalar3& pos, Scalar3& vel, const int3& _shift) const
         {
-        shift(pos, _shift);        
+        pos = shift(pos, _shift);
         vel += Scalar(_shift.x) * make_scalar3(m_L_rate.x, 0.0, 0.0);
         vel += Scalar(_shift.y) * make_scalar3(m_L.y * m_xy_rate, m_L_rate.y, 0.0);
         vel += Scalar(_shift.z) * make_scalar3(m_L.z * m_xz_rate, m_L.z * m_yz_rate, m_L_rate.z);
         }
 
     //! Shift a vec3
-    HOSTDEVICE void shift(vec3<Scalar>& r, vec3<Scalar>& v, const int3& _shift) const
-    {
-        Scalar3 r_scalar = vec_to_scalar3(r);
-        Scalar3 v_scalar = vec_to_scalar3(v);
-        shift(r_scalar, v_scalar, _shift);
-        r = vec3<Scalar>(r_scalar);
-        v = vec3<Scalar>(v_scalar);
-    }
+    HOSTDEVICE void shift(vec3<Scalar>& pos, vec3<Scalar>& vel, const int3& _shift) const
+        {
+        Scalar3 pos_scalar = vec_to_scalar3(pos);
+        Scalar3 vel_scalar = vec_to_scalar3(vel);
+        shift(pos_scalar, vel_scalar, _shift);
+        pos = vec3<Scalar>(pos_scalar);
+        vel = vec3<Scalar>(vel_scalar);
+        }
 
     //! Get the shortest distance between opposite boundary planes of the box
     /*! The distance between two planes of the lattice is 2 Pi/|b_i|, where
@@ -896,6 +957,12 @@ struct
         ar & m_periodic.x;
         ar & m_periodic.y;
         ar & m_periodic.z;
+        ar & m_L_rate.x;
+        ar & m_L_rate.y;
+        ar & m_L_rate.z;
+        ar & m_xy_rate;
+        ar & m_xz_rate;
+        ar & m_yz_rate;
         }
 #endif
 
@@ -909,9 +976,9 @@ struct
     Scalar m_yz;       //!< yz tilt factor
     uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
     Scalar3 m_L_rate;  //!< Deformation rate of box dimensions
-    Scalar m_xy_rate;  //!< Deformation rate in xy 
+    Scalar m_xy_rate;  //!< Deformation rate in xy
     Scalar m_xz_rate;  //!< Deformation rate in xz
-    Scalar m_yz_rate;  //!< Deformation rate in yz  
+    Scalar m_yz_rate;  //!< Deformation rate in yz
     };
 
     } // end namespace hoomd

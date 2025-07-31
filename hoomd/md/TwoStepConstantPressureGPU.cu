@@ -183,8 +183,11 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
 
     Wrap particle positions for all particles in the box
 */
-__global__ void
-gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, Scalar4* d_vel, int3* d_image, BoxDim box)
+__global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
+                                        Scalar4* d_pos,
+                                        Scalar4* d_vel,
+                                        int3* d_image,
+                                        BoxDim box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -195,8 +198,8 @@ gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, Scalar4* d_vel
         // fetch particle position
         Scalar4 postype = d_pos[idx];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        Scalar4 veltype = d_vel[idx];
-        Scalar3 vel = make_scalar3(veltype.x, veltype.y, veltype.z);
+        Scalar4 velmass = d_vel[idx];
+        Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
 
         // read in the image flags
         int3 image = d_image[idx];
@@ -206,7 +209,7 @@ gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, Scalar4* d_vel
 
         // write out the results
         d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
-        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, veltype.w);
+        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
     }

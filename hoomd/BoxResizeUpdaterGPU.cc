@@ -41,7 +41,7 @@ void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const Box
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                access_location::device,
                                access_mode::readwrite);
-    
+
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                access_location::device,
                                access_mode::readwrite);

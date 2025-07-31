@@ -1028,14 +1028,14 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
             angvel_body.z = Scalar(0);
             }
 
-        const vec3<Scalar> updated_vel = vec3<Scalar>(h_velocity.data[central_idx])
-                                         + rotate(orientation, cross(angvel_body, local_pos));
+        vec3<Scalar> updated_vel = vec3<Scalar>(h_velocity.data[central_idx])
+                                   + rotate(orientation, cross(angvel_body, local_pos));
 
         // this runs before the ForceComputes,
         // wrap into box, allowing rigid bodies to span multiple images
         int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
-        updated_pos = global_box.shift(updated_pos, negimgi);
+        global_box.shift(updated_pos, updated_vel, negimgi);
         const Scalar mass = h_velocity.data[particle_index].w;
 
         h_postype.data[particle_index]
