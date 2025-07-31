@@ -190,6 +190,7 @@ void export_ComputeThermoGPU(pybind11::module& m);
 void export_ComputeThermoHMAGPU(pybind11::module& m);
 void export_ConstantForceComputeGPU(pybind11::module& m);
 void export_ShearForceComputeGPU(pybind11::module& m);
+void export_WallCouplingForceComputeGPU(pybind11::module& m);
 void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
 void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
 void export_TableAngleForceComputeGPU(pybind11::module& m);
@@ -544,6 +545,7 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintComputeSphereGPU(m);
     export_ConstantForceComputeGPU(m);
     export_ShearForceComputeGPU(m);
+    export_WallCouplingForceComputeGPU(m);
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
     export_PotentialExternalMagneticFieldGPU(m);

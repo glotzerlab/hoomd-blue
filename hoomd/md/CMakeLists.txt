@@ -203,6 +203,7 @@ set(_md_headers ActiveForceComputeGPU.h
 		ShearForceComputeGPU.h
                 ShearForceCompute.h
                 WallCouplingForceCompute.h
+                WallCouplingForceComputeGPU.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -269,6 +270,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
 			   ShearForceComputeGPU.cc
+			   WallCouplingForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TriangleAreaConservationMeshForceComputeGPU.cc
@@ -312,6 +314,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
 		      ShearForceComputeGPU.cu
+		      WallCouplingForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TriangleAreaConservationMeshForceComputeGPU.cu
