@@ -49,6 +49,8 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
             
         }
 
+    void computeForces(uint64_t timestep) override;
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
@@ -64,9 +66,9 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
 
     protected:
     GPUArray<Elastic_param_t> m_params; //!< Parameters
-    GPUArray<vec3<Scalar>> m_reference_postions; //!< memory space for tetrahedra reference positions
-    /// memory space for indices in reference postions referenced by particle tags
-    GPUArray<uint32_t> m_reference_rtag;
+    GPUArray<vec3<Scalar>> m_reference_vertex_displacements; //!< memory space for tetrahedra reference positions. Indexed by (vertex, tetrahedron) see slide 33
+    GPUArray<vec3<Scalar>> m_reference_inv_matrix;
+    Index2D m_matrix_indexer;
 
     std::shared_ptr<TetrahedronData>
         m_tetrahedron_data; //!< Tetrahedron data to use in computing elastic forces
