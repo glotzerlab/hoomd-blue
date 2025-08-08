@@ -18,6 +18,7 @@ namespace hoomd
     {
 namespace md
     {
+	struct Elastic_param_t{};
 
 //! Computes elastic forces on the tetrahedral mesh
 /*! Elastic forces are computed on every tetrahedron in a mesh.
@@ -42,14 +43,10 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
     pybind11::dict getParams(std::string type);
 
     virtual void setReference(pybind11::array_t<Scalar> reference_positions, 
-                                pybind11::array_t<size_t> reference_tags);
-
-    virtual pybind11::array_t<Scalar> getReference()
-        {
-            
-        }
+                                pybind11::array_t<unsigned int> reference_tags);
 
     void computeForces(uint64_t timestep) override;
+
 
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
@@ -73,8 +70,6 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
     std::shared_ptr<TetrahedronData>
         m_tetrahedron_data; //!< Tetrahedron data to use in computing elastic forces
 
-    //! Actually compute the forces
-    void computeForces(uint64_t timestep) override;
     };
 
 namespace detail
@@ -86,4 +81,3 @@ void export_Elastic(pybind11::module& m);
     } // end namespace md
     } // end namespace hoomd
 
-#endif

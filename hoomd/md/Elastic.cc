@@ -1,12 +1,21 @@
-#include Elastic.h
+#include <pybind11/pybind11.h>
+#include <unordered_map>
 
-virtual void setReference(pybind11::array_t<Scalar> reference_positions, 
-                                pybind11::array_t<size_t> reference_tags){
+#include "Elastic.h"
+
+namespace hoomd{
+		namespace md{
+	
+
+void Elastic::setReference(pybind11::array_t<Scalar> reference_positions, 
+                                pybind11::array_t<unsigned int> reference_tags){
     //Validate that arrays from pybind are of correct shape
     auto reference_positions_indexer = reference_positions.unchecked<2>();
     auto reference_tags_indexer = reference_tags.unchecked<1>();
 
-    const N_reference_pos = reference_positions_indexer.shape(0);
+    const auto N_reference_pos = reference_positions_indexer.shape(0);
+
+	const auto& box = m_pdata->getGlobalBox();
 
     if(reference_tags_indexer.shape(0) != reference_positions_indexer.shape(0)){
         throw std::invalid_argument("The array of tetrahedron vertex positions and tags must have the same number of rows (N_particles).");
@@ -15,28 +24,66 @@ virtual void setReference(pybind11::array_t<Scalar> reference_positions,
         throw std::invalid_argument("The array of tetrahedron vertex positions must have three columns.");
     }
     //Initialize m_reference_vertex_displacements
-    GPUArray<vec3<Scalar>> reference_vertex_displacements(3*m_tetrahedron_data->getN());
+    GPUArray<vec3<Scalar>> reference_vertex_displacements(3*m_tetrahedron_data->getN(),m_exec_conf);
     m_reference_vertex_displacements.swap(reference_vertex_displacements);
     ArrayHandle<vec3<Scalar>> h_reference_vertex_displacements(m_reference_vertex_displacements,
                                                     access_location::host,
                                                     access_mode::overwrite);
 
     //Initialize m_reference_inv_matrix
-    GPUArray<vec3<Scalar>> reference_inv_matrix(3*m_tetrahedron_data->getN());
+    GPUArray<vec3<Scalar>> reference_inv_matrix(3*m_tetrahedron_data->getN(), m_exec_conf);
     m_reference_inv_matrix.swap(reference_inv_matrix);
     ArrayHandle<vec3<Scalar>> h_reference_inv_matrix(m_reference_inv_matrix,
                                                     access_location::host,
                                                     access_mode::overwrite);
-// TODO: Populate m_reference_vertex_displacements and m_reference_vertex_displacements
-    for(size_t i=0; i < N_reference_pos; i++){
-        h_reference_rtag.data[reference_tags_indexer(i)] = i;
-        h_reference_positions.data[i] = vec3<Scalar>(reference_positions_indexer(i,0),
-                                                     reference_positions_indexer(i,1),
-                                                     reference_positions_indexer(i,2));
-    }
+
+	// TODO: Populate m_reference_vertex_displacements and m_reference_inv_matrix
+    const auto n_tetrahedra = static_cast<unsigned int>(m_tetrahedron_data->getN());
+	
+	std::unordered_map<unsigned int, unsigned int> index_map;
+
+	for(unsigned int i=0; i < N_reference_pos; i++){
+		index_map[reference_tags_indexer(i)] = i;
+	}
+
+	m_matrix_indexer = Index2D(n_tetrahedra,3);
+
+	
+	for(unsigned int i=0; i < n_tetrahedra; i++){
+		const auto& tetrahedron = m_tetrahedron_data->getMembersByIndex(i);
+		
+		auto particle_index_0 = index_map[tetrahedron.tag[0]];
+		auto particle_index_1 = index_map[tetrahedron.tag[1]];
+		auto particle_index_2 = index_map[tetrahedron.tag[2]];
+		auto particle_index_3 = index_map[tetrahedron.tag[3]];
+	   	// TODO: come back late to add error checking
+
+		auto r0 = vec3<Scalar>(reference_positions_indexer(particle_index_0,0),
+                               reference_positions_indexer(particle_index_0,1),
+                               reference_positions_indexer(particle_index_0,2));
+		
+		auto r1 = vec3<Scalar>(reference_positions_indexer(particle_index_1,0),
+                               reference_positions_indexer(particle_index_1,1),
+                               reference_positions_indexer(particle_index_1,2));
+		
+		auto r2 = vec3<Scalar>(reference_positions_indexer(particle_index_2,0),
+                               reference_positions_indexer(particle_index_2,1),
+                               reference_positions_indexer(particle_index_2,2));
+		
+		auto r3 = vec3<Scalar>(reference_positions_indexer(particle_index_3,0),
+                               reference_positions_indexer(particle_index_3,1),
+                               reference_positions_indexer(particle_index_3,2));
+
+		h_reference_vertex_displacements.data[m_matrix_indexer(i,0)] = box.minImage(r0 - r3);
+		h_reference_vertex_displacements.data[m_matrix_indexer(i,1)] = box.minImage(r1 - r3);
+		h_reference_vertex_displacements.data[m_matrix_indexer(i,2)] = box.minImage(r2 - r3);
+
+	}
+
 }
 
-void computeForces(uint64_t timestep){
+
+void Elastic::computeForces(uint64_t timestep){
     // Create 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_particle_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -55,18 +102,14 @@ void computeForces(uint64_t timestep){
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-    ArrayHandle<typename Bonds::members_t> h_tetrahedron(m_tetrahedron_data->getMembersArray(),
+    ArrayHandle<typename TetrahedronData::members_t> h_tetrahedron(m_tetrahedron_data->getMembersArray(),
                                                    access_location::host,
                                                    access_mode::read);
     ArrayHandle<typeval_t> h_typeval(m_tetrahedron_data->getTypeValArray(),
                                      access_location::host,
                                      access_mode::read);
 
-    ArrayHandle<vec3<Scalar>> h_reference_postions(m_reference_postions,
-                                                access_location::host,
-                                                access_mode::read);
-
-    ArrayHandle<uint32_t> h_reference_rtag(m_reference_rtag,
+    ArrayHandle<vec3<Scalar>> h_reference_vertex_displacements(m_reference_vertex_displacements,
                                                 access_location::host,
                                                 access_mode::read);
 
@@ -75,6 +118,7 @@ void computeForces(uint64_t timestep){
     const size_t n_tetrahedra = m_tetrahedron_data->getN();
     
     // Calculate forces for each tetrahedron
+	/*
     for(size_t i=0, i < n_tetrahedra, i++){
         const auto& tetrahedron = h_tetrahedon.data[i];
         unsigned int idx_i = h_particle_rtag.data[tetrahedron.tag[0]];
@@ -104,13 +148,17 @@ void computeForces(uint64_t timestep){
         vec3<Scalar> ref_posj = vec3<Scalar>(h_reference_postions.data[idx_ref_j].x, h_reference_postions.data[idx_ref_j].y, h_reference_postions.data[idx_ref_j].z);
         vec3<Scalar> ref_posk = vec3<Scalar>(h_reference_postions.data[idx_ref_k].x, h_reference_postions.data[idx_ref_k].y, h_reference_postions.data[idx_ref_k].z);
         vec3<Scalar> ref_posl = vec3<Scalar>(h_reference_postions.data[idx_ref_l].x, h_reference_postions.data[idx_ref_l].y, h_reference_postions.data[idx_ref_l].z);
+	
 
         // Step 2: Calculate Mapping coefficients (a, b, c)
 
         // Step 3: Calculate Strains (epsilons)
 
         // Step 4: Calculate Forces
+	*/
 
     }
+
+}
 
 }
