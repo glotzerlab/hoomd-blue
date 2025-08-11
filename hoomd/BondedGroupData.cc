@@ -1529,9 +1529,9 @@ template void export_BondedGroupData<ImproperData, Dihedral>(pybind11::module& m
                                                              bool export_struct);
 
 template void export_BondedGroupData<TetrahedronData, Dihedral>(pybind11::module& m,
-                                                             std::string name,
-                                                             std::string snapshot_name,
-                                                             bool export_struct);
+                                                                std::string name,
+                                                                std::string snapshot_name,
+                                                                bool export_struct);
 
 template void export_BondedGroupData<ConstraintData, Constraint>(pybind11::module& m,
                                                                  std::string name,

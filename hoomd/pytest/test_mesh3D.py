@@ -7,4 +7,4 @@ import numpy
 import pytest
 from hoomd.error import DataAccessError, MutabilityError
 
-#TODO
+# TODO
