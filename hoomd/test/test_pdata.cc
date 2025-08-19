@@ -171,11 +171,7 @@ UP_TEST(BoxDim_functionality_test1)
     b.setPeriodic(make_uchar3(1, 1, 1));
     int3 image = make_int3(10, 20, 30);
     v = make_scalar3(1.0, -2.0, 3.0);
-    Scalar3 p = make_scalar3(2.0, 3.0, -4.0);
-    b.wrap(p, v, image);
-    MY_CHECK_CLOSE(p.x, 2.0, tol);
-    MY_CHECK_CLOSE(p.y, 3.0, tol);
-    MY_CHECK_CLOSE(p.z, -4.0, tol);
+    b.wrap(v, image);
     MY_CHECK_CLOSE(v.x, 1.0, tol);
     MY_CHECK_CLOSE(v.y, -2.0, tol);
     MY_CHECK_CLOSE(v.z, 3.0, tol);
@@ -185,11 +181,7 @@ UP_TEST(BoxDim_functionality_test1)
 
     image = make_int3(10, 20, 30);
     v = make_scalar3(6.0, -7.0, 8.0);
-    p = make_scalar3(-5.0, 4.0, 3.0);
-    b.wrap(p, v, image);
-    MY_CHECK_CLOSE(p.x, -2.0, tol);
-    MY_CHECK_CLOSE(p.y, 12.0, tol);
-    MY_CHECK_CLOSE(p.z, 6.0, tol);
+    b.wrap(v, image);
     MY_CHECK_CLOSE(v.x, -4.0, tol);
     MY_CHECK_CLOSE(v.y, 3.0, tol);
     MY_CHECK_CLOSE(v.z, -2.0, tol);
@@ -200,11 +192,7 @@ UP_TEST(BoxDim_functionality_test1)
     b.setPeriodic(make_uchar3(1, 0, 0));
     image = make_int3(10, 20, 30);
     v = make_scalar3(6.0, -7.0, 8.0);
-    p = make_scalar3(-5.0, 4.0, 3.0);
-    b.wrap(p, v, image);
-    MY_CHECK_CLOSE(p.x, 2.0, tol);
-    MY_CHECK_CLOSE(p.y, 4.0, tol);
-    MY_CHECK_CLOSE(p.z, 3.0, tol);
+    b.wrap(v, image);
     MY_CHECK_CLOSE(v.x, -4.0, tol);
     MY_CHECK_CLOSE(v.y, -7.0, tol);
     MY_CHECK_CLOSE(v.z, 8.0, tol);
@@ -215,11 +203,7 @@ UP_TEST(BoxDim_functionality_test1)
     b.setPeriodic(make_uchar3(0, 1, 0));
     image = make_int3(10, 20, 30);
     v = make_scalar3(6.0, -7.0, 8.0);
-    p = make_scalar3(-5.0, 4.0, 3.0);
-    b.wrap(p, v, image);
-    MY_CHECK_CLOSE(p.x, -5.0, tol);
-    MY_CHECK_CLOSE(p.y, 2.0, tol);
-    MY_CHECK_CLOSE(p.z, 3.0, tol);
+    b.wrap(v, image);
     MY_CHECK_CLOSE(v.x, 6.0, tol);
     MY_CHECK_CLOSE(v.y, 3.0, tol);
     MY_CHECK_CLOSE(v.z, 8.0, tol);
@@ -230,11 +214,7 @@ UP_TEST(BoxDim_functionality_test1)
     b.setPeriodic(make_uchar3(0, 0, 1));
     image = make_int3(10, 20, 30);
     v = make_scalar3(6.0, -7.0, 8.0);
-    p = make_scalar3(-5.0, 4.0, 3.0);
-    b.wrap(p, v, image);
-    MY_CHECK_CLOSE(p.x, -5.0, tol);
-    MY_CHECK_CLOSE(p.y, 4.0, tol);
-    MY_CHECK_CLOSE(p.z, 2.0, tol);
+    b.wrap(v, image);
     MY_CHECK_CLOSE(v.x, 6.0, tol);
     MY_CHECK_CLOSE(v.y, -7.0, tol);
     MY_CHECK_CLOSE(v.z, -2.0, tol);
@@ -257,15 +237,6 @@ UP_TEST(BoxDim_triclinic_test)
     MY_CHECK_CLOSE(b.getTiltFactorXY(), xy, tol);
     MY_CHECK_CLOSE(b.getTiltFactorXZ(), xz, tol);
     MY_CHECK_CLOSE(b.getTiltFactorYZ(), yz, tol);
-
-    Scalar xy_rate = .01;
-    Scalar xz_rate = .02;
-    Scalar yz_rate = .03;
-
-    b.setTiltDeformationRates(xy_rate, xz_rate, yz_rate);
-    MY_CHECK_CLOSE(b.getTiltDeformationRateXY(), xy_rate, tol);
-    MY_CHECK_CLOSE(b.getTiltDeformationRateXZ(), xz_rate, tol);
-    MY_CHECK_CLOSE(b.getTiltDeformationRateYZ(), yz_rate, tol);
 
     Scalar3 f = make_scalar3(.5, .6, .7);
     Scalar3 L = b.getL();
@@ -372,63 +343,47 @@ UP_TEST(BoxDim_triclinic_test)
 
     // along z direction
     pos = make_scalar3(1.0, 2.0, 2.6);
-    Scalar3 vel = make_scalar3(1.5, 2.5, 3.5);
     int3 img = make_int3(0, 0, 0);
 
-    b.wrap(pos, vel, img);
+    b.wrap(pos, img);
     MY_CHECK_CLOSE(pos.x, -1.0, tol);
     MY_CHECK_CLOSE(pos.y, -2.5, tol);
     MY_CHECK_CLOSE(pos.z, -2.4, tol);
-    MY_CHECK_CLOSE(vel.x, -1.5, tol);
-    MY_CHECK_CLOSE(vel.y, -2.9, tol);
-    MY_CHECK_CLOSE(vel.z, -3.0, tol);
     UP_ASSERT_EQUAL(img.x, 0);
     UP_ASSERT_EQUAL(img.y, 0);
     UP_ASSERT_EQUAL(img.z, 1);
 
     pos = make_scalar3(-1.0, -2.0, -2.6);
-    vel = make_scalar3(-1.5, -2.5, -3.5);
     img = make_int3(0, 0, 0);
-    b.wrap(pos, vel, img);
+    b.wrap(pos, img);
 
     MY_CHECK_CLOSE(pos.x, 1.0, tol);
     MY_CHECK_CLOSE(pos.y, 2.5, tol);
     MY_CHECK_CLOSE(pos.z, 2.4, tol);
-    MY_CHECK_CLOSE(vel.x, 1.5, tol);
-    MY_CHECK_CLOSE(vel.y, 2.9, tol);
-    MY_CHECK_CLOSE(vel.z, 3.0, tol);
     UP_ASSERT_EQUAL(img.x, 0);
     UP_ASSERT_EQUAL(img.y, 0);
     UP_ASSERT_EQUAL(img.z, -1);
 
     // along y direction
     pos = make_scalar3(1.0, 4.0, 1.5);
-    vel = make_scalar3(2.0, 3.0, 4.5);
     img = make_int3(0, 0, 0);
 
-    b.wrap(pos, vel, img);
+    b.wrap(pos, img);
     MY_CHECK_CLOSE(pos.x, -4.0, tol);
     MY_CHECK_CLOSE(pos.y, -1.0, tol);
     MY_CHECK_CLOSE(pos.z, 1.5, tol);
-    MY_CHECK_CLOSE(vel.x, -3.0, tol);
-    MY_CHECK_CLOSE(vel.y, -2.0, tol);
-    MY_CHECK_CLOSE(vel.z, 4.5, tol);
 
     UP_ASSERT_EQUAL(img.x, 0);
     UP_ASSERT_EQUAL(img.y, 1);
     UP_ASSERT_EQUAL(img.z, 0);
 
     pos = make_scalar3(-1.0, -4.0, -1.5);
-    vel = make_scalar3(-2.0, -3.0, -4.5);
     img = make_int3(0, 0, 0);
 
-    b.wrap(pos, vel, img);
+    b.wrap(pos, img);
     MY_CHECK_CLOSE(pos.x, 4.0, tol);
     MY_CHECK_CLOSE(pos.y, 1.0, tol);
     MY_CHECK_CLOSE(pos.z, -1.5, tol);
-    MY_CHECK_CLOSE(vel.x, 3.0, tol);
-    MY_CHECK_CLOSE(vel.y, 2.0, tol);
-    MY_CHECK_CLOSE(vel.z, -4.5, tol);
 
     UP_ASSERT_EQUAL(img.x, 0);
     UP_ASSERT_EQUAL(img.y, -1);
@@ -436,32 +391,24 @@ UP_TEST(BoxDim_triclinic_test)
 
     // along x direction
     pos = make_scalar3(4.2, 1.5, 1.0);
-    vel = make_scalar3(1.2, 3.5, 4.0);
     img = make_int3(0, 0, 0);
 
-    b.wrap(pos, vel, img);
+    b.wrap(pos, img);
     MY_CHECK_CLOSE(pos.x, -0.8, tol);
     MY_CHECK_CLOSE(pos.y, 1.5, tol);
     MY_CHECK_CLOSE(pos.z, 1.0, tol);
-    MY_CHECK_CLOSE(vel.x, -1.6, tol);
-    MY_CHECK_CLOSE(vel.y, 3.5, tol);
-    MY_CHECK_CLOSE(vel.z, 4.0, tol);
 
     UP_ASSERT_EQUAL(img.x, 1);
     UP_ASSERT_EQUAL(img.y, 0);
     UP_ASSERT_EQUAL(img.z, 0);
 
     pos = make_scalar3(-5.0, -1.5, 1.0);
-    vel = make_scalar3(-3.0, -2.5, 2.0);
     img = make_int3(0, 0, 0);
 
-    b.wrap(pos, vel, img);
+    b.wrap(pos, img);
     MY_CHECK_CLOSE(pos.x, 0.0, tol);
     MY_CHECK_CLOSE(pos.y, -1.5, tol);
     MY_CHECK_CLOSE(pos.z, 1.0, tol);
-    MY_CHECK_CLOSE(vel.x, 1.0, tol);
-    MY_CHECK_CLOSE(vel.y, -2.5, tol);
-    MY_CHECK_CLOSE(vel.z, 2.0, tol);
 
     UP_ASSERT_EQUAL(img.x, -1);
     UP_ASSERT_EQUAL(img.y, 0);
