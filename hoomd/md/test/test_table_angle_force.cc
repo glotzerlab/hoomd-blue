@@ -161,9 +161,6 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
         ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
-        ArrayHandle<Scalar4> h_vel(pdata_3->getVelocities(),
-                                   access_location::host,
-                                   access_mode::readwrite);
 
         // translate all particles and wrap them back into the box
         Scalar3 shift = make_scalar3(-2, 0, 1);
@@ -173,17 +170,17 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
                                      h_pos.data[0].y + shift.y,
                                      h_pos.data[0].z + shift.z,
                                      h_pos.data[0].w);
-        box.wrap(h_pos.data[0], h_vel.data[0], img);
+        box.wrap(h_pos.data[0], img);
         h_pos.data[1] = make_scalar4(h_pos.data[1].x + shift.x,
                                      h_pos.data[1].y + shift.y,
                                      h_pos.data[1].z + shift.z,
                                      h_pos.data[1].w);
-        box.wrap(h_pos.data[1], h_vel.data[1], img);
+        box.wrap(h_pos.data[1], img);
         h_pos.data[2] = make_scalar4(h_pos.data[2].x + shift.x,
                                      h_pos.data[2].y + shift.y,
                                      h_pos.data[2].z + shift.z,
                                      h_pos.data[2].w);
-        box.wrap(h_pos.data[2], h_vel.data[2], img);
+        box.wrap(h_pos.data[2], img);
         }
 
     fc_3->compute(2);

@@ -1419,16 +1419,12 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
     unsigned int idx = getRTag(tag);
     bool found = (idx < getN());
     Scalar3 result = make_scalar3(0.0, 0.0, 0.0);
-    Scalar3 vel = make_scalar3(0.0, 0.0, 0.0);
     int3 img = make_int3(0, 0, 0);
     if (found)
         {
         ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::read);
         result = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
         result = result - m_origin;
-
-        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::read);
-        vel = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
 
         ArrayHandle<int3> h_img(m_image, access_location::host, access_mode::read);
         img = make_int3(h_img.data[idx].x, h_img.data[idx].y, h_img.data[idx].z);
@@ -1443,9 +1439,6 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
         bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(vel.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(vel.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(vel.z, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(img.x, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(img.y, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(img.z, owner_rank, m_exec_conf->getMPICommunicator());
@@ -1453,7 +1446,7 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
         }
 #endif
     assert(found);
-    m_global_box->wrap(result, vel, img);
+    m_global_box->wrap(result, img);
     return result;
     }
 
@@ -1479,6 +1472,8 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
         img.x -= m_o_image.x;
         img.y -= m_o_image.y;
         img.z -= m_o_image.z;
+
+        m_global_box->wrap(pos, result, img);
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1497,7 +1492,6 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
         }
 #endif
     assert(found);
-    m_global_box->wrap(pos, result, img);
     return result;
     }
 
@@ -1533,16 +1527,21 @@ int3 ParticleData::getImage(unsigned int tag) const
     bool found = (idx < getN());
     int3 result = make_int3(0, 0, 0);
     Scalar3 pos = make_scalar3(0, 0, 0);
-    Scalar3 vel = make_scalar3(0, 0, 0);
     if (found)
         {
         ArrayHandle<int3> h_image(m_image, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_postype(m_pos, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::read);
         result = make_int3(h_image.data[idx].x, h_image.data[idx].y, h_image.data[idx].z);
         pos = make_scalar3(h_postype.data[idx].x, h_postype.data[idx].y, h_postype.data[idx].z);
         pos = pos - m_origin;
-        vel = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+
+        // correct for origin shift
+        result.x -= m_o_image.x;
+        result.y -= m_o_image.y;
+        result.z -= m_o_image.z;
+
+        // wrap into correct image
+        m_global_box->wrap(pos, result);
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1551,25 +1550,10 @@ int3 ParticleData::getImage(unsigned int tag) const
         bcast((int&)result.x, owner_rank, m_exec_conf->getMPICommunicator());
         bcast((int&)result.y, owner_rank, m_exec_conf->getMPICommunicator());
         bcast((int&)result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)pos.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)pos.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)pos.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)vel.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)vel.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)vel.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
     assert(found);
-
-    // correct for origin shift
-    result.x -= m_o_image.x;
-    result.y -= m_o_image.y;
-    result.z -= m_o_image.z;
-
-    // wrap into correct image
-    m_global_box->wrap(pos, vel, result);
-
     return result;
     }
 
