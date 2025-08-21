@@ -1487,12 +1487,6 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
         bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
         bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(img.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(img.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(img.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -3278,7 +3272,7 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx,
         // need to cast scalar to Real because the Box is in Scalars, but we might be in a
         // different type
         old_box.shift(r, v, img);
-        vec3<Real> p = vec3<Real>(vec3<Scalar>(r));
+        vec3<Real> p(r);
         vec3<Real> f = old_box.makeFraction(p);
 
         unsigned int j = 0;

@@ -462,12 +462,12 @@ struct
         {
         Scalar3 r = dr;
         Scalar3 v = dv;
-        Scalar3 L = getL();
+        const Scalar3 L = getL();
 
 #ifdef __HIPCC__
         if (m_periodic.z)
             {
-            Scalar img = slow::rint(r.z * m_Linv.z);
+            const Scalar img = slow::rint(r.z * m_Linv.z);
             r.z -= L.z * img;
             r.y -= L.z * m_yz * img;
             r.x -= L.z * m_xz * img;
@@ -478,7 +478,7 @@ struct
 
         if (m_periodic.y)
             {
-            Scalar img = slow::rint(r.y * m_Linv.y);
+            const Scalar img = slow::rint(r.y * m_Linv.y);
             r.y -= L.y * img;
             r.x -= L.y * m_xy * img;
             v.y -= m_L_rate.y * img;
@@ -487,7 +487,7 @@ struct
 
         if (m_periodic.x)
             {
-            Scalar img = slow::rint(r.x * m_Linv.x);
+            const Scalar img = slow::rint(r.x * m_Linv.x);
             r.x -= L.x * img;
             v.x -= m_L_rate.x * img;
             }
@@ -519,7 +519,7 @@ struct
             {
             if (r.y >= m_hi.y)
                 {
-                int i = int(r.y * m_Linv.y + Scalar(0.5));
+                const int i = static_cast<int>(r.y * m_Linv.y + Scalar(0.5));
                 r.y -= (Scalar)i * L.y;
                 r.x -= (Scalar)i * L.y * m_xy;
                 v.y -= m_L_rate.y;
@@ -527,7 +527,7 @@ struct
                 }
             else if (r.y < m_lo.y)
                 {
-                int i = int(-r.y * m_Linv.y + Scalar(0.5));
+                const int i = static_cast<int>(-r.y * m_Linv.y + Scalar(0.5));
                 r.y += (Scalar)i * L.y;
                 r.x += (Scalar)i * L.y * m_xy;
                 v.y += m_L_rate.y;
@@ -539,13 +539,13 @@ struct
             {
             if (r.x >= m_hi.x)
                 {
-                int i = int(r.x * m_Linv.x + Scalar(0.5));
+                const int i = static_cast<int>(r.x * m_Linv.x + Scalar(0.5));
                 r.x -= (Scalar)i * L.x;
                 v.x -= m_L_rate.x;
                 }
             else if (r.x < m_lo.x)
                 {
-                int i = int(-r.x * m_Linv.x + Scalar(0.5));
+                const int i = static_cast<int>(-r.x * m_Linv.x + Scalar(0.5));
                 r.x += (Scalar)i * L.x;
                 v.x += m_L_rate.x;
                 }
@@ -680,7 +680,7 @@ struct
     HOSTDEVICE void
     wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
         {
-        Scalar3 L = getL();
+        const Scalar3 L = getL();
 
         // allow for a shifted box with periodic boundary conditions
         Scalar3 origin = (m_hi + m_lo) / Scalar(2.0);
@@ -698,7 +698,7 @@ struct
 
         if (m_periodic.x)
             {
-            Scalar tilt_x = (m_xz - m_xy * m_yz) * (pos.z - origin.z) + m_xy * (pos.y - origin.y);
+            const Scalar tilt_x = (m_xz - m_xy * m_yz) * (pos.z - origin.z) + m_xy * (pos.y - origin.y);
             if (((pos.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
                 {
                 pos.x -= L.x;
@@ -715,7 +715,7 @@ struct
 
         if (m_periodic.y)
             {
-            Scalar tilt_y = m_yz * (pos.z - origin.z);
+            const Scalar tilt_y = m_yz * (pos.z - origin.z);
             if (((pos.y >= m_hi.y + tilt_y) && !flags.y) || flags.y == 1)
                 {
                 pos.y -= L.y;
@@ -766,12 +766,8 @@ struct
         Scalar3 pos_scalar = vec_to_scalar3(pos);
         Scalar3 vel_scalar = vec_to_scalar3(vel);
         wrap(pos_scalar, vel_scalar, img, flags);
-        pos.x = pos_scalar.x;
-        pos.y = pos_scalar.y;
-        pos.z = pos_scalar.z;
-        vel.x = vel_scalar.x;
-        vel.y = vel_scalar.y;
-        vel.z = vel_scalar.z;
+        pos = vec3<Scalar>(pos_scalar);
+        vel = vec3<Scalar>(vel_scalar);
         }
 
     //! Wrap a Scalar4
