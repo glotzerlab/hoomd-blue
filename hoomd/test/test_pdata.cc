@@ -429,18 +429,35 @@ UP_TEST(BoxDim_deformation_test)
     Scalar xz_rate = .3;
     Scalar yz_rate = .5;
     Scalar3 L_rate = make_scalar3(.2, .4, .6);
-    
+
     b.setTiltFactors(xy, xz, yz);
     b.setTiltDeformationRates(xy_rate, xz_rate, yz_rate);
     b.setLDeformationRate(L_rate);
 
-    // test the equivalence of the original and modified wrap methods
-    Scalar3 p_old = make_scalar3(1.0, 3.0, -5.0);
-    int3 img_old = make_int3(1, 2, 3);
+    // test the equivalence of the original and modified minImage methods
+    Scalar3 p_old = make_scalar3(1.0, 3.0, -3.0);
     Scalar3 p_new = p_old;
+    Scalar3 vel = make_scalar3(0.5, 2.5, -1.5);
+
+    p_old = b.minImage(p_old);
+    b.minImage(p_new, vel);
+
+    MY_CHECK_CLOSE(p_old.x, p_new.x, tol);
+    MY_CHECK_CLOSE(p_old.y, p_new.y, tol);
+    MY_CHECK_CLOSE(p_old.z, p_new.z, tol);
+
+    // check the wrapped velocities
+    MY_CHECK_CLOSE(vel.x, 1.5, tol);
+    MY_CHECK_CLOSE(vel.y, 4.6, tol);
+    MY_CHECK_CLOSE(vel.z, -0.9, tol);
+
+    // test the equivalence of the original and modified wrap methods
+    p_old = make_scalar3(1.0, 3.0, -5.0);
+    p_new = p_old;
+    vel = make_scalar3(2.0, 5.0, -1.0);
+    int3 img_old = make_int3(1, 2, 3);
     int3 img_new = img_old;
-    Scalar3 vel = make_scalar3(2.0, 5.0, -1.0);
-    
+
     b.wrap(p_old, img_old);
     b.wrap(p_new, vel, img_new);
 
@@ -452,28 +469,11 @@ UP_TEST(BoxDim_deformation_test)
     MY_CHECK_CLOSE(img_old.z, img_new.z, tol);
 
     // check the wrapped veloctities
-    MY_CHECK_CLOSE(vel.x, 3.5, tol);
-    MY_CHECK_CLOSE(vel.y, 5.1, tol);
-    MY_CHECK_CLOSE(vel.z, 0.6, tol);
-
-    // test the equivalence of the original and modified minImage methods
-    p_old = make_scalar3(1.0, 3.0, -5.0);
-    p_new = p_old;
-    vel = make_scalar3(2.0, 5.0, -1.0);
-
-    b.minImage(p_old);
-    b.minImage(p_new, vel);
-
-    MY_CHECK_CLOSE(p_old.x, p_new.x, tol);
-    MY_CHECK_CLOSE(p_old.y, p_new.y, tol);
-    MY_CHECK_CLOSE(p_old.z, p_new.z, tol);
-
-    // check the wrapped velocities
-    MY_CHECK_CLOSE(vel.x, 3.0, tol);
+    MY_CHECK_CLOSE(vel.x, 3.2, tol);
     MY_CHECK_CLOSE(vel.y, 7.1, tol);
-    MY_CHECK_CLOSE(vel.z, -0.4, tol);    
+    MY_CHECK_CLOSE(vel.z, -0.4, tol);
     }
-       
+
 //! Test operation of the particle data class
 UP_TEST(ParticleData_test)
     {
