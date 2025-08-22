@@ -18,8 +18,9 @@ namespace hoomd
     {
 namespace md
     {
-struct Elastic_param_t
+struct ElasticCoefficients
     {
+	Scalar elastic_coeff_1, elastic_coeff_2, elastic_coeff_3;	
     };
 
 //! Computes elastic forces on the tetrahedral mesh
@@ -37,7 +38,7 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
     virtual ~Elastic();
 
     //! Set the parameters of the tetrahedra types
-    virtual void setParams(unsigned int type, const Elastic_param_t& params);
+    virtual void setParams(unsigned int type, const ElasticCoefficients& params);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -63,7 +64,7 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
 #endif
 
     protected:
-    GPUArray<Elastic_param_t> m_params; //!< Parameters
+    GPUArray<ElasticCoefficients> m_params; //!< Parameters
     GPUArray<vec3<Scalar>>
         m_reference_vertex_displacements; //!< memory space for tetrahedra reference positions.
                                           //!< Indexed by (vertex, tetrahedron) see slide 33

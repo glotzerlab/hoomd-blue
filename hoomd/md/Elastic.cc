@@ -48,7 +48,6 @@ void Elastic::setReference(pybind11::array_t<Scalar> reference_positions,
                                                      access_location::host,
                                                      access_mode::overwrite);
 
-    // TODO: Populate m_reference_vertex_displacements and m_reference_inv_matrix
     const auto n_tetrahedra = static_cast<unsigned int>(m_tetrahedron_data->getN());
 
     std::unordered_map<unsigned int, unsigned int> index_map;
@@ -134,6 +133,10 @@ void Elastic::computeForces(uint64_t timestep)
     ArrayHandle<vec3<Scalar>> h_reference_inv_matrix(m_reference_inv_matrix,
                                                      access_location::host,
                                                      access_mode::read);
+
+	ArrayHandle<ElasticCoefficients> h_params(m_params, 
+											  access_location::host,
+											  access_mode::read);
 
     // Zero data for force calculation
     m_force.zeroFill();
@@ -243,7 +246,69 @@ void Elastic::computeForces(uint64_t timestep)
         strain_tensor[2][1] = strain_tensor[1][2];
 
         // Step 4: Calculate Forces
-        }
+		// The three components of these vectors are the forces of the first, second and third tetrahedron. 
+		// The fourth has 0 displacement
+		vec3<Scalar> fx = vec3<Scalar>(0,0,0);
+		vec3<Scalar> fy = vec3<Scalar>(0,0,0);
+		vec3<Scalar> fz = vec3<Scalar>(0,0,0);
+
+
+		ElasticCoefficients c = ;
+
+		auto minv1 = inverse_matrix_row_0;
+		auto minv2 = inverse_matrix_row_1;
+		auto minv3 = inverse_matrix_row_2;
+
+
+		fx += -2.0 * c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * (1.0 + a.x);
+		fx += -2.0 * c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * a.y;
+		fx += -2.0 * c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * a.z;
+		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * a.y;
+		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * (1.0 + a.x);
+		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * a.z;
+		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * a.y;
+		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * (1.0 + a.x);
+		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * a.z;
+		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * (1.0 + a.x);
+		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * a.y;
+		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * a.y;
+		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * a.z;
+		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * (1.0 + a.x);
+		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
+
+		fy += -2.0 * c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * b.x;
+		fy += -2.0 * c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * (1.0+b.y);
+		fy += -2.0 * c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * b.z;
+		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * (1.0 + b.y);
+		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * b.x;
+		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * b.z;
+		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * (1.0 + b.y);
+		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * b.x;
+		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * b.z;
+		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * b.x;
+		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * (1.0 + b.y);
+		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * (1.0 + b.y);
+		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * b.z;
+		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * b.x;
+		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
+		
+		fz += -2.0 * c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * c.x;
+		fz += -2.0 * c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * c.y;
+		fz += -2.0 * c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * (1.0 + c.z);
+		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * c.y;
+		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * c.x;
+		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * (1.0 + c.z);
+		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * c.y;
+		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * c.x;
+		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * (1.0 + c.z);
+		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * c.x;
+		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * c.y;
+		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * c.y;
+		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * (1.0 + c.z);
+		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * c.x;
+		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * (1.0 + c.z);
+
+		}
     }
 
     } // namespace md
