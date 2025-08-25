@@ -19,9 +19,10 @@ WallCouplingForceCompute::WallCouplingForceCompute(std::shared_ptr<SystemDefinit
                                            std::shared_ptr<ParticleGroup> group,
 					   Scalar radial_force,
 					   Scalar tangential_force,
+					   Scalar lift,
 					   Scalar R)
 
-    : ForceCompute(sysdef), m_group(group), m_radial_force(radial_force), m_tangential_force(tangential_force), m_R(R)
+    : ForceCompute(sysdef), m_group(group), m_radial_force(radial_force), m_tangential_force(tangential_force), m_lift_force(lift), m_R(R)
     {
     }
 
@@ -55,13 +56,13 @@ void WallCouplingForceCompute::setForces()
 	dist1 = 1/(dist1*dist1*dist1);
 	dist2 = 1/(dist2*dist2*dist2);
 
-	pi.x *= norm;
-	pi.y *= norm;
+	pi.x /= norm;
+	pi.y /= norm;
 
         vec3<Scalar> fi(0, 0, 0);
 
-	fi.x = (dist1-dist2)*(pi.x*m_radial_force + pi.y*m_tangential_force);
-	fi.y = (dist1-dist2)*(pi.y*m_radial_force - pi.x*m_tangential_force);
+	fi.x = (dist2-dist1)*(pi.x*m_radial_force + pi.y*m_tangential_force) + pi.x*m_lift_force;
+	fi.y = (dist2-dist1)*(pi.y*m_radial_force - pi.x*m_tangential_force) + pi.y*m_lift_force;
         h_force.data[idx] = vec_to_scalar4(fi, 0);
         }
     }
@@ -86,11 +87,13 @@ void export_WallCouplingForceCompute(pybind11::module& m)
     pybind11::class_<WallCouplingForceCompute, ForceCompute, std::shared_ptr<WallCouplingForceCompute>>(
         m,
         "WallCouplingForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar, Scalar>())
         .def("setWallCouplingRadialForce", &WallCouplingForceCompute::setWallCouplingRadialForce)
         .def("getWallCouplingRadialForce", &WallCouplingForceCompute::getWallCouplingRadialForce)
         .def("setWallCouplingTangentialForce", &WallCouplingForceCompute::setWallCouplingTangentialForce)
         .def("getWallCouplingTangentialForce", &WallCouplingForceCompute::getWallCouplingTangentialForce)
+        .def("setWallCouplingLiftForce", &WallCouplingForceCompute::setWallCouplingLiftForce)
+        .def("getWallCouplingLiftForce", &WallCouplingForceCompute::getWallCouplingLiftForce)
         .def("setR", &WallCouplingForceCompute::setR)
         .def("getR", &WallCouplingForceCompute::getR)
         .def_property_readonly("filter",

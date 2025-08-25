@@ -31,6 +31,7 @@ __global__ void gpu_compute_wall_coupling_force_set_forces_kernel(const unsigned
                                                              const Scalar4* d_pos,
                                                              const Scalar r_f,
                                                              const Scalar t_f,
+                                                             const Scalar l_f,
                                                              const Scalar R,
                                                              const unsigned int N)
     {
@@ -50,12 +51,12 @@ __global__ void gpu_compute_wall_coupling_force_set_forces_kernel(const unsigned
     dist1 = 1/(dist1*dist1*dist1);
     dist2 = 1/(dist2*dist2*dist2);
 
-    posidx.x *= norm;
-    posidx.y *= norm;
+    posidx.x /= norm;
+    posidx.y /= norm;
 
     vec3<Scalar> fi(0, 0, 0);
-    fi.x = (dist1-dist2)*(posidx.x*r_f + posidx.y*t_f);
-    fi.y = (dist1-dist2)*(posidx.y*r_f - posidx.x*t_f);
+    fi.x = (dist2-dist1)*(posidx.x*r_f + posidx.y*t_f) + posidx.x*l_f;
+    fi.y = (dist2-dist1)*(posidx.y*r_f - posidx.x*t_f) + posidx.y*l_f;
     d_force[idx] = vec_to_scalar4(fi, 0);
     }
 
@@ -65,6 +66,7 @@ hipError_t gpu_compute_wall_coupling_force_set_forces(const unsigned int group_s
                                                  const Scalar4* d_pos,
                                                  const Scalar r_f,
                                                  const Scalar t_f,
+                                                 const Scalar l_f,
                                                  const Scalar R,
                                                  const unsigned int N,
                                                  unsigned int block_size)
@@ -85,6 +87,7 @@ hipError_t gpu_compute_wall_coupling_force_set_forces(const unsigned int group_s
                        d_pos,
                        r_f,
                        t_f,
+                       l_f,
                        R,
                        N);
     return hipSuccess;

@@ -825,7 +825,7 @@ class WallCoupling(Force):
         "{inherited}", inspect.cleandoc(Force._doc_inherited)
     )
 
-    def __init__(self, filter, radial_factor, tangential_factor, R):
+    def __init__(self, filter, radial_factor, tangential_factor, lift_factor, R):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter)
@@ -834,6 +834,7 @@ class WallCoupling(Force):
         self._param_dict.update(param_dict)
         self.r_f = radial_factor
         self.t_f = tangential_factor
+        self.l_f = lift_factor
         self.R = R
 
     def _attach_hook(self):
@@ -847,7 +848,7 @@ class WallCoupling(Force):
 
         self._cpp_obj = my_class(
             sim.state._cpp_sys_def, sim.state._get_group(self.filter),
-            self.r_f, self.t_f, self.R
+            self.r_f, self.t_f, self.l_f, self.R
         )
 
 __all__ = [

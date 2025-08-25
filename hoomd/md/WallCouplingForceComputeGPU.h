@@ -32,6 +32,7 @@ class PYBIND11_EXPORT WallCouplingForceComputeGPU : public WallCouplingForceComp
                             std::shared_ptr<ParticleGroup> group,
 			    Scalar radial_force,
 			    Scalar tagential_force,
+			    Scalar lift,
 			    Scalar R);
 
     protected:

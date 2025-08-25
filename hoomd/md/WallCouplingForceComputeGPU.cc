@@ -20,8 +20,9 @@ WallCouplingForceComputeGPU::WallCouplingForceComputeGPU(std::shared_ptr<SystemD
                                                  std::shared_ptr<ParticleGroup> group,
 						 Scalar radial_force,
 						 Scalar tangential_force,
+						 Scalar lift,
 						 Scalar R)
-    : WallCouplingForceCompute(sysdef, group, radial_force, tangential_force, R)
+    : WallCouplingForceCompute(sysdef, group, radial_force, tangential_force, lift, R)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -66,6 +67,7 @@ void WallCouplingForceComputeGPU::setForces()
                                                   d_pos.data,
                                                   m_radial_force,
                                                   m_tangential_force,
+                                                  m_lift_force,
                                                   m_R,
                                                   N,
                                                   m_tuner->getParam()[0]);

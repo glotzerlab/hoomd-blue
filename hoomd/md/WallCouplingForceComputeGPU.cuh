@@ -25,6 +25,7 @@ hipError_t gpu_compute_wall_coupling_force_set_forces(const unsigned int group_s
                                                  const Scalar4* d_pos,
                                                  const Scalar r_f,
                                                  const Scalar t_f,
+                                                 const Scalar l_f,
                                                  const Scalar R,
                                                  const unsigned int N,
                                                  unsigned int block_size);
