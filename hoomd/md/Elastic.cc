@@ -12,6 +12,50 @@ namespace hoomd
 namespace md
     {
 
+void Elastic::setParams(unsigned int type, const ElasticCoefficients& params)
+	
+	{
+	// make sure the type is valid
+	if (type >= m_tetrahedron_data->getNTypes())
+		{
+		throw std::runtime_error("Invalid tetrahedron type.");
+		}
+
+	// set parameters in m_params
+	ArrayHandle<ElasticCoefficients> h_params(m_params, access_location::host, access_mode::overwrite);
+	h_params.data[type] = params;
+	}
+
+void Elastic::setParamsPython(std::string type_name, pybind11::dict params)
+	{
+	auto type_id = m_tetrahedron_data->getTypeByName(type_name);
+	
+	ElasticCoefficients tetra_params;
+	tetra_params.elastic_coeff_1 = params["C_xxxx"].cast<Scalar>();
+	tetra_params.elastic_coeff_2 = params["C_xxyy"].cast<Scalar>();
+	tetra_params.elastic_coeff_3 = params["C_xyxy"].cast<Scalar>();
+	
+	setParams(type_id, tetra_params);
+	}		
+
+pybind11::dict Elastic::getParams(std::string type_name)
+	{
+	auto type_id = m_tetrahedron_data->getTypeByName(type_name);
+	// make sure the type is valid
+	if (type_id >= m_tetrahedron_data->getNTypes())
+		{
+		throw std::runtime_error("Invalid tetrahedron type.");
+		}	
+	
+	ArrayHandle<ElasticCoefficients> h_params(m_params, access_location::host, access_mode::read);
+	auto val = h_params.data[type_id];
+	pybind11::dict params;
+	params["C_xxxx"] = val.elastic_coeff_1;
+	params["C_xxyy"] = val.elastic_coeff_2;
+	params["C_xyxy"] = val.elastic_coeff_3;
+	return params;
+	}
+
 void Elastic::setReference(pybind11::array_t<Scalar> reference_positions,
                            pybind11::array_t<unsigned int> reference_tags)
     {
@@ -253,63 +297,116 @@ void Elastic::computeForces(uint64_t timestep)
 		vec3<Scalar> fz = vec3<Scalar>(0,0,0);
 
 
-		ElasticCoefficients c = ;
+		ElasticCoefficients elastic_param_c = h_params.data[m_tetrahedron_data->getTypeByIndex(i)];
 
 		auto minv1 = inverse_matrix_row_0;
 		auto minv2 = inverse_matrix_row_1;
 		auto minv3 = inverse_matrix_row_2;
 
 
-		fx += -2.0 * c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * (1.0 + a.x);
-		fx += -2.0 * c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * a.y;
-		fx += -2.0 * c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * a.z;
-		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * a.y;
-		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * (1.0 + a.x);
-		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * a.z;
-		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * a.y;
-		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * (1.0 + a.x);
-		fx += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * a.z;
-		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * (1.0 + a.x);
-		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * a.y;
-		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * a.y;
-		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * a.z;
-		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * (1.0 + a.x);
-		fx += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
+		fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * (1.0 + a.x);
+		fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * a.y;
+		fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * a.z;
+		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * a.y;
+		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * (1.0 + a.x);
+		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * a.z;
+		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * a.y;
+		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * (1.0 + a.x);
+		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * a.z;
+		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * (1.0 + a.x);
+		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * a.y;
+		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * a.y;
+		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * a.z;
+		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * (1.0 + a.x);
+		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
 
-		fy += -2.0 * c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * b.x;
-		fy += -2.0 * c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * (1.0+b.y);
-		fy += -2.0 * c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * b.z;
-		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * (1.0 + b.y);
-		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * b.x;
-		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * b.z;
-		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * (1.0 + b.y);
-		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * b.x;
-		fy += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * b.z;
-		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * b.x;
-		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * (1.0 + b.y);
-		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * (1.0 + b.y);
-		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * b.z;
-		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * b.x;
-		fy += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
+		fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * b.x;
+		fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * (1.0+b.y);
+		fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * b.z;
+		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * (1.0 + b.y);
+		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * b.x;
+		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * b.z;
+		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * (1.0 + b.y);
+		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * b.x;
+		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * b.z;
+		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * b.x;
+		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * (1.0 + b.y);
+		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * (1.0 + b.y);
+		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * b.z;
+		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * b.x;
+		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
 		
-		fz += -2.0 * c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * c.x;
-		fz += -2.0 * c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * c.y;
-		fz += -2.0 * c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * (1.0 + c.z);
-		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * c.y;
-		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * c.x;
-		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * (1.0 + c.z);
-		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * c.y;
-		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * c.x;
-		fz += -2.0 * c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * (1.0 + c.z);
-		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * c.x;
-		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * c.y;
-		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * c.y;
-		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * (1.0 + c.z);
-		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * c.x;
-		fz += -4.0 * c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * (1.0 + c.z);
+		fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * c.x;
+		fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * c.y;
+		fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * (1.0 + c.z);
+		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * c.y;
+		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * c.x;
+		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * (1.0 + c.z);
+		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * c.y;
+		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * c.x;
+		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * (1.0 + c.z);
+		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * c.x;
+		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * c.y;
+		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * c.y;
+		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * (1.0 + c.z);
+		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * c.x;
+		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * (1.0 + c.z);
 
+		// Compute total energy and assign one fouth on each particle
+		Scalar e_total = elastic_param_c.elastic_coeff_1 * (
+						  strain_tensor[0][0]*strain_tensor[0][0] 
+						+ strain_tensor[1][1]*strain_tensor[1][1] 
+						+ strain_tensor[2][2]*strain_tensor[2][2]
+						)
+				+ 2 * elastic_param_c.elastic_coeff_2 * (
+						  strain_tensor[0][0] * strain_tensor[1][1]
+						+ strain_tensor[1][1] * strain_tensor[2][2]
+						+ strain_tensor[2][2] * strain_tensor[0][0]
+						)
+				+ 4 * elastic_param_c.elastic_coeff_3 * (
+						  strain_tensor[0][1] * strain_tensor[0][1]
+						+ strain_tensor[1][2] * strain_tensor[1][2]
+						+ strain_tensor[2][0] * strain_tensor[2][0]
+						);
+							
+		
+		// Store the forces with w component storing energy of particle
+		h_force.data[idx_0].x += fx.x;
+		h_force.data[idx_0].y += fy.x;
+		h_force.data[idx_0].z += fz.x;
+		h_force.data[idx_0].w += e_total * 0.25;
+		
+		h_force.data[idx_1].x += fx.y;
+		h_force.data[idx_1].y += fy.y;
+		h_force.data[idx_1].z += fz.y;
+		h_force.data[idx_1].w += e_total * 0.25;
+		
+		h_force.data[idx_2].x += fx.z;
+		h_force.data[idx_2].y += fy.z;
+		h_force.data[idx_2].z += fz.z;
+		h_force.data[idx_2].w += e_total * 0.25;
+		
+		// force for fourth vertex follows N2L, negative of sum of other vertices.
+		h_force.data[idx_3].x += -(fx.x + fx.y + fx.z);
+		h_force.data[idx_3].y += -(fy.x + fy.y + fy.z);
+		h_force.data[idx_3].z += -(fz.x + fz.y + fz.z);	
+		h_force.data[idx_3].w += e_total * 0.25;
+		
 		}
     }
 
+namespace detail
+	{
+	void export_Elastic(pybind11::module& m)
+	{
+	pybind11::class_<Elastic, ForceCompute, std::shared_ptr<Elastic>>(m, "Elastic")
+	.def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<TetrahedronData>,pybind11::array_t<Scalar>>())
+	.def("setParams", &Elastic::setParamsPython)
+	.def("getParams", &Elastic::getParams);
+	}
+	}
+
     } // namespace md
     } // namespace hoomd
+	  //
+
