@@ -32,10 +32,11 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
     //! Constructs the compute
     Elastic(std::shared_ptr<SystemDefinition> sysdef,
             std::shared_ptr<TetrahedronData> meshdef,
-            pybind11::array_t<Scalar> reference_positions);
+            pybind11::array_t<Scalar> reference_positions,
+            pybind11::array_t<unsigned int> reference_tags);
 
     //! Destructor
-    virtual ~Elastic();
+    virtual ~Elastic(){};
 
     //! Set the parameters of the tetrahedra types
     virtual void setParams(unsigned int type, const ElasticCoefficients& params);

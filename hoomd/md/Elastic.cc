@@ -12,6 +12,17 @@ namespace hoomd
 namespace md
     {
 
+Elastic::Elastic(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<TetrahedronData> meshdef,
+            pybind11::array_t<Scalar> reference_positions,
+            pybind11::array_t<unsigned int> reference_tags): ForceCompute(sysdef){
+            m_tetrahedron_data = meshdef;
+            setReference(reference_positions, reference_tags);
+
+            GPUArray<ElasticCoefficients> params(m_tetrahedron_data->getNTypes(), m_exec_conf);
+            m_params.swap(params);
+            }
+
 void Elastic::setParams(unsigned int type, const ElasticCoefficients& params)
 	
 	{
@@ -400,7 +411,7 @@ namespace detail
 	void export_Elastic(pybind11::module& m)
 	{
 	pybind11::class_<Elastic, ForceCompute, std::shared_ptr<Elastic>>(m, "Elastic")
-	.def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<TetrahedronData>,pybind11::array_t<Scalar>>())
+	.def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<TetrahedronData>,pybind11::array_t<Scalar>, pybind11::array_t<unsigned int>>())
 	.def("setParams", &Elastic::setParamsPython)
 	.def("getParams", &Elastic::getParams);
 	}
