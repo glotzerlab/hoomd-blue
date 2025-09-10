@@ -199,23 +199,23 @@ class PatchEnvelope
         {
         // common calculations
 
-        Scalar f_min, f_max, f_max_min_inv;
+        //Scalar f_min, f_max, f_max_min_inv;
 
-        f_min = Scalar(1.0) / (Scalar(1.0 + fast::exp(-params.omega * (-1 - params.cosalpha))));
-        f_max = Scalar(1.0) / (Scalar(1.0 + fast::exp(-params.omega * (1 - params.cosalpha))));
+        //f_min = Scalar(1.0) / (Scalar(1.0 + fast::exp(-params.omega * (-1 - params.cosalpha))));
+        //f_max = Scalar(1.0) / (Scalar(1.0 + fast::exp(-params.omega * (1 - params.cosalpha))));
 
-        f_max_min_inv = 1 / (f_max - f_min);
+        //f_max_min_inv = 1 / (f_max - f_min);
 
         Scalar fi = Scalar(1.0) / (Scalar(1.0) + exp_neg_omega_times_cos_theta_i_minus_cos_alpha);
-        Scalar dfi_du = params.omega * exp_neg_omega_times_cos_theta_i_minus_cos_alpha
-                        * f_max_min_inv * fi * fi;
+        Scalar dfi_du = params.omega * exp_neg_omega_times_cos_theta_i_minus_cos_alpha *fi *fi;
+                        //* f_max_min_inv * fi * fi;
         // normalize the modulator function
-        fi = (fi - f_min) * f_max_min_inv;
+        //fi = (fi - f_min) * f_max_min_inv;
 
         Scalar fj = Scalar(1.0) / (Scalar(1.0) + exp_neg_omega_times_cos_theta_j_minus_cos_alpha);
-        Scalar dfj_du = params.omega * exp_neg_omega_times_cos_theta_j_minus_cos_alpha
-                        * f_max_min_inv * fj * fj;
-        fj = (fj - f_min) * f_max_min_inv;
+        Scalar dfj_du = params.omega * exp_neg_omega_times_cos_theta_j_minus_cos_alpha *fj *fj;
+                        //* f_max_min_inv * fj * fj;
+        //fj = (fj - f_min) * f_max_min_inv;
 
 	if( params.additive)
         	envelope = 0.5*(fi + fj);

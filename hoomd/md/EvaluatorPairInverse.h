@@ -131,14 +131,14 @@ class EvaluatorPairInverse
         if (rsq < rcutsq && epsilon != 0)
             {
             Scalar rinv = fast::rsqrt(rsq);
-            pair_eng = epsilon * fast::pow(rinv,-kappa);
+            pair_eng = epsilon * fast::pow(rinv,kappa);
 
             force_divr = kappa * rinv * rinv * pair_eng;
 
             if (energy_shift)
                 {
                 Scalar rcutinv = fast::rsqrt(rcutsq);
-                Scalar rcutinv_kappa = fast::pow(rcutinv,-kappa);
+                Scalar rcutinv_kappa = fast::pow(rcutinv,kappa);
                 pair_eng -= epsilon * rcutinv_kappa;
                 }
             return true;
