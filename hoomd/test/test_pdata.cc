@@ -416,62 +416,299 @@ UP_TEST(BoxDim_triclinic_test)
     }
 
 //! Test box deformation methods
-UP_TEST(BoxDim_deformation_test)
+// define a helper function
+static void deforming_box_test(const Scalar3& L,
+                               const Scalar3& tilt,
+                               const Scalar3& L_rate,
+                               const Scalar3& tilt_rate,
+                               const Scalar3& pos,
+                               const Scalar3& vel,
+                               const Scalar3& wrap_pos,
+                               const Scalar3& wrap_vel,
+                               const Scalar3& minImage_pos,
+                               const Scalar3& minImage_vel)
     {
-    BoxDim b(5.0);
+    // make box
+    BoxDim b(L);
+    b.setTiltFactors(tilt.x, tilt.y, tilt.z);
+    b.setLDeformationRate(L_rate);
+    b.setTiltDeformationRates(tilt_rate.x, tilt_rate.y, tilt_rate.z);
 
     Scalar tol = Scalar(1e-4);
 
-    Scalar xy = 1.0;
-    Scalar xz = .4;
-    Scalar yz = .9;
+    // for wrap method - check positions and velocities
+    Scalar3 test_pos = pos;
+    Scalar3 test_vel = vel;
+    int3 img = make_int3(0, 0, 0);
+
+    b.wrap(test_pos, test_vel, img);
+
+    MY_CHECK_CLOSE(test_pos.x, wrap_pos.x, tol);
+    MY_CHECK_CLOSE(test_pos.y, wrap_pos.y, tol);
+    MY_CHECK_CLOSE(test_pos.z, wrap_pos.z, tol);
+    MY_CHECK_CLOSE(test_vel.x, wrap_vel.x, tol);
+    MY_CHECK_CLOSE(test_vel.y, wrap_vel.y, tol);
+    MY_CHECK_CLOSE(test_vel.z, wrap_vel.z, tol);
+
+    // for minImage method - check positions and velocities
+    test_pos = pos;
+    test_vel = vel;
+
+    b.minImage(test_pos, test_vel);
+
+    MY_CHECK_CLOSE(test_pos.x, minImage_pos.x, tol);
+    MY_CHECK_CLOSE(test_pos.y, minImage_pos.y, tol);
+    MY_CHECK_CLOSE(test_pos.z, minImage_pos.z, tol);
+    MY_CHECK_CLOSE(test_vel.x, minImage_vel.x, tol);
+    MY_CHECK_CLOSE(test_vel.y, minImage_vel.y, tol);
+    MY_CHECK_CLOSE(test_vel.z, minImage_vel.z, tol);
+    }
+
+// begin tests
+UP_TEST(BoxDim_deform_test)
+    {
+    // first test functionality of box deformation methods
+    BoxDim box(10);
+
+    Scalar tol = Scalar(1e-4);
     Scalar xy_rate = .1;
     Scalar xz_rate = .3;
     Scalar yz_rate = .5;
     Scalar3 L_rate = make_scalar3(.2, .4, .6);
 
-    b.setTiltFactors(xy, xz, yz);
-    b.setTiltDeformationRates(xy_rate, xz_rate, yz_rate);
-    b.setLDeformationRate(L_rate);
+    box.setTiltDeformationRates(xy_rate, xz_rate, yz_rate);
+    box.setLDeformationRate(L_rate);
 
-    // test the equivalence of the original and modified minImage methods
-    Scalar3 p_old = make_scalar3(1.0, 3.0, -3.0);
-    Scalar3 p_new = p_old;
-    Scalar3 vel = make_scalar3(0.5, 2.5, -1.5);
+    MY_CHECK_CLOSE(box.getTiltDeformationRateXY(), xy_rate, tol);
+    MY_CHECK_CLOSE(box.getTiltDeformationRateXZ(), xz_rate, tol);
+    MY_CHECK_CLOSE(box.getTiltDeformationRateYZ(), yz_rate, tol);
+    MY_CHECK_CLOSE(box.getLDeformationRate().x, L_rate.x, tol);
+    MY_CHECK_CLOSE(box.getLDeformationRate().y, L_rate.y, tol);
+    MY_CHECK_CLOSE(box.getLDeformationRate().z, L_rate.z, tol);
 
-    p_old = b.minImage(p_old);
-    b.minImage(p_new, vel);
+    // starting deformation test with a cubic box
+    // non-deforming
+    deforming_box_test({5, 5, 5},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1, -2, 2},
+                       {3, -2, 4},
+                       {1, -2, 2},
+                       {3, -2, 4});
+    // tilted in xy; non-deforming
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0, 0},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {0.5, -2, 2},
+                       {3, -2, 4},
+                       {0.5, -2, 2},
+                       {3, -2, 4});
+    // tilted in xy, xz; non-deforming
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -2, 2},
+                       {3, -2, 4},
+                       {1.5, -2, 2},
+                       {3, -2, 4});
+    // tilted in xy, xz, yz; non-deforming
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3, -2, 4});
+    // tilted in xy, xz, yz; deforming in xy
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0, 0, 0},
+                       {0.1, 0, 0},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {2.5, -2, 4},
+                       {1.5, -0.5, 2},
+                       {2.5, -2, 4});
+    // tilted in xy, xz, yz; deforming in xy, xz
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0, 0, 0},
+                       {0.1, 0.2, 0},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -2, 4});
+    // tilted in xy, xz, yz; deforming in xy, xz, yz
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0, 0, 0},
+                       {0.1, 0.2, 0.3},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.5, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.5, 4});
+    // tilted in xy, xz, yz; deforming in all tilts and Lx
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0.01, 0, 0},
+                       {0.1, 0.2, 0.3},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.5, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.5, 4});
+    // tilted in xy, xz, yz; deforming in all tilts, Lx and Ly
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0.01, 0.02, 0},
+                       {0.1, 0.2, 0.3},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.52, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.52, 4});
+    // tilted in xy, xz, yz; deforming in all tilts and all L
+    deforming_box_test({5, 5, 5},
+                       {0.1, 0.2, 0.3},
+                       {0.01, 0.02, 0.03},
+                       {0.1, 0.2, 0.3},
+                       {1, 3, -3},
+                       {3, -2, 4},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.52, 4.03},
+                       {1.5, -0.5, 2},
+                       {3.5, -0.52, 4.03});
 
-    MY_CHECK_CLOSE(p_old.x, p_new.x, tol);
-    MY_CHECK_CLOSE(p_old.y, p_new.y, tol);
-    MY_CHECK_CLOSE(p_old.z, p_new.z, tol);
-
-    // check the wrapped velocities
-    MY_CHECK_CLOSE(vel.x, 1.5, tol);
-    MY_CHECK_CLOSE(vel.y, 4.6, tol);
-    MY_CHECK_CLOSE(vel.z, -0.9, tol);
-
-    // test the equivalence of the original and modified wrap methods
-    p_old = make_scalar3(1.0, 3.0, -5.0);
-    p_new = p_old;
-    vel = make_scalar3(2.0, 5.0, -1.0);
-    int3 img_old = make_int3(1, 2, 3);
-    int3 img_new = img_old;
-
-    b.wrap(p_old, img_old);
-    b.wrap(p_new, vel, img_new);
-
-    MY_CHECK_CLOSE(p_old.x, p_new.x, tol);
-    MY_CHECK_CLOSE(p_old.y, p_new.y, tol);
-    MY_CHECK_CLOSE(p_old.z, p_new.z, tol);
-    MY_CHECK_CLOSE(img_old.x, img_new.x, tol);
-    MY_CHECK_CLOSE(img_old.y, img_new.y, tol);
-    MY_CHECK_CLOSE(img_old.z, img_new.z, tol);
-
-    // check the wrapped veloctities
-    MY_CHECK_CLOSE(vel.x, 3.2, tol);
-    MY_CHECK_CLOSE(vel.y, 7.1, tol);
-    MY_CHECK_CLOSE(vel.z, -0.4, tol);
+    // starting deformation with an orthogonal box
+    // non-deforming
+    deforming_box_test({5, 8, 10},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {-2, -3, 3},
+                       {3, -2, 4},
+                       {-2, -3, 3},
+                       {3, -2, 4});
+    // tilted in xy; non-deforming
+    deforming_box_test({5, 8, 10},
+                       {0.1, 0, 0},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {3.5, 5, -7},
+                       {3, -2, 4},
+                       {-2.3, -3, 3},
+                       {3, -2, 4},
+                       {-2.3, -3, 3},
+                       {3, -2, 4});
+    // tilted in xy, xz; non-deforming
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, -3, 3},
+                       {3, -2, 4},
+                       {0.2, -3, 3},
+                       {3, -2, 4});
+    // tilted in xy, xz, yz; non-deforming
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {0, 0, 0},
+                       {0, 0, 0},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {3, -2, 4});
+    // tilted in xy, xz, yz; deforming in xy
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {0, 0, 0},
+                       {0.1, 0, 0},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {2.2, -2, 4},
+                       {0.2, 0, 3},
+                       {2.2, -2, 4});
+    // tilted in xy, xz, yz; deforming in xy and xz
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {0, 0, 0},
+                       {0.1, 0.2, 0},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {4.2, -2, 4},
+                       {0.2, 0, 3},
+                       {4.2, -2, 4});
+    // tilted in xy, xz, yz; deforming in xy, xz and yz
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {0, 0, 0},
+                       {0.1, 0.2, -0.3},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5, 4});
+    // tilted in xy, xz, yz; deforming in all tilts and Lx
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {-0.01, 0, 0},
+                       {0.1, 0.2, -0.3},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5, 4});
+    // tilted in xy, xz, yz; deforming in all tilts, Lx and Ly
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {-0.01, 0.02, 0},
+                       {0.1, 0.2, -0.3},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5.02, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5.02, 4});
+    // tilted in xy, xz, yz; deforming in all tilts and all L
+    deforming_box_test({5, 8, 10},
+                       {0.1, -0.2, 0.3},
+                       {-0.01, 0.02, 0.03},
+                       {0.1, 0.2, -0.3},
+                       {3, 5, -7},
+                       {3, -2, 4},
+                       {0.2, 0, 3},
+                       {4.2, -5.02, 4.03},
+                       {0.2, 0, 3},
+                       {4.2, -5.02, 4.03});
     }
 
 //! Test operation of the particle data class
