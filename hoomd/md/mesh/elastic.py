@@ -15,22 +15,21 @@ class Elastic(Force):
 
     _ext_module = _md
 
-    ## TO DO: need to input mesh
-    def __init__(self, mesh):
+    def __init__(self, mesh, reference_tags):
         super().__init__()
 
         params = TypeParameter(
             "params",
-            "types", 
+            "_types", 
             TypeParameterDict(C_xxxx=float, C_xxyy=float, C_xyxy=float, len_keys=1)
             )
         
         self._add_typeparam(params)
         self._mesh = mesh
+        self._reference_tags = reference_tags
 
     def _attach_hook(self):
         """ Create the c++ mirror class."""
-        ## TO DO
 
         if self._mesh._attached and self._simulation != self._mesh._simulation:
             warnings.warn(
@@ -47,8 +46,17 @@ class Elastic(Force):
             self._simulation.state._cpp_sys_def, 
             self._mesh._cpp_obj, 
             self._mesh._reference_positions,
-            self._mesh._reference_tags
+            self._reference_tags
         )
+
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam._attach(cpp_obj, self._mesh)
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
+                )
 
 ## Reference mesh/potential.py, and Philipp's bending and helfrich potential to try to match. Another objcet to create that has a python interface. Writing Python interface. 
 

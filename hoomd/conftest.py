@@ -301,6 +301,31 @@ def fcc_snapshot_factory(device):
 
     return make_snapshot
 
+@pytest.fixture(scope="session")
+def mesh_snapshot_factory(device):
+    def make_snapshot(d=1.0, phi_deg=45, particle_types=["A"], L=20):
+        phi_rad = phi_deg * (numpy.pi / 180)
+        # the central particles are along the x-axis, so phi is determined from
+        # the angle in the yz plane.
+
+        s = hoomd.Snapshot(device.communicator)
+        N = 4
+        if s.communicator.rank == 0:
+            box = [L, L, L, 0, 0, 0]
+            s.configuration.box = box
+            s.particles.N = N
+            s.particles.types = particle_types
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[:] = [
+                [0.0, d * numpy.cos(phi_rad / 2), d * numpy.sin(phi_rad / 2) + 0.1],
+                [0.0, 0.0, 0.1],
+                [d, 0.0, 0.1],
+                [d, d * numpy.cos(phi_rad / 2), -d * numpy.sin(phi_rad / 2) + 0.1],
+            ]
+
+        return s
+
+    return make_snapshot
 
 @pytest.fixture(autouse=True)
 def skip_mpi(request):

@@ -62,23 +62,21 @@ class Mesh3D(_HOOMDBaseObject):
 
         Type: `dict`
     """
-    def __init__(self, positions, tetrahedra, types, type_id, reference_tags):
-        self._positions = positions
+    def __init__(self, reference_positions, tetrahedra, types, type_id):
+        self._reference_positions = reference_positions
         self._tetrahedra = tetrahedra
         self._types = types
         self._type_id = type_id
-        self._reference_tags = reference_tags
 
 
     def _attach_hook(self):
-        snapshot = _hoomd.TetrahedronDataSnapshot()
+        snapshot = _hoomd.TetrahedronDataSnapshot(len(self._tetrahedra))
         snapshot.types = self._types
-        snapshot.N = len(self._tetrahedra)
         snapshot.group[:] = self._tetrahedra
-        snapshot.group[:] = self._type_id
+        snapshot.typeid[:] = self._type_id
 
         self._cpp_obj = _hoomd.TetrahedronData(
-            self._simulation.state._cpp_sys_def, snapshot
+            self._simulation.state._cpp_sys_def.getParticleData(), snapshot
         )
 
         ## TO DO: mpi parallelization

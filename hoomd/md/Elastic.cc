@@ -209,9 +209,6 @@ void Elastic::computeForces(uint64_t timestep)
         m_tetrahedron_data->getMembersArray(),
         access_location::host,
         access_mode::read);
-    ArrayHandle<typeval_t> h_typeval(m_tetrahedron_data->getTypeValArray(),
-                                     access_location::host,
-                                     access_mode::read);
 
     unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
 

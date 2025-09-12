@@ -320,6 +320,7 @@ set(files box.py
           snapshot.py
           logging.py
           mesh.py
+          mesh3D.py
           version.py
           wall.py
           pytest.ini

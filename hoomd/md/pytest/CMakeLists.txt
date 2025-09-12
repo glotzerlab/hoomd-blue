@@ -13,6 +13,7 @@ set(files __init__.py
     test_constant_force.py
     test_custom_force.py
     test_dihedral.py
+    test_elastic.py
     test_external.py
     test_filter_md.py
     test_flags.py

@@ -5,9 +5,11 @@
 
 from .potential import MeshPotential
 from . import bending, bond, conservation
+from .elastic import Elastic
 
 __all__ = [
     "MeshPotential",
+    "Elastic",
     "bending",
     "bond",
     "conservation",
