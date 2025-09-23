@@ -20,7 +20,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - name: prek
-      uses: glotzerlab/workflows/prek@1fe577d5430222a9793694a14cdb316cf8f720e1 # 0.9.0
+      uses: glotzerlab/workflows/prek@894d9678188a02b06560fdeb2b9ba98d016cd371 # 0.10.0
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
