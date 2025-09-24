@@ -241,11 +241,11 @@ inline bool test_confined(const SphereWall& wall,
     {
         // Need to loop over all consituent particles in a shape union.
         // Then pass each of these components into their respective wall checks
-        // If any come back as overlaps/out of confinement then return true.
+        // If any come back as overlaps/out of confinement then return false.
 
         const detail::GPUTree& tree_i = shape.members.tree;
 
-
+        bool overlap_check;
         for(unsigned i = 0; i < shape.members.N; i++){
             unsigned int ishape = tree_i.getParticleByIndex(i);
 
@@ -257,20 +257,23 @@ inline bool test_confined(const SphereWall& wall,
 
             vec3<ShortReal> pos_i = vec3<Scalar>(shape.members.mpos[ishape]) + position;
 
-            bool overlap_check;
+            std::cout << "Diameter: " << shape_i.getCircumsphereDiameter() << "\tposition: [" << pos_i.x << ", " << pos_i.y << ", " << pos_i.z << "]" << std::endl;
+
             overlap_check = test_confined(wall,
                                           shape_i,
                                           pos_i,
                                           box_origin,
                                           box);
-            if(overlap_check){
-                return (overlap_check);
+            if(!overlap_check){
+                std::cout << "\tOUTSIDE" << std::endl;
+                return false;
             }
 
         }
 
-        return false;
+        std::cout << "It's confined!" << std::endl;
 
+        return true;
 
     }
 
