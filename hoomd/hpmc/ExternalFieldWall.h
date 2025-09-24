@@ -229,6 +229,52 @@ inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall,
     return wall.inside ? (wall.rsq > max_dist * max_dist) : (wall.rsq < max_dist * max_dist);
     }
 
+// Spherical Walls and ShapeUnions
+template<class Shape>
+//inline bool test_confined<SphereWall, ShapeUnion>(const SphereWall& wall,
+inline bool test_confined(const SphereWall& wall,
+                                                  //const ShapeUnion& shape,
+                                                  const ShapeUnion<Shape>& shape,
+                                                  const vec3<Scalar>& position,
+                                                  const vec3<Scalar>& box_origin,
+                                                  const BoxDim& box)
+    {
+        // Need to loop over all consituent particles in a shape union.
+        // Then pass each of these components into their respective wall checks
+        // If any come back as overlaps/out of confinement then return true.
+
+        const detail::GPUTree& tree_i = shape.members.tree;
+
+
+        for(unsigned i = 0; i < shape.members.N; i++){
+            unsigned int ishape = tree_i.getParticleByIndex(i);
+
+            const auto& params_i = shape.members.mparams[ishape];
+            Shape shape_i(quat<Scalar>(), params_i);
+
+            if (shape_i.hasOrientation())
+                shape_i.orientation = shape.members.morientation[ishape];
+
+            vec3<ShortReal> pos_i = vec3<Scalar>(shape.members.mpos[ishape]) + position;
+
+            bool overlap_check;
+            overlap_check = test_confined(wall,
+                                          shape_i,
+                                          pos_i,
+                                          box_origin,
+                                          box);
+            if(overlap_check){
+                return (overlap_check);
+            }
+
+        }
+
+        return false;
+
+
+    }
+
+
 // Spherical Walls and Convex Polyhedra
 inline bool test_confined(const SphereWall& wall,
                           const ShapeConvexPolyhedron& shape,

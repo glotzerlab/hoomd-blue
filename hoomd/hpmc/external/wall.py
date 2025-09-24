@@ -62,6 +62,9 @@ class _HPMCWallsMetaList(_WallsMetaList):
             hoomd.wall.Sphere, 
             hoomd.wall.Cylinder, 
             hoomd.wall.Plane],
+        hpmc.integrate.SphereUnion: [
+            hoomd.wall.Sphere, 
+        ],
     }
 
     def _check_wall_compatibility(self, wall):
