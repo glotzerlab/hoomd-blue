@@ -245,7 +245,11 @@ inline bool test_confined(const SphereWall& wall,
 
         const detail::GPUTree& tree_i = shape.members.tree;
 
+
+        //std::cout << "Checking a new shape! with position: [" << position.x << ", " << position.y << ", " << position.z << "]" << std::endl;
+
         bool overlap_check;
+        //bool to_return = true;
         for(unsigned i = 0; i < shape.members.N; i++){
             unsigned int ishape = tree_i.getParticleByIndex(i);
 
@@ -255,9 +259,15 @@ inline bool test_confined(const SphereWall& wall,
             if (shape_i.hasOrientation())
                 shape_i.orientation = shape.members.morientation[ishape];
 
-            vec3<ShortReal> pos_i = vec3<Scalar>(shape.members.mpos[ishape]) + position;
 
-            std::cout << "Diameter: " << shape_i.getCircumsphereDiameter() << "\tposition: [" << pos_i.x << ", " << pos_i.y << ", " << pos_i.z << "]" << std::endl;
+            vec3<ShortReal> pos_i(rotate(
+                quat<Scalar>(shape.orientation), 
+                vec3<Scalar>(shape.members.mpos[ishape])) + position
+            );
+ 
+            //vec3<ShortReal> pos_i = vec3<Scalar>(shape.members.mpos[ishape]) + position;
+
+            //std::cout << "\tDiameter: " << shape_i.getCircumsphereDiameter() << "\tposition: [" << pos_i.x << ", " << pos_i.y << ", " << pos_i.z << "]" << std::endl;
 
             overlap_check = test_confined(wall,
                                           shape_i,
@@ -265,14 +275,16 @@ inline bool test_confined(const SphereWall& wall,
                                           box_origin,
                                           box);
             if(!overlap_check){
-                std::cout << "\tOUTSIDE" << std::endl;
+                //std::cout << "\tOUTSIDE" << std::endl;
+                //to_return = false;
                 return false;
             }
 
         }
 
-        std::cout << "It's confined!" << std::endl;
+        //std::cout << "\tIt's confined!" << std::endl;
 
+        //return to_return;
         return true;
 
     }
