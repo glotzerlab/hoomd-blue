@@ -698,7 +698,8 @@ struct
 
         if (m_periodic.x)
             {
-            const Scalar tilt_x = (m_xz - m_xy * m_yz) * (pos.z - origin.z) + m_xy * (pos.y - origin.y);
+            const Scalar tilt_x
+                = (m_xz - m_xy * m_yz) * (pos.z - origin.z) + m_xy * (pos.y - origin.y);
             if (((pos.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
                 {
                 pos.x -= L.x;
