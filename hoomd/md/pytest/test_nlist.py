@@ -16,13 +16,13 @@ from hoomd.conftest import (
     pickling_check,
     autotuned_kernel_parameter_check,
 )
+import importlib.util
 
-try:
+MPI4PY_IMPORTED = (
+    hoomd.version.mpi_enabled and importlib.util.find_spec("mpi4py") is not None
+)
+if MPI4PY_IMPORTED:
     from mpi4py import MPI
-
-    MPI4PY_IMPORTED = True
-except ImportError:
-    MPI4PY_IMPORTED = False
 
 try:
     import cupy

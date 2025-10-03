@@ -70,6 +70,8 @@ struct RNGIdentifier
     static const uint8_t BussiThermostat = 45;
     static const uint8_t ConstantPressure = 46;
     static const uint8_t MPCDCellList = 47;
+    static const uint8_t MeshDynamicBondUpdateOrder = 48;
+    static const uint8_t MeshDynamicBondUpdater = 49;
     };
 
     } // namespace hoomd

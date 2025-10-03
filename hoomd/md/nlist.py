@@ -234,6 +234,8 @@ class NeighborList(Compute):
 
         self._in_context_manager = False
 
+        super().__init__()
+
     def _attach_hook(self):
         if self.mesh is not None:
             if self.mesh._attached and self._simulation != self.mesh._simulation:

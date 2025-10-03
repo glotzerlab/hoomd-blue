@@ -113,6 +113,7 @@ class FreeVolume(Compute):
             dict(test_particle_type=test_particle_type, num_samples=num_samples)
         )
         self._param_dict.update(param_dict)
+        super().__init__()
 
     def _attach_hook(self):
         integrator = self._simulation.operations.integrator
@@ -350,6 +351,7 @@ class SDF(Compute):
             dx=float(dx),
         )
         self._param_dict.update(param_dict)
+        super().__init__()
 
     def _attach_hook(self):
         integrator = self._simulation.operations.integrator

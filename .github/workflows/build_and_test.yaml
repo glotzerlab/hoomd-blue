@@ -120,26 +120,19 @@ jobs:
         apt-get update
         apt-get install git --yes
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: code
         submodules: true
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
+      uses: prefix-dev/setup-pixi@194d461b21b6c5717c722ffc597fa91ed2ff29fa # v0.9.1
       with:
-        micromamba-version: '2.0.2-2'
-        environment-name: test
-        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
-        post-cleanup: all
-        micromamba-root-path: ${{ github.workspace }}/micromamba
-
-    - name: Configure conda environment variables
-      run: |
-        echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
-        echo "CONDA_PREFIX=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
-        echo "CMAKE_PREFIX_PATH=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
-        echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
+        pixi-version: v0.54.1
+        cache: false
+        environments: py${{ inputs.python }}
+        activate-environment: true
+        manifest-path: code/pixi.toml
 
     - name: Set compiler
       if: ${{ inputs.compiler_family != 'cuda' }}
@@ -218,41 +211,29 @@ jobs:
         apt-get update
         apt-get install git --yes
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: code
 
     - name: Create Python Environment
-      uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
+      uses: prefix-dev/setup-pixi@194d461b21b6c5717c722ffc597fa91ed2ff29fa # v0.9.1
       with:
-        micromamba-version: '2.0.2-2'
-        environment-name: test
-        environment-file: code/.github/workflows/environments/py${{ inputs.python }}-conda-lock.yml
-        post-cleanup: all
-        micromamba-root-path: ${{ github.workspace }}/micromamba
+        pixi-version: v0.54.1
+        cache: false
+        environments: py${{ inputs.python }}
+        activate-environment: true
+        manifest-path: code/pixi.toml
 
     - name: Configure conda environment variables
       run: |
         echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
-        echo "CONDA_PREFIX=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
-        echo "CMAKE_PREFIX_PATH=$MAMBA_ROOT_PREFIX/envs/test" >> $GITHUB_ENV
-        echo "$MAMBA_ROOT_PREFIX/envs/test/bin" >> $GITHUB_PATH
 
     - name: Download install
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
     - name: Untar install
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
-
-    # Install cupy from PyPI to avoid pulling in CUDA from conda-forge. This would conflict
-    # with the CUDA provided by the NVIDIA container image.
-    # cupy 12.3.0 is the latest version that supports our oldest test GPUs - however, 12.3.0 does
-    # not support numpy 2.0. Uncomment the next block after the old GPUs are removed from the
-    # test runner pool.
-    # - name: Install cupy
-    #   if: ${{ contains(inputs.config, 'cuda') }}
-    #   run: uv pip install --no-deps fastrlock==0.8.2 cupy-cuda12x==12.3.0
 
     - name: Run nvidia-smi
       if: ${{ contains(inputs.config, 'cuda') }}
@@ -321,7 +302,7 @@ jobs:
         echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
     - name: Download build
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
     - name: Untar build

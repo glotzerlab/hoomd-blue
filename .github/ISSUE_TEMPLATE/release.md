@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release 5.3.1'
+title: 'Release 5.4.0'
 labels: ''
 assignees: 'joaander'
 
@@ -20,9 +20,9 @@ Minor and major releases:
 
 All releases:
 
+- [ ] Run *bump-my-version*.
 - [ ] Review change log.
 - [ ] Check readthedocs build, especially change log formatting.
-- [ ] Run *bumpversion*.
 - [ ] Tag and push.
 - [ ] Update conda-forge recipe.
 - [ ] Update *glotzerlab-software*.

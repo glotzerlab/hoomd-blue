@@ -89,6 +89,7 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
+            \\begin{align*}
             W_\\mathrm{isotropic} = & \\left(
             W_{\\mathrm{net},\\mathrm{additional}}^{xx}
             + W_{\\mathrm{net},\\mathrm{additional}}^{yy}
@@ -98,6 +99,7 @@ class ThermodynamicQuantities(Compute):
             + W_\\mathrm{{net},i}^{yy}
             + W_\\mathrm{{net},i}^{zz}
             \\right)
+            \\end{align*}
 
         where the net virial terms are computed by `hoomd.md.Integrator`
         over all of the forces in `hoomd.md.Integrator.forces` and

@@ -153,5 +153,24 @@ class Mesh(_HOOMDBaseObject):
             return 0
         return len(self.triangulation["triangles"])
 
+    def create_dynamical_bonding_updater(self, trigger, kT, forces=[]):
+        r"""Create a dynamical bonding updater for this mesh.
+
+        Args:
+            trigger (hoomd.trigger.trigger_like): Select the timesteps to triger bond
+                flip attempt.
+
+            kT (float): Temperature of the simulation :math:`[\mathrm{energy}]`.
+
+            forces (Sequence[hoomd.md.mesh.MeshPotential]): Sequence of mesh
+              potentials applied to the updater. The default value of ``None``
+              initializes an empty list.
+
+        Returns:
+            hoomd.md.update.MeshDynamicalBonding:
+                The dynamical bonding updater.
+        """
+        return hoomd.md.update.MeshDynamicalBonding(trigger, self, kT, forces)
+
 
 __all__ = ["Mesh"]

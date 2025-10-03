@@ -84,7 +84,7 @@ class Dipole(AnisotropicPair):
                 - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}
             \right) \\
         U_{ee} &= A e^{-\kappa r} \frac{q_i q_j}{r}
-        \end{split} \\
+        \end{split}
 
     Note:
        All units are documented electronic dipole moments. However, `Dipole`
@@ -139,6 +139,142 @@ class Dipole(AnisotropicPair):
             "params",
             "particle_types",
             TypeParameterDict(A=float, kappa=float, len_keys=2),
+        )
+        mu = TypeParameter(
+            "mu", "particle_types", TypeParameterDict((float, float, float), len_keys=1)
+        )
+        self._extend_typeparam((params, mu))
+
+
+class YLZ(AnisotropicPair):
+    r"""Yuan, Lee, Zhang (YLZ) potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+
+    The modulation function :math:`\psi` creates torques to align the
+    orientation of a pair of particles as function of their axis of
+    symmetry :math:`\mu` in their local reference frame.
+
+    1. A 2,4-Lennard-Jones potential truncated at its minimum :math:`r_{min}`.
+    2. A cosine potential defined between :math:`r_{min}` and :math:`r_{cut}`.
+
+
+    .. math::
+
+        U(r_{ij},\mu_{i},\mu_{j})=
+        \begin{cases}
+        u\left(r\right)+\left(1-\psi\left(\hat{r}_{ij},\mu_i,\mu_j\right)\right)
+        \epsilon & \text{if }r<r_{min}\\
+        u(r)\psi\left(\hat{r}_{ij},\mu_i,\mu_j\right)& \text{if }r_{min}<r<r_{cut}
+        \end{cases}
+
+    .. math::
+
+        \mathrm{u}(r)=
+        \begin{cases}
+        \epsilon\lbrack(\frac{r_{min}}{r})^{4}-2(\frac{r_{min}}{r})^{2}\rbrack
+        & \text{if }r<r_{min}\\
+        -\epsilon\ cos^{2\zeta}(\frac{\pi}{2}\frac{r-r_{min}}{r_{cut}-r_{min}})
+        & \text{if }r_{min}<r<r_{cut}
+        \end{cases}
+
+    .. math::
+
+        \psi = 1 + \beta(a-1)
+
+    .. math::
+
+        a = \mu_{i}\cdot \mu_{j}-\left(\mu_{i}\cdot\hat{r}_{ij}\right)
+        \left(\mu_{j}\cdot\hat{r}_{ij}\right)+\phi\left(\mu_{i}-\mu_{j}
+        \right)\cdot\hat{r}_{ij}-\phi^2
+
+    The modulation function :math:`\psi` introduces torques that align particle
+    orientations with respect to their symmetry axes :math:`\mu`.
+
+
+    The potential was introduced in `Hongyan Yuan, Changjin Huang, Ju Li,
+    George Lykotrafitis, and Sulin Zhang 2010`_.
+
+    .. _Hongyan Yuan, Changjin Huang, Ju Li, George Lykotrafitis, and Sulin Zhang 2010:
+        http://dx.doi.org/10.1103/PhysRevE.82.011905
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        ylz = hoomd.md.pair.aniso.YLZ(nlist = neighbor_list,
+                                              default_r_cut = 2.6)
+
+        ylz_params = {'eps': 1.0, 'phi': 0.0, 'beta': 1.774532,
+                        'rmin':1.122, 'twozeta': int(4)}
+
+        ylz.params.default = ylz_params
+        ylz.mu.default = (0, 0, 1)
+        simulation.operations.integrator.forces = [ylz]
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `YLZ`:
+
+    .. py:attribute:: params
+
+        The YLZ potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``params`` (`dict`, **required**)
+
+          * ``eps`` (`float`) -
+            energy parameter :math:`\epsilon` :math:`[\mathrm{energy}]`
+          * ``phi`` (`float`) -
+            parameter related to local curvature :math:`\phi`
+          * ``beta`` (`float`) -
+            weight of energy penalty for misoriented particles :math:`\beta`
+          * ``rmin`` (`float`) -
+            cutoff where the 4,2 LJ begins :math:`r_{min}` :math:`[\mathrm{length}]`
+          * ``twozeta`` (`float`) -
+            exponent of the cosine potential :math:`2\zeta`
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            ylz_params = {'eps': 1.0, 'phi': 0.0, 'beta': 1.774532,
+                            'rmin':1.12, 'twozeta':int(2)}
+            ylz.params[('A', 'A')] = ylz_params
+
+    .. py:attribute:: mu
+
+        :math:`\mu` - axis of symmetry in the local reference frame
+        (i.e. :math:`(\mu_x, \mu_y, \mu_z)`)
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float` ]]
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            ylz.mu['A'] = (1.0, 0.0, 0.0)
+
+    """
+
+    _cpp_class_name = "AnisoPotentialPairYLZ"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut, "none")
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                eps=float, phi=float, beta=float, rmin=float, twozeta=int, len_keys=2
+            ),
         )
         mu = TypeParameter(
             "mu", "particle_types", TypeParameterDict((float, float, float), len_keys=1)
@@ -1252,6 +1388,7 @@ class PatchyYukawa(Patchy):
 
 __all__ = [
     "ALJ",
+    "YLZ",
     "AnisotropicPair",
     "Dipole",
     "GayBerne",

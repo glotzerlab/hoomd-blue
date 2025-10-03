@@ -44,6 +44,7 @@ class _DynamicIntegrator(BaseIntegrator):
             raise ValueError("Rigid object can only belong to one integrator.")
         param_dict["rigid"] = rigid
         self._param_dict.update(param_dict)
+        super().__init__()
 
     def _attach_hook(self):
         self._forces._sync(self._simulation, self._cpp_obj.forces)
