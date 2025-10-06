@@ -1,0 +1,641 @@
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+#include "MeshForceCompute.h"
+#include "hoomd/GPUArray.h"
+#include <memory>
+
+#include <vector>
+
+/*! \file MeshTrianglePairForceCompute.h
+    \brief Declares MeshTrianglePairForceCompute
+*/
+
+#ifdef __HIPCC__
+#error This header cannot be compiled by nvcc
+#endif
+
+#include <pybind11/pybind11.h>
+
+#ifndef __POTENTIALBOND_H__
+#define __POTENTIALBOND_H__
+
+namespace hoomd
+    {
+namespace md
+    {
+/*! Bond potential with evaluator support
+
+    \ingroup computes
+*/
+template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceCompute
+    {
+    public:
+    //! Param type from evaluator
+    typedef typename evaluator::param_type param_type;
+
+    //! Constructs the compute
+    MeshTrianglePairForceCompute(std::shared_ptr<SystemDefinition> sysdef, 
+		  std::shared_ptr<NeighborList> nlist,
+                  std::shared_ptr<MeshDefinition> meshdef);
+
+    //! Destructor
+    virtual ~MeshTrianglePairForceCompute();
+
+    /// Set the parameters
+    virtual void setParams(unsigned int type, const param_type& param);
+    virtual void setParamsPython(std::string type, pybind11::dict param);
+
+    /// Get the parameters
+    pybind11::dict getParams(std::string type);
+
+    virtual void setRcut(unsigned int type, Scalar rcut);
+    /// Get the r_cut for a single type pair
+    Scalar getRCut(std::string type);
+    /// Set the rcut for a single type pair using a tuple of strings
+    virtual void setRCutPython(std::string type, Scalar r_cut);
+    //! Set ron for a single type pair
+    virtual void setRon(unsigned int type, Scalar ron);
+    /// Get the r_on for a single type pair
+    Scalar getROn(std::string type);
+    /// Set the r_on for a single type using a tuple of string
+    virtual void setROnPython(std::string type, Scalar r_on);
+
+    /// Validate bond type
+    virtual void validateType(unsigned int type, std::string action);
+
+    //! Shifting modes that can be applied to the energy
+    enum energyShiftMode
+        {
+        no_shift = 0,
+        shift,
+        xplor
+        };
+
+    //! Set the mode to use for shifting the energy
+    void setShiftMode(energyShiftMode mode)
+        {
+        m_shift_mode = mode;
+        }
+
+    void setShiftModePython(std::string mode)
+        {
+        if (mode == "none")
+            {
+            m_shift_mode = no_shift;
+            }
+        else if (mode == "shift")
+            {
+            m_shift_mode = shift;
+            }
+        else if (mode == "xplor")
+            {
+            m_shift_mode = xplor;
+            }
+        else
+            {
+            throw std::runtime_error("Invalid energy shift mode.");
+            }
+        }
+
+    /// Get the mode used for the energy shifting
+    std::string getShiftMode()
+        {
+        switch (m_shift_mode)
+            {
+        case no_shift:
+            return "none";
+        case shift:
+            return "shift";
+        case xplor:
+            return "xplor";
+        default:
+            throw std::runtime_error("Error setting shift mode.");
+            }
+        }
+
+    virtual void notifyDetach()
+        {
+        if (m_attached)
+            {
+            m_nlist->removeRCutMatrix(m_r_cut_nlist);
+            }
+        m_attached = false;
+        }
+
+#ifdef ENABLE_MPI
+    //! Get ghost particle fields requested by this pair potential
+    CommFlags getRequestedCommFlags(uint64_t timestep) override;
+#endif
+
+    protected:
+    std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
+    energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
+    GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared per type pair
+    GPUArray<Scalar> m_ronsq;     //!< ron squared per type pair
+    GPUArray<param_type> m_params;      //!< Bond parameters per type
+					//
+    /// Track whether we have attached to the Simulation object
+    bool m_attached = true;
+
+    /// r_cut (not squared) given to the neighbor list
+    std::shared_ptr<GPUArray<Scalar>> m_r_cut_nlist;
+
+    /// Keep track of number of each type of particle
+    std::vector<unsigned int> m_num_particles_by_type;
+
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
+
+    //! Actually compute the forces
+    void computeForces(uint64_t timestep) override;
+
+    }; // end class MeshTrianglePairForceCompute
+
+template<class evaluator>
+MeshTrianglePairForceCompute<evaluator>::MeshTrianglePairForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<NeighborList> nlist,
+                                        std::shared_ptr<MeshDefinition> meshdef)
+    : MeshForceCompute(sysdef, meshdef), m_nlist(nlist), m_shift_mode(no_shift)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
+                                << std::endl;
+    assert(m_pdata);
+    assert(m_nlist);
+
+    GPUArray<Scalar> rcutsq(m_pdata->getNTypes(), m_exec_conf);
+    m_rcutsq.swap(rcutsq);
+    GPUArray<Scalar> ronsq(m_pdata->getNTypes(), m_exec_conf);
+    m_ronsq.swap(ronsq);
+
+    // allocate the parameters
+    GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
+    m_params.swap(params);
+
+    m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_pdata->getNTypes(), m_exec_conf);
+    nlist->addRCutMatrix(m_r_cut_nlist);
+
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        {
+        // m_params is _always_ in unified memory, so memadvise and prefetch
+        cudaMemAdvise(m_params.data(),
+                      m_params.size() * sizeof(param_type),
+                      cudaMemAdviseSetReadMostly,
+                      0);
+        cudaMemPrefetchAsync(m_params.data(),
+                             sizeof(param_type) * m_params.size(),
+                             m_exec_conf->getGPUId());
+        }
+#endif
+
+    // get number of each type of particle, needed for energy and pressure correction
+    m_num_particles_by_type.resize(m_pdata->getNTypes());
+    std::fill(m_num_particles_by_type.begin(), m_num_particles_by_type.end(), 0);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+        m_num_particles_by_type[typeid_i] += 1;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // reduce number of each type of particle on all processors
+        MPI_Allreduce(MPI_IN_PLACE,
+                      m_num_particles_by_type.data(),
+                      m_pdata->getNTypes(),
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+#endif
+    }
+
+template<class evaluator> MeshTrianglePairForceCompute<evaluator>::~MeshTrianglePairForceCompute()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying MeshTrianglePairForceCompute<" << evaluator::getName() << ">"
+                                << std::endl;
+
+    if (m_attached)
+        {
+        m_nlist->removeRCutMatrix(m_r_cut_nlist);
+        }
+    }
+
+/*! \param type Type of the bond to set parameters for
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
+*/
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::validateType(unsigned int type, std::string action)
+    {
+    // make sure the type is valid
+    if (type >= m_pdata->getNTypes())
+        {
+        throw std::runtime_error("error in" + action + " for triangle pair potential. invalid type");
+        }
+    }
+
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::setParams(unsigned int type, const param_type& param)
+    {
+    // make sure the type is valid
+    validateType(type, "setting params");
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
+    h_params.data[type] = param;
+    }
+
+/*! \param types Type of the bond to set parameters for using string
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
+*/
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::setParamsPython(std::string type, pybind11::dict param)
+    {
+    auto itype = m_pdata->getTypeByName(type);
+    auto struct_param = param_type(param);
+    setParams(itype, struct_param);
+    }
+
+/*! \param types Type of the bond to set parameters for using string
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
+*/
+template<class evaluator>
+pybind11::dict MeshTrianglePairForceCompute<evaluator>::getParams(std::string type)
+    {
+    auto itype = m_pdata->getTypeByName(type);
+    validateType(itype, "getting params");
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    return h_params.data[itype].asDict();
+    }
+
+
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::setRcut(unsigned int type, Scalar rcut)
+    {
+    validateTypes(type, "setting r_cut");
+        {
+        // store r_cut**2 for use internally
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
+        h_rcutsq.data[type] = rcut * rcut;
+
+        // store r_cut unmodified for so the neighbor list knows what particles to include
+        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                          access_location::host,
+                                          access_mode::readwrite);
+        h_r_cut_nlist.data[type] = rcut;
+        }
+
+    // notify the neighbor list that we have changed r_cut values
+    m_nlist->notifyRCutMatrixChange();
+    }
+
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::setRCutPython(std::string type, Scalar r_cut)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    setRcut(typ, r_cut);
+    }
+
+template<class evaluator> Scalar MeshTrianglePairForceCompute<evaluator>::getRCut(std::string types)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    vanormal_dirdateTypes(typ, "getting r_cut.");
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+    return sqrt(h_rcutsq.data[typ]);
+    }
+
+/*! \param typ1 First type index in the pair
+    \param typ2 Second type index in the pair
+    \param ron XPLOR r_on radius to set
+    \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
+   automatically set.
+*/
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::setRon(unsigned int type, Scalar ron)
+    {
+    validateTypes(type, "setting r_on");
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
+    h_ronsq.data[type] = ron * ron;
+    }
+
+template<class evaluator> Scalar MeshTrianglePairForceCompute<evaluator>::getROn(std::string type)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    validateTypes(typ, "getting r_on");
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    return sqrt(h_ronsq.data[typ]);
+    }
+
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator>::setROnPython(std::string type, Scalar r_on)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    setRon(typ, r_on);
+    }
+
+
+/*! Actually perform the force computation
+    \param timestep Current time step
+ */
+template<class evaluator>
+void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t timestep)
+    {
+    // start by updating the neighborlist
+    m_nlist->compute(timestep);
+    
+    // depending on the neighborlist settings, we can take advantage of newton's third law
+    // to reduce computations at the cost of memory access complexity: set that flag now
+    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    
+    // access the neighbor list, particle data, and system box
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+    				    access_location::host,
+    				    access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+    				  access_location::host,
+    				  access_mode::read);
+    //     Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+    				access_location::host,
+    				access_mode::read);
+    
+    // access the particle data arrays
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
+
+    // access the parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+    // Zero data for force calculation
+    m_force.zeroFill();
+    m_virial.zeroFill();
+
+    // we are using the minimum image of the global box here
+    // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
+    // length)
+    const BoxDim box = m_pdata->getGlobalBox();
+
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
+
+    ArrayHandle<typename Angle::members_t> h_triangles(
+        m_mesh_data->getMeshTriangleData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
+
+
+    const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
+    for (unsigned int i = 0; i < size; i++)
+        {
+        const typename Angle::members_t& triangle = h_triangles.data[i];
+
+        unsigned int ttag_a = triangle.tag[0];
+        assert(ttag_a < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_b = triangle.tag[1];
+        assert(ttag_b < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_c = triangle.tag[2];
+        assert(ttag_c < m_pdata->getMaximumTag() + 1);
+
+	std::vector<unsigned int> idces(3);
+
+        unsigned int idces[0] = h_rtag.data[ttag_a];
+        unsigned int idces[1] = h_rtag.data[ttag_b];
+        unsigned int idces[2] = h_rtag.data[ttag_c];
+
+        assert(idces[0] < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idces[1] < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idces[2] < m_pdata->getN() + m_pdata->getNGhosts());
+
+        vec3<Scalar> pos_a(h_pos.data[idces[0]].x, h_pos.data[idces[0]].y, h_pos.data[idces[0]].z);
+        vec3<Scalar> pos_b(h_pos.data[idces[1]].x, h_pos.data[idces[1]].y, h_pos.data[idces[1]].z);
+        vec3<Scalar> pos_c(h_pos.data[idces[2]].x, h_pos.data[idces[2]].y, h_pos.data[idces[2]].z);
+
+        Scalar3 dab;
+        dab.x = pos_a.x - pos_b.x;
+        dab.y = pos_a.y - pos_b.y;
+        dab.z = pos_a.z - pos_b.z;
+
+        Scalar3 dac;
+        dac.x = pos_a.x - pos_c.x;
+        dac.y = pos_a.y - pos_c.y;
+        dac.z = pos_a.z - pos_c.z;
+
+        dab = box.minImage(dab);
+        dac = box.minImage(dac);
+
+        Scalar3 normal_dir;
+        normal_dir.x = dab.y * dac.z - dab.z * dac.y;
+        normal_dir.y = dab.z * dac.x - dab.x * dac.z;
+        normal_dir.z = dab.x * dac.y - dab.y * dac.x;
+
+	Scalar normal_norm = fast::rsqrt(dot(normal_dir,normal_dir.y));
+
+	normal_dir.x = normal_dir.x*normal_norm;
+	normal_dir.y = normal_dir.y*normal_norm;
+	normal_dir.z = normal_dir.z*normal_norm;
+
+	std::vector<unsigned int> combined_nlist;
+
+	for( unsigned int i_idx=0; i_idx<3; i_idx++)
+		{
+		unsigned int idx = idces[i_idx];
+            	const size_t myHead = h_head_list.data[idx];
+           	const unsigned int Nsize = (unsigned int)h_n_neigh.data[idx];
+            	for (unsigned int k = 0; k < size; k++)
+			{
+				unsigned int j = h_nlist.data[myHead + k];
+                		assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+				if( j == idces[0] || j == idces[1] || j == idces[2]):
+				       continue;
+				if( std::find(combined_nlist.begin(), combined_nlist.end(), j) == combined_nlist.end())
+					combined_nlist.push_back(j);
+			}
+		}
+
+
+         for (unsigned int k = 0; k < combined_nlist.size(); k++)
+                {
+                // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+                unsigned int j = combined_nlist[k];
+
+                // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+                Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+                Scalar3 dx = pos_a - pj;
+		
+                unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+                assert(typej < m_pdata->getNTypes());
+
+                // apply periodic boundary conditions
+                dx = box.minImage(dx);
+
+		Scalar dx_norm = dot(dx,normal_dir);
+
+                Scalar rsq = dx_norm*dx_norm;
+
+		Scalar3 dx_normal = normal_dir*dx_norm;
+
+		Scalar3 dx_tangential = dx - dx_normal;
+
+		Scalar3 normalXdx;
+        	normalXdx.x = normal_dir.y * dx_tangential.z - normal_dir.z * dx_tangential.y;
+        	normalXdx.y = normal_dir.z * dx_tangential.x - normal_dir.x * dx_tangential.z;
+        	normalXdx.z = normal_dir.x * dx_tangential.y - normal_dir.y * dx_tangential.x;
+
+		Scalar side1 = dot(normalXdx,dab);
+		Scalar side2 = dot(normalXdx,dac);
+
+		if(side1 > 0 or side2 < 0)
+			continue;
+
+		}
+
+
+
+
+
+
+        // lookup the tag of each of the particles participating in the bond
+        const typename Bonds::members_t& bond = h_bonds.data[i];
+        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
+
+        // transform a and b into indices into the particle data arrays
+        // (MEM TRANSFER: 4 integers)
+        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+
+        // throw an error if this bond is incomplete
+        if (idx_a >= max_local || idx_b >= max_local)
+            {
+            std::ostringstream stream;
+            stream << "Error: bond " << bond.tag[0] << " " << bond.tag[1] << " is incomplete.";
+            throw std::runtime_error(stream.str());
+            }
+
+        }
+    }
+
+template<class evaluator, class Bonds>
+Scalar MeshTrianglePairForceCompute<evaluator, Bonds>::energyDiff(unsigned int idx_a,
+                                                   unsigned int idx_b,
+                                                   unsigned int idx_c,
+                                                   unsigned int idx_d,
+                                                   unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    // access the parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+    Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+    Scalar3 posc = make_scalar3(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+    Scalar3 posd = make_scalar3(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+    Scalar3 xab = posb - posa;
+
+    Scalar3 xcd = posd - posc;
+
+    xab = box.minImage(xab);
+    xcd = box.minImage(xcd);
+
+    // calculate r_ab squared
+    Scalar rsqab = dot(xab, xab);
+    Scalar rsqcd = dot(xcd, xcd);
+
+    // compute the force and potential energy
+    Scalar force_divr = Scalar(0.0);
+    Scalar bond_eng1 = Scalar(0.0);
+    Scalar bond_eng2 = Scalar(0.0);
+    evaluator eval1(rsqab, h_params.data[type_id]);
+    evaluator eval2(rsqcd, h_params.data[type_id]);
+
+    eval1.evalForceAndEnergy(force_divr, bond_eng1);
+    bool evaluated = eval2.evalForceAndEnergy(force_divr, bond_eng2);
+
+    if (evaluated)
+        return (bond_eng2 - bond_eng1);
+    else
+        return DBL_MAX;
+    }
+
+#ifdef ENABLE_MPI
+/*! \param timestep Current time step
+ */
+template<class evaluator, class Bonds>
+CommFlags MeshTrianglePairForceCompute<evaluator, Bonds>::getRequestedCommFlags(uint64_t timestep)
+    {
+    CommFlags flags = CommFlags(0);
+
+    flags[comm_flag::tag] = 1;
+
+    if (evaluator::needsCharge())
+        flags[comm_flag::charge] = 1;
+
+    flags |= MeshForceCompute::getRequestedCommFlags(timestep);
+
+    return flags;
+    }
+#endif
+
+namespace detail
+    {
+//! Exports the MeshTrianglePairForceCompute class to python
+/*! \param name Name of the class in the exported python module
+    \tparam T Evaluator type to export.
+*/
+template<class T> void export_MeshTrianglePairForceCompute(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<MeshTrianglePairForceCompute<T, BondData>,
+                     MeshForceCompute,
+                     std::shared_ptr<MeshTrianglePairForceCompute<T, BondData>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setParams", &MeshTrianglePairForceCompute<T, BondData>::setParamsPython)
+        .def("getParams", &MeshTrianglePairForceCompute<T, BondData>::getParams);
+    }
+
+//! Exports the PotentialMeshBond class to python
+/*! \param name Name of the class in the exported python module
+    \tparam T Evaluator type to export.
+*/
+template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<MeshTrianglePairForceCompute<T, MeshBondData>,
+                     MeshForceCompute,
+                     std::shared_ptr<MeshTrianglePairForceCompute<T, MeshBondData>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
+        .def("setParams", &MeshTrianglePairForceCompute<T, MeshBondData>::setParamsPython)
+        .def("getParams", &MeshTrianglePairForceCompute<T, MeshBondData>::getParams);
+    }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
+#endif
