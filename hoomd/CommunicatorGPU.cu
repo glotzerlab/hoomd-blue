@@ -862,16 +862,24 @@ __global__ void gpu_pack_wrap_kernel(unsigned int n_out,
         }
 
     box.setPeriodic(periodic);
-    int3 img = make_int3(0, 0, 0);
-    if (d_img)
-        img = d_img[idx];
     Scalar4 postype = d_postype[idx];
-    Scalar4 vel = d_vel[idx];
-    box.wrap(postype, vel, img, wrap);
+    int3 img = make_int3(0, 0, 0);
+    if (out_img && d_img)
+        {
+        img = d_img[idx];
+        }
+    if (out_vel && d_vel)
+        {
+        Scalar4 vel = d_vel[idx];
+        box.wrap(postype, vel, img, wrap);
+        out_vel[buf_idx] = vel;
+        }
+    else
+        {
+        box.wrap(postype, img, wrap);
+        }
 
     out_pos[buf_idx] = postype;
-    out_vel[buf_idx] = vel;
-
     if (out_img)
         {
         out_img[buf_idx] = img;
@@ -932,10 +940,19 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                            d_tag,
                            d_tag_sendbuf);
         }
-    if (send_pos)
+    /*
+     * combined packing pathway for positions , velocities and images
+     * call gpu_pack_wrap_kernel whenever any of send_pos, send_vel and send_image is true
+     * for buffers that are not being sent, pass a nullptr to the respective output
+     */
+    if (send_pos || send_image || send_vel)
         {
         assert(d_pos);
         assert(d_pos_sendbuf);
+        if (send_vel)
+            {
+            assert(d_vel);
+            }
         if (send_image)
             {
             assert(d_img);
@@ -948,28 +965,14 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                            n_out,
                            d_ghost_idx_adj,
                            d_pos,
-                           d_vel,
-                           d_img,
+                           send_vel ? d_vel : 0,
+                           send_image ? d_img : 0,
                            d_pos_sendbuf,
-                           d_vel_sendbuf,
+                           send_vel ? d_vel_sendbuf : 0,
                            send_image ? d_img_sendbuf : 0,
                            di,
                            my_pos,
                            box);
-        }
-    if (send_vel)
-        {
-        assert(d_vel);
-        assert(d_vel_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_vel,
-                           d_vel_sendbuf);
         }
     if (send_charge)
         {
