@@ -705,6 +705,30 @@ inline bool test_confined(const PlaneWall& wall,
     return accept;
     }
 
+// Plane Walls and Polyhedra
+inline bool test_confined(const PlaneWall& wall,
+                          const ShapePolyhedron& shape,
+                          const vec3<Scalar>& position,
+                          const vec3<Scalar>& box_origin,
+                          const BoxDim& box)
+    {
+    bool accept = true;
+    Scalar3 t = vec_to_scalar3(position - box_origin);
+    vec3<Scalar> shifted_pos(box.minImage(t));
+
+    // Rotate and check all vertices directly from shape.data.verts
+    quat<Scalar> q(shape.orientation);
+    for (unsigned int i = 0; i < shape.data.n_verts && accept; i++)
+        {
+        vec3<Scalar> vert = vec3<Scalar>(shape.data.verts[i]);
+        vec3<Scalar> vert_rotated = rotate(q, vert) + shifted_pos;
+        Scalar dist = dot(vert_rotated, wall.normal) + wall.d;
+        accept = dist > 0;
+        }
+    
+    return accept;
+    }
+
 template<class Shape> class ExternalFieldWall : public ExternalPotential
     {
     using ExternalPotential::m_pdata;
