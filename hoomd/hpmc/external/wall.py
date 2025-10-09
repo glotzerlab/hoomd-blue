@@ -65,6 +65,9 @@ class _HPMCWallsMetaList(_WallsMetaList):
         hpmc.integrate.SphereUnion: [
             hoomd.wall.Sphere, 
         ],
+        hpmc.integrate.Polyhedron: [
+            hoomd.wall.Plane,
+        ]
     }
 
     def _check_wall_compatibility(self, wall):

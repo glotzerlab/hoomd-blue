@@ -1176,7 +1176,7 @@ class Polyhedron(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `Polyhedron` supports no `hoomd.wall` geometries.
+    `Polyhedron` supports the `hoomd.wall.Plane` geometry.
 
     Example::
 
