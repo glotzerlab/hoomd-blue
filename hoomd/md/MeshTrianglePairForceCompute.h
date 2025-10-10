@@ -55,11 +55,6 @@ template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceC
     /// Set the rcut for a single type pair using a tuple of strings
     virtual void setRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
-    virtual void setRon(unsigned int type, Scalar ron);
-    /// Get the r_on for a single type pair
-    Scalar getROn(std::string type);
-    /// Set the r_on for a single type using a tuple of string
-    virtual void setROnPython(std::string type, Scalar r_on);
 
     /// Validate bond type
     virtual void validateType(unsigned int type, std::string action);
@@ -132,7 +127,6 @@ template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceC
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
     GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared per type pair
-    GPUArray<Scalar> m_ronsq;     //!< ron squared per type pair
     GPUArray<param_type> m_params;      //!< Bond parameters per type
 					//
     /// Track whether we have attached to the Simulation object
@@ -160,15 +154,13 @@ MeshTrianglePairForceCompute<evaluator>::MeshTrianglePairForceCompute(std::share
                                         std::shared_ptr<MeshDefinition> meshdef)
     : MeshForceCompute(sysdef, meshdef), m_nlist(nlist), m_shift_mode(no_shift)
     {
-    m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
+    m_exec_conf->msg->notice(5) << "Constructing MeshTrianglePairForceCompute<" << evaluator::getName() << ">"
                                 << std::endl;
     assert(m_pdata);
     assert(m_nlist);
 
     GPUArray<Scalar> rcutsq(m_pdata->getNTypes(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_pdata->getNTypes(), m_exec_conf);
-    m_ronsq.swap(ronsq);
 
     // allocate the parameters
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
@@ -324,41 +316,11 @@ template<class evaluator> Scalar MeshTrianglePairForceCompute<evaluator>::getRCu
     return sqrt(h_rcutsq.data[typ]);
     }
 
-/*! \param typ1 First type index in the pair
-    \param typ2 Second type index in the pair
-    \param ron XPLOR r_on radius to set
-    \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
-   automatically set.
-*/
-template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::setRon(unsigned int type, Scalar ron)
-    {
-    validateTypes(type, "setting r_on");
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
-    h_ronsq.data[type] = ron * ron;
-    }
-
-template<class evaluator> Scalar MeshTrianglePairForceCompute<evaluator>::getROn(std::string type)
-    {
-    auto typ = m_pdata->getTypeByName(type);
-    validateTypes(typ, "getting r_on");
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
-    return sqrt(h_ronsq.data[typ]);
-    }
-
-template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::setROnPython(std::string type, Scalar r_on)
-    {
-    auto typ = m_pdata->getTypeByName(type);
-    setRon(typ, r_on);
-    }
-
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t timestep)
+void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -385,6 +347,7 @@ void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t time
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
+    size_t virial_pitch = m_virial.getPitch();
 
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
@@ -459,6 +422,7 @@ void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t time
 	normal_dir.y = normal_dir.y*normal_norm;
 	normal_dir.z = normal_dir.z*normal_norm;
 
+
 	std::vector<unsigned int> combined_nlist;
 
 	for( unsigned int i_idx=0; i_idx<3; i_idx++)
@@ -466,7 +430,7 @@ void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t time
 		unsigned int idx = idces[i_idx];
             	const size_t myHead = h_head_list.data[idx];
            	const unsigned int Nsize = (unsigned int)h_n_neigh.data[idx];
-            	for (unsigned int k = 0; k < size; k++)
+            	for (unsigned int k = 0; k < Nsize; k++)
 			{
 				unsigned int j = h_nlist.data[myHead + k];
                 		assert(j < m_pdata->getN() + m_pdata->getNGhosts());
@@ -477,6 +441,44 @@ void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t time
 			}
 		}
 
+        // initialize current particle force, potential energy, and virial to 0
+        Scalar3 fa = make_scalar3(0, 0, 0);
+        Scalar pea = 0.0;
+        Scalar virialxxa = 0.0;
+        Scalar virialxya = 0.0;
+        Scalar virialxza = 0.0;
+        Scalar virialyya = 0.0;
+        Scalar virialyza = 0.0;
+        Scalar virialzza = 0.0;
+
+        Scalar3 fb = make_scalar3(0, 0, 0);
+        Scalar peb = 0.0;
+        Scalar virialxxb = 0.0;
+        Scalar virialxyb = 0.0;
+        Scalar virialxzb = 0.0;
+        Scalar virialyyb = 0.0;
+        Scalar virialyzb = 0.0;
+        Scalar virialzzb = 0.0;
+
+        Scalar3 fc = make_scalar3(0, 0, 0);
+        Scalar pec = 0.0;
+        Scalar virialxxc = 0.0;
+        Scalar virialxyc = 0.0;
+        Scalar virialxzc = 0.0;
+        Scalar virialyyc = 0.0;
+        Scalar virialyzc = 0.0;
+        Scalar virialzzc = 0.0;
+
+        Scalar viriala[6];
+        Scalar virialb[6];
+        Scalar virialc[6];
+        for (unsigned int k = 0; k < 6; k++)
+	{
+            viriala[k] = Scalar(0.0);
+            virialb[k] = Scalar(0.0);
+            virialc[k] = Scalar(0.0);
+	}
+
 
          for (unsigned int k = 0; k < combined_nlist.size(); k++)
                 {
@@ -485,111 +487,138 @@ void MeshTrianglePairForceCompute<evaluator, Bonds>::computeForces(uint64_t time
 
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
                 Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-                Scalar3 dx = pos_a - pj;
+                Scalar3 daj = pos_a - pj;
+                Scalar3 dbj = pos_b - pj;
+                Scalar3 dcj = pos_c - pj;
+
+                // apply periodic boundary conditions
+                daj = box.minImage(daj);
+                dbj = box.minImage(dbj);
+                dcj = box.minImage(dcj);
+
+		Scalar3 dajbj = cross(aj,bj);
+		Scalar3 dbjcj = cross(bj,cj);
+		Scalar3 dcjaj = cross(cj,aj);
+
+		Scalar Area_a = dot(bjcj,normal_dir);
+		Scalar Area_b = dot(cjaj,normal_dir);
+		Scalar Area_c = dot(ajbj,normal_dir);
+
+		if( (Area_a + Area_b + Area_c)*normal_norm > 1)
+			continue;
+
 		
                 unsigned int typej = __scalar_as_int(h_pos.data[j].w);
                 assert(typej < m_pdata->getNTypes());
 
-                // apply periodic boundary conditions
-                dx = box.minImage(dx);
 
-		Scalar dx_norm = dot(dx,normal_dir);
+		Scalar daj_norm = dot(daj,normal_dir);
 
-                Scalar rsq = dx_norm*dx_norm;
+                Scalar rsq = daj_norm*daj_norm;
 
-		Scalar3 dx_normal = normal_dir*dx_norm;
+		Scalar3 dx = normal_dir*daj_norm;
 
-		Scalar3 dx_tangential = dx - dx_normal;
+                const param_type& param = m_params[typej];
+                Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
-		Scalar3 normalXdx;
-        	normalXdx.x = normal_dir.y * dx_tangential.z - normal_dir.z * dx_tangential.y;
-        	normalXdx.y = normal_dir.z * dx_tangential.x - normal_dir.x * dx_tangential.z;
-        	normalXdx.z = normal_dir.x * dx_tangential.y - normal_dir.y * dx_tangential.x;
+                bool energy_shift = false;
+                if (m_shift_mode == shift)
+                    energy_shift = true;
 
-		Scalar side1 = dot(normalXdx,dab);
-		Scalar side2 = dot(normalXdx,dac);
+                // compute the force and potential energy
+                Scalar force_divr = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+                evaluator eval(rsq, rcutsq, param);
+                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+                if (evaluated)
+                    {
+                    fa += dx * force_divr* Area_a;
+                    fb += dx * force_divr* Area_b;
+                    fc += dx * force_divr* Area_c;
+                    pea += pair_eng * Scalar(0.5)* Area_a;
+                    peb += pair_eng * Scalar(0.5)* Area_b;
+                    pec += pair_eng * Scalar(0.5)* Area_c;
+                    if (compute_virial)
+                        {
+                        viriala[0] += force_divr * Area_a * pos_a.x * dx.x;
+                        viriala[1] += force_divr * Area_a * pos_a.x * dx.y;
+                        viriala[2] += force_divr * Area_a * pos_a.x * dx.z;
+                        viriala[3] += force_divr * Area_a * pos_a.y * dx.y;
+                        viriala[4] += force_divr * Area_a * pos_a.y * dx.z;
+                        viriala[5] += force_divr * Area_a * pos_a.z * dx.z;
 
-		if(side1 > 0 or side2 < 0)
-			continue;
+                        virialb[0] += force_divr * Area_b * pos_b.x * dx.x;
+                        virialb[1] += force_divr * Area_b * pos_b.x * dx.y;
+                        virialb[2] += force_divr * Area_b * pos_b.x * dx.z;
+                        virialb[3] += force_divr * Area_b * pos_b.y * dx.y;
+                        virialb[4] += force_divr * Area_b * pos_b.y * dx.z;
+                        virialb[5] += force_divr * Area_b * pos_b.z * dx.z;
 
+                        virialc[0] += force_divr * Area_c * pos_c.x * dx.x;
+                        virialc[1] += force_divr * Area_c * pos_c.x * dx.y;
+                        virialc[2] += force_divr * Area_c * pos_c.x * dx.z;
+                        virialc[3] += force_divr * Area_c * pos_c.y * dx.y;
+                        virialc[4] += force_divr * Area_c * pos_c.y * dx.z;
+                        virialc[5] += force_divr * Area_c * pos_c.z * dx.z;
+                        }
+
+	            h_force.data[j].x -= dx.x * force_divr;
+	            h_force.data[j].y -= dx.y * force_divr;
+	            h_force.data[j].z -= dx.z * force_divr;
+	            h_force.data[j].w += pair_eng * Scalar(0.5);
+	            if (compute_virial)
+	                {
+	                h_virial.data[0 * virial_pitch + j]
+	            	+= force_div2r * dx.x * dx.x;
+	                h_virial.data[1 * virial_pitch + j]
+	            	+= force_div2r * dx.x * dx.y;
+	                h_virial.data[2 * virial_pitch + j]
+	            	+= force_div2r * dx.x * dx.z;
+	                h_virial.data[3 * virial_pitch + j]
+	            	+= force_div2r * dx.y * dx.y;
+	                h_virial.data[4 * virial_pitch + j]
+	            	+= force_div2r * dx.y * dx.z;
+	                h_virial.data[5 * virial_pitch + j]
+	            	+= force_div2r * dx.z * dx.z;
+	                }
+                    }
 		}
 
-
-
-
-
-
-        // lookup the tag of each of the particles participating in the bond
-        const typename Bonds::members_t& bond = h_bonds.data[i];
-        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
-        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
-
-        // transform a and b into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.tag[0]];
-        unsigned int idx_b = h_rtag.data[bond.tag[1]];
-
-        // throw an error if this bond is incomplete
-        if (idx_a >= max_local || idx_b >= max_local)
-            {
-            std::ostringstream stream;
-            stream << "Error: bond " << bond.tag[0] << " " << bond.tag[1] << " is incomplete.";
-            throw std::runtime_error(stream.str());
-            }
-
+            if (idx_a < m_pdata->getN())
+		    {
+		    h_force.data[idx_a].x += fa.x;
+		    h_force.data[idx_a].y += fa.y;
+		    h_force.data[idx_a].z += fa.z;
+		    h_force.data[idx_a].w += pea;
+            	    for (int j = 0; j < 6; j++)
+                	h_virial.data[j * virial_pitch + idx_a] += viriala[j];
+		    }
+            if (idx_b < m_pdata->getN())
+		    {
+		    h_force.data[idx_b].x += fb.x;
+		    h_force.data[idx_b].y += fb.y;
+		    h_force.data[idx_b].z += fb.z;
+		    h_force.data[idx_b].w += peb;
+            	    for (int j = 0; j < 6; j++)
+                	h_virial.data[j * virial_pitch + idx_b] += virialb[j];
+		    }
+            if (idx_c < m_pdata->getN())
+		    {
+		    h_force.data[idx_c].x += fc.x;
+		    h_force.data[idx_c].y += fc.y;
+		    h_force.data[idx_c].z += fc.z;
+		    h_force.data[idx_c].w += pec;
+            	    for (int j = 0; j < 6; j++)
+                	h_virial.data[j * virial_pitch + idx_c] += virialc[j];
+		    }
         }
-    }
-
-template<class evaluator, class Bonds>
-Scalar MeshTrianglePairForceCompute<evaluator, Bonds>::energyDiff(unsigned int idx_a,
-                                                   unsigned int idx_b,
-                                                   unsigned int idx_c,
-                                                   unsigned int idx_d,
-                                                   unsigned int type_id)
-    {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    // access the parameters
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
-    const BoxDim& box = m_pdata->getGlobalBox();
-
-    Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
-    Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
-    Scalar3 posc = make_scalar3(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
-    Scalar3 posd = make_scalar3(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
-
-    Scalar3 xab = posb - posa;
-
-    Scalar3 xcd = posd - posc;
-
-    xab = box.minImage(xab);
-    xcd = box.minImage(xcd);
-
-    // calculate r_ab squared
-    Scalar rsqab = dot(xab, xab);
-    Scalar rsqcd = dot(xcd, xcd);
-
-    // compute the force and potential energy
-    Scalar force_divr = Scalar(0.0);
-    Scalar bond_eng1 = Scalar(0.0);
-    Scalar bond_eng2 = Scalar(0.0);
-    evaluator eval1(rsqab, h_params.data[type_id]);
-    evaluator eval2(rsqcd, h_params.data[type_id]);
-
-    eval1.evalForceAndEnergy(force_divr, bond_eng1);
-    bool evaluated = eval2.evalForceAndEnergy(force_divr, bond_eng2);
-
-    if (evaluated)
-        return (bond_eng2 - bond_eng1);
-    else
-        return DBL_MAX;
-    }
+}
 
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-template<class evaluator, class Bonds>
-CommFlags MeshTrianglePairForceCompute<evaluator, Bonds>::getRequestedCommFlags(uint64_t timestep)
+template<class evaluator>
+CommFlags MeshTrianglePairForceCompute<evaluator>::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -612,26 +641,17 @@ namespace detail
 */
 template<class T> void export_MeshTrianglePairForceCompute(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<MeshTrianglePairForceCompute<T, BondData>,
+    pybind11::class_<MeshTrianglePairForceCompute<T>,
                      MeshForceCompute,
-                     std::shared_ptr<MeshTrianglePairForceCompute<T, BondData>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &MeshTrianglePairForceCompute<T, BondData>::setParamsPython)
-        .def("getParams", &MeshTrianglePairForceCompute<T, BondData>::getParams);
-    }
-
-//! Exports the PotentialMeshBond class to python
-/*! \param name Name of the class in the exported python module
-    \tparam T Evaluator type to export.
-*/
-template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
-    {
-    pybind11::class_<MeshTrianglePairForceCompute<T, MeshBondData>,
-                     MeshForceCompute,
-                     std::shared_ptr<MeshTrianglePairForceCompute<T, MeshBondData>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
-        .def("setParams", &MeshTrianglePairForceCompute<T, MeshBondData>::setParamsPython)
-        .def("getParams", &MeshTrianglePairForceCompute<T, MeshBondData>::getParams);
+                     std::shared_ptr<MeshTrianglePairForceCompute<T>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<NeighborList>,std::shared_ptr<MeshDefinition>>())
+        .def("setParams", &MeshTrianglePairForceCompute<T>::setParamsPython)
+        .def("getParams", &MeshTrianglePairForceCompute<T>::getParams);
+        .def("setRCut", &MeshTrianglePairForceCompute<T>::setRCutPython)
+        .def("getRCut", &MeshTrianglePairForceCompute<T>::getRCut)
+        .def_property("mode",
+                      &MeshTrianglePairForceCompute<T>::getShiftMode,
+                      &MeshTrianglePairForceCompute<T>::setShiftModePython)
     }
 
     } // end namespace detail
