@@ -53,16 +53,27 @@ void WallCouplingForceCompute::setForces()
 
 	Scalar dist2 = m_R + dist1;
 
-	dist1 = 1/(dist1*dist1*dist1);
-	dist2 = 1/(dist2*dist2*dist2);
-
-	pi.x /= norm;
-	pi.y /= norm;
+	if(norm == 0)
+	{
+		dist1 = 0;
+		dist2 = 0;
+		norm = 1;
+	}
+	
+	else
+	{
+		//dist1 = 1/(dist1*dist1*dist1);
+		//dist2 = 1/(dist2*dist2*dist2);
+		dist1 = 1/dist1;
+		dist2 = 1/dist2;
+	}
 
         vec3<Scalar> fi(0, 0, 0);
 
-	fi.x = (dist2-dist1)*(pi.x*m_radial_force + pi.y*m_tangential_force) + pi.x*m_lift_force;
-	fi.y = (dist2-dist1)*(pi.y*m_radial_force - pi.x*m_tangential_force) + pi.y*m_lift_force;
+	//fi.x = (dist2-dist1)*(pi.x*m_radial_force + pi.y*m_tangential_force) + pi.x*m_lift_force;
+	//fi.y = (dist2-dist1)*(pi.y*m_radial_force - pi.x*m_tangential_force) + pi.y*m_lift_force;
+	fi.x = (dist2-dist1)*pi.x*m_radial_force/norm + pi.y*m_tangential_force + pi.x*m_lift_force;
+	fi.y = (dist2-dist1)*pi.y*m_radial_force/norm - pi.x*m_tangential_force + pi.y*m_lift_force;
         h_force.data[idx] = vec_to_scalar4(fi, 0);
         }
     }

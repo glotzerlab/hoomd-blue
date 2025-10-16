@@ -786,6 +786,69 @@ class Shear(Force):
             self.m_s_f
         )
 
+class WallDistance(Force):
+    r"""WallDistance force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `WallDistance` applies a y-position dependent constant force on all
+    particles selected by the filter. `WallDistance` sets the force
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        shear = hoomd.md.force.WallDistance(filter=hoomd.filter.All(),max_shear_force=10)
+
+    Note:
+        The energy and virial associated with the shear force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `WallDistance`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply shear forces.
+        max_shear_force (`float`): maximal shear force magnitude at box
+            borders
+
+        WallDistance force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter, k, R):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+        self.k = k
+        self.R = R
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.WallDistanceForceCompute
+        else:
+            my_class = _md.WallDistanceForceComputeGPU
+
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+            self.k, self.R
+        )
+
 class WallCoupling(Force):
     r"""WallCoupling force.
 
@@ -858,5 +921,6 @@ __all__ = [
     "Custom",
     "Force",
     "Shear",
+    "WallDistance",
     "WallCoupling",
 ]
