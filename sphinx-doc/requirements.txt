@@ -20,7 +20,7 @@ bleach==6.2.0
     # via nbconvert
 certifi==2025.10.5
     # via requests
-charset-normalizer==3.4.3
+charset-normalizer==3.4.4
     # via requests
 decorator==5.2.1
     # via ipython
@@ -36,7 +36,7 @@ fastjsonschema==2.21.2
     # via nbformat
 furo==2025.9.25
     # via -r sphinx-doc/requirements.in
-idna==3.10
+idna==3.11
     # via requests
 imagesize==1.4.1
     # via sphinx
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.7
     # via -r sphinx-doc/requirements.in
-numpy==2.3.3
+numpy==2.3.4
     # via -r sphinx-doc/requirements.in
 packaging==25.0
     # via
@@ -124,7 +124,7 @@ python-dateutil==2.9.0.post0
     # via jupyter-client
 pyzmq==27.1.0
     # via jupyter-client
-referencing==0.36.2
+referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
