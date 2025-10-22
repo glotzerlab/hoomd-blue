@@ -260,7 +260,9 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
             unsigned int counter = 4;
 
-            for (unsigned int j = 0; j < 2; ++j)
+	    bool check_tic = true;
+
+            for (unsigned int j = 0; j < 2 && check_tic; ++j)
                 {
                 unsigned int bic = h_neigh_triags.data[tr_idx[j]].x;
                 unsigned int bic2 = h_neigh_triags.data[tr_idx[j]].y;
@@ -284,23 +286,36 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                     b_idx[2 * j + 1] = bic;
                     b_idx[2 * j] = bic2;
                     }
-                for (unsigned int k = 0; k < 2; ++k)
+                for (unsigned int k = 0; k < 2 && check_tic; ++k)
                     {
                     unsigned int tic = h_neigh_bonds.data[b_idx[2 * j + k]].x;
                     if (tic == tr_idx[j])
                         tic = h_neigh_bonds.data[b_idx[2 * j + k]].y;
-                    unsigned int zaehler = 1;
-                    unsigned int nv_idx = h_triangles.data[tic].tag[0];
-                    while (nv_idx == v_idx[k] || nv_idx == v_idx[2 + j])
-                        {
-                        nv_idx = h_triangles.data[tic].tag[zaehler];
-                        zaehler++;
-                        }
-                    v_idx[counter] = nv_idx;
-                    tr_idx[counter - 2] = tic;
-                    counter++;
+
+		    for(unsigned int kk = 2; kk < counter - 2 && check_tic; kk++)
+		    	{
+			if( tic == tr_idx[kk])
+				check_tic = false;
+			}
+
+		    if(check_tic)
+			{
+			    unsigned int zaehler = 1;
+			    unsigned int nv_idx = h_triangles.data[tic].tag[0];
+			    while (nv_idx == v_idx[k] || nv_idx == v_idx[2 + j])
+				{
+				nv_idx = h_triangles.data[tic].tag[zaehler];
+				zaehler++;
+				}
+			    v_idx[counter] = nv_idx;
+			    tr_idx[counter - 2] = tic;
+			    counter++;
+			}
                     }
                 }
+
+	    if(!check_tic)
+		    continue;
 
             if (have_to_check_surrounding)
                 {
