@@ -864,11 +864,11 @@ __global__ void gpu_pack_wrap_kernel(unsigned int n_out,
     box.setPeriodic(periodic);
     Scalar4 postype = d_postype[idx];
     int3 img = make_int3(0, 0, 0);
-    if (out_img && d_img)
+    if (out_img)
         {
         img = d_img[idx];
         }
-    if (out_vel && d_vel)
+    if (out_vel)
         {
         Scalar4 vel = d_vel[idx];
         box.wrap(postype, vel, img, wrap);
@@ -945,7 +945,7 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
      * call gpu_pack_wrap_kernel whenever any of send_pos, send_vel and send_image is true
      * for buffers that are not being sent, pass a nullptr to the respective output
      */
-    if (send_pos || send_image || send_vel)
+    if (send_pos || send_vel || send_image)
         {
         assert(d_pos);
         assert(d_pos_sendbuf);
@@ -965,8 +965,8 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                            n_out,
                            d_ghost_idx_adj,
                            d_pos,
-                           send_vel ? d_vel : 0,
-                           send_image ? d_img : 0,
+                           d_vel,
+                           d_img,
                            d_pos_sendbuf,
                            send_vel ? d_vel_sendbuf : 0,
                            send_image ? d_img_sendbuf : 0,

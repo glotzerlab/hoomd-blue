@@ -2390,7 +2390,7 @@ void Communicator::exchangeGhosts()
             }
 
         // wrap particle positions
-        if (flags[comm_flag::position])
+        if (flags[comm_flag::position] || flags[comm_flag::velocity])
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,
@@ -2407,11 +2407,18 @@ void Communicator::exchangeGhosts()
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
                 Scalar4& pos = h_pos.data[idx];
-                Scalar4& vel = h_vel.data[idx];
+                int3& img = h_image.data[idx];
 
                 // wrap particles received across a global boundary
-                int3& img = h_image.data[idx];
-                shifted_box.wrap(pos, vel, img);
+                if (flags[comm_flag::velocity])
+                    {
+                    Scalar4& vel = h_vel.data[idx];
+                    shifted_box.wrap(pos, vel, img);
+                    }
+                else
+                    {
+                    shifted_box.wrap(pos, img);
+                    }
                 }
             }
 
@@ -2966,7 +2973,7 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
             }
         // wrap particle positions (only if copying positions)
-        if (flags[comm_flag::position])
+        if (flags[comm_flag::position] || flags[comm_flag::velocity])
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,
@@ -2979,11 +2986,18 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
                 Scalar4& pos = h_pos.data[idx];
-                Scalar4& vel = h_vel.data[idx];
+                int3 img = make_int3(0, 0, 0);
 
                 // wrap particles received across a global boundary
-                int3 img = make_int3(0, 0, 0);
-                shifted_box.wrap(pos, vel, img);
+                if (flags[comm_flag::velocity])
+                    {
+                    Scalar4& vel = h_vel.data[idx];
+                    shifted_box.wrap(pos, vel, img);
+                    }
+                else
+                    {
+                    shifted_box.wrap(pos, img);
+                    }
                 }
             }
 
