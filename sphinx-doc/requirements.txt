@@ -57,7 +57,7 @@ jsonschema-specifications==2025.9.1
     # via jsonschema
 jupyter-client==8.6.3
     # via nbclient
-jupyter-core==5.8.1
+jupyter-core==5.9.1
     # via
     #   jupyter-client
     #   nbclient
@@ -130,7 +130,7 @@ referencing==0.37.0
     #   jsonschema-specifications
 requests==2.32.5
     # via sphinx
-rpds-py==0.27.1
+rpds-py==0.28.0
     # via
     #   jsonschema
     #   referencing
