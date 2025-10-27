@@ -2,6 +2,7 @@ set(files __init__.py
         external.py
         harmonic.py
         linear.py
+        orientation_field.py
         wall.py
  )
 

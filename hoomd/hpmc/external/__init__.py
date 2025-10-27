@@ -12,10 +12,12 @@ from .external import External
 from .linear import Linear
 from .harmonic import Harmonic
 from .wall import WallPotential
+from .orientation_field import OrientationField
 
 __all__ = [
     "External",
     "Harmonic",
     "Linear",
+    "OrientationField",
     "WallPotential",
 ]

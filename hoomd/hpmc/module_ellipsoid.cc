@@ -9,6 +9,7 @@
 #include "ShapeEllipsoid.h"
 
 #include "ExternalFieldWall.h"
+#include "external/ExternalFieldOrientation.h"
 
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
@@ -45,6 +46,7 @@ void export_ellipsoid(pybind11::module& m)
     export_ElasticShapeMove<ShapeEllipsoid>(m, "ElasticEllipsoid");
 
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
+    export_ExternalFieldOrientation<ShapeEllipsoid>(m, "ExternalFieldOrientationEllipsoid");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeEllipsoid>(m, "IntegratorHPMCMonoEllipsoidGPU");
