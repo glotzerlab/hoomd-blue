@@ -115,5 +115,4 @@ def test_sphere_stretch(device, simulation_factory):
 
     sim.run(0)
 
-
-    assert sim is not None
+    elastic.energy > 0
