@@ -22,7 +22,9 @@ def test_mesh_setter(device, simulation_factory):
     type_ids = [0, 1]
     reference_tags = [0,1,2,3,4]
 
-    mesh = Mesh3D(reference_positions, tetrahedra, types, type_ids, reference_tags)
+    #mesh = Mesh3D(reference_positions, tetrahedra, types, type_ids, reference_tags)
+    mesh = Mesh3D(reference_positions, tetrahedra, types, type_ids)
+
     snapshot = Snapshot(device.communicator)
     if snapshot.communicator.rank == 0:
         snapshot.particles.N = len(reference_positions)
