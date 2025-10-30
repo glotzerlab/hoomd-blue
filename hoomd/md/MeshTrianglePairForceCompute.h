@@ -411,12 +411,22 @@ void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
+        Scalar3 dbc = dac-dab;
+
+	Scalar normal_ab = fast::rsqrt(dot(dab,dab));
+	Scalar normal_ac = fast::rsqrt(dot(dac,dac));
+	Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
+
+        Scalar3 nab = dab*normal_ab;
+        Scalar3 nac = dac*normal_ac;
+        Scalar3 nbc = dbc*normal_bc;
+
         Scalar3 normal_dir;
         normal_dir.x = dab.y * dac.z - dab.z * dac.y;
         normal_dir.y = dab.z * dac.x - dab.x * dac.z;
         normal_dir.z = dab.x * dac.y - dab.y * dac.x;
 
-	Scalar normal_norm = fast::rsqrt(dot(normal_dir,normal_dir.y));
+	Scalar normal_norm = fast::rsqrt(dot(normal_dir,normal_dir));
 
 	normal_dir.x = normal_dir.x*normal_norm;
 	normal_dir.y = normal_dir.y*normal_norm;
@@ -425,21 +435,30 @@ void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
 
 	std::vector<unsigned int> combined_nlist;
 
-	for( unsigned int i_idx=0; i_idx<3; i_idx++)
+        const size_t myHead0 = h_head_list.data[idces[0]];
+        const size_t myHead1 = h_head_list.data[idces[1]];
+        const size_t myHead2 = h_head_list.data[idces[2]];
+
+        const unsigned int Nsize0 = (unsigned int)h_n_neigh.data[idces[0]];
+        const unsigned int Nsize1 = (unsigned int)h_n_neigh.data[idces[1]];
+        const unsigned int Nsize2 = (unsigned int)h_n_neigh.data[idces[2]];
+
+        for (unsigned int idx0 = 0; idx0 < Nsize0; idx0++)
+	{
+		unsigned int j = h_nlist.data[myHead0 + idx0];
+		bool insert = false;
+		for (unsigned int idx1 = 0; idx1 < Nsize1 && !insert; idx1++)
+			if( j ==  h_nlist.data[myHead1 + idx1] ) insert = true;
+
+		if(insert)
 		{
-		unsigned int idx = idces[i_idx];
-            	const size_t myHead = h_head_list.data[idx];
-           	const unsigned int Nsize = (unsigned int)h_n_neigh.data[idx];
-            	for (unsigned int k = 0; k < Nsize; k++)
-			{
-				unsigned int j = h_nlist.data[myHead + k];
-                		assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-				if( j == idces[0] || j == idces[1] || j == idces[2]):
-				       continue;
-				if( std::find(combined_nlist.begin(), combined_nlist.end(), j) == combined_nlist.end())
-					combined_nlist.push_back(j);
-			}
+			insert = false;
+			for (unsigned int idx2 = 0; idx2 < Nsize2 && !insert; idx2++)
+				if( j ==  h_nlist.data[myHead2 + idx2] ) insert = true;
+			if(insert)
+				combined_nlist.push_back(j);
 		}
+	}
 
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fa = make_scalar3(0, 0, 0);
@@ -504,19 +523,73 @@ void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
 		Scalar Area_b = dot(cjaj,normal_dir);
 		Scalar Area_c = dot(ajbj,normal_dir);
 
+		Scalar rsq;
+		Scalar3 dx;
 		if( (Area_a + Area_b + Area_c)*normal_norm > 1)
-			continue;
+		{
+			Area_a = -1;
+			Scalar rsq = DBL_MAX;
 
-		
-                unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-                assert(typej < m_pdata->getNTypes());
+			Scalar length_ab = dot(daj,nab);
+			Scalar ratio_ab = length_ab*normal_ab;
 
+			if(ratio_ab < 1 && ratio_ab > 0 )
+			{
+				Scalar3 nabj = daj - length_ab*nab;
+				rsq = dot(nabj,nabj);
+				dx = nacb;
 
-		Scalar daj_norm = dot(daj,normal_dir);
+				Area_a = ratio_ab;
+				Area_b = 1-ratio_ab;
+				Area_c = 0;
+			}
 
-                Scalar rsq = daj_norm*daj_norm;
+			Scalar length_ac = dot(daj,nac);
+			Scalar ratio_ac = length_ac*normal_ac;
 
-		Scalar3 dx = normal_dir*daj_norm;
+			if(ratio_ac < 1 && ratio_ac > 0 )
+			{
+				Scalar3 nacj = daj - length_ac*nac;
+				Scalar norm_acj = dot(nacj,nacj);
+				if( norm_acj < rsq) 
+					{
+					rsq = norm_acj;
+					dx = nacj;
+					Area_a = ratio_ac;
+					Area_c = 1-ratio_ac;
+					Area_b = 0;
+					}
+			}
+
+			Scalar length_bc = dot(dbj,nbc);
+			Scalar ratio_bc = length_bc*normal_bc;
+
+			if(ratio_bc < 1 && ratio_bc > 0 )
+			{
+				Scalar3 nbcj = dbj - length_bc*nbc;
+				Scalar norm_acj = dot(nbcj,nbcj);
+				if( norm_bcj < rsq) 
+					{
+					rsq = norm_bcj;
+					dx = nbcj;
+					Area_b = ratio_bc;
+					Area_c = 1-ratio_bc;
+					Area_a = 0;
+					}
+			}
+			if( Area_a < 0) continue;
+		}
+		else
+		{
+			unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+			assert(typej < m_pdata->getNTypes());
+
+			Scalar daj_norm = dot(daj,normal_dir);
+
+			rsq = daj_norm*daj_norm;
+
+			dx = normal_dir*daj_norm;
+		}
 
                 const param_type& param = m_params[typej];
                 Scalar rcutsq = h_rcutsq.data[typpair_idx];
