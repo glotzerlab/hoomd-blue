@@ -7,8 +7,8 @@
 
 #include <vector>
 
-/*! \file MeshTrianglePairForceCompute.h
-    \brief Declares MeshTrianglePairForceCompute
+/*! \file PotentialMeshTriangle.h
+    \brief Declares PotentialMeshTriangle
 */
 
 #ifdef __HIPCC__
@@ -17,8 +17,8 @@
 
 #include <pybind11/pybind11.h>
 
-#ifndef __POTENTIALBOND_H__
-#define __POTENTIALBOND_H__
+#ifndef __POTENTIALMESHTRIANGLEPAIR_H__
+#define __POTENTIALMESHTRIANGLEPAIR_H__
 
 namespace hoomd
     {
@@ -28,19 +28,19 @@ namespace md
 
     \ingroup computes
 */
-template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceCompute
+template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     {
     public:
     //! Param type from evaluator
     typedef typename evaluator::param_type param_type;
 
     //! Constructs the compute
-    MeshTrianglePairForceCompute(std::shared_ptr<SystemDefinition> sysdef, 
+    PotentialMeshTriangle(std::shared_ptr<SystemDefinition> sysdef, 
 		  std::shared_ptr<NeighborList> nlist,
                   std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
-    virtual ~MeshTrianglePairForceCompute();
+    virtual ~PotentialMeshTriangle();
 
     /// Set the parameters
     virtual void setParams(unsigned int type, const param_type& param);
@@ -54,6 +54,13 @@ template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceC
     Scalar getRCut(std::string type);
     /// Set the rcut for a single type pair using a tuple of strings
     virtual void setRCutPython(std::string type, Scalar r_cut);
+    //! Set ron for a single type pair
+
+    virtual void setPotRcut(unsigned int type, Scalar rcut);
+    /// Get the r_cut for a single type pair
+    Scalar getPotRCut(std::string type);
+    /// Set the rcut for a single type pair using a tuple of strings
+    virtual void setPotRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
 
     /// Validate bond type
@@ -126,7 +133,8 @@ template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceC
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
-    GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared per type pair
+    GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared for the neighbor list per type pair
+    GPUArray<Scalar> m_potrcutsq;    //!< Cutoff radius squared for the potential per type pair
     GPUArray<param_type> m_params;      //!< Bond parameters per type
 					//
     /// Track whether we have attached to the Simulation object
@@ -146,15 +154,15 @@ template<class evaluator> class MeshTrianglePairForceCompute : public MeshForceC
     //! Actually compute the forces
     void computeForces(uint64_t timestep) override;
 
-    }; // end class MeshTrianglePairForceCompute
+    }; // end class PotentialMeshTriangle
 
 template<class evaluator>
-MeshTrianglePairForceCompute<evaluator>::MeshTrianglePairForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<NeighborList> nlist,
                                         std::shared_ptr<MeshDefinition> meshdef)
     : MeshForceCompute(sysdef, meshdef), m_nlist(nlist), m_shift_mode(no_shift)
     {
-    m_exec_conf->msg->notice(5) << "Constructing MeshTrianglePairForceCompute<" << evaluator::getName() << ">"
+    m_exec_conf->msg->notice(5) << "Constructing PotentialMeshTriangle<" << evaluator::getName() << ">"
                                 << std::endl;
     assert(m_pdata);
     assert(m_nlist);
@@ -218,9 +226,9 @@ MeshTrianglePairForceCompute<evaluator>::MeshTrianglePairForceCompute(std::share
 #endif
     }
 
-template<class evaluator> MeshTrianglePairForceCompute<evaluator>::~MeshTrianglePairForceCompute()
+template<class evaluator> PotentialMeshTriangle<evaluator>::~PotentialMeshTriangle()
     {
-    m_exec_conf->msg->notice(5) << "Destroying MeshTrianglePairForceCompute<" << evaluator::getName() << ">"
+    m_exec_conf->msg->notice(5) << "Destroying PotentialMeshTriangle<" << evaluator::getName() << ">"
                                 << std::endl;
 
     if (m_attached)
@@ -235,7 +243,7 @@ template<class evaluator> MeshTrianglePairForceCompute<evaluator>::~MeshTriangle
     Sets the parameters for the potential of a particular bond type
 */
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::validateType(unsigned int type, std::string action)
+void PotentialMeshTriangle<evaluator>::validateType(unsigned int type, std::string action)
     {
     // make sure the type is valid
     if (type >= m_pdata->getNTypes())
@@ -245,7 +253,7 @@ void MeshTrianglePairForceCompute<evaluator>::validateType(unsigned int type, st
     }
 
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::setParams(unsigned int type, const param_type& param)
+void PotentialMeshTriangle<evaluator>::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
     validateType(type, "setting params");
@@ -259,7 +267,7 @@ void MeshTrianglePairForceCompute<evaluator>::setParams(unsigned int type, const
     Sets the parameters for the potential of a particular bond type
 */
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::setParamsPython(std::string type, pybind11::dict param)
+void PotentialMeshTriangle<evaluator>::setParamsPython(std::string type, pybind11::dict param)
     {
     auto itype = m_pdata->getTypeByName(type);
     auto struct_param = param_type(param);
@@ -272,7 +280,7 @@ void MeshTrianglePairForceCompute<evaluator>::setParamsPython(std::string type, 
     Sets the parameters for the potential of a particular bond type
 */
 template<class evaluator>
-pybind11::dict MeshTrianglePairForceCompute<evaluator>::getParams(std::string type)
+pybind11::dict PotentialMeshTriangle<evaluator>::getParams(std::string type)
     {
     auto itype = m_pdata->getTypeByName(type);
     validateType(itype, "getting params");
@@ -282,7 +290,7 @@ pybind11::dict MeshTrianglePairForceCompute<evaluator>::getParams(std::string ty
 
 
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::setRcut(unsigned int type, Scalar rcut)
+void PotentialMeshTriangle<evaluator>::setRcut(unsigned int type, Scalar rcut)
     {
     validateTypes(type, "setting r_cut");
         {
@@ -302,13 +310,13 @@ void MeshTrianglePairForceCompute<evaluator>::setRcut(unsigned int type, Scalar 
     }
 
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::setRCutPython(std::string type, Scalar r_cut)
+void PotentialMeshTriangle<evaluator>::setRCutPython(std::string type, Scalar r_cut)
     {
     auto typ = m_pdata->getTypeByName(type);
     setRcut(typ, r_cut);
     }
 
-template<class evaluator> Scalar MeshTrianglePairForceCompute<evaluator>::getRCut(std::string types)
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::string types)
     {
     auto typ = m_pdata->getTypeByName(type);
     vanormal_dirdateTypes(typ, "getting r_cut.");
@@ -316,11 +324,39 @@ template<class evaluator> Scalar MeshTrianglePairForceCompute<evaluator>::getRCu
     return sqrt(h_rcutsq.data[typ]);
     }
 
+
+
+template<class evaluator>
+void PotentialMeshTriangle<evaluator>::setPotRcut(unsigned int type, Scalar rcut)
+    {
+    validateTypes(type, "setting r_potcut");
+        {
+        // store r_cut**2 for use internally
+        ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::readwrite);
+        h_potrcutsq.data[type] = rcut * rcut;
+        }
+    }
+
+template<class evaluator>
+void PotentialMeshTriangle<evaluator>::setPotRCutPython(std::string type, Scalar r_cut)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    setPotRcut(typ, r_cut);
+    }
+
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getPotRCut(std::string types)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    vanormal_dirdateTypes(typ, "getting potr_cut.");
+    ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::read);
+    return sqrt(h_potrcutsq.data[typ]);
+    }
+
 /*! Actually perform the force computation
     \param timestep Current time step
  */
 template<class evaluator>
-void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
+void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -351,8 +387,8 @@ void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
 
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::read);
 
     // Zero data for force calculation
     m_force.zeroFill();
@@ -592,7 +628,7 @@ void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
 		}
 
                 const param_type& param = m_params[typej];
-                Scalar rcutsq = h_rcutsq.data[typpair_idx];
+                Scalar rcutsq = h_potrcutsq.data[typej];
 
                 bool energy_shift = false;
                 if (m_shift_mode == shift)
@@ -691,7 +727,7 @@ void MeshTrianglePairForceCompute<evaluator>::computeForces(uint64_t timestep)
 /*! \param timestep Current time step
  */
 template<class evaluator>
-CommFlags MeshTrianglePairForceCompute<evaluator>::getRequestedCommFlags(uint64_t timestep)
+CommFlags PotentialMeshTriangle<evaluator>::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -708,23 +744,25 @@ CommFlags MeshTrianglePairForceCompute<evaluator>::getRequestedCommFlags(uint64_
 
 namespace detail
     {
-//! Exports the MeshTrianglePairForceCompute class to python
+//! Exports the PotentialMeshTriangle class to python
 /*! \param name Name of the class in the exported python module
     \tparam T Evaluator type to export.
 */
-template<class T> void export_MeshTrianglePairForceCompute(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialMeshTriangle(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<MeshTrianglePairForceCompute<T>,
+    pybind11::class_<PotentialMeshTriangle<T>,
                      MeshForceCompute,
-                     std::shared_ptr<MeshTrianglePairForceCompute<T>>>(m, name.c_str())
+                     std::shared_ptr<PotentialMeshTriangle<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<NeighborList>,std::shared_ptr<MeshDefinition>>())
-        .def("setParams", &MeshTrianglePairForceCompute<T>::setParamsPython)
-        .def("getParams", &MeshTrianglePairForceCompute<T>::getParams);
-        .def("setRCut", &MeshTrianglePairForceCompute<T>::setRCutPython)
-        .def("getRCut", &MeshTrianglePairForceCompute<T>::getRCut)
+        .def("setParams", &PotentialMeshTriangle<T>::setParamsPython)
+        .def("getParams", &PotentialMeshTriangle<T>::getParams);
+        .def("setRCut", &PotentialMeshTriangle<T>::setRCutPython)
+        .def("getRCut", &PotentialMeshTriangle<T>::getRCut)
+        .def("setPotRCut", &PotentialMeshTriangle<T>::setPotRCutPython)
+        .def("getPotRCut", &PotentialMeshTriangle<T>::getPotRCut)
         .def_property("mode",
-                      &MeshTrianglePairForceCompute<T>::getShiftMode,
-                      &MeshTrianglePairForceCompute<T>::setShiftModePython)
+                      &PotentialMeshTriangle<T>::getShiftMode,
+                      &PotentialMeshTriangle<T>::setShiftModePython)
     }
 
     } // end namespace detail
