@@ -6,10 +6,10 @@
 
 // clang-format off
 #include "hoomd/md/PotentialMeshTriangle.h"
-#include "hoomd/md/EvaluatorPair@_evaluator_cpp@.h"
+#include "hoomd/md/EvaluatorPair@_mesh_triangle_pair@.h"
 
-#define EVALUATOR_CLASS EvaluatorPotentialMeshTriangle@_evaluator_cpp@
-#define EXPORT_FUNCTION export_PotentialMeshTriangle@_evaluator@
+#define EVALUATOR_CLASS EvaluatorPair@_mesh_triangle_pair@
+#define EXPORT_FUNCTION export_PotentialMeshTriangle@_mesh_triangle_pair@
 // clang-format on
 
 namespace hoomd
@@ -21,7 +21,7 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_PotentialMeshTriangle<EVALUATOR_CLASS>(m, "PotentialMeshTriangle@_evaluator@");
+    export_PotentialMeshTriangle<EVALUATOR_CLASS>(m, "PotentialMeshTriangle@_mesh_triangle_pair@");
     }
 
     } // end namespace detail

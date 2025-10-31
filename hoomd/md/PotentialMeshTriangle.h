@@ -1,8 +1,10 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "NeighborList.h"
 #include "MeshForceCompute.h"
 #include "hoomd/GPUArray.h"
+#include "hoomd/managed_allocator.h"
 #include <memory>
 
 #include <vector>
@@ -64,7 +66,7 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     //! Set ron for a single type pair
 
     /// Validate bond type
-    virtual void validateType(unsigned int type, std::string action);
+    void validateType(unsigned int type, std::string action);
 
     //! Shifting modes that can be applied to the energy
     enum energyShiftMode
@@ -135,8 +137,9 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
     GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared for the neighbor list per type pair
     GPUArray<Scalar> m_potrcutsq;    //!< Cutoff radius squared for the potential per type pair
+    /// Per type pair potential parameters
     GPUArray<param_type> m_params;      //!< Bond parameters per type
-					//
+
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
 
@@ -169,6 +172,9 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
 
     GPUArray<Scalar> rcutsq(m_pdata->getNTypes(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
+
+    GPUArray<Scalar> potrcutsq(m_pdata->getNTypes(), m_exec_conf);
+    m_potrcutsq.swap(potrcutsq);
 
     // allocate the parameters
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
@@ -292,7 +298,7 @@ pybind11::dict PotentialMeshTriangle<evaluator>::getParams(std::string type)
 template<class evaluator>
 void PotentialMeshTriangle<evaluator>::setRcut(unsigned int type, Scalar rcut)
     {
-    validateTypes(type, "setting r_cut");
+    validateType(type, "setting r_cut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
@@ -316,10 +322,10 @@ void PotentialMeshTriangle<evaluator>::setRCutPython(std::string type, Scalar r_
     setRcut(typ, r_cut);
     }
 
-template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::string types)
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::string type)
     {
     auto typ = m_pdata->getTypeByName(type);
-    vanormal_dirdateTypes(typ, "getting r_cut.");
+    validateType(typ, "getting r_cut.");
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     return sqrt(h_rcutsq.data[typ]);
     }
@@ -329,7 +335,7 @@ template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::
 template<class evaluator>
 void PotentialMeshTriangle<evaluator>::setPotRcut(unsigned int type, Scalar rcut)
     {
-    validateTypes(type, "setting r_potcut");
+    validateType(type, "setting r_potcut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::readwrite);
@@ -344,10 +350,10 @@ void PotentialMeshTriangle<evaluator>::setPotRCutPython(std::string type, Scalar
     setPotRcut(typ, r_cut);
     }
 
-template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getPotRCut(std::string types)
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getPotRCut(std::string type)
     {
     auto typ = m_pdata->getTypeByName(type);
-    vanormal_dirdateTypes(typ, "getting potr_cut.");
+    validateType(typ, "getting potr_cut.");
     ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::read);
     return sqrt(h_potrcutsq.data[typ]);
     }
@@ -360,10 +366,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
-    // depending on the neighborlist settings, we can take advantage of newton's third law
-    // to reduce computations at the cost of memory access complexity: set that flag now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
@@ -422,9 +424,9 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 	std::vector<unsigned int> idces(3);
 
-        unsigned int idces[0] = h_rtag.data[ttag_a];
-        unsigned int idces[1] = h_rtag.data[ttag_b];
-        unsigned int idces[2] = h_rtag.data[ttag_c];
+        idces[0] = h_rtag.data[ttag_a];
+        idces[1] = h_rtag.data[ttag_b];
+        idces[2] = h_rtag.data[ttag_c];
 
         assert(idces[0] < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idces[1] < m_pdata->getN() + m_pdata->getNGhosts());
@@ -499,30 +501,12 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fa = make_scalar3(0, 0, 0);
         Scalar pea = 0.0;
-        Scalar virialxxa = 0.0;
-        Scalar virialxya = 0.0;
-        Scalar virialxza = 0.0;
-        Scalar virialyya = 0.0;
-        Scalar virialyza = 0.0;
-        Scalar virialzza = 0.0;
 
         Scalar3 fb = make_scalar3(0, 0, 0);
         Scalar peb = 0.0;
-        Scalar virialxxb = 0.0;
-        Scalar virialxyb = 0.0;
-        Scalar virialxzb = 0.0;
-        Scalar virialyyb = 0.0;
-        Scalar virialyzb = 0.0;
-        Scalar virialzzb = 0.0;
 
         Scalar3 fc = make_scalar3(0, 0, 0);
         Scalar pec = 0.0;
-        Scalar virialxxc = 0.0;
-        Scalar virialxyc = 0.0;
-        Scalar virialxzc = 0.0;
-        Scalar virialyyc = 0.0;
-        Scalar virialyzc = 0.0;
-        Scalar virialzzc = 0.0;
 
         Scalar viriala[6];
         Scalar virialb[6];
@@ -541,30 +525,52 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
                 unsigned int j = combined_nlist[k];
 
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-                Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-                Scalar3 daj = pos_a - pj;
-                Scalar3 dbj = pos_b - pj;
-                Scalar3 dcj = pos_c - pj;
+        	vec3<Scalar> pj(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+
+        	Scalar3 daj;
+        	daj.x = pos_a.x - pj.x;
+        	daj.y = pos_a.y - pj.y;
+        	daj.z = pos_a.z - pj.z;
+
+        	Scalar3 dbj;
+        	dbj.x = pos_b.x - pj.x;
+        	dbj.y = pos_b.y - pj.y;
+        	dbj.z = pos_b.z - pj.z;
+
+        	Scalar3 dcj;
+        	dcj.x = pos_c.x - pj.x;
+        	dcj.y = pos_c.y - pj.y;
+        	dcj.z = pos_c.z - pj.z;
 
                 // apply periodic boundary conditions
                 daj = box.minImage(daj);
                 dbj = box.minImage(dbj);
                 dcj = box.minImage(dcj);
 
-		Scalar3 dajbj = cross(aj,bj);
-		Scalar3 dbjcj = cross(bj,cj);
-		Scalar3 dcjaj = cross(cj,aj);
+		Scalar3 dajbj; 
+		dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
+		dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
+		dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
 
-		Scalar Area_a = dot(bjcj,normal_dir);
-		Scalar Area_b = dot(cjaj,normal_dir);
-		Scalar Area_c = dot(ajbj,normal_dir);
+		Scalar3 dbjcj; 
+		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
 
-		Scalar rsq;
+		Scalar3 dcjaj; 
+		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+
+		Scalar Area_a = dot(dbjcj,normal_dir);
+		Scalar Area_b = dot(dcjaj,normal_dir);
+		Scalar Area_c = dot(dajbj,normal_dir);
+
+		Scalar rsq = DBL_MAX;
 		Scalar3 dx;
 		if( (Area_a + Area_b + Area_c)*normal_norm > 1)
 		{
 			Area_a = -1;
-			Scalar rsq = DBL_MAX;
 
 			Scalar length_ab = dot(daj,nab);
 			Scalar ratio_ab = length_ab*normal_ab;
@@ -573,7 +579,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 			{
 				Scalar3 nabj = daj - length_ab*nab;
 				rsq = dot(nabj,nabj);
-				dx = nacb;
+				dx = nabj;
 
 				Area_a = ratio_ab;
 				Area_b = 1-ratio_ab;
@@ -603,7 +609,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 			if(ratio_bc < 1 && ratio_bc > 0 )
 			{
 				Scalar3 nbcj = dbj - length_bc*nbc;
-				Scalar norm_acj = dot(nbcj,nbcj);
+				Scalar norm_bcj = dot(nbcj,nbcj);
 				if( norm_bcj < rsq) 
 					{
 					rsq = norm_bcj;
@@ -617,9 +623,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 		}
 		else
 		{
-			unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-			assert(typej < m_pdata->getNTypes());
-
 			Scalar daj_norm = dot(daj,normal_dir);
 
 			rsq = daj_norm*daj_norm;
@@ -627,7 +630,11 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 			dx = normal_dir*daj_norm;
 		}
 
-                const param_type& param = m_params[typej];
+		unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+		assert(typej < m_pdata->getNTypes());
+
+
+                const param_type& param = h_params.data[typej];
                 Scalar rcutsq = h_potrcutsq.data[typej];
 
                 bool energy_shift = false;
@@ -678,47 +685,47 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 	            if (compute_virial)
 	                {
 	                h_virial.data[0 * virial_pitch + j]
-	            	+= force_div2r * dx.x * dx.x;
+	            	-= force_divr * pj.x * dx.x;
 	                h_virial.data[1 * virial_pitch + j]
-	            	+= force_div2r * dx.x * dx.y;
+	            	-= force_divr * pj.x * dx.y;
 	                h_virial.data[2 * virial_pitch + j]
-	            	+= force_div2r * dx.x * dx.z;
+	            	-= force_divr * pj.x * dx.z;
 	                h_virial.data[3 * virial_pitch + j]
-	            	+= force_div2r * dx.y * dx.y;
+	            	-= force_divr * pj.y * dx.y;
 	                h_virial.data[4 * virial_pitch + j]
-	            	+= force_div2r * dx.y * dx.z;
+	            	-= force_divr * pj.y * dx.z;
 	                h_virial.data[5 * virial_pitch + j]
-	            	+= force_div2r * dx.z * dx.z;
+	            	-= force_divr * pj.z * dx.z;
 	                }
                     }
 		}
 
-            if (idx_a < m_pdata->getN())
+            if (idces[0] < m_pdata->getN())
 		    {
-		    h_force.data[idx_a].x += fa.x;
-		    h_force.data[idx_a].y += fa.y;
-		    h_force.data[idx_a].z += fa.z;
-		    h_force.data[idx_a].w += pea;
-            	    for (int j = 0; j < 6; j++)
-                	h_virial.data[j * virial_pitch + idx_a] += viriala[j];
+		    h_force.data[idces[0]].x += fa.x;
+		    h_force.data[idces[0]].y += fa.y;
+		    h_force.data[idces[0]].z += fa.z;
+		    h_force.data[idces[0]].w += pea;
+            	    for (int jj = 0; jj < 6; jj++)
+                	h_virial.data[jj * virial_pitch + idces[0]] += viriala[jj];
 		    }
-            if (idx_b < m_pdata->getN())
+            if (idces[1] < m_pdata->getN())
 		    {
-		    h_force.data[idx_b].x += fb.x;
-		    h_force.data[idx_b].y += fb.y;
-		    h_force.data[idx_b].z += fb.z;
-		    h_force.data[idx_b].w += peb;
-            	    for (int j = 0; j < 6; j++)
-                	h_virial.data[j * virial_pitch + idx_b] += virialb[j];
+		    h_force.data[idces[1]].x += fb.x;
+		    h_force.data[idces[1]].y += fb.y;
+		    h_force.data[idces[1]].z += fb.z;
+		    h_force.data[idces[1]].w += peb;
+            	    for (int jj = 0; jj < 6; jj++)
+                	h_virial.data[jj * virial_pitch + idces[1]] += virialb[jj];
 		    }
-            if (idx_c < m_pdata->getN())
+            if (idces[2] < m_pdata->getN())
 		    {
-		    h_force.data[idx_c].x += fc.x;
-		    h_force.data[idx_c].y += fc.y;
-		    h_force.data[idx_c].z += fc.z;
-		    h_force.data[idx_c].w += pec;
-            	    for (int j = 0; j < 6; j++)
-                	h_virial.data[j * virial_pitch + idx_c] += virialc[j];
+		    h_force.data[idces[2]].x += fc.x;
+		    h_force.data[idces[2]].y += fc.y;
+		    h_force.data[idces[2]].z += fc.z;
+		    h_force.data[idces[2]].w += pec;
+            	    for (int jj = 0; jj < 6; jj++)
+                	h_virial.data[jj * virial_pitch + idces[2]] += virialc[jj];
 		    }
         }
 }
@@ -755,14 +762,14 @@ template<class T> void export_PotentialMeshTriangle(pybind11::module& m, const s
                      std::shared_ptr<PotentialMeshTriangle<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<NeighborList>,std::shared_ptr<MeshDefinition>>())
         .def("setParams", &PotentialMeshTriangle<T>::setParamsPython)
-        .def("getParams", &PotentialMeshTriangle<T>::getParams);
+        .def("getParams", &PotentialMeshTriangle<T>::getParams)
         .def("setRCut", &PotentialMeshTriangle<T>::setRCutPython)
         .def("getRCut", &PotentialMeshTriangle<T>::getRCut)
         .def("setPotRCut", &PotentialMeshTriangle<T>::setPotRCutPython)
         .def("getPotRCut", &PotentialMeshTriangle<T>::getPotRCut)
         .def_property("mode",
                       &PotentialMeshTriangle<T>::getShiftMode,
-                      &PotentialMeshTriangle<T>::setShiftModePython)
+                      &PotentialMeshTriangle<T>::setShiftModePython);
     }
 
     } // end namespace detail

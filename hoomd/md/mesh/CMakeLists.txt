@@ -3,6 +3,7 @@ set(files __init__.py
           bond.py
           conservation.py
           potential.py
+          triangle_pair.py
    )
 
 install(FILES ${files}

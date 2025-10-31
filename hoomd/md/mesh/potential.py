@@ -55,15 +55,7 @@ class MeshPotential(Force):
 
     def _attach_hook(self):
         """Create the c++ mirror class."""
-        if self._mesh._attached and self._simulation != self._mesh._simulation:
-            warnings.warn(
-                f"{self} object is creating a new equivalent mesh structure."
-                f" This is happending since the force is moving to a new "
-                f"simulation. To suppress the warning explicitly set new mesh.",
-                RuntimeWarning,
-            )
-            self._mesh = copy.deepcopy(self._mesh)
-        self.mesh._attach(self._simulation)
+        self._attach_mesh()
 
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
@@ -76,6 +68,17 @@ class MeshPotential(Force):
 
     def _detach_hook(self):
         self._mesh._detach()
+
+    def _attach_mesh(self):
+        if self._mesh._attached and self._simulation != self._mesh._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent mesh structure."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To suppress the warning explicitly set new mesh.",
+                RuntimeWarning,
+            )
+            self._mesh = copy.deepcopy(self._mesh)
+        self.mesh._attach(self._simulation)
 
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
