@@ -40,7 +40,7 @@ idna==3.11
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==9.6.0
+ipython==9.7.0
     # via -r sphinx-doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -102,7 +102,7 @@ pexpect==4.9.0
     # via ipython
 platformdirs==4.5.0
     # via jupyter-core
-plumbum==1.9.0
+plumbum==1.10.0
     # via pandoc
 ply==3.11
     # via pandoc
