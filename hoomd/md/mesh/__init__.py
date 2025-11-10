@@ -8,8 +8,8 @@ from . import bending, bond, conservation
 from .elastic import Elastic
 
 __all__ = [
-    "MeshPotential",
     "Elastic",
+    "MeshPotential",
     "bending",
     "bond",
     "conservation",

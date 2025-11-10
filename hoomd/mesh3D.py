@@ -8,17 +8,12 @@ network. The particles act as vertices of the tetrahedra.
 
 ``Mesh.tetrahedralization`` is a dictionary with a list of tetrahedra that
 constitutes the tetrahedralization. Each tetrahedron is defined by a quartet of
-particle tags. 
+particle tags.
 """
 
-
-import hoomd
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
-from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyIf, to_type_converter, NDArrayValidator
-from hoomd.logging import log
-import numpy as np
+
 
 class Mesh3D(_HOOMDBaseObject):
     """Data structure combining multiple particles into a 3D mesh.
@@ -62,12 +57,12 @@ class Mesh3D(_HOOMDBaseObject):
 
         Type: `dict`
     """
+
     def __init__(self, reference_positions, tetrahedra, types, type_id):
         self._reference_positions = reference_positions
         self._tetrahedra = tetrahedra
         self._types = types
         self._type_id = type_id
-
 
     def _attach_hook(self):
         snapshot = _hoomd.TetrahedronDataSnapshot(len(self._tetrahedra))
@@ -80,13 +75,13 @@ class Mesh3D(_HOOMDBaseObject):
         )
 
         ## TO DO: mpi parallelization
-        '''
+        """
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
                 self._simulation._system_communicator.addMeshDefinition(self._cpp_obj)
-        '''
+        """
 
     # def _ensure_same_size():
     #     if tetrahedralization is None:
@@ -99,7 +94,7 @@ class Mesh3D(_HOOMDBaseObject):
     # def type_ids(self):
     #     """((*N*) `numpy.ndarray` of ``uint32``): Tetrahedron type ids."""
     #     return self.tetrahedralization["type_ids"]
-    
+
     # @log(category="sequence", requires_run=True)
     # def tetrahedra(self):
     #     """((*N*, 4) `numpy.ndarray` of ``uint32``): Mesh tetrahedralization.
@@ -118,4 +113,5 @@ class Mesh3D(_HOOMDBaseObject):
     #         return 0
     #     return len(self.tetrahedralization["tetrahedra"])
 
-__all__= ["Mesh3D"]
+
+__all__ = ["Mesh3D"]

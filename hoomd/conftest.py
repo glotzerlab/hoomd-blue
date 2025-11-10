@@ -301,6 +301,7 @@ def fcc_snapshot_factory(device):
 
     return make_snapshot
 
+
 @pytest.fixture(scope="session")
 def mesh_snapshot_factory(device):
     def make_snapshot(d=1.0, phi_deg=45, particle_types=["A"], L=20):
@@ -326,6 +327,7 @@ def mesh_snapshot_factory(device):
         return s
 
     return make_snapshot
+
 
 @pytest.fixture(autouse=True)
 def skip_mpi(request):

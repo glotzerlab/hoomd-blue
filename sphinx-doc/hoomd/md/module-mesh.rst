@@ -3,7 +3,7 @@ mesh
 
 .. automodule:: hoomd.md.mesh
    :members:
-   :exclude-members: MeshPotential
+   :exclude-members: Elastic,MeshPotential
 
 .. rubric:: Modules
 
@@ -19,4 +19,5 @@ mesh
 .. toctree::
     :maxdepth: 1
 
+    mesh/elastic
     mesh/meshpotential

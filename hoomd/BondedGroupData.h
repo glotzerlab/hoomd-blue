@@ -1011,6 +1011,7 @@ typedef BondedGroupData<4, Dihedral, name_improper_data> ImproperData;
 
 /*
  * TetrahedronData
+ * The data for Tetrahedra used by the Elastic class
  */
 extern char name_tetrahedron_data[];
 

@@ -14,13 +14,17 @@
 
 #pragma once
 
+/* \file Elastic.h
+   \brief Declares a class for computing elastic forces
+*/
+
 namespace hoomd
     {
 namespace md
     {
 struct ElasticCoefficients
     {
-	Scalar elastic_coeff_1, elastic_coeff_2, elastic_coeff_3;	
+    Scalar elastic_coeff_1, elastic_coeff_2, elastic_coeff_3;
     };
 
 //! Computes elastic forces on the tetrahedral mesh
@@ -36,7 +40,7 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
             pybind11::array_t<unsigned int> reference_tags);
 
     //! Destructor
-    virtual ~Elastic(){};
+    virtual ~Elastic() { };
 
     //! Set the parameters of the tetrahedra types
     virtual void setParams(unsigned int type, const ElasticCoefficients& params);
@@ -78,7 +82,7 @@ class PYBIND11_EXPORT Elastic : public ForceCompute
 
 namespace detail
     {
-//! Exports the TriangleAreaConservationMeshForceCompute class to python
+//! Exports the Elastic class to python
 void export_Elastic(pybind11::module& m);
 
     } // end namespace detail

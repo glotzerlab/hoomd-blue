@@ -7,66 +7,97 @@
 
 #include "Elastic.h"
 
+/*! \file Elastic.cc
+    \brief Contains code for the Elastic class
+
+*/
+
 namespace hoomd
     {
 namespace md
     {
 
-Elastic::Elastic(std::shared_ptr<SystemDefinition> sysdef,
-            std::shared_ptr<TetrahedronData> meshdef,
-            pybind11::array_t<Scalar> reference_positions,
-            pybind11::array_t<unsigned int> reference_tags): ForceCompute(sysdef){
-            m_tetrahedron_data = meshdef;
-            setReference(reference_positions, reference_tags);
+/* \param sysdef System to compute forces on
+   \param meshdef Mesh Tetrahedralization
+   \param reference_positions Array of positions to reference mesh
+   \param reference_tags Array of particle tags to reference mesh
 
-            GPUArray<ElasticCoefficients> params(m_tetrahedron_data->getNTypes(), m_exec_conf);
-            m_params.swap(params);
-            }
+*/
+
+Elastic::Elastic(std::shared_ptr<SystemDefinition> sysdef,
+                 std::shared_ptr<TetrahedronData> meshdef,
+                 pybind11::array_t<Scalar> reference_positions,
+                 pybind11::array_t<unsigned int> reference_tags)
+    : ForceCompute(sysdef)
+    {
+    m_tetrahedron_data = meshdef;
+    setReference(reference_positions, reference_tags);
+
+    GPUArray<ElasticCoefficients> params(m_tetrahedron_data->getNTypes(), m_exec_conf);
+    m_params.swap(params);
+    }
+
+/* \param type Type of the tetrahedron to set parameters for
+ * \param params Elastic coefficients of tetrahedral element
+
+   Sets parameters for the potential for a particular tetrahedron type
+*/
 
 void Elastic::setParams(unsigned int type, const ElasticCoefficients& params)
-	
-	{
-	// make sure the type is valid
-	if (type >= m_tetrahedron_data->getNTypes())
-		{
-		throw std::runtime_error("Invalid tetrahedron type.");
-		}
 
-	// set parameters in m_params
-	ArrayHandle<ElasticCoefficients> h_params(m_params, access_location::host, access_mode::overwrite);
-	h_params.data[type] = params;
-	}
+    {
+    // make sure the type is valid
+    if (type >= m_tetrahedron_data->getNTypes())
+        {
+        throw std::runtime_error("Invalid tetrahedron type.");
+        }
+
+    // set parameters in m_params
+    ArrayHandle<ElasticCoefficients> h_params(m_params,
+                                              access_location::host,
+                                              access_mode::overwrite);
+    h_params.data[type] = params;
+    }
 
 void Elastic::setParamsPython(std::string type_name, pybind11::dict params)
-	{
-	auto type_id = m_tetrahedron_data->getTypeByName(type_name);
-	
-	ElasticCoefficients tetra_params;
-	tetra_params.elastic_coeff_1 = params["C_xxxx"].cast<Scalar>();
-	tetra_params.elastic_coeff_2 = params["C_xxyy"].cast<Scalar>();
-	tetra_params.elastic_coeff_3 = params["C_xyxy"].cast<Scalar>();
-	
-	setParams(type_id, tetra_params);
-	}		
+    {
+    auto type_id = m_tetrahedron_data->getTypeByName(type_name);
+
+    ElasticCoefficients tetra_params;
+    tetra_params.elastic_coeff_1 = params["C_xxxx"].cast<Scalar>();
+    tetra_params.elastic_coeff_2 = params["C_xxyy"].cast<Scalar>();
+    tetra_params.elastic_coeff_3 = params["C_xyxy"].cast<Scalar>();
+
+    setParams(type_id, tetra_params);
+    }
 
 pybind11::dict Elastic::getParams(std::string type_name)
-	{
-	auto type_id = m_tetrahedron_data->getTypeByName(type_name);
-	// make sure the type is valid
-	if (type_id >= m_tetrahedron_data->getNTypes())
-		{
-		throw std::runtime_error("Invalid tetrahedron type.");
-		}	
-	
-	ArrayHandle<ElasticCoefficients> h_params(m_params, access_location::host, access_mode::read);
-	auto val = h_params.data[type_id];
-	pybind11::dict params;
-	params["C_xxxx"] = val.elastic_coeff_1;
-	params["C_xxyy"] = val.elastic_coeff_2;
-	params["C_xyxy"] = val.elastic_coeff_3;
-	return params;
-	}
+    {
+    auto type_id = m_tetrahedron_data->getTypeByName(type_name);
+    // make sure the type is valid
+    if (type_id >= m_tetrahedron_data->getNTypes())
+        {
+        throw std::runtime_error("Invalid tetrahedron type.");
+        }
 
+    ArrayHandle<ElasticCoefficients> h_params(m_params, access_location::host, access_mode::read);
+    auto val = h_params.data[type_id];
+    pybind11::dict params;
+    params["C_xxxx"] = val.elastic_coeff_1;
+    params["C_xxyy"] = val.elastic_coeff_2;
+    params["C_xyxy"] = val.elastic_coeff_3;
+    return params;
+    }
+
+/* \param reference_positions reference particle positions
+   \param reference_tags reference particle tags
+
+   Unpacks reference positions and tags.
+   Calculate relative displacement of particles in each tetrahedron from vertex 3.
+   Calculate the reference shape matrix and its inverse.
+   Steps 2-4 of <a href="http://www.femdefo.org/"> Algorithm 1 from this SIGGRAPH 2012 course on
+   page 33. </a>
+*/
 void Elastic::setReference(pybind11::array_t<Scalar> reference_positions,
                            pybind11::array_t<unsigned int> reference_tags)
     {
@@ -124,6 +155,7 @@ void Elastic::setReference(pybind11::array_t<Scalar> reference_positions,
         auto particle_index_3 = index_map[tetrahedron.tag[3]];
         // TODO: come back late to add error checking
 
+        // Calculate reference shape matrix and its inverse.
         auto r0 = vec3<Scalar>(reference_positions_indexer(particle_index_0, 0),
                                reference_positions_indexer(particle_index_0, 1),
                                reference_positions_indexer(particle_index_0, 2));
@@ -170,6 +202,13 @@ void Elastic::setReference(pybind11::array_t<Scalar> reference_positions,
             }
         }
     }
+/*! Actually perform the force computation
+    \param timestep Current time step
+
+    Calculate nodal displacements, deformation gradients, resulting elastic forces and energy.
+    Steps 8-17 of <a href="http://www.femdefo.org/"> Algorithm 1 from this SIGGRAPH 2012 course on
+   page 33. </a>
+*/
 
 void Elastic::computeForces(uint64_t timestep)
     {
@@ -189,9 +228,7 @@ void Elastic::computeForces(uint64_t timestep)
                                                      access_location::host,
                                                      access_mode::read);
 
-	ArrayHandle<ElasticCoefficients> h_params(m_params, 
-											  access_location::host,
-											  access_mode::read);
+    ArrayHandle<ElasticCoefficients> h_params(m_params, access_location::host, access_mode::read);
 
     // Zero data for force calculation
     m_force.zeroFill();
@@ -232,7 +269,7 @@ void Elastic::computeForces(uint64_t timestep)
             throw std::runtime_error(stream.str());
             }
 
-        // Step 1: Get displacements
+        // Step 1: Get displacements (ie. The components of the deformed shape matrix.)
         vec3<Scalar> pos0
             = vec3<Scalar>(h_pos.data[idx_0].x, h_pos.data[idx_0].y, h_pos.data[idx_0].z);
         vec3<Scalar> pos1
@@ -266,7 +303,6 @@ void Elastic::computeForces(uint64_t timestep)
                                       vertex_displacement_2.z - reference_vertex_displacement_2.z);
 
         // Step 2: Calculate Mapping coefficients (a, b, c)
-
         vec3<Scalar> inverse_matrix_row_0 = h_reference_inv_matrix.data[m_matrix_indexer(i, 0)];
         vec3<Scalar> inverse_matrix_row_1 = h_reference_inv_matrix.data[m_matrix_indexer(i, 1)];
         vec3<Scalar> inverse_matrix_row_2 = h_reference_inv_matrix.data[m_matrix_indexer(i, 2)];
@@ -298,123 +334,118 @@ void Elastic::computeForces(uint64_t timestep)
         strain_tensor[2][1] = strain_tensor[1][2];
 
         // Step 4: Calculate Forces
-		// The three components of these vectors are the forces of the first, second and third tetrahedron. 
-		// The fourth has 0 displacement
-		vec3<Scalar> fx = vec3<Scalar>(0,0,0);
-		vec3<Scalar> fy = vec3<Scalar>(0,0,0);
-		vec3<Scalar> fz = vec3<Scalar>(0,0,0);
+        // The three components of these vectors are the forces of the first, second and third
+        // tetrahedron. The fourth has 0 displacement
+        vec3<Scalar> fx = vec3<Scalar>(0, 0, 0);
+        vec3<Scalar> fy = vec3<Scalar>(0, 0, 0);
+        vec3<Scalar> fz = vec3<Scalar>(0, 0, 0);
 
+        ElasticCoefficients elastic_param_c = h_params.data[m_tetrahedron_data->getTypeByIndex(i)];
 
-		ElasticCoefficients elastic_param_c = h_params.data[m_tetrahedron_data->getTypeByIndex(i)];
+        auto minv1 = inverse_matrix_row_0;
+        auto minv2 = inverse_matrix_row_1;
+        auto minv3 = inverse_matrix_row_2;
 
-		auto minv1 = inverse_matrix_row_0;
-		auto minv2 = inverse_matrix_row_1;
-		auto minv3 = inverse_matrix_row_2;
+        fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * (1.0 + a.x);
+        fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * a.y;
+        fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * a.z;
+        fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * a.y;
+        fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * (1.0 + a.x);
+        fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * a.z;
+        fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * a.y;
+        fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * (1.0 + a.x);
+        fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * a.z;
+        fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * (1.0 + a.x);
+        fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * a.y;
+        fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * a.y;
+        fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * a.z;
+        fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * (1.0 + a.x);
+        fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
 
+        fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * b.x;
+        fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * (1.0 + b.y);
+        fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * b.z;
+        fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * (1.0 + b.y);
+        fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * b.x;
+        fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * b.z;
+        fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * (1.0 + b.y);
+        fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * b.x;
+        fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * b.z;
+        fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * b.x;
+        fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * (1.0 + b.y);
+        fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * (1.0 + b.y);
+        fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * b.z;
+        fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * b.x;
+        fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
 
-		fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * (1.0 + a.x);
-		fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * a.y;
-		fx += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * a.z;
-		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * a.y;
-		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * (1.0 + a.x);
-		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * a.z;
-		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * a.y;
-		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * (1.0 + a.x);
-		fx += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * a.z;
-		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * (1.0 + a.x);
-		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * a.y;
-		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * a.y;
-		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * a.z;
-		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * (1.0 + a.x);
-		fx += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
+        fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * c.x;
+        fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * c.y;
+        fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * (1.0 + c.z);
+        fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * c.y;
+        fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * c.x;
+        fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * (1.0 + c.z);
+        fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * c.y;
+        fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * c.x;
+        fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * (1.0 + c.z);
+        fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * c.x;
+        fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * c.y;
+        fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * c.y;
+        fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * (1.0 + c.z);
+        fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * c.x;
+        fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * (1.0 + c.z);
 
-		fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * b.x;
-		fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * (1.0+b.y);
-		fy += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * b.z;
-		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * (1.0 + b.y);
-		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * b.x;
-		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * b.z;
-		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * (1.0 + b.y);
-		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * b.x;
-		fy += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * b.z;
-		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * b.x;
-		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * (1.0 + b.y);
-		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * (1.0 + b.y);
-		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * b.z;
-		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * b.x;
-		fy += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * a.z;
-		
-		fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[0][0] * minv1 * c.x;
-		fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[1][1] * minv2 * c.y;
-		fz += -2.0 * elastic_param_c.elastic_coeff_1 * strain_tensor[2][2] * minv3 * (1.0 + c.z);
-		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv2 * c.y;
-		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv1 * c.x;
-		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[1][1] * minv3 * (1.0 + c.z);
-		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv2 * c.y;
-		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[2][2] * minv1 * c.x;
-		fz += -2.0 * elastic_param_c.elastic_coeff_2 * strain_tensor[0][0] * minv3 * (1.0 + c.z);
-		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv2 * c.x;
-		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[0][1] * minv1 * c.y;
-		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv3 * c.y;
-		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[1][2] * minv2 * (1.0 + c.z);
-		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv3 * c.x;
-		fz += -4.0 * elastic_param_c.elastic_coeff_3 * strain_tensor[2][0] * minv1 * (1.0 + c.z);
+        // Compute total energy and assign one fouth on each particle
+        Scalar e_total = elastic_param_c.elastic_coeff_1
+                             * (strain_tensor[0][0] * strain_tensor[0][0]
+                                + strain_tensor[1][1] * strain_tensor[1][1]
+                                + strain_tensor[2][2] * strain_tensor[2][2])
+                         + 2 * elastic_param_c.elastic_coeff_2
+                               * (strain_tensor[0][0] * strain_tensor[1][1]
+                                  + strain_tensor[1][1] * strain_tensor[2][2]
+                                  + strain_tensor[2][2] * strain_tensor[0][0])
+                         + 4 * elastic_param_c.elastic_coeff_3
+                               * (strain_tensor[0][1] * strain_tensor[0][1]
+                                  + strain_tensor[1][2] * strain_tensor[1][2]
+                                  + strain_tensor[2][0] * strain_tensor[2][0]);
 
-		// Compute total energy and assign one fouth on each particle
-		Scalar e_total = elastic_param_c.elastic_coeff_1 * (
-						  strain_tensor[0][0]*strain_tensor[0][0] 
-						+ strain_tensor[1][1]*strain_tensor[1][1] 
-						+ strain_tensor[2][2]*strain_tensor[2][2]
-						)
-				+ 2 * elastic_param_c.elastic_coeff_2 * (
-						  strain_tensor[0][0] * strain_tensor[1][1]
-						+ strain_tensor[1][1] * strain_tensor[2][2]
-						+ strain_tensor[2][2] * strain_tensor[0][0]
-						)
-				+ 4 * elastic_param_c.elastic_coeff_3 * (
-						  strain_tensor[0][1] * strain_tensor[0][1]
-						+ strain_tensor[1][2] * strain_tensor[1][2]
-						+ strain_tensor[2][0] * strain_tensor[2][0]
-						);
-							
-		
-		// Store the forces with w component storing energy of particle
-		h_force.data[idx_0].x += fx.x;
-		h_force.data[idx_0].y += fy.x;
-		h_force.data[idx_0].z += fz.x;
-		h_force.data[idx_0].w += e_total * 0.25;
-		
-		h_force.data[idx_1].x += fx.y;
-		h_force.data[idx_1].y += fy.y;
-		h_force.data[idx_1].z += fz.y;
-		h_force.data[idx_1].w += e_total * 0.25;
-		
-		h_force.data[idx_2].x += fx.z;
-		h_force.data[idx_2].y += fy.z;
-		h_force.data[idx_2].z += fz.z;
-		h_force.data[idx_2].w += e_total * 0.25;
-		
-		// force for fourth vertex follows N2L, negative of sum of other vertices.
-		h_force.data[idx_3].x += -(fx.x + fx.y + fx.z);
-		h_force.data[idx_3].y += -(fy.x + fy.y + fy.z);
-		h_force.data[idx_3].z += -(fz.x + fz.y + fz.z);	
-		h_force.data[idx_3].w += e_total * 0.25;
-		
-		}
+        // Store the forces with w component storing energy of particle
+        h_force.data[idx_0].x += fx.x;
+        h_force.data[idx_0].y += fy.x;
+        h_force.data[idx_0].z += fz.x;
+        h_force.data[idx_0].w += e_total * 0.25;
+
+        h_force.data[idx_1].x += fx.y;
+        h_force.data[idx_1].y += fy.y;
+        h_force.data[idx_1].z += fz.y;
+        h_force.data[idx_1].w += e_total * 0.25;
+
+        h_force.data[idx_2].x += fx.z;
+        h_force.data[idx_2].y += fy.z;
+        h_force.data[idx_2].z += fz.z;
+        h_force.data[idx_2].w += e_total * 0.25;
+
+        // force for fourth vertex follows N2L, negative of sum of other vertices.
+        h_force.data[idx_3].x += -(fx.x + fx.y + fx.z);
+        h_force.data[idx_3].y += -(fy.x + fy.y + fy.z);
+        h_force.data[idx_3].z += -(fz.x + fz.y + fz.z);
+        h_force.data[idx_3].w += e_total * 0.25;
+        }
     }
 
 namespace detail
-	{
-	void export_Elastic(pybind11::module& m)
-	{
-	pybind11::class_<Elastic, ForceCompute, std::shared_ptr<Elastic>>(m, "Elastic")
-	.def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<TetrahedronData>,pybind11::array_t<Scalar>, pybind11::array_t<unsigned int>>())
-	.def("setParams", &Elastic::setParamsPython)
-	.def("getParams", &Elastic::getParams);
-	}
-	}
+    {
+void export_Elastic(pybind11::module& m)
+    {
+    pybind11::class_<Elastic, ForceCompute, std::shared_ptr<Elastic>>(m, "Elastic")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<TetrahedronData>,
+                            pybind11::array_t<Scalar>,
+                            pybind11::array_t<unsigned int>>())
+        .def("setParams", &Elastic::setParamsPython)
+        .def("getParams", &Elastic::getParams);
+    }
+    } // namespace detail
 
     } // namespace md
     } // namespace hoomd
-	  //
-
+      //
