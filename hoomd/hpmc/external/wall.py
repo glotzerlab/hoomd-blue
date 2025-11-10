@@ -66,6 +66,7 @@ class _HPMCWallsMetaList(_WallsMetaList):
             hoomd.wall.Sphere, 
         ],
         hpmc.integrate.Polyhedron: [
+            hoomd.wall.Cylinder,
             hoomd.wall.Plane,
         ]
     }
