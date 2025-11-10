@@ -1,6 +1,18 @@
 # Copyright (c) 2009-2025 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+r"""Elastic implements the Saint Venant-Kirchoff hyperelastic force on a tetrahedral mesh based on the displacements of particles from a reference mesh.
+
+.. math::
+    ##TO DO
+
+See Also:
+    See the documentation in `hoomd.mesh3D.Mesh3D` for more information on the initialization of the mesh3D object.
+
+..
+
+"""
+
 from hoomd.md import _md
 from hoomd.md.force import Force
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -10,7 +22,13 @@ import copy
 
 
 class Elastic(Force):
-    """ """
+    r"""Elastic Potential.
+
+    Args:
+        mesh (`hoomd.mesh3D.Mesh3D`): 3D mesh data structure constraint.
+        reference_tags (`ndarray`): Array of particle tags for the 3D reference mesh
+
+    """
 
     _ext_module = _md
 
