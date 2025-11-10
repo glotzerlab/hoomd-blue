@@ -34,13 +34,15 @@ extensions = [
 
 if find_spec("sphinxcontrib.katex") is not None:
     extensions.append("sphinxcontrib.katex")
+
+    html_css_files = ["fix-katex.css"]
 else:
     extensions.append("sphinx.ext.mathjax")
 
 if os.getenv("READTHEDOCS"):
     extensions.append("sphinx_copybutton")
     extensions.append("notfound.extension")
-    extensions.append("sphinxcontrib.googleanalytics")
+    # extensions.append("sphinxcontrib.googleanalytics")
     googleanalytics_id = "G-ZR0DNZD21E"
 
     katex_prerender = True
@@ -85,8 +87,8 @@ year = datetime.date.today().year
 copyright = f"2009-{year} The Regents of the University of Michigan"
 author = "The Regents of the University of Michigan"
 
-version = "5.2.0"
-release = "5.2.0"
+version = "5.4.0"
+release = "5.4.0"
 
 language = "en"
 

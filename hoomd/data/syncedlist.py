@@ -189,10 +189,7 @@ class SyncedList(MutableSequence):
             return
         if self._synced:
             value._attach(self._simulation)
-            return
-        else:
-            if value._attached:
-                raise RuntimeError(f"Cannot place {value} into two simulations.")
+        return
 
     def _unregister_item(self, value):
         """Detaches and/or removes value to simulation if attached.

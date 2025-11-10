@@ -3,7 +3,7 @@ aniso
 
 .. automodule:: hoomd.md.pair.aniso
    :members:
-   :exclude-members: ALJ,AnisotropicPair,Dipole,GayBerne,Patchy,PatchyExpandedGaussian,PatchyExpandedLJ,PatchyExpandedMie,PatchyGaussian,PatchyLJ,PatchyMie,PatchyYukawa
+   :exclude-members: ALJ,AnisotropicPair,Dipole,GayBerne,Patchy,PatchyExpandedGaussian,PatchyExpandedLJ,PatchyExpandedMie,PatchyGaussian,PatchyLJ,PatchyMie,PatchyYukawa,YLZ
 
 .. rubric:: Classes
 
@@ -22,3 +22,4 @@ aniso
     aniso/patchylj
     aniso/patchymie
     aniso/patchyyukawa
+    aniso/ylz

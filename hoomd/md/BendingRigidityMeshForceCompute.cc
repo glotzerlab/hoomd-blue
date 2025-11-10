@@ -23,7 +23,7 @@ namespace md
 BendingRigidityMeshForceCompute::BendingRigidityMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_mesh_data(meshdef)
+    : MeshForceCompute(sysdef, meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing BendingRigidityMeshForceCompute" << endl;
 
@@ -296,12 +296,100 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         }
     }
 
+Scalar BendingRigidityMeshForceCompute::calcEnergy(unsigned int idx_a,
+                                                   unsigned int idx_b,
+                                                   unsigned int idx_c,
+                                                   unsigned int idx_d,
+                                                   unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+    Scalar3 dab;
+    dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+    dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+    dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+
+    Scalar3 dac;
+    dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+    dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+    dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+
+    Scalar3 dad;
+    dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+    dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+    dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+    // apply minimum image conventions to all 3 vectors
+    dab = box.minImage(dab);
+    dac = box.minImage(dac);
+    dad = box.minImage(dad);
+
+    Scalar3 z1;
+    z1.x = dab.y * dac.z - dab.z * dac.y;
+    z1.y = dab.z * dac.x - dab.x * dac.z;
+    z1.z = dab.x * dac.y - dab.y * dac.x;
+
+    Scalar3 z2;
+    z2.x = dad.y * dab.z - dad.z * dab.y;
+    z2.y = dad.z * dab.x - dad.x * dab.z;
+    z2.z = dad.x * dab.y - dad.y * dab.x;
+
+    Scalar n1 = z1.x * z1.x + z1.y * z1.y + z1.z * z1.z;
+    Scalar n2 = z2.x * z2.x + z2.y * z2.y + z2.z * z2.z;
+
+    if (n1 == 0 || n2 == 0)
+        return DBL_MAX;
+
+    Scalar z1z2 = z1.x * z2.x + z1.y * z2.y + z1.z * z2.z;
+    Scalar cosinus = z1z2 * fast::rsqrt(n1 * n2);
+
+    return h_params.data[type_id] * 0.5 * (1 - cosinus);
+    }
+
+Scalar BendingRigidityMeshForceCompute::energyDiff(unsigned int idx_a,
+                                                   unsigned int idx_b,
+                                                   unsigned int idx_c,
+                                                   unsigned int idx_d,
+                                                   unsigned int type_id)
+    {
+    Scalar energy_old = calcEnergy(idx_a, idx_b, idx_c, idx_d, type_id);
+    Scalar energy_new = calcEnergy(idx_c, idx_d, idx_b, idx_a, type_id);
+
+    return energy_new - energy_old;
+    }
+
+Scalar BendingRigidityMeshForceCompute::energyDiffSurrounding(unsigned int idx_a,
+                                                              unsigned int idx_b,
+                                                              unsigned int idx_c,
+                                                              unsigned int idx_d,
+                                                              unsigned int idx_e,
+                                                              unsigned int idx_f,
+                                                              unsigned int idx_g,
+                                                              unsigned int idx_h,
+                                                              unsigned int type_id)
+    {
+    Scalar energy_new = calcEnergy(idx_a, idx_c, idx_e, idx_d, type_id);
+    energy_new += calcEnergy(idx_c, idx_b, idx_f, idx_d, type_id);
+    energy_new += calcEnergy(idx_a, idx_d, idx_c, idx_g, type_id);
+    energy_new += calcEnergy(idx_d, idx_b, idx_c, idx_h, type_id);
+
+    Scalar energy_old = calcEnergy(idx_a, idx_c, idx_e, idx_b, type_id);
+    energy_old += calcEnergy(idx_c, idx_b, idx_f, idx_a, type_id);
+    energy_old += calcEnergy(idx_a, idx_d, idx_b, idx_g, type_id);
+    energy_old += calcEnergy(idx_d, idx_b, idx_a, idx_h, type_id);
+
+    return energy_new - energy_old;
+    }
+
 namespace detail
     {
 void export_BendingRigidityMeshForceCompute(pybind11::module& m)
     {
     pybind11::class_<BendingRigidityMeshForceCompute,
-                     ForceCompute,
+                     MeshForceCompute,
                      std::shared_ptr<BendingRigidityMeshForceCompute>>(
         m,
         "BendingRigidityMeshForceCompute")

@@ -76,7 +76,7 @@ class External(hoomd.operation._HOOMDBaseObject):
 
         .. math::
 
-            U = \\sum_{i=0}^\\mathrm{N_particles-1}
+            U = \\sum_{i=0}^{N_\\mathrm{particles}-1}
             U_{\\mathrm{external},i}
 
         See `hoomd.hpmc.integrate` for the full expression which includes

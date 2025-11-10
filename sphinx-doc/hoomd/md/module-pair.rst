@@ -3,7 +3,7 @@ pair
 
 .. automodule:: hoomd.md.pair
    :members:
-   :exclude-members: Buckingham,DLVO,DPD,DPDConservative,DPDLJ,Ewald,ExpandedGaussian,ExpandedLJ,ExpandedMie,ForceShiftedLJ,Fourier,Gaussian,LJ,LJ0804,LJ1208,LJGauss,Mie,Moliere,Morse,OPP,Pair,ReactionField,TWF,Table,WangFrenkel,Yukawa,ZBL
+   :exclude-members: Buckingham,DLVO,DPD,DPDConservative,DPDLJ,Ewald,ExpandedGaussian,ExpandedLJ,ExpandedMie,ForceShiftedLJ,Fourier,Gaussian,LJ,LJ0804,LJ1208,LJGauss,Mie,Moliere,Morse,OPP,Pair,ReactionField,TWF,Table,WangFrenkel,Yukawa,ZBL,Zetterling
 
 .. rubric:: Modules
 
@@ -44,3 +44,4 @@ pair
     pair/wangfrenkel
     pair/yukawa
     pair/zbl
+    pair/zetterling

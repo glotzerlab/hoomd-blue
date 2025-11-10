@@ -2,8 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshParameters.h"
-#include "hoomd/ForceCompute.h"
-#include "hoomd/MeshDefinition.h"
+#include "MeshForceCompute.h"
 
 #include <memory>
 
@@ -29,7 +28,7 @@ namespace md
 
     \ingroup computes
 */
-class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
+class PYBIND11_EXPORT AreaConservationMeshForceCompute : public MeshForceCompute
     {
     public:
     //! Constructs the compute
@@ -61,7 +60,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
      */
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
+    CommFlags getRequestedCommFlags(uint64_t timestep) override
         {
         CommFlags flags = CommFlags(0);
         flags[comm_flag::tag] = 1;
@@ -73,15 +72,30 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     protected:
     GPUArray<area_conservation_param_t> m_params; //!< Parameters
     GPUArray<Scalar> m_area;                      //!< memory space for area
-                                                  //
-    std::shared_ptr<MeshDefinition> m_mesh_data;  //!< Mesh data to use in computing energy
-    bool m_ignore_type;                           //! ignore type to calculate global area if true
+    Scalar m_area_diff;
+    bool m_ignore_type; //! ignore type to calculate global area if true
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute areas
-    virtual void precomputeParameter();
+    void precomputeParameter() override;
+
+    void postcomputeParameter(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id) override
+        {
+        ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::readwrite);
+        h_area.data[type_id] += m_area_diff;
+        };
+
+    Scalar energyDiff(unsigned int idx_a,
+                      unsigned int idx_b,
+                      unsigned int idx_c,
+                      unsigned int idx_d,
+                      unsigned int type_id) override;
     };
 
 namespace detail

@@ -44,6 +44,7 @@ class _DynamicIntegrator(BaseIntegrator):
             raise ValueError("Rigid object can only belong to one integrator.")
         param_dict["rigid"] = rigid
         self._param_dict.update(param_dict)
+        super().__init__()
 
     def _attach_hook(self):
         self._forces._sync(self._simulation, self._cpp_obj.forces)
@@ -378,7 +379,7 @@ class Integrator(_DynamicIntegrator):
 
         .. math::
 
-            \\vec{p} = \\sum_{i=0}^\\mathrm{N_particles-1} m_i \\vec{v}_i
+            \\vec{p} = \\sum_{i=0}^{N_\\mathrm{particles}-1} m_i \\vec{v}_i
         """
         v = self._cpp_obj.computeLinearMomentum()
         return (v.x, v.y, v.z)

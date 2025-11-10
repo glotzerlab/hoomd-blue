@@ -4,13 +4,74 @@ Change Log
 5.x
 ---
 
-5.3.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^
+6.0.0 (not released)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Use the provided alpha parameter in ``make_pppm_coulomb_forces``
+  (`#2153 <https://github.com/glotzerlab/hoomd-blue/pull/2153>`__).
+
+5.4.0 (2025-09-26)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The Zetterling MD pair potential: ``hoomd.md.pair.Zetterling``
+  (`#2086 <https://github.com/glotzerlab/hoomd-blue/pull/2086>`__).
+* The YLZ anisotropic MD pair potential: ``hoomd.md.pair.aniso.YLZ``
+  (`#2110 <https://github.com/glotzerlab/hoomd-blue/pull/2110>`__).
+* Dynamic bond topologies with mesh potentials: ``hoomd.md.update.MeshDynamicalBonding``
+  (`#2093 <https://github.com/glotzerlab/hoomd-blue/pull/2093>`__).
+
+*Fixed*
+
+* Display vector math symbol correctly in the documentation
+  (`#2109 <https://github.com/glotzerlab/hoomd-blue/pull/2109>`__).
+* Display equations correctly in the documentation
+  (`#2118 <https://github.com/glotzerlab/hoomd-blue/pull/2118>`__).
+
+5.3.1 (2025-07-18)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Ensure that GPU devices have concurrent unified memory capabilities
+  (`#2099 <https://github.com/glotzerlab/hoomd-blue/pull/2099>`__).
+* Fix segfault when attaching nlists with meshes
+  (`#2089 <https://github.com/glotzerlab/hoomd-blue/pull/2089>`__).
+* Install cuh headers
+  (`#2091 <https://github.com/glotzerlab/hoomd-blue/pull/2091>`__).
+* Reduce the time needed to generate mesh bonds
+  (`#2097 <https://github.com/glotzerlab/hoomd-blue/pull/2097>`__).
+* Equations displayed in ``hoomd.hpmc.compute.SDF`` documentation
+  (`#2096 <https://github.com/glotzerlab/hoomd-blue/discussions/2096>`__).
+* Support CUDA 12.9
+  (`#2102 <https://github.com/glotzerlab/hoomd-blue/discussions/2102>`__).
+
+5.3.0 (2025-06-26)
+^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 * The Zetterling pair potential: ``hoomd.hpmc.pair.Zetterling``
   (`#2057 <https://github.com/glotzerlab/hoomd-blue/pull/2057>`__).
+* ``hoomd.write.GSD`` now automatically flushes on frame writes 10 seconds
+  or longer since the previous flush. Configure this time with
+  ``auto_flush_period``. The flush does not occur on a timer -- it is only
+  called after a normally scheduled frame write
+  (`#2085 <https://github.com/glotzerlab/hoomd-blue/pull/2085>`__).
+
+*Changed*
+
+* The ``GSD`` write buffer size now defaults to 1 MiB. Files will thus
+  grow in size more continuiously (the previous default was 64 MiB).
+  File size changes are subject to additional buffering by the OS
+  and may or may not be predictable.
+  At the same time, new frames will no longer be available for reading
+  until after the file is flushed (which occurs on write after 10 seconds
+  by default) or closed
+  (`#2085 <https://github.com/glotzerlab/hoomd-blue/pull/2085>`__).
 
 *Fixed*
 

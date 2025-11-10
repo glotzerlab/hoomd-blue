@@ -183,8 +183,9 @@ def test_burst_dump(sim, tmp_path, start, end):
         if end == -1:
             end = len(dumped_frames)
         with gsd.hoomd.open(name=filename, mode="r") as traj:
-            assert [frame.configuration.step for frame in traj] == [0] + dumped_frames[
-                start:end
+            assert [frame.configuration.step for frame in traj] == [
+                0,
+                *dumped_frames[start:end],
             ]
 
 

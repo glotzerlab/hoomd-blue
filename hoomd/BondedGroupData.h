@@ -627,6 +627,12 @@ class BondedGroupData
         m_groups_dirty = true;
         }
 
+    virtual void groupReorder()
+        {
+        m_group_num_change_signal.emit();
+        notifyGroupReorder();
+        }
+
 #ifdef ENABLE_MPI
     //! Helper function to transfer bonded groups connected to a single particle
     /*! \param tag Tag of particle that moves between domains

@@ -310,7 +310,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation, metaclass=Logg
         if self._use_count > 1:
             if simulation != self._simulation:
                 raise hoomd.error.SimulationDefinitionError(
-                    f"Cannot add {self} to multiple simulations simultaneously."
+                    f"Cannot add {self} to the simulation. It has been attached"
+                    "to a different simulation previously."
                 )
             return
         self._simulation = simulation

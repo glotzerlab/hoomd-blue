@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 #include "AreaConservationMeshForceComputeGPU.cuh"
 #include "TriangleAreaConservationMeshForceCompute.h"
 #include "TriangleAreaConservationMeshForceComputeGPU.cuh"
@@ -58,7 +56,7 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
     GPUArray<Scalar> m_sum;         //!< memory space for sum over area
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     virtual void computeArea();
     };

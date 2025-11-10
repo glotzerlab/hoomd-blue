@@ -25,7 +25,7 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef,
     bool ignore_type)
-    : ForceCompute(sysdef), m_mesh_data(meshdef), m_ignore_type(ignore_type)
+    : MeshForceCompute(sysdef, meshdef), m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing AreaConservationMeshForceCompute" << endl;
 
@@ -388,12 +388,110 @@ void AreaConservationMeshForceCompute::precomputeParameter()
         h_area.data[i] = global_area[i];
     }
 
+Scalar AreaConservationMeshForceCompute::energyDiff(unsigned int idx_a,
+                                                    unsigned int idx_b,
+                                                    unsigned int idx_c,
+                                                    unsigned int idx_d,
+                                                    unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    ArrayHandle<area_conservation_param_t> h_params(m_params,
+                                                    access_location::host,
+                                                    access_mode::read);
+
+    ArrayHandle<Scalar> h_area(m_area, access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    // calculate d\vec{r}
+    Scalar3 dac;
+    dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+    dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+    dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+
+    Scalar3 dad;
+    dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+    dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+    dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+    Scalar3 dbc;
+    dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
+    dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
+    dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
+
+    Scalar3 dbd;
+    dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
+    dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
+    dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
+
+    // apply minimum image conventions to all 3 vectors
+    dac = box.minImage(dac);
+    dad = box.minImage(dad);
+    dbc = box.minImage(dbc);
+    dbd = box.minImage(dbd);
+
+    Scalar rac = sqrt(dac.x * dac.x + dac.y * dac.y + dac.z * dac.z);
+    Scalar rad = sqrt(dad.x * dad.x + dad.y * dad.y + dad.z * dad.z);
+    Scalar rbc = sqrt(dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z);
+    Scalar rbd = sqrt(dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z);
+
+    Scalar3 nac = dac / rac;
+    Scalar3 nad = dad / rad;
+    Scalar3 nbc = dbc / rbc;
+    Scalar3 nbd = dbd / rbd;
+
+    Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
+    if (c_caad > 1.0)
+        c_caad = 1.0;
+    if (c_caad < -1.0)
+        c_caad = -1.0;
+    Scalar s_caad = sqrt(1.0 - c_caad * c_caad);
+
+    Scalar c_cbbd = nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z;
+    if (c_cbbd > 1.0)
+        c_cbbd = 1.0;
+    if (c_cbbd < -1.0)
+        c_cbbd = -1.0;
+    Scalar s_cbbd = sqrt(1.0 - c_cbbd * c_cbbd);
+
+    if (s_caad == 0 || s_cbbd == 0)
+        return DBL_MAX;
+
+    Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
+    if (c_accb > 1.0)
+        c_accb = 1.0;
+    if (c_accb < -1.0)
+        c_accb = -1.0;
+    Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
+
+    Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
+    if (c_addb > 1.0)
+        c_addb = 1.0;
+    if (c_addb < -1.0)
+        c_addb = -1.0;
+    Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
+
+    m_area_diff = rac * rad * s_caad + rbc * rbd * s_cbbd;
+    m_area_diff -= (rac * rbc * s_accb + rad * rbd * s_addb);
+
+    m_area_diff /= 2.0;
+
+    Scalar AreaDiff = h_area.data[type_id] - h_params.data[type_id].A0;
+
+    Scalar energy_old = AreaDiff * AreaDiff;
+
+    Scalar energy_new = (AreaDiff + m_area_diff) * (AreaDiff + m_area_diff);
+
+    return h_params.data[type_id].k * (energy_new - energy_old) / (2 * h_params.data[type_id].A0);
+    }
+
 namespace detail
     {
 void export_AreaConservationMeshForceCompute(pybind11::module& m)
     {
     pybind11::class_<AreaConservationMeshForceCompute,
-                     ForceCompute,
+                     MeshForceCompute,
                      std::shared_ptr<AreaConservationMeshForceCompute>>(
         m,
         "AreaConservationMeshForceCompute")

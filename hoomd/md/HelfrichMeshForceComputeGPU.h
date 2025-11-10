@@ -40,10 +40,10 @@ class PYBIND11_EXPORT HelfrichMeshForceComputeGPU : public HelfrichMeshForceComp
     std::shared_ptr<Autotuner<1>> m_tuner_sigma;
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute sigmas
-    virtual void computeSigma();
+    void precomputeParameter() override;
     };
 
 namespace detail

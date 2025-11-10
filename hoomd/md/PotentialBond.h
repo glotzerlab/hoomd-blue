@@ -1,9 +1,8 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/ForceCompute.h"
+#include "MeshForceCompute.h"
 #include "hoomd/GPUArray.h"
-#include "hoomd/MeshDefinition.h"
 #include <memory>
 
 #include <vector>
@@ -29,7 +28,7 @@ namespace md
 
     \ingroup computes
 */
-template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
+template<class evaluator, class Bonds> class PotentialBond : public MeshForceCompute
     {
     public:
     //! Param type from evaluator
@@ -57,7 +56,7 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
 
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep);
+    CommFlags getRequestedCommFlags(uint64_t timestep) override;
 #endif
 
     protected:
@@ -65,12 +64,18 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     std::shared_ptr<Bonds> m_bond_data; //!< Bond data to use in computing bonds
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
+
+    Scalar energyDiff(unsigned int idx_a,
+                      unsigned int idx_b,
+                      unsigned int idx_c,
+                      unsigned int idx_d,
+                      unsigned int type_id) override;
     };
 
 template<class evaluator, class Bonds>
 PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef)
+    : MeshForceCompute(sysdef, NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
                                 << std::endl;
@@ -87,14 +92,14 @@ PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition>
 template<class evaluator, class Bonds>
 PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
                                                std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef)
+    : MeshForceCompute(sysdef, meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
                                 << std::endl;
     assert(m_pdata);
 
     // access the bond data for later use
-    m_bond_data = meshdef->getMeshBondData();
+    m_bond_data = m_mesh_data->getMeshBondData();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
@@ -314,6 +319,51 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
         }
     }
 
+template<class evaluator, class Bonds>
+Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
+                                                   unsigned int idx_b,
+                                                   unsigned int idx_c,
+                                                   unsigned int idx_d,
+                                                   unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    // access the parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+    Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+    Scalar3 posc = make_scalar3(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+    Scalar3 posd = make_scalar3(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+    Scalar3 xab = posb - posa;
+
+    Scalar3 xcd = posd - posc;
+
+    xab = box.minImage(xab);
+    xcd = box.minImage(xcd);
+
+    // calculate r_ab squared
+    Scalar rsqab = dot(xab, xab);
+    Scalar rsqcd = dot(xcd, xcd);
+
+    // compute the force and potential energy
+    Scalar force_divr = Scalar(0.0);
+    Scalar bond_eng1 = Scalar(0.0);
+    Scalar bond_eng2 = Scalar(0.0);
+    evaluator eval1(rsqab, h_params.data[type_id]);
+    evaluator eval2(rsqcd, h_params.data[type_id]);
+
+    eval1.evalForceAndEnergy(force_divr, bond_eng1);
+    bool evaluated = eval2.evalForceAndEnergy(force_divr, bond_eng2);
+
+    if (evaluated)
+        return (bond_eng2 - bond_eng1);
+    else
+        return DBL_MAX;
+    }
+
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
@@ -327,7 +377,7 @@ CommFlags PotentialBond<evaluator, Bonds>::getRequestedCommFlags(uint64_t timest
     if (evaluator::needsCharge())
         flags[comm_flag::charge] = 1;
 
-    flags |= ForceCompute::getRequestedCommFlags(timestep);
+    flags |= MeshForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
     }
@@ -342,7 +392,7 @@ namespace detail
 template<class T> void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<PotentialBond<T, BondData>,
-                     ForceCompute,
+                     MeshForceCompute,
                      std::shared_ptr<PotentialBond<T, BondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PotentialBond<T, BondData>::setParamsPython)
@@ -356,7 +406,7 @@ template<class T> void export_PotentialBond(pybind11::module& m, const std::stri
 template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<PotentialBond<T, MeshBondData>,
-                     ForceCompute,
+                     MeshForceCompute,
                      std::shared_ptr<PotentialBond<T, MeshBondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &PotentialBond<T, MeshBondData>::setParamsPython)

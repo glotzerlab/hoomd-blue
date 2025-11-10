@@ -171,7 +171,7 @@ class BoxMC(Updater):
           \left( xy^t = xy,
                 \enspace xz,
                 \enspace yz + s_{yz} \right) & \frac{2}{3} \le u \le 1 \\
-          \end{cases} \\
+          \end{cases}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[0, 1]` and :math:`s_k` is a random value uniformly distributed in
@@ -870,7 +870,7 @@ class QuickCompress(Updater):
           & yz_\mathrm{target} < yz \\
           \max( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} \ge yz
-          \end{cases} \\
+          \end{cases}
           \end{split}
 
     and in 2D:

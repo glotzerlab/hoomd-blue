@@ -65,6 +65,7 @@ The following people have contributed to HOOMD-blue:
 * Joseph Berleant, University of Michigan
 * Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan
+* Kate Jensen, University of Michigan
 * Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
 * Kevin Kohlstedt, University of Michigan
@@ -133,3 +134,4 @@ The following people have contributed to HOOMD-blue:
 * Nathan Barrett, Pritzker School of Molecular Engineering
 * Domagoj Fijan, University of Michigan
 * Cristina Butu, Columbia University
+* Shuo-Lin Weng, Texas A&M University

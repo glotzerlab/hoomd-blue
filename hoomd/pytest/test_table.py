@@ -11,14 +11,13 @@ from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
 
-try:
+import importlib.util
+
+skip_mpi = not hoomd.version.mpi_enabled or importlib.util.find_spec("mpi4py") is None
+if not skip_mpi:
     from mpi4py import MPI
 
-    skip_mpi = False
-except ImportError:
-    skip_mpi = True
-
-skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
+skip_mpi = pytest.mark.skipif(skip_mpi, reason="mpi4py could not be imported.")
 
 
 class Identity:

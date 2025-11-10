@@ -185,7 +185,7 @@ class _HDF5LogInternal(_InternalAction):
             shape,
             dtype=dtype,
             chunks=chunk_size,
-            maxshape=(None,) + shape[1:],
+            maxshape=(None, *shape[1:]),
         )
 
     @_skip_fh
@@ -218,7 +218,8 @@ class _HDF5LogInternal(_InternalAction):
                 dtype = value.dtype
                 chunk_size = (
                     max(self._MULTIFRAME_ARRAY_CHUNK_MAXIMUM // value.nbytes, 1),
-                ) + data_shape[1:]
+                    *data_shape[1:],
+                )
             self._create_dataset(
                 "/".join(("hoomd-data", *key)), data_shape, dtype, chunk_size
             )
