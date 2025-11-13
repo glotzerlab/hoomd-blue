@@ -39,5 +39,5 @@ replace = "Release {new_version}"
 [[tool.bumpversion.files]]
 filename = "CHANGELOG.rst"
 regex = true
-search = '{new_version} [^\n]*$'
+search = 'Next release$'
 replace = '{new_version} ({now:%Y-%m-%d})'

@@ -6,7 +6,7 @@ particles and the given walls consistent with the energy:
 
 .. math::
 
-    U_\mathrm{wall} = \sum_{i=0}^{\mathrm{N_particles-1}}
+    U_\mathrm{wall} = \sum_{i=0}^{N_\mathrm{particles}-1}
                       \sum_{w \in walls} U_w(d_i),
 
 where :math:`d_i` is the signed distance between particle :math:`i` and the wall

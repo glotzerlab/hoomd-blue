@@ -4,6 +4,20 @@ Change Log
 5.x
 ---
 
+Next release
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Add thermodynamically consistent frictional contact forces: ``hoomd.md.pair.friction``
+  (`#2116 <https://github.com/glotzerlab/hoomd-blue/pull/2116>`__).
+
+*Fixed*
+
+* Use the provided alpha parameter in ``make_pppm_coulomb_forces``
+  (`#2153 <https://github.com/glotzerlab/hoomd-blue/pull/2153>`__).
+* Add a unit test to verify that the export name of ``hoomd.hpmc.compute.FreeVolume``, and resolved the existing export name conflicts (`#2163 <https://github.com/glotzerlab/hoomd-blue/pull/2163>`__).
+
 5.4.0 (2025-09-26)
 ^^^^^^^^^^^^^^^^^^^^
 

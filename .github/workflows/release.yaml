@@ -67,7 +67,7 @@ jobs:
       run: tar -cvJf ${name}-${tag:1}.tar.xz ${name}-${tag:1}
 
     - name: Upload release files
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: release
         path: |
@@ -81,12 +81,12 @@ jobs:
 
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: release
 
     - name: Create release
-      uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
+      uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
       if: startsWith(github.ref, 'refs/tags/v')
       with:
         files: "*.tar.*"

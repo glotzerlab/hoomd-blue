@@ -1,6 +1,7 @@
 set(files __init__.py
           pair.py
           aniso.py
+          friction.py
    )
 
 install(FILES ${files}

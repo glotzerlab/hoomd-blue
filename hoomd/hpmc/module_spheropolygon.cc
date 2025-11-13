@@ -29,7 +29,7 @@ namespace detail
 void export_spheropolygon(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeSpheropolygon>(m, "IntegratorHPMCMonoSpheropolygon");
-    export_ComputeFreeVolume<ShapeSpheropolygon>(m, "ComputeFreeVolumeSpheropolygon");
+    export_ComputeFreeVolume<ShapeSpheropolygon>(m, "ComputeFreeVolumeConvexSpheropolygon");
     export_ComputeSDF<ShapeSpheropolygon>(m, "ComputeSDFConvexSpheropolygon");
     export_UpdaterMuVT<ShapeSpheropolygon>(m, "UpdaterMuVTConvexSpheropolygon");
     export_UpdaterGCA<ShapeSpheropolygon>(m, "UpdaterGCAConvexSpheropolygon");
@@ -38,7 +38,7 @@ void export_spheropolygon(pybind11::module& m)
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeSpheropolygon>(m, "IntegratorHPMCMonoSpheropolygonGPU");
-    export_ComputeFreeVolumeGPU<ShapeSpheropolygon>(m, "ComputeFreeVolumeSpheropolygonGPU");
+    export_ComputeFreeVolumeGPU<ShapeSpheropolygon>(m, "ComputeFreeVolumeConvexSpheropolygonGPU");
     export_UpdaterGCAGPU<ShapeSpheropolygon>(m, "UpdaterGCAConvexSpheropolygonGPU");
 #endif
     }

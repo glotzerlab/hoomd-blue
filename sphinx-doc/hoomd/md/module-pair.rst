@@ -11,6 +11,7 @@ pair
     :maxdepth: 1
 
     pair/module-aniso
+    pair/module-friction
 
 .. rubric:: Classes
 

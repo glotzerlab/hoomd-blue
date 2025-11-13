@@ -6,7 +6,7 @@ simulation state commensurate with the potential energy:
 
 .. math::
 
-    U_\mathrm{many-body} = \frac{1}{2} \sum_{i=0}^\mathrm{N_particles-1}
+    U_\mathrm{many-body} = \frac{1}{2} \sum_{i=0}^{N_\mathrm{particles}-1}
                            \sum_{j \ne i}
                            \sum_{j \ne k} U(\vec{r}_{ij}, \vec{r}_{ik})
 

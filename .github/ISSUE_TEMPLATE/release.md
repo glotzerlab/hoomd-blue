@@ -20,6 +20,7 @@ Minor and major releases:
 
 All releases:
 
+- [ ] Run `prek autoupdate`
 - [ ] Run *bump-my-version*.
 - [ ] Review change log.
 - [ ] Check readthedocs build, especially change log formatting.
