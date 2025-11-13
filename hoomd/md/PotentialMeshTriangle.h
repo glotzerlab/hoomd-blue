@@ -58,11 +58,11 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     virtual void setRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
 
-    virtual void setPotRcut(unsigned int type, Scalar rcut);
+    virtual void setNListRcut(unsigned int type, Scalar rcut);
     /// Get the r_cut for a single type pair
-    Scalar getPotRCut(std::string type);
+    Scalar getNListRCut(std::string type);
     /// Set the rcut for a single type pair using a tuple of strings
-    virtual void setPotRCutPython(std::string type, Scalar r_cut);
+    virtual void setNListRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
 
     /// Validate bond type
@@ -135,8 +135,8 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
-    GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared for the neighbor list per type pair
-    GPUArray<Scalar> m_potrcutsq;    //!< Cutoff radius squared for the potential per type pair
+    GPUArray<Scalar> m_rcutsq;    //!< Cutoff radius squared for the potential list per type pair
+    GPUArray<Scalar> m_nlistrcutsq;    //!< Cutoff radius squared for the neighbor list per type pair
     /// Per type pair potential parameters
     GPUArray<param_type> m_params;      //!< Bond parameters per type
 
@@ -173,14 +173,17 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
     GPUArray<Scalar> rcutsq(m_pdata->getNTypes(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
 
-    GPUArray<Scalar> potrcutsq(m_pdata->getNTypes(), m_exec_conf);
-    m_potrcutsq.swap(potrcutsq);
+    GPUArray<Scalar> nlistrcutsq(m_pdata->getNTypes(), m_exec_conf);
+    m_nlistrcutsq.swap(nlistrcutsq);
 
     // allocate the parameters
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_pdata->getNTypes(), m_exec_conf);
+    //m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_pdata->getNTypes(), m_exec_conf);
+
+    Index2D typpair_idx(m_pdata->getNTypes());
+    m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
@@ -303,16 +306,7 @@ void PotentialMeshTriangle<evaluator>::setRcut(unsigned int type, Scalar rcut)
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
         h_rcutsq.data[type] = rcut * rcut;
-
-        // store r_cut unmodified for so the neighbor list knows what particles to include
-        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
-                                          access_location::host,
-                                          access_mode::readwrite);
-        h_r_cut_nlist.data[type] = rcut;
         }
-
-    // notify the neighbor list that we have changed r_cut values
-    m_nlist->notifyRCutMatrixChange();
     }
 
 template<class evaluator>
@@ -331,31 +325,38 @@ template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::
     }
 
 
-
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::setPotRcut(unsigned int type, Scalar rcut)
+void PotentialMeshTriangle<evaluator>::setNListRcut(unsigned int type, Scalar rcut)
     {
     validateType(type, "setting r_potcut");
         {
         // store r_cut**2 for use internally
-        ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::readwrite);
-        h_potrcutsq.data[type] = rcut * rcut;
+        ArrayHandle<Scalar> h_nlistrcutsq(m_nlistrcutsq, access_location::host, access_mode::readwrite);
+        h_nlistrcutsq.data[type] = rcut * rcut;
+
+        // store r_cut unmodified for so the neighbor list knows what particles to include
+        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                          access_location::host,
+                                          access_mode::readwrite);
+        h_r_cut_nlist.data[type] = rcut;
         }
+    // notify the neighbor list that we have changed r_cut values
+    m_nlist->notifyRCutMatrixChange();
     }
 
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::setPotRCutPython(std::string type, Scalar r_cut)
+void PotentialMeshTriangle<evaluator>::setNListRCutPython(std::string type, Scalar r_cut)
     {
     auto typ = m_pdata->getTypeByName(type);
-    setPotRcut(typ, r_cut);
+    setNListRcut(typ, r_cut);
     }
 
-template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getPotRCut(std::string type)
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getNListRCut(std::string type)
     {
     auto typ = m_pdata->getTypeByName(type);
     validateType(typ, "getting potr_cut.");
-    ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::read);
-    return sqrt(h_potrcutsq.data[typ]);
+    ArrayHandle<Scalar> h_nlistrcutsq(m_nlistrcutsq, access_location::host, access_mode::read);
+    return sqrt(h_nlistrcutsq.data[typ]);
     }
 
 /*! Actually perform the force computation
@@ -390,7 +391,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_potrcutsq(m_potrcutsq, access_location::host, access_mode::read);
 
     // Zero data for force calculation
     m_force.zeroFill();
@@ -481,6 +481,22 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
         const unsigned int Nsize1 = (unsigned int)h_n_neigh.data[idces[1]];
         const unsigned int Nsize2 = (unsigned int)h_n_neigh.data[idces[2]];
 
+        //for (unsigned int v_idx = 0; v_idx < 3; v_idx++)
+	//{
+	//	unsigned int vv_idx = idces[v_idx];
+	//	for (unsigned int idx_i = 0; idx_i < h_n_neigh.data[vv_idx]; idx_i++)
+	//	{
+	//		unsigned int j = h_nlist.data[h_head_list.data[vv_idx] + idx_i];
+	//		bool not_yet_in = true;
+	//		for(unsigned int cn_idx = 0; cn_idx < combined_nlist.size() && not_yet_in; cn_idx++)
+	//			if( combined_nlist[cn_idx] == j)
+	//				not_yet_in = false;
+	//		if (not_yet_in)
+	//			 combined_nlist.push_back(j);
+	//	}
+	//}
+	
+
         for (unsigned int idx0 = 0; idx0 < Nsize0; idx0++)
 	{
 		unsigned int j = h_nlist.data[myHead0 + idx0];
@@ -497,6 +513,9 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 				combined_nlist.push_back(j);
 		}
 	}
+
+	//std::cout << "Nsize " << idces[0] << " " << idces[1] << " " << idces[2] << " " << Nsize0 << " " << Nsize1 << " " << Nsize2 << std::endl;
+	//std::cout << "myHead " << idces[0] << " " << idces[1] << " " << idces[2] << " " << h_nlist.data[myHead0] << " " << h_nlist.data[myHead1] << " " << h_nlist.data[myHead2] << std::endl;
 
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fa = make_scalar3(0, 0, 0);
@@ -524,6 +543,18 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
                 // access the index of this neighbor (MEM TRANSFER: 1 scalar)
                 unsigned int j = combined_nlist[k];
 
+		unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+		assert(typej < m_pdata->getNTypes());
+
+
+                const param_type& param = h_params.data[typej];
+                Scalar rcutsq = h_rcutsq.data[typej];
+
+		if( rcutsq == 0) continue;
+
+
+		//std::cout << "Ïndices " << idces[0] << " " << idces[1] << " " << idces[2] << " " << j << std::endl;
+
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
         	vec3<Scalar> pj(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
@@ -531,47 +562,33 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
         	daj.x = pos_a.x - pj.x;
         	daj.y = pos_a.y - pj.y;
         	daj.z = pos_a.z - pj.z;
+                daj = box.minImage(daj);
+
+		Scalar daj_norm = dot(daj,normal_dir);
+
+		Scalar rsq = daj_norm*daj_norm;
+
+		if( rcutsq < rsq) continue;
+
+		Scalar3 dx = normal_dir*daj_norm;
+
+		Scalar Area_a, Area_b, Area_c;
 
         	Scalar3 dbj;
         	dbj.x = pos_b.x - pj.x;
         	dbj.y = pos_b.y - pj.y;
         	dbj.z = pos_b.z - pj.z;
-
-        	Scalar3 dcj;
-        	dcj.x = pos_c.x - pj.x;
-        	dcj.y = pos_c.y - pj.y;
-        	dcj.z = pos_c.z - pj.z;
-
-                // apply periodic boundary conditions
-                daj = box.minImage(daj);
                 dbj = box.minImage(dbj);
-                dcj = box.minImage(dcj);
 
 		Scalar3 dajbj; 
 		dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
 		dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
 		dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
 
-		Scalar3 dbjcj; 
-		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+		Area_c = dot(dajbj,normal_dir);
 
-		Scalar3 dcjaj; 
-		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
-		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
-		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
-
-		Scalar Area_a = dot(dbjcj,normal_dir);
-		Scalar Area_b = dot(dcjaj,normal_dir);
-		Scalar Area_c = dot(dajbj,normal_dir);
-
-		Scalar rsq = DBL_MAX;
-		Scalar3 dx;
-		if( (Area_a + Area_b + Area_c)*normal_norm > 1)
+		if(Area_c <0)
 		{
-			Area_a = -1;
-
 			Scalar length_ab = dot(daj,nab);
 			Scalar ratio_ab = length_ab*normal_ab;
 
@@ -580,62 +597,81 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 				Scalar3 nabj = daj - length_ab*nab;
 				rsq = dot(nabj,nabj);
 				dx = nabj;
-
 				Area_a = ratio_ab;
 				Area_b = 1-ratio_ab;
 				Area_c = 0;
 			}
+			else continue;
+		}
+		else{
+			Area_c *= normal_norm;
 
-			Scalar length_ac = dot(daj,nac);
-			Scalar ratio_ac = length_ac*normal_ac;
+			Scalar3 dcj;
+			dcj.x = pos_c.x - pj.x;
+			dcj.y = pos_c.y - pj.y;
+			dcj.z = pos_c.z - pj.z;
+			dcj = box.minImage(dcj);
 
-			if(ratio_ac < 1 && ratio_ac > 0 )
+
+			Scalar3 dcjaj; 
+			dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+			dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+			dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+			Area_b = dot(dcjaj,normal_dir);
+
+			if(Area_b <0)
 			{
-				Scalar3 nacj = daj - length_ac*nac;
-				Scalar norm_acj = dot(nacj,nacj);
-				if( norm_acj < rsq) 
-					{
-					rsq = norm_acj;
+				Scalar length_ac = dot(daj,nac);
+				Scalar ratio_ac = length_ac*normal_ac;
+
+				if(ratio_ac < 1 && ratio_ac > 0 )
+				{
+					Scalar3 nacj = daj - length_ac*nac;
+					rsq = dot(nacj,nacj);
 					dx = nacj;
 					Area_a = ratio_ac;
 					Area_c = 1-ratio_ac;
 					Area_b = 0;
-					}
+				}
+				else continue;
 			}
-
-			Scalar length_bc = dot(dbj,nbc);
-			Scalar ratio_bc = length_bc*normal_bc;
-
-			if(ratio_bc < 1 && ratio_bc > 0 )
+			else
 			{
-				Scalar3 nbcj = dbj - length_bc*nbc;
-				Scalar norm_bcj = dot(nbcj,nbcj);
-				if( norm_bcj < rsq) 
+				Area_b *= normal_norm;
+
+				Scalar3 dbjcj; 
+				dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+				dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+				dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+				Area_a = dot(dbjcj,normal_dir);
+
+				if(Area_a <0)
+				{
+					Scalar length_bc = dot(dbj,nbc);
+					Scalar ratio_bc = length_bc*normal_bc;
+
+					if(ratio_bc < 1 && ratio_bc > 0 )
 					{
-					rsq = norm_bcj;
-					dx = nbcj;
-					Area_b = ratio_bc;
-					Area_c = 1-ratio_bc;
-					Area_a = 0;
+						Scalar3 nbcj = dbj - length_bc*nbc;
+						rsq = dot(nbcj,nbcj);
+						dx = nbcj;
+
+						Area_b = ratio_bc;
+						Area_c = 1-ratio_bc;
+						Area_a = 0;
 					}
+					else continue;
+				}
+				else
+				{
+					Area_a *= normal_norm;
+				}
 			}
-			if( Area_a < 0) continue;
-		}
-		else
-		{
-			Scalar daj_norm = dot(daj,normal_dir);
-
-			rsq = daj_norm*daj_norm;
-
-			dx = normal_dir*daj_norm;
 		}
 
-		unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-		assert(typej < m_pdata->getNTypes());
+		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
 
-
-                const param_type& param = h_params.data[typej];
-                Scalar rcutsq = h_potrcutsq.data[typej];
 
                 bool energy_shift = false;
                 if (m_shift_mode == shift)
@@ -765,8 +801,8 @@ template<class T> void export_PotentialMeshTriangle(pybind11::module& m, const s
         .def("getParams", &PotentialMeshTriangle<T>::getParams)
         .def("setRCut", &PotentialMeshTriangle<T>::setRCutPython)
         .def("getRCut", &PotentialMeshTriangle<T>::getRCut)
-        .def("setPotRCut", &PotentialMeshTriangle<T>::setPotRCutPython)
-        .def("getPotRCut", &PotentialMeshTriangle<T>::getPotRCut)
+        .def("setNlistRCut", &PotentialMeshTriangle<T>::setNListRCutPython)
+        .def("getNlistRCut", &PotentialMeshTriangle<T>::getNListRCut)
         .def_property("mode",
                       &PotentialMeshTriangle<T>::getShiftMode,
                       &PotentialMeshTriangle<T>::setShiftModePython);

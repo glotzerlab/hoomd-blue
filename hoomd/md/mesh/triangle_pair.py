@@ -95,7 +95,7 @@ class MeshTrianglePair(MeshPotential):
     # external plugin.
     _ext_module = _md
 
-    def __init__(self, nlist, mesh,default_r_cut=None, mode="none"):
+    def __init__(self, nlist, mesh,default_r_cut=None, default_nlist_r_cut=None, mode="none"):
         super().__init__(mesh)
         tp_r_cut = TypeParameter(
             "r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=1)
@@ -103,11 +103,13 @@ class MeshTrianglePair(MeshPotential):
         if default_r_cut is not None:
             tp_r_cut.default = default_r_cut
 
-        tp_pot_r_cut = TypeParameter(
-            "pot_r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=1)
+        tp_nlist_r_cut = TypeParameter(
+            "nlist_r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=1)
         )
+        if default_nlist_r_cut is not None:
+            tp_nlist_r_cut.default = default_nlist_r_cut
 
-        type_params = [tp_r_cut,tp_pot_r_cut]
+        type_params = [tp_r_cut,tp_nlist_r_cut]
 
         self._extend_typeparam(type_params)
         self._param_dict.update(
@@ -218,27 +220,16 @@ class WCA(MeshTrianglePair):
         nlist,
         mesh,
         default_r_cut=None,
+        default_nlist_r_cut=None,
         mode="none",
     ):
-        super().__init__(nlist, mesh, default_r_cut, mode)
+        super().__init__(nlist, mesh, default_r_cut, default_nlist_r_cut, mode)
         params = TypeParameter(
             "params",
             "particle_types",
             TypeParameterDict(epsilon=float, sigma=float, len_keys=1),
         )
         self._add_typeparam(params)
-
-    def _setattr_typeparam(self, attr, value):
-        """Hook for setting an attribute in `_typeparam_dict`."""
-        try:
-            for k, v in value.items():
-                print(attr,k,v)
-                self._typeparam_dict[attr][k] = v
-        except TypeError:
-            raise ValueError(
-                "To set {}, you must use a dictionary with types as keys.".format(attr)
-            )
-
 
 __all__ = [
     "WCA",
