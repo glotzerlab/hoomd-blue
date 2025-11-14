@@ -16,8 +16,6 @@ import numpy as np
 from hoomd.data.typeconverter import (
     OnlyFrom,
     nonnegative_real,
-    positive_real,
-    positive_int,
 )
 
 
@@ -104,7 +102,7 @@ class MeshTrianglePair(MeshPotential):
             tp_r_cut.default = default_r_cut
 
         tp_nlist_r_cut = TypeParameter(
-            "nlist_r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=1)
+            "nlist_r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=2)
         )
         if default_nlist_r_cut is not None:
             tp_nlist_r_cut.default = default_nlist_r_cut
