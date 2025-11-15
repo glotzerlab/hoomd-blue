@@ -58,11 +58,11 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     virtual void setRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
 
-    virtual void setNListRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+    virtual void setNListRcut(unsigned int type, Scalar rcut);
     /// Get the r_cut for a single type pair
-    Scalar getNListRCut(pybind11::tuple types);
+    Scalar getNListRCut(std::string type);
     /// Set the rcut for a single type pair using a tuple of strings
-    virtual void setNListRCutPython(pybind11::tuple types, Scalar r_cut);
+    virtual void setNListRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
 
     /// Validate bond type
@@ -326,45 +326,37 @@ template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::
 
 
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::setNListRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
+void PotentialMeshTriangle<evaluator>::setNListRcut(unsigned int type, Scalar rcut)
     {
-    validateType(typ1, "setting r_nlistcut");
-    validateType(typ2, "setting r_nlistcut");
+    validateType(type, "setting r_potcut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_nlistrcutsq(m_nlistrcutsq, access_location::host, access_mode::readwrite);
-    	Index2D typpair_idx(m_pdata->getNTypes());
-	h_nlistrcutsq.data[typpair_idx(typ1, typ2)] = rcut * rcut;
-        h_nlistrcutsq.data[typpair_idx(typ2, typ1)] = rcut * rcut;
+        h_nlistrcutsq.data[type] = rcut * rcut;
 
         // store r_cut unmodified for so the neighbor list knows what particles to include
         ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
                                           access_location::host,
                                           access_mode::readwrite);
-        h_r_cut_nlist.data[typpair_idx(typ1, typ2)] = rcut;
-        h_r_cut_nlist.data[typpair_idx(typ2, typ1)] = rcut;
+        h_r_cut_nlist.data[type] = rcut;
         }
     // notify the neighbor list that we have changed r_cut values
     m_nlist->notifyRCutMatrixChange();
     }
 
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::setNListRCutPython(pybind11::tuple types, Scalar r_cut)
+void PotentialMeshTriangle<evaluator>::setNListRCutPython(std::string type, Scalar r_cut)
     {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    setNListRcut(typ1, typ2, r_cut);
+    auto typ = m_pdata->getTypeByName(type);
+    setNListRcut(typ, r_cut);
     }
 
-template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getNListRCut(pybind11::tuple types)
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getNListRCut(std::string type)
     {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateType(typ1, "getting r_cut.");
-    validateType(typ2, "getting r_cut.");
+    auto typ = m_pdata->getTypeByName(type);
+    validateType(typ, "getting potr_cut.");
     ArrayHandle<Scalar> h_nlistrcutsq(m_nlistrcutsq, access_location::host, access_mode::read);
-    Index2D typpair_idx(m_pdata->getNTypes());
-    return sqrt(h_nlistrcutsq.data[typpair_idx(typ1, typ2)]);
+    return sqrt(h_nlistrcutsq.data[typ]);
     }
 
 /*! Actually perform the force computation
@@ -375,15 +367,21 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
+    computeForcesTriangle(timestep);
+    computeForcesParticles(timestep);
+    }
+
+template<class evaluator>
+void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
+    {
     // access the neighbor list, particle data, and system box
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
-    				    access_location::host,
-    				    access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
-    				  access_location::host,
-    				  access_mode::read);
-    //     Index2D nli = m_nlist->getNListIndexer();
+    Arrandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+             		    access_location::host,
+             		    access_mode::read);
+    Arrandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+             		  access_location::host,
+             		  access_mode::read);
+    //  Index2D nli = m_nlist->getNListIndexer();
     ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
     				access_location::host,
     				access_mode::read);
@@ -440,26 +438,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
         assert(idces[1] < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idces[2] < m_pdata->getN() + m_pdata->getNGhosts());
 
-	std::vector<unsigned int> combined_nlist;
-
-        for (unsigned int v_idx = 0; v_idx < 3; v_idx++)
-	{
-		unsigned int vv_idx = idces[v_idx];
-		for (unsigned int idx_i = 0; idx_i < h_n_neigh.data[vv_idx]; idx_i++)
-		{
-			unsigned int j = h_nlist.data[h_head_list.data[vv_idx] + idx_i];
-			bool not_yet_in = true;
-			for(unsigned int cn_idx = 0; cn_idx < combined_nlist.size() && not_yet_in; cn_idx++)
-				if( combined_nlist[cn_idx] == j)
-					not_yet_in = false;
-			if (not_yet_in)
-				 combined_nlist.push_back(j);
-		}
-	}
-
-	if( combined_nlist.size() == 0) 
-		continue;
-
         vec3<Scalar> pos_a(h_pos.data[idces[0]].x, h_pos.data[idces[0]].y, h_pos.data[idces[0]].z);
         vec3<Scalar> pos_b(h_pos.data[idces[1]].x, h_pos.data[idces[1]].y, h_pos.data[idces[1]].z);
         vec3<Scalar> pos_c(h_pos.data[idces[2]].x, h_pos.data[idces[2]].y, h_pos.data[idces[2]].z);
@@ -499,6 +477,37 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 	normal_dir.z = normal_dir.z*normal_norm;
 
 
+	std::vector<unsigned int> combined_nlist;
+
+       const size_t myHead0 = h_head_list.data[idces[0]];
+       const size_t myHead1 = h_head_list.data[idces[1]];
+       const size_t myHead2 = h_head_list.data[idces[2]];
+
+       const unsigned int Nsize0 = (unsigned int)h_n_neigh.data[idces[0]];
+       const unsigned int Nsize1 = (unsigned int)h_n_neigh.data[idces[1]];
+       const unsigned int Nsize2 = (unsigned int)h_n_neigh.data[idces[2]];
+
+	
+
+        for (unsigned int idx0 = 0; idx0 < Nsize0; idx0++)
+	{
+		unsigned int j = h_nlist.data[myHead0 + idx0];
+		bool insert = false;
+		for (unsigned int idx1 = 0; idx1 < Nsize1 && !insert; idx1++)
+			if( j ==  h_nlist.data[myHead1 + idx1] ) insert = true;
+
+		if(insert)
+		{
+			insert = false;
+			for (unsigned int idx2 = 0; idx2 < Nsize2 && !insert; idx2++)
+				if( j ==  h_nlist.data[myHead2 + idx2] ) insert = true;
+			if(insert)
+				combined_nlist.push_back(j);
+		}
+	}
+
+	//std::cout << "Nsize " << idces[0] << " " << idces[1] << " " << idces[2] << " " << Nsize0 << " " << Nsize1 << " " << Nsize2 << std::endl;
+	//std::cout << "myHead " << idces[0] << " " << idces[1] << " " << idces[2] << " " << h_nlist.data[myHead0] << " " << h_nlist.data[myHead1] << " " << h_nlist.data[myHead2] << std::endl;
 
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fa = make_scalar3(0, 0, 0);
@@ -570,89 +579,64 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 		Area_c = dot(dajbj,normal_dir);
 
-		Scalar3 dcj;
-		dcj.x = pos_c.x - pj.x;
-		dcj.y = pos_c.y - pj.y;
-		dcj.z = pos_c.z - pj.z;
-		dcj = box.minImage(dcj);
-
-
-		Scalar3 dcjaj; 
-		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
-		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
-		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
-		Area_b = dot(dcjaj,normal_dir);
-
-		Scalar3 dbjcj; 
-		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
-
-		Area_a = dot(dbjcj,normal_dir);
-
-
 		if(Area_c <0)
 		{
-			if(Area_b <0)
-			{
-				dx = daj;
-				Area_a = 1;
-				Area_b = 0;
-				Area_c = 0;
-			}
-			else if(Area_a < 0)
-			{
-				dx = dbj;
-				Area_a = 0;
-				Area_b = 1;
-				Area_c = 0;
-			}
-			else
-			{
-				Scalar length_ab = dot(daj,nab);
-				Scalar ratio_ab = length_ab*normal_ab;
+			Scalar length_ab = dot(daj,nab);
+			Scalar ratio_ab = length_ab*normal_ab;
 
-				if(ratio_ab < 1 && ratio_ab > 0 )
-				{
-					dx = daj - length_ab*nab;
-					Area_a = ratio_ab;
-					Area_b = 1-ratio_ab;
-					Area_c = 0;
-				}
-				else continue;
+			if(ratio_ab < 1 && ratio_ab > 0 )
+			{
+				Scalar3 nabj = daj - length_ab*nab;
+				rsq = dot(nabj,nabj);
+				dx = nabj;
+				Area_a = ratio_ab;
+				Area_b = 1-ratio_ab;
+				Area_c = 0;
 			}
+			else continue;
 		}
 		else{
 			Area_c *= normal_norm;
 
+			Scalar3 dcj;
+			dcj.x = pos_c.x - pj.x;
+			dcj.y = pos_c.y - pj.y;
+			dcj.z = pos_c.z - pj.z;
+			dcj = box.minImage(dcj);
+
+
+			Scalar3 dcjaj; 
+			dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+			dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+			dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+			Area_b = dot(dcjaj,normal_dir);
 
 			if(Area_b <0)
 			{
-				if(Area_a < 0)
-				{
-					dx = dcj;
-					Area_a = 0;
-					Area_b = 0;
-					Area_c = 1;
-				}
-				else
-				{
-					Scalar length_ac = dot(daj,nac);
-					Scalar ratio_ac = length_ac*normal_ac;
+				Scalar length_ac = dot(daj,nac);
+				Scalar ratio_ac = length_ac*normal_ac;
 
-					if(ratio_ac < 1 && ratio_ac > 0 )
-					{
-						dx = daj - length_ac*nac;
-						Area_a = ratio_ac;
-						Area_c = 1-ratio_ac;
-						Area_b = 0;
-					}
-					else continue;
+				if(ratio_ac < 1 && ratio_ac > 0 )
+				{
+					Scalar3 nacj = daj - length_ac*nac;
+					rsq = dot(nacj,nacj);
+					dx = nacj;
+					Area_a = ratio_ac;
+					Area_c = 1-ratio_ac;
+					Area_b = 0;
 				}
+				else continue;
 			}
 			else
 			{
 				Area_b *= normal_norm;
+
+				Scalar3 dbjcj; 
+				dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+				dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+				dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+				Area_a = dot(dbjcj,normal_dir);
 
 				if(Area_a <0)
 				{
@@ -661,7 +645,10 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 					if(ratio_bc < 1 && ratio_bc > 0 )
 					{
-						dx = dbj - length_bc*nbc;
+						Scalar3 nbcj = dbj - length_bc*nbc;
+						rsq = dot(nbcj,nbcj);
+						dx = nbcj;
+
 						Area_b = ratio_bc;
 						Area_c = 1-ratio_bc;
 						Area_a = 0;
@@ -674,8 +661,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 				}
 			}
 		}
-
-		rsq = dot(dx,dx);
 
 		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
 
@@ -720,26 +705,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
                         virialc[4] += force_divr * Area_c * pos_c.y * dx.z;
                         virialc[5] += force_divr * Area_c * pos_c.z * dx.z;
                         }
-
-	            h_force.data[j].x -= dx.x * force_divr;
-	            h_force.data[j].y -= dx.y * force_divr;
-	            h_force.data[j].z -= dx.z * force_divr;
-	            h_force.data[j].w += pair_eng * Scalar(0.5);
-	            if (compute_virial)
-	                {
-	                h_virial.data[0 * virial_pitch + j]
-	            	-= force_divr * pj.x * dx.x;
-	                h_virial.data[1 * virial_pitch + j]
-	            	-= force_divr * pj.x * dx.y;
-	                h_virial.data[2 * virial_pitch + j]
-	            	-= force_divr * pj.x * dx.z;
-	                h_virial.data[3 * virial_pitch + j]
-	            	-= force_divr * pj.y * dx.y;
-	                h_virial.data[4 * virial_pitch + j]
-	            	-= force_divr * pj.y * dx.z;
-	                h_virial.data[5 * virial_pitch + j]
-	            	-= force_divr * pj.z * dx.z;
-	                }
                     }
 		}
 
@@ -770,6 +735,300 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
             	    for (int jj = 0; jj < 6; jj++)
                 	h_virial.data[jj * virial_pitch + idces[2]] += virialc[jj];
 		    }
+        }
+    
+
+template<class evaluator>
+void PotentialMeshTriangle<evaluator>::computeForcesParticles(uint64_t timestep)
+    {
+    // access the neighbor list, particle data, and system box
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+    				    access_location::host,
+    				    access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+    				  access_location::host,
+    				  access_mode::read);
+    //     Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+    				access_location::host,
+    				access_mode::read);
+    
+    // access the particle data arrays
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
+    size_t virial_pitch = m_virial.getPitch();
+
+    // access the parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+    // we are using the minimum image of the global box here
+    // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
+    // length)
+    const BoxDim box = m_pdata->getGlobalBox();
+
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
+
+    ArrayHandle<typename Angle::members_t> h_triangles(
+        m_mesh_data->getMeshTriangleData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
+
+
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
+    {
+        // access the particle's position and type (MEM TRANSFER: 4 scalars)
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+
+        const param_type& param = h_params.data[typei];
+        Scalar rcutsq = h_rcutsq.data[typei];
+
+	if( rcutsq == 0) continue;
+
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+
+        // initialize current particle force, potential energy, and virial to 0
+        Scalar3 fi = make_scalar3(0, 0, 0);
+        Scalar pei = 0.0;
+        Scalar virialxxi = 0.0;
+        Scalar virialxyi = 0.0;
+        Scalar virialxzi = 0.0;
+        Scalar virialyyi = 0.0;
+        Scalar virialyzi = 0.0;
+        Scalar virialzzi = 0.0;
+
+        // loop over all of the neighbors of this particle
+        const size_t myHead = h_head_list.data[i];
+        const unsigned int size = (unsigned int)h_n_neigh.data[i];
+
+	std::vector<uint3> combined_nlist;
+
+	uint3 triangles;
+
+        for (unsigned int k = 0; k < size-2; k++)
+        {
+            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+            triangles.x = h_nlist.data[myHead + k];
+            assert(triangles.x < m_pdata->getN() + m_pdata->getNGhosts());
+
+            for (unsigned int kk = k+1; kk < size-1; kk++)
+            {
+                // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+                triangles.y = h_nlist.data[myHead + kk];
+                assert(triangles.y < m_pdata->getN() + m_pdata->getNGhosts());
+
+		for(unsigned int j_tri=0; j_tri < Nj_tri; j_tri++)
+		{
+			Scalar tri_idx = tidx[headj+j_tri];
+		        for(unsigned int jj_tri=0; jj_tri < Njj_tri; jj_tri++)
+		        {
+		            if( tri_idx == tidx[headjj+jj_tri] )
+			    {
+			        for (unsigned int kkk = kk+1; kkk < size; kkk++)
+			        {
+			           // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+			           triangles.z = h_nlist.data[myHead + kk];
+			           assert(triangles.z < m_pdata->getN() + m_pdata->getNGhosts());
+
+				   for(unsigned int jjj_tri=0; jjj_tri < Njjj_tri; jjj_tri++)
+					   if(tri_idx == tidx[headjjj+jjj_tri])
+						   combined_nlist.push_back(triangles);
+				}
+			    }
+
+			}
+	   	}
+	   }
+	}
+	
+         for (unsigned int k = 0; k < combined_nlist.size(); k++)
+                {
+                // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+		//
+                unsigned int aj = combined_nlist[k].x;
+
+                vec3<Scalar> pos_a(h_pos.data[aj].x, h_pos.data[aj].y, h_pos.data[aj].z);
+
+        	Scalar3 daj;
+        	daj.x = pos_a.x - pi.x;
+        	daj.y = pos_a.y - pi.y;
+        	daj.z = pos_a.z - pi.z;
+                daj = box.minImage(daj);
+
+		Scalar daj_norm = dot(daj,normal_dir);
+
+		Scalar rsq = daj_norm*daj_norm;
+
+		if( rcutsq < rsq) continue;
+
+                unsigned int bj = combined_nlist[k].y;
+                unsigned int cj = combined_nlist[k].z;
+
+                vec3<Scalar> pos_b(h_pos.data[bj].x, h_pos.data[bj].y, h_pos.data[bj].z);
+                vec3<Scalar> pos_c(h_pos.data[cj].x, h_pos.data[cj].y, h_pos.data[cj].z);
+
+                Scalar3 dab;
+                dab.x = pos_a.x - pos_b.x;
+                dab.y = pos_a.y - pos_b.y;
+                dab.z = pos_a.z - pos_b.z;
+
+                Scalar3 dac;
+                dac.x = pos_a.x - pos_c.x;
+                dac.y = pos_a.y - pos_c.y;
+                dac.z = pos_a.z - pos_c.z;
+
+                dab = box.minImage(dab);
+                dac = box.minImage(dac);
+
+                Scalar3 dbc = dac-dab;
+
+	        Scalar normal_ab = fast::rsqrt(dot(dab,dab));
+	        Scalar normal_ac = fast::rsqrt(dot(dac,dac));
+	        Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
+
+                Scalar3 nab = dab*normal_ab;
+                Scalar3 nac = dac*normal_ac;
+                Scalar3 nbc = dbc*normal_bc;
+
+                Scalar3 normal_dir;
+                normal_dir.x = dab.y * dac.z - dab.z * dac.y;
+                normal_dir.y = dab.z * dac.x - dab.x * dac.z;
+                normal_dir.z = dab.x * dac.y - dab.y * dac.x;
+
+	        Scalar normal_norm = fast::rsqrt(dot(normal_dir,normal_dir));
+
+	        normal_dir.x = normal_dir.x*normal_norm;
+	        normal_dir.y = normal_dir.y*normal_norm;
+	        normal_dir.z = normal_dir.z*normal_norm;
+
+
+		Scalar Area;
+
+        	Scalar3 dbj;
+        	dbj.x = pos_b.x - pi.x;
+        	dbj.y = pos_b.y - pi.y;
+        	dbj.z = pos_b.z - pi.z;
+                dbj = box.minImage(dbj);
+
+		Scalar3 dajbj; 
+		dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
+		dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
+		dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
+
+		Area_c = dot(dajbj,normal_dir);
+
+		Scalar3 dx = normal_dir*daj_norm;
+
+		if(Area <0)
+		{
+			Scalar length_ab = dot(daj,nab);
+			Scalar ratio_ab = length_ab*normal_ab;
+
+			if(ratio_ab < 1 && ratio_ab > 0 )
+			{
+				Scalar3 nabj = daj - length_ab*nab;
+				rsq = dot(nabj,nabj);
+				dx = nabj;
+			}
+			else continue;
+		}
+		else{
+			Scalar3 dcj;
+			dcj.x = pos_c.x - pi.x;
+			dcj.y = pos_c.y - pi.y;
+			dcj.z = pos_c.z - pi.z;
+			dcj = box.minImage(dcj);
+
+
+			Scalar3 dcjaj; 
+			dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+			dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+			dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+			Area = dot(dcjaj,normal_dir);
+
+			if(Area <0)
+			{
+				Scalar length_ac = dot(daj,nac);
+				Scalar ratio_ac = length_ac*normal_ac;
+
+				if(ratio_ac < 1 && ratio_ac > 0 )
+				{
+					Scalar3 nacj = daj - length_ac*nac;
+					rsq = dot(nacj,nacj);
+					dx = nacj;
+				}
+				else continue;
+			}
+			else
+			{
+				Scalar3 dbjcj; 
+				dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+				dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+				dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+				Area = dot(dbjcj,normal_dir);
+
+				if(Area <0)
+				{
+					Scalar length_bc = dot(dbj,nbc);
+					Scalar ratio_bc = length_bc*normal_bc;
+
+					if(ratio_bc < 1 && ratio_bc > 0 )
+					{
+						Scalar3 nbcj = dbj - length_bc*nbc;
+						rsq = dot(nbcj,nbcj);
+						dx = nbcj;
+					}
+					else continue;
+				}
+			}
+		}
+
+		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
+
+
+                bool energy_shift = false;
+                if (m_shift_mode == shift)
+                    energy_shift = true;
+
+                // compute the force and potential energy
+                Scalar force_divr = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+                evaluator eval(rsq, rcutsq, param);
+                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+                if (evaluated)
+                    {
+                    fi -= dx * force_divr;
+                    pei += pair_eng * Scalar(0.5);
+                    if (compute_virial)
+                        {
+	                virialxxi -= force_divr * pi.x * dx.x;
+	                virialxyi -= force_divr * pi.x * dx.y;
+	                virialxzi -= force_divr * pi.x * dx.z;
+	                virialyyi -= force_divr * pi.y * dx.y;
+	                virialyzi -= force_divr * pi.y * dx.z;
+	                virialzzi -= force_divr * pi.z * dx.z;
+	                }
+                    }
+		}
+
+	    h_force.data[i].x += fi.x;
+	    h_force.data[i].y += fi.y;
+	    h_force.data[i].z += fi.z;
+	    h_force.data[i].w += pei;
+            if (compute_virial)
+                {
+                h_virial.data[0 * m_virial_pitch + i] += virialxxi;
+                h_virial.data[1 * m_virial_pitch + i] += virialxyi;
+                h_virial.data[2 * m_virial_pitch + i] += virialxzi;
+                h_virial.data[3 * m_virial_pitch + i] += virialyyi;
+                h_virial.data[4 * m_virial_pitch + i] += virialyzi;
+                h_virial.data[5 * m_virial_pitch + i] += virialzzi;
+                }
         }
 }
 
