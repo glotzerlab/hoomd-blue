@@ -112,6 +112,10 @@ class PYBIND11_EXPORT MeshDefinition
 
     void createMeshNeighborhood();
 
+    void createMeshTriangleList();
+
+    void updateMeshTriangleList();
+
     private:
     GPUArray<unsigned int> m_globalN;
     std::shared_ptr<SystemDefinition> m_sysdef;        //!< System definition
