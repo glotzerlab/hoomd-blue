@@ -120,6 +120,10 @@ class PYBIND11_EXPORT MeshDefinition
                                                        //
     GPUArray<uint2> m_neigh_to_bond;                   //!< triangle ids corresponding to bond
     GPUArray<uint3> m_neigh_to_triag;                  //!< bond ids corresponding to triangle
+						       //
+    GPUArray<unsigned int> m_trilist;                   //!< Triangle list data
+    GPUArray<unsigned int> m_n_triangles;              //!< Number of triangles for each particle
+    GPUArray<unsigned int> m_head_triangles;            //!< start for triangles to read from the triangle list
     };
 
 namespace detail
