@@ -58,11 +58,11 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
     virtual void setRCutPython(std::string type, Scalar r_cut);
     //! Set ron for a single type pair
 
-    virtual void setNListRcut(unsigned int type, Scalar rcut);
+    virtual void setNListRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
     /// Get the r_cut for a single type pair
-    Scalar getNListRCut(std::string type);
+    Scalar getNListRCut(pybind11::tuple types);
     /// Set the rcut for a single type pair using a tuple of strings
-    virtual void setNListRCutPython(std::string type, Scalar r_cut);
+    virtual void setNListRCutPython(pybind11::tuple types, Scalar r_cut);
     //! Set ron for a single type pair
 
     /// Validate bond type
@@ -156,6 +156,8 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
 
     //! Actually compute the forces
     void computeForces(uint64_t timestep) override;
+    void computeForcesTriangle(uint64_t timestep);
+    void computeForcesParticle(uint64_t timestep);
 
     }; // end class PotentialMeshTriangle
 
@@ -326,37 +328,45 @@ template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getRCut(std::
 
 
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::setNListRcut(unsigned int type, Scalar rcut)
+void PotentialMeshTriangle<evaluator>::setNListRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
-    validateType(type, "setting r_potcut");
+    validateType(typ1, "setting r_nlistcut");
+    validateType(typ2, "setting r_nlistcut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_nlistrcutsq(m_nlistrcutsq, access_location::host, access_mode::readwrite);
-        h_nlistrcutsq.data[type] = rcut * rcut;
+    	Index2D typpair_idx(m_pdata->getNTypes());
+	h_nlistrcutsq.data[typpair_idx(typ1, typ2)] = rcut * rcut;
+        h_nlistrcutsq.data[typpair_idx(typ2, typ1)] = rcut * rcut;
 
         // store r_cut unmodified for so the neighbor list knows what particles to include
         ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
                                           access_location::host,
                                           access_mode::readwrite);
-        h_r_cut_nlist.data[type] = rcut;
+        h_r_cut_nlist.data[typpair_idx(typ1, typ2)] = rcut;
+        h_r_cut_nlist.data[typpair_idx(typ2, typ1)] = rcut;
         }
     // notify the neighbor list that we have changed r_cut values
     m_nlist->notifyRCutMatrixChange();
     }
 
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::setNListRCutPython(std::string type, Scalar r_cut)
+void PotentialMeshTriangle<evaluator>::setNListRCutPython(pybind11::tuple types, Scalar r_cut)
     {
-    auto typ = m_pdata->getTypeByName(type);
-    setNListRcut(typ, r_cut);
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setNListRcut(typ1, typ2, r_cut);
     }
 
-template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getNListRCut(std::string type)
+template<class evaluator> Scalar PotentialMeshTriangle<evaluator>::getNListRCut(pybind11::tuple types)
     {
-    auto typ = m_pdata->getTypeByName(type);
-    validateType(typ, "getting potr_cut.");
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateType(typ1, "getting r_cut.");
+    validateType(typ2, "getting r_cut.");
     ArrayHandle<Scalar> h_nlistrcutsq(m_nlistrcutsq, access_location::host, access_mode::read);
-    return sqrt(h_nlistrcutsq.data[typ]);
+    Index2D typpair_idx(m_pdata->getNTypes());
+    return sqrt(h_nlistrcutsq.data[typpair_idx(typ1, typ2)]);
     }
 
 /*! Actually perform the force computation
@@ -368,20 +378,21 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
     // start by updating the neighborlist
     m_nlist->compute(timestep);
     computeForcesTriangle(timestep);
-    computeForcesParticles(timestep);
+    computeForcesParticle(timestep);
     }
 
 template<class evaluator>
 void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
     {
+    
     // access the neighbor list, particle data, and system box
-    Arrandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
-             		    access_location::host,
-             		    access_mode::read);
-    Arrandle<unsigned int> h_nlist(m_nlist->getNListArray(),
-             		  access_location::host,
-             		  access_mode::read);
-    //  Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+    				    access_location::host,
+    				    access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+    				  access_location::host,
+    				  access_mode::read);
+    //     Index2D nli = m_nlist->getNListIndexer();
     ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
     				access_location::host,
     				access_mode::read);
@@ -438,6 +449,26 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
         assert(idces[1] < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idces[2] < m_pdata->getN() + m_pdata->getNGhosts());
 
+	std::vector<unsigned int> combined_nlist;
+
+        for (unsigned int v_idx = 0; v_idx < 3; v_idx++)
+	{
+		unsigned int vv_idx = idces[v_idx];
+		for (unsigned int idx_i = 0; idx_i < h_n_neigh.data[vv_idx]; idx_i++)
+		{
+			unsigned int j = h_nlist.data[h_head_list.data[vv_idx] + idx_i];
+			bool not_yet_in = true;
+			for(unsigned int cn_idx = 0; cn_idx < combined_nlist.size() && not_yet_in; cn_idx++)
+				if( combined_nlist[cn_idx] == j)
+					not_yet_in = false;
+			if (not_yet_in)
+				 combined_nlist.push_back(j);
+		}
+	}
+
+	if( combined_nlist.size() == 0) 
+		continue;
+
         vec3<Scalar> pos_a(h_pos.data[idces[0]].x, h_pos.data[idces[0]].y, h_pos.data[idces[0]].z);
         vec3<Scalar> pos_b(h_pos.data[idces[1]].x, h_pos.data[idces[1]].y, h_pos.data[idces[1]].z);
         vec3<Scalar> pos_c(h_pos.data[idces[2]].x, h_pos.data[idces[2]].y, h_pos.data[idces[2]].z);
@@ -477,37 +508,6 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 	normal_dir.z = normal_dir.z*normal_norm;
 
 
-	std::vector<unsigned int> combined_nlist;
-
-       const size_t myHead0 = h_head_list.data[idces[0]];
-       const size_t myHead1 = h_head_list.data[idces[1]];
-       const size_t myHead2 = h_head_list.data[idces[2]];
-
-       const unsigned int Nsize0 = (unsigned int)h_n_neigh.data[idces[0]];
-       const unsigned int Nsize1 = (unsigned int)h_n_neigh.data[idces[1]];
-       const unsigned int Nsize2 = (unsigned int)h_n_neigh.data[idces[2]];
-
-	
-
-        for (unsigned int idx0 = 0; idx0 < Nsize0; idx0++)
-	{
-		unsigned int j = h_nlist.data[myHead0 + idx0];
-		bool insert = false;
-		for (unsigned int idx1 = 0; idx1 < Nsize1 && !insert; idx1++)
-			if( j ==  h_nlist.data[myHead1 + idx1] ) insert = true;
-
-		if(insert)
-		{
-			insert = false;
-			for (unsigned int idx2 = 0; idx2 < Nsize2 && !insert; idx2++)
-				if( j ==  h_nlist.data[myHead2 + idx2] ) insert = true;
-			if(insert)
-				combined_nlist.push_back(j);
-		}
-	}
-
-	//std::cout << "Nsize " << idces[0] << " " << idces[1] << " " << idces[2] << " " << Nsize0 << " " << Nsize1 << " " << Nsize2 << std::endl;
-	//std::cout << "myHead " << idces[0] << " " << idces[1] << " " << idces[2] << " " << h_nlist.data[myHead0] << " " << h_nlist.data[myHead1] << " " << h_nlist.data[myHead2] << std::endl;
 
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fa = make_scalar3(0, 0, 0);
@@ -579,64 +579,89 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 
 		Area_c = dot(dajbj,normal_dir);
 
+		Scalar3 dcj;
+		dcj.x = pos_c.x - pj.x;
+		dcj.y = pos_c.y - pj.y;
+		dcj.z = pos_c.z - pj.z;
+		dcj = box.minImage(dcj);
+
+
+		Scalar3 dcjaj; 
+		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+		Area_b = dot(dcjaj,normal_dir);
+
+		Scalar3 dbjcj; 
+		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+		Area_a = dot(dbjcj,normal_dir);
+
+
 		if(Area_c <0)
 		{
-			Scalar length_ab = dot(daj,nab);
-			Scalar ratio_ab = length_ab*normal_ab;
-
-			if(ratio_ab < 1 && ratio_ab > 0 )
+			if(Area_b <0)
 			{
-				Scalar3 nabj = daj - length_ab*nab;
-				rsq = dot(nabj,nabj);
-				dx = nabj;
-				Area_a = ratio_ab;
-				Area_b = 1-ratio_ab;
+				dx = daj;
+				Area_a = 1;
+				Area_b = 0;
 				Area_c = 0;
 			}
-			else continue;
+			else if(Area_a < 0)
+			{
+				dx = dbj;
+				Area_a = 0;
+				Area_b = 1;
+				Area_c = 0;
+			}
+			else
+			{
+				Scalar length_ab = dot(daj,nab);
+				Scalar ratio_ab = length_ab*normal_ab;
+
+				if(ratio_ab < 1 && ratio_ab > 0 )
+				{
+					dx = daj - length_ab*nab;
+					Area_a = ratio_ab;
+					Area_b = 1-ratio_ab;
+					Area_c = 0;
+				}
+				else continue;
+			}
 		}
 		else{
 			Area_c *= normal_norm;
 
-			Scalar3 dcj;
-			dcj.x = pos_c.x - pj.x;
-			dcj.y = pos_c.y - pj.y;
-			dcj.z = pos_c.z - pj.z;
-			dcj = box.minImage(dcj);
-
-
-			Scalar3 dcjaj; 
-			dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
-			dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
-			dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
-			Area_b = dot(dcjaj,normal_dir);
 
 			if(Area_b <0)
 			{
-				Scalar length_ac = dot(daj,nac);
-				Scalar ratio_ac = length_ac*normal_ac;
-
-				if(ratio_ac < 1 && ratio_ac > 0 )
+				if(Area_a < 0)
 				{
-					Scalar3 nacj = daj - length_ac*nac;
-					rsq = dot(nacj,nacj);
-					dx = nacj;
-					Area_a = ratio_ac;
-					Area_c = 1-ratio_ac;
+					dx = dcj;
+					Area_a = 0;
 					Area_b = 0;
+					Area_c = 1;
 				}
-				else continue;
+				else
+				{
+					Scalar length_ac = dot(daj,nac);
+					Scalar ratio_ac = length_ac*normal_ac;
+
+					if(ratio_ac < 1 && ratio_ac > 0 )
+					{
+						dx = daj - length_ac*nac;
+						Area_a = ratio_ac;
+						Area_c = 1-ratio_ac;
+						Area_b = 0;
+					}
+					else continue;
+				}
 			}
 			else
 			{
 				Area_b *= normal_norm;
-
-				Scalar3 dbjcj; 
-				dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-				dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-				dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
-
-				Area_a = dot(dbjcj,normal_dir);
 
 				if(Area_a <0)
 				{
@@ -645,10 +670,7 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 
 					if(ratio_bc < 1 && ratio_bc > 0 )
 					{
-						Scalar3 nbcj = dbj - length_bc*nbc;
-						rsq = dot(nbcj,nbcj);
-						dx = nbcj;
-
+						dx = dbj - length_bc*nbc;
 						Area_b = ratio_bc;
 						Area_c = 1-ratio_bc;
 						Area_a = 0;
@@ -661,6 +683,8 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 				}
 			}
 		}
+
+		rsq = dot(dx,dx);
 
 		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
 
@@ -736,10 +760,11 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
                 	h_virial.data[jj * virial_pitch + idces[2]] += virialc[jj];
 		    }
         }
+}
     
 
 template<class evaluator>
-void PotentialMeshTriangle<evaluator>::computeForcesParticles(uint64_t timestep)
+void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
     {
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
@@ -905,13 +930,10 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticles(uint64_t timestep)
 	        normal_dir.y = normal_dir.y*normal_norm;
 	        normal_dir.z = normal_dir.z*normal_norm;
 
-
-		Scalar Area;
-
         	Scalar3 dbj;
-        	dbj.x = pos_b.x - pi.x;
-        	dbj.y = pos_b.y - pi.y;
-        	dbj.z = pos_b.z - pi.z;
+        	dbj.x = pos_b.x - pj.x;
+        	dbj.y = pos_b.y - pj.y;
+        	dbj.z = pos_b.z - pj.z;
                 dbj = box.minImage(dbj);
 
 		Scalar3 dajbj; 
@@ -919,76 +941,80 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticles(uint64_t timestep)
 		dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
 		dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
 
-		Area_c = dot(dajbj,normal_dir);
+		Scalar Area_c = dot(dajbj,normal_dir);
 
-		Scalar3 dx = normal_dir*daj_norm;
+		Scalar3 dcj;
+		dcj.x = pos_c.x - pj.x;
+		dcj.y = pos_c.y - pj.y;
+		dcj.z = pos_c.z - pj.z;
+		dcj = box.minImage(dcj);
 
-		if(Area <0)
+
+		Scalar3 dcjaj; 
+		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+		Scalar Area_b = dot(dcjaj,normal_dir);
+
+		Scalar3 dbjcj; 
+		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+		Scalar Area_a = dot(dbjcj,normal_dir);
+
+
+		if(Area_c <0)
 		{
-			Scalar length_ab = dot(daj,nab);
-			Scalar ratio_ab = length_ab*normal_ab;
-
-			if(ratio_ab < 1 && ratio_ab > 0 )
+			if(Area_b <0)
+				dx = daj;
+			else if(Area_a < 0)
+				dx = dbj;
+			else
 			{
-				Scalar3 nabj = daj - length_ab*nab;
-				rsq = dot(nabj,nabj);
-				dx = nabj;
+				Scalar length_ab = dot(daj,nab);
+				Scalar ratio_ab = length_ab*normal_ab;
+
+				if(ratio_ab < 1 && ratio_ab > 0 )
+					dx = daj - length_ab*nab;
+				else continue;
 			}
-			else continue;
 		}
 		else{
-			Scalar3 dcj;
-			dcj.x = pos_c.x - pi.x;
-			dcj.y = pos_c.y - pi.y;
-			dcj.z = pos_c.z - pi.z;
-			dcj = box.minImage(dcj);
+			Area_c *= normal_norm;
 
 
-			Scalar3 dcjaj; 
-			dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
-			dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
-			dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
-			Area = dot(dcjaj,normal_dir);
-
-			if(Area <0)
+			if(Area_b <0)
 			{
-				Scalar length_ac = dot(daj,nac);
-				Scalar ratio_ac = length_ac*normal_ac;
-
-				if(ratio_ac < 1 && ratio_ac > 0 )
+				if(Area_a < 0)
+					dx = dcj;
+				else
 				{
-					Scalar3 nacj = daj - length_ac*nac;
-					rsq = dot(nacj,nacj);
-					dx = nacj;
+					Scalar length_ac = dot(daj,nac);
+					Scalar ratio_ac = length_ac*normal_ac;
+
+					if(ratio_ac < 1 && ratio_ac > 0 )
+						dx = daj - length_ac*nac;
+					else continue;
 				}
-				else continue;
 			}
 			else
 			{
-				Scalar3 dbjcj; 
-				dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-				dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-				dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+				Area_b *= normal_norm;
 
-				Area = dot(dbjcj,normal_dir);
-
-				if(Area <0)
+				if(Area_a <0)
 				{
 					Scalar length_bc = dot(dbj,nbc);
 					Scalar ratio_bc = length_bc*normal_bc;
 
 					if(ratio_bc < 1 && ratio_bc > 0 )
-					{
-						Scalar3 nbcj = dbj - length_bc*nbc;
-						rsq = dot(nbcj,nbcj);
-						dx = nbcj;
-					}
+						dx = dbj - length_bc*nbc;
 					else continue;
 				}
 			}
 		}
 
-		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
+		rsq = dot(dx,dx);
 
 
                 bool energy_shift = false;
