@@ -259,11 +259,11 @@ void MeshDefinition::updateMeshTriangleList()
                                        access_location::host,
                                        access_mode::readwrite);
 
-    ArrayHandle<unsigned int> h_n_triangles.swap(m_n_triangles,
+    ArrayHandle<unsigned int> h_n_triangles(m_n_triangles,
                                        access_location::host,
                                        access_mode::readwrite);
 
-    ArrayHandle<unsigned int> h_head_triangles.swap(m_head_triangles,
+    ArrayHandle<unsigned int> h_head_triangles(m_head_triangles,
                                        access_location::host,
                                        access_mode::readwrite);
 
