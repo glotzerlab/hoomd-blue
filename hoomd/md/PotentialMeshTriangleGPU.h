@@ -852,28 +852,38 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
             triangles.x = h_nlist.data[myHead + k];
             assert(triangles.x < m_pdata->getN() + m_pdata->getNGhosts());
 
+	    unsigned int Nj_tri = h_n_triang.data[triangles.x];
+	    unsigned int headj = h_head_triang.data[triangles.x];
+
             for (unsigned int kk = k+1; kk < size-1; kk++)
             {
                 // access the index of this neighbor (MEM TRANSFER: 1 scalar)
                 triangles.y = h_nlist.data[myHead + kk];
                 assert(triangles.y < m_pdata->getN() + m_pdata->getNGhosts());
 
+	    	unsigned int Njj_tri = h_n_triang.data[triangles.y];
+		unsigned int headjj = h_head_triang.data[triangles.y];
+
 		for(unsigned int j_tri=0; j_tri < Nj_tri; j_tri++)
 		{
-			Scalar tri_idx = tidx[headj+j_tri];
+			Scalar tri_idx = h_trianglist.data[headj+j_tri];
 		        for(unsigned int jj_tri=0; jj_tri < Njj_tri; jj_tri++)
 		        {
-		            if( tri_idx == tidx[headjj+jj_tri] )
+		            if( tri_idx == h_trianglist.data[headjj+jj_tri] )
 			    {
 			        for (unsigned int kkk = kk+1; kkk < size; kkk++)
 			        {
 			           // access the index of this neighbor (MEM TRANSFER: 1 scalar)
 			           triangles.z = h_nlist.data[myHead + kk];
 			           assert(triangles.z < m_pdata->getN() + m_pdata->getNGhosts());
+	    			   unsigned int Njjj_tri = h_n_triang.data[triangles.z];
+				   unsigned int headjjj = h_head_triang.data[triangles.z];
 
 				   for(unsigned int jjj_tri=0; jjj_tri < Njjj_tri; jjj_tri++)
-					   if(tri_idx == tidx[headjjj+jjj_tri])
+				   {
+					   if(tri_idx == h_trianglist.data[headjjj+jjj_tri])
 						   combined_nlist.push_back(triangles);
+				   }
 				}
 			    }
 
