@@ -47,13 +47,17 @@ void WallDistanceForceCompute::setForces()
 
 	Scalar norm = fast::sqrt(pi.x*pi.x+pi.y*pi.y);
 
-	Scalar dist = m_R - norm;
+	Scalar dist = 2*(m_R - norm);
 
+	dist = 1/(dist*dist);
 
         vec3<Scalar> fi(0, 0, 0);
 
-	fi.x = m_k*dist*pi.x/norm;
-	fi.y = m_k*dist*pi.y/norm;
+	if( norm > 0)
+	{
+		fi.x = m_k*dist*pi.x/norm;
+		fi.y = m_k*dist*pi.y/norm;
+	}
         h_force.data[idx] = vec_to_scalar4(fi, 0);
         }
     }
