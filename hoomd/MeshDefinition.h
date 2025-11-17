@@ -100,6 +100,21 @@ class PYBIND11_EXPORT MeshDefinition
         return m_neigh_to_triag;
         }
 
+    const GPUArray<unsigned int>& getTriangleList() const
+        {
+        return m_trilist;
+        }
+
+    const GPUArray<unsigned int>& getNNeighArray() const
+        {
+        return m_n_triangles;
+        }
+
+    const GPUArray<unsigned int>& getHeadList() const
+        {
+        return m_head_triangles;
+        }
+
     void setTypes(pybind11::list types);
 
     BondData::Snapshot getBondData();

@@ -778,6 +778,18 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
     				access_location::host,
     				access_mode::read);
     
+
+    ArrayHandle<unsigned int> h_n_triang(m_mesh_data->getNNeighArray(),
+    				    access_location::host,
+    				    access_mode::read);
+    ArrayHandle<unsigned int> h_trianglist(m_mesh_data->getTriangleList(),
+    				  access_location::host,
+    				  access_mode::read);
+    //     Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_head_triang(m_mesh_data->getHeadList(),
+    				access_location::host,
+    				access_mode::read);
+
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
