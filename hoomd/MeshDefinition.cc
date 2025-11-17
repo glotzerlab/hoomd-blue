@@ -131,6 +131,9 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
 
+
+    createMeshTriangleList();
+
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -284,24 +287,25 @@ void MeshDefinition::updateMeshTriangleList()
         }
 
     h_head_triangles.data[0] = 0;
-    std::vector<unsigned int> counter(m_meshtriangle_data->getNGlobal());
+    std::vector<unsigned int> counter(m_sysdef->getParticleData()->getNGlobal());
+    counter[0]=0;
     for (unsigned int i = 1; i < m_sysdef->getParticleData()->getNGlobal(); i++)
-	{
+        {
         h_head_triangles.data[i] = h_head_triangles.data[i-1] + h_n_triangles.data[i-1];
-	counter[i] = 0;
-	}
+        counter[i] = 0;
+        }
 
 
     for (unsigned int i = 0; i < m_meshtriangle_data->getNGlobal(); i++)
         {
         const typename Angle::members_t& triangle = h_triangles.data[i];
 
-	for (unsigned int j = 0; j < 3; j++)
-		{
-		unsigned int vertex = triangle.tag[j];
+        for (unsigned int j = 0; j < 3; j++)
+        	{
+        	unsigned int vertex = triangle.tag[j];
         	h_trilist.data[h_head_triangles.data[vertex]+counter[vertex]]=i;
-		counter[vertex]+=1;
-		}
+        	counter[vertex]+=1;
+        	}
         }
     }
 
