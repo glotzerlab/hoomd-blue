@@ -837,29 +837,43 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 
         // loop over all of the neighbors of this particle
         const size_t myHead = h_head_list.data[i];
-        const unsigned int size = (unsigned int)h_n_neigh.data[i];
+        unsigned int size = (unsigned int)h_n_neigh.data[i];
+
+	std::vector<uint2> reduced_nlist;
+
+
+	uint2 nk;
+
+	for (unsigned int k = 0; k < size; k++)
+	{
+		nk.x = h_nlist.data[myHead + k];
+                assert(nk.x < m_pdata->getN() + m_pdata->getNGhosts());
+		nk.y = h_tag.data[nk.x];
+		if (h_n_triang.data[nk.y] > 0)
+			reduced_nlist.push_back(nk);
+	}
 
 	std::vector<uint3> combined_nlist;
 
 	uint3 triangles;
 
+	size = (unsigned int)reduced_nlist.size();
+
+	if(size < 2)
+		continue;
+
         for (unsigned int k = 0; k < size-2; k++)
         {
-            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            triangles.x = h_nlist.data[myHead + k];
-            assert(triangles.x < m_pdata->getN() + m_pdata->getNGhosts());
-	    unsigned int trianglesx = h_tag.data[triangles.x];
+            triangles.x = reduced_nlist[k].x;
+	    unsigned int trianglesx = reduced_nlist[k].y;
 
 	    unsigned int Nj_tri = h_n_triang.data[trianglesx];
 	    unsigned int headj = h_head_triang.data[trianglesx];
 
             for (unsigned int kk = k+1; kk < size-1; kk++)
             {
-                // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-                triangles.y = h_nlist.data[myHead + kk];
-                assert(triangles.y < m_pdata->getN() + m_pdata->getNGhosts());
-
-	    	unsigned int trianglesy = h_tag.data[triangles.y];
+                triangles.y = reduced_nlist[kk].x;
+	    	unsigned int trianglesy = reduced_nlist[kk].y;
 
 	    	unsigned int Njj_tri = h_n_triang.data[trianglesy];
 		unsigned int headjj = h_head_triang.data[trianglesy];
@@ -873,10 +887,8 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 			    {
 			        for (unsigned int kkk = kk+1; kkk < size; kkk++)
 			        {
-			           // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-			           triangles.z = h_nlist.data[myHead + kkk];
-			           assert(triangles.z < m_pdata->getN() + m_pdata->getNGhosts());
-	    			   unsigned int trianglesz = h_tag.data[triangles.z];
+			           triangles.z =  reduced_nlist[kkk].x;
+	    			   unsigned int trianglesz = reduced_nlist[kkk].y;
 	    			   unsigned int Njjj_tri = h_n_triang.data[trianglesz];
 				   unsigned int headjjj = h_head_triang.data[trianglesz];
 
@@ -892,7 +904,7 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 	   	}
 	   }
 	}
-	
+
          for (unsigned int k = 0; k < combined_nlist.size(); k++)
                 {
                 // access the index of this neighbor (MEM TRANSFER: 1 scalar)
@@ -974,20 +986,11 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 		dcj.z = pos_c.z - pi.z;
 		dcj = box.minImage(dcj);
 
-
 		Scalar3 dcjaj; 
 		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
 		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
 		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
 		Scalar Area_b = dot(dcjaj,normal_dir);
-
-		Scalar3 dbjcj; 
-		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
-
-		Scalar Area_a = dot(dbjcj,normal_dir);
-
 
 		if(Area_c <0)
 		{
@@ -995,7 +998,12 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 				dx = daj;
 			else
 			{	
-				if(Area_a < 0)
+				Scalar3 dbjcj; 
+				dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+				dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+				dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+				if(dot(dbjcj,normal_dir) < 0)
 					dx = dbj;
 				else
 				{
@@ -1009,6 +1017,11 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 			}
 		}
 		else{
+			Scalar3 dbjcj; 
+			dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+			dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+			dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+			Scalar Area_a = dot(dbjcj,normal_dir);
 			if(Area_b <0)
 			{
 				if(Area_a < 0)
@@ -1038,7 +1051,6 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 		}
 
 		rsq = dot(dx,dx);
-
 
                 bool energy_shift = false;
                 if (m_shift_mode == shift)
