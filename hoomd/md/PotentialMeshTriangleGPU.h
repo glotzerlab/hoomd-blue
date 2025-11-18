@@ -188,6 +188,8 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
     m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
+    m_mesh_data->createMeshTriangleList();
+
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
@@ -545,8 +547,6 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 		if( rcutsq == 0) continue;
 
 
-		//std::cout << "Ïndices " << idces[0] << " " << idces[1] << " " << idces[2] << " " << j << std::endl;
-
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
         	vec3<Scalar> pj(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
@@ -686,9 +686,6 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 
 		rsq = dot(dx,dx);
 
-		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
-
-
                 bool energy_shift = false;
                 if (m_shift_mode == shift)
                     energy_shift = true;
@@ -792,7 +789,7 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
@@ -851,9 +848,10 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             triangles.x = h_nlist.data[myHead + k];
             assert(triangles.x < m_pdata->getN() + m_pdata->getNGhosts());
+	    unsigned int trianglesx = h_tag.data[triangles.x];
 
-	    unsigned int Nj_tri = h_n_triang.data[triangles.x];
-	    unsigned int headj = h_head_triang.data[triangles.x];
+	    unsigned int Nj_tri = h_n_triang.data[trianglesx];
+	    unsigned int headj = h_head_triang.data[trianglesx];
 
             for (unsigned int kk = k+1; kk < size-1; kk++)
             {
@@ -861,8 +859,10 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
                 triangles.y = h_nlist.data[myHead + kk];
                 assert(triangles.y < m_pdata->getN() + m_pdata->getNGhosts());
 
-	    	unsigned int Njj_tri = h_n_triang.data[triangles.y];
-		unsigned int headjj = h_head_triang.data[triangles.y];
+	    	unsigned int trianglesy = h_tag.data[triangles.y];
+
+	    	unsigned int Njj_tri = h_n_triang.data[trianglesy];
+		unsigned int headjj = h_head_triang.data[trianglesy];
 
 		for(unsigned int j_tri=0; j_tri < Nj_tri; j_tri++)
 		{
@@ -874,10 +874,11 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 			        for (unsigned int kkk = kk+1; kkk < size; kkk++)
 			        {
 			           // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-			           triangles.z = h_nlist.data[myHead + kk];
+			           triangles.z = h_nlist.data[myHead + kkk];
 			           assert(triangles.z < m_pdata->getN() + m_pdata->getNGhosts());
-	    			   unsigned int Njjj_tri = h_n_triang.data[triangles.z];
-				   unsigned int headjjj = h_head_triang.data[triangles.z];
+	    			   unsigned int trianglesz = h_tag.data[triangles.z];
+	    			   unsigned int Njjj_tri = h_n_triang.data[trianglesz];
+				   unsigned int headjjj = h_head_triang.data[trianglesz];
 
 				   for(unsigned int jjj_tri=0; jjj_tri < Njjj_tri; jjj_tri++)
 				   {
@@ -905,12 +906,6 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
         	daj.y = pos_a.y - pi.y;
         	daj.z = pos_a.z - pi.z;
                 daj = box.minImage(daj);
-
-		Scalar daj_norm = dot(daj,normal_dir);
-
-		Scalar rsq = daj_norm*daj_norm;
-
-		if( rcutsq < rsq) continue;
 
                 unsigned int bj = combined_nlist[k].y;
                 unsigned int cj = combined_nlist[k].z;
@@ -952,10 +947,18 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 	        normal_dir.y = normal_dir.y*normal_norm;
 	        normal_dir.z = normal_dir.z*normal_norm;
 
+		Scalar daj_norm = dot(daj,normal_dir);
+
+		Scalar rsq = daj_norm*daj_norm;
+
+		if( rcutsq < rsq) continue;
+
+		Scalar3 dx = normal_dir*daj_norm;
+
         	Scalar3 dbj;
-        	dbj.x = pos_b.x - pj.x;
-        	dbj.y = pos_b.y - pj.y;
-        	dbj.z = pos_b.z - pj.z;
+        	dbj.x = pos_b.x - pi.x;
+        	dbj.y = pos_b.y - pi.y;
+        	dbj.z = pos_b.z - pi.z;
                 dbj = box.minImage(dbj);
 
 		Scalar3 dajbj; 
@@ -966,9 +969,9 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 		Scalar Area_c = dot(dajbj,normal_dir);
 
 		Scalar3 dcj;
-		dcj.x = pos_c.x - pj.x;
-		dcj.y = pos_c.y - pj.y;
-		dcj.z = pos_c.z - pj.z;
+		dcj.x = pos_c.x - pi.x;
+		dcj.y = pos_c.y - pi.y;
+		dcj.z = pos_c.z - pi.z;
 		dcj = box.minImage(dcj);
 
 
@@ -990,22 +993,22 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 		{
 			if(Area_b <0)
 				dx = daj;
-			else if(Area_a < 0)
-				dx = dbj;
 			else
-			{
-				Scalar length_ab = dot(daj,nab);
-				Scalar ratio_ab = length_ab*normal_ab;
+			{	
+				if(Area_a < 0)
+					dx = dbj;
+				else
+				{
+					Scalar length_ab = dot(daj,nab);
+					Scalar ratio_ab = length_ab*normal_ab;
 
-				if(ratio_ab < 1 && ratio_ab > 0 )
-					dx = daj - length_ab*nab;
-				else continue;
+					if(ratio_ab < 1 && ratio_ab > 0 )
+						dx = daj - length_ab*nab;
+					else continue;
+				}
 			}
 		}
 		else{
-			Area_c *= normal_norm;
-
-
 			if(Area_b <0)
 			{
 				if(Area_a < 0)
@@ -1022,8 +1025,6 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 			}
 			else
 			{
-				Area_b *= normal_norm;
-
 				if(Area_a <0)
 				{
 					Scalar length_bc = dot(dbj,nbc);
@@ -1070,12 +1071,12 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 	    h_force.data[i].w += pei;
             if (compute_virial)
                 {
-                h_virial.data[0 * m_virial_pitch + i] += virialxxi;
-                h_virial.data[1 * m_virial_pitch + i] += virialxyi;
-                h_virial.data[2 * m_virial_pitch + i] += virialxzi;
-                h_virial.data[3 * m_virial_pitch + i] += virialyyi;
-                h_virial.data[4 * m_virial_pitch + i] += virialyzi;
-                h_virial.data[5 * m_virial_pitch + i] += virialzzi;
+                h_virial.data[0 * virial_pitch + i] += virialxxi;
+                h_virial.data[1 * virial_pitch + i] += virialxyi;
+                h_virial.data[2 * virial_pitch + i] += virialxzi;
+                h_virial.data[3 * virial_pitch + i] += virialyyi;
+                h_virial.data[4 * virial_pitch + i] += virialyzi;
+                h_virial.data[5 * virial_pitch + i] += virialzzi;
                 }
         }
 }

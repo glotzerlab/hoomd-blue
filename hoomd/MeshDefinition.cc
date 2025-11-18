@@ -131,9 +131,6 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
 
-
-    createMeshTriangleList();
-
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
