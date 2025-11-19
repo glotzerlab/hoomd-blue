@@ -291,3 +291,24 @@ class TestMoveSize:
     def test_pickling(self, boxmc_with_tuner, simulation):
         _, move_size_tuner = boxmc_with_tuner
         operation_pickling_check(move_size_tuner, simulation)
+
+
+@pytest.mark.cpu
+@pytest.mark.serial
+def test_zero_acceptance(simulation):
+    boxmc = hpmc.update.BoxMC(1, P=1.0)
+    boxmc.volume = {"weight": 1.0, "delta": 0.5, "mode": "standard"}
+    move_size_tuner = BoxMCMoveSize.scale_solver(10, boxmc, ["volume"], 0.5)
+
+    # Place overlapping particles to force all box moves to be rejected.
+    snapshot = simulation.state.get_snapshot()
+    snapshot.particles.position[0] = (0, 0, 0)
+    snapshot.particles.position[1] = (0, 0, 0)
+    simulation.state.set_snapshot(snapshot)
+
+    simulation.operations.tuners.append(move_size_tuner)
+    simulation.operations += boxmc
+    simulation.run(11)
+    tunable = move_size_tuner._tunables[0]
+    assert tunable.y == 0
+    assert boxmc.volume["delta"] < 0.5

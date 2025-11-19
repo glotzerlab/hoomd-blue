@@ -152,9 +152,9 @@ class ScaleSolver(RootSolver):
         else:
             # y was zero. Try a value an order of magnitude smaller
             if self.correlation == "positive":
-                scale = 0.1
-            else:
                 scale = 1.1
+            else:
+                scale = 0.9
 
         if scale > self.max_scale:
             scale = self.max_scale
