@@ -96,7 +96,7 @@ jobs:
             125)
               echo "image=nvidia/cuda:12.5.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             124)
-              echo "image=nvidia/cuda:12.4.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
+              echo "image=nvidia/cuda:12.4.1-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
             *)
               echo "Unknown compiler" && exit 1;;
             esac
