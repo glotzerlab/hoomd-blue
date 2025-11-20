@@ -124,22 +124,31 @@ Install additional packages needed to build the documentation:
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
 
-- **NVIDIA CUDA Toolkit**
+.. tab:: NVIDIA (CUDA)
 
-  *OR*
+    - NVIDIA CUDA Toolkit >= 12.5
+    - `hip`_
+    - `hipcub`_
 
-- AMD ROCm
-- HIP [with ``hipcc`` and ``hcc`` as backend]
-- rocFFT
-- rocPRIM
-- rocThrust
-- hipCUB
-- roctracer-dev
+    .. note::
 
-.. note::
+        Use hip ``hip-version_7.2.53220`` and hipcub ``rocm-7.1.0`` work with CUDA 12.9.
+        Apply the patches in `.github/workflows`_ to add support for CUDA 12.5, 12.6,
+        and 12.8.
 
-    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HOOMD_GPU_PLATFORM=HIP`` to
-    choose HIP.
+.. tab:: AMD (HIP)
+
+    - AMD ROCm
+    - HIP [with ``hipcc`` and ``hcc`` as backend]
+    - rocFFT
+    - rocPRIM
+    - rocThrust
+    - hipCUB
+    - roctracer-dev
+
+.. _`hip`: https://rocmdocs.amd.com/projects/HIP/en/latest/install/build.html
+.. _`hipcub`: https://rocm.docs.amd.com/projects/hipCUB/en/latest/install/hipCUB-install-overview.html
+.. _`.github/workflows`: https://github.com/glotzerlab/hoomd-blue/tree/v5.4.0/.github/workflows
 
 **To build the documentation:**
 
@@ -147,6 +156,7 @@ Install additional packages needed to build the documentation:
 - **furo**
 - **nbsphinx**
 - **ipython**
+- **sphinx-inline-tabs**
 
 .. _Obtain the source:
 

@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
+    "sphinx_inline_tabs",
 ]
 
 if find_spec("sphinxcontrib.katex") is not None:
