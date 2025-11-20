@@ -1,0 +1,41 @@
+diff --git a/projects/hipother/hipnv/include/hip/nvidia_detail/nvidia_hip_runtime_api.h b/projects/hipother/hipnv/include/hip/nvidia_detail/nvidia_hip_runtime_api.h
+index 8f6c295aab..05036a57fe 100644
+--- a/projects/hipother/hipnv/include/hip/nvidia_detail/nvidia_hip_runtime_api.h
++++ b/projects/hipother/hipnv/include/hip/nvidia_detail/nvidia_hip_runtime_api.h
+@@ -869,7 +869,7 @@ static inline void hipMemcpy2DTocudaMemcpy2D(CUDA_MEMCPY2D* a, const hip_Memcpy2
+   a->Height = (size_t)p->Height;
+ }
+ 
+-#if CUDA_VERSION >= CUDA_12020
++#if CUDA_VERSION >= 12080
+ typedef enum cudaMemcpyFlags hipMemcpyFlags;
+ #define hipMemcpyFlagDefault cudaMemcpyFlagDefault
+ #define hipMemcpyFlagPreferOverlapWithCompute cudaMemcpyFlagPreferOverlapWithCompute
+@@ -2430,6 +2430,7 @@ inline static hipError_t hipMemcpy2DToArrayAsync(hipArray_t dst, size_t wOffset,
+       cudaMemcpy2DToArrayAsync(dst, wOffset, hOffset, src, spitch, width, height, kind, stream));
+ }
+ 
++#if CUDA_VERSION >= 12080
+ inline static hipError_t hipMemcpyBatchAsync(void** dsts, void** srcs, size_t* sizes, size_t count,
+                                              hipMemcpyAttributes* attrs, size_t* attrsIdxs,
+                                              size_t numAttrs, size_t* failIdx, hipStream_t stream) {
+@@ -2467,6 +2468,7 @@ inline static hipError_t hipMemcpy3DPeer(hipMemcpy3DPeerParms* p) {
+ inline static hipError_t hipMemcpy3DPeerAsync(hipMemcpy3DPeerParms* p, hipStream_t stream) {
+   return hipCUDAErrorTohipError(cudaMemcpy3DPeerAsync(p, stream));
+ }
++#endif
+ 
+ __HIP_DEPRECATED inline static hipError_t hipMemcpyToArray(hipArray_t dst, size_t wOffset,
+                                                            size_t hOffset, const void* src,
+@@ -3756,9 +3758,11 @@ inline static hipError_t hipLibraryEnumerateKernels(hipKernel_t* kernels, unsign
+   return hipCUResultTohipError(cuLibraryEnumerateKernels(kernels, numKernels, library));
+ }
+ 
++#if CUDA_VERSION >= 12060
+ inline static hipError_t hipKernelGetLibrary(hipLibrary_t* library, hipKernel_t kernel) {
+   return hipCUResultTohipError(cuKernelGetLibrary(library, kernel));
+ }
++#endif
+ 
+ inline static hipError_t hipKernelGetName(const char** name, hipKernel_t kernel) {
+   return hipCUResultTohipError(cuKernelGetName(name, kernel));

@@ -151,6 +151,12 @@ jobs:
         sparse-checkout: projects/hipcub
         path: rocm-libraries
 
+    - name: Patch hip
+      if: ${{ inputs.compiler_family == 'cuda' }}
+      run: |
+        git apply ${GITHUB_WORKSPACE}/code/.github/workflows/fix-cuda-12.patch
+      working-directory: rocm-systems
+
     - name: Install hip
       if: ${{ inputs.compiler_family == 'cuda' }}
       run: |
