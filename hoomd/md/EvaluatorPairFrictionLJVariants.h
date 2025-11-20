@@ -120,4 +120,8 @@ class EvaluatorPairFrictionLJCoulombNewton
     };
     } // namespace md
     } // namespace hoomd
+
+#undef DEVICE
+#undef HOSTDEVICE
+
 #endif // __PAIR_EVALUATOR_FRICTIONLJVARIANTS_H__
