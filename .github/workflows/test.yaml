@@ -98,7 +98,6 @@ jobs:
         - config: [cuda, 126, -py, 313, -mpi]
         - config: [cuda, 128, -py, 313, -mpi]
         - config: [cuda, 129, -py, 313, -mpi]
-        - config: [cuda, 130, -py, 313, -mpi]
 
   tests_complete:
     name: Unit test
