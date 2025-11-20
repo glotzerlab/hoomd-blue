@@ -211,7 +211,7 @@ jobs:
                                -DBUILD_MPCD=${BUILD_MD:-"ON"} \
                                -DBUILD_METAL=${BUILD_MD:-"ON"} \
                                -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
-                               -DCUDA_ARCH_LIST="60;70" \
+                               -DCUDA_ARCH_LIST="80" \
                                -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
                                -Dhip_ROOT=${GITHUB_WORKSPACE}/local \
                                -DPLUGINS=""
