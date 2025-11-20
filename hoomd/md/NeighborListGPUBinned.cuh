@@ -15,7 +15,7 @@
 */
 
 // currently this is hardcoded, we should set it to the max of platforms
-#if defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_PLATFORM_NVIDIA__)
 #define WARP_SIZE 32
 #elif defined(__HIP_PLATFORM_HCC__)
 #define WARP_SIZE 64

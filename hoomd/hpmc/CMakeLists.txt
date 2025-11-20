@@ -168,7 +168,7 @@ endif()
 # link the library to its dependencies
 target_link_libraries(_hpmc PUBLIC _hoomd)
 
-if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
+if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvidia")
 target_link_libraries(_hpmc PUBLIC CUDA::cusparse )
 endif()
 

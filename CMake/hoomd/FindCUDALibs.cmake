@@ -1,7 +1,7 @@
 # Find CUDA libraries and binaries used by HOOMD
 
 set(REQUIRED_CUDA_LIB_VARS "")
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     # find CUDA library path
     get_filename_component(CUDA_BIN_PATH ${CMAKE_CUDA_COMPILER} DIRECTORY)
     get_filename_component(CUDA_LIB_PATH "${CUDA_BIN_PATH}/../lib64/" ABSOLUTE)
@@ -23,7 +23,7 @@ else()
     add_library(CUDA::cudart UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     find_library(CUDA_cudadevrt_LIBRARY cudadevrt HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cudadevrt_LIBRARY)
     if(CUDA_cudadevrt_LIBRARY AND NOT TARGET CUDA::cudadevrt)
@@ -38,7 +38,7 @@ else()
     add_library(CUDA::cudadevrt UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     find_library(CUDA_cufft_LIBRARY cufft HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cufft_LIBRARY)
     if(CUDA_cufft_LIBRARY AND NOT TARGET CUDA::cufft)
@@ -55,7 +55,7 @@ else()
     add_library(CUDA::cufft UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     find_library(CUDA_cusolver_LIBRARY cusolver HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cusolver_LIBRARY)
     if(CUDA_cusolver_LIBRARY AND NOT TARGET CUDA::cusolver)
@@ -72,7 +72,7 @@ else()
     add_library(CUDA::cusolver UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     find_library(CUDA_cusparse_LIBRARY cusparse HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cusparse_LIBRARY)
     if(CUDA_cusparse_LIBRARY AND NOT TARGET CUDA::cusparse)
@@ -96,7 +96,7 @@ if (HIP_PLATFORM STREQUAL "amd")
     message("Found hipfft includes: ${hipfft_INCLUDE_DIR}")
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     # find compute-sanitizer / cuda-memcheck
     find_program(CUDA_MEMCHECK_EXECUTABLE
       NAMES compute-sanitizer
@@ -115,7 +115,7 @@ if (HIP_PLATFORM STREQUAL "nvcc")
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
+if (HIP_PLATFORM STREQUAL "nvidia")
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(CUDALibs
       REQUIRED_VARS

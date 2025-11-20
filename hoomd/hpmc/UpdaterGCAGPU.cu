@@ -23,7 +23,7 @@
 #include <thrust/unique.h>
 #pragma GCC diagnostic pop
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 #include <cusparse.h>
 #endif
 
@@ -39,7 +39,7 @@ namespace hpmc
     {
 namespace gpu
     {
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 #define check_cusparse(a)                                                                 \
         {                                                                                 \
         cusparseStatus_t status = (a);                                                    \
@@ -277,7 +277,7 @@ void connected_components(uint2* d_adj,
                           const hipDeviceProp_t& dev_prop,
                           CachedAllocator& alloc)
     {
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
     thrust::device_ptr<uint2> adj(d_adj);
 
     // sort the list of pairs

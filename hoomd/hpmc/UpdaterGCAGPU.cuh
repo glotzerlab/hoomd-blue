@@ -21,7 +21,7 @@
 
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
 #else
@@ -194,7 +194,7 @@ namespace kernel
     {
 //! Check narrow-phase overlaps
 template<class Shape, unsigned int max_threads>
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 __launch_bounds__(max_threads)
 #endif
     __global__ void hpmc_cluster_overlaps(const Scalar4* d_postype,

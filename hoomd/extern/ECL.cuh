@@ -57,7 +57,7 @@ inline void ecl_connected_components(const int nodes,
 static const int Device = 0;
 static const int ThreadsPerBlock = 256;
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 static const int warpsize = 32;
 #else
 static const int warpsize = 64;
@@ -166,7 +166,7 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
   int idx;
   if (lane == 0) idx = atomicAdd(&posL, 1);
 
-  #ifdef __HIP_PLATFORM_NVCC__
+  #ifdef __HIP_PLATFORM_NVIDIA__
   idx = __shfl_sync(0xffffffff,idx, 0);
   #else
   idx = __shfl(idx,0);
@@ -200,7 +200,7 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
     }
     if (lane == 0) idx = atomicAdd(&posL, 1);
 
-    #ifdef __HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVIDIA__
     idx = __shfl_sync(0xffffffff,idx, 0);
     #else
     idx = __shfl(idx,0);

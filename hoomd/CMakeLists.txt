@@ -223,7 +223,7 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 # Work around support for the delete operator with pybind11 and older versions of clang
 # https://github.com/pybind/pybind11/issues/1604
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
+    target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvidia>>:-Xcompiler=>;-fsized-deallocation)
 endif()
 
 # add quick hull as its own library so that it's symbols can be public
@@ -267,7 +267,7 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SI
 if (ENABLE_HIP)
     if (HIP_PLATFORM STREQUAL "amd")
         target_link_libraries(_hoomd PUBLIC hip::hipfft)
-    elseif(HIP_PLATFORM STREQUAL "nvcc")
+    elseif(HIP_PLATFORM STREQUAL "nvidia")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
     target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})

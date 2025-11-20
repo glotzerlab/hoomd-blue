@@ -14,7 +14,7 @@
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
-#if defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_PLATFORM_NVIDIA__)
 #define WARP_SIZE 32
 #elif defined(__HIP_PLATFORM_HCC__)
 #define WARP_SIZE 64

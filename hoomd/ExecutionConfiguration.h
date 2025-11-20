@@ -152,7 +152,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         hipSetDevice(m_gpu_id);
         hipDeviceSynchronize();
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         hipProfilerStart();
 #elif defined(__HIP_PLATFORM_HCC__)
 #ifdef ENABLE_ROCTRACER
@@ -167,7 +167,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         {
         hipSetDevice(m_gpu_id);
         hipDeviceSynchronize();
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         hipProfilerStop();
 #elif defined(__HIP_PLATFORM_HCC__)
 #ifdef ENABLE_ROCTRACER

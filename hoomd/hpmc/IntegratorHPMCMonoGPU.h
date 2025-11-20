@@ -840,7 +840,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
     // update the cell list
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
     // set memory hints
     cudaMemAdvise(this->m_params.data(),
                   this->m_params.size() * sizeof(typename Shape::param_type),

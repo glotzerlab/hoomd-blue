@@ -233,7 +233,7 @@ namespace fast
 inline HOSTDEVICE float rsqrt(float x)
     {
 #ifdef __HIP_DEVICE_COMPILE__
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
     return ::rsqrtf(x);
 #elif defined(__HIP_PLATFORM_HCC__)
     return ::__frsqrt_rn(x);
@@ -248,7 +248,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_NVIDIA__)
     return ::rsqrt(x);
 #else
     return 1.0 / ::sqrt(x);
@@ -720,7 +720,7 @@ HOSTDEVICE inline hoomd::Scalar3 operator+(const hoomd::Scalar3& a, const hoomd:
     return hoomd::make_scalar3(a.x + b.x, a.y + b.y, a.z + b.z);
     }
 
-#if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVCC__)
+#if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVIDIA__)
 //! Vector addition
 HOSTDEVICE inline hoomd::Scalar3& operator+=(hoomd::Scalar3& a, const hoomd::Scalar3& b)
     {

@@ -65,7 +65,7 @@ class WarpReduce
     public:
     DEVICE WarpReduce()
         {
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
@@ -196,7 +196,7 @@ class WarpScan
     public:
     DEVICE WarpScan()
         {
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");

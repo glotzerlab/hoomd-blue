@@ -21,7 +21,7 @@ std::string BuildInfo::getCompileFlags()
     int hip_minor = HIP_VERSION_MINOR;
 
     o << "GPU [";
-#if defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_PLATFORM_NVIDIA__)
     o << "CUDA";
 #elif defined(__HIP_PLATFORM_HCC__)
     o << "ROCm";
@@ -105,7 +105,7 @@ std::string BuildInfo::getGPUAPIVersion()
 
 std::string BuildInfo::getGPUPlatform()
     {
-#if defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_PLATFORM_NVIDIA__)
     return std::string("CUDA");
 #elif defined(__HIP_PLATFORM_HCC__)
     return std::string("ROCm");

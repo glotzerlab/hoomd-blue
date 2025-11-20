@@ -1,6 +1,6 @@
 # setup CUDA compile options
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "nvcc")
+    if (HIP_PLATFORM STREQUAL "nvidia")
         # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
         if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.8)
             set(CUDA_ARCH_LIST 80 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
@@ -55,7 +55,7 @@ if (ENABLE_HIP)
 endif (ENABLE_HIP)
 
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
-if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
+if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvidia")
     # CUDA 8.0 requires that libgomp be linked in - see if we can link it
     try_compile(_can_link_gomp
                 ${CMAKE_CURRENT_BINARY_DIR}/tmp

@@ -12,7 +12,7 @@
 #if defined(ENABLE_HIP)
 #if __HIP_PLATFORM_HCC__
 #include <hipfft.h>
-#elif __HIP_PLATFORM_NVCC__
+#elif __HIP_PLATFORM_NVIDIA__
 #include <cufft.h>
 typedef cufftComplex hipfftComplex;
 #endif

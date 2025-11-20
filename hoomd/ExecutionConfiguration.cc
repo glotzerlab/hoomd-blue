@@ -7,7 +7,7 @@
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 
-#if defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_PLATFORM_NVIDIA__)
 #include <cuda_runtime.h>
 #endif
 #endif
@@ -212,7 +212,7 @@ void ExecutionConfiguration::handleHIPError(hipError_t err,
             file += strlen(HOOMD_SOURCE_DIR);
 
         std::ostringstream s;
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         cudaError_t cuda_error = cudaPeekAtLastError();
         s << "CUDA Error: " << string(cudaGetErrorString(cuda_error));
 #else
@@ -263,7 +263,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
 
     if (gpu_id != -1)
         {
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         cudaSetValidDevices(&s_capable_gpu_ids[gpu_id], 1);
 #endif
         hipSetDeviceFlags(hipDeviceMapHost);
@@ -272,7 +272,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     else
         {
             // initialize the default CUDA context from one of the capable GPUs
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
 #endif
         hipSetDeviceFlags(hipDeviceMapHost);
@@ -327,7 +327,7 @@ void ExecutionConfiguration::scanGPUs()
     if (error != hipSuccess)
         {
         std::string message = "Failed to get GPU device count: ";
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         cudaError_t cuda_error = cudaPeekAtLastError();
         message += string(cudaGetErrorString(cuda_error));
 #else
@@ -352,7 +352,7 @@ void ExecutionConfiguration::scanGPUs()
         if (error != hipSuccess)
             {
             std::string message = "Failed to get device properties: ";
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
             cudaError_t cuda_error = cudaPeekAtLastError();
             message += string(cudaGetErrorString(cuda_error));
 #else
@@ -362,7 +362,7 @@ void ExecutionConfiguration::scanGPUs()
             continue;
             }
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
 
@@ -386,7 +386,7 @@ void ExecutionConfiguration::scanGPUs()
             }
 
         // exclude a GPU when it doesn't support mapped memory
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
         int supports_managed_memory = 0;
         cudaError_t cuda_error = cudaDeviceGetAttribute(&supports_managed_memory,
                                                         cudaDevAttrConcurrentManagedAccess,

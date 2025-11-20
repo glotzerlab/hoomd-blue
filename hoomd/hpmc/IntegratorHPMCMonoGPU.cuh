@@ -29,7 +29,7 @@ namespace hpmc
     {
 namespace gpu
     {
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 32
 #else
@@ -42,7 +42,7 @@ namespace kernel
     {
 //! Check narrow-phase overlaps
 template<class Shape, unsigned int max_threads>
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 __launch_bounds__(max_threads)
 #endif
     __global__ void hpmc_narrow_phase(const Scalar4* d_postype,
