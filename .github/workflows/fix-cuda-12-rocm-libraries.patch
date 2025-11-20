@@ -34,3 +34,21 @@ index f314f5a128..e22f08fba9 100644
  
 +#endif
  #endif // HIPCUB_CUB_DEVICE_DEVICE_MERGE_HPP_
+diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp
+index 681a0bbf98..d071c7d859 100644
+--- a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp
++++ b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp
+@@ -30,6 +30,7 @@
+ #define HIBCUB_ROCPRIM_DEVICE_DEVICE_TRANSFORM_HPP_
+ 
+ #include "../../../config.hpp"
++#if CUDA_VERSION >= 12090
+ 
+ #include <hip/hip_runtime.h>
+ 
+@@ -203,4 +204,5 @@ struct DeviceTransform
+ 
+ END_HIPCUB_NAMESPACE
+ 
++#endif
+ #endif // HIBCUB_ROCPRIM_DEVICE_DEVICE_TRANSFORM_HPP_
