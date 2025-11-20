@@ -1,3 +1,16 @@
+diff --git a/projects/hipcub/CMakeLists.txt b/projects/hipcub/CMakeLists.txt
+index fbcecf0fc4..0fbae70749 100644
+--- a/projects/hipcub/CMakeLists.txt
++++ b/projects/hipcub/CMakeLists.txt
+@@ -174,7 +174,7 @@ math(EXPR hipcub_VERSION_NUMBER "${hipcub_VERSION_MAJOR} * 100000 + ${hipcub_VER
+ include(VerifyCompiler)
+ 
+ # Get dependencies (except rocm-cmake, included earlier)
+-include(Dependencies)
++# include(Dependencies)
+ 
+ if(BUILD_ADDRESS_SANITIZER)
+   add_compile_options(-fsanitize=address -shared-libasan)
 diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp
 index 0f22c40517..31fab88dd6 100644
 --- a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp
@@ -34,6 +47,46 @@ index f314f5a128..e22f08fba9 100644
  
 +#endif
  #endif // HIPCUB_CUB_DEVICE_DEVICE_MERGE_HPP_
+diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_scan.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_scan.hpp
+index 72ad11f7bc..038fddccdd 100644
+--- a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_scan.hpp
++++ b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_scan.hpp
+@@ -182,6 +182,7 @@ public:
+                                                  stream);
+     }
+ 
++#if CUDA_VERSION >= 12080
+     template<typename InputIteratorT,
+              typename OutputIteratorT,
+              typename ScanOpT,
+@@ -206,6 +207,7 @@ public:
+                                                                            num_items,
+                                                                            stream));
+     }
++#endif
+ 
+     template<typename InputIteratorT, typename OutputIteratorT, typename NumItemsT>
+     HIPCUB_RUNTIME_FUNCTION
+diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_select.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_select.hpp
+index 6812c5cfeb..33bce4aa23 100644
+--- a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_select.hpp
++++ b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_select.hpp
+@@ -223,6 +223,7 @@ public:
+                   stream);
+     }
+ 
++#if CUDA_VERSION >= 12060
+     template<typename InputIteratorT,
+              typename FlagIterator,
+              typename OutputIteratorT,
+@@ -329,6 +330,7 @@ public:
+                          select_op,
+                          stream);
+     }
++#endif
+ 
+     template<typename InputIteratorT, typename OutputIteratorT, typename NumSelectedIteratorT>
+     HIPCUB_RUNTIME_FUNCTION
 diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp
 index 681a0bbf98..d071c7d859 100644
 --- a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_transform.hpp
@@ -52,3 +105,25 @@ index 681a0bbf98..d071c7d859 100644
  
 +#endif
  #endif // HIBCUB_ROCPRIM_DEVICE_DEVICE_TRANSFORM_HPP_
+diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/util_temporary_storage.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/util_temporary_storage.hpp
+index fc67d645b1..63540b717f 100644
+--- a/projects/hipcub/hipcub/include/hipcub/backend/cub/util_temporary_storage.hpp
++++ b/projects/hipcub/hipcub/include/hipcub/backend/cub/util_temporary_storage.hpp
+@@ -50,10 +50,17 @@ HIPCUB_HOST_DEVICE HIPCUB_FORCEINLINE hipError_t
+                      void* (&allocations)[ALLOCATIONS],
+                      const size_t (&allocation_sizes)[ALLOCATIONS])
+ {
++    #if CUDA_VERSION >= 12090
+     cudaError_t error = ::cub::detail::AliasTemporaries(d_temp_storage,
+                                                         temp_storage_bytes,
+                                                         allocations,
+                                                         allocation_sizes);
++    #else
++    cudaError_t error = ::cub::AliasTemporaries(d_temp_storage,
++                                                        temp_storage_bytes,
++                                                        allocations,
++                                                        allocation_sizes);
++    #endif
+ 
+     if(cudaSuccess == error)
+     {
