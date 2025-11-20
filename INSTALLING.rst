@@ -45,19 +45,19 @@ appropriate package. Override this and force the GPU enabled package installatio
 
 .. tab:: Pixi
 
-    Add:
+    First add the following to your ``pixi.toml`` file:
 
     .. code-block:: toml
 
         [system-requirements]
         cuda = "12.9"
 
-     See `Using CUDA in Pixi`_ for more details. Then run:
+    Then, add hoomd with:
 
     .. code-block:: bash
 
-        export CONDA_OVERRIDE_CUDA="12.9"
         pixi add "hoomd=5.4.0=*gpu*"
+
 
 .. tab:: Micromamba
 
@@ -72,8 +72,6 @@ appropriate package. Override this and force the GPU enabled package installatio
 
         export CONDA_OVERRIDE_CUDA="12.9"
         mamba install "hoomd=5.4.0=*gpu*" "cuda-version=12.9"
-
-.. _Using CUDA in Pixi: https://pixi.sh/dev/workspace/system_requirements/#using-cuda-in-pixi
 
 .. note::
 

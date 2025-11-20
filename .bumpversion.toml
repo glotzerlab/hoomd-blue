@@ -7,6 +7,11 @@ search = "hoomd={current_version}"
 replace = "hoomd={new_version}"
 
 [[tool.bumpversion.files]]
+filename = "BUILDING.rst"
+search = "tree/v{current_version}"
+replace = "tree/v{new_version}"
+
+[[tool.bumpversion.files]]
 filename = "CMakeLists.txt"
 search = 'HOOMD_VERSION_RAW "{current_version}"'
 replace = 'HOOMD_VERSION_RAW "{new_version}"'

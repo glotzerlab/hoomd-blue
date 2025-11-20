@@ -126,15 +126,14 @@ Install additional packages needed to build the documentation:
 
 .. tab:: NVIDIA (CUDA)
 
-    - NVIDIA CUDA Toolkit >= 12.5
-    - `hip`_
-    - `hipcub`_
+    - NVIDIA CUDA Toolkit
+    - hip (`hip installation instructions`_)
+    - hipcub (`hipcub installation instructions`_)
 
     .. note::
 
-        Use hip ``hip-version_7.2.53220`` and hipcub ``rocm-7.1.0`` work with CUDA 12.9.
-        Apply the patches in `.github/workflows`_ to add support for CUDA 12.5, 12.6,
-        and 12.8.
+        hip ``hip-version_7.2.53220`` and hipcub ``rocm-7.1.0`` work with CUDA 12.9.
+        Apply the patches in `.github/workflows`_ to add support for CUDA 12.5–12.8.
 
 .. tab:: AMD (HIP)
 
@@ -146,8 +145,8 @@ Install additional packages needed to build the documentation:
     - hipCUB
     - roctracer-dev
 
-.. _`hip`: https://rocmdocs.amd.com/projects/HIP/en/latest/install/build.html
-.. _`hipcub`: https://rocm.docs.amd.com/projects/hipCUB/en/latest/install/hipCUB-install-overview.html
+.. _`hip installation instructions`: https://rocmdocs.amd.com/projects/HIP/en/latest/install/build.html
+.. _`hipcub installation instructions`: https://rocm.docs.amd.com/projects/hipCUB/en/latest/install/hipCUB-install-overview.html
 .. _`.github/workflows`: https://github.com/glotzerlab/hoomd-blue/tree/v5.4.0/.github/workflows
 
 **To build the documentation:**
