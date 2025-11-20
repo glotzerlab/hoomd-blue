@@ -139,7 +139,7 @@ jobs:
       uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       with:
         repository: ROCm/rocm-systems
-        ref: 4179531dcd9825841e88c8082ac4068b6a65fd0a # rocm-7.1.0
+        ref: 75ad45d5f131738a4d888499026edfeaa3a11fe3 # hip-version_7.2.53220
         path: rocm-systems
 
     - name: Clone hipCUB
