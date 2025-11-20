@@ -87,12 +87,16 @@ jobs:
           echo 'test_docker_options=--gpus=all' >> "$GITHUB_OUTPUT"
 
           case "${{ inputs.compiler_version }}" in
+            129)
+              echo "image=nvidia/cuda:12.9.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
+            128)
+              echo "image=nvidia/cuda:12.8.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
+            126)
+              echo "image=nvidia/cuda:12.6.3-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             125)
-              echo "image=nvidia/cuda:12.5.0-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
+              echo "image=nvidia/cuda:12.5.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             124)
-              echo "image=nvidia/cuda:12.4.1-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
-            122)
-              echo "image=nvidia/cuda:12.2.2-devel-ubuntu22.04" >> "$GITHUB_OUTPUT";;
+              echo "image=nvidia/cuda:12.4.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             *)
               echo "Unknown compiler" && exit 1;;
             esac
