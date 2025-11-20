@@ -75,7 +75,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
 
     # suppress warnings regarding HIP's overly complex vector structs
-    if (CMAKE_COMPILER_IS_GNUCXXH AND OOMD_GPU_PLATFORM STREQUAL "HIP")
+    if (CMAKE_COMPILER_IS_GNUCXX AND HOOMD_GPU_PLATFORM STREQUAL "HIP")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
     endif()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")

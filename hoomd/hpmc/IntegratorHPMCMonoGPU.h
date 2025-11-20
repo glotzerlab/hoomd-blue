@@ -842,10 +842,10 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
 
 #ifdef __HIP_PLATFORM_NVIDIA__
     // set memory hints
-    cudaMemAdvise(this->m_params.data(),
-                  this->m_params.size() * sizeof(typename Shape::param_type),
-                  cudaMemAdviseSetReadMostly,
-                  0);
+    hipMemAdvise(this->m_params.data(),
+                 this->m_params.size() * sizeof(typename Shape::param_type),
+                 hipMemAdviseSetReadMostly,
+                 0);
     CHECK_CUDA_ERROR();
 #endif
 

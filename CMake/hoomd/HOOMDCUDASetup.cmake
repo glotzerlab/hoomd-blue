@@ -9,7 +9,7 @@ if (ENABLE_HIP)
         endif()
 
         # ignore warnings about unused results
-        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-unused-result -diag-suppress 2810")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-unused-result -Wno-deprecated-declarations -diag-suppress 2810")
 
         if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.2)
           set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUSPARSE_NEW_API")

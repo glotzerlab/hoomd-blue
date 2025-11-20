@@ -372,10 +372,10 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
         // m_params is _always_ in unified memory, so memadvise and prefetch
-        cudaMemAdvise(m_params.data(),
-                      m_params.size() * sizeof(param_type),
-                      cudaMemAdviseSetReadMostly,
-                      0);
+        hipMemAdvise(m_params.data(),
+                     m_params.size() * sizeof(param_type),
+                     hipMemAdviseSetReadMostly,
+                     0);
         cudaMemPrefetchAsync(m_params.data(),
                              sizeof(param_type) * m_params.size(),
                              m_exec_conf->getGPUId());

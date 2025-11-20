@@ -190,7 +190,7 @@ template<class T> class ManagedArray
         if (managed && ptr)
             {
 #if defined(__HIP_PLATFORM_NVIDIA__) && (CUDART_VERSION >= 8000)
-            cudaMemAdvise(ptr, sizeof(T) * N, cudaMemAdviseSetReadMostly, 0);
+            hipMemAdvise(ptr, sizeof(T) * N, hipMemAdviseSetReadMostly, 0);
 #endif
             }
         }
