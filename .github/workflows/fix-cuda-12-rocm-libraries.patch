@@ -1,0 +1,18 @@
+diff --git a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp
+index 0f22c40517..31fab88dd6 100644
+--- a/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp
++++ b/projects/hipcub/hipcub/include/hipcub/backend/cub/device/device_for.hpp
+@@ -30,6 +30,7 @@
+ #define HIPCUB_CUB_DEVICE_DEVICE_FOR_HPP_
+ 
+ #include "../../../config.hpp"
++#if CUDA_VERSION >= 12060
+ 
+ #include <cub/device/device_for.cuh> // IWYU pragma: export
+ 
+@@ -194,4 +195,5 @@ HIPCUB_RUNTIME_FUNCTION
+ 
+ END_HIPCUB_NAMESPACE
+ 
++#endif
+ #endif // HIPCUB_CUB_DEVICE_DEVICE_FOR_HPP_

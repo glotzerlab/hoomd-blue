@@ -154,8 +154,14 @@ jobs:
     - name: Patch hip
       if: ${{ inputs.compiler_family == 'cuda' }}
       run: |
-        git apply ${GITHUB_WORKSPACE}/code/.github/workflows/fix-cuda-12.patch
+        git apply ${GITHUB_WORKSPACE}/code/.github/workflows/fix-cuda-12-rocm-systems.patch
       working-directory: rocm-systems
+
+    - name: Patch hipcub
+      if: ${{ inputs.compiler_family == 'cuda' }}
+      run: |
+        git apply ${GITHUB_WORKSPACE}/code/.github/workflows/fix-cuda-12-rocm-libraries.patch
+      working-directory: rocm-libraries
 
     - name: Install hip
       if: ${{ inputs.compiler_family == 'cuda' }}

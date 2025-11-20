@@ -36,7 +36,7 @@ repos:
   - id: end-of-file-fixer
     exclude_types: [svg]
   - id: trailing-whitespace
-    exclude_types: [svg]
+    exclude_types: [svg, diff]
   - id: check-json
   - id: check-yaml
     exclude: "\\.clang-format"
