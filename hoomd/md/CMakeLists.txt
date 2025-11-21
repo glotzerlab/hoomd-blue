@@ -580,6 +580,7 @@ set(_pair_evaluators Buckingham
                      OPP
                      TWF
                      LJGauss
+		     Inverse
                      ForceShiftedLJ
                      Table
                      ExpandedGaussian

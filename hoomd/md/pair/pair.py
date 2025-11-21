@@ -1863,6 +1863,72 @@ class Fourier(Pair):
         self._add_typeparam(params)
 
 
+class Inverse (Pair):
+    r"""Inverse pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `Inverse` computes the oscillating pair force on all particles in the simulation
+    state:
+
+    .. math::
+        U(r) = C r^{-\eta}
+
+    Example::
+
+        nl = nlist.Cell()
+        inverse = pair.Inverse(nl, default_r_cut=3.0)
+        inverse.params[("A", "A")] = {
+            "C": 1.0,
+            "eta": 3,
+        }
+        inverse.r_cut[("A", "B")] = 3.0
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Inverse`:
+
+    .. py:attribute:: params
+
+        The Inverse potential parameters. The dictionary has the following keys:
+
+        * ``C`` (`float`, **required**) -
+          Energy scale :math:`C`
+          :math:`[\mathrm{energy}]`
+        * ``eta`` (`float`, **required**) -
+          The inverse power to take :math:`r` to,
+          :math:`\eta_1` :math:`[\mathrm{dimensionless}]`.
+        * ``eta2`` (`float`, **required**) -
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    _cpp_class_name = "PotentialPairInverse"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                C=float,
+                eta=float,
+                len_keys=2,
+            ),
+        )
+        self._add_typeparam(params)
+
+
 class OPP(Pair):
     r"""Oscillating pair force.
 
@@ -1950,7 +2016,6 @@ class OPP(Pair):
             ),
         )
         self._add_typeparam(params)
-
 
 class TWF(Pair):
     r"""Pair potential model for globular proteins.

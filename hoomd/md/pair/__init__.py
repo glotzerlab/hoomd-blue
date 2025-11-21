@@ -158,6 +158,7 @@ from .pair import (
     Table,
     TWF,
     LJGauss,
+    Inverse,
     DipoleInterface,
     WangFrenkel,
 )
@@ -181,6 +182,7 @@ __all__ = [
     "ForceShiftedLJ",
     "Fourier",
     "Gaussian",
+    "Inverse",
     "LJGauss",
     "Mie",
     "Moliere",
