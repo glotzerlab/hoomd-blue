@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "PotentialMeshTriangle.h"
-//#include "PotentialMeshTriangleGPU.cuh"
+#include "PotentialMeshTriangleGPU.cuh"
 
 #include "hoomd/Autotuner.h"
 
