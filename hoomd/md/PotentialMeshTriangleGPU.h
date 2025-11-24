@@ -231,28 +231,28 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesParticle(uint64_t timeste
 
     m_tuner_particles->begin();
 
-    //kernel::gpu_compute_mesh_triangle_particles_force<evaluator>(
-    //    	    kernel::meshtriangle_args_t(d_force.data,
-    //                                          d_virial.data,
-    //                                          this->m_virial.getPitch(),
-    //                                          this->m_pdata->getN(),
-    //                            	      this->m_pdata->getMaxN(),
-    //                                          d_pos.data,
-    //                                          box,
-    //                                          d_n_neigh.data,
-    //                                          d_nlist.data,
-    //                                          d_head_list.data,
-    //                                          d_rcutsq.data,
-    //                                          this->m_nlist->getNListArray().getPitch(),
-    //                                          this->m_pdata->getNTypes(),
-    //                                          m_tuner->getParam()[0],
-    //    				      flags[pdata_flag::pressure_tensor],
-    //    				      this->m_exec_conf->dev_prop),
-    //                                          d_params.data,
-    //                                          d_tag.data,
-    //                                          d_n_triang.data,
-    //                                          d_trianglist.data,
-    //                                          d_head_triang.data);
+    kernel::gpu_compute_mesh_triangle_particles_force<evaluator>(
+        	    kernel::meshtriangle_args_t(d_force.data,
+                                              d_virial.data,
+                                              this->m_virial.getPitch(),
+                                              this->m_pdata->getN(),
+                                	      this->m_pdata->getMaxN(),
+                                              d_pos.data,
+                                              box,
+                                              d_n_neigh.data,
+                                              d_nlist.data,
+                                              d_head_list.data,
+                                              d_rcutsq.data,
+                                              this->m_nlist->getNListArray().getPitch(),
+                                              this->m_pdata->getNTypes(),
+					      m_tuner_particles->getParam()[0],
+					      flags[pdata_flag::pressure_tensor],
+        				      this->m_exec_conf->dev_prop),
+                                              d_params.data,
+                                              d_tag.data,
+                                              d_n_triang.data,
+                                              d_trianglist.data,
+                                              d_head_triang.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

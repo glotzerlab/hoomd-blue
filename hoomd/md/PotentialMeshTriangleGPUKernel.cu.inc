@@ -26,6 +26,14 @@ gpu_compute_mesh_triangle_triangles_force<EVALUATOR_CLASS>(const kernel::meshtri
 					    const unsigned int* tpos_list,
 					    const Index2D tlist_idx,
 					    const unsigned int* n_triangles_list);
+
+template __attribute__((visibility("default"))) hipError_t
+gpu_compute_mesh_triangle_particles_force<EVALUATOR_CLASS>(const kernel::meshtriangle_args_t& meshtriangle_args,
+                                            const typename EVALUATOR_CLASS::param_type* d_params,
+                                            const unsigned int* d_tag,
+					    const unsigned int* d_n_triang,
+					    const unsigned int* d_trianglist,
+					    const unsigned int* d_head_triang);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd
