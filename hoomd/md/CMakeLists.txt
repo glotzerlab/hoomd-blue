@@ -495,16 +495,16 @@ foreach(_mesh_triangle_pair ${_mesh_triangle_pairs})
     if (ENABLE_HIP)
 
         configure_file(export_PotentialMeshTriangleGPU.cc.inc
-                       export_PotentialMeshTriangle${_bond}GPU.cc
+                       export_PotentialMeshTriangle${_mesh_triangle_pair}GPU.cc
                        @ONLY)
-    #	       configure_file(PotentialMeshTriangleGPUKernel.cu.inc
-    #	               PotentialMeshTriangle${_bond}GPUKernel.cu
-    #	               @ONLY)
-        set(_md_sources ${_md_sources} export_PotentialMeshTriangle${_bond}GPU.cc)
-    #	set(_cuda_sources ${_cuda_sources}
-    #	   PotentialMeshTriangle${_bond}GPUKernel.cu
-    #	   )
-    #	set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    	       configure_file(PotentialMeshTriangleGPUKernel.cu.inc
+    	               PotentialMeshTriangle${_mesh_triangle_pair}GPUKernel.cu
+    	               @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialMeshTriangle${_mesh_triangle_pair}GPU.cc)
+    	set(_cuda_sources ${_cuda_sources}
+    	   PotentialMeshTriangle${_mesh_triangle_pair}GPUKernel.cu
+    	   )
+    	set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 
 endforeach()

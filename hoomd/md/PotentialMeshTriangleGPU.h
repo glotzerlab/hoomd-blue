@@ -141,6 +141,11 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesTriangle(uint64_t timeste
 
     BoxDim box = this->m_pdata->getBox();
 
+    // access parameters
+    ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
+                                                         access_location::device,
+                                                         access_mode::read);
+
     PDataFlags flags = this->m_pdata->getFlags();
     this->m_exec_conf->setDevice();
 
@@ -148,28 +153,28 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesTriangle(uint64_t timeste
     m_tuner_triangles->begin();
 
 
-    //kernel::gpu_compute_mesh_triangle_triangles_force<evaluator>(
-    //    	    kernel::meshtriangle_args_t(d_force.data,
-    //                                          d_virial.data,
-    //                                          this->m_virial.getPitch(),
-    //                                          this->m_pdata->getN(),
-    //                            	      this->m_pdata->getMaxN(),
-    //                                          d_pos.data,
-    //                                          box,
-    //                                          d_n_neigh.data,
-    //                                          d_nlist.data,
-    //                                          d_head_list.data,
-    //                                          d_rcutsq.data,
-    //                                          this->m_nlist->getNListArray().getPitch(),
-    //                                          this->m_pdata->getNTypes(),
-    //                                          m_tuner->getParam()[0],
-    //    				      flags[pdata_flag::pressure_tensor],
-    //    				      this->m_exec_conf->dev_prop),
-    //                                          this->m_params.data(),
-    //                                          d_gpu_meshtrianglelist.data,
-    //                                          d_gpu_meshtriangle_pos_list.data,
-    //                                          gpu_table_indexer,
-    //                                          d_gpu_n_meshtriangle.data)
+    kernel::gpu_compute_mesh_triangle_triangles_force<evaluator>(
+        	    kernel::meshtriangle_args_t(d_force.data,
+                                              d_virial.data,
+                                              this->m_virial.getPitch(),
+                                              this->m_pdata->getN(),
+                                	      this->m_pdata->getMaxN(),
+                                              d_pos.data,
+                                              box,
+                                              d_n_neigh.data,
+                                              d_nlist.data,
+                                              d_head_list.data,
+                                              d_rcutsq.data,
+                                              this->m_nlist->getNListArray().getPitch(),
+                                              this->m_pdata->getNTypes(),
+                                              m_tuner_triangles->getParam()[0],
+        				      flags[pdata_flag::pressure_tensor],
+        				      this->m_exec_conf->dev_prop),
+                                              d_params.data,
+                                              d_gpu_meshtrianglelist.data,
+                                              d_gpu_meshtriangle_pos_list.data,
+                                              gpu_table_indexer,
+                                              d_gpu_n_meshtriangle.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -215,6 +220,11 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesParticle(uint64_t timeste
 
     BoxDim box = this->m_pdata->getBox();
 
+    // access parameters
+    ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
+                                                         access_location::device,
+                                                         access_mode::read);
+
     PDataFlags flags = this->m_pdata->getFlags();
     this->m_exec_conf->setDevice();
 
@@ -238,7 +248,7 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesParticle(uint64_t timeste
     //                                          m_tuner->getParam()[0],
     //    				      flags[pdata_flag::pressure_tensor],
     //    				      this->m_exec_conf->dev_prop),
-    //                                          this->m_params.data(),
+    //                                          d_params.data,
     //                                          d_tag.data,
     //                                          d_n_triang.data,
     //                                          d_trianglist.data,

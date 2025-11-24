@@ -7,6 +7,8 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
 
+#include "hoomd/BondedGroupData.cuh"
+
 
 #include <assert.h>
 
@@ -86,8 +88,7 @@ gpu_compute_mesh_triangle_triangles_force(const kernel::meshtriangle_args_t& mes
 			const group_storage<3>* tlist,                                             
                         const unsigned int* tpos_list,
                         const Index2D tlist_idx,
-                        const unsigned int* n_triangles_list,
-                        unsigned int* d_flags)
+                        const unsigned int* n_triangles_list)
     {
     assert(d_params);
     assert(meshtriangle_args.d_rcutsq);
@@ -98,9 +99,9 @@ gpu_compute_mesh_triangle_triangles_force(const kernel::meshtriangle_args_t& mes
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                         reinterpret_cast<const void*>(
-                             &gpu_compute_mesh_triangle_triangles_force_kernel<evaluator, true>));
+    //hipFuncGetAttributes(&attr,
+    //                     reinterpret_cast<const void*>(
+    //                         &gpu_compute_mesh_triangle_triangles_force_kernel<evaluator, true>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(meshtriangle_args.block_size, max_block_size);
@@ -142,8 +143,7 @@ gpu_compute_mesh_triangle_triangles_force(const kernel::meshtriangle_args_t& mes
     //                       meshtriangle_args.d_gpu_meshtriangle_pos,
     //                       meshtriangle_args.d_gpu_n_meshtriangles,
     //                       meshtriangle_args.n_meshtriangle_types,
-    //                       d_params,
-    //                       d_flags);
+    //                       d_params);
     //    }
     //else
     //    {
@@ -167,8 +167,7 @@ gpu_compute_mesh_triangle_triangles_force(const kernel::meshtriangle_args_t& mes
     //                       meshtriangle_args.d_gpu_meshtriangle_pos,
     //                       meshtriangle_args.d_gpu_n_meshtriangles,
     //                       meshtriangle_args.n_meshtriangle_types,
-    //                       d_params,
-    //                       d_flags);
+    //                       d_params);
     //    }
 
     return hipSuccess;
@@ -181,8 +180,7 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
                         const unsigned int* d_tag,
                         const unsigned int* d_n_triang,
                         const unsigned int* d_trianglist,
-                        const unsigned int* d_head_triang,
-                        unsigned int* d_flags)
+                        const unsigned int* d_head_triang)
     {
     assert(d_params);
     assert(meshtriangle_args.d_rcutsq);
@@ -193,9 +191,9 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                         reinterpret_cast<const void*>(
-                             &gpu_compute_mesh_triangle_particles_force_kernel<evaluator, true>));
+    //hipFuncGetAttributes(&attr,
+    //                     reinterpret_cast<const void*>(
+    //                         &gpu_compute_mesh_triangle_particles_force_kernel<evaluator, true>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(meshtriangle_args.block_size, max_block_size);
@@ -237,8 +235,7 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
    //                        meshtriangle_args.d_gpu_meshtriangle_pos,
    //                        meshtriangle_args.d_gpu_n_meshparticles,
    //                        meshtriangle_args.n_meshtriangle_types,
-   //                        d_params,
-   //                        d_flags);
+   //                        d_params)
    //     }
    // else
    //     {
@@ -262,8 +259,7 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
    //                        meshtriangle_args.d_gpu_meshtriangle_pos,
    //                        meshtriangle_args.d_gpu_n_meshparticles,
    //                        meshtriangle_args.n_meshtriangle_types,
-   //                        d_params,
-   //                        d_flags);
+   //                        d_params)
    //     }
 
     return hipSuccess;
@@ -276,8 +272,7 @@ gpu_compute_mesh_triangle_triangles_force(const kernel::meshtriangle_args_t& mes
                         const group_storage<3>* tlist,
                         const unsigned int* tpos_list,
                         const Index2D tlist_idx,
-                        const unsigned int* n_triangles_list,
-                        unsigned int* d_flags);
+                        const unsigned int* n_triangles_list);
 
 template<class evaluator>
 __attribute__((visibility("default"))) hipError_t
@@ -286,8 +281,7 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
                         const unsigned int* d_tag,
                         const unsigned int* d_n_triang,
                         const unsigned int* d_trianglist,
-                        const unsigned int* d_head_triang,
-                        unsigned int* d_flags);
+                        const unsigned int* d_head_triang);
 #endif
 
 
