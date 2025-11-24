@@ -201,6 +201,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h
 		PotentialMeshTriangle.h
+		PotentialMeshTriangleGPU.h
                 PotentialPairAlchemical.h
                 PotentialPairAlchemicalNormalized.h
                 PotentialPairDPDThermoGPU.h
@@ -449,14 +450,14 @@ foreach(_bond ${_bonds})
         configure_file(export_PotentialMeshBondGPU.cc.inc
                        export_PotentialMeshBond${_bond}GPU.cc
                        @ONLY)
-        configure_file(PotentialMeshBondGPUKernel.cu.inc
-                       PotentialMeshBond${_bond}GPUKernel.cu
-                       @ONLY)
-        set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}GPU.cc)
-        set(_cuda_sources ${_cuda_sources}
-            PotentialMeshBond${_bond}GPUKernel.cu
-            )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+	configure_file(PotentialMeshBondGPUKernel.cu.inc
+	                              PotentialMeshBond${_bond}GPUKernel.cu
+	                              @ONLY)
+	set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}GPU.cc)
+	set(_cuda_sources ${_cuda_sources}
+	               PotentialMeshBond${_bond}GPUKernel.cu
+	                   )
+	set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -490,6 +491,21 @@ foreach(_mesh_triangle_pair ${_mesh_triangle_pairs})
                    export_PotentialMeshTriangle${_mesh_triangle_pair}.cc
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialMeshTriangle${_mesh_triangle_pair}.cc)
+
+    if (ENABLE_HIP)
+
+        configure_file(export_PotentialMeshTriangleGPU.cc.inc
+                       export_PotentialMeshTriangle${_bond}GPU.cc
+                       @ONLY)
+    #	       configure_file(PotentialMeshTriangleGPUKernel.cu.inc
+    #	               PotentialMeshTriangle${_bond}GPUKernel.cu
+    #	               @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialMeshTriangle${_bond}GPU.cc)
+    #	set(_cuda_sources ${_cuda_sources}
+    #	   PotentialMeshTriangle${_bond}GPUKernel.cu
+    #	   )
+    #	set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
 
 endforeach()
 

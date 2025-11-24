@@ -240,6 +240,8 @@ void export_PotentialPairTableGPU(pybind11::module& m);
 void export_PotentialPairConservativeDPDGPU(pybind11::module& m);
 void export_PotentialPairZetterlingGPU(pybind11::module& m);
 
+void export_PotentialMeshTriangleLJGPU(pybind11::module& m);
+
 void export_AnisoPotentialPairALJ2DGPU(pybind11::module& m);
 void export_AnisoPotentialPairALJ3DGPU(pybind11::module& m);
 void export_AnisoPotentialPairDipoleGPU(pybind11::module& m);
@@ -494,6 +496,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairWangFrenkelGPU(m);
     export_PotentialPairConservativeDPDGPU(m);
     export_PotentialPairZetterlingGPU(m);
+
+    export_PotentialMeshTriangleLJGPU(m);
 
     export_PotentialTersoffGPU(m);
     export_PotentialSquareDensityGPU(m);

@@ -186,20 +186,6 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
     m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_pdata->getExecConf()->isCUDAEnabled())
-        {
-        // m_params is _always_ in unified memory, so memadvise and prefetch
-        cudaMemAdvise(m_params.data(),
-                      m_params.size() * sizeof(param_type),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        cudaMemPrefetchAsync(m_params.data(),
-                             sizeof(param_type) * m_params.size(),
-                             m_exec_conf->getGPUId());
-        }
-#endif
-
     // get number of each type of particle, needed for energy and pressure correction
     m_num_particles_by_type.resize(m_pdata->getNTypes());
     std::fill(m_num_particles_by_type.begin(), m_num_particles_by_type.end(), 0);
