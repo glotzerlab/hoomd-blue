@@ -147,13 +147,14 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
 
     m_tuner_triangles->begin();
 
-    kernel::gpu_compute_mesh_triangle_triangles_force<evaluator>(d_force.data,
+
+    kernel::gpu_compute_mesh_triangle_triangles_force<evaluator>(
+		    kernel::meshtriangle_args_t(d_force.data,
                                               d_virial.data,
                                               this->m_virial.getPitch(),
                                               this->m_pdata->getN(),
                                 	      this->m_pdata->getMaxN(),
                                               d_pos.data,
-                                              d_tag.data,
                                               box,
                                               d_n_neigh.data,
                                               d_nlist.data,
@@ -161,12 +162,14 @@ void PotentialMeshTriangle<evaluator>::computeForcesTriangle(uint64_t timestep)
                                               d_rcutsq.data,
                                               this->m_nlist->getNListArray().getPitch(),
                                               this->m_pdata->getNTypes(),
+                                              m_tuner->getParam()[0],
+					      flags[pdata_flag::pressure_tensor],
+					      this->m_exec_conf->dev_prop),
+                                              this->m_params.data(),
                                               d_gpu_meshtrianglelist.data,
                                               d_gpu_meshtriangle_pos_list.data,
                                               gpu_table_indexer,
-                                              d_gpu_n_meshtriangle.data,
-                                              this->m_params.data(),
-                                              m_tuner->getParam()[0]);
+                                              d_gpu_n_meshtriangle.data)
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -218,13 +221,13 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
 
     m_tuner_particles->begin();
 
-    kernel::gpu_compute_mesh_triangle_particles_force<evaluator>(d_force.data,
+    kernel::gpu_compute_mesh_triangle_particles_force<evaluator>(
+		    kernel::meshtriangle_args_t(d_force.data,
                                               d_virial.data,
                                               this->m_virial.getPitch(),
                                               this->m_pdata->getN(),
                                 	      this->m_pdata->getMaxN(),
                                               d_pos.data,
-                                              d_tag.data,
                                               box,
                                               d_n_neigh.data,
                                               d_nlist.data,
@@ -232,11 +235,14 @@ void PotentialMeshTriangle<evaluator>::computeForcesParticle(uint64_t timestep)
                                               d_rcutsq.data,
                                               this->m_nlist->getNListArray().getPitch(),
                                               this->m_pdata->getNTypes(),
+                                              m_tuner->getParam()[0],
+					      flags[pdata_flag::pressure_tensor],
+					      this->m_exec_conf->dev_prop),
+                                              this->m_params.data(),
+                                              d_tag.data,
                                               d_n_triang.data,
                                               d_trianglist.data,
-                                              d_head_triang.data,
-                                              this->m_params.data(),
-                                              m_tuner->getParam()[0]);
+                                              d_head_triang.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
