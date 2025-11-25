@@ -361,13 +361,12 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 				    {
 				    force_divr *= Area_a;
 				    // add up the virial (double counting, multiply by 0.5)
-				    Scalar force_div2r = force_divr / Scalar(2.0);
-				    virial[0] += pos_a.x * dx.x * force_div2r; // xx
-				    virial[1] += pos_a.x * dx.y * force_div2r; // xy
-				    virial[2] += pos_a.x * dx.z * force_div2r; // xz
-				    virial[3] += pos_a.y * dx.y * force_div2r; // yy
-				    virial[4] += pos_a.y * dx.z * force_div2r; // yz
-				    virial[5] += pos_a.z * dx.z * force_div2r; // zz
+				    virial[0] += pos_a.x * dx.x * force_divr; // xx
+				    virial[1] += pos_a.x * dx.y * force_divr; // xy
+				    virial[2] += pos_a.x * dx.z * force_divr; // xz
+				    virial[3] += pos_a.y * dx.y * force_divr; // yy
+				    virial[4] += pos_a.y * dx.z * force_divr; // yz
+				    virial[5] += pos_a.z * dx.z * force_divr; // zz
 
 				    // add up the forces
 				    force.x += dx.x * force_divr;
@@ -610,6 +609,272 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
 
     if (idx >= N)
         return;
+
+    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    Scalar4 postype = __ldg(d_pos + idx);
+    Scalar3 pi = make_scalar3(postype.x, postype.y, postype.z);
+
+    unsigned int typei = __scalar_as_int(postype.w);
+    const typename evaluator::param_type* param;
+    Scalar rcutsq;
+    if (enable_shared_cache)
+    {
+	rcutsq = s_rcutsq[typei];
+	param = s_params + typei;
+    }
+    else
+    {
+   	rcutsq = d_rcutsq[typei];
+	param = d_params + typei;
+    }
+
+    const unsigned int Nsize = (unsigned int)d_n_neigh[idx];
+    const size_t myHead = d_head_list[idx];
+
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    // initialize the virial to 0
+    Scalar virial[6];
+    for (int i = 0; i < 6; i++)
+        virial[i] = Scalar(0.0);
+
+    uint2* reduced_nlist = (uint2*)malloc(Nsize * sizeof(uint2));
+
+    unsigned int counter = 0;
+
+    for (unsigned int k = 0; k < Nsize; k++)
+    	{
+	uint2 nk;
+        nk.x = d_nlist[myHead + k];
+        nk.y = d_tag[nk.x];
+        if (d_n_triang[nk.y] > 0)
+		{
+		reduced_nlist[counter] = nk;
+		counter++;
+		}
+        }
+
+    if( counter < 3 )
+	    return;
+
+    for (unsigned int k = 0; k < counter-2; k++)
+        {
+        unsigned int aj = reduced_nlist[k].x;
+        unsigned int trianglesx = reduced_nlist[k].y;
+    
+        unsigned int Nj_tri = d_n_triang[trianglesx];
+        unsigned int headj = d_head_triang[trianglesx];
+    
+        for (unsigned int kk = k+1; kk < counter-1; kk++)
+            {
+            unsigned int bj = reduced_nlist[kk].x;
+            unsigned int trianglesy = reduced_nlist[kk].y;
+	    unsigned int Njj_tri = d_n_triang[trianglesy];
+	    unsigned int headjj = d_head_triang[trianglesy];
+    
+	    for(unsigned int j_tri=0; j_tri < Nj_tri; j_tri++)
+		{
+		Scalar tri_idx = d_trianglist[headj+j_tri];
+		for(unsigned int jj_tri=0; jj_tri < Njj_tri; jj_tri++)
+		    {
+		    if( tri_idx == d_trianglist[headjj+jj_tri] )
+		        {
+			for (unsigned int kkk = kk+1; kkk < counter; kkk++)
+			   {
+			   unsigned int cj =  reduced_nlist[kkk].x;
+		           unsigned int trianglesz = reduced_nlist[kkk].y;
+			   unsigned int Njjj_tri = d_n_triang[trianglesz];
+			   unsigned int headjjj = d_head_triang[trianglesz];
+	    
+			   for(unsigned int jjj_tri=0; jjj_tri < Njjj_tri; jjj_tri++)
+			      {
+			      if(tri_idx == d_trianglist[headjjj+jjj_tri])
+				 {
+				 Scalar4 postypea = __ldg(d_pos + aj);		    
+				 Scalar3 pos_a = make_scalar3(postypea.x, postypea.y, postypea.z);
+
+				 Scalar3 daj;
+				 daj.x = pos_a.x - pi.x;
+				 daj.y = pos_a.y - pi.y;
+				 daj.z = pos_a.z - pi.z;
+				 daj = box.minImage(daj);
+
+				 Scalar4 postypeb = __ldg(d_pos + bj);		    
+				 Scalar3 pos_b = make_scalar3(postypeb.x, postypeb.y, postypeb.z);
+
+				 Scalar4 postypec = __ldg(d_pos + cj);		    
+				 Scalar3 pos_c = make_scalar3(postypec.x, postypec.y, postypec.z);
+
+				 Scalar3 dab;
+				 dab.x = pos_a.x - pos_b.x;
+				 dab.y = pos_a.y - pos_b.y;
+				 dab.z = pos_a.z - pos_b.z;
+
+				 Scalar3 dac;
+				 dac.x = pos_a.x - pos_c.x;
+				 dac.y = pos_a.y - pos_c.y;
+				 dac.z = pos_a.z - pos_c.z;
+
+				 dab = box.minImage(dab);
+				 dac = box.minImage(dac);
+
+				 Scalar3 dbc = dac-dab;
+
+				 Scalar normal_ab = fast::rsqrt(dot(dab,dab));
+				 Scalar normal_ac = fast::rsqrt(dot(dac,dac));
+				 Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
+
+				 Scalar3 nab = dab*normal_ab;
+				 Scalar3 nac = dac*normal_ac;
+				 Scalar3 nbc = dbc*normal_bc;
+
+				 Scalar3 normal_dir;
+				 normal_dir.x = dab.y * dac.z - dab.z * dac.y;
+				 normal_dir.y = dab.z * dac.x - dab.x * dac.z;
+				 normal_dir.z = dab.x * dac.y - dab.y * dac.x;
+
+				 Scalar normal_norm = fast::rsqrt(dot(normal_dir,normal_dir));
+
+				 normal_dir.x = normal_dir.x*normal_norm;
+				 normal_dir.y = normal_dir.y*normal_norm;
+				 normal_dir.z = normal_dir.z*normal_norm;
+
+				 Scalar daj_norm = dot(daj,normal_dir);
+
+				 Scalar rsq = daj_norm*daj_norm;
+
+				 if( rcutsq < rsq) continue;
+
+				 Scalar3 dx = normal_dir*daj_norm;
+
+				 Scalar3 dbj;
+				 dbj.x = pos_b.x - pi.x;
+				 dbj.y = pos_b.y - pi.y;
+				 dbj.z = pos_b.z - pi.z;
+				 dbj = box.minImage(dbj);
+
+				 Scalar3 dajbj; 
+				 dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
+				 dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
+				 dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
+
+				 Scalar Area_c = dot(dajbj,normal_dir);
+
+				 Scalar3 dcj;
+				 dcj.x = pos_c.x - pi.x;
+				 dcj.y = pos_c.y - pi.y;
+				 dcj.z = pos_c.z - pi.z;
+				 dcj = box.minImage(dcj);
+
+				 Scalar3 dcjaj; 
+				 dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+				 dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+				 dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+				 Scalar Area_b = dot(dcjaj,normal_dir);
+
+				 if(Area_c <0)
+				 {
+				 	if(Area_b <0)
+				 		dx = daj;
+				 	else
+				 	{	
+				 		Scalar3 dbjcj; 
+				 		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+				 		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+				 		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+				 		if(dot(dbjcj,normal_dir) < 0)
+				 			dx = dbj;
+				 		else
+				 		{
+				 			Scalar length_ab = dot(daj,nab);
+				 			Scalar ratio_ab = length_ab*normal_ab;
+
+				 			if(ratio_ab < 1 && ratio_ab > 0 )
+				 				dx = daj - length_ab*nab;
+				 			else continue;
+				 		}
+				 	}
+				 }
+				 else{
+				 	Scalar3 dbjcj; 
+				 	dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+				 	dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+				 	dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+				 	Scalar Area_a = dot(dbjcj,normal_dir);
+				 	if(Area_b <0)
+				 	{
+				 		if(Area_a < 0)
+				 			dx = dcj;
+				 		else
+				 		{
+				 			Scalar length_ac = dot(daj,nac);
+				 			Scalar ratio_ac = length_ac*normal_ac;
+
+				 			if(ratio_ac < 1 && ratio_ac > 0 )
+				 				dx = daj - length_ac*nac;
+				 			else continue;
+				 		}
+				 	}
+				 	else
+				 	{
+				 		if(Area_a <0)
+				 		{
+				 			Scalar length_bc = dot(dbj,nbc);
+				 			Scalar ratio_bc = length_bc*normal_bc;
+
+				 			if(ratio_bc < 1 && ratio_bc > 0 )
+				 				dx = dbj - length_bc*nbc;
+				 			else continue;
+				 		}
+				 	}
+				 }
+
+				 rsq = dot(dx,dx);
+
+				Scalar force_divr = Scalar(0.0);
+				Scalar bond_eng = Scalar(0.0);
+
+				evaluator eval(rsq, 0, *param);
+
+				bool evaluated = eval.evalForceAndEnergy(force_divr, bond_eng, false);
+
+				if (evaluated)
+				    {
+				    // add up the virial (double counting, multiply by 0.5)
+				    virial[0] -= pi.x * dx.x * force_divr; // xx
+				    virial[1] -= pi.x * dx.y * force_divr; // xy
+				    virial[2] -= pi.x * dx.z * force_divr; // xz
+				    virial[3] -= pi.y * dx.y * force_divr; // yy
+				    virial[4] -= pi.y * dx.z * force_divr; // yz
+				    virial[5] -= pi.z * dx.z * force_divr; // zz
+
+				    // add up the forces
+				    force.x -= dx.x * force_divr;
+				    force.y -= dx.y * force_divr;
+				    force.z -= dx.z * force_divr;
+				    // energy is double counted: multiply by 0.5
+				    force.w += bond_eng * Scalar(0.5);
+				    }
+				 }
+			      }
+			   }
+		        }
+		    }
+	         }
+             }
+        }
+
+
+
+
+    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
+    d_force[idx] = force;
+
+    for (unsigned int i = 0; i < 6; i++)
+        d_virial[i * virial_pitch + idx] = virial[i];
+
+    free(reduced_nlist);
 
     }
 
