@@ -539,6 +539,80 @@ gpu_compute_mesh_triangle_triangles_force(const kernel::meshtriangle_args_t& mes
     return hipSuccess;
     }
 
+//! Kernel for calculating bond forces
+/*! This kernel is called to calculate the bond forces on all N particles. Actual evaluation of the
+   potentials and forces for each bond is handled via the template class \a evaluator.
+
+    \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
+    \param N Number of particles in the system
+    \param d_pos particle positions on the GPU
+    \param d_charge particle charges
+    \param box Box dimensions used to implement periodic boundary conditions
+    \param blist List of bonds stored on the GPU
+    \param pitch Pitch of 2D bond list
+    \param bpos_list List of positions in bonds stored on the GPU
+    \param n_bonds_list List of numbers of bonds stored on the GPU
+    \param n_bond_type number of bond types
+    \param d_params Parameters for the potential, stored per bond type
+    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
+   evaluated
+
+
+    Certain options are controlled via template parameters to avoid the performance hit when they
+   are not enabled. \tparam evaluator EvaluatorBond class to evaluate V(r) and -delta V(r)/r
+
+*/
+
+template<class evaluator, unsigned int compute_virial, bool enable_shared_cache>
+__global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_force,
+                                               Scalar* d_virial,
+                                               const size_t virial_pitch,
+                                               const unsigned int N,
+                                               const Scalar4* d_pos,
+                                               const BoxDim box,
+                                      	       const unsigned int* d_n_neigh,
+                                      	       const unsigned int* d_nlist,
+                                               const size_t* d_head_list,
+                                      	       const Scalar* d_rcutsq,
+					       const unsigned int ntypes,
+                                               const unsigned int* d_tag,
+                                               const unsigned int* d_n_triang,
+                                               const unsigned int* d_trianglist,
+                                               const unsigned int* d_head_triang,
+                                               const typename evaluator::param_type* d_params)
+    {
+    // start by identifying which particle we are to handle
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+
+    // shared array for per bond type parameters
+    extern __shared__ char s_data[];
+    typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
+
+    Scalar* s_rcutsq
+        = (Scalar*)(&s_data[ntypes * sizeof(typename evaluator::param_type)]);
+
+    if (enable_shared_cache)
+        {
+        // load in per bond type parameters
+        for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+            {
+            if (cur_offset + threadIdx.x < ntypes)
+                {
+                s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+                }
+            }
+
+        __syncthreads();
+        }
+
+    if (idx >= N)
+        return;
+
+    }
+
 template<class evaluator>
 __attribute__((visibility("default"))) hipError_t
 gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& meshtriangle_args,
@@ -557,9 +631,14 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    //hipFuncGetAttributes(&attr,
-    //                     reinterpret_cast<const void*>(
-    //                         &gpu_compute_mesh_triangle_particles_force_kernel<evaluator, true>));
+    if(meshtriangle_args.compute_virial)
+	    hipFuncGetAttributes(&attr,
+				 reinterpret_cast<const void*>(
+				     &gpu_compute_mesh_triangle_particles_force_kernel<evaluator, 1, true>));
+   else
+	    hipFuncGetAttributes(&attr,
+				 reinterpret_cast<const void*>(
+				     &gpu_compute_mesh_triangle_particles_force_kernel<evaluator, 0, true>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(meshtriangle_args.block_size, max_block_size);
@@ -579,54 +658,100 @@ gpu_compute_mesh_triangle_particles_force(const kernel::meshtriangle_args_t& mes
         }
 
     // run the kernel
-   // if (enable_shared_cache)
-   //     {
-   //     hipLaunchKernelGGL((gpu_compute_mesh_triangle_particles_force_kernel<evaluator, compute_virial, true>),
-   //                        grid,
-   //                        threads,
-   //                        shared_bytes,
-   //                        0,
-   //                        meshtriangle_args.d_force,
-   //                        meshtriangle_args.d_virial,
-   //                        meshtriangle_args.virial_pitch,
-   //                        meshtriangle_args.N,
-   //                        meshtriangle_args.d_pos,
-   //                        meshtriangle_args.box,
-   //                        meshtriangle_args.d_n_neigh,
-   //                        meshtriangle_args.d_nlist,
-   //                        meshtriangle_args.d_head_list,
-   //                        meshtriangle_args.d_rcutsq,
-   //                        meshtriangle_args.d_gpu_meshtrianglelist,
-   //                        meshtriangle_args.gpu_table_indexer,
-   //                        meshtriangle_args.d_gpu_meshtriangle_pos,
-   //                        meshtriangle_args.d_gpu_n_meshparticles,
-   //                        meshtriangle_args.n_meshtriangle_types,
-   //                        d_params)
-   //     }
-   // else
-   //     {
-   //     hipLaunchKernelGGL((gpu_compute_mesh_triangle_particles_force_kernel<evaluator, compute_virial, false>),
-   //                        grid,
-   //                        threads,
-   //                        shared_bytes,
-   //     		   0,
-   //                        meshtriangle_args.d_force,
-   //                        meshtriangle_args.d_virial,
-   //                        meshtriangle_args.virial_pitch,
-   //                        meshtriangle_args.N,
-   //                        meshtriangle_args.d_pos,
-   //                        meshtriangle_args.box,
-   //                        meshtriangle_args.d_n_neigh,
-   //                        meshtriangle_args.d_nlist,
-   //                        meshtriangle_args.d_head_list,
-   //                        meshtriangle_args.d_rcutsq,
-   //                        meshtriangle_args.d_gpu_meshtrianglelist,
-   //                        meshtriangle_args.gpu_table_indexer,
-   //                        meshtriangle_args.d_gpu_meshtriangle_pos,
-   //                        meshtriangle_args.d_gpu_n_meshparticles,
-   //                        meshtriangle_args.n_meshtriangle_types,
-   //                        d_params)
-   //     }
+    if (enable_shared_cache)
+        {
+    	if(meshtriangle_args.compute_virial)
+        	hipLaunchKernelGGL((gpu_compute_mesh_triangle_particles_force_kernel<evaluator, 1, true>),
+                           grid,
+                           threads,
+                           shared_bytes,
+                           0,
+                           meshtriangle_args.d_force,
+                           meshtriangle_args.d_virial,
+                           meshtriangle_args.virial_pitch,
+                           meshtriangle_args.N,
+                           meshtriangle_args.d_pos,
+                           meshtriangle_args.box,
+                           meshtriangle_args.d_n_neigh,
+                           meshtriangle_args.d_nlist,
+                           meshtriangle_args.d_head_list,
+                           meshtriangle_args.d_rcutsq,
+                           meshtriangle_args.ntypes,
+                           d_tag,
+                           d_n_triang,
+                           d_trianglist,
+                           d_head_triang,
+                           d_params);
+	else
+        	hipLaunchKernelGGL((gpu_compute_mesh_triangle_particles_force_kernel<evaluator, 0, true>),
+                           grid,
+                           threads,
+                           shared_bytes,
+                           0,
+                           meshtriangle_args.d_force,
+                           meshtriangle_args.d_virial,
+                           meshtriangle_args.virial_pitch,
+                           meshtriangle_args.N,
+                           meshtriangle_args.d_pos,
+                           meshtriangle_args.box,
+                           meshtriangle_args.d_n_neigh,
+                           meshtriangle_args.d_nlist,
+                           meshtriangle_args.d_head_list,
+                           meshtriangle_args.d_rcutsq,
+                           meshtriangle_args.ntypes,
+                           d_tag,
+                           d_n_triang,
+                           d_trianglist,
+                           d_head_triang,
+                           d_params);
+        }
+    else
+        {
+    	if(meshtriangle_args.compute_virial)
+        	hipLaunchKernelGGL((gpu_compute_mesh_triangle_particles_force_kernel<evaluator, 1, false>),
+                           grid,
+                           threads,
+                           shared_bytes,
+			   0,
+                           meshtriangle_args.d_force,
+                           meshtriangle_args.d_virial,
+                           meshtriangle_args.virial_pitch,
+                           meshtriangle_args.N,
+                           meshtriangle_args.d_pos,
+                           meshtriangle_args.box,
+                           meshtriangle_args.d_n_neigh,
+                           meshtriangle_args.d_nlist,
+                           meshtriangle_args.d_head_list,
+                           meshtriangle_args.d_rcutsq,
+                           meshtriangle_args.ntypes,
+                           d_tag,
+                           d_n_triang,
+                           d_trianglist,
+                           d_head_triang,
+                           d_params);
+	else
+        	hipLaunchKernelGGL((gpu_compute_mesh_triangle_particles_force_kernel<evaluator, 0, false>),
+                           grid,
+                           threads,
+                           shared_bytes,
+			   0,
+                           meshtriangle_args.d_force,
+                           meshtriangle_args.d_virial,
+                           meshtriangle_args.virial_pitch,
+                           meshtriangle_args.N,
+                           meshtriangle_args.d_pos,
+                           meshtriangle_args.box,
+                           meshtriangle_args.d_n_neigh,
+                           meshtriangle_args.d_nlist,
+                           meshtriangle_args.d_head_list,
+                           meshtriangle_args.d_rcutsq,
+                           meshtriangle_args.ntypes,
+                           d_tag,
+                           d_n_triang,
+                           d_trianglist,
+                           d_head_triang,
+                           d_params);
+        }
 
     return hipSuccess;
     }
