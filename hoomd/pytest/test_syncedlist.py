@@ -133,11 +133,11 @@ class TestSyncedList(BaseListTest):
         empty_collection._validate_or_error(item_cls())
 
     def test_syncing(self, populated_collection):
-        test_list, plain_list = populated_collection
+        test_list, _plain_list = populated_collection
         self.final_check(test_list)
 
     def test_unsync(self, populated_collection):
-        test_list, plain_list = populated_collection
+        test_list, _plain_list = populated_collection
         test_list._unsync()
         assert not hasattr(test_list, "_synced_list")
         self.final_check(test_list)

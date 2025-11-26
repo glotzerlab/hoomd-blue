@@ -379,7 +379,7 @@ class Integrator(_DynamicIntegrator):
 
         .. math::
 
-            \\vec{p} = \\sum_{i=0}^\\mathrm{N_particles-1} m_i \\vec{v}_i
+            \\vec{p} = \\sum_{i=0}^{N_\\mathrm{particles}-1} m_i \\vec{v}_i
         """
         v = self._cpp_obj.computeLinearMomentum()
         return (v.x, v.y, v.z)

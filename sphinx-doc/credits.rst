@@ -89,6 +89,7 @@ The following people have contributed to HOOMD-blue:
 * Michael Howard, Auburn University
 * Michaela Bush, Auburn University
 * Mike Henry, Boise State University
+* Ming Zhu, Wuhan University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
 * Nicholas Cal Craven, Vanderbilt University
@@ -134,3 +135,5 @@ The following people have contributed to HOOMD-blue:
 * Nathan Barrett, Pritzker School of Molecular Engineering
 * Domagoj Fijan, University of Michigan
 * Cristina Butu, Columbia University
+* Kay Hofmann, Johannes Gutenberg University Mainz
+* Shuo-Lin Weng, Texas A&M University

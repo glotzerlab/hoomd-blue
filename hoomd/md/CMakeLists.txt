@@ -23,6 +23,7 @@ set(_md_sources module-md.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
+                   FrictionPairFrictionLJBase.cc
                    HalfStepHook.cc
                    HarmonicAngleForceCompute.cc
                    HarmonicDihedralForceCompute.cc
@@ -109,6 +110,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+                EvaluatorPairFrictionLJBase.h
+                EvaluatorPairFrictionLJVariants.h
                 EvaluatorPairYLZ.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
@@ -216,6 +219,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 PPPMForceComputeGPU.h
                 PPPMForceComputeGPU.cuh
                 PPPMForceCompute.h
+                FrictionPairGPU.cuh
+                FrictionPairGPU.h
+                FrictionPair.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableAngleForceGPU.cuh
@@ -286,6 +292,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            OPLSDihedralForceComputeGPU.cc
                            PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
+                           FrictionPairFrictionLJBaseGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TriangleAreaConservationMeshForceComputeGPU.cc
@@ -327,6 +334,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       OPLSDihedralForceGPU.cu
                       PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
+                      FrictionPairFrictionLJBaseGPUKernel.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TriangleAreaConservationMeshForceComputeGPU.cu

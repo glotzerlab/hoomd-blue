@@ -264,7 +264,7 @@ class TestExternalPotentialLinear:
     ):
         # create simulation & attach objects
         sim = simulation_factory(two_particle_snapshot_factory())
-        mc, field = add_default_integrator(sim, "linear")
+        _mc, field = add_default_integrator(sim, "linear")
         field.plane_normal = (1, 2, 3)
         magnitude = np.linalg.norm(field.plane_normal)
 

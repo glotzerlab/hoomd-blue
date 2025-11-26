@@ -6,7 +6,7 @@ particle in the simulation state commensurate with the potential energy:
 
 .. math::
 
-    U_\mathrm{pair,total} = \frac{1}{2} \sum_{i=0}^\mathrm{N_particles-1}
+    U_\mathrm{pair,total} = \frac{1}{2} \sum_{i=0}^{N_\mathrm{particles}-1}
                       \sum_{j \ne i, (i,j) \notin \mathrm{exclusions}}
                       U_\mathrm{pair}(r_{ij}, \mathbf{q}_i, \mathbf{q}_j)
 

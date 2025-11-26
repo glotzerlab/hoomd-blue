@@ -157,7 +157,7 @@ External potentials apply to each particle individually:
 .. math::
 
     U_\mathrm{external} =
-        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external},i}(\vec{r}_i,
+        \sum_{i=0}^\mathrm{N_{particles}-1} U_{\mathrm{external},i}(\vec{r}_i,
                                                                  \mathbf{q}_i)
 
 Potential classes in `hoomd.hpmc.pair` evaluate

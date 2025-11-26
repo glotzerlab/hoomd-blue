@@ -70,18 +70,6 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
         return m_factors;
         }
 
-    //! Get the temperature
-    std::shared_ptr<Variant> getTemperature() const
-        {
-        return m_T;
-        }
-
-    //! Set the temperature
-    void setTemperature(std::shared_ptr<Variant> T)
-        {
-        m_T = T;
-        }
-
     //! Get the requested thermo flags
     mpcd::detail::ThermoFlags getRequestedThermoFlags() const
         {
@@ -97,8 +85,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     GPUVector<double3> m_rotvec;                       //!< MPCD rotation vectors
     Scalar m_angle;                                    //!< MPCD rotation angle (degrees)
 
-    std::shared_ptr<Variant> m_T; //!< Temperature for thermostat
-    GPUVector<double> m_factors;  //!< Cell-level rescale factors
+    GPUVector<double> m_factors; //!< Cell-level rescale factors
 
     //! Implementation of the collision rule
     void rule(uint64_t timestep) override;

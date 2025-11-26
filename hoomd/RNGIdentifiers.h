@@ -38,7 +38,7 @@ struct RNGIdentifier
     static const uint8_t Unused3 = 12;
     static const uint8_t Unused4 = 13;
     static const uint8_t Unused5 = 14;
-    static const uint8_t Unused6 = 15;
+    static const uint8_t EvaluatorPairFrictionLJBase = 15;
     static const uint8_t Unused7 = 16;
     static const uint8_t Unused8 = 17;
     static const uint8_t Unused9 = 18;

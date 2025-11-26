@@ -7,7 +7,6 @@ HOOMD-blue
     |Citing-HOOMD|
     |conda-forge|
     |conda-forge-Downloads|
-    |GitHub Actions|
     |Contributors|
     |License|
 
@@ -18,8 +17,6 @@ HOOMD-blue
         :target: https://anaconda.org/conda-forge/hoomd
     .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
         :target: https://anaconda.org/conda-forge/hoomd
-    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yaml/badge.svg?branch=trunk-patch
-        :target: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yaml
     .. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
         :target: https://hoomd-blue.readthedocs.io/en/latest/credits.html
     .. |License| image:: https://img.shields.io/badge/license-BSD--3--Clause-green.svg

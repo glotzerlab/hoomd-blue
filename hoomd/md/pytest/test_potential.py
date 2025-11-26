@@ -774,7 +774,7 @@ def _skip_if_triplet_gpu_mpi(sim, pair_potential):
 
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory, valid_params):
-    pair_potential, pair_potential_dict, extra_args = valid_params
+    _pair_potential, _pair_potential_dict, _extra_args = valid_params
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(

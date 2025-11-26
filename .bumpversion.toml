@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "5.4.0"
+current_version = "6.0.0"
 
 [[tool.bumpversion.files]]
 filename = "INSTALLING.rst"
@@ -39,5 +39,5 @@ replace = "Release {new_version}"
 [[tool.bumpversion.files]]
 filename = "CHANGELOG.rst"
 regex = true
-search = '{new_version} [^\n]*$'
+search = 'Next release$'
 replace = '{new_version} ({now:%Y-%m-%d})'

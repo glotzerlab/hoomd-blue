@@ -168,7 +168,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path, simulation_fact
             mode="xb",
             dynamic=["property", "momentum"],
         )
-        with pytest.raises(Exception, match=".*File exists.*"):
+        with pytest.raises(Exception, match=r".*File exists.*"):
             sim.operations.writers.append(gsd_writer)
             sim.run(1)
 
