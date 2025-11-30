@@ -4,7 +4,7 @@ accessible-pygments==0.0.5
     # via furo
 alabaster==1.0.0
     # via sphinx
-asttokens==3.0.0
+asttokens==3.0.1
     # via stack-data
 attrs==25.4.0
     # via
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.7
     # via -r sphinx-doc/requirements.in
-numpy==2.3.4
+numpy==2.3.5
     # via -r sphinx-doc/requirements.in
 packaging==25.0
     # via
@@ -130,7 +130,7 @@ referencing==0.37.0
     #   jsonschema-specifications
 requests==2.32.5
     # via sphinx
-rpds-py==0.28.0
+rpds-py==0.29.0
     # via
     #   jsonschema
     #   referencing

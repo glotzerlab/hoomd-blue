@@ -43,22 +43,9 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
 
     void setCellList(std::shared_ptr<mpcd::CellList> cl) override;
 
-    //! Get the temperature
-    std::shared_ptr<Variant> getTemperature() const
-        {
-        return m_T;
-        }
-
-    //! Set the temperature
-    void setTemperature(std::shared_ptr<Variant> T)
-        {
-        m_T = T;
-        }
-
     protected:
     std::shared_ptr<mpcd::CellThermoCompute> m_thermo;      //!< Cell thermo
     std::shared_ptr<mpcd::CellThermoCompute> m_rand_thermo; //!< Cell thermo for random velocities
-    std::shared_ptr<Variant> m_T;                           //!< Temperature for thermostat
 
     //! Implementation of the collision rule
     virtual void rule(uint64_t timestep) override;

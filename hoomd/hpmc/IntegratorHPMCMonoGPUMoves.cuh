@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"

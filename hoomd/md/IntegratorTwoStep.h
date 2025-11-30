@@ -102,7 +102,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         return m_rigid_bodies;
         }
 
-    void setRigid(std::shared_ptr<ForceComposite> new_rigid)
+    virtual void setRigid(std::shared_ptr<ForceComposite> new_rigid)
         {
         m_rigid_bodies = new_rigid;
         }
