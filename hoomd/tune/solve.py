@@ -593,7 +593,6 @@ class GridOptimizer(Optimizer):
 
     def _get_bin_center(self, tunable, index):
         """Get the bin center for a given tunable and bin index."""
-        min_, max_ = tunable.domain
         return sum(self._bins[tunable][index : index + 2]) / 2
 
     def __eq__(self, other):

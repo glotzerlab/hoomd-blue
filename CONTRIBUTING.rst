@@ -34,9 +34,7 @@ Version control
 Base your work off the correct branch
 _____________________________________
 
-- Base backwards compatible bug fixes on ``trunk-patch``.
-- Base additional functionality on ``trunk-minor``.
-- Base API incompatible changes on ``trunk-major``.
+- Base bug fixes, new functionality, and API incompatible changes on ``trunk``.
 
 Propose a minimal set of related changes
 ________________________________________
