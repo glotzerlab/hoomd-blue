@@ -100,7 +100,7 @@ parso==0.8.5
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.5.0
+platformdirs==4.5.1
     # via jupyter-core
 plumbum==1.10.0
     # via pandoc
@@ -193,7 +193,7 @@ traitlets==5.14.3
     #   nbsphinx
 typing-extensions==4.15.0
     # via beautifulsoup4
-urllib3==2.5.0
+urllib3==2.6.0
     # via requests
 wcwidth==0.2.14
     # via prompt-toolkit
