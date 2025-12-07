@@ -21,6 +21,7 @@ namespace kernel
     {
 template __attribute__((visibility("default"))) hipError_t
 gpu_compute_mesh_triangle_triangles_force<EVALUATOR_CLASS>(const kernel::meshtriangle_args_t& meshtriangle_args,
+					    const unsigned int threads_per_particle,
                                             const typename EVALUATOR_CLASS::param_type* d_params,
                                             const group_storage<3>* tlist,
 					    const unsigned int* tpos_list,

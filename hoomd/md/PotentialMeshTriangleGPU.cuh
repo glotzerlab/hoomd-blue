@@ -240,11 +240,10 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 		group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
 		int cur_triangle_b = cur_triangle.idx[0];
-		int cur_triangle_c = cur_triangle.idx[1];
-
 		const unsigned int Nsize1 = (unsigned int)d_n_neigh[cur_triangle_b];
 		if (Nsize1 == 0)
 		       continue;	
+		int cur_triangle_c = cur_triangle.idx[1];
 		const unsigned int Nsize2 = (unsigned int)d_n_neigh[cur_triangle_c];
 		if (Nsize2 == 0)
 		       continue;	
@@ -267,22 +266,12 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 		dab = box.minImage(dab);
 		dac = box.minImage(dac);
 
-		Scalar3 dbc = dac-dab;
-
-		Scalar normal_ab = fast::rsqrt(dot(dab,dab));
-		Scalar normal_ac = fast::rsqrt(dot(dac,dac));
-		Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
-
-		Scalar3 nab = dab*normal_ab;
-		Scalar3 nac = dac*normal_ac;
-		Scalar3 nbc = dbc*normal_bc;
-
 		Scalar3 normal_dir;
 		normal_dir.x = dab.y * dac.z - dab.z * dac.y;
 		normal_dir.y = dab.z * dac.x - dab.x * dac.z;
 		normal_dir.z = dab.x * dac.y - dab.y * dac.x;
 
-		Scalar normal_norm = fast::rsqrt(dot(normal_dir,normal_dir));
+		Scalar normal_norm = fast::rsqrt(normal_dir.x*normal_dir.x+normal_dir.y*normal_dir.y+normal_dir.z*normal_dir.z);
 
 		normal_dir.x = normal_dir.x*normal_norm;
 		normal_dir.y = normal_dir.y*normal_norm;
@@ -293,7 +282,6 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 		dbj.y = pos_b.y - posj.y;
 		dbj.z = pos_b.z - posj.z;
 		dbj = box.minImage(dbj);
-
 
 		Scalar dbj_norm = dot(dbj,normal_dir);
 
@@ -348,6 +336,9 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 					}
 				else
 					{
+					Scalar normal_ac = fast::rsqrt(dot(dac,dac));
+					Scalar3 nac = dac*normal_ac;
+
 					Scalar length_ac = dot(daj,nac);
 					Scalar ratio_ac = length_ac*normal_ac;
 
@@ -364,6 +355,8 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 				{
 				if( dot(dajbj,normal_dir) <0)
 					{
+					Scalar normal_ab = fast::rsqrt(dot(dab,dab));
+					Scalar3 nab = dab*normal_ab;
 					Scalar length_ab = dot(daj,nab);
 					Scalar ratio_ab = length_ab*normal_ab;
 
@@ -767,38 +760,38 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
     for (int i = 0; i < 6; i++)
         virial[i] = d_virial[i * virial_pitch + idx];
 
-    unsigned int counter = 0;
-
+   unsigned int counter = 0;
+   uint2 highest_n[1024];
    for (unsigned int k = 0; k < Nsize; k++)
    	{
        uint2 nk;
        nk.x = d_nlist[myHead + k];
        nk.y = d_tag[nk.x];
        if (d_n_triang[nk.y] > 0)
-       	counter++;
+        {
+        	highest_n[counter] = nk;
+        	counter++;
+        }
        }
-
 
     if( counter > 2)
     {
-    for (unsigned int k = 0; k < Nsize-2; k++)
+    for (unsigned int k = 0; k < counter-2; k++)
         {
-
-        unsigned int aj = __ldg(d_nlist+myHead + k);
-        unsigned int trianglesx = d_tag[aj];
+	unsigned int aj = highest_n[k].x;
+	unsigned int trianglesx = highest_n[k].y;
 
         unsigned int Nj_tri = d_n_triang[trianglesx];
-
-	if(Nj_tri == 0) continue;
     
         unsigned int headj = d_head_triang[trianglesx];
     
-        for (unsigned int kk = k+1; kk < Nsize-1; kk++)
+        for (unsigned int kk = k+1; kk < counter-1; kk++)
             {
-            unsigned int bj = d_nlist[myHead + kk];
-            unsigned int trianglesy = d_tag[bj];
+
+	    unsigned int bj = highest_n[kk].x;
+	    unsigned int trianglesy = highest_n[kk].y;
+
             unsigned int Njj_tri = d_n_triang[trianglesy];
-            if(Njj_tri == 0) continue;
 
             unsigned int headjj = d_head_triang[trianglesy];
     
@@ -811,12 +804,11 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         	    unsigned int tri_idy = d_trianglist[headjj+jj_tri];
         	    if( tri_idx == tri_idy )
         	        {
-        		for (unsigned int kkk = kk+1; kkk < Nsize; kkk++)
+        		for (unsigned int kkk = kk+1; kkk < counter; kkk++)
         		   {
-        		   unsigned int cj =  d_nlist[myHead + kkk];
-        	           unsigned int trianglesz = d_tag[cj];
+			   unsigned int cj = highest_n[kkk].x;
+			   unsigned int trianglesz = highest_n[kkk].y;
         		   unsigned int Njjj_tri = d_n_triang[trianglesz];
-			   if(Njjj_tri == 0) continue;
 
         		   unsigned int headjjj = d_head_triang[trianglesz];
             

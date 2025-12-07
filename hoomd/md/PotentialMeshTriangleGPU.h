@@ -66,10 +66,6 @@ PotentialMeshTriangleGPU<evaluator>::PotentialMeshTriangleGPU(std::shared_ptr<Sy
 
     this->m_mesh_data->createMeshTriangleList();
 
-    //m_tuner_triangles.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-    //                                     this->m_exec_conf,
-    //                                     "mesh_triangle_triangles"));
-
     m_tuner_triangles.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
                                     AutotunerBase::getTppListPow2(this->m_exec_conf)},
                                    this->m_exec_conf,
@@ -169,31 +165,6 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesTriangle(uint64_t timeste
     unsigned int block_size = param[0];
     unsigned int threads_per_particle = param[1];
 
-
-    //kernel::gpu_compute_mesh_triangle_triangles_force<evaluator>(
-    //    	    kernel::meshtriangle_args_t(d_force.data,
-    //                                          d_virial.data,
-    //                                          this->m_virial.getPitch(),
-    //                                          this->m_pdata->getN(),
-    //                            	      this->m_pdata->getMaxN(),
-    //                                          d_pos.data,
-    //                                          box,
-    //                                          d_n_neigh.data,
-    //                                          d_nlist.data,
-    //                                          d_head_list.data,
-    //                                          d_rcutsq.data,
-    //                                          this->m_nlist->getNListArray().getPitch(),
-    //                                          this->m_pdata->getNTypes(),
-    //                                          m_tuner_triangles->getParam()[0],
-    //    				      flags[pdata_flag::pressure_tensor],
-    //    				      this->m_exec_conf->dev_prop),
-    //                                          d_params.data,
-    //                                          d_gpu_meshtrianglelist.data,
-    //                                          d_gpu_meshtriangle_pos_list.data,
-    //                                          gpu_table_indexer,
-    //                                          d_gpu_n_meshtriangle.data);
-    
-    
     kernel::gpu_compute_mesh_triangle_triangles_force<evaluator>(
         	    kernel::meshtriangle_args_t(d_force.data,
                                               d_virial.data,
@@ -211,7 +182,7 @@ void PotentialMeshTriangleGPU<evaluator>::computeForcesTriangle(uint64_t timeste
                                               block_size,
         				      flags[pdata_flag::pressure_tensor],
         				      this->m_exec_conf->dev_prop),
-					      threads_per_particle,
+        				      threads_per_particle,
                                               d_params.data,
                                               d_gpu_meshtrianglelist.data,
                                               d_gpu_meshtriangle_pos_list.data,
