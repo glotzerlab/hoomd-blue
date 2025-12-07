@@ -9,6 +9,8 @@ Next release
 
 *Added*
 
+* Support 2D simulations in ``hoomd.md.pair.friction`` (#2184).
+
 *Changed*
 
 *Deprecated*
@@ -16,6 +18,8 @@ Next release
 *Removed*
 
 *Fixed*
+
+* Table writer no longer errors on ``NaN`` scalar values (#2189).
 
 6.0.0 (2025-11-21)
 ^^^^^^^^^^^^^^^^^^^^

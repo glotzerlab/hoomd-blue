@@ -353,8 +353,8 @@ void FrictionPair<friction_evaluator>::computeForces(uint64_t timestep)
             quat<Scalar> angmom_i(h_angmom.data[i]);
             quat<Scalar> qxP_i = conj(quat_i) * angmom_i;
             vec3<Scalar> bf_vel_i = Scalar(0.5)
-                                    * vec3(qxP_i.v.x / h_moment_inertia.data[i].x,
-                                           qxP_i.v.y / h_moment_inertia.data[i].y,
+                                    * vec3(qxP_i.v.x / h_moment_inertia.data[i].z,
+                                           qxP_i.v.y / h_moment_inertia.data[i].z,
                                            qxP_i.v.z / h_moment_inertia.data[i].z);
 
             // Rotate angular velocity into global frame
@@ -412,8 +412,8 @@ void FrictionPair<friction_evaluator>::computeForces(uint64_t timestep)
                 quat<Scalar> angmom_j(h_angmom.data[j]);
                 quat<Scalar> qxP_j = conj(quat_j) * angmom_j;
                 vec3<Scalar> bf_vel_j = Scalar(0.5)
-                                        * vec3(qxP_j.v.x / h_moment_inertia.data[j].x,
-                                               qxP_j.v.y / h_moment_inertia.data[j].y,
+                                        * vec3(qxP_j.v.x / h_moment_inertia.data[j].z,
+                                               qxP_j.v.y / h_moment_inertia.data[j].z,
                                                qxP_j.v.z / h_moment_inertia.data[j].z);
 
                 // Rotate angular velocity into global frame

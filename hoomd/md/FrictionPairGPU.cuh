@@ -270,8 +270,8 @@ gpu_compute_pair_friction_forces_kernel(Scalar4* d_force,
         // calculate angular momentum of i-th particle in the body frame
         quat<Scalar> qxP_i = conj(quati) * angmomi;
         vec3<Scalar> bf_vel_i = Scalar(0.5)
-                                * vec3<Scalar>(qxP_i.v.x / moment_inertia_i.x,
-                                               qxP_i.v.y / moment_inertia_i.y,
+                                * vec3<Scalar>(qxP_i.v.x / moment_inertia_i.z,
+                                               qxP_i.v.y / moment_inertia_i.z,
                                                qxP_i.v.z / moment_inertia_i.z);
 
         // Rotate angular velocity into global frame
@@ -320,8 +320,8 @@ gpu_compute_pair_friction_forces_kernel(Scalar4* d_force,
                 // calculate angular momentum of i-th particle in the body frame
                 quat<Scalar> qxP_j = conj(quatj) * angmomj;
                 vec3<Scalar> bf_vel_j = Scalar(0.5)
-                                        * vec3<Scalar>(qxP_j.v.x / moment_inertia_j.x,
-                                                       qxP_j.v.y / moment_inertia_j.y,
+                                        * vec3<Scalar>(qxP_j.v.x / moment_inertia_j.z,
+                                                       qxP_j.v.y / moment_inertia_j.z,
                                                        qxP_j.v.z / moment_inertia_j.z);
 
                 // Rotate angular velocity into global frame
@@ -372,8 +372,8 @@ gpu_compute_pair_friction_forces_kernel(Scalar4* d_force,
                     {
                     // Calculate nu for the Ito formalism
                     Scalar nu_ito = ((Scalar(1.0) / massi) + (Scalar(1.0) / massj))
-                                    + (((diaj * diaj / Scalar(4.0)) / moment_inertia_j.x)
-                                       + ((diai * diai / Scalar(4.0)) / moment_inertia_i.x));
+                                    + (((diaj * diaj / Scalar(4.0)) / moment_inertia_j.z)
+                                       + ((diai * diai / Scalar(4.0)) / moment_inertia_i.z));
                     eval.setNu(nu_ito);
                     }
 

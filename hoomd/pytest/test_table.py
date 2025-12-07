@@ -239,3 +239,21 @@ def test_invalid_permutations(device, combination):
     # Now ensure category formatting operates correctly
     for category in combination - {"string", "scalar"}:
         assert category in str(ve.value)
+
+
+def test_nan_is_ok():
+    # Ensure that NaN value doesn't cause table writer to error
+    sim = hoomd.util.make_example_simulation()
+
+    logger = hoomd.logging.Logger(categories=["scalar"])
+    logger[("test", "nan")] = (lambda: float("NaN"), "scalar")
+
+    output = StringIO("")
+
+    table_writer = hoomd.write.Table(
+        trigger=1, logger=logger, output=output, delimiter=","
+    )
+
+    sim.operations.writers.append(table_writer)
+
+    sim.run(1)
