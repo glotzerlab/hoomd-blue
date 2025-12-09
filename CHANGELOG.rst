@@ -20,6 +20,7 @@ Next release
 *Fixed*
 
 * Table writer no longer errors on ``NaN`` scalar values (#2189).
+* Table writer no longer errors on ``Inf`` scalar values (#2196).
 
 6.0.0 (2025-11-21)
 ^^^^^^^^^^^^^^^^^^^^

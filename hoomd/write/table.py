@@ -11,7 +11,7 @@
 from abc import ABCMeta, abstractmethod
 import copy
 from numbers import Integral
-from math import log10, isnan
+from math import log10, isnan, isinf
 from sys import stdout
 import inspect
 
@@ -128,6 +128,8 @@ class _Formatter:
             # point including the decimal point.
             if isnan(value):
                 return "NaN"
+            if isinf(value):
+                return "Inf"
             min_len_repr = self._digits_from_decimal(value) + 1
             # Use scientific formatting
             if not min_len_repr < 6 or min_len_repr > column_width:
