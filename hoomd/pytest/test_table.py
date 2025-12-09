@@ -258,6 +258,7 @@ def test_nan_is_ok():
 
     sim.run(1)
 
+
 def test_inf_is_ok():
     # Ensure that Inf value doesn't cause table writer to error
     sim = hoomd.util.make_example_simulation()
