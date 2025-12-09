@@ -139,7 +139,7 @@ class TestCollisionMethod:
         "angmom_rigid", [[0, 0, 0, 0], [0, 2, 3, 4]], ids=["Nonrotating", "Rotating"]
     )
     @pytest.mark.parametrize(
-        "pos_rigid", [[0, 0, 0], [10, 10, 10]], ids=["center", "edge"]
+        "pos_rigid", [[0, 0, 0], [5, 5, 5]], ids=["center", "edge"]
     )
     @pytest.mark.parametrize(
         "def_rigid,properties_rigid",
@@ -216,7 +216,7 @@ class TestCollisionMethod:
 
         # create simulation
         initial_snap = one_particle_snapshot_factory(
-            particle_types=["A", "B"], position=pos_rigid, L=21
+            particle_types=["A", "B"], position=pos_rigid, L=11
         )
         total_mass = properties_rigid["mass"][0]
         if initial_snap.communicator.rank == 0:
@@ -227,11 +227,10 @@ class TestCollisionMethod:
 
             # place the mpcd particles on top of constituents
             positions = np.add(def_rigid["positions"], pos_rigid)
-            positions[positions < -21 * 0.5] = positions[positions < -21 * 0.5] + 21
-            positions[positions > 21 * 0.5] = positions[positions > 21 * 0.5] - 21
+            positions[positions < -11 * 0.5] = positions[positions < -11 * 0.5] + 11
+            positions[positions > 11 * 0.5] = positions[positions > 11 * 0.5] - 11
             initial_snap.mpcd.N = N_mpcd
             initial_snap.mpcd.types = ["C"]
-            initial_snap.mpcd.position[:] = def_rigid["positions"]
             initial_snap.mpcd.position[:] = positions
             initial_snap.mpcd.velocity[:] = velo_mpcd
 
