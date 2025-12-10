@@ -173,9 +173,6 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
     GPUArray<Scalar> rcutsq(m_pdata->getNTypes(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
 
-    GPUArray<Scalar> nlistrcutsq(m_pdata->getNTypes(), m_exec_conf);
-    m_nlistrcutsq.swap(nlistrcutsq);
-
     // allocate the parameters
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
@@ -183,6 +180,10 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
     //m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_pdata->getNTypes(), m_exec_conf);
 
     Index2D typpair_idx(m_pdata->getNTypes());
+    GPUArray<Scalar> nlistrcutsq(typpair_idx.getNumElements(), m_exec_conf);
+    m_nlistrcutsq.swap(nlistrcutsq);
+
+
     m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
