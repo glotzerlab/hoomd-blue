@@ -103,7 +103,7 @@ class Helfrich(MeshPotential):
     with the area of the dual cell of vertex i
     :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij})/4`, the
     length of the bond in the dual lattice  :math:`\sigma_{ij}=
-    r_{ij}(\text{cot}\theta_1+\text{cot}\theta_2)/2` and the angles
+    l_{ij}(\text{cot}\theta_1+\text{cot}\theta_2)/2` and the angles
     :math:`\theta_1` and :math:`\theta_2` opposite to the shared bond of
     vertex :math:`i` and :math:`j`.
 
