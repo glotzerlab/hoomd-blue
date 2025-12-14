@@ -18,9 +18,10 @@ namespace md
 WallDistanceForceCompute::WallDistanceForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
 					   Scalar k,
-					   Scalar R)
+					   Scalar R,
+					   bool inverse)
 
-    : ForceCompute(sysdef), m_group(group), m_k(k), m_R(R)
+    : ForceCompute(sysdef), m_group(group), m_k(k), m_R(R), m_inverse(inverse)
     {
     }
 
@@ -45,19 +46,24 @@ void WallDistanceForceCompute::setForces()
 
         Scalar3 pi = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, 0);
 
-	Scalar norm = fast::sqrt(pi.x*pi.x+pi.y*pi.y);
-
-	Scalar dist = (m_R - norm);
-
-	//dist = (dist*dist);
-
         vec3<Scalar> fi(0, 0, 0);
 
-	if( norm > 0)
+	if(m_inverse)
 	{
-		fi.x = m_k*dist*pi.x/norm;
-		fi.y = m_k*dist*pi.y/norm;
+		Scalar norm = fast::sqrt(pi.x*pi.x+pi.y*pi.y);
+		if( norm > 0)
+		{
+			Scalar dist = 1/(m_R - norm);
+			dist = (dist*dist);
+			fi.x = m_k*dist*pi.x/norm;
+			fi.y = m_k*dist*pi.y/norm;
+		}
 	}
+	else{
+		fi.x = m_k*pi.x;
+		fi.y = m_k*pi.y;
+	}
+
         h_force.data[idx] = vec_to_scalar4(fi, 0);
         }
     }
@@ -82,7 +88,7 @@ void export_WallDistanceForceCompute(pybind11::module& m)
     pybind11::class_<WallDistanceForceCompute, ForceCompute, std::shared_ptr<WallDistanceForceCompute>>(
         m,
         "WallDistanceForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, bool>())
         .def("setK", &WallDistanceForceCompute::setK)
         .def("getK", &WallDistanceForceCompute::getK)
         .def("setR", &WallDistanceForceCompute::setR)

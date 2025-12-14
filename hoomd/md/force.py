@@ -825,7 +825,7 @@ class WallDistance(Force):
         "{inherited}", inspect.cleandoc(Force._doc_inherited)
     )
 
-    def __init__(self, filter, k, R):
+    def __init__(self, filter, k, R, inverse=False):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter)
@@ -834,6 +834,7 @@ class WallDistance(Force):
         self._param_dict.update(param_dict)
         self.k = k
         self.R = R
+        self.inverse = inverse
 
     def _attach_hook(self):
         # initialize the reflected c++ class
@@ -846,7 +847,7 @@ class WallDistance(Force):
 
         self._cpp_obj = my_class(
             sim.state._cpp_sys_def, sim.state._get_group(self.filter),
-            self.k, self.R
+            self.k, self.R, self.inverse
         )
 
 class WallCoupling(Force):
@@ -888,16 +889,14 @@ class WallCoupling(Force):
         "{inherited}", inspect.cleandoc(Force._doc_inherited)
     )
 
-    def __init__(self, filter, radial_factor, tangential_factor, lift_factor, R):
+    def __init__(self, filter, epsilon, R):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter)
         param_dict["filter"] = filter
         # set defaults
         self._param_dict.update(param_dict)
-        self.r_f = radial_factor
-        self.t_f = tangential_factor
-        self.l_f = lift_factor
+        self.epsilon = epsilon
         self.R = R
 
     def _attach_hook(self):
@@ -911,7 +910,7 @@ class WallCoupling(Force):
 
         self._cpp_obj = my_class(
             sim.state._cpp_sys_def, sim.state._get_group(self.filter),
-            self.r_f, self.t_f, self.l_f, self.R
+            self.epsilon, self.R
         )
 
 __all__ = [

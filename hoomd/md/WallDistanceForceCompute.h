@@ -34,7 +34,8 @@ class PYBIND11_EXPORT WallDistanceForceCompute : public ForceCompute
     WallDistanceForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group,
 			 Scalar k,
-			 Scalar R);
+			 Scalar R,
+			 bool inverse);
 
     //! Destructor
     ~WallDistanceForceCompute();
@@ -80,6 +81,7 @@ class PYBIND11_EXPORT WallDistanceForceCompute : public ForceCompute
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
     Scalar m_k; //! constant force unit vectors and magnitudes for each particle type
     Scalar m_R;
+    bool m_inverse;
     };
 
     } // end namespace md

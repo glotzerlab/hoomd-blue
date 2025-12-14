@@ -33,9 +33,7 @@ class PYBIND11_EXPORT WallCouplingForceCompute : public ForceCompute
     //! Constructs the compute
     WallCouplingForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group,
-			 Scalar radial_factor,
-			 Scalar tangential_factor,
-			 Scalar lift,
+			 Scalar epsilon,
 			 Scalar R);
 
     //! Destructor
@@ -45,44 +43,22 @@ class PYBIND11_EXPORT WallCouplingForceCompute : public ForceCompute
         @param typ Particle type to set constant force vector
         @param v The constant force vector value to set (a 3-tuple)
     */
-    void setWallCouplingRadialForce(Scalar radial_force)
+    void setEpsilon(Scalar epsilon)
 	{
-	m_radial_force = radial_force;
+	m_epsilon = epsilon;
 	};
 
     /// Gets constant force vector for a given particle type
-    Scalar getWallCouplingRadialForce()
+    Scalar getEpsilon()
    	{
-	return m_radial_force;
+	return m_epsilon;
     	}
 
-    void setWallCouplingTangentialForce(Scalar tangential_force)
-	{
-	m_tangential_force = tangential_force;
-	};
-
-    /// Gets constant force vector for a given particle type
-    Scalar getWallCouplingTangentialForce()
-   	{
-	return m_tangential_force;
-    	}
-
-    void setWallCouplingLiftForce(Scalar lift_force)
-	{
-	m_lift_force = lift_force;
-	};
-
-    /// Gets constant force vector for a given particle type
-    Scalar getWallCouplingLiftForce()
-   	{
-	return m_lift_force;
-    	}
 
     void setR(Scalar R)
 	{
 	m_R = R;
 	};
-
     /// Gets constant force vector for a given particle type
     Scalar getR()
    	{
@@ -102,9 +78,7 @@ class PYBIND11_EXPORT WallCouplingForceCompute : public ForceCompute
     virtual void setForces();
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
-    Scalar m_radial_force; //! constant force unit vectors and magnitudes for each particle type
-    Scalar m_tangential_force; //! constant force unit vectors and magnitudes for each particle type
-    Scalar m_lift_force; //! constant force unit vectors and magnitudes for each particle type
+    Scalar m_epsilon; //! constant force unit vectors and magnitudes for each particle type
     Scalar m_R;
     };
 
