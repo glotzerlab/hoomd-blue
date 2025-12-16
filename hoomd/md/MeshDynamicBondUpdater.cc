@@ -260,7 +260,7 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
             unsigned int counter = 4;
 
-	    bool check_tic = true;
+            bool check_tic = true;
 
             for (unsigned int j = 0; j < 2 && check_tic; ++j)
                 {
@@ -292,30 +292,30 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                     if (tic == tr_idx[j])
                         tic = h_neigh_bonds.data[b_idx[2 * j + k]].y;
 
-		    for(unsigned int kk = 2; kk < counter - 2 && check_tic; kk++)
-		    	{
-			if( tic == tr_idx[kk])
-				check_tic = false;
-			}
+                    for (unsigned int kk = 2; kk < counter - 2 && check_tic; kk++)
+                        {
+                        if (tic == tr_idx[kk])
+                            check_tic = false;
+                        }
 
-		    if(check_tic)
-			{
-			    unsigned int zaehler = 1;
-			    unsigned int nv_idx = h_triangles.data[tic].tag[0];
-			    while (nv_idx == v_idx[k] || nv_idx == v_idx[2 + j])
-				{
-				nv_idx = h_triangles.data[tic].tag[zaehler];
-				zaehler++;
-				}
-			    v_idx[counter] = nv_idx;
-			    tr_idx[counter - 2] = tic;
-			    counter++;
-			}
+                    if (check_tic)
+                        {
+                        unsigned int zaehler = 1;
+                        unsigned int nv_idx = h_triangles.data[tic].tag[0];
+                        while (nv_idx == v_idx[k] || nv_idx == v_idx[2 + j])
+                            {
+                            nv_idx = h_triangles.data[tic].tag[zaehler];
+                            zaehler++;
+                            }
+                        v_idx[counter] = nv_idx;
+                        tr_idx[counter - 2] = tic;
+                        counter++;
+                        }
                     }
                 }
 
-	    if(!check_tic)
-		    continue;
+            if (!check_tic)
+                continue;
 
             if (have_to_check_surrounding)
                 {
