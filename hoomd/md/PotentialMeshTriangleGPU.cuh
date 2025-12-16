@@ -342,12 +342,21 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 					Scalar length_ac = dot(daj,nac);
 					Scalar ratio_ac = length_ac*normal_ac;
 
-					if(ratio_ac < 1 && ratio_ac > 0 )
+					if(ratio_ac > 1)
+						continue;
+					else
 						{
-						dx = daj - length_ac*nac;
-						Area_a = ratio_ac;
+						if(ratio_ac < 0)
+							{
+							dx = daj;
+							Area_a = 1;
+							}
+						else
+							{
+							dx = daj - length_ac*nac;
+							Area_a = ratio_ac;
+							}
 						}
-					else continue;
 					}
 
 				}
@@ -360,12 +369,21 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 					Scalar length_ab = dot(daj,nab);
 					Scalar ratio_ab = length_ab*normal_ab;
 
-					if(ratio_ab < 1 && ratio_ab > 0 )
+					if(ratio_ab > 1)
+						continue;
+					else
 						{
-						dx = daj - length_ab*nab;
-						Area_a = ratio_ab;
+						if(ratio_ab < 0)
+							{
+							dx = daj;
+							Area_a = 1;
+							}
+						else
+							{
+							dx = daj - length_ab*nab;
+							Area_a = ratio_ab;
+							}
 						}
-					else continue;
 					}
 				else
 					{
@@ -732,6 +750,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
     if (idx >= N)
         return;
 
+
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pi = make_scalar3(postype.x, postype.y, postype.z);
@@ -774,8 +793,10 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         }
        }
 
+
     if( counter > 2)
     {
+    //unsigned int zahl = 0;
     for (unsigned int k = 0; k < counter-2; k++)
         {
 	unsigned int aj = highest_n[k].x;
@@ -817,6 +838,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         	              unsigned int tri_idz = d_trianglist[headjjj+jjj_tri];
         		      if(tri_idx == tri_idz)
         			 {
+
         			 Scalar4 postypea = __ldg(d_pos + aj);		    
         			 Scalar3 pos_a = make_scalar3(postypea.x, postypea.y, postypea.z);
 
@@ -832,6 +854,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         			 Scalar4 postypec = __ldg(d_pos + cj);		    
         			 Scalar3 pos_c = make_scalar3(postypec.x, postypec.y, postypec.z);
 
+
         			 Scalar3 dab;
         			 dab.x = pos_a.x - pos_b.x;
         			 dab.y = pos_a.y - pos_b.y;
@@ -844,16 +867,6 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
 
         			 dab = box.minImage(dab);
         			 dac = box.minImage(dac);
-
-        			 Scalar3 dbc = dac-dab;
-
-        			 Scalar normal_ab = fast::rsqrt(dot(dab,dab));
-        			 Scalar normal_ac = fast::rsqrt(dot(dac,dac));
-        			 Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
-
-        			 Scalar3 nab = dab*normal_ab;
-        			 Scalar3 nac = dac*normal_ac;
-        			 Scalar3 nbc = dbc*normal_bc;
 
         			 Scalar3 normal_dir;
         			 normal_dir.x = dab.y * dac.z - dab.z * dac.y;
@@ -887,6 +900,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
 
         			 Scalar Area_c = dot(dajbj,normal_dir);
 
+				 Scalar Area_a = 0;
         			 Scalar3 dcj;
         			 dcj.x = pos_c.x - pi.x;
         			 dcj.y = pos_c.y - pi.y;
@@ -914,12 +928,19 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         			 			dx = dbj;
         			 		else
         			 		{
+        			 			Scalar normal_ab = fast::rsqrt(dot(dab,dab));
+        			 			Scalar3 nab = dab*normal_ab;
         			 			Scalar length_ab = dot(daj,nab);
         			 			Scalar ratio_ab = length_ab*normal_ab;
 
-        			 			if(ratio_ab < 1 && ratio_ab > 0 )
-        			 				dx = daj - length_ab*nab;
-        			 			else continue;
+        			 			if(ratio_ab < 0)
+							       dx = daj;
+							else{
+							       if(ratio_ab > 1) 
+								       dx = dbj;
+							       else
+								       dx = daj - length_ab*nab;
+							}
         			 		}
         			 	}
         			 }
@@ -928,31 +949,46 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         			 	dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
         			 	dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
         			 	dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
-        			 	Scalar Area_a = dot(dbjcj,normal_dir);
+        			 	Area_a = dot(dbjcj,normal_dir);
         			 	if(Area_b <0)
         			 	{
         			 		if(Area_a < 0)
         			 			dx = dcj;
         			 		else
         			 		{
+							Scalar normal_ac = fast::rsqrt(dot(dac,dac));
+							Scalar3 nac = dac*normal_ac;
         			 			Scalar length_ac = dot(daj,nac);
         			 			Scalar ratio_ac = length_ac*normal_ac;
 
-        			 			if(ratio_ac < 1 && ratio_ac > 0 )
-        			 				dx = daj - length_ac*nac;
-        			 			else continue;
+        			 			if(ratio_ac < 0)
+							       dx = daj;
+							else{
+							       if(ratio_ac > 1) 
+								       dx = dcj;
+							       else
+								       dx = daj - length_ac*nac;
+							}
         			 		}
         			 	}
         			 	else
         			 	{
         			 		if(Area_a <0)
         			 		{
+							Scalar3 dbc = dac-dab;
+							Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
+							Scalar3 nbc = dbc*normal_bc;
         			 			Scalar length_bc = dot(dbj,nbc);
         			 			Scalar ratio_bc = length_bc*normal_bc;
 
-        			 			if(ratio_bc < 1 && ratio_bc > 0 )
-        			 				dx = dbj - length_bc*nbc;
-        			 			else continue;
+        			 			if(ratio_bc < 0)
+							       dx = dbj;
+							else{
+							       if(ratio_bc > 1) 
+								       dx = dcj;
+							       else
+								       dx = dbj - length_bc*nbc;
+							}
         			 		}
         			 	}
         			 }
@@ -983,6 +1019,15 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         			    // energy is double counted: multiply by 0.5
         			    force.w += bond_eng * Scalar(0.5);
         			    }
+    				if ( d_tag[idx] == 35)
+				{
+    					printf("N = %d %d %d |%d \n",idx,d_tag[idx],counter, tri_idx);
+    					printf("posi = %f %f %f \n", pi.x, pi.y, pi.z);
+    					printf("normal = %f %f %f | %f %f %f \n", normal_dir.x, normal_dir.y, normal_dir.z, Area_a, Area_b, Area_c);
+    					printf("poss = %d %f %f %f | %d %f %f %f | %d %f %f %f \n", trianglesx,  pos_a.x, pos_a.y, pos_a.z, trianglesy, pos_b.x, pos_b.y, pos_b.z, trianglesz, pos_c.x, pos_c.y, pos_c.z);
+    					printf("forces = %f %f %f \n", force.x, force.y, force.z);
+				}
+
         			 }
         		      }
         		   }
@@ -993,6 +1038,11 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         }
 
     }
+
+
+    				if ( d_tag[idx] == 35)
+    					printf("N = %d %d %d | %d %f | %d %f | %d %f | %d %f : %f %f %f \n\n",idx,d_tag[idx],counter, highest_n[0].y,  d_pos[highest_n[0].x].x, highest_n[1].y,  d_pos[highest_n[1].x].x, highest_n[2].y, d_pos[highest_n[2].x].x, highest_n[3].y, d_pos[highest_n[3].x].x, force.x, force.y, force.z);
+
 
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);

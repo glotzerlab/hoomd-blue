@@ -523,8 +523,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 		if( rcutsq == 0) continue;
 
 
-		//std::cout << "Ïndices " << idces[0] << " " << idces[1] << " " << idces[2] << " " << j << std::endl;
-
                 // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
         	vec3<Scalar> pj(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
@@ -580,46 +578,56 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 		if(Area_c <0)
 		{
+			Area_c = 0;
 			if(Area_b <0)
 			{
 				dx = daj;
 				Area_a = 1;
 				Area_b = 0;
-				Area_c = 0;
 			}
 			else if(Area_a < 0)
 			{
 				dx = dbj;
 				Area_a = 0;
 				Area_b = 1;
-				Area_c = 0;
 			}
 			else
 			{
 				Scalar length_ab = dot(daj,nab);
 				Scalar ratio_ab = length_ab*normal_ab;
 
-				if(ratio_ab < 1 && ratio_ab > 0 )
+				if( ratio_ab < 0)
 				{
-					dx = daj - length_ab*nab;
-					Area_a = ratio_ab;
-					Area_b = 1-ratio_ab;
-					Area_c = 0;
+					dx = daj;
+                                	Area_a = 1;
+                                	Area_b = 0;
 				}
-				else continue;
+				else
+				{
+					if( ratio_ab > 1)
+					{
+						dx = dbj;
+						Area_a = 0;
+						Area_b = 1;
+					}
+					else
+					{
+						dx = daj - length_ab*nab;
+						Area_a = ratio_ab;
+						Area_b = 1-ratio_ab;
+					}
+				}
 			}
 		}
 		else{
 			Area_c *= normal_norm;
-
-
 			if(Area_b <0)
 			{
+				Area_b = 0;
 				if(Area_a < 0)
 				{
 					dx = dcj;
 					Area_a = 0;
-					Area_b = 0;
 					Area_c = 1;
 				}
 				else
@@ -627,14 +635,27 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 					Scalar length_ac = dot(daj,nac);
 					Scalar ratio_ac = length_ac*normal_ac;
 
-					if(ratio_ac < 1 && ratio_ac > 0 )
+					if( ratio_ac < 0)
 					{
-						dx = daj - length_ac*nac;
-						Area_a = ratio_ac;
-						Area_c = 1-ratio_ac;
-						Area_b = 0;
+						dx = daj;
+						Area_a = 1;
+						Area_c = 0;
 					}
-					else continue;
+					else
+					{
+						if( ratio_ac > 1)
+						{
+							dx = dcj;
+							Area_a = 0;
+							Area_c = 1;
+						}
+						else
+						{
+							dx = daj - length_ac*nac;
+							Area_a = ratio_ac;
+							Area_c = 1-ratio_ac;
+						}
+					}
 				}
 			}
 			else
@@ -646,14 +667,29 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 					Scalar length_bc = dot(dbj,nbc);
 					Scalar ratio_bc = length_bc*normal_bc;
 
-					if(ratio_bc < 1 && ratio_bc > 0 )
+					Area_a= 0;
+
+					if( ratio_bc < 0)
 					{
-						dx = dbj - length_bc*nbc;
-						Area_b = ratio_bc;
-						Area_c = 1-ratio_bc;
-						Area_a = 0;
+						dx = dbj;
+						Area_b = 1;
+						Area_c = 0;
 					}
-					else continue;
+					else
+					{
+						if( ratio_bc > 1)
+						{
+							dx = dcj;
+							Area_b = 0;
+							Area_c = 1;
+						}
+						else
+						{
+							dx = dbj - length_bc*nbc;
+							Area_b = ratio_bc;
+							Area_c = 1-ratio_bc;
+						}
+					}
 				}
 				else
 				{
@@ -663,9 +699,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 		}
 
 		rsq = dot(dx,dx);
-
-		//std::cout << "Area " << Area_a << " " << Area_b << " " << Area_c << " " << rsq << " " << rcutsq << std::endl;
-
 
                 bool energy_shift = false;
                 if (m_shift_mode == shift)
