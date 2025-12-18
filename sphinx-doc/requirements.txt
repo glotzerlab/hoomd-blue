@@ -130,7 +130,9 @@ referencing==0.37.0
     #   jsonschema-specifications
 requests==2.32.5
     # via sphinx
-roman-numerals-py==3.1.0
+roman-numerals==4.1.0
+    # via roman-numerals-py
+roman-numerals-py==4.1.0
     # via sphinx
 rpds-py==0.30.0
     # via
@@ -177,7 +179,7 @@ stack-data==0.6.3
     # via ipython
 tinycss2==1.4.0
     # via bleach
-tornado==6.5.3
+tornado==6.5.4
     # via
     #   -r sphinx-doc/requirements.in
     #   jupyter-client
@@ -193,7 +195,7 @@ traitlets==5.14.3
     #   nbsphinx
 typing-extensions==4.15.0
     # via beautifulsoup4
-urllib3==2.6.1
+urllib3==2.6.2
     # via requests
 wcwidth==0.2.14
     # via prompt-toolkit
