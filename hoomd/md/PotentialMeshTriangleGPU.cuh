@@ -178,16 +178,24 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
         active = false;
         }
 
-    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-    Scalar virialxx = Scalar(0.0);
-    Scalar virialxy = Scalar(0.0);
-    Scalar virialxz = Scalar(0.0);
-    Scalar virialyy = Scalar(0.0);
-    Scalar virialyz = Scalar(0.0);
-    Scalar virialzz = Scalar(0.0);
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));;
+    Scalar virialxx = 0;
+    Scalar virialxy = 0;
+    Scalar virialxz = 0;
+    Scalar virialyy = 0;
+    Scalar virialyz = 0;
+    Scalar virialzz = 0;
 
     if(active)
     {
+
+    force = d_force[idx];
+    virialxx = d_virial[idx];
+    virialxy = d_virial[1 * virial_pitch + idx];
+    virialxz = d_virial[2 * virial_pitch + idx];
+    virialyy = d_virial[3 * virial_pitch + idx];
+    virialyz = d_virial[4 * virial_pitch + idx];
+    virialzz = d_virial[5 * virial_pitch + idx];
 
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_triangles = n_triangles_list[idx];
@@ -500,7 +508,7 @@ struct MeshTriangleForceComputeKernel
             bool enable_shared_cache = true;
 
             size_t param_shared_bytes
-                = (2 * sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
                   * pair_args.ntypes;
 
             unsigned int max_block_size;
@@ -772,12 +780,11 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
     const unsigned int Nsize = (unsigned int)d_n_neigh[idx];
     const size_t myHead = d_head_list[idx];
 
-    Scalar4 force = d_force[idx];
-
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
     // initialize the virial to 0
     Scalar virial[6];
     for (int i = 0; i < 6; i++)
-        virial[i] = d_virial[i * virial_pitch + idx];
+        virial[i] = 0;
 
    unsigned int counter = 0;
    uint2 highest_n[1024];
@@ -792,7 +799,6 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         	counter++;
         }
        }
-
 
     if( counter > 2)
     {
@@ -887,11 +893,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
 
         			 Scalar3 dx = normal_dir*daj_norm;
 
-        			 Scalar3 dbj;
-        			 dbj.x = pos_b.x - pi.x;
-        			 dbj.y = pos_b.y - pi.y;
-        			 dbj.z = pos_b.z - pi.z;
-        			 dbj = box.minImage(dbj);
+        			 Scalar3 dbj = daj - dab;
 
         			 Scalar3 dajbj; 
         			 dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
@@ -901,11 +903,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         			 Scalar Area_c = dot(dajbj,normal_dir);
 
 				 Scalar Area_a = 0;
-        			 Scalar3 dcj;
-        			 dcj.x = pos_c.x - pi.x;
-        			 dcj.y = pos_c.y - pi.y;
-        			 dcj.z = pos_c.z - pi.z;
-        			 dcj = box.minImage(dcj);
+        			 Scalar3 dcj = daj - dac;
 
         			 Scalar3 dcjaj; 
         			 dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
@@ -1019,15 +1017,6 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         			    // energy is double counted: multiply by 0.5
         			    force.w += bond_eng * Scalar(0.5);
         			    }
-    				if ( d_tag[idx] == 35)
-				{
-    					printf("N = %d %d %d |%d \n",idx,d_tag[idx],counter, tri_idx);
-    					printf("posi = %f %f %f \n", pi.x, pi.y, pi.z);
-    					printf("normal = %f %f %f | %f %f %f \n", normal_dir.x, normal_dir.y, normal_dir.z, Area_a, Area_b, Area_c);
-    					printf("poss = %d %f %f %f | %d %f %f %f | %d %f %f %f \n", trianglesx,  pos_a.x, pos_a.y, pos_a.z, trianglesy, pos_b.x, pos_b.y, pos_b.z, trianglesz, pos_c.x, pos_c.y, pos_c.z);
-    					printf("forces = %f %f %f \n", force.x, force.y, force.z);
-				}
-
         			 }
         		      }
         		   }
@@ -1038,11 +1027,6 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         }
 
     }
-
-
-    				if ( d_tag[idx] == 35)
-    					printf("N = %d %d %d | %d %f | %d %f | %d %f | %d %f : %f %f %f \n\n",idx,d_tag[idx],counter, highest_n[0].y,  d_pos[highest_n[0].x].x, highest_n[1].y,  d_pos[highest_n[1].x].x, highest_n[2].y, d_pos[highest_n[2].x].x, highest_n[3].y, d_pos[highest_n[3].x].x, force.x, force.y, force.z);
-
 
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);

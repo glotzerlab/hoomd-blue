@@ -167,6 +167,7 @@ PotentialMeshTriangle<evaluator>::PotentialMeshTriangle(std::shared_ptr<SystemDe
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialMeshTriangle<" << evaluator::getName() << ">"
                                 << std::endl;
+
     assert(m_pdata);
     assert(m_nlist);
 
@@ -542,11 +543,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 		Scalar Area_a, Area_b, Area_c;
 
-        	Scalar3 dbj;
-        	dbj.x = pos_b.x - pj.x;
-        	dbj.y = pos_b.y - pj.y;
-        	dbj.z = pos_b.z - pj.z;
-                dbj = box.minImage(dbj);
+        	Scalar3 dbj = daj - dab;
 
 		Scalar3 dajbj; 
 		dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
@@ -555,12 +552,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 		Area_c = dot(dajbj,normal_dir);
 
-		Scalar3 dcj;
-		dcj.x = pos_c.x - pj.x;
-		dcj.y = pos_c.y - pj.y;
-		dcj.z = pos_c.z - pj.z;
-		dcj = box.minImage(dcj);
-
+        	Scalar3 dcj = daj - dac;
 
 		Scalar3 dcjaj; 
 		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
