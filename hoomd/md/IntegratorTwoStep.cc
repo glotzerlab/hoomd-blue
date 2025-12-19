@@ -55,6 +55,12 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // ensure that prepRun() has been called
     assert(m_prepared);
 
+    // pass timestep to deformer
+    if (m_deformer)
+        {
+        m_deformer->update(timestep);
+        }
+
     // perform the first step of the integration on all groups
     for (auto& method : m_methods)
         {
@@ -141,6 +147,10 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     if (m_rigid_bodies)
         {
         m_rigid_bodies->setDeltaT(deltaT);
+        }
+    if (m_deformer)
+        {
+        m_deformer->setDeltaT(deltaT);
         }
     }
 
@@ -404,6 +414,7 @@ void export_IntegratorTwoStep(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
+        .def_property("deformer", &IntegratorTwoStep::getDeformer, &IntegratorTwoStep::setDeformer)
         .def_property("integrate_rotational_dof",
                       &IntegratorTwoStep::getIntegrateRotationalDOF,
                       &IntegratorTwoStep::setIntegrateRotationalDOF)

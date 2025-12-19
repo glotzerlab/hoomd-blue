@@ -13,6 +13,7 @@ set(_md_sources module-md.cc
                    AlchemyData.cc
                    BendingRigidityMeshForceCompute.cc
                    BondTablePotential.cc
+                   BoxDeformer.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
@@ -31,6 +32,7 @@ set(_md_sources module-md.cc
                    HelfrichMeshForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
+                   LeesEdwardsBoxDeformer.cc
                    ManifoldZCylinder.cc
                    ManifoldDiamond.cc
                    ManifoldEllipsoid.cc
@@ -82,6 +84,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 BendingRigidityMeshForceCompute.h
                 BondTablePotentialGPU.h
                 BondTablePotential.h
+                BoxDeformer.h
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
                 ComputeThermoGPU.cuh
@@ -164,6 +167,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HelfrichMeshForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                LeesEdwardsBoxDeformer.h
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
