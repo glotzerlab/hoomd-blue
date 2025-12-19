@@ -20,6 +20,9 @@ Next release
 *Fixed*
 
 * Table writer no longer errors on ``NaN`` scalar values (#2189).
+* Table writer no longer errors on ``Inf`` scalar values (#2196).
+
+* Fixed vertex neighbor check in dynamical bonding code (#2202).
 
 6.0.0 (2025-11-21)
 ^^^^^^^^^^^^^^^^^^^^

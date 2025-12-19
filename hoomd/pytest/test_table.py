@@ -257,3 +257,21 @@ def test_nan_is_ok():
     sim.operations.writers.append(table_writer)
 
     sim.run(1)
+
+
+def test_inf_is_ok():
+    # Ensure that Inf value doesn't cause table writer to error
+    sim = hoomd.util.make_example_simulation()
+
+    logger = hoomd.logging.Logger(categories=["scalar"])
+    logger[("test", "inf")] = (lambda: float("inf"), "scalar")
+
+    output = StringIO("")
+
+    table_writer = hoomd.write.Table(
+        trigger=1, logger=logger, output=output, delimiter=","
+    )
+
+    sim.operations.writers.append(table_writer)
+
+    sim.run(1)
