@@ -475,6 +475,18 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
         Scalar3 nac = dac*normal_ac;
         Scalar3 nbc = dbc*normal_bc;
 
+	Scalar3 nabT = -nac + dot(nab,nac)*nab;
+	Scalar3 nacT = nbc - dot(nbc,nac)*nac;
+	Scalar3 nbcT = nac - dot(nbc,nac)*nbc;
+
+	Scalar normal_abT = fast::rsqrt(dot(nabT,nabT));
+	Scalar normal_acT = fast::rsqrt(dot(nacT,nacT));
+	Scalar normal_bcT = fast::rsqrt(dot(nbcT,nbcT));
+
+        nabT = nabT*normal_abT;
+        nacT = nacT*normal_acT;
+        nbcT = nbcT*normal_bcT;
+
         Scalar3 normal_dir;
         normal_dir.x = dab.y * dac.z - dab.z * dac.y;
         normal_dir.y = dab.z * dac.x - dab.x * dac.z;
@@ -485,8 +497,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 	normal_dir.x = normal_dir.x*normal_norm;
 	normal_dir.y = normal_dir.y*normal_norm;
 	normal_dir.z = normal_dir.z*normal_norm;
-
-
 
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fa = make_scalar3(0, 0, 0);
@@ -507,7 +517,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
             virialb[k] = Scalar(0.0);
             virialc[k] = Scalar(0.0);
 	}
-
 
          for (unsigned int k = 0; k < combined_nlist.size(); k++)
                 {
@@ -538,6 +547,8 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 		Scalar rsq = daj_norm*daj_norm;
 
 		if( rcutsq < rsq) continue;
+
+		Scalar daj_norm_ab = dot(daj,nabT);
 
 		Scalar3 dx = normal_dir*daj_norm;
 
