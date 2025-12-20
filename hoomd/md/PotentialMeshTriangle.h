@@ -548,129 +548,84 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 		if( rcutsq < rsq) continue;
 
-		Scalar daj_norm_ab = dot(daj,nabT);
-
-		Scalar3 dx = normal_dir*daj_norm;
-
 		Scalar Area_a, Area_b, Area_c;
 
-        	Scalar3 dbj = daj - dab;
+		Scalar3 dx = daj;
+		
+		Scalar ab_dist = dot(nabT,daj);
 
-		Scalar3 dajbj; 
-		dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
-		dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
-		dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
-
-		Area_c = dot(dajbj,normal_dir);
-
-        	Scalar3 dcj = daj - dac;
-
-		Scalar3 dcjaj; 
-		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
-		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
-		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
-		Area_b = dot(dcjaj,normal_dir);
-
-		Scalar3 dbjcj; 
-		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
-
-		Area_a = dot(dbjcj,normal_dir);
-
-
-		if(Area_c <0)
+		if(ab_dist < 0)
 		{
 			Area_c = 0;
-			if(Area_b <0)
+			if( ab_dist*ab_dist > rcutsq)
+				continue;
+			Scalar length_ab = dot(daj,nab);
+			Scalar ratio_ab = length_ab*normal_ab;
+
+			if( ratio_ab < 0)
 			{
-				dx = daj;
-				Area_a = 1;
-				Area_b = 0;
-			}
-			else if(Area_a < 0)
-			{
-				dx = dbj;
-				Area_a = 0;
-				Area_b = 1;
+                                Area_a = 1;
+                                Area_b = 0;
 			}
 			else
 			{
-				Scalar length_ab = dot(daj,nab);
-				Scalar ratio_ab = length_ab*normal_ab;
-
-				if( ratio_ab < 0)
+				if( ratio_ab > 1)
 				{
-					dx = daj;
-                                	Area_a = 1;
-                                	Area_b = 0;
+					dx = daj - dab;
+					Area_a = 0;
+					Area_b = 1;
 				}
 				else
 				{
-					if( ratio_ab > 1)
-					{
-						dx = dbj;
-						Area_a = 0;
-						Area_b = 1;
-					}
-					else
-					{
-						dx = daj - length_ab*nab;
-						Area_a = ratio_ab;
-						Area_b = 1-ratio_ab;
-					}
+					dx = daj - length_ab*nab;
+					Area_a = ratio_ab;
+					Area_b = 1-ratio_ab;
 				}
 			}
 		}
-		else{
-			Area_c *= normal_norm;
-			if(Area_b <0)
+		else
+		{
+			Scalar ac_dist = dot(nacT,daj);
+			if(ac_dist < 0)
 			{
 				Area_b = 0;
-				if(Area_a < 0)
+				if( ac_dist*ac_dist > rcutsq)
+					continue;
+				Scalar length_ac = dot(daj,nac);
+				Scalar ratio_ac = length_ac*normal_ac;
+
+				if( ratio_ac < 0)
 				{
-					dx = dcj;
-					Area_a = 0;
-					Area_c = 1;
+					Area_a = 1;
+					Area_c = 0;
 				}
 				else
 				{
-					Scalar length_ac = dot(daj,nac);
-					Scalar ratio_ac = length_ac*normal_ac;
-
-					if( ratio_ac < 0)
+					if( ratio_ac > 1)
 					{
-						dx = daj;
-						Area_a = 1;
-						Area_c = 0;
+						dx = daj - dac;
+						Area_a = 0;
+						Area_c = 1;
 					}
 					else
 					{
-						if( ratio_ac > 1)
-						{
-							dx = dcj;
-							Area_a = 0;
-							Area_c = 1;
-						}
-						else
-						{
-							dx = daj - length_ac*nac;
-							Area_a = ratio_ac;
-							Area_c = 1-ratio_ac;
-						}
+						dx = daj - length_ac*nac;
+						Area_a = ratio_ac;
+						Area_c = 1-ratio_ac;
 					}
 				}
 			}
 			else
 			{
-				Area_b *= normal_norm;
-
-				if(Area_a <0)
+        			Scalar3 dbj = daj - dab;
+				Scalar bc_dist = dot(nbcT,dbj);
+				if(bc_dist < 0)
 				{
+					Area_a = 0;
+					if( bc_dist*bc_dist > rcutsq)
+						continue;
 					Scalar length_bc = dot(dbj,nbc);
 					Scalar ratio_bc = length_bc*normal_bc;
-
-					Area_a= 0;
 
 					if( ratio_bc < 0)
 					{
@@ -682,7 +637,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 					{
 						if( ratio_bc > 1)
 						{
-							dx = dcj;
+							dx = dbj - dbc;
 							Area_b = 0;
 							Area_c = 1;
 						}
@@ -696,7 +651,30 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 				}
 				else
 				{
-					Area_a *= normal_norm;
+					dx = normal_dir*daj_norm;
+					Scalar3 dajbj; 
+					dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
+					dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
+					dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
+
+					Area_c = dot(dajbj,normal_dir)*normal_norm;
+
+					Scalar3 dcj = daj - dac;
+
+					Scalar3 dcjaj; 
+					dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+					dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+					dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+
+					Area_b = dot(dcjaj,normal_dir)*normal_norm;
+
+					Scalar3 dbjcj; 
+					dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+					dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+					dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+					Area_a = dot(dbjcj,normal_dir)*normal_norm;
+
 				}
 			}
 		}
