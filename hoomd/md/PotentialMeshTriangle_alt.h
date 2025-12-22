@@ -467,13 +467,9 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
         Scalar3 dbc = dac-dab;
 
-	Scalar normal_ab = fast::rsqrt(dot(dab,dab));
-	Scalar normal_ac = fast::rsqrt(dot(dac,dac));
-	Scalar normal_bc = fast::rsqrt(dot(dbc,dbc));
-
-        Scalar3 nab = dab*normal_ab;
-        Scalar3 nac = dac*normal_ac;
-        Scalar3 nbc = dbc*normal_bc;
+        Scalar3 nab = dab/dot(dab,dab);
+        Scalar3 nac = dac/dot(dac,dac);
+        Scalar3 nbc = dbc/dot(dbc,dbc);
 
         Scalar3 normal_dir;
         normal_dir.x = dab.y * dac.z - dab.z * dac.y;
@@ -583,8 +579,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 			}
 			else
 			{
-				Scalar length_ab = dot(daj,nab);
-				Scalar ratio_ab = length_ab*normal_ab;
+				Scalar ratio_ab = dot(daj,nab);
 
 				if( ratio_ab < 0)
 				{
@@ -602,7 +597,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 					}
 					else
 					{
-						dx = daj - length_ab*nab;
+						dx = daj - ratio_ab*dab;
 						Area_a = ratio_ab;
 						Area_b = 1-ratio_ab;
 					}
@@ -622,8 +617,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 				}
 				else
 				{
-					Scalar length_ac = dot(daj,nac);
-					Scalar ratio_ac = length_ac*normal_ac;
+					Scalar ratio_ac = dot(daj,nac);
 
 					if( ratio_ac < 0)
 					{
@@ -641,7 +635,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 						}
 						else
 						{
-							dx = daj - length_ac*nac;
+							dx = daj - ratio_ac*dac;
 							Area_a = ratio_ac;
 							Area_c = 1-ratio_ac;
 						}
@@ -654,9 +648,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 				if(Area_a <0)
 				{
-					Scalar length_bc = dot(dbj,nbc);
-					Scalar ratio_bc = length_bc*normal_bc;
-
+					Scalar ratio_bc = dot(dbj,nbc);
 					Area_a= 0;
 
 					if( ratio_bc < 0)
@@ -675,7 +667,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 						}
 						else
 						{
-							dx = dbj - length_bc*nbc;
+							dx = dbj - ratio_bc*dbc;
 							Area_b = ratio_bc;
 							Area_c = 1-ratio_bc;
 						}
@@ -731,25 +723,28 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
                         virialc[5] += force_divr * Area_c * pos_c.z * dx.z;
                         }
 
-	            h_force.data[j].x -= dx.x * force_divr;
-	            h_force.data[j].y -= dx.y * force_divr;
-	            h_force.data[j].z -= dx.z * force_divr;
-	            h_force.data[j].w += pair_eng * Scalar(0.5);
-	            if (compute_virial)
-	                {
-	                h_virial.data[0 * virial_pitch + j]
-	            	-= force_divr * pj.x * dx.x;
-	                h_virial.data[1 * virial_pitch + j]
-	            	-= force_divr * pj.x * dx.y;
-	                h_virial.data[2 * virial_pitch + j]
-	            	-= force_divr * pj.x * dx.z;
-	                h_virial.data[3 * virial_pitch + j]
-	            	-= force_divr * pj.y * dx.y;
-	                h_virial.data[4 * virial_pitch + j]
-	            	-= force_divr * pj.y * dx.z;
-	                h_virial.data[5 * virial_pitch + j]
-	            	-= force_divr * pj.z * dx.z;
-	                }
+            	    if (j < m_pdata->getN())
+		    	{
+			h_force.data[j].x -= dx.x * force_divr;
+			h_force.data[j].y -= dx.y * force_divr;
+			h_force.data[j].z -= dx.z * force_divr;
+			h_force.data[j].w += pair_eng * Scalar(0.5);
+			if (compute_virial)
+			   {
+			   h_virial.data[0 * virial_pitch + j]
+			   -= force_divr * pj.x * dx.x;
+			   h_virial.data[1 * virial_pitch + j]
+			   -= force_divr * pj.x * dx.y;
+			   h_virial.data[2 * virial_pitch + j]
+			   -= force_divr * pj.x * dx.z;
+			   h_virial.data[3 * virial_pitch + j]
+			   -= force_divr * pj.y * dx.y;
+			   h_virial.data[4 * virial_pitch + j]
+			   -= force_divr * pj.y * dx.z;
+			   h_virial.data[5 * virial_pitch + j]
+			   -= force_divr * pj.z * dx.z;
+			   }
+			}
                     }
 		}
 

@@ -188,15 +188,6 @@ __global__ void gpu_compute_mesh_triangle_triangles_force_kernel(Scalar4* d_forc
 
     if(active)
     {
-
-    force = d_force[idx];
-    virialxx = d_virial[idx];
-    virialxy = d_virial[1 * virial_pitch + idx];
-    virialxz = d_virial[2 * virial_pitch + idx];
-    virialyy = d_virial[3 * virial_pitch + idx];
-    virialyz = d_virial[4 * virial_pitch + idx];
-    virialzz = d_virial[5 * virial_pitch + idx];
-
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_triangles = n_triangles_list[idx];
 
@@ -738,9 +729,6 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
     extern __shared__ char s_data[];
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
 
-    Scalar* s_rcutsq
-        = (Scalar*)(&s_data[ntypes * sizeof(typename evaluator::param_type)]);
-
     if (enable_shared_cache)
         {
         // load in per bond type parameters
@@ -766,25 +754,17 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
     unsigned int typei = __scalar_as_int(postype.w);
     const typename evaluator::param_type* param;
     Scalar rcutsq;
-    if (enable_shared_cache)
-    {
-	rcutsq = s_rcutsq[typei];
-	param = s_params + typei;
-    }
-    else
-    {
-   	rcutsq = d_rcutsq[typei];
-	param = d_params + typei;
-    }
+    rcutsq = d_rcutsq[typei];
+    param = d_params + typei;
 
     const unsigned int Nsize = (unsigned int)d_n_neigh[idx];
     const size_t myHead = d_head_list[idx];
 
-    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar4 force = d_force[idx];
     // initialize the virial to 0
     Scalar virial[6];
     for (int i = 0; i < 6; i++)
-        virial[i] = 0;
+        virial[i] =  d_virial[i * virial_pitch + idx];
 
    unsigned int counter = 0;
    uint2 highest_n[1024];
@@ -833,6 +813,7 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         	        {
         		for (unsigned int kkk = kk+1; kkk < counter; kkk++)
         		   {
+
 			   unsigned int cj = highest_n[kkk].x;
 			   unsigned int trianglesz = highest_n[kkk].y;
         		   unsigned int Njjj_tri = d_n_triang[trianglesz];
@@ -889,7 +870,9 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
 
         			 Scalar rsq = daj_norm*daj_norm;
 
+
         			 if( rcutsq < rsq) continue;
+
 
         			 Scalar3 dx = normal_dir*daj_norm;
 
@@ -1027,7 +1010,6 @@ __global__ void gpu_compute_mesh_triangle_particles_force_kernel(Scalar4* d_forc
         }
 
     }
-
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
     d_force[idx] = force;

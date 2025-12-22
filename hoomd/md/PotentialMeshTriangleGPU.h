@@ -101,8 +101,8 @@ void PotentialMeshTriangleGPU<evaluator>::computeForces(uint64_t timestep)
     	<< "PotentialMeshTriangleGPU cannot handle a half neighborlist" << std::endl;
         throw std::runtime_error("Error computing forces in PotentialMeshTriangleGPU");
         }
-    computeForcesParticle(timestep);
     computeForcesTriangle(timestep);
+    computeForcesParticle(timestep);
     }
 
 template<class evaluator>

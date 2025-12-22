@@ -445,6 +445,7 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 		}
 	}
 
+
 	if( combined_nlist.size() == 0) 
 		continue;
 
@@ -467,9 +468,25 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
         Scalar3 dbc = dac-dab;
 
-        Scalar3 nab = dab/dot(dab,dab);
-        Scalar3 nac = dac/dot(dac,dac);
-        Scalar3 nbc = dbc/dot(dbc,dbc);
+	Scalar normal_ab = dot(dab,dab);
+	Scalar normal_ac = dot(dac,dac);
+	Scalar normal_bc = dot(dbc,dbc);
+
+        Scalar3 nab = dab/normal_ab;
+        Scalar3 nac = dac/normal_ac;
+        Scalar3 nbc = dbc/normal_bc;
+
+	Scalar3 nabT = -nac + normal_ab*dot(nab,nac)*nab;
+	Scalar3 nacT = nbc - normal_ac*dot(nbc,nac)*nac;
+	Scalar3 nbcT = nac - normal_bc*dot(nbc,nac)*nbc;
+
+	Scalar normal_abT = fast::rsqrt(dot(nabT,nabT));
+	Scalar normal_acT = fast::rsqrt(dot(nacT,nacT));
+	Scalar normal_bcT = fast::rsqrt(dot(nbcT,nbcT));
+
+        nabT = nabT*normal_abT;
+        nacT = nacT*normal_acT;
+        nbcT = nbcT*normal_bcT;
 
         Scalar3 normal_dir;
         normal_dir.x = dab.y * dac.z - dab.z * dac.y;
@@ -502,7 +519,6 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
             virialc[k] = Scalar(0.0);
 	}
 
-
          for (unsigned int k = 0; k < combined_nlist.size(); k++)
                 {
                 // access the index of this neighbor (MEM TRANSFER: 1 scalar)
@@ -533,149 +549,104 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
 
 		if( rcutsq < rsq) continue;
 
-		Scalar3 dx = normal_dir*daj_norm;
 
 		Scalar Area_a, Area_b, Area_c;
 
-        	Scalar3 dbj = daj - dab;
+		Scalar3 dx = daj;
+		
+		Scalar ab_dist = dot(nabT,daj);
 
-		Scalar3 dajbj; 
-		dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
-		dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
-		dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
-
-		Area_c = dot(dajbj,normal_dir);
-
-        	Scalar3 dcj = daj - dac;
-
-		Scalar3 dcjaj; 
-		dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
-		dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
-		dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
-		Area_b = dot(dcjaj,normal_dir);
-
-		Scalar3 dbjcj; 
-		dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
-		dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
-		dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
-
-		Area_a = dot(dbjcj,normal_dir);
-
-
-		if(Area_c <0)
+		if(ab_dist > 0)
 		{
 			Area_c = 0;
-			if(Area_b <0)
+			if( ab_dist*ab_dist > rcutsq)
+				continue;
+			Scalar ratio_ab = dot(daj,nab);
+
+			if( ratio_ab < 0)
 			{
-				dx = daj;
-				Area_a = 1;
-				Area_b = 0;
-			}
-			else if(Area_a < 0)
-			{
-				dx = dbj;
-				Area_a = 0;
-				Area_b = 1;
+                                Area_a = 1;
+                                Area_b = 0;
 			}
 			else
 			{
-				Scalar ratio_ab = dot(daj,nab);
-
-				if( ratio_ab < 0)
+				if( ratio_ab > 1)
 				{
-					dx = daj;
-                                	Area_a = 1;
-                                	Area_b = 0;
+					dx = daj - dab;
+					Area_a = 0;
+					Area_b = 1;
 				}
 				else
 				{
-					if( ratio_ab > 1)
-					{
-						dx = dbj;
-						Area_a = 0;
-						Area_b = 1;
-					}
-					else
-					{
-						dx = daj - ratio_ab*dab;
-						Area_a = ratio_ab;
-						Area_b = 1-ratio_ab;
-					}
+					dx = daj - ratio_ab*dab;
+					Area_a = ratio_ab;
+					Area_b = 1-ratio_ab;
 				}
 			}
 		}
-		else{
-			Area_c *= normal_norm;
-			if(Area_b <0)
+		else
+		{
+			Scalar ac_dist = dot(nacT,daj);
+			if(ac_dist > 0)
 			{
+				if( ac_dist*ac_dist > rcutsq)
+					continue;
 				Area_b = 0;
-				if(Area_a < 0)
+				Scalar ratio_ac = dot(daj,nac);
+
+				if( ratio_ac > 1)
 				{
-					dx = dcj;
+					dx = daj - dac;
 					Area_a = 0;
 					Area_c = 1;
 				}
 				else
 				{
-					Scalar ratio_ac = dot(daj,nac);
-
-					if( ratio_ac < 0)
-					{
-						dx = daj;
-						Area_a = 1;
-						Area_c = 0;
-					}
-					else
-					{
-						if( ratio_ac > 1)
-						{
-							dx = dcj;
-							Area_a = 0;
-							Area_c = 1;
-						}
-						else
-						{
-							dx = daj - ratio_ac*dac;
-							Area_a = ratio_ac;
-							Area_c = 1-ratio_ac;
-						}
-					}
+					dx = daj - ratio_ac*dac;
+					Area_a = ratio_ac;
+					Area_c = 1-ratio_ac;
 				}
 			}
 			else
 			{
-				Area_b *= normal_norm;
-
-				if(Area_a <0)
+        			Scalar3 dbj = daj - dab;
+				Scalar bc_dist = dot(nbcT,dbj);
+				if(bc_dist > 0)
 				{
+					if( bc_dist*bc_dist > rcutsq)
+						continue;
 					Scalar ratio_bc = dot(dbj,nbc);
-					Area_a= 0;
-
-					if( ratio_bc < 0)
-					{
-						dx = dbj;
-						Area_b = 1;
-						Area_c = 0;
-					}
-					else
-					{
-						if( ratio_bc > 1)
-						{
-							dx = dcj;
-							Area_b = 0;
-							Area_c = 1;
-						}
-						else
-						{
-							dx = dbj - ratio_bc*dbc;
-							Area_b = ratio_bc;
-							Area_c = 1-ratio_bc;
-						}
-					}
+					dx = dbj - ratio_bc*dbc;
+					Area_a = 0;
+					Area_b = ratio_bc;
+					Area_c = 1-ratio_bc;
 				}
 				else
 				{
-					Area_a *= normal_norm;
+					dx = normal_dir*daj_norm;
+					Scalar3 dajbj; 
+					dajbj.x = daj.y*dbj.z - daj.z*dbj.y;
+					dajbj.y = daj.z*dbj.x - daj.x*dbj.z;
+					dajbj.z = daj.x*dbj.y - daj.y*dbj.x;
+
+					Area_c = dot(dajbj,normal_dir)*normal_norm;
+
+					Scalar3 dcj = daj - dac;
+
+					Scalar3 dcjaj; 
+					dcjaj.x = dcj.y*daj.z - dcj.z*daj.y;
+					dcjaj.y = dcj.z*daj.x - dcj.x*daj.z;
+					dcjaj.z = dcj.x*daj.y - dcj.y*daj.x;
+
+					Area_b = dot(dcjaj,normal_dir)*normal_norm;
+
+					Scalar3 dbjcj; 
+					dbjcj.x = dbj.y*dcj.z - dbj.z*dcj.y;
+					dbjcj.y = dbj.z*dcj.x - dbj.x*dcj.z;
+					dbjcj.z = dbj.x*dcj.y - dbj.y*dcj.x;
+
+					Area_a = dot(dbjcj,normal_dir)*normal_norm;
+
 				}
 			}
 		}
@@ -723,28 +694,25 @@ void PotentialMeshTriangle<evaluator>::computeForces(uint64_t timestep)
                         virialc[5] += force_divr * Area_c * pos_c.z * dx.z;
                         }
 
-            	    if (j < m_pdata->getN())
-		    	{
-			h_force.data[j].x -= dx.x * force_divr;
-			h_force.data[j].y -= dx.y * force_divr;
-			h_force.data[j].z -= dx.z * force_divr;
-			h_force.data[j].w += pair_eng * Scalar(0.5);
-			if (compute_virial)
-			   {
-			   h_virial.data[0 * virial_pitch + j]
-			   -= force_divr * pj.x * dx.x;
-			   h_virial.data[1 * virial_pitch + j]
-			   -= force_divr * pj.x * dx.y;
-			   h_virial.data[2 * virial_pitch + j]
-			   -= force_divr * pj.x * dx.z;
-			   h_virial.data[3 * virial_pitch + j]
-			   -= force_divr * pj.y * dx.y;
-			   h_virial.data[4 * virial_pitch + j]
-			   -= force_divr * pj.y * dx.z;
-			   h_virial.data[5 * virial_pitch + j]
-			   -= force_divr * pj.z * dx.z;
-			   }
-			}
+	            h_force.data[j].x -= dx.x * force_divr;
+	            h_force.data[j].y -= dx.y * force_divr;
+	            h_force.data[j].z -= dx.z * force_divr;
+	            h_force.data[j].w += pair_eng * Scalar(0.5);
+	            if (compute_virial)
+	                {
+	                h_virial.data[0 * virial_pitch + j]
+	            	-= force_divr * pj.x * dx.x;
+	                h_virial.data[1 * virial_pitch + j]
+	            	-= force_divr * pj.x * dx.y;
+	                h_virial.data[2 * virial_pitch + j]
+	            	-= force_divr * pj.x * dx.z;
+	                h_virial.data[3 * virial_pitch + j]
+	            	-= force_divr * pj.y * dx.y;
+	                h_virial.data[4 * virial_pitch + j]
+	            	-= force_divr * pj.y * dx.z;
+	                h_virial.data[5 * virial_pitch + j]
+	            	-= force_divr * pj.z * dx.z;
+	                }
                     }
 		}
 
