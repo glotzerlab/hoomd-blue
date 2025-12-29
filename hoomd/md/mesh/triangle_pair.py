@@ -93,7 +93,7 @@ class MeshTrianglePair(MeshPotential):
     # external plugin.
     _ext_module = _md
 
-    def __init__(self, nlist, mesh,default_r_cut=None, default_nlist_r_cut=None, mode="none"):
+    def __init__(self, nlist, mesh,default_r_cut=None, default_nlist_r_cut=None):
         super().__init__(mesh)
         tp_r_cut = TypeParameter(
             "r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=1)
@@ -115,7 +115,7 @@ class MeshTrianglePair(MeshPotential):
                 mode=OnlyFrom(self._accepted_modes), nlist=hoomd.md.nlist.NeighborList
             )
         )
-        self.mode = mode
+        self.mode = "none"
         self.nlist = nlist
 
     def _attach_hook(self):
@@ -219,9 +219,8 @@ class WCA(MeshTrianglePair):
         mesh,
         default_r_cut=None,
         default_nlist_r_cut=None,
-        mode="none",
     ):
-        super().__init__(nlist, mesh, default_r_cut, default_nlist_r_cut, mode)
+        super().__init__(nlist, mesh, default_r_cut, default_nlist_r_cut)
         params = TypeParameter(
             "params",
             "particle_types",

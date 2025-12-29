@@ -26,6 +26,7 @@ set(files __init__.py
     test_meta_wall_list.py
     test_methods.py
     test_meshpotential.py
+    test_meshtrianglepair.py
     test_meshupdater.py
     test_minimize_fire.py
     test_nlist.py
