@@ -26,7 +26,7 @@ decorator==5.2.1
     # via ipython
 defusedxml==0.7.1
     # via nbconvert
-docutils==0.21.2
+docutils==0.22.4
     # via
     #   nbsphinx
     #   sphinx
@@ -34,7 +34,7 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-furo==2025.9.25
+furo==2025.12.19
     # via -r sphinx-doc/requirements.in
 idna==3.11
     # via requests
@@ -71,9 +71,9 @@ markupsafe==3.0.3
     #   nbconvert
 matplotlib-inline==0.2.1
     # via ipython
-mistune==3.1.4
+mistune==3.2.0
     # via nbconvert
-nbclient==0.10.2
+nbclient==0.10.4
     # via nbconvert
 nbconvert==7.16.6
     # via
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.8
     # via -r sphinx-doc/requirements.in
-numpy==2.3.5
+numpy==2.4.0
     # via -r sphinx-doc/requirements.in
 packaging==25.0
     # via
@@ -131,8 +131,6 @@ referencing==0.37.0
 requests==2.32.5
     # via sphinx
 roman-numerals==4.1.0
-    # via roman-numerals-py
-roman-numerals-py==4.1.0
     # via sphinx
 rpds-py==0.30.0
     # via
@@ -142,9 +140,9 @@ six==1.17.0
     # via python-dateutil
 snowballstemmer==3.0.1
     # via sphinx
-soupsieve==2.8
+soupsieve==2.8.1
     # via beautifulsoup4
-sphinx==8.2.3
+sphinx==9.1.0
     # via
     #   furo
     #   nbsphinx
