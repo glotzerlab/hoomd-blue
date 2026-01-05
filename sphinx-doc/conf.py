@@ -39,8 +39,10 @@ if find_spec("sphinxcontrib.katex") is not None:
 else:
     extensions.append("sphinx.ext.mathjax")
 
-if os.getenv("READTHEDOCS"):
+if find_spec("sphinx_copybutton") is not None:
     extensions.append("sphinx_copybutton")
+
+if os.getenv("READTHEDOCS"):
     extensions.append("notfound.extension")
     extensions.append("sphinxcontrib.googleanalytics")
     googleanalytics_id = "G-ZR0DNZD21E"

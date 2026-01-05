@@ -30,9 +30,21 @@ python = "3.11.*"
 python = "3.12.*"
 [feature.py313.dependencies]
 python = "3.13.*"
+[feature.docs.dependencies]
+ipython = "*"
+nbconvert = "*"
+nbsphinx = "*"
+pandoc = "*"
+furo = "*"
+tornado = "*"
+[feature.docs.pypi-dependencies]
+sphinxcontrib-katex = "*"
+sphinx-copybutton = "*"
+
 
 [environments]
 py310 = ["py310"]
 py311 = ["py311"]
 py312 = ["py312"]
 py313 = ["py313"]
+docs = ["docs"]

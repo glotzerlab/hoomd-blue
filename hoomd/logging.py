@@ -931,7 +931,7 @@ def modify_namespace(cls, namespace=None):
     """Modify a class's namespace to a manually assigned one.
 
     Args:
-        cls (type or tuple[str]): The class to modify the namespace of or the
+        cls (``type`` or tuple[str]): The class to modify the namespace of or the
             namespace itself. When passing a namespace (a tuple of strings), the
             function can be used as a decorator.
         namespace (`tuple` [`str` ], optional): The namespace to change the
