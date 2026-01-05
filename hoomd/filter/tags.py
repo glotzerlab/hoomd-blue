@@ -29,8 +29,6 @@ class Tags(ParticleFilter, ParticleFilterTags):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Tags`:
     """
 

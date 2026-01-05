@@ -151,8 +151,6 @@ class Coulomb(Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Coulomb`:
 
     Attributes:

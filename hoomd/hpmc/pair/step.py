@@ -48,8 +48,6 @@ class Step(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Step`:
 
     .. py:attribute:: params

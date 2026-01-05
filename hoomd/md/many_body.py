@@ -64,8 +64,6 @@ class Triplet(Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Triplet`:
 
     .. py:attribute:: r_cut
@@ -89,7 +87,6 @@ class Triplet(Force):
     _doc_inherited = (
         Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Triplet <hoomd.md.many_body.Triplet>`:
@@ -225,7 +222,6 @@ class Tersoff(Triplet):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Tersoff`:
 
@@ -386,7 +382,6 @@ class RevCross(Triplet):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `RevCross`:
 
@@ -477,8 +472,6 @@ class SquareDensity(Triplet):
     no. 6 Pt 2, p. 066702, 2003.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `SquareDensity`:
 

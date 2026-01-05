@@ -101,8 +101,6 @@ class Periodic(Dihedral):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Periodic`:
 
     Attributes:
@@ -161,7 +159,6 @@ class Table(Dihedral):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Table`:
 
@@ -233,7 +230,6 @@ class OPLS(Dihedral):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `OPLS`:
 

@@ -136,8 +136,6 @@ class ReversePerturbationFlow(Updater):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ReversePerturbationFlow`:
 
     Attributes:
@@ -302,7 +300,6 @@ class ActiveRotationalDiffusion(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ActiveRotationalDiffusion`:
 

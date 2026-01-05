@@ -47,8 +47,6 @@ class LennardJones(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `LennardJones`:
 
     .. py:attribute:: params

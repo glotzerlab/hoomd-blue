@@ -91,8 +91,6 @@ class FreeVolume(Compute):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `FreeVolume`:
 
     Attributes:
@@ -328,8 +326,6 @@ class SDF(Compute):
     including self overlap.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `SDF`:
 

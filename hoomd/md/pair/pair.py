@@ -32,8 +32,6 @@ class Pair(force.Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Pair`:
 
     .. py:attribute:: nlist
@@ -74,7 +72,6 @@ class Pair(force.Force):
     _doc_inherited = (
         force.Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Pair <hoomd.md.pair.Pair>`:
@@ -241,7 +238,6 @@ class LJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ`:
 
@@ -312,7 +308,6 @@ class Gaussian(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Gaussian`:
 
@@ -372,7 +367,6 @@ class ExpandedGaussian(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ExpandedGaussian`:
 
@@ -440,7 +434,6 @@ class ExpandedLJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ExpandedLJ`:
 
@@ -501,7 +494,6 @@ class Yukawa(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Yukawa`:
 
@@ -566,7 +558,6 @@ class Ewald(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Ewald`:
 
@@ -668,7 +659,6 @@ class Table(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Table`:
 
@@ -739,7 +729,6 @@ class Morse(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Morse`:
 
@@ -840,7 +829,6 @@ class DPD(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DPD`:
 
@@ -916,7 +904,6 @@ class DPDConservative(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DPDConservative`:
 
@@ -1005,7 +992,6 @@ class DPDLJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DPDLJ`:
 
@@ -1087,7 +1073,6 @@ class ForceShiftedLJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ForceShiftedLJ`:
 
@@ -1168,7 +1153,6 @@ class Moliere(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Moliere`:
 
@@ -1252,7 +1236,6 @@ class ZBL(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ZBL`:
 
@@ -1316,7 +1299,6 @@ class Mie(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Mie`:
 
@@ -1394,7 +1376,6 @@ class ExpandedMie(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ExpandedMie`:
 
@@ -1485,7 +1466,6 @@ class ReactionField(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ReactionField`:
 
@@ -1563,7 +1543,6 @@ class DLVO(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DLVO`:
 
@@ -1637,7 +1616,6 @@ class Buckingham(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Buckingham`:
 
@@ -1697,7 +1675,6 @@ class LJ1208(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ1208`:
 
@@ -1758,7 +1735,6 @@ class LJ0804(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ0804`:
 
@@ -1826,7 +1802,6 @@ class Fourier(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Fourier`:
 
@@ -1899,7 +1874,6 @@ class OPP(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `OPP`:
 
@@ -1987,7 +1961,6 @@ class TWF(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `TWF`:
 
@@ -2058,7 +2031,6 @@ class LJGauss(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `TWF`:
 
@@ -2134,7 +2106,6 @@ class WangFrenkel(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `WangFrenkel`:
 
@@ -2218,7 +2189,6 @@ class Zetterling(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Zetterling`:
 

@@ -99,7 +99,6 @@ class Dipole(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Dipole`:
 
@@ -216,7 +215,6 @@ class YLZ(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `YLZ`:
 
@@ -342,7 +340,6 @@ class GayBerne(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `GayBerne`:
 
@@ -630,7 +627,6 @@ class ALJ(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ALJ`:
 
@@ -848,7 +844,6 @@ class Patchy(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Patchy`:
 
@@ -903,7 +898,6 @@ class Patchy(AnisotropicPair):
     _doc_inherited = (
         AnisotropicPair._doc_inherited
         + r"""
-    ----------
 
     **Members inherited from** `Patchy <hoomd.md.pair.aniso.Patchy>`:
 
@@ -974,7 +968,6 @@ class PatchyLJ(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyLJ`:
 
@@ -1035,7 +1028,6 @@ class PatchyExpandedGaussian(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyExpandedGaussian`:
 
@@ -1096,7 +1088,6 @@ class PatchyExpandedLJ(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyExpandedLJ`:
 
@@ -1157,7 +1148,6 @@ class PatchyExpandedMie(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyExpandedMie`:
 
@@ -1228,7 +1218,6 @@ class PatchyGaussian(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyGaussian`:
 
@@ -1293,7 +1282,6 @@ class PatchyMie(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyMie`:
 
@@ -1354,8 +1342,6 @@ class PatchyYukawa(Patchy):
         simulation.operations.integrator.forces = [patchy_yukawa]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `PatchyYukawa`:
 

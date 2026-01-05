@@ -431,7 +431,6 @@ class AutotunedObject(_HOOMDBaseObject):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `AutotunedObject <hoomd.operation.AutotunedObject>`:
 
@@ -558,8 +557,6 @@ class TriggeredOperation(Operation):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `TriggeredOperation`:
 
     Attributes:
@@ -579,7 +576,6 @@ class TriggeredOperation(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `TriggeredOperation <hoomd.operation.TriggeredOperation>`:

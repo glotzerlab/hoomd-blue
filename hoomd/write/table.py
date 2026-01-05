@@ -427,8 +427,6 @@ class Table(_InternalCustomWriter):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Table`:
 
     Attributes:

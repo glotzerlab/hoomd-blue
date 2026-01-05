@@ -55,8 +55,6 @@ class OPP(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `OPP`:
 
     .. py:attribute:: params

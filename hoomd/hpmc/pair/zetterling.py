@@ -55,8 +55,6 @@ class Zetterling(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Zetterling`:
 
     .. py:attribute:: params

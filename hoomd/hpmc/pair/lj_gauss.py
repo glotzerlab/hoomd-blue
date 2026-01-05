@@ -50,8 +50,6 @@ class LJGauss(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `LJGauss`:
 
     .. py:attribute:: params

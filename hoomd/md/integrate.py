@@ -252,8 +252,6 @@ class Integrator(_DynamicIntegrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Integrator`:
 
 
@@ -284,7 +282,6 @@ class Integrator(_DynamicIntegrator):
     _doc_inherited = (
         hoomd.operation.Integrator._doc_inherited
         + """
-    ----------
 
     **Members inherited from** `Integrator <hoomd.md.Integrator>`:
 

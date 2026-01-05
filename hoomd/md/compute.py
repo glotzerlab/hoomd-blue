@@ -40,8 +40,6 @@ class ThermodynamicQuantities(Compute):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ThermodynamicQuantities`:
     """
 
@@ -351,8 +349,6 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `HarmonicAveragedThermodynamicQuantities`:
 

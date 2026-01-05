@@ -309,8 +309,6 @@ class HPMCIntegrator(Integrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `HPMCIntegrator`:
 
     Attributes:
@@ -349,7 +347,6 @@ class HPMCIntegrator(Integrator):
     _doc_inherited = (
         Integrator._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `HPMCIntegrator <hoomd.hpmc.integrate.HPMCIntegrator>`:
@@ -713,7 +710,6 @@ class Sphere(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Sphere`:
 
@@ -818,7 +814,6 @@ class ConvexPolygon(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConvexPolygon`:
 
@@ -954,7 +949,6 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConvexSpheropolygon`:
 
@@ -1072,7 +1066,6 @@ class SimplePolygon(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `SimplePolygon`:
 
@@ -1212,7 +1205,6 @@ class Polyhedron(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Polyhedron`:
 
@@ -1354,7 +1346,6 @@ class ConvexPolyhedron(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConvexPolyhedron`:
 
@@ -1498,7 +1489,6 @@ class FacetedEllipsoid(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `FacetedEllipsoid`:
 
@@ -1622,7 +1612,6 @@ class Sphinx(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Sphinx`:
 
@@ -1716,7 +1705,6 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConvexSpheropolyhedron`:
 
@@ -1833,7 +1821,6 @@ class Ellipsoid(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Ellipsoid`:
 
@@ -1942,7 +1929,6 @@ class SphereUnion(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `SphereUnion`:
 
@@ -2092,7 +2078,6 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConvexSpheropolyhedronUnion`:
 
@@ -2254,8 +2239,6 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
               mc.shape["A"]["shapes"][0]["vertices"]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `FacetedEllipsoidUnion`:
 

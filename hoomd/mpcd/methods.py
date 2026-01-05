@@ -74,8 +74,6 @@ class BounceBack(Method):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `BounceBack`:
 
     Attributes:

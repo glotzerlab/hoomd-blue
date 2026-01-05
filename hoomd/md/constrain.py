@@ -103,8 +103,6 @@ class Distance(Constraint):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Distance`:
 
     Attributes:
@@ -275,7 +273,6 @@ class Rigid(Constraint):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Rigid`:
 

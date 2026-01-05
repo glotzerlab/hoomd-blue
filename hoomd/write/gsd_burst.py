@@ -70,8 +70,6 @@ class Burst(GSD):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Burst`:
 
     Attributes:

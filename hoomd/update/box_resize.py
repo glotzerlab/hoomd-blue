@@ -85,8 +85,6 @@ class BoxResize(Updater):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `BoxResize`:
 
     Attributes:

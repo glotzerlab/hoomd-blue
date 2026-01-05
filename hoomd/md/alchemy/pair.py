@@ -292,8 +292,6 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `LJGauss`:
 
     .. py:attribute:: params

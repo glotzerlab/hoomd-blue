@@ -293,8 +293,6 @@ class HDF5Log(_InternalCustomWriter):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `HDF5Log`:
 
     Attributes:

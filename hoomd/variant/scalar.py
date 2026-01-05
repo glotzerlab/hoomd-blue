@@ -48,7 +48,6 @@ class Variant(_hoomd.Variant):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from**
     `Variant <hoomd.variant.Variant>`:
@@ -115,8 +114,6 @@ class Constant(_hoomd.VariantConstant, Variant):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Constant`:
 
     Attributes:
@@ -159,8 +156,6 @@ class Ramp(_hoomd.VariantRamp, Variant):
             )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Ramp`:
 
@@ -220,8 +215,6 @@ class Cycle(_hoomd.VariantCycle, Variant):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Cycle`:
 
     Attributes:
@@ -272,8 +265,6 @@ class Power(_hoomd.VariantPower, Variant):
         )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Power`:
 

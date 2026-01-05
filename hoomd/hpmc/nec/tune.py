@@ -199,8 +199,6 @@ class ChainTime(_InternalCustomTuner):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ChainTime`:
 
     Attributes:

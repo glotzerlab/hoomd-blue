@@ -79,8 +79,6 @@ class ReverseNonequilibriumShearFlow(Updater):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ReverseNonequilibriumShearFlow`:
 
     Attributes:

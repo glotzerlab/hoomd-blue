@@ -75,8 +75,6 @@ class Periodic(Field):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Periodic`:
 
     .. py:attribute:: params
@@ -137,7 +135,6 @@ class Electric(Field):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Electric`:
 
@@ -186,8 +183,6 @@ class Magnetic(Field):
         simulation.operations.integrator.forces = [magnetic]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Electric`:
 

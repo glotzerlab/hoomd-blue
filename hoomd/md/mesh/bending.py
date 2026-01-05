@@ -57,8 +57,6 @@ class BendingRigidity(MeshPotential):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `BendingRigidity`:
 
     Attributes:
@@ -125,7 +123,6 @@ class Helfrich(MeshPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Helfrich`:
 

@@ -53,8 +53,6 @@ class CellList(Compute):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `CellList`:
 
     Attributes:
@@ -111,7 +109,6 @@ class CollisionMethod(Operation):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CollisionMethod`:
 
@@ -179,7 +176,6 @@ class CollisionMethod(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `CollisionMethod <hoomd.mpcd.collide.CollisionMethod>`:
@@ -261,7 +257,6 @@ class AndersenThermostat(CollisionMethod):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `AndersenThermostat`:
     """
@@ -356,8 +351,6 @@ class StochasticRotationDynamics(CollisionMethod):
         simulation.operations.integrator.collision_method = srd
 
     {inherited}
-
-    ----------
 
     **Members defined in** `StochasticRotationDynamics`:
 

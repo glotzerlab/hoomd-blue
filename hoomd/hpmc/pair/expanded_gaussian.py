@@ -50,8 +50,6 @@ class ExpandedGaussian(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ExpandedGaussian`:
 
     .. py:attribute:: params

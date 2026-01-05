@@ -160,8 +160,6 @@ class WallPotential(External):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `WallPotential`:
     """
 

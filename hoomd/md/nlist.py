@@ -97,8 +97,6 @@ class NeighborList(Compute):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `NeighborList`:
 
     Attributes:
@@ -127,7 +125,6 @@ class NeighborList(Compute):
     _doc_inherited = (
         Compute._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `NeighborList <hoomd.md.nlist.NeighborList>`:
@@ -474,7 +471,6 @@ class Cell(NeighborList):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Cell`:
 
@@ -588,8 +584,6 @@ class Stencil(NeighborList):
         `Stencil` in your research.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Stencil`:
 

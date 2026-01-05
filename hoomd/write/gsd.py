@@ -184,8 +184,6 @@ class GSD(Writer):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `GSD`:
 
     Attributes:
@@ -280,7 +278,6 @@ class GSD(Writer):
     _doc_inherited = (
         Writer._doc_inherited
         + """
-    ----------
 
     **Members inherited from** `GSD <hoomd.write.GSD>`:
 

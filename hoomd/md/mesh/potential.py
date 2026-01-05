@@ -26,8 +26,6 @@ class MeshPotential(Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `MeshPotential`:
     """
 
@@ -37,7 +35,6 @@ class MeshPotential(Force):
     _doc_inherited = (
         Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `MeshPotential <hoomd.md.mesh.MeshPotential>`:
