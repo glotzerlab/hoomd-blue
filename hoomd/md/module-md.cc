@@ -99,6 +99,7 @@ void export_PotentialMeshBondTether(pybind11::module& m);
 
 void export_BendingRigidityMeshForceCompute(pybind11::module& m);
 void export_HelfrichMeshForceCompute(pybind11::module& m);
+void export_CurvatureHelfrichMeshForceCompute(pybind11::module& m);
 void export_VolumeConservationMeshForceCompute(pybind11::module& m);
 void export_AreaConservationMeshForceCompute(pybind11::module& m);
 void export_TriangleAreaConservationMeshForceCompute(pybind11::module& m);
@@ -267,6 +268,7 @@ void export_PotentialMeshBondTetherGPU(pybind11::module& m);
 
 void export_BendingRigidityMeshForceComputeGPU(pybind11::module& m);
 void export_HelfrichMeshForceComputeGPU(pybind11::module& m);
+void export_CurvatureHelfrichMeshForceComputeGPU(pybind11::module& m);
 void export_VolumeConservationMeshForceComputeGPU(pybind11::module& m);
 void export_AreaConservationMeshForceComputeGPU(pybind11::module& m);
 void export_TriangleAreaConservationMeshForceComputeGPU(pybind11::module& m);
@@ -425,6 +427,7 @@ PYBIND11_MODULE(_md, m)
 
     export_BendingRigidityMeshForceCompute(m);
     export_HelfrichMeshForceCompute(m);
+    export_CurvatureHelfrichMeshForceCompute(m);
     export_VolumeConservationMeshForceCompute(m);
     export_AreaConservationMeshForceCompute(m);
     export_TriangleAreaConservationMeshForceCompute(m);
@@ -528,6 +531,7 @@ PYBIND11_MODULE(_md, m)
 
     export_BendingRigidityMeshForceComputeGPU(m);
     export_HelfrichMeshForceComputeGPU(m);
+    export_CurvatureHelfrichMeshForceComputeGPU(m);
     export_VolumeConservationMeshForceComputeGPU(m);
     export_AreaConservationMeshForceComputeGPU(m);
     export_TriangleAreaConservationMeshForceComputeGPU(m);
