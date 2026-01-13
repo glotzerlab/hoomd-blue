@@ -65,6 +65,9 @@ class PYBIND11_EXPORT CurvatureHelfrichMeshForceCompute : public MeshForceComput
 
     GPUArray<Scalar3>
         m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
+		      //
+    GPUArray<Scalar3>
+        m_norm; //! average normal vector of the vertex
 
     GPUArray<Scalar>
         m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors

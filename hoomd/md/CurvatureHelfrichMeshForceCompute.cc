@@ -43,6 +43,11 @@ CurvatureHelfrichMeshForceCompute::CurvatureHelfrichMeshForceCompute(std::shared
     m_sigma_dash.swap(tmp_sigma_dash);
 
     // allocate memory for the per-type normal verctors
+    GPUArray<Scalar3> tmp_norm(m_pdata->getMaxN(), m_exec_conf);
+
+    m_norm.swap(tmp_norm);
+
+    // allocate memory for the per-type normal verctors
     GPUArray<Scalar> tmp_sigma(m_pdata->getMaxN(), m_exec_conf);
 
     m_sigma.swap(tmp_sigma);
@@ -116,6 +121,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_norm(m_norm, access_location::host, access_mode::read);
 
     assert(h_force.data);
     assert(h_virial.data);
@@ -124,6 +130,8 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_bonds.data);
     assert(h_sigma.data);
     assert(h_sigma_dash.data);
+    assert(h_norm.data);
+    assert(h_triangles.data);
 
     m_force.zeroFill();
     m_virial.zeroFill();
@@ -309,6 +317,11 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b] ; // precomputed
         Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c] ; // precomputed
         Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d] ; // precomputed
+							  //
+        Scalar3 norm_a = h_norm.data[idx_a] ; // precomputed
+        Scalar3 norm_b = h_norm.data[idx_b] ; // precomputed
+        Scalar3 norm_c = h_norm.data[idx_c] ; // precomputed
+        Scalar3 norm_d = h_norm.data[idx_d] ; // precomputed
 
         Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
         Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
@@ -345,18 +358,18 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
 	// we now compute the sign of this contribution to the curvature based on the normal
 	// of the face of the triangle associated with this bond
-	Scalar3 local_norm;
+	//Scalar3 local_norm;
 	//local_norm.x = nab.y*nac.z - nab.x * nac.y;
 	//local_norm.y = nab.z*nac.x - nab.x * nac.z;
 	//local_norm.z = nab.x*nac.y - nab.y * nac.x;
-	local_norm.x = nab.x * nac.y - nab.y*nac.z;
-	local_norm.y = nab.x * nac.z - nab.z*nac.x;
-	local_norm.z = nab.y * nac.x - nab.x*nac.y;
+	//local_norm.x = nab.x * nac.y - nab.y*nac.z;
+	//local_norm.y = nab.x * nac.z - nab.z*nac.x;
+	//local_norm.z = nab.y * nac.x - nab.x*nac.y;
 
-	Scalar dot_norm_a = dot(local_norm,sigma_dash_a);
-	Scalar dot_norm_b = dot(local_norm,sigma_dash_b);
-	Scalar dot_norm_c = dot(local_norm,sigma_dash_c);
-	Scalar dot_norm_d = dot(local_norm,sigma_dash_d);
+	Scalar dot_norm_a = dot(norm_a,sigma_dash_a);
+	Scalar dot_norm_b = dot(norm_b,sigma_dash_b);
+	Scalar dot_norm_c = dot(norm_c,sigma_dash_c);
+	Scalar dot_norm_d = dot(norm_d,sigma_dash_d);
 
 	// Compute the square gaussian curvature
         Scalar sq_gauss_curv_H_a = dot(sigma_dash_a, sigma_dash_a);
@@ -370,58 +383,77 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar gauss_curv_H_c = sqrt(sq_gauss_curv_H_c);
         Scalar gauss_curv_H_d = sqrt(sq_gauss_curv_H_d);
 
+        Scalar sign_a = 1.0;
+        Scalar sign_b = 1.0;
+        Scalar sign_c = 1.0;
+        Scalar sign_d = 1.0;
+
 	if (dot_norm_a < 0.0)
 	    {
-	    gauss_curv_H_a *= -1.0;
+	    sign_a *= -1.0;
 	    }
 	if (dot_norm_b < 0.0)
 	    {
-	    gauss_curv_H_b *= -1.0;
+	    sign_b *= -1.0;
 	    }
 	if (dot_norm_c < 0.0)
 	    {
-	    gauss_curv_H_c *= -1.0;
+	    sign_c *= -1.0;
 	    }
 	if (dot_norm_d < 0.0)
 	    {
-	    gauss_curv_H_d *= -1.0;
+	    sign_d *= -1.0;
 	    }
 
 	Scalar C0_sq = 4.0 * C0 * C0;
-        Scalar sigma_dash_a2 = 0.5 * (sq_gauss_curv_H_a - 4 * gauss_curv_H_a * C0 + C0_sq) * inv_sigma_a * inv_sigma_a;
-        Scalar sigma_dash_b2 = 0.5 * (sq_gauss_curv_H_b - 4 * gauss_curv_H_b * C0 + C0_sq) * inv_sigma_b * inv_sigma_b;
-        Scalar sigma_dash_c2 = 0.5 * (sq_gauss_curv_H_c - 4 * gauss_curv_H_c * C0 + C0_sq) * inv_sigma_c * inv_sigma_c;
-        Scalar sigma_dash_d2 = 0.5 * (sq_gauss_curv_H_d - 4 * gauss_curv_H_d * C0 + C0_sq) * inv_sigma_d * inv_sigma_d;
+        Scalar sigma_dash_a2 = 0.5 * (sq_gauss_curv_H_a - 4 * sign_a * gauss_curv_H_a * C0 + C0_sq) * inv_sigma_a * inv_sigma_a;
+        Scalar sigma_dash_b2 = 0.5 * (sq_gauss_curv_H_b - 4 * sign_b * gauss_curv_H_b * C0 + C0_sq) * inv_sigma_b * inv_sigma_b;
+        Scalar sigma_dash_c2 = 0.5 * (sq_gauss_curv_H_c - 4 * sign_c * gauss_curv_H_c * C0 + C0_sq) * inv_sigma_c * inv_sigma_c;
+        Scalar sigma_dash_d2 = 0.5 * (sq_gauss_curv_H_d - 4 * sign_d * gauss_curv_H_d * C0 + C0_sq) * inv_sigma_d * inv_sigma_d;
 
         Scalar3 Fa;
 	Scalar3 grad_Ha;
 
-        grad_Ha.x = dsigma_dash_a * inv_sigma_a * sigma_dash_a.x   /gauss_curv_H_a;
-        grad_Ha.x += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.x)/gauss_curv_H_a;
-        grad_Ha.x += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.x)/gauss_curv_H_a;
-        grad_Ha.x += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.x)/gauss_curv_H_a;
+        //grad_Ha.x =  (sign_a*gauss_curv_H_a - 2 * C0)*dsigma_dash_a * inv_sigma_a * sigma_dash_a.x   /(sign_a*gauss_curv_H_a);
+        //grad_Ha.x += (sign_b*gauss_curv_H_b - 2 * C0)*(dsigma_dash_b * inv_sigma_b * sigma_dash_b.x)/(sign_b*gauss_curv_H_b);
+        //grad_Ha.x += (sign_c*gauss_curv_H_c - 2 * C0)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.x)/(sign_c*gauss_curv_H_c);
+        //grad_Ha.x += (sign_d*gauss_curv_H_d - 2 * C0)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.x)/(sign_d*gauss_curv_H_d);
 
-        grad_Ha.y = dsigma_dash_a * inv_sigma_a * sigma_dash_a.y   /gauss_curv_H_a;
-        grad_Ha.y += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.y)/gauss_curv_H_a;
-        grad_Ha.y += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.y)/gauss_curv_H_a;
-        grad_Ha.y += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.y)/gauss_curv_H_a;
+        //grad_Ha.y =  (sign_a*gauss_curv_H_a - 2 * C0)*dsigma_dash_a * inv_sigma_a * sigma_dash_a.y  /(sign_a*gauss_curv_H_a);
+        //grad_Ha.y += (sign_b*gauss_curv_H_b - 2 * C0)*(dsigma_dash_b * inv_sigma_b * sigma_dash_b.y)/(sign_b*gauss_curv_H_b);
+        //grad_Ha.y += (sign_c*gauss_curv_H_c - 2 * C0)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.y)/(sign_c*gauss_curv_H_c);
+        //grad_Ha.y += (sign_d*gauss_curv_H_d - 2 * C0)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.y)/(sign_d*gauss_curv_H_d);
 
-        grad_Ha.z =  dsigma_dash_a * inv_sigma_a * sigma_dash_a.z  /gauss_curv_H_a;
-        grad_Ha.z += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.z)/gauss_curv_H_a;
-        grad_Ha.z += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.z)/gauss_curv_H_a;
-        grad_Ha.z += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.z)/gauss_curv_H_a;
+        //grad_Ha.z =  (sign_a*gauss_curv_H_a - 2 * C0)* dsigma_dash_a * inv_sigma_a * sigma_dash_a.z /(sign_a*gauss_curv_H_a);
+        //grad_Ha.z += (sign_b*gauss_curv_H_b - 2 * C0)*(dsigma_dash_b * inv_sigma_b * sigma_dash_b.z)/(sign_b*gauss_curv_H_b);
+        //grad_Ha.z += (sign_c*gauss_curv_H_c - 2 * C0)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.z)/(sign_c*gauss_curv_H_c);
+        //grad_Ha.z += (sign_d*gauss_curv_H_d - 2 * C0)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.z)/(sign_d*gauss_curv_H_d);
+        grad_Ha.x =  (sign_a*gauss_curv_H_a - 2 * C0)*dsigma_dash_a * inv_sigma_a * sigma_dash_a.x  /(gauss_curv_H_a*sign_a);
+        grad_Ha.x += (sign_b*gauss_curv_H_b - 2 * C0)*(dsigma_dash_b * inv_sigma_b * sigma_dash_b.x)/(gauss_curv_H_b*sign_b);
+        grad_Ha.x += (sign_c*gauss_curv_H_c - 2 * C0)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.x)/(gauss_curv_H_c*sign_c);
+        grad_Ha.x += (sign_d*gauss_curv_H_d - 2 * C0)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.x)/(gauss_curv_H_d*sign_d);
+                                                                                                                           
+        grad_Ha.y =  (sign_a*gauss_curv_H_a - 2 * C0)*dsigma_dash_a * inv_sigma_a * sigma_dash_a.y  /(gauss_curv_H_a*sign_a);
+        grad_Ha.y += (sign_b*gauss_curv_H_b - 2 * C0)*(dsigma_dash_b * inv_sigma_b * sigma_dash_b.y)/(gauss_curv_H_b*sign_b);
+        grad_Ha.y += (sign_c*gauss_curv_H_c - 2 * C0)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.y)/(gauss_curv_H_c*sign_c);
+        grad_Ha.y += (sign_d*gauss_curv_H_d - 2 * C0)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.y)/(gauss_curv_H_d*sign_d);
+                                                                                                                           
+        grad_Ha.z =  (sign_a*gauss_curv_H_a - 2 * C0)* dsigma_dash_a * inv_sigma_a * sigma_dash_a.z /(gauss_curv_H_a*sign_a);
+        grad_Ha.z += (sign_b*gauss_curv_H_b - 2 * C0)*(dsigma_dash_b * inv_sigma_b * sigma_dash_b.z)/(gauss_curv_H_b*sign_b);
+        grad_Ha.z += (sign_c*gauss_curv_H_c - 2 * C0)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.z)/(gauss_curv_H_c*sign_c);
+        grad_Ha.z += (sign_d*gauss_curv_H_d - 2 * C0)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.z)/(gauss_curv_H_d*sign_d);
 
-        Fa.x =   (gauss_curv_H_a-2*C0)*(grad_Ha.x) - sigma_dash_a2 * dsigma_a.x;
+        Fa.x =   (grad_Ha.x) - sigma_dash_a2 * dsigma_a.x;
         Fa.x -= (sigma_dash_b2 * dsigma_b.x);
         Fa.x -= (sigma_dash_c2 * dsigma_c.x);
         Fa.x -= (sigma_dash_d2 * dsigma_d.x);
 
-        Fa.y =   (gauss_curv_H_a-2*C0)*(grad_Ha.y) - sigma_dash_a2 * dsigma_a.y;
+        Fa.y =  (grad_Ha.y) - sigma_dash_a2 * dsigma_a.y;
         Fa.y += (sigma_dash_b2 * dsigma_b.y);
         Fa.y += (sigma_dash_c2 * dsigma_c.y);
         Fa.y += (sigma_dash_d2 * dsigma_d.y);
 
-        Fa.z =   (gauss_curv_H_a-2*C0)*(grad_Ha.z) - sigma_dash_a2 * dsigma_a.z;
+        Fa.z =  (grad_Ha.z) - sigma_dash_a2 * dsigma_a.z;
         Fa.z += (sigma_dash_b2 * dsigma_b.z);
         Fa.z += (sigma_dash_c2 * dsigma_c.z);
         Fa.z += (sigma_dash_d2 * dsigma_d.z);
@@ -476,13 +508,94 @@ void CurvatureHelfrichMeshForceCompute::precomputeParameter()
         access_location::host,
         access_mode::read);
 
+    ArrayHandle<typename Angle::members_t> h_triangles(
+        m_mesh_data->getMeshTriangleData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
+
     const BoxDim& box = m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar3> h_norm(m_norm, access_location::host, access_mode::overwrite);
 
     m_sigma.zeroFill();
     m_sigma_dash.zeroFill();
+    m_norm.zeroFill();
+
+    // loop over mesh triangles
+    const unsigned int size_tri = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
+    for (unsigned int i = 0; i < size_tri; i++)
+        {
+	const typename Angle::members_t& triangle = h_triangles.data[i];
+        assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
+
+        unsigned int idx_a = h_rtag.data[triangle.tag[0]];
+        unsigned int idx_b = h_rtag.data[triangle.tag[1]];
+        unsigned int idx_c = h_rtag.data[triangle.tag[2]];
+
+        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+
+        Scalar3 dab;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+
+        Scalar3 dac;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+
+        dab = box.minImage(dab);
+        dac = box.minImage(dac);
+
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rab = sqrt(rsqab);
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        Scalar rac = sqrt(rsqac);
+
+        Scalar3 nab, nac;
+        nab = dab / rab;
+        nac = dac / rac;
+
+	Scalar3 local_norm;
+	local_norm.x = dab.x * dac.y - dab.y*dac.z;
+	local_norm.y = dab.x * dac.z - dab.z*dac.x;
+	local_norm.z = dab.y * dac.x - dab.x*dac.y;
+	//local_norm.x =  nab.y*nac.z-nab.x * nac.y ;
+	//local_norm.y =  nab.z*nac.x-nab.x * nac.z ;
+	//local_norm.z =  nab.x*nac.y-nab.y * nac.x ;
+	//Scalar L_norm_sq = local_norm.x  * local_norm.x + local_norm.y * local_norm.y + local_norm.z * local_norm.z;
+	//Scalar L_norm = sqrt(L_norm_sq);
+	//local_norm.x /= L_norm;
+	//local_norm.y /= L_norm;
+	//local_norm.z /= L_norm;
+	//
+        if (idx_a < m_pdata->getN())
+	    {
+            h_norm.data[idx_a].x += local_norm.x ;
+            h_norm.data[idx_a].y += local_norm.y ;
+            h_norm.data[idx_a].z += local_norm.z ;
+	    }
+        if (idx_b < m_pdata->getN())
+	    {
+            h_norm.data[idx_b].x += local_norm.x ;
+            h_norm.data[idx_b].y += local_norm.y ;
+            h_norm.data[idx_b].z += local_norm.z ;
+	    }
+        if (idx_c < m_pdata->getN())
+	    {
+            h_norm.data[idx_c].x += local_norm.x ;
+            h_norm.data[idx_c].y += local_norm.y ;
+            h_norm.data[idx_c].z += local_norm.z ;
+	    }
+
+        }
+
 
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -591,6 +704,7 @@ void CurvatureHelfrichMeshForceCompute::precomputeParameter()
 
         Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
+
         if (idx_a < m_pdata->getN())
             {
             h_sigma.data[idx_a] += sigma_a;
@@ -619,6 +733,7 @@ Scalar CurvatureHelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     ArrayHandle<unsigned int> h_rtag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_norm(m_norm, access_location::host, access_mode::read);
 
     ArrayHandle<curvature_helfrich_param_t> h_params(m_params, access_location::host, access_mode::read);
 
@@ -919,24 +1034,20 @@ Scalar CurvatureHelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     // of the face of the triangle associated with this bond - question of if this norm is enough
     // to calculate normal direction of the vertex or if this has to be accomplished with precompute
     // parameters
-    Scalar3 local_norm;
-    // not sure if this is the way to take the cross product
-    //local_norm.x = nab.y*nac.z - nab.x * nac.y;
-    //local_norm.y = nab.z*nac.x - nab.x * nac.z;
-    //local_norm.z = nab.x*nac.y - nab.y * nac.x;
-    local_norm.x = nab.x * nac.y - nab.y*nac.z;
-    local_norm.y = nab.x * nac.z - nab.z*nac.x;
-    local_norm.z = nab.y * nac.x - nab.x*nac.y;
+    Scalar3 norm_a = h_norm.data[idx_a] ; // precomputed
+    Scalar3 norm_b = h_norm.data[idx_b] ; // precomputed
+    Scalar3 norm_c = h_norm.data[idx_c] ; // precomputed
+    Scalar3 norm_d = h_norm.data[idx_d] ; // precomputed
 
-    Scalar dot_norm_a = dot(local_norm,sigma_dash_a);
-    Scalar dot_norm_b = dot(local_norm,sigma_dash_b);
-    Scalar dot_norm_c = dot(local_norm,sigma_dash_c);
-    Scalar dot_norm_d = dot(local_norm,sigma_dash_d);
+    Scalar dot_norm_a = dot(norm_a,sigma_dash_a);
+    Scalar dot_norm_b = dot(norm_b,sigma_dash_b);
+    Scalar dot_norm_c = dot(norm_c,sigma_dash_c);
+    Scalar dot_norm_d = dot(norm_d,sigma_dash_d);
 
-    Scalar dot_norm_a_n = dot(local_norm,sigma_dash_a_n);
-    Scalar dot_norm_b_n = dot(local_norm,sigma_dash_b_n);
-    Scalar dot_norm_c_n = dot(local_norm,sigma_dash_c_n);
-    Scalar dot_norm_d_n = dot(local_norm,sigma_dash_d_n);
+    Scalar dot_norm_a_n = dot(norm_a,sigma_dash_a_n);
+    Scalar dot_norm_b_n = dot(norm_b,sigma_dash_b_n);
+    Scalar dot_norm_c_n = dot(norm_c,sigma_dash_c_n);
+    Scalar dot_norm_d_n = dot(norm_d,sigma_dash_d_n);
 
     if (dot_norm_a < 0.0)
         {
