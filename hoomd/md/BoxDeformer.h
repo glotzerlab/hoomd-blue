@@ -1,10 +1,6 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*! \file BoxDeformer.h
-    \brief Declares a base class for all box deformers
-*/
-
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
@@ -30,7 +26,7 @@ class PYBIND11_EXPORT BoxDeformer
     {
     public:
     /// Constructor
-    BoxDeformer(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+    BoxDeformer(std::shared_ptr<SystemDefinition> sysdef);
 
     /// Destructor
     virtual ~BoxDeformer();
@@ -45,11 +41,13 @@ class PYBIND11_EXPORT BoxDeformer
     std::shared_ptr<SystemDefinition>
         m_sysdef;                          //!< The system definition this method is associated with
     std::shared_ptr<ParticleData> m_pdata; //!< The particle data this method is associated with
-    Scalar m_deltaT;                       //!< The time step
+    std::shared_ptr<const ExecutionConfiguration>
+        m_exec_conf; //!< Stored shared ptr to the execution configuration
+    Scalar m_deltaT; //!< The time step
 
-    virtual BoxDim computeNewBox(uint64_t timestep);
+    virtual BoxDim computeNewBox(uint64_t timestep, const BoxDim& old_box);
 
-    virtual void postDeformationProcessing(const BoxDim& old_box, BoxDim& new_box);
+    virtual void processAfterDeformation(const BoxDim& old_box, BoxDim& new_box);
     };
 
 namespace detail

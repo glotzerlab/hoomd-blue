@@ -109,14 +109,14 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         }
 
     /// Getter and setter for accessing box deformers
-    std::shared_ptr<BoxDeformer> getDeformer()
+    std::shared_ptr<BoxDeformer> getBoxDeformer()
         {
-        return m_deformer;
+        return m_box_deformer;
         }
 
-    void setDeformer(std::shared_ptr<BoxDeformer> deformer)
+    void setBoxDeformer(std::shared_ptr<BoxDeformer> box_deformer)
         {
-        m_deformer = deformer;
+        m_box_deformer = box_deformer;
         }
 
     /// Validate method groups.
@@ -128,7 +128,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
 
-    std::shared_ptr<BoxDeformer> m_deformer; /// box deformation methods
+    std::shared_ptr<BoxDeformer> m_box_deformer; /// box deformation methods
 
     bool m_prepared; //!< True if preprun has been called
 

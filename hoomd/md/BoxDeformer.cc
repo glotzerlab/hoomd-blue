@@ -3,21 +3,23 @@
 
 #include "BoxDeformer.h"
 
-
 namespace hoomd
     {
 namespace md
     {
 /**
  * \param sysdef System definition containing the particle data this method acts on
- * \param deltaT Time step
  */
 BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef)
-    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_deltaT(deltaT)
+    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf())
     {
+    m_exec_conf->msg->notice(5) << "Constructing BoxDeformer" << std::endl;
     }
 
-BoxDeformer::~BoxDeformer() { }
+BoxDeformer::~BoxDeformer()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying BoxDeformer" << std::endl;
+    }
 
 void BoxDeformer::setDeltaT(Scalar deltaT)
     {
@@ -29,10 +31,10 @@ void BoxDeformer::setDeltaT(Scalar deltaT)
 void BoxDeformer::update(uint64_t timestep)
     {
     // Get the current box
-    BoxDim old_box = m_pdata->getGlobalBox();
+    const BoxDim old_box = m_pdata->getGlobalBox();
 
     // Compute new box (child class will determine the new box geometry)
-    BoxDim new_box = computeNewBox(timestep);
+    BoxDim new_box = computeNewBox(timestep, old_box);
 
     if (new_box != old_box)
         {
@@ -45,7 +47,7 @@ void BoxDeformer::update(uint64_t timestep)
     }
 
 // Post deformation particle processing: PBC wrapping by default but child classes can add up
-void BoxDeformer::postDeformationProcessing(const BoxDim& old_box, BoxDim& new_box)
+void BoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                access_location::host,
@@ -66,7 +68,7 @@ namespace detail
 void export_BoxDeformer(pybind11::module& m)
     {
     pybind11::class_<BoxDeformer, std::shared_ptr<BoxDeformer>>(m, "BoxDeformer")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

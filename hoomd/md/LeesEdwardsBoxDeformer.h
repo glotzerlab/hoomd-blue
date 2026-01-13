@@ -20,20 +20,16 @@ namespace md
     {
 /*
     Lees-Edwards deformation. Box flipping and particle remapping performed
-    when tilt exceeds 0.5.
+    when tilt exceeds a threshold.
 */
 class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
     {
     public:
-    LeesEdwardsBoxDeformer(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+    LeesEdwardsBoxDeformer(std::shared_ptr<SystemDefinition> sysdef,
+                           Scalar xy_rate,
+                           Scalar max_xy_tilt);
 
     virtual ~LeesEdwardsBoxDeformer();
-
-    /// Set the shear rate (in xy)
-    virtual void setShearRate(const Scalar xy_rate)
-        {
-        m_xy_rate = xy_rate;
-        }
 
     /// Get the shear rate (in xy)
     Scalar getShearRate()
@@ -41,14 +37,33 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
         return m_xy_rate;
         }
 
+    /// Set the shear rate (in xy)
+    void setShearRate(const Scalar xy_rate)
+        {
+        m_xy_rate = xy_rate;
+        }
+
+    /// Get the maximum tilt in xy before remapping
+    Scalar getMaxXYTilt()
+        {
+        return m_max_xy_tilt;
+        }
+
+    /// Set the maximum tilt in xy before remapping
+    void setMaxXYTilt(const Scalar max_xy_tilt)
+        {
+        m_max_xy_tilt = max_xy_tilt;
+        }
+
     protected:
-    Scalar m_xy_rate;  //!< shear rate, d(xy)/dt
+    Scalar m_xy_rate;     //!< shear rate, d(xy)/dt
+    Scalar m_max_xy_tilt; //!< maximum tilt in xy before remapping
 
     /// Compute the new box based on the shear rate
-    BoxDim computeNewBox(uint64_t timestep) override;
+    BoxDim computeNewBox(uint64_t timestep, const BoxDim& old_box) override;
 
     /// Box flip and particle remapping (called after default PBC wrapping)
-    void postDeformationProcessing(const BoxDim& old_box, BoxDim& new_box) override;
+    void processAfterDeformation(const BoxDim& old_box, BoxDim& new_box) override;
     };
 
 namespace detail
