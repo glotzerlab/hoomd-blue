@@ -17,8 +17,7 @@ namespace md
 LeesEdwardsBoxDeformer::LeesEdwardsBoxDeformer(std::shared_ptr<SystemDefinition> sysdef,
                                                Scalar deltaT)
     : BoxDeformer(sysdef, deltaT), m_new_box(m_pdata->getGlobalBox()),
-      m_xy(m_new_box.getTiltFactorXY()), m_xz(m_new_box.getTiltFactorXZ()),
-      m_yz(m_new_box.getTiltFactorYZ()), m_xy_rate(m_new_box.getTiltDeformationRateXY())
+      m_xy_rate(m_new_box.getTiltDeformationRateXY())
     {
     }
 

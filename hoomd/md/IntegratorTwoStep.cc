@@ -58,6 +58,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // pass timestep to deformer
     if (m_deformer)
         {
+        m_deformer->setDeltaT(m_deltaT);
         m_deformer->update(timestep);
         }
 
@@ -414,7 +415,7 @@ void export_IntegratorTwoStep(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
-        .def_property("deformer", &IntegratorTwoStep::getDeformer, &IntegratorTwoStep::setDeformer)
+        .def_property("box_deformer", &IntegratorTwoStep::getDeformer, &IntegratorTwoStep::setDeformer)
         .def_property("integrate_rotational_dof",
                       &IntegratorTwoStep::getIntegrateRotationalDOF,
                       &IntegratorTwoStep::setIntegrateRotationalDOF)

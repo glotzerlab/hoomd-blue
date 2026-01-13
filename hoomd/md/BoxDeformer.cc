@@ -1,25 +1,20 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*! \file BoxDeformer.cc
-    \brief Declares the BoxDeformer class
-*/
-
 #include "BoxDeformer.h"
 
-using namespace std;
 
 namespace hoomd
     {
 namespace md
     {
-/** @param sysdef System definition containing the particle data this method acts on
-    @param deltaT Time step
-*/
-BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+/**
+ * \param sysdef System definition containing the particle data this method acts on
+ * \param deltaT Time step
+ */
+BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_deltaT(deltaT)
     {
-    assert(m_pdata);
     }
 
 BoxDeformer::~BoxDeformer() { }
@@ -45,7 +40,7 @@ void BoxDeformer::update(uint64_t timestep)
         m_pdata->setGlobalBox(new_box);
 
         // Apply any post-deformation processing
-        postDeformationProcessing(old_box, new_box);
+        processAfterDeformation(old_box, new_box);
         }
     }
 

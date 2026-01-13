@@ -113,7 +113,8 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         {
         return m_deformer;
         }
-    virtual void setDeformer(std::shared_ptr<BoxDeformer> deformer)
+
+    void setDeformer(std::shared_ptr<BoxDeformer> deformer)
         {
         m_deformer = deformer;
         }

@@ -42,10 +42,6 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
         }
 
     protected:
-    BoxDim m_new_box;  //!< box object
-    Scalar m_xy;       //!< xy tilt
-    const Scalar m_xz; //!< xz tilt
-    const Scalar m_yz; //!< yz tilt
     Scalar m_xy_rate;  //!< shear rate, d(xy)/dt
 
     /// Compute the new box based on the shear rate
