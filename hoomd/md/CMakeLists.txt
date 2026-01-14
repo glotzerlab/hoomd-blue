@@ -195,6 +195,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 OPLSDihedralForceGPU.cuh
                 OPLSDihedralForceCompute.h
                 PairModulator.h
+		PairElementModulator.h
                 PotentialBondGPU.h
                 PotentialBondGPU.cuh
                 PotentialBond.h
@@ -660,20 +661,20 @@ foreach(_evaluator ${_patchy_evaluators})
 endforeach()
 
 foreach(_evaluator ${_patchy_evaluators})
-    configure_file(export_AnisoPotentialPairAlign.cc.inc
-                   export_AnisoPotentialPairAlign${_evaluator}.cc
+    configure_file(export_AnisoPotentialPairElementPatchy.cc.inc
+	           export_AnisoPotentialPairElementPatchy${_evaluator}.cc
                    @ONLY)
-    set(_md_sources ${_md_sources} export_AnisoPotentialPairAlign${_evaluator}.cc)
+    set(_md_sources ${_md_sources} export_AnisoPotentialPairElementPatchy${_evaluator}.cc)
     if(ENABLE_HIP)
-        configure_file(export_AnisoPotentialPairAlignGPU.cc.inc
-                       export_AnisoPotentialPairAlign${_evaluator}GPU.cc
+	configure_file(export_AnisoPotentialPairElementPatchyGPU.cc.inc
+		       export_AnisoPotentialPairElementPatchy${_evaluator}GPU.cc
                        @ONLY)
-        configure_file(AnisoPotentialPairAlignGPUKernel.cu.inc
-                       AnisoPotentialPairAlign${_evaluator}GPUKernel.cu
+	configure_file(AnisoPotentialPairElementPatchyGPUKernel.cu.inc
+		       AnisoPotentialPairElementPatchy${_evaluator}GPUKernel.cu
                        @ONLY)
-        set(_md_sources ${_md_sources} export_AnisoPotentialPairAlign${_evaluator}GPU.cc)
+	set(_md_sources ${_md_sources} export_AnisoPotentialPairElementPatchy${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            AnisoPotentialPairAlign${_evaluator}GPUKernel.cu)
+	AnisoPotentialPairElementPatchy${_evaluator}GPUKernel.cu)
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()

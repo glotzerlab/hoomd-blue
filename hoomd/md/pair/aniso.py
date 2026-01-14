@@ -747,6 +747,201 @@ class ALJ(AnisotropicPair):
         """
         return self._return_type_shapes()
 
+class PatchyElement(AnisotropicPair):
+    r"""Patchy pair potentials.
+
+    `Patchy` combines an isotropic `Pair <hoomd.md.pair.Pair>` potential with an
+    orientation dependent modulation function :math:`f`. Use `Patchy` with an attractive
+    potential to create localized sticky patches on the surface of a particle. Use it
+    with a repulsive potential to create localized bumps. `Patchy` computes both forces
+    and torques on particles.
+
+    Note:
+        `Patchy` provides *no* interaction when there are no patches or particles are
+        oriented such that :math:`f = 0`. Use `Patchy` along with a  repulsive isotropic
+        `Pair <hoomd.md.pair.Pair>` potential to prevent particles from passing through
+        each other.
+
+    The specific form of the patchy pair potential between particles :math:`i` and
+    :math:`j` is:
+
+    .. math::
+
+        U(r_{ij}, \mathbf{q}_i, \mathbf{q}_j) =
+        \sum_{m=1}^{N_{\mathrm{patches},i}}
+        \sum_{n=1}^{N_{\mathrm{patches},j}}
+        f(\theta_{m,i}, \alpha, \omega)
+        f(\theta_{n,j}, \alpha, \omega)
+        U_{\mathrm{pair}}(r_{ij})
+
+    where :math:`U_{\mathrm{pair}}(r_{ij})` is the isotropic pair potential and
+    :math:`f` is an orientation-dependent factor of the patchy spherical cap half-angle
+    :math:`\alpha` and patch steepness :math:`\omega`:
+
+    .. math::
+        \begin{split}
+        f(\theta, \alpha, \omega) &= \frac{\big(1+e^{-\omega (\cos{\theta} -
+        \cos{\alpha}) }\big)^{-1} - f_{min}}{f_{max} - f_{min}}\\
+        f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
+        f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
+        \end{split}
+
+    .. image:: /patchy-pair.svg
+         :align: center
+         :height: 400px
+         :alt: Two dashed circles not quite touching. Circle i on the left has a faded
+          shaded slice pointing up and to the right at a 35 degree angle.
+          Circle j on the right has its shaded region pointing left and slightly up at a
+          25 degree angle. A vector labeled r i j points from particle i to j.
+
+    `directors` sets the locations of the patches **in the local reference frame** of
+    the particle. `Patchy` rotates the local director :math:`\vec{d}` by the particle's
+    orientation and computes the :math:`cos(\theta)` in :math:`f` as the cosine of the
+    angle between the director and :math:`\vec{r}_{ij}`:
+    :math:`cos(\theta_i) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot \hat{r}_{ij}` and
+    :math:`cos(\theta_j) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot -\hat{r}_{ij}`.
+
+    .. image:: /patchy-def.svg
+         :align: center
+         :height: 400px
+         :alt: A single dashed circle centered at the origin of Cartesian x y axes.
+          Vector p points from the center of the circle at a 35 degree angle from the
+          right towards the center of the shaded region but does not reach the circle
+          boundary. Alpha is indicated as half of the arc of the shaded region.
+
+    :math:`\alpha` and :math:`\omega` control the shape of the patch:
+
+    .. image:: /patchy-modulator.svg
+         :alt: Plots of modulator f with alpha equals pi over 3 for omegas of 2, 5, 10,
+          20 and 50. For omega of 50, the plot is a barely rounded step from 0 to 1 at
+          negative pi over 3 and back down to 0 at pi over 3. The omega 2 line is so
+          rounded that there are no noticeable elbows, but f still reaches 1 at theta of
+          0. The other lines appear between these.
+
+    See Also:
+        `Beltran-Villegas et. al.`_
+
+        `hoomd.hpmc.pair.AngularStep` provides a similar functional form for HPMC,
+        except that :math:`f` is a step function.
+
+    .. _Beltran-Villegas et. al.: https://dx.doi.org/10.1039/C3SM53136H
+
+    .. invisible-code-block: python
+        patchy = hoomd.md.pair.aniso.PatchyLJ(nlist = neighbor_list,
+                                              default_r_cut = 3.0)
+        pair_params = {'epsilon': 10, 'sigma': 1}
+
+        patchy.params.default = dict(pair_params=pair_params,
+                                     envelope_params = {'alpha': math.pi/4,
+                                                        'omega': 30})
+        patchy.directors.default = []
+        simulation.operations.integrator.forces = [patchy]
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+
+    {inherited}
+
+
+    **Members defined in** `Patchy`:
+
+    .. py:attribute:: params
+
+        The Patchy potential parameters unique to each pair of particle types. The
+        dictionary has the following keys:
+
+        * ``envelope_params`` (`dict`, **required**)
+
+          * ``alpha`` (`float`) - patch half-angle :math:`\alpha` :math:`[\mathrm{rad}]`
+          * ``omega`` (`float`) - patch steepness :math:`\omega`
+
+
+        * ``pair_params`` (`dict`, **required**) -
+          passed to isotropic potential (see subclasses).
+
+        .. rubric:: Example:
+
+        .. code-block:: python
+
+            envelope_params = {'alpha': math.pi/4, 'omega': 30}
+            patchy.params[('A', 'A')] = dict(pair_params=pair_params,
+                                             envelope_params=envelope_params)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: directors
+
+        List of vectors pointing to patch centers, by particle type (normalized when
+        set). When a particle type does not have patches, set an empty list.
+
+        Type: `TypeParameter` [``particle_type``, `list` [`tuple` [`float`, `float`,
+        `float`]]
+
+        .. rubric:: Examples:
+
+        .. code-block:: python
+
+            patchy.directors['A'] = [(1,0,0), (1,1,1)]
+
+        .. code-block:: python
+
+            patchy.directors['A'] = []
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
+    _doc_inherited = (
+        AnisotropicPair._doc_inherited
+        + r"""
+
+    **Members inherited from** `Patchy <hoomd.md.pair.aniso.Patchy>`:
+
+    .. py:attribute:: directors
+
+        List of vectors pointing to patch centers, by particle type.
+
+        `Read more... <hoomd.md.pair.aniso.Patchy.directors>`
+    """
+    )
+
+    def __init__(self, nlist, default_r_cut=None, mode="none"):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                {
+                    "pair_params": self._pair_params,
+                    "envelope_params": {
+                        "alpha": OnlyTypes(float, postprocess=self._check_0_pi),
+                        "omega": float,
+                        "additive": bool,
+                    },
+                    "on_diag": float,
+                    "off_diag": float,
+                },
+                len_keys=2,
+            ),
+        )
+        envelope = TypeParameter(
+            "directors",
+            "particle_types",
+            TypeParameterDict([(float, float, float)], len_keys=1),
+        )
+        self._extend_typeparam((params, envelope))
+
+    @staticmethod
+    def _check_0_pi(input):
+        if 0 <= input <= np.pi:
+            return input
+        else:
+            raise ValueError(f"Value {input} is not between 0 and pi")
+        # can we get the keys here to check for A A being ni=nj
+
 
 class Patchy(AnisotropicPair):
     r"""Patchy pair potentials.
@@ -940,7 +1135,6 @@ class Patchy(AnisotropicPair):
         else:
             raise ValueError(f"Value {input} is not between 0 and pi")
         # can we get the keys here to check for A A being ni=nj
-
 
 class PatchyLJ(Patchy):
     r"""Modulate `hoomd.md.pair.LJ` with angular patches.
@@ -1427,191 +1621,8 @@ class PatchyInverse(Patchy):
     _cpp_class_name = "AnisoPotentialPairPatchyInverse"
     _pair_params = {"epsilon": float, "kappa": float}
 
-class Align(AnisotropicPair):
-    r"""Align pair potentials.
 
-    `Align` combines an isotropic `Pair <hoomd.md.pair.Pair>` potential with an
-    orientation dependent modulation function :math:`f`. Use `Align` with an attractive
-    potential to create localized sticky patches on the surface of a particle. Use it
-    with a repulsive potential to create localized bumps. `Align` computes both forces
-    and torques on particles.
-
-    Note:
-        `Align` provides *no* interaction when there are no patches or particles are
-        oriented such that :math:`f = 0`. Use `Align` along with a  repulsive isotropic
-        `Pair <hoomd.md.pair.Pair>` potential to prevent particles from passing through
-        each other.
-
-    The specific form of the patchy pair potential between particles :math:`i` and
-    :math:`j` is:
-
-    .. math::
-
-        U(r_{ij}, \mathbf{q}_i, \mathbf{q}_j) =
-        \sum_{m=1}^{N_{\mathrm{patches},i}}
-        \sum_{n=1}^{N_{\mathrm{patches},j}}
-        f(\theta_{m,i}, \alpha, \omega)
-        f(\theta_{n,j}, \alpha, \omega)
-        U_{\mathrm{pair}}(r_{ij})
-
-    where :math:`U_{\mathrm{pair}}(r_{ij})` is the isotropic pair potential and
-    :math:`f` is an orientation-dependent factor of the patchy spherical cap half-angle
-    :math:`\alpha` and patch steepness :math:`\omega`:
-
-    .. math::
-        \begin{align}
-        f(\theta, \alpha, \omega) &= \frac{\big(1+e^{-\omega (\cos{\theta} -
-        \cos{\alpha}) }\big)^{-1} - f_{min}}{f_{max} - f_{min}}\\
-        f_{max} &= \big( 1 + e^{-\omega (1 - \cos{\alpha}) } \big)^{-1} \\
-        f_{min} &= \big( 1 + e^{-\omega (-1 - \cos{\alpha}) } \big)^{-1} \\
-        \end{align}
-
-    .. image:: /patchy-pair.svg
-         :align: center
-         :height: 400px
-         :alt: Two dashed circles not quite touching. Circle i on the left has a faded
-          shaded slice pointing up and to the right at a 35 degree angle.
-          Circle j on the right has its shaded region pointing left and slightly up at a
-          25 degree angle. A vector labeled r i j points from particle i to j.
-
-    `directors` sets the locations of the patches **in the local reference frame** of
-    the particle. `Align` rotates the local director :math:`\vec{d}` by the particle's
-    orientation and computes the :math:`cos(\theta)` in :math:`f` as the cosine of the
-    angle between the director and :math:`\vec{r}_{ij}`:
-    :math:`cos(\theta_i) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot \hat{r}_{ij}` and
-    :math:`cos(\theta_j) = \mathbf{q} \hat{d} \mathbf{q}^* \cdot -\hat{r}_{ij}`.
-
-    .. image:: /patchy-def.svg
-         :align: center
-         :height: 400px
-         :alt: A single dashed circle centered at the origin of Cartesian x y axes.
-          Vector p points from the center of the circle at a 35 degree angle from the
-          right towards the center of the shaded region but does not reach the circle
-          boundary. Alpha is indicated as half of the arc of the shaded region.
-
-    :math:`\alpha` and :math:`\omega` control the shape of the patch:
-
-    .. image:: /patchy-modulator.svg
-         :alt: Plots of modulator f with alpha equals pi over 3 for omegas of 2, 5, 10,
-          20 and 50. For omega of 50, the plot is a barely rounded step from 0 to 1 at
-          negative pi over 3 and back down to 0 at pi over 3. The omega 2 line is so
-          rounded that there are no noticeable elbows, but f still reaches 1 at theta of
-          0. The other lines appear between these.
-
-    See Also:
-        `Beltran-Villegas et. al.`_
-
-        `hoomd.hpmc.pair.AngularStep` provides a similar functional form for HPMC,
-        except that :math:`f` is a step function.
-
-    .. _Beltran-Villegas et. al.: https://dx.doi.org/10.1039/C3SM53136H
-
-    .. invisible-code-block: python
-        patchy = hoomd.md.pair.aniso.AlignLJ(nlist = neighbor_list,
-                                              default_r_cut = 3.0)
-        pair_params = {'epsilon': 10, 'sigma': 1}
-
-        patchy.params.default = dict(pair_params=pair_params,
-                                     envelope_params = {'alpha': math.pi/4,
-                                                        'omega': 30})
-        patchy.directors.default = []
-        simulation.operations.integrator.forces = [patchy]
-
-    Warning:
-        This class should not be instantiated by users. The class can be used
-        for `isinstance` or `issubclass` checks.
-
-    {inherited}
-
-    ----------
-
-    **Members defined in** `Align`:
-
-    .. py:attribute:: params
-
-        The Align potential parameters unique to each pair of particle types. The
-        dictionary has the following keys:
-
-        * ``envelope_params`` (`dict`, **required**)
-
-          * ``alpha`` (`float`) - patch half-angle :math:`\alpha` :math:`[\mathrm{rad}]`
-          * ``omega`` (`float`) - patch steepness :math:`\omega`
-
-
-        * ``pair_params`` (`dict`, **required**) -
-          passed to isotropic potential (see subclasses).
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            envelope_params = {'alpha': math.pi/4, 'omega': 30}
-            patchy.params[('A', 'A')] = dict(pair_params=pair_params,
-                                             envelope_params=envelope_params)
-
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`]
-
-    .. py:attribute:: directors
-
-        List of vectors pointing to patch centers, by particle type (normalized when
-        set). When a particle type does not have patches, set an empty list.
-
-        Type: `TypeParameter` [``particle_type``, `list` [`tuple` [`float`, `float`,
-        `float`]]
-
-        .. rubric:: Examples:
-
-        .. code-block:: python
-
-            patchy.directors['A'] = [(1,0,0), (1,1,1)]
-
-        .. code-block:: python
-
-            patchy.directors['A'] = []
-
-    """
-
-    __doc__ = __doc__.replace("{inherited}", AnisotropicPair._doc_inherited)
-    _doc_inherited = (
-        AnisotropicPair._doc_inherited
-        + r"""
-    ----------
-
-    **Members inherited from** `Align <hoomd.md.pair.aniso.Align>`:
-
-    .. py:attribute:: directors
-
-        List of vectors pointing to patch centers, by particle type.
-
-        `Read more... <hoomd.md.pair.aniso.Align.directors>`
-    """
-    )
-
-    def __init__(self, nlist, default_r_cut=None, mode="none"):
-        super().__init__(nlist, default_r_cut, mode)
-        params = TypeParameter(
-            "params",
-            "particle_types",
-            TypeParameterDict(
-                {
-                    "pair_params": self._pair_params,
-                    "envelope_params": {
-                        "additive": bool,
-                        "anti_align": bool,
-                    },
-                },
-                len_keys=2,
-            ),
-        )
-        envelope = TypeParameter(
-            "directors",
-            "particle_types",
-            TypeParameterDict([(float, float, float)], len_keys=1),
-        )
-        self._extend_typeparam((params, envelope))
-
-class AlignLJ(Align):
+class PatchyElementLJ(PatchyElement):
     r"""Modulate `hoomd.md.pair.LJ` with angular patches.
 
     Args:
@@ -1626,7 +1637,7 @@ class AlignLJ(Align):
         lj_params = dict(epsilon=1, sigma=1)
         envelope_params = dict(alpha=math.pi / 2, omega=20)
 
-        patchylj = hoomd.md.pair.aniso.AlignLJ(
+        patchylj = hoomd.md.pair.aniso.PatchyElementLJ(
             nlist=neighbor_list, default_r_cut=3.0
         )
         patchylj.params[("A", "A")] = dict(
@@ -1638,18 +1649,17 @@ class AlignLJ(Align):
 
     {inherited}
 
-    ----------
 
-    **Members defined in** `AlignLJ`:
+    **Members defined in** `PatchyElementLJ`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
 
@@ -1662,12 +1672,14 @@ class AlignLJ(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignLJ"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyLJ"
     _pair_params = {"epsilon": float, "sigma": float}
 
 
-class AlignExpandedGaussian(Align):
+class PatchyElementExpandedGaussian(PatchyElement):
     r"""Modulate `hoomd.md.pair.ExpandedGaussian` with angular patches.
 
     Args:
@@ -1682,7 +1694,7 @@ class AlignExpandedGaussian(Align):
         gauss_params = dict(epsilon=1, sigma=1, delta=0.5)
         envelope_params = dict(alpha=math.pi / 2, omega=40)
 
-        patchy_expanded_gaussian = hoomd.md.pair.aniso.AlignExpandedGaussian(
+        patchy_expanded_gaussian = hoomd.md.pair.aniso.PatchyElementExpandedGaussian(
             nlist=neighbor_list, default_r_cut=3.0
         )
         patchy_expanded_gaussian.params[("A", "A")] = dict(
@@ -1697,18 +1709,17 @@ class AlignExpandedGaussian(Align):
 
     {inherited}
 
-    ----------
 
-    **Members defined in** `AlignExpandedGaussian`:
+    **Members defined in** `PatchyElementExpandedGaussian`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedGaussian.params`.
@@ -1724,12 +1735,14 @@ class AlignExpandedGaussian(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignExpandedGaussian"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyExpandedGaussian"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
 
-class AlignExpandedLJ(Align):
+class PatchyElementExpandedLJ(PatchyElement):
     r"""Modulate `hoomd.md.pair.ExpandedLJ` with angular patches.
 
     Args:
@@ -1744,7 +1757,7 @@ class AlignExpandedLJ(Align):
         lj_params = dict(epsilon=1, sigma=1)
         envelope_params = dict(alpha=math.pi / 2, omega=20)
 
-        patchylj = hoomd.md.pair.aniso.AlignLJ(
+        patchylj = hoomd.md.pair.aniso.PatchyElementLJ(
             nlist=neighbor_list, default_r_cut=3.0
         )
         patchylj.params[("A", "A")] = dict(
@@ -1756,18 +1769,17 @@ class AlignExpandedLJ(Align):
 
     {inherited}
 
-    ----------
 
-    **Members defined in** `AlignExpandedLJ`:
+    **Members defined in** `PatchyElementExpandedLJ`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedLJ.params`.
@@ -1783,12 +1795,14 @@ class AlignExpandedLJ(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignExpandedLJ"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyExpandedLJ"
     _pair_params = {"epsilon": float, "sigma": float, "delta": float}
 
 
-class AlignExpandedMie(Align):
+class PatchyElementExpandedMie(PatchyElement):
     r"""Modulate `hoomd.md.pair.ExpandedMie` with angular patches.
 
     Args:
@@ -1803,7 +1817,7 @@ class AlignExpandedMie(Align):
         expanded_mie_params = dict(epsilon=1, sigma=1, n=15, m=10, delta=1)
         envelope_params = dict(alpha=math.pi / 3, omega=20)
 
-        patchy_expanded_mie = hoomd.md.pair.aniso.AlignExpandedMie(
+        patchy_expanded_mie = hoomd.md.pair.aniso.PatchyElementExpandedMie(
             nlist=neighbor_list, default_r_cut=3.0
         )
         patchy_expanded_mie.params[("A", "A")] = dict(
@@ -1815,18 +1829,17 @@ class AlignExpandedMie(Align):
 
     {inherited}
 
-    ----------
 
-    **Members defined in** `AlignExpandedMie`:
+    **Members defined in** `PatchyElementExpandedMie`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedMie.params`.
@@ -1846,8 +1859,10 @@ class AlignExpandedMie(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignExpandedMie"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyExpandedMie"
     _pair_params = {
         "epsilon": float,
         "sigma": float,
@@ -1857,7 +1872,7 @@ class AlignExpandedMie(Align):
     }
 
 
-class AlignGaussian(Align):
+class PatchyElementGaussian(PatchyElement):
     r"""Modulate `hoomd.md.pair.Gaussian` with angular patches.
 
     Args:
@@ -1872,7 +1887,7 @@ class AlignGaussian(Align):
         gauss_params = dict(epsilon=1, sigma=1)
         envelope_params = dict(alpha=math.pi / 4, omega=30)
 
-        patchy_gaussian = hoomd.md.pair.aniso.AlignGaussian(
+        patchy_gaussian = hoomd.md.pair.aniso.PatchyElementGaussian(
             nlist=neighbor_list, default_r_cut=3.0
         )
         patchy_gaussian.params[("A", "A")] = dict(
@@ -1884,18 +1899,17 @@ class AlignGaussian(Align):
 
     {inherited}
 
-    ----------
 
-    **Members defined in** `AlignGaussian`:
+    **Members defined in** `PatchyElementGaussian`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) -
           passed to `md.pair.ExpandedMie.params`.
@@ -1915,12 +1929,14 @@ class AlignGaussian(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignGauss"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyGauss"
     _pair_params = {"epsilon": float, "sigma": float}
 
 
-class AlignMie(Align):
+class PatchyElementMie(PatchyElement):
     r"""Modulate `hoomd.md.pair.Mie` with angular patches.
 
     Args:
@@ -1935,7 +1951,7 @@ class AlignMie(Align):
         mie_params = dict(epsilon=1, sigma=1, n=15, m=10)
         envelope_params = dict(alpha=math.pi / 3, omega=20)
 
-        patchy_mie = hoomd.md.pair.aniso.AlignMie(
+        patchy_mie = hoomd.md.pair.aniso.PatchyElementMie(
             nlist=neighbor_list, default_r_cut=3.0
         )
         patchy_mie.params[("A", "A")] = dict(
@@ -1947,18 +1963,17 @@ class AlignMie(Align):
 
     {inherited}
 
-    ----------
 
-    **Members defined in** `AlignMie`:
+    **Members defined in** `PatchyElementMie`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Mie.params`.
 
@@ -1975,12 +1990,14 @@ class AlignMie(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignMie"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyMie"
     _pair_params = {"epsilon": float, "sigma": float, "n": float, "m": float}
 
 
-class AlignYukawa(Align):
+class PatchyElementYukawa(PatchyElement):
     r"""Modulate `hoomd.md.pair.Yukawa` with angular patches.
 
     Args:
@@ -1995,7 +2012,7 @@ class AlignYukawa(Align):
         yukawa_params = dict(epsilon=1, kappa=10)
         envelope_params = dict(alpha=math.pi / 4, omega=25)
 
-        patchy_yukawa = hoomd.md.pair.aniso.AlignYukawa(
+        patchy_yukawa = hoomd.md.pair.aniso.PatchyElementYukawa(
             nlist=neighbor_list, default_r_cut=5.0
         )
         patchy_yukawa.params[("A", "A")] = dict(
@@ -2007,18 +2024,16 @@ class AlignYukawa(Align):
 
     {inherited}
 
-    ----------
-
-    **Members defined in** `AlignYukawa`:
+    **Members defined in** `PatchyElementYukawa`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Yukawa.params`.
 
@@ -2031,11 +2046,13 @@ class AlignYukawa(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignYukawa"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(PatchyElement._doc_inherited)
+    )
+    _cpp_class_name = "AnisoPotentialPairElementPatchyYukawa"
     _pair_params = {"epsilon": float, "kappa": float}
 
-class AlignInverse(Align):
+class PatchyElementInverse(PatchyElement):
     r"""Modulate `hoomd.md.pair.Inverse` with angular patches.
 
     Args:
@@ -2050,7 +2067,7 @@ class AlignInverse(Align):
         inverse_params = dict(epsilon=1, kappa=10)
         envelope_params = dict(alpha=math.pi / 4, omega=25)
 
-        patchy_inverse = hoomd.md.pair.aniso.AlignInverse(
+        patchy_inverse = hoomd.md.pair.aniso.PatchyElementInverse(
             nlist=neighbor_list, default_r_cut=5.0
         )
         patchy_inverse.params[("A", "A")] = dict(
@@ -2064,16 +2081,16 @@ class AlignInverse(Align):
 
     ----------
 
-    **Members defined in** `AlignInverse`:
+    **Members defined in** `PatchyElementInverse`:
 
     .. py:attribute:: params
 
-        The Align potential parameters unique to each pair of particle types. The
+        The PatchyElement potential parameters unique to each pair of particle types. The
         dictionary has the following keys:
 
         * ``envelope_params`` (`dict`, **required**)
 
-          * `Read more... <Align.params>`
+          * `Read more... <PatchyElement.params>`
 
         * ``pair_params`` (`dict`, **required**) - passed to `md.pair.Inverse.params`.
 
@@ -2086,10 +2103,9 @@ class AlignInverse(Align):
         `dict`]
     """
 
-    __doc__ = __doc__.replace("{inherited}", Align._doc_inherited)
-    _cpp_class_name = "AnisoPotentialPairAlignInverse"
+    __doc__ = __doc__.replace("{inherited}", PatchyElement._doc_inherited)
+    _cpp_class_name = "AnisoPotentialPairElementPatchyInverse"
     _pair_params = {"epsilon": float, "kappa": float}
-
 
 __all__ = [
     "ALJ",
@@ -2098,6 +2114,7 @@ __all__ = [
     "Dipole",
     "GayBerne",
     "Patchy",
+    "PatchyElement",
     "PatchyExpandedGaussian",
     "PatchyExpandedLJ",
     "PatchyExpandedMie",
@@ -2106,13 +2123,12 @@ __all__ = [
     "PatchyLJ",
     "PatchyMie",
     "PatchyYukawa",
-    "Align",
-    "AlignExpandedGaussian",
-    "AlignExpandedLJ",
-    "AlignExpandedMie",
-    "AlignGaussian",
-    "AlignInverse",
-    "AlignLJ",
-    "AlignMie",
-    "AlignYukawa",
+    "PatchyElementExpandedGaussian",
+    "PatchyElementExpandedLJ",
+    "PatchyElementExpandedMie",
+    "PatchyElementGaussian",
+    "PatchyElementInverse",
+    "PatchyElementLJ",
+    "PatchyElementMie",
+    "PatchyElementYukawa",
 ]

@@ -84,15 +84,16 @@ void export_AnisoPotentialPairPatchyMie(pybind11::module& m);
 void export_AnisoPotentialPairPatchyYukawa(pybind11::module& m);
 void export_AnisoPotentialPairPatchyInverse(pybind11::module& m);
 void export_AnisoPotentialPairPatchyTable(pybind11::module& m);
-void export_AnisoPotentialPairAlignExpandedGaussian(pybind11::module& m);
-void export_AnisoPotentialPairAlignExpandedLJ(pybind11::module& m);
-void export_AnisoPotentialPairAlignExpandedMie(pybind11::module& m);
-void export_AnisoPotentialPairAlignGauss(pybind11::module& m);
-void export_AnisoPotentialPairAlignLJ(pybind11::module& m);
-void export_AnisoPotentialPairAlignMie(pybind11::module& m);
-void export_AnisoPotentialPairAlignYukawa(pybind11::module& m);
-void export_AnisoPotentialPairAlignInverse(pybind11::module& m);
-void export_AnisoPotentialPairAlignTable(pybind11::module& m);
+
+void export_AnisoPotentialPairElementPatchyExpandedGaussian(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyExpandedLJ(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyExpandedMie(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyGauss(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyLJ(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyMie(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyYukawa(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyInverse(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyTable(pybind11::module& m);
 
 void export_FrictionPairFrictionLJLinear(pybind11::module& m);
 void export_FrictionPairFrictionLJCoulomb(pybind11::module& m);
@@ -266,15 +267,15 @@ void export_AnisoPotentialPairPatchyYukawaGPU(pybind11::module& m);
 void export_AnisoPotentialPairPatchyInverseGPU(pybind11::module& m);
 void export_AnisoPotentialPairPatchyTableGPU(pybind11::module& m);
 
-void export_AnisoPotentialPairAlignExpandedGaussianGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignExpandedLJGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignExpandedMieGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignGaussGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignLJGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignMieGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignYukawaGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignInverseGPU(pybind11::module& m);
-void export_AnisoPotentialPairAlignTableGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyExpandedGaussianGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyExpandedLJGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyExpandedMieGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyGaussGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyLJGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyMieGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyYukawaGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyInverseGPU(pybind11::module& m);
+void export_AnisoPotentialPairElementPatchyTableGPU(pybind11::module& m);
 
 void export_FrictionPairFrictionLJLinearGPU(pybind11::module& m);
 void export_FrictionPairFrictionLJCoulombGPU(pybind11::module& m);
@@ -431,15 +432,16 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairPatchyYukawa(m);
     export_AnisoPotentialPairPatchyInverse(m);
     export_AnisoPotentialPairPatchyTable(m);
-    export_AnisoPotentialPairAlignExpandedGaussian(m);
-    export_AnisoPotentialPairAlignExpandedLJ(m);
-    export_AnisoPotentialPairAlignExpandedMie(m);
-    export_AnisoPotentialPairAlignGauss(m);
-    export_AnisoPotentialPairAlignLJ(m);
-    export_AnisoPotentialPairAlignMie(m);
-    export_AnisoPotentialPairAlignYukawa(m);
-    export_AnisoPotentialPairAlignInverse(m);
-    export_AnisoPotentialPairAlignTable(m);
+
+    export_AnisoPotentialPairElementPatchyExpandedGaussian(m);
+    export_AnisoPotentialPairElementPatchyExpandedLJ(m);
+    export_AnisoPotentialPairElementPatchyExpandedMie(m);
+    export_AnisoPotentialPairElementPatchyGauss(m);
+    export_AnisoPotentialPairElementPatchyLJ(m);
+    export_AnisoPotentialPairElementPatchyMie(m);
+    export_AnisoPotentialPairElementPatchyYukawa(m);
+    export_AnisoPotentialPairElementPatchyInverse(m);
+    export_AnisoPotentialPairElementPatchyTable(m);
 
     export_FrictionPairFrictionLJLinear(m);
     export_FrictionPairFrictionLJCoulomb(m);
@@ -554,16 +556,6 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairPatchyYukawaGPU(m);
     export_AnisoPotentialPairPatchyInverseGPU(m);
     export_AnisoPotentialPairPatchyTableGPU(m);
-
-    export_AnisoPotentialPairAlignExpandedGaussianGPU(m);
-    export_AnisoPotentialPairAlignExpandedLJGPU(m);
-    export_AnisoPotentialPairAlignExpandedMieGPU(m);
-    export_AnisoPotentialPairAlignGaussGPU(m);
-    export_AnisoPotentialPairAlignLJGPU(m);
-    export_AnisoPotentialPairAlignMieGPU(m);
-    export_AnisoPotentialPairAlignYukawaGPU(m);
-    export_AnisoPotentialPairAlignInverseGPU(m);
-    export_AnisoPotentialPairAlignTableGPU(m);
 
     export_PotentialBondHarmonicGPU(m);
     export_PotentialBondFENEGPU(m);

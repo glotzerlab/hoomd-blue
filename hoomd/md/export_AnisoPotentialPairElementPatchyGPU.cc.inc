@@ -6,12 +6,12 @@
 
 // clang-format off
 #include "hoomd/md/AnisoPotentialPairGPU.h"
-#include "hoomd/md/PairModulator.h"
-#include "hoomd/md/AlignEnvelope.h"
+#include "hoomd/md/PairElementModulator.h"
+#include "hoomd/md/PatchEnvelope.h"
 
 #include "hoomd/md/EvaluatorPair@_evaluator@.h"
 #define EVALUATOR_CLASS EvaluatorPair@_evaluator@
-#define EXPORT_FUNCTION export_AnisoPotentialPairAlign@_evaluator@GPU
+#define EXPORT_FUNCTION export_AnisoPotentialPairElementPatchy@_evaluator@GPU
 // clang-format on
 
 namespace hoomd
@@ -23,9 +23,9 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_AnisoPotentialPairGPU<PairModulator<EVALUATOR_CLASS, AlignEnvelope>>(
+    export_AnisoPotentialPairGPU<PairElementModulator<EVALUATOR_CLASS, PatchEnvelope>>(
         m,
-        "AnisoPotentialPairAlign@_evaluator@GPU");
+        "AnisoPotentialPairElementPatchy@_evaluator@GPU");
     }
 
     } // end namespace detail
