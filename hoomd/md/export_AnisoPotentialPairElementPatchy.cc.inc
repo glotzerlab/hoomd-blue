@@ -11,7 +11,7 @@
 
 #include "hoomd/md/EvaluatorPair@_evaluator@.h"
 #define EVALUATOR_CLASS EvaluatorPair@_evaluator@
-#define EXPORT_FUNCTION export_AnisoPotentialPairiElementPatchy@_evaluator@
+#define EXPORT_FUNCTION export_AnisoPotentialPairElementPatchy@_evaluator@
 // clang-format on
 
 namespace hoomd

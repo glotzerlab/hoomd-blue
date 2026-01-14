@@ -660,7 +660,10 @@ foreach(_evaluator ${_patchy_evaluators})
     endif()
 endforeach()
 
-foreach(_evaluator ${_patchy_evaluators})
+set(_patchy_element_evaluators LJ
+		       Inverse)
+
+foreach(_evaluator ${_patchy_element_evaluators})
     configure_file(export_AnisoPotentialPairElementPatchy.cc.inc
 	           export_AnisoPotentialPairElementPatchy${_evaluator}.cc
                    @ONLY)
@@ -674,7 +677,7 @@ foreach(_evaluator ${_patchy_evaluators})
                        @ONLY)
 	set(_md_sources ${_md_sources} export_AnisoPotentialPairElementPatchy${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-	AnisoPotentialPairElementPatchy${_evaluator}GPUKernel.cu)
+	    AnisoPotentialPairElementPatchy${_evaluator}GPUKernel.cu)
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
