@@ -224,6 +224,16 @@ void mpcd::Integrator::syncCellList()
         }
     }
 
+//! Set the rigid body definition for the collision method
+void mpcd::Integrator::setRigid(std::shared_ptr<hoomd::md::ForceComposite> new_rigid)
+    {
+    IntegratorTwoStep::setRigid(new_rigid);
+    if (m_collide)
+        {
+        m_collide->setRigid(new_rigid);
+        }
+    }
+
 namespace mpcd
     {
 namespace detail

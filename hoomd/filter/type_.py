@@ -24,8 +24,6 @@ class Type(ParticleFilter, ParticleFilterType):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Type`:
     """
 

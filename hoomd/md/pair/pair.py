@@ -32,8 +32,6 @@ class Pair(force.Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Pair`:
 
     .. py:attribute:: nlist
@@ -74,7 +72,6 @@ class Pair(force.Force):
     _doc_inherited = (
         force.Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Pair <hoomd.md.pair.Pair>`:
@@ -241,7 +238,6 @@ class LJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ`:
 
@@ -312,7 +308,6 @@ class Gaussian(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Gaussian`:
 
@@ -372,7 +367,6 @@ class ExpandedGaussian(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ExpandedGaussian`:
 
@@ -440,7 +434,6 @@ class ExpandedLJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ExpandedLJ`:
 
@@ -501,7 +494,6 @@ class Yukawa(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Yukawa`:
 
@@ -621,7 +613,6 @@ class Ewald(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Ewald`:
 
@@ -723,7 +714,6 @@ class Table(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Table`:
 
@@ -794,7 +784,6 @@ class Morse(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Morse`:
 
@@ -895,7 +884,6 @@ class DPD(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DPD`:
 
@@ -965,12 +953,12 @@ class DPDConservative(Pair):
         nl = nlist.Cell()
         dpdc = pair.DPDConservative(nlist=nl, default_r_cut=3.0)
         dpdc.params[("A", "A")] = dict(A=1.0)
-        dpdc.params[("A", "B")] = dict(A=2.0, r_cut=1.0)
+        dpdc.params[("A", "B")] = dict(A=2.0)
+        dpdc.r_cut[("A", "B")] = 1.0
         dpdc.params[(["A", "B"], ["C", "D"])] = dict(A=3.0)
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DPDConservative`:
 
@@ -1059,7 +1047,6 @@ class DPDLJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DPDLJ`:
 
@@ -1141,7 +1128,6 @@ class ForceShiftedLJ(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ForceShiftedLJ`:
 
@@ -1191,7 +1177,7 @@ class Moliere(Pair):
 
     .. math::
         U(r) = \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp
-          \left( -0.3 \frac{r_{ij}}{a_F} \right) + \\
+          \left( -0.3 \frac{r_{ij}}{a_F} \right) +
           0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp
           \left( -6.0 \frac{r_{ij}}{a_F} \right) \right]
 
@@ -1210,19 +1196,18 @@ class Moliere(Pair):
     Example::
 
         nl = nlist.Cell()
-        moliere = pair.Moliere(default_r_cut = 3.0, nlist=nl)
+        moliere = pair.Moliere(default_r_cut=3.0, nlist=nl)
 
         Zi = 54
         Zj = 7
         e = 1
         a0 = 1
-        aF = 0.8853 * a0 / (np.sqrt(Zi) + np.sqrt(Zj))**(2/3)
+        aF = 0.8853 * a0 / (np.sqrt(Zi) + np.sqrt(Zj)) ** (2 / 3)
 
-        moliere.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
+        moliere.params[("A", "B")] = dict(qi=Zi * e, qj=Zj * e, aF=aF)
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Moliere`:
 
@@ -1274,9 +1259,9 @@ class ZBL(Pair):
     .. math::
         U(r) =
           \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818
-          \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) \right. \\
-          + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) \\
-          + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) \\
+          \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) \right.
+          + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right)
+          + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right)
           + \left. 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right)
           \right]
 
@@ -1300,13 +1285,12 @@ class ZBL(Pair):
         Zj = 7
         e = 1
         a0 = 1
-        aF = 0.8853 * a0 / (Zi**(0.23) + Zj**(0.23))
+        aF = 0.8853 * a0 / (Zi ** (0.23) + Zj ** (0.23))
 
-        zbl.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
+        zbl.params[("A", "B")] = dict(qi=Zi * e, qj=Zj * e, aF=aF)
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ZBL`:
 
@@ -1370,7 +1354,6 @@ class Mie(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Mie`:
 
@@ -1448,7 +1431,6 @@ class ExpandedMie(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ExpandedMie`:
 
@@ -1539,7 +1521,6 @@ class ReactionField(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ReactionField`:
 
@@ -1590,14 +1571,12 @@ class DLVO(Pair):
     on every particle in the simulation state with:
 
     .. math::
-        \begin{split}
-        V_{\mathrm{DLVO}}(r) = &- \frac{A}{6} \left[
+        V_{\mathrm{DLVO}}(r) = - \frac{A}{6} \left[
             \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} +
-            \frac{2a_1a_2}{r^2 - (a_1-a_2)^2} \\
+            \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
             + \log \left(
-            \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right] \\
-            & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))}
-        \end{split}
+            \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right]
+            + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))}
 
     where :math:`a_1` is the radius of first particle in the pair, :math:`a_2`
     is the radius of second particle in the pair, :math:`A` is the Hamaker
@@ -1613,13 +1592,12 @@ class DLVO(Pair):
 
         nl = hoomd.md.nlist.Cell()
         dlvo = hoomd.md.pair.DLVO(nlist=nl)
-        dlvo.params[('A', 'A')] = dict(A=1.0, kappa=1.0, Z=2, a1=1, a2=1)
-        dlvo.params[('A', 'B')] = dict(A=2.0, kappa=0.5, Z=3, a1=1, a2=3)
-        dlvo.params[('B', 'B')] = dict(A=2.0, kappa=0.5, Z=3, a1=3, a2=3)
+        dlvo.params[("A", "A")] = dict(A=1.0, kappa=1.0, Z=2, a1=1, a2=1)
+        dlvo.params[("A", "B")] = dict(A=2.0, kappa=0.5, Z=3, a1=1, a2=3)
+        dlvo.params[("B", "B")] = dict(A=2.0, kappa=0.5, Z=3, a1=3, a2=3)
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DLVO`:
 
@@ -1693,7 +1671,6 @@ class Buckingham(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Buckingham`:
 
@@ -1753,7 +1730,6 @@ class LJ1208(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ1208`:
 
@@ -1814,7 +1790,6 @@ class LJ0804(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ0804`:
 
@@ -1882,7 +1857,6 @@ class Fourier(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Fourier`:
 
@@ -1955,7 +1929,6 @@ class OPP(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `OPP`:
 
@@ -2043,7 +2016,6 @@ class TWF(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `TWF`:
 
@@ -2114,7 +2086,6 @@ class LJGauss(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `TWF`:
 
@@ -2190,7 +2161,6 @@ class WangFrenkel(Pair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `WangFrenkel`:
 
@@ -2233,4 +2203,94 @@ class WangFrenkel(Pair):
             ),
         )
 
+        self._add_typeparam(params)
+
+
+class Zetterling(Pair):
+    r"""Zetterling pair potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `Zetterling` computes the oscillating pair force on all particles in the simulation
+    state:
+
+    .. math::
+        U(r) = A \frac{\exp{(\alpha r)\cos{(2 k_F r)}}}{r^3}
+              + B \left( \frac{\sigma}{r} \right)^n
+
+    The potential was introduced in `F. H. M. Zetterling, M. Dzugutov, and S. Lidin
+    2001`_.
+
+    .. _F. H. M. Zetterling, M. Dzugutov, and S. Lidin 2001:
+       https://doi.org/10.1557/PROC-643-K9.5
+
+    Example::
+
+        nl = nlist.Cell()
+        zetterling = pair.Zetterling(nl, default_r_cut=2.649, mode="shift")
+        zetterling.params[("A", "A")] = {
+            "A": 1.58,
+            "alpha": -0.22,
+            "kf": 4.12,
+            "B": 0.95533,
+            "sigma": 1.0,
+            "n": 18.0,
+        }
+        zetterling.r_cut[("A", "A")] = 2.649
+
+    {inherited}
+
+
+    **Members defined in** `Zetterling`:
+
+    .. py:attribute:: params
+
+        The Zetterling potential parameters. The dictionary has the following keys:
+
+        * ``A`` (`float`, **required**) -
+          Energy scale of the first term :math:`A`
+          :math:`[\\mathrm{energy}]`
+        * ``alpha`` (`float`, **required**) -
+          Screening factor :math:`\\alpha`
+          :math:`[\\mathrm{length}^{-1}]`
+        * ``kf`` (`float`, **required**) -
+          Wave number to mimic the Friedel oscillations effect :math:`k_F`
+          :math:`k_F` :math:`[\\mathrm{length}^{-1}]`.
+        * ``B`` (`float`, **required**) -
+          Energy scale of the second term :math:`B`
+          :math:`B` :math:`[\\mathrm{energy}]`.
+        * ``sigma`` (`float`, **required**) -
+          Repulsive core size :math:`\\sigma` :math:`[\\mathrm{length}]`
+        * ``n`` (`float`, **required**) -
+          The power to take \\sigma/r in the second term :math:`n`
+          :math:`[\\mathrm{dimensionless}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    _cpp_class_name = "PotentialPairZetterling"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                A=float,
+                alpha=float,
+                kf=float,
+                B=float,
+                sigma=float,
+                n=float,
+                len_keys=2,
+            ),
+        )
         self._add_typeparam(params)

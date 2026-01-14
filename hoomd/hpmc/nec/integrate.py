@@ -25,8 +25,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `HPMCNECIntegrator`:
     """
 
@@ -34,7 +32,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
     _doc_inherited = (
         HPMCIntegrator._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `HPMCNECIntegrator <hoomd.hpmc.nec.integrate.HPMCNECIntegrator>`:
@@ -207,8 +204,6 @@ class Sphere(HPMCNECIntegrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Sphere`:
 
     Attributes:
@@ -320,8 +315,6 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `ConvexPolyhedron`:
 

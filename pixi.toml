@@ -1,0 +1,51 @@
+[workspace]
+authors = ["Joshua A. Anderson <joaander@umich.edu>"]
+channels = ["conda-forge"]
+name = "hoomd-blue"
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+
+[tasks]
+
+[dependencies]
+cereal = "*"
+cmake = "*"
+eigen = "*"
+gsd = "*"
+h5py = "*"
+ninja = "*"
+numpy = "*"
+mpi4py = "*"
+openmpi = "*"
+pybind11 = "*"
+pytest = "*"
+rowan = "*"
+sybil = "*"
+bump-my-version = "*"
+
+[feature.py310.dependencies]
+python = "3.10.*"
+[feature.py311.dependencies]
+python = "3.11.*"
+[feature.py312.dependencies]
+python = "3.12.*"
+[feature.py313.dependencies]
+python = "3.13.*"
+[feature.docs.dependencies]
+python = "3.14.*"
+ipython = "*"
+nbconvert = "*"
+nbsphinx = "*"
+pandoc = "*"
+tornado = "*"
+[feature.docs.pypi-dependencies]
+sphinxcontrib-katex = "*"
+sphinx-copybutton = "*"
+furo = "*"
+
+
+[environments]
+py310 = ["py310"]
+py311 = ["py311"]
+py312 = ["py312"]
+py313 = ["py313"]
+docs = ["docs"]

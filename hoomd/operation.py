@@ -310,7 +310,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation, metaclass=Logg
         if self._use_count > 1:
             if simulation != self._simulation:
                 raise hoomd.error.SimulationDefinitionError(
-                    f"Cannot add {self} to multiple simulations simultaneously."
+                    f"Cannot add {self} to the simulation. It has been attached"
+                    "to a different simulation previously."
                 )
             return
         self._simulation = simulation
@@ -430,7 +431,6 @@ class AutotunedObject(_HOOMDBaseObject):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `AutotunedObject <hoomd.operation.AutotunedObject>`:
 
@@ -557,8 +557,6 @@ class TriggeredOperation(Operation):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `TriggeredOperation`:
 
     Attributes:
@@ -578,7 +576,6 @@ class TriggeredOperation(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `TriggeredOperation <hoomd.operation.TriggeredOperation>`:

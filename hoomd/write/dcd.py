@@ -66,8 +66,6 @@ class DCD(Writer):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `DCD`:
 
     Attributes:

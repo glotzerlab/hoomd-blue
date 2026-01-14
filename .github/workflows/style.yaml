@@ -1,0 +1,35 @@
+name: Style
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+
+  workflow_dispatch:
+
+  push:
+    branches:
+    - "trunk"
+
+jobs:
+  prek:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+    - name: prek
+      uses: glotzerlab/workflows/prek@2245be9e78600bf7846aaf9555da322446f46110 # 0.11.0
+
+  # This job is used to provide a single requirement for branch merge conditions.
+  tests_complete:
+    name: All style checks
+    if: always()
+    needs: [prek]
+    runs-on: ubuntu-24.04
+
+    steps:
+    - run: jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'
+    - name: Done
+      run: exit 0

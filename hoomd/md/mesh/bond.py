@@ -71,8 +71,6 @@ class Harmonic(MeshPotential):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:
@@ -122,7 +120,6 @@ class FENEWCA(MeshPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `FENEWCA`:
 
@@ -185,8 +182,6 @@ class Tether(MeshPotential):
         )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Tether`:
 

@@ -57,8 +57,6 @@ class RemoveDrift(Updater):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `RemoveDrift`:
 
     Attributes:

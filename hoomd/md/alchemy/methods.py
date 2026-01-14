@@ -22,8 +22,6 @@ class Alchemostat(Method):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Alchemostat`:
     """
 
@@ -34,7 +32,6 @@ class Alchemostat(Method):
     _doc_inherited = (
         Method._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Alchemostat <hoomd.md.alchemy.methods.Alchemostat>`:
@@ -106,7 +103,6 @@ class NVT(Alchemostat):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `NVT`:
 

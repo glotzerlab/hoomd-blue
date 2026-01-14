@@ -635,9 +635,9 @@ gpu_compute_pair_forces(const pair_args_t& pair_args,
     }
 #else
 template<class evaluator>
-__attribute__((visibility("default"))) hipError_t
-gpu_compute_pair_forces(const pair_args_t& pair_args,
-                        const typename evaluator::param_type* d_params);
+__attribute__((visibility("default")))
+hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
+                                   const typename evaluator::param_type* d_params);
 #endif
 
     } // end namespace kernel

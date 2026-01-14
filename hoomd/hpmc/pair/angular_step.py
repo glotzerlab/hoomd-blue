@@ -79,8 +79,6 @@ class AngularStep(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `AngularStep`:
 
     .. py:attribute:: mask

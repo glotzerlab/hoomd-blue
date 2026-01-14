@@ -92,7 +92,7 @@ class TestHoomdList(BaseListTest):
         assert all(item._isolated for item in remaining_items)
 
     def test_iadd(self, populated_collection):
-        test_list, plain_collection = populated_collection
+        _test_list, plain_collection = populated_collection
         data = self._data._sync_data["lists"]
         data[self._current_list] += [plain_collection[0]]
         assert len(data[self._current_list]) == len(plain_collection) + 1

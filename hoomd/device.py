@@ -104,11 +104,10 @@ class Device:
     provided status messages (`notice`).
 
     Warning:
-        `Device` cannot be used directly. Instiatate a `CPU` or `GPU` object.
+        `Device` cannot be used directly. Instantiate a `CPU` or `GPU` object.
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `Device <hoomd.device.Device>`:
 
@@ -333,8 +332,6 @@ class GPU(Device):
         gpu = hoomd.device.GPU()
 
     {inherited}
-
-    ----------
 
     **Members defined in** `GPU`:
     """

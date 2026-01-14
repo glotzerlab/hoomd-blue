@@ -1,9 +1,4 @@
-ci:
-  autoupdate_schedule: quarterly
-  autoupdate_branch: 'trunk-patch'
-  autofix_prs: false
-
-# these exclusions must be synced with ruff-format agove and the file ruff.toml.
+# these exclusions must be synced with ruff.toml.
 exclude: |
   (?x)(
     ^hoomd/_hoomd.py|
@@ -34,9 +29,8 @@ repos:
     pass_filenames: false
     always_run: true
     additional_dependencies:
-     - numpy==2.1.0
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v5.0.0'
+     - numpy==2.3.5
+- repo: builtin
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -44,7 +38,7 @@ repos:
     exclude_types: [svg]
   - id: check-json
   - id: check-yaml
-  - id: check-case-conflict
+    exclude: "\\.clang-format"
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
   rev: v0.4.1
@@ -64,18 +58,18 @@ repos:
     - --keep-before=#!
     - --keep-after=.. include
 - repo: https://github.com/kynan/nbstripout
-  rev: 0.8.1
+  rev: 0.8.2
   hooks:
     - id: nbstripout
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 'v0.11.4'
+  rev: v0.14.6
   hooks:
   - id: ruff-format
     types_or: [python]
-  - id: ruff
+  - id: ruff-check
     types_or: [python]
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v20.1.0
+  rev: v21.1.6
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

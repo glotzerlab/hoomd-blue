@@ -253,8 +253,6 @@ class MoveSize(_InternalCustomTuner):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `MoveSize`:
 
     Attributes:

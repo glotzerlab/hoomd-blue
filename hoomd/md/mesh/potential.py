@@ -26,8 +26,6 @@ class MeshPotential(Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `MeshPotential`:
     """
 
@@ -37,7 +35,6 @@ class MeshPotential(Force):
     _doc_inherited = (
         Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `MeshPotential <hoomd.md.mesh.MeshPotential>`:
@@ -50,6 +47,7 @@ class MeshPotential(Force):
     )
 
     def __init__(self, mesh):
+        super().__init__()
         self._mesh = validate_mesh(mesh)
 
     def _attach_hook(self):

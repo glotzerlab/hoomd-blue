@@ -97,8 +97,6 @@ class Union(Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Union`:
 
     .. py:attribute:: body

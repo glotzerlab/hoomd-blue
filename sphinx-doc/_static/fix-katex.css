@@ -1,0 +1,6 @@
+.katex .overlay {
+  background-color: transparent;
+  opacity: 1;
+  position: static;
+  transition: all 0s ease 0s;
+}

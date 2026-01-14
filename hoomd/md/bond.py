@@ -88,8 +88,6 @@ class Harmonic(Bond):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:
@@ -153,7 +151,6 @@ class FENEWCA(Bond):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `FENEWCA`:
 
@@ -246,7 +243,6 @@ class Table(Bond):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Table`:
 
@@ -349,8 +345,6 @@ class Tether(Bond):
                                                l_c0=1.8, l_max=2.1)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Tether`:
 

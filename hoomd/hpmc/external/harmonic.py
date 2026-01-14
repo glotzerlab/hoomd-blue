@@ -63,8 +63,6 @@ class Harmonic(External):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:

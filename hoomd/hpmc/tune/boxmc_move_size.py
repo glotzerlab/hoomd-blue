@@ -238,8 +238,6 @@ class BoxMCMoveSize(_InternalCustomTuner):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `BoxMCMoveSize`:
 
     Attributes:

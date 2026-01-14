@@ -157,7 +157,7 @@ def test_get_box(simulation_factory, get_snapshot, sys, box_resize):
 
 
 def test_update(simulation_factory, get_snapshot, sys):
-    sys1, _, sys2 = sys
+    _sys1, _, sys2 = sys
     sim = simulation_factory(get_snapshot())
     hoomd.update.BoxResize.update(sim.state, sys2[0])
 
@@ -217,7 +217,7 @@ def test_get_filter(device, get_snapshot, box_variant, trigger, filters):
 
 
 def test_update_filters(device, get_snapshot, sys, filters):
-    sys1, _, sys2 = sys
+    _sys1, _, sys2 = sys
     filter_scale, _ = filters
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())

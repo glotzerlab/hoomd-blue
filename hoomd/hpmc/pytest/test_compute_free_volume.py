@@ -114,3 +114,42 @@ def test_2d_free_volume(simulation_factory):
     f = free_volume.free_volume
     if snapshot.communicator.rank == 0:
         assert f == pytest.approx(expected=100 * 100 - math.pi, rel=1e-3)
+
+
+def test_free_volume_export_name_matches_integrator(
+    device, simulation_factory, two_particle_snapshot_factory, valid_args
+):
+    integrator = valid_args[0]
+    args = valid_args[1]
+    n_dimensions = valid_args[2]
+
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator()
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
+
+    if integrator == hoomd.hpmc.integrate.Sphinx and isinstance(
+        device, hoomd.device.GPU
+    ):
+        pytest.skip("Sphinx does not build on the GPU by default.")
+
+    mc = integrator()
+    mc.shape["A"] = args
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=n_dimensions))
+    assert sim.operations.integrator is None
+    sim.operations.add(mc)
+    sim.operations._schedule()
+
+    free_vol = hoomd.hpmc.compute.FreeVolume(test_particle_type="A", num_samples=10)
+    sim.operations.computes.append(free_vol)
+
+    try:
+        sim.run(1)
+    except AttributeError as e:
+        pytest.fail(
+            f"FreeVolume export class name mismatch for {integrator.__name__}: {e}"
+        )

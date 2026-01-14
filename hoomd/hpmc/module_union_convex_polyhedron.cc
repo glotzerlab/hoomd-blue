@@ -34,7 +34,7 @@ void export_union_convex_polyhedron(pybind11::module& m)
         "IntegratorHPMCMonoConvexPolyhedronUnion");
     export_ComputeFreeVolume<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "ComputeFreeVolumeConvexPolyhedronUnion");
+        "ComputeFreeVolumeConvexSpheropolyhedronUnion");
     export_ComputeSDF<ShapeUnion<ShapeSpheropolyhedron>>(m,
                                                          "ComputeSDFConvexSpheropolyhedronUnion");
     export_UpdaterMuVT<ShapeUnion<ShapeSpheropolyhedron>>(m,
@@ -52,7 +52,7 @@ void export_union_convex_polyhedron(pybind11::module& m)
         "IntegratorHPMCMonoConvexPolyhedronUnionGPU");
     export_ComputeFreeVolumeGPU<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "ComputeFreeVolumeConvexPolyhedronUnionGPU");
+        "ComputeFreeVolumeConvexSpheropolyhedronUnionGPU");
     export_UpdaterGCAGPU<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "UpdaterGCAConvexSpheropolyhedronUnionGPU");

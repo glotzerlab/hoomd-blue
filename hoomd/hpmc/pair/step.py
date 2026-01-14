@@ -42,13 +42,11 @@ class Step(Pair):
 
     .. code-block:: python
 
-        step =  hoomd.hpmc.pair.Step()
+        step = hoomd.hpmc.pair.Step()
         step.params[('A', 'A')] = dict(epsilon=[1, -1], r=[0.5, 1.5])
         simulation.operations.integrator.pair_potentials = [step]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Step`:
 

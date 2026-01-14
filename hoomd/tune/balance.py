@@ -77,8 +77,6 @@ class LoadBalancer(Tuner):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `LoadBalancer`:
 
     Attributes:

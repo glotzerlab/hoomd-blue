@@ -78,8 +78,6 @@ class FilterUpdater(hoomd.operation.Updater):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `FilterUpdater`:
     """
 

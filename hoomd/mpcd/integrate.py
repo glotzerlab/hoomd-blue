@@ -153,8 +153,6 @@ class Integrator(_MDIntegrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `hoomd.mpcd.Integrator`:
 
     Attributes:

@@ -46,10 +46,10 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
     GPUArray<Scalar> m_sum;         //!< memory space for sum over area
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute areas
-    virtual void precomputeParameter();
+    void precomputeParameter() override;
     };
 
 namespace detail

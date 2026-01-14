@@ -8,16 +8,13 @@ import hoomd
 from hoomd.data.array import HOOMDGPUArray
 import numpy as np
 import pytest
+import importlib.util
 
-try:
-    # This try block is purely to allow testing locally without mpi4py. We could
-    # require it for testing, and simplify the logic here. The CI containers all
-    # have mpi4py.
+skip_mpi4py = (
+    not hoomd.version.mpi_enabled or importlib.util.find_spec("mpi4py") is None
+)
+if not skip_mpi4py:
     from mpi4py import MPI
-except ImportError:
-    skip_mpi4py = True
-else:
-    skip_mpi4py = False
 
 skip_mpi4py = pytest.mark.skipif(skip_mpi4py, reason="mpi4py could not be imported.")
 
@@ -381,9 +378,9 @@ def check_shape(data, prop_dict, tags):
         if len(tags) == 0:
             assert data.shape == (0,)
         else:
-            assert data.shape == (len(tags),) + prop_dict["shape"][1:]
+            assert data.shape == (len(tags), *prop_dict["shape"][1:])
     else:
-        assert data.shape == (len(tags),) + prop_dict["shape"][1:]
+        assert data.shape == (len(tags), *prop_dict["shape"][1:])
 
 
 def check_getting(data, prop_dict, tags):

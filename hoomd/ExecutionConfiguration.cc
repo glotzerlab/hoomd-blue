@@ -388,8 +388,9 @@ void ExecutionConfiguration::scanGPUs()
         // exclude a GPU when it doesn't support mapped memory
 #ifdef __HIP_PLATFORM_NVCC__
         int supports_managed_memory = 0;
-        cudaError_t cuda_error
-            = cudaDeviceGetAttribute(&supports_managed_memory, cudaDevAttrManagedMemory, dev);
+        cudaError_t cuda_error = cudaDeviceGetAttribute(&supports_managed_memory,
+                                                        cudaDevAttrConcurrentManagedAccess,
+                                                        dev);
         if (cuda_error != cudaSuccess)
             {
             s_gpu_scan_messages.push_back("Failed to get device attribute: "

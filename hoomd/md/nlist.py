@@ -82,6 +82,7 @@ from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, nonnegative_real
 from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.operation import Compute
+import warnings
 import inspect
 
 
@@ -95,8 +96,6 @@ class NeighborList(Compute):
         for `isinstance` or `issubclass` checks.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `NeighborList`:
 
@@ -126,7 +125,6 @@ class NeighborList(Compute):
     _doc_inherited = (
         Compute._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `NeighborList <hoomd.md.nlist.NeighborList>`:
@@ -225,21 +223,32 @@ class NeighborList(Compute):
             buffer=float(buffer),
             rebuild_check_delay=int(rebuild_check_delay),
             check_dist=bool(check_dist),
+            mesh=validate_mesh,
         )
         params["exclusions"] = exclusions
+        params["mesh"] = mesh
         self._param_dict.update(params)
-
-        self._mesh = validate_mesh(mesh)
 
         self._in_context_manager = False
 
+        super().__init__()
+
     def _attach_hook(self):
-        if self._mesh is not None:
-            self._cpp_obj.addMesh(self._mesh._cpp_obj)
+        if self.mesh is not None:
+            if self.mesh._attached and self._simulation != self.mesh._simulation:
+                warnings.warn(
+                    f"{self} object is creating a new equivalent mesh structure."
+                    f" This is happending since the neighbor list is moving to"
+                    f" a new simulation. To suppress the warning explicitly set"
+                    f" a new mesh.",
+                    RuntimeWarning,
+                )
+            self.mesh._attach(self._simulation)
+            self._cpp_obj.addMesh(self.mesh._cpp_obj)
 
     def _detach_hook(self):
-        if self._mesh is not None:
-            self._mesh._detach_hook()
+        if self.mesh is not None:
+            self.mesh._detach_hook()
 
     @property
     def cpu_local_nlist_arrays(self):
@@ -462,7 +471,6 @@ class Cell(NeighborList):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Cell`:
 
@@ -576,8 +584,6 @@ class Stencil(NeighborList):
         `Stencil` in your research.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Stencil`:
 

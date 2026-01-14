@@ -58,6 +58,7 @@ The following people have contributed to HOOMD-blue:
 * James Antonaglia, University of Michigan
 * James Proctor, University of Michigan
 * James W. Swan, Massachusetts Institute of Technology
+* Jared Shi, University of Michigan
 * Jen Bradley, University of Michigan
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
@@ -65,6 +66,7 @@ The following people have contributed to HOOMD-blue:
 * Joseph Berleant, University of Michigan
 * Joseph Burkhart, University of Michigan
 * Joshua A. Anderson, University of Michigan
+* Kate Jensen, University of Michigan
 * Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
 * Kevin Kohlstedt, University of Michigan
@@ -72,6 +74,7 @@ The following people have contributed to HOOMD-blue:
 * Khalid Ahmed, University of Michigan
 * Kody Takada, University of Michigan
 * Kristi Pepa, University of Michigan
+* Kumpei Shiraishi, University of Osaka
 * Kwabena Darko, University of Houston
 * Kwanghwi Je, University of Michigan
 * Kieran Nehil-Puleo, Vanderbilt University
@@ -87,6 +90,7 @@ The following people have contributed to HOOMD-blue:
 * Michael Howard, Auburn University
 * Michaela Bush, Auburn University
 * Mike Henry, Boise State University
+* Ming Zhu, Wuhan University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
 * Nicholas Cal Craven, Vanderbilt University
@@ -110,6 +114,7 @@ The following people have contributed to HOOMD-blue:
 * Sam Nola, University of Michigan
 * Simone Ciarella, Eindhoven University of Technology
 * Shannon Moran, University of Michigan
+* Shawn Douglas, University of California, San Francisco
 * Sophie YouJung Lee, University of Michigan
 * Stephen Thomas, Boise State University
 * Steve Barr, Princeton University
@@ -131,3 +136,5 @@ The following people have contributed to HOOMD-blue:
 * Nathan Barrett, Pritzker School of Molecular Engineering
 * Domagoj Fijan, University of Michigan
 * Cristina Butu, Columbia University
+* Kay Hofmann, Johannes Gutenberg University Mainz
+* Shuo-Lin Weng, Texas A&M University

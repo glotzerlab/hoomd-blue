@@ -56,8 +56,6 @@ class Area(MeshConservationPotential):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Area`:
 
     Attributes:
@@ -121,7 +119,6 @@ class TriangleArea(MeshPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `TriangleArea`:
 
@@ -182,7 +179,6 @@ class Volume(MeshConservationPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Volume`:
 

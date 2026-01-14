@@ -37,8 +37,6 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `CustomOperation`:
     """
 
@@ -49,7 +47,6 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     _doc_inherited = (
         TriggeredOperation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `CustomOperation <hoomd.custom.CustomOperation>`:

@@ -7,6 +7,7 @@
  */
 
 #include <hipcub/hipcub.hpp>
+#include <thrust/iterator/counting_iterator.h>
 
 #include "RejectionVirtualParticleFillerGPU.cuh"
 
@@ -58,7 +59,7 @@ compact_virtual_particle_indices(void* d_tmp,
                                  unsigned int* d_keep_indices,
                                  unsigned int* d_num_keep)
     {
-    cub::CountingInputIterator<int> itr(0);
+    thrust::counting_iterator<int> itr(0);
     cub::DeviceSelect::Flagged(d_tmp,
                                tmp_bytes,
                                itr,

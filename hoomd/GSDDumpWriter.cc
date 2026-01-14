@@ -220,6 +220,8 @@ void GSDDumpWriter::setDynamic(pybind11::object dynamic)
 
 void GSDDumpWriter::flush()
     {
+    m_last_flush_time = m_exec_conf->getMPIConfig()->getWalltime();
+
     if (m_exec_conf->isRoot())
         {
         m_exec_conf->msg->notice(5) << "GSD: flush gsd file " << m_fname << endl;
@@ -234,10 +236,6 @@ void GSDDumpWriter::setMaximumWriteBufferSize(uint64_t size)
         {
         int retval = gsd_set_maximum_write_buffer_size(&m_handle, size);
         GSDUtils::checkError(retval, m_fname);
-
-        // Scale the index buffer entires to write with the write buffer.
-        retval = gsd_set_index_entries_to_buffer(&m_handle, size / 256);
-        GSDUtils::checkError(retval, m_fname);
         }
     }
 
@@ -251,6 +249,16 @@ uint64_t GSDDumpWriter::getMaximumWriteBufferSize()
         {
         return 0;
         }
+    }
+
+void GSDDumpWriter::setAutoFlushPeriod(double period)
+    {
+    m_auto_flush_period = period;
+    }
+
+double GSDDumpWriter::getAutoFlushPeriod()
+    {
+    return m_auto_flush_period;
     }
 
 //! Initializes the output file for writing
@@ -369,6 +377,12 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     populateLocalFrame(m_local_frame, timestep);
     auto log_data = getLogData();
     write(m_local_frame, log_data);
+
+    if (m_exec_conf->getMPIConfig()->getWalltime() > m_last_flush_time + m_auto_flush_period)
+        {
+        m_exec_conf->msg->notice(5) << "GSD: auto flush at step " << timestep << endl;
+        flush();
+        }
     }
 
 void GSDDumpWriter::write(GSDDumpWriter::GSDFrame& frame, pybind11::dict log_data)
@@ -1551,7 +1565,10 @@ void export_GSDDumpWriter(pybind11::module& m)
         .def("flush", &GSDDumpWriter::flush)
         .def_property("maximum_write_buffer_size",
                       &GSDDumpWriter::getMaximumWriteBufferSize,
-                      &GSDDumpWriter::setMaximumWriteBufferSize);
+                      &GSDDumpWriter::setMaximumWriteBufferSize)
+        .def_property("auto_flush_period",
+                      &GSDDumpWriter::getAutoFlushPeriod,
+                      &GSDDumpWriter::setAutoFlushPeriod);
     }
 
     } // end namespace detail

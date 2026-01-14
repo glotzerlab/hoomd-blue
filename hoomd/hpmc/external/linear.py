@@ -52,8 +52,6 @@ class Linear(External):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Linear`:
 
     .. py:attribute:: alpha

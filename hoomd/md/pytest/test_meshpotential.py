@@ -70,14 +70,6 @@ _TriangleAreaConservation_arg_list = [
     for val in zip(*_TriangleAreaConservation_args.values())
 ]
 
-_Helfrich_args = {
-    "k": [1.0, 20.0, 100.0],
-}
-_Helfrich_arg_list = [
-    (hoomd.md.mesh.bending.Helfrich, dict(zip(_Helfrich_args, val)))
-    for val in zip(*_Helfrich_args.values())
-]
-
 _Volume_args = {"k": [20.0, 50.0, 100.0], "V0": [0.107227, 1, 0.01]}
 _Volume_arg_list = [
     (hoomd.md.mesh.conservation.Volume, dict(zip(_Volume_args, val)))

@@ -20,23 +20,7 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
-import atexit
-import weakref
 import inspect
-
-# Track open gsd writers to flush at exit.
-_open_gsd_writers = []
-
-
-def _flush_open_gsd_writers():
-    """Flush all open gsd writers at exit."""
-    for weak_writer in _open_gsd_writers:
-        writer = weak_writer()
-        if writer is not None:
-            writer.flush()
-
-
-atexit.register(_flush_open_gsd_writers)
 
 
 def _array_to_strings(value):
@@ -49,12 +33,6 @@ def _array_to_strings(value):
         return string_list
     else:
         return value
-
-
-def _finalize_gsd(weak_writer, cpp_obj):
-    """Finalize a GSD writer."""
-    _open_gsd_writers.remove(weak_writer)
-    cpp_obj.flush()
 
 
 class GSD(Writer):
@@ -184,8 +162,6 @@ class GSD(Writer):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `GSD`:
 
     Attributes:
@@ -255,17 +231,80 @@ class GSD(Writer):
                 gsd.write_diameter = True
 
         maximum_write_buffer_size (int): Size (in bytes) to buffer in memory
-           before writing to the file.
+           before writing to the file. Defaults to 1 MiB.
+
+           .. rubric:: Example:
+
+           .. code-block:: python
+
+               gsd.maximum_write_buffer_size = 16 * 1024**2
+
+        auto_flush_period (float): Time (in seconds) to wait between automatic
+            calls to `flush()`. Defaults to 10 seconds.
 
             .. rubric:: Example:
 
             .. code-block:: python
 
-                gsd.maximum_write_buffer_size = 128 * 1024**2
+                gsd.auto_flush_period = 30
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
         "{inherited}", inspect.cleandoc(Writer._doc_inherited)
+    )
+
+    _doc_inherited = (
+        Writer._doc_inherited
+        + """
+
+    **Members inherited from** `GSD <hoomd.write.GSD>`:
+
+    .. py:attribute:: filename
+
+        File name to write (*read-only*).
+        `Read more... <hoomd.write.GSD.filename>`
+
+    .. py:attribute:: filter
+
+        Select the particles to write (*read-only*).
+        `Read more... <hoomd.write.GSD.filter>`
+
+    .. py:attribute:: mode
+
+        The file open mode (*read-only*).
+        `Read more... <hoomd.write.GSD.mode>`
+
+    .. py:attribute:: dynamic
+
+        Field names and/or field categores to save in all frames.
+        `Read more... <hoomd.write.GSD.dynamic>`
+
+    .. py:attribute:: write_diameter
+
+        When `False`, do not write ``particles/diameter``. Set to `True` to write
+        non-default particle diameters.
+        `Read more... <hoomd.write.GSD.write_diameter>`
+
+    .. py:attribute:: maximum_write_buffer_size
+
+        Size (in bytes) to buffer in memory before writing to the file.
+        `Read more... <hoomd.write.GSD.maximum_write_buffer_size>`
+
+    .. py:attribute:: auto_flush_period
+
+        Time (in seconds) to wait between automatic calls to `flush()`.
+        `Read more... <hoomd.write.GSD.auto_flush_period>`
+
+    .. py:property:: logger
+
+        Provide log quantities to write.
+        `Read more... <hoomd.write.GSD.logger>`
+
+    .. py:method:: flush
+
+        Flush the write buffer to the file.
+        `Read more... <hoomd.write.GSD.flush>`
+    """
     )
 
     def __init__(
@@ -313,7 +352,8 @@ class GSD(Writer):
                 truncate=bool(truncate),
                 dynamic=[dynamic_validation],
                 write_diameter=False,
-                maximum_write_buffer_size=64 * 1024 * 1024,
+                maximum_write_buffer_size=1024 * 1024,
+                auto_flush_period=10,
                 _defaults=dict(filter=filter, dynamic=dynamic),
             )
         )
@@ -331,13 +371,6 @@ class GSD(Writer):
         )
 
         self._cpp_obj.log_writer = self.logger
-
-        # Maintain a list of open gsd writers
-        weak_writer = weakref.ref(self)
-        _open_gsd_writers.append(weak_writer)
-        self._finalizer = (
-            weakref.finalize(self, _finalize_gsd, weak_writer, self._cpp_obj),
-        )
 
     @staticmethod
     def write(state, filename, filter=All(), mode="wb", logger=None):
@@ -392,15 +425,15 @@ class GSD(Writer):
     def flush(self):
         """Flush the write buffer to the file.
 
-        Example::
+        See Also:
+            Users should rarely, if ever, need to call `flush()`. GSD automatically
+            calls `flush()` every `auto_flush_period` seconds.
 
-            gsd_writer.flush()
+        .. rubric:: Example:
 
-        Flush all write buffers::
+        .. code-block:: python
 
-            for writer in simulation.operations.writers:
-                if hasattr(writer, "flush"):
-                    writer.flush()
+            gsd.flush()
         """
         if not self._attached:
             raise RuntimeError(
@@ -487,7 +520,7 @@ class _GSDLogWriter:
                     # This places logged quantities that are
                     # per-{particle,bond,...} into the correct GSD namespace
                     # log/particles/{remaining namespace}. This preserves OVITO
-                    # intergration.
+                    # integration.
                     if type_category in self._per_categories:
                         log[
                             "/".join(

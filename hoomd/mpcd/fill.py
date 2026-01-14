@@ -45,8 +45,6 @@ class VirtualParticleFiller(Operation):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `VirtualParticleFiller`:
 
     Attributes:
@@ -90,7 +88,6 @@ class VirtualParticleFiller(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `VirtualParticleFiller <hoomd.mpcd.fill.VirtualParticleFiller>`:
@@ -157,8 +154,6 @@ class GeometryFiller(VirtualParticleFiller):
         simulation.operations.integrator.virtual_particle_fillers = [filler]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `GeometryFiller`:
 

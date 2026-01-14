@@ -91,8 +91,6 @@ class Harmonic(Angle):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:
@@ -140,7 +138,6 @@ class CosineSquared(Angle):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CosineSquared`:
 
@@ -196,8 +193,6 @@ class Table(Angle):
     -\\frac{\\partial U}{\\partial \\theta}`.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Table`:
 

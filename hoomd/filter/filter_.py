@@ -23,7 +23,6 @@ class ParticleFilter(_hoomd.ParticleFilter):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `ParticleFilter <hoomd.filter.ParticleFilter>`:
 

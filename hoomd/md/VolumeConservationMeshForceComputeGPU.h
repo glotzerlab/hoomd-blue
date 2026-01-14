@@ -47,10 +47,10 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     GPUArray<Scalar> m_sum;         //!< memory space for sum over volume
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute volumes
-    virtual void computeVolume();
+    void precomputeParameter() override;
     };
 
 namespace detail

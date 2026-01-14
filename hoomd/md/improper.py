@@ -102,8 +102,6 @@ class Harmonic(Improper):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:
@@ -152,8 +150,6 @@ class Periodic(Improper):
         periodic.params["A-B-C-D"] = dict(k=1.0, n=1, chi0=0, d=1.0)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Periodic`:
 

@@ -152,9 +152,9 @@ class ScaleSolver(RootSolver):
         else:
             # y was zero. Try a value an order of magnitude smaller
             if self.correlation == "positive":
-                scale = 0.1
-            else:
                 scale = 1.1
+            else:
+                scale = 0.9
 
         if scale > self.max_scale:
             scale = self.max_scale
@@ -593,7 +593,6 @@ class GridOptimizer(Optimizer):
 
     def _get_bin_center(self, tunable, index):
         """Get the bin center for a given tunable and bin index."""
-        min_, max_ = tunable.domain
         return sum(self._bins[tunable][index : index + 2]) / 2
 
     def __eq__(self, other):

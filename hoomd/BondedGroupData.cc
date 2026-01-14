@@ -438,8 +438,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
     m_nglobal++;
 
     // notify observers
-    m_group_num_change_signal.emit();
-    notifyGroupReorder();
+    groupReorder();
 
     return tag;
     }
@@ -669,8 +668,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     m_nglobal--;
 
     // notify observers
-    m_group_num_change_signal.emit();
-    notifyGroupReorder();
+    groupReorder();
     }
 
 /*! \param name Type name
@@ -1299,8 +1297,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
         }
 
     // notify observers
-    m_group_num_change_signal.emit();
-    notifyGroupReorder();
+    groupReorder();
     }
 #endif
 

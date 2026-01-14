@@ -105,8 +105,6 @@ class LJ(SpecialPair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `LJ`:
 
     Attributes:
@@ -171,8 +169,6 @@ class Coulomb(SpecialPair):
         coulomb.r_cut['cluster'] = 2
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Coulomb`:
 

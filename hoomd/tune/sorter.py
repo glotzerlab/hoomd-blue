@@ -34,8 +34,6 @@ class ParticleSorter(Tuner):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ParticleSorter`:
 
     Attributes:
