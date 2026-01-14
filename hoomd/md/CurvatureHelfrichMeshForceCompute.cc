@@ -577,14 +577,6 @@ void CurvatureHelfrichMeshForceCompute::precomputeParameter()
 	local_norm.x = dab.x * dac.y - dab.y*dac.z;
 	local_norm.y = dab.x * dac.z - dab.z*dac.x;
 	local_norm.z = dab.y * dac.x - dab.x*dac.y;
-	//local_norm.x =  nab.y*nac.z-nab.x * nac.y ;
-	//local_norm.y =  nab.z*nac.x-nab.x * nac.z ;
-	//local_norm.z =  nab.x*nac.y-nab.y * nac.x ;
-	//Scalar L_norm_sq = local_norm.x  * local_norm.x + local_norm.y * local_norm.y + local_norm.z * local_norm.z;
-	//Scalar L_norm = sqrt(L_norm_sq);
-	//local_norm.x /= L_norm;
-	//local_norm.y /= L_norm;
-	//local_norm.z /= L_norm;
 	//
         if (idx_a < m_pdata->getN())
 	    {
@@ -786,8 +778,6 @@ Scalar CurvatureHelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     if ((h_rtag.data[idx_c] > h_params.data[type_id].tag_max) && (h_rtag.data[idx_d] > h_params.data[type_id].tag_max))
     {
     	eps_kT_new = h_params.data[type_id].eps_kT;
-	//std::cout << "eps kt old:" << eps_kT_old << " idx 1,2: " << h_rtag.data[idx_a] << "," << h_rtag.data[idx_b] << std::endl;
-	//std::cout << "eps kt new:" << eps_kT_new << " idx 3,4: " << h_rtag.data[idx_c] << "," << h_rtag.data[idx_d] << std::endl;
     }
 
 
@@ -1063,16 +1053,63 @@ Scalar CurvatureHelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 norm_b = h_norm.data[idx_b] ; // precomputed
     Scalar3 norm_c = h_norm.data[idx_c] ; // precomputed
     Scalar3 norm_d = h_norm.data[idx_d] ; // precomputed
+					  //
+    Scalar3 norm_a_n = h_norm.data[idx_a] ; // precomputed
+    Scalar3 norm_b_n = h_norm.data[idx_b] ; // precomputed
+    Scalar3 norm_c_n = h_norm.data[idx_c] ; // precomputed
+    Scalar3 norm_d_n = h_norm.data[idx_d] ; // precomputed
+					      //
+    Scalar3 norm_t1;
+    Scalar3 norm_t2;
+    Scalar3 norm_t3;
+    Scalar3 norm_t4;
+
+    //norm_t1.x = dab.x * dac.y - dab.y*dac.z;
+    //norm_t1.y = dab.x * dac.z - dab.z*dac.x;
+    //norm_t1.z = dab.y * dac.x - dab.x*dac.y;
+
+    //norm_t2.x = dad.x * dab.y - dad.y*dab.z;
+    //norm_t2.y = dad.x * dab.z - dad.z*dab.x;
+    //norm_t2.z = dad.y * dab.x - dad.x*dab.y;
+
+    //norm_t3.x = dad.x * dac.y - dad.y*dac.z;
+    //norm_t3.y = dad.x * dac.z - dad.z*dac.x;
+    //norm_t3.z = dad.y * dac.x - dad.x*dac.y;
+
+    //norm_t4.x = dbc.x * dbd.y - dbc.y*dbd.z;
+    //norm_t4.y = dbc.x * dbd.z - dbc.z*dbd.x;
+    //norm_t4.z = dbc.y * dbd.x - dbc.x*dbd.y;
+
+    norm_t1.x = dac.x * dab.y - dac.y*dab.z;
+    norm_t1.y = dac.x * dab.z - dac.z*dab.x;
+    norm_t1.z = dac.y * dab.x - dac.x*dab.y;
+
+    norm_t2.x = dab.x * dad.y - dab.y*dad.z;
+    norm_t2.y = dab.x * dad.z - dab.z*dad.x;
+    norm_t2.z = dab.y * dad.x - dab.x*dad.y;
+
+    norm_t3.x = dac.x * dad.y - dac.y*dad.z;
+    norm_t3.y = dac.x * dad.z - dac.z*dad.x;
+    norm_t3.z = dac.y * dad.x - dac.x*dad.y;
+
+    norm_t4.x = dbd.x * dbc.y - dbd.y*dbc.z;
+    norm_t4.y = dbd.x * dbc.z - dbd.z*dbc.x;
+    norm_t4.z = dbd.y * dbc.x - dbd.x*dbc.y;
+
+    norm_a_n += (norm_t3 - norm_t1 - norm_t2);
+    norm_b_n += (norm_t4 - norm_t1 - norm_t2);
+    norm_c_n += (norm_t4 + norm_t3 - norm_t1);
+    norm_d_n += (norm_t4 + norm_t3 - norm_t2);
 
     Scalar dot_norm_a = dot(norm_a,sigma_dash_a);
     Scalar dot_norm_b = dot(norm_b,sigma_dash_b);
     Scalar dot_norm_c = dot(norm_c,sigma_dash_c);
     Scalar dot_norm_d = dot(norm_d,sigma_dash_d);
 
-    Scalar dot_norm_a_n = dot(norm_a,sigma_dash_a_n);
-    Scalar dot_norm_b_n = dot(norm_b,sigma_dash_b_n);
-    Scalar dot_norm_c_n = dot(norm_c,sigma_dash_c_n);
-    Scalar dot_norm_d_n = dot(norm_d,sigma_dash_d_n);
+    Scalar dot_norm_a_n = dot(norm_a_n,sigma_dash_a_n);
+    Scalar dot_norm_b_n = dot(norm_b_n,sigma_dash_b_n);
+    Scalar dot_norm_c_n = dot(norm_c_n,sigma_dash_c_n);
+    Scalar dot_norm_d_n = dot(norm_d_n,sigma_dash_d_n);
 
     if (dot_norm_a < 0.0)
         {
