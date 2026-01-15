@@ -55,7 +55,7 @@ jsonschema==4.26.0
     # via nbformat
 jsonschema-specifications==2025.9.1
     # via jsonschema
-jupyter-client==8.7.0
+jupyter-client==8.8.0
     # via nbclient
 jupyter-core==5.9.1
     # via
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.8
     # via -r sphinx-doc/requirements.in
-numpy==2.4.0
+numpy==2.4.1
     # via -r sphinx-doc/requirements.in
 packaging==25.0
     # via
