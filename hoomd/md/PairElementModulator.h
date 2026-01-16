@@ -53,8 +53,12 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairElement
             {
             pair_p = typename PairEvaluator::param_type(params["pair_params"], managed);
             envel_p = typename DirectionalEnvelope::param_type(params["envelope_params"]);
-	    off_diag_ratio = params["off_diag"].cast<Scalar>();
-	    on_diag_ratio = params["on_diag"].cast<Scalar>();
+	    unsigned int i = 0;
+	    for (auto it : params["patch_matrix"])
+	    {
+		    p_matrix[i] = it.cast<Scalar>();
+		    i++;
+	    }
             }
 
         pybind11::dict toPython()
@@ -63,8 +67,8 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairElement
 
             v["pair_params"] = pair_p.asDict();
             v["envelope_params"] = envel_p.toPython();
-            v["on_diag"] = on_diag_ratio;
-            v["off_diag"] = off_diag_ratio;
+	    v["patch_matrix"] = pybind11::cast(p_matrix);
+	    
 
             return v;
             }
@@ -88,8 +92,7 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairElement
 #endif
         typename PairEvaluator::param_type pair_p;
         typename DirectionalEnvelope::param_type envel_p;
-	Scalar off_diag_ratio;
-	Scalar on_diag_ratio;
+	Scalar p_matrix[16];
         };
 
     struct shape_type
@@ -210,6 +213,8 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairElement
         torque_i = make_scalar3(0, 0, 0);
         torque_j = make_scalar3(0, 0, 0);
 
+	unsigned int counter = 0;
+
         for (unsigned int envelope_i = 0; envelope_i < shape_i->envelope.size(); envelope_i++)
             {
             for (unsigned int envelope_j = 0; envelope_j < shape_j->envelope.size(); envelope_j++)
@@ -240,16 +245,20 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairElement
                                                shape_j->envelope[envelope_j]);
                 envel_eval.setCharge(m_charge_i, m_charge_j);
 
-		if ( envelope_i == envelope_j)
-		{
-			force_divr *= params.on_diag_ratio;
-			this_pair_eng *= params.on_diag_ratio;
-		}
-		else
-		{
-			force_divr *= params.off_diag_ratio;
-			this_pair_eng *= params.off_diag_ratio;
-		}
+		force_divr *= params.p_matrix[counter];
+		this_pair_eng *= params.p_matrix[counter];
+		counter++;
+
+		//if ( envelope_i == envelope_j)
+		//{
+		//	force_divr *= params.on_diag_ratio;
+		//	this_pair_eng *= params.on_diag_ratio;
+		//}
+		//else
+		//{
+		//	force_divr *= params.off_diag_ratio;
+		//	this_pair_eng *= params.off_diag_ratio;
+		//}
 
                 // compute envelope
                 // this_torque_i and this_torque_j get populated with the
