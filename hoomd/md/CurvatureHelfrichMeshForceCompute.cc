@@ -333,6 +333,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 		eps_kT = h_params.data[meshbond_type].eps_kT;
 	}
 
+
         Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a] ; // precomputed
         Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b] ; // precomputed
         Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c] ; // precomputed
@@ -342,6 +343,23 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 norm_b = h_norm.data[idx_b] ; // precomputed
         Scalar3 norm_c = h_norm.data[idx_c] ; // precomputed
         Scalar3 norm_d = h_norm.data[idx_d] ; // precomputed
+	//std::cout << "tag a:" << h_tag.data[idx_a]<< " norm_a: " << norm_a.x << ","<< norm_a.y << ","<< norm_a.z << "," <<  std::endl;
+					      //
+        Scalar rsq_a =norm_a.x*norm_a.x +norm_a.y*norm_a.y+norm_a.z*norm_a.z; // precomputed
+        Scalar rsq_b =norm_b.x*norm_b.x +norm_b.y*norm_b.y+norm_b.z*norm_b.z; // precomputed
+        Scalar rsq_c =norm_c.x*norm_c.x +norm_c.y*norm_c.y+norm_c.z*norm_c.z; // precomputed
+        Scalar rsq_d =norm_d.x*norm_d.x +norm_d.y*norm_d.y+norm_d.z*norm_d.z; // precomputed
+									      //
+        Scalar r_a =sqrt(rsq_a); // precomputed
+        Scalar r_b =sqrt(rsq_b); // precomputed
+        Scalar r_c =sqrt(rsq_c); // precomputed
+        Scalar r_d =sqrt(rsq_d); // precomputed
+				 //
+        norm_a /= r_a; // precomputed
+        norm_b /= r_b; // precomputed
+        norm_c /= r_c; // precomputed
+        norm_d /= r_d; // precomputed
+				 //
 
         Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
         Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
@@ -375,16 +393,6 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
         Scalar inv_sigma_d = 1.0 / sigma_d;
-
-	// we now compute the sign of this contribution to the curvature based on the normal
-	// of the face of the triangle associated with this bond
-	//Scalar3 local_norm;
-	//local_norm.x = nab.y*nac.z - nab.x * nac.y;
-	//local_norm.y = nab.z*nac.x - nab.x * nac.z;
-	//local_norm.z = nab.x*nac.y - nab.y * nac.x;
-	//local_norm.x = nab.x * nac.y - nab.y*nac.z;
-	//local_norm.y = nab.x * nac.z - nab.z*nac.x;
-	//local_norm.z = nab.y * nac.x - nab.x*nac.y;
 
 	Scalar dot_norm_a = dot(norm_a,sigma_dash_a);
 	Scalar dot_norm_b = dot(norm_b,sigma_dash_b);
@@ -430,10 +438,15 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar C0_sq_c = 4.0 * C0_c * C0_c;
 	Scalar C0_sq_d = 4.0 * C0_d * C0_d;
 
-        Scalar sigma_dash_a2 = 0.5 * (sq_gauss_curv_H_a - 4 * sign_a * gauss_curv_H_a * C0_a + C0_sq_a) * inv_sigma_a * inv_sigma_a;
-        Scalar sigma_dash_b2 = 0.5 * (sq_gauss_curv_H_b - 4 * sign_b * gauss_curv_H_b * C0_b + C0_sq_b) * inv_sigma_b * inv_sigma_b;
-        Scalar sigma_dash_c2 = 0.5 * (sq_gauss_curv_H_c - 4 * sign_c * gauss_curv_H_c * C0_c + C0_sq_c) * inv_sigma_c * inv_sigma_c;
-        Scalar sigma_dash_d2 = 0.5 * (sq_gauss_curv_H_d - 4 * sign_d * gauss_curv_H_d * C0_d + C0_sq_d) * inv_sigma_d * inv_sigma_d;
+        Scalar sigma_dash_a2 = 0.5 * (sq_gauss_curv_H_a - 4 * sign_a * gauss_curv_H_a * C0_a + C0_sq_a*sigma_a) * inv_sigma_a * inv_sigma_a;
+        Scalar sigma_dash_b2 = 0.5 * (sq_gauss_curv_H_b - 4 * sign_b * gauss_curv_H_b * C0_b + C0_sq_b*sigma_b) * inv_sigma_b * inv_sigma_b;
+        Scalar sigma_dash_c2 = 0.5 * (sq_gauss_curv_H_c - 4 * sign_c * gauss_curv_H_c * C0_c + C0_sq_c*sigma_c) * inv_sigma_c * inv_sigma_c;
+        Scalar sigma_dash_d2 = 0.5 * (sq_gauss_curv_H_d - 4 * sign_d * gauss_curv_H_d * C0_d + C0_sq_d*sigma_d) * inv_sigma_d * inv_sigma_d;
+
+        //Scalar sigma_dash_a2 = 0.5 * (sq_gauss_curv_H_a) * inv_sigma_a * inv_sigma_a;
+        //Scalar sigma_dash_b2 = 0.5 * (sq_gauss_curv_H_b) * inv_sigma_b * inv_sigma_b;
+        //Scalar sigma_dash_c2 = 0.5 * (sq_gauss_curv_H_c) * inv_sigma_c * inv_sigma_c;
+        //Scalar sigma_dash_d2 = 0.5 * (sq_gauss_curv_H_d) * inv_sigma_d * inv_sigma_d;
 
         Scalar3 Fa;
 	Scalar3 grad_Ha;
@@ -453,6 +466,20 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         grad_Ha.z += (sign_c*gauss_curv_H_c - 2 * C0_c)*(dsigma_dash_c * inv_sigma_c * sigma_dash_c.z)/(gauss_curv_H_c*sign_c);
         grad_Ha.z += (sign_d*gauss_curv_H_d - 2 * C0_d)*(dsigma_dash_d * inv_sigma_d * sigma_dash_d.z)/(gauss_curv_H_d*sign_d);
 
+        //grad_Ha.x =  dsigma_dash_a * inv_sigma_a * sigma_dash_a.x ;
+        //grad_Ha.x += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.x);
+        //grad_Ha.x += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.x);
+        //grad_Ha.x += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.x);
+
+        //grad_Ha.y =  dsigma_dash_a * inv_sigma_a * sigma_dash_a.y  ;
+        //grad_Ha.y += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.y);
+        //grad_Ha.y += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.y);
+        //grad_Ha.y += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.y);
+
+        //grad_Ha.z =   dsigma_dash_a * inv_sigma_a * sigma_dash_a.z ;
+        //grad_Ha.z += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.z);
+        //grad_Ha.z += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.z);
+        //grad_Ha.z += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.z);
 
         Fa.x =   (grad_Ha.x) - sigma_dash_a2 * dsigma_a.x;
         Fa.x -= (sigma_dash_b2 * dsigma_b.x);
@@ -468,6 +495,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Fa.z -= (sigma_dash_b2 * dsigma_b.z);
         Fa.z -= (sigma_dash_c2 * dsigma_c.z);
         Fa.z -= (sigma_dash_d2 * dsigma_d.z);
+
 
 
         Fa *= h_params.data[meshbond_type].k;
@@ -490,7 +518,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
             h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
-                                     * (sq_gauss_curv_H_a - 4* sign_a * C0_a*gauss_curv_H_a + C0_sq_a)  * inv_sigma_a + eps_kT);
+                                     * (sq_gauss_curv_H_a - 4 * C0_a + C0_sq_a)  * inv_sigma_a + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -501,7 +529,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
             h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
-                                     * (sq_gauss_curv_H_b - 4* sign_b * C0_b*gauss_curv_H_b + C0_sq_b) + eps_kT);
+                                     * (sq_gauss_curv_H_b - 4 * C0_b + C0_sq_b) * inv_sigma_b + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -564,19 +592,19 @@ void CurvatureHelfrichMeshForceCompute::precomputeParameter()
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rab = sqrt(rsqab);
-        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        Scalar rac = sqrt(rsqac);
+        //Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        //Scalar rab = sqrt(rsqab);
+        //Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        //Scalar rac = sqrt(rsqac);
 
         Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
+        nab = dab;// / rab;
+        nac = dac;// / rac;
 
 	Scalar3 local_norm;
-	local_norm.x = dab.x * dac.y - dab.y*dac.z;
-	local_norm.y = dab.x * dac.z - dab.z*dac.x;
-	local_norm.z = dab.y * dac.x - dab.x*dac.y;
+	local_norm.x = dac.y * dab.z - dac.z * dab.y;
+	local_norm.y = dac.z * dab.x - dac.x * dab.z;
+	local_norm.z = dac.x * dab.y - dac.y * dab.x;
 	//
         if (idx_a < m_pdata->getN())
 	    {
@@ -1064,37 +1092,37 @@ Scalar CurvatureHelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 norm_t3;
     Scalar3 norm_t4;
 
-    //norm_t1.x = dab.x * dac.y - dab.y*dac.z;
-    //norm_t1.y = dab.x * dac.z - dab.z*dac.x;
-    //norm_t1.z = dab.y * dac.x - dab.x*dac.y;
+    norm_t1.x = dab.x * dac.y - dab.y*dac.z;
+    norm_t1.y = dab.x * dac.z - dab.z*dac.x;
+    norm_t1.z = dab.y * dac.x - dab.x*dac.y;
 
-    //norm_t2.x = dad.x * dab.y - dad.y*dab.z;
-    //norm_t2.y = dad.x * dab.z - dad.z*dab.x;
-    //norm_t2.z = dad.y * dab.x - dad.x*dab.y;
+    norm_t2.x = dad.x * dab.y - dad.y*dab.z;
+    norm_t2.y = dad.x * dab.z - dad.z*dab.x;
+    norm_t2.z = dad.y * dab.x - dad.x*dab.y;
 
-    //norm_t3.x = dad.x * dac.y - dad.y*dac.z;
-    //norm_t3.y = dad.x * dac.z - dad.z*dac.x;
-    //norm_t3.z = dad.y * dac.x - dad.x*dac.y;
+    norm_t3.x = dad.x * dac.y - dad.y*dac.z;
+    norm_t3.y = dad.x * dac.z - dad.z*dac.x;
+    norm_t3.z = dad.y * dac.x - dad.x*dac.y;
 
-    //norm_t4.x = dbc.x * dbd.y - dbc.y*dbd.z;
-    //norm_t4.y = dbc.x * dbd.z - dbc.z*dbd.x;
-    //norm_t4.z = dbc.y * dbd.x - dbc.x*dbd.y;
+    norm_t4.x = dbc.x * dbd.y - dbc.y*dbd.z;
+    norm_t4.y = dbc.x * dbd.z - dbc.z*dbd.x;
+    norm_t4.z = dbc.y * dbd.x - dbc.x*dbd.y;
 
-    norm_t1.x = dac.x * dab.y - dac.y*dab.z;
-    norm_t1.y = dac.x * dab.z - dac.z*dab.x;
-    norm_t1.z = dac.y * dab.x - dac.x*dab.y;
+    //norm_t1.x = dac.x * dab.y - dac.y*dab.z;
+    //norm_t1.y = dac.x * dab.z - dac.z*dab.x;
+    //norm_t1.z = dac.y * dab.x - dac.x*dab.y;
 
-    norm_t2.x = dab.x * dad.y - dab.y*dad.z;
-    norm_t2.y = dab.x * dad.z - dab.z*dad.x;
-    norm_t2.z = dab.y * dad.x - dab.x*dad.y;
+    //norm_t2.x = dab.x * dad.y - dab.y*dad.z;
+    //norm_t2.y = dab.x * dad.z - dab.z*dad.x;
+    //norm_t2.z = dab.y * dad.x - dab.x*dad.y;
 
-    norm_t3.x = dac.x * dad.y - dac.y*dad.z;
-    norm_t3.y = dac.x * dad.z - dac.z*dad.x;
-    norm_t3.z = dac.y * dad.x - dac.x*dad.y;
+    //norm_t3.x = dac.x * dad.y - dac.y*dad.z;
+    //norm_t3.y = dac.x * dad.z - dac.z*dad.x;
+    //norm_t3.z = dac.y * dad.x - dac.x*dad.y;
 
-    norm_t4.x = dbd.x * dbc.y - dbd.y*dbc.z;
-    norm_t4.y = dbd.x * dbc.z - dbd.z*dbc.x;
-    norm_t4.z = dbd.y * dbc.x - dbd.x*dbc.y;
+    //norm_t4.x = dbd.x * dbc.y - dbd.y*dbc.z;
+    //norm_t4.y = dbd.x * dbc.z - dbd.z*dbc.x;
+    //norm_t4.z = dbd.y * dbc.x - dbd.x*dbc.y;
 
     norm_a_n += (norm_t3 - norm_t1 - norm_t2);
     norm_b_n += (norm_t4 - norm_t1 - norm_t2);
