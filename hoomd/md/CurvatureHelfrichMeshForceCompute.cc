@@ -1092,21 +1092,21 @@ Scalar CurvatureHelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 norm_t3;
     Scalar3 norm_t4;
 
-    norm_t1.x = dab.x * dac.y - dab.y*dac.z;
-    norm_t1.y = dab.x * dac.z - dab.z*dac.x;
-    norm_t1.z = dab.y * dac.x - dab.x*dac.y;
+    norm_t1.x = dac.y * dab.z - dac.z * dab.y;
+    norm_t1.y = dac.z * dab.x - dac.x * dab.z;
+    norm_t1.z = dac.x * dab.y - dac.y * dab.x;
 
-    norm_t2.x = dad.x * dab.y - dad.y*dab.z;
-    norm_t2.y = dad.x * dab.z - dad.z*dab.x;
-    norm_t2.z = dad.y * dab.x - dad.x*dab.y;
+    norm_t2.x = dab.y * dad.z - dab.z * dad.y;
+    norm_t2.y = dab.z * dad.x - dab.x * dad.z;
+    norm_t2.z = dab.x * dad.y - dab.y * dad.x;
 
-    norm_t3.x = dad.x * dac.y - dad.y*dac.z;
-    norm_t3.y = dad.x * dac.z - dad.z*dac.x;
-    norm_t3.z = dad.y * dac.x - dad.x*dac.y;
+    norm_t3.x = dac.y * dad.z - dac.z * dad.y;
+    norm_t3.y = dac.z * dad.x - dac.x * dad.z;
+    norm_t3.z = dac.x * dad.y - dac.y * dad.x;
 
-    norm_t4.x = dbc.x * dbd.y - dbc.y*dbd.z;
-    norm_t4.y = dbc.x * dbd.z - dbc.z*dbd.x;
-    norm_t4.z = dbc.y * dbd.x - dbc.x*dbd.y;
+    norm_t4.x = dbd.y * dbc.z - dbd.z * dbc.y;
+    norm_t4.y = dbd.z * dbc.x - dbd.x * dbc.z;
+    norm_t4.z = dbd.x * dbc.y - dbd.y * dbc.x;
 
     //norm_t1.x = dac.x * dab.y - dac.y*dab.z;
     //norm_t1.y = dac.x * dab.z - dac.z*dab.x;
