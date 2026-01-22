@@ -88,7 +88,7 @@ nbsphinx==0.9.8
     # via -r sphinx-doc/requirements.in
 numpy==2.4.1
     # via -r sphinx-doc/requirements.in
-packaging==25.0
+packaging==26.0
     # via
     #   nbconvert
     #   sphinx
@@ -140,7 +140,7 @@ six==1.17.0
     # via python-dateutil
 snowballstemmer==3.0.1
     # via sphinx
-soupsieve==2.8.1
+soupsieve==2.8.3
     # via beautifulsoup4
 sphinx==9.1.0
     # via
@@ -195,7 +195,7 @@ typing-extensions==4.15.0
     # via beautifulsoup4
 urllib3==2.6.3
     # via requests
-wcwidth==0.2.14
+wcwidth==0.3.0
     # via prompt-toolkit
 webencodings==0.5.1
     # via
