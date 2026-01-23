@@ -237,8 +237,8 @@ void MeshDefinition::createMeshNeighborhood()
 
 void MeshDefinition::createMeshTriangleList()
     {
-    unsigned int len_triang = m_meshtriangle_data->getNGlobal()*3;
-    GPUArray<unsigned int> trilist (len_triang, m_sysdef->getParticleData()->getExecConf());
+    unsigned int len_triang = m_meshtriangle_data->getNGlobal() * 3;
+    GPUArray<unsigned int> trilist(len_triang, m_sysdef->getParticleData()->getExecConf());
     m_trilist.swap(trilist);
 
     unsigned int NGlobal = m_sysdef->getParticleData()->getNGlobal();
@@ -249,23 +249,19 @@ void MeshDefinition::createMeshTriangleList()
     m_head_triangles.swap(head_triangles);
 
     updateMeshTriangleList();
-
     }
 
 void MeshDefinition::updateMeshTriangleList()
     {
-
-    ArrayHandle<unsigned int> h_trilist(m_trilist,
-                                       access_location::host,
-                                       access_mode::readwrite);
+    ArrayHandle<unsigned int> h_trilist(m_trilist, access_location::host, access_mode::readwrite);
 
     ArrayHandle<unsigned int> h_n_triangles(m_n_triangles,
-                                       access_location::host,
-                                       access_mode::readwrite);
+                                            access_location::host,
+                                            access_mode::readwrite);
 
     ArrayHandle<unsigned int> h_head_triangles(m_head_triangles,
-                                       access_location::host,
-                                       access_mode::readwrite);
+                                               access_location::host,
+                                               access_mode::readwrite);
 
     m_trilist.zeroFill();
     m_n_triangles.zeroFill();
@@ -278,31 +274,30 @@ void MeshDefinition::updateMeshTriangleList()
     for (unsigned int i = 0; i < m_meshtriangle_data->getNGlobal(); i++)
         {
         const typename Angle::members_t& triangle = h_triangles.data[i];
-        h_n_triangles.data[triangle.tag[0]] +=1;
-        h_n_triangles.data[triangle.tag[1]] +=1;
-        h_n_triangles.data[triangle.tag[2]] +=1;
+        h_n_triangles.data[triangle.tag[0]] += 1;
+        h_n_triangles.data[triangle.tag[1]] += 1;
+        h_n_triangles.data[triangle.tag[2]] += 1;
         }
 
     h_head_triangles.data[0] = 0;
     std::vector<unsigned int> counter(m_sysdef->getParticleData()->getNGlobal());
-    counter[0]=0;
+    counter[0] = 0;
     for (unsigned int i = 1; i < m_sysdef->getParticleData()->getNGlobal(); i++)
         {
-        h_head_triangles.data[i] = h_head_triangles.data[i-1] + h_n_triangles.data[i-1];
+        h_head_triangles.data[i] = h_head_triangles.data[i - 1] + h_n_triangles.data[i - 1];
         counter[i] = 0;
         }
-
 
     for (unsigned int i = 0; i < m_meshtriangle_data->getNGlobal(); i++)
         {
         const typename Angle::members_t& triangle = h_triangles.data[i];
 
         for (unsigned int j = 0; j < 3; j++)
-        	{
-        	unsigned int vertex = triangle.tag[j];
-        	h_trilist.data[h_head_triangles.data[vertex]+counter[vertex]]=i;
-        	counter[vertex]+=1;
-        	}
+            {
+            unsigned int vertex = triangle.tag[j];
+            h_trilist.data[h_head_triangles.data[vertex] + counter[vertex]] = i;
+            counter[vertex] += 1;
+            }
         }
     }
 

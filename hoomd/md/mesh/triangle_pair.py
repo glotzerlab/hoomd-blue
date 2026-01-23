@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MeshTrianglePair forces."""
@@ -12,7 +12,6 @@ from hoomd.md import _md
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-import numpy as np
 from hoomd.data.typeconverter import (
     OnlyFrom,
     nonnegative_real,
@@ -93,7 +92,7 @@ class MeshTrianglePair(MeshPotential):
     # external plugin.
     _ext_module = _md
 
-    def __init__(self, nlist, mesh,default_r_cut=None, default_nlist_r_cut=None):
+    def __init__(self, nlist, mesh, default_r_cut=None, default_nlist_r_cut=None):
         super().__init__(mesh)
         tp_r_cut = TypeParameter(
             "r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=1)
@@ -102,12 +101,14 @@ class MeshTrianglePair(MeshPotential):
             tp_r_cut.default = default_r_cut
 
         tp_nlist_r_cut = TypeParameter(
-            "nlist_r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=2)
+            "nlist_r_cut",
+            "particle_types",
+            TypeParameterDict(nonnegative_real, len_keys=2),
         )
         if default_nlist_r_cut is not None:
             tp_nlist_r_cut.default = default_nlist_r_cut
 
-        type_params = [tp_r_cut,tp_nlist_r_cut]
+        type_params = [tp_r_cut, tp_nlist_r_cut]
 
         self._extend_typeparam(type_params)
         self._param_dict.update(
@@ -136,7 +137,11 @@ class MeshTrianglePair(MeshPotential):
         else:
             cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
         self.nlist._cpp_obj.setStorageMode(_md.NeighborList.storageMode.full)
-        self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,self._mesh._cpp_obj)
+        self._cpp_obj = cls(
+            self._simulation.state._cpp_sys_def,
+            self.nlist._cpp_obj,
+            self._mesh._cpp_obj,
+        )
 
     def _detach_hook(self):
         self.nlist._detach()
@@ -173,8 +178,8 @@ class WCA(MeshTrianglePair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `WCA` computes the Weeks-Chandler-Andersen pair force between the mesh and every particle in the
-    simulation state.
+    `WCA` computes the Weeks-Chandler-Andersen pair force between the mesh and
+    every particle in the simulation state.
 
     .. math::
         U(r) = 4 \varepsilon \left[ \left(
@@ -227,6 +232,7 @@ class WCA(MeshTrianglePair):
             TypeParameterDict(epsilon=float, sigma=float, len_keys=1),
         )
         self._add_typeparam(params)
+
 
 __all__ = [
     "WCA",

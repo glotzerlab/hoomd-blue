@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // See md/CMakeLists.txt for the source of these variables to be processed by CMake's
@@ -20,21 +20,23 @@ namespace md
 namespace kernel
     {
 template __attribute__((visibility("default"))) hipError_t
-gpu_compute_mesh_triangle_triangles_force<EVALUATOR_CLASS>(const kernel::meshtriangle_args_t& meshtriangle_args,
-					    const unsigned int threads_per_particle,
-                                            const typename EVALUATOR_CLASS::param_type* d_params,
-                                            const group_storage<3>* tlist,
-					    const unsigned int* tpos_list,
-					    const Index2D tlist_idx,
-					    const unsigned int* n_triangles_list);
+gpu_compute_mesh_triangle_triangles_force<EVALUATOR_CLASS>(
+    const kernel::meshtriangle_args_t& meshtriangle_args,
+    const unsigned int threads_per_particle,
+    const typename EVALUATOR_CLASS::param_type* d_params,
+    const group_storage<3>* tlist,
+    const unsigned int* tpos_list,
+    const Index2D tlist_idx,
+    const unsigned int* n_triangles_list);
 
 template __attribute__((visibility("default"))) hipError_t
-gpu_compute_mesh_triangle_particles_force<EVALUATOR_CLASS>(const kernel::meshtriangle_args_t& meshtriangle_args,
-                                            const typename EVALUATOR_CLASS::param_type* d_params,
-                                            const unsigned int* d_tag,
-					    const unsigned int* d_n_triang,
-					    const unsigned int* d_trianglist,
-					    const unsigned int* d_head_triang);
+gpu_compute_mesh_triangle_particles_force<EVALUATOR_CLASS>(
+    const kernel::meshtriangle_args_t& meshtriangle_args,
+    const typename EVALUATOR_CLASS::param_type* d_params,
+    const unsigned int* d_tag,
+    const unsigned int* d_n_triang,
+    const unsigned int* d_trianglist,
+    const unsigned int* d_head_triang);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

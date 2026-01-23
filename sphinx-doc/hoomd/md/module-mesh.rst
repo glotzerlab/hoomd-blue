@@ -13,6 +13,7 @@ mesh
     mesh/module-bending
     mesh/module-bond
     mesh/module-conservation
+    mesh/module-triangle_pair
 
 .. rubric:: Classes
 

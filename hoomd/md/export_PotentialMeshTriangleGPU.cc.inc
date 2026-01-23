@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // See md/CMakeLists.txt for the source of these variables to be processed by CMake's
@@ -25,7 +25,9 @@ namespace detail
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_PotentialMeshTriangleGPU<EVALUATOR_CLASS>(m, "PotentialMeshTriangle@_mesh_triangle_pair@GPU");
+    export_PotentialMeshTriangleGPU<EVALUATOR_CLASS>(
+        m,
+        "PotentialMeshTriangle@_mesh_triangle_pair@GPU");
     }
 
     } // end namespace detail
