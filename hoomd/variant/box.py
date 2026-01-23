@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement variants that return box parameters as a function of time."""
@@ -40,7 +40,6 @@ class BoxVariant(_hoomd.VectorVariantBox):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from**
     `BoxVariant <hoomd.variant.box.BoxVariant>`:
@@ -72,8 +71,6 @@ class Constant(_hoomd.VectorVariantBoxConstant, BoxVariant):
     all time steps.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Constant`:
     """
@@ -134,8 +131,6 @@ class Interpolate(_hoomd.VectorVariantBoxInterpolate, BoxVariant):
     is the timestep, and :math:`f(t)` is given by `variant`.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Interpolate`:
 
@@ -218,8 +213,6 @@ class InverseVolumeRamp(_hoomd.VectorVariantBoxInverseVolumeRamp, BoxVariant):
     t_{\\mathrm{start}}}`.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `InverseVolumeRamp`:
 

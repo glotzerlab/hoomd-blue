@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-6.x
----
+Recent releases
+---------------
 
 Next release
 ^^^^^^^^^^^^^^^^^^^^
@@ -16,6 +16,8 @@ Next release
 *Deprecated*
 
 *Removed*
+
+* ``SIGTERM`` handler (#2209).
 
 *Fixed*
 

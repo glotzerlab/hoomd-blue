@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Lennard-Jones-Gauss pair potential.
@@ -49,8 +49,6 @@ class LJGauss(Pair):
         simulation.operations.integrator.pair_potentials = [lj_gauss]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `LJGauss`:
 

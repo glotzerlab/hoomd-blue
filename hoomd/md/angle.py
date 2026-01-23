@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Angle force classes apply a force and virial on every particle in the simulation
@@ -91,8 +91,6 @@ class Harmonic(Angle):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:
@@ -140,7 +138,6 @@ class CosineSquared(Angle):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CosineSquared`:
 
@@ -196,8 +193,6 @@ class Table(Angle):
     -\\frac{\\partial U}{\\partial \\theta}`.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Table`:
 

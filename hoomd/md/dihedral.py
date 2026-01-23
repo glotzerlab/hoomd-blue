@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Dihedral force classes apply a force and virial on every particle in the
@@ -101,8 +101,6 @@ class Periodic(Dihedral):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Periodic`:
 
     Attributes:
@@ -161,7 +159,6 @@ class Table(Dihedral):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Table`:
 
@@ -233,7 +230,6 @@ class OPLS(Dihedral):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `OPLS`:
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Bond force classes apply a force and virial on every particle in the simulation
@@ -88,8 +88,6 @@ class Harmonic(Bond):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Harmonic`:
 
     Attributes:
@@ -153,7 +151,6 @@ class FENEWCA(Bond):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `FENEWCA`:
 
@@ -246,7 +243,6 @@ class Table(Bond):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Table`:
 
@@ -349,8 +345,6 @@ class Tether(Bond):
                                                l_c0=1.8, l_max=2.1)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Tether`:
 

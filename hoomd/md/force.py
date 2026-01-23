@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
@@ -75,8 +75,6 @@ class Force(Compute):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Force`:
     """
 
@@ -87,7 +85,6 @@ class Force(Compute):
     _doc_inherited = (
         Compute._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Force <hoomd.md.force.Force>`:
@@ -373,7 +370,6 @@ class Custom(Force):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Custom`:
     """
@@ -447,7 +443,6 @@ class Active(Force):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Active`:
 
@@ -576,7 +571,6 @@ class ActiveOnManifold(Active):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ActiveOnManifold`:
 
@@ -661,8 +655,6 @@ class Constant(Force):
         The energy and virial associated with the constant force are 0.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Constant`:
 

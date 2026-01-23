@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Mesh conservation force classes apply a force and virial to every mesh vertex
@@ -55,8 +55,6 @@ class Area(MeshConservationPotential):
         area_conservation_potential.params["mesh"] = dict(k=10.0, A0=250)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Area`:
 
@@ -121,7 +119,6 @@ class TriangleArea(MeshPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `TriangleArea`:
 
@@ -182,7 +179,6 @@ class Volume(MeshConservationPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Volume`:
 

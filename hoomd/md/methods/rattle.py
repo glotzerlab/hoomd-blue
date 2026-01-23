@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods with manifold constraints.
@@ -47,8 +47,6 @@ class MethodRATTLE(Method):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `MethodRATTLE`:
 
     Attributes:
@@ -72,7 +70,6 @@ class MethodRATTLE(Method):
     _doc_inherited = (
         Method._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `MethodRATTLE <hoomd.md.methods.rattle.MethodRATTLE>`:
@@ -140,8 +137,6 @@ class NVE(MethodRATTLE):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `NVE`:
 
     Attributes:
@@ -155,7 +150,6 @@ class NVE(MethodRATTLE):
     _doc_inherited = (
         MethodRATTLE._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `NVE <hoomd.md.methods.rattle.NVE>`:
@@ -244,8 +238,6 @@ class DisplacementCapped(NVE):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `DisplacementCapped`:
 
     Attributes:
@@ -330,8 +322,6 @@ class Langevin(MethodRATTLE):
         simulation.operations.integrator.methods = [langevin_rattle]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Langevin`:
 
@@ -469,8 +459,6 @@ class Brownian(MethodRATTLE):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Brownian`:
 
     Attributes:
@@ -599,8 +587,6 @@ class OverdampedViscous(MethodRATTLE):
         simulation.operations.integrator.methods = [odv_rattle]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `OverdampedViscous`:
 

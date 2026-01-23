@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Write GSD files storing simulation trajectories and logging data.
@@ -20,23 +20,7 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
-import atexit
-import weakref
 import inspect
-
-# Track open gsd writers to flush at exit.
-_open_gsd_writers = []
-
-
-def _flush_open_gsd_writers():
-    """Flush all open gsd writers at exit."""
-    for weak_writer in _open_gsd_writers:
-        writer = weak_writer()
-        if writer is not None:
-            writer.flush()
-
-
-atexit.register(_flush_open_gsd_writers)
 
 
 def _array_to_strings(value):
@@ -49,12 +33,6 @@ def _array_to_strings(value):
         return string_list
     else:
         return value
-
-
-def _finalize_gsd(weak_writer, cpp_obj):
-    """Finalize a GSD writer."""
-    _open_gsd_writers.remove(weak_writer)
-    cpp_obj.flush()
 
 
 class GSD(Writer):
@@ -184,8 +162,6 @@ class GSD(Writer):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `GSD`:
 
     Attributes:
@@ -280,7 +256,6 @@ class GSD(Writer):
     _doc_inherited = (
         Writer._doc_inherited
         + """
-    ----------
 
     **Members inherited from** `GSD <hoomd.write.GSD>`:
 
@@ -396,13 +371,6 @@ class GSD(Writer):
         )
 
         self._cpp_obj.log_writer = self.logger
-
-        # Maintain a list of open gsd writers
-        weak_writer = weakref.ref(self)
-        _open_gsd_writers.append(weak_writer)
-        self._finalizer = (
-            weakref.finalize(self, _finalize_gsd, weak_writer, self._cpp_obj),
-        )
 
     @staticmethod
     def write(state, filename, filter=All(), mode="wb", logger=None):

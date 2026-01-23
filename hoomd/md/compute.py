@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """The MD compute classes compute instantaneous properties of the simulation state
@@ -39,8 +39,6 @@ class ThermodynamicQuantities(Compute):
         compute.ThermodynamicQuantities(filter=f)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `ThermodynamicQuantities`:
     """
@@ -351,8 +349,6 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `HarmonicAveragedThermodynamicQuantities`:
 
