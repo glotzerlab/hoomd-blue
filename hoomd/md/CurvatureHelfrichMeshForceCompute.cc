@@ -304,6 +304,8 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         Scalar cot_accb = c_accb * inv_s_accb;
         Scalar cot_addb = c_addb * inv_s_addb;
+        Scalar cot_abbc = c_abbc * inv_s_abbc;
+        Scalar cot_abbd = c_abbd * inv_s_abbd;
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
@@ -424,13 +426,15 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar dihedral_angle = acos(cos_dih); // dihedral angle between the normal vectors of the two triangles bordering edge ij
 	Kij -= 0.5 * dihedral_angle * nab ; // 0.5 * dihedral_angle * nba
 					    //
-	Scalar cot_angle_abc=c_abbc;// this is used for Sij1
-	Scalar cot_angle_abd=c_abbd;// this is used for Sij1
-	Scalar cot_angle_bca=c_accb;// this is used for Sij2
-	Scalar cot_angle_adb=c_addb;// this is used for Sij2
+	Scalar cot_angle_abc=cot_abbc;// this is used for Sij1
+	Scalar cot_angle_abd=cot_abbd;// this is used for Sij1
+	Scalar cot_angle_bca=cot_accb;// this is used for Sij2
+	Scalar cot_angle_adb=cot_addb;// this is used for Sij2
+	//std::cout << "cot_angle_abc: " << cot_angle_abc << " cot_angle_abd: " <<cot_angle_abd  << " cot_angle_bca: " << cot_angle_bca << std::endl;
 				    //
 	Sij_one +=  0.5 * (cot_angle_abc * unit_norm_one + cot_angle_abd * unit_norm_two); //
 	Sij_two -=  0.5 * (cot_angle_bca * unit_norm_one + cot_angle_adb * unit_norm_two); //
+	//std::cout << "Sij_one.x: " << Sij_one.x << " Sij_one.y: " << Sij_one.y << " Sij_one.z: " << Sij_one.z << std::endl;
 											   //
 											   //
         Scalar3 Fa;
@@ -459,7 +463,9 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
             h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
-                                     * (Ha_diff * Ha_diff )/area_a + eps_kT);
+                                     * (Ha_diff * Ha_diff ) + eps_kT);
+            //h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
+            //                         * (Ha_diff * Ha_diff )/area_a + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -469,8 +475,10 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
+            //h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
+            //                         * (Hb_diff * Hb_diff)/area_b  + eps_kT);
             h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
-                                     * (Hb_diff * Hb_diff)/area_b  + eps_kT);
+                                     * (Hb_diff * Hb_diff)  + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
