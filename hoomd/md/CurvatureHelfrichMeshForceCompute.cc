@@ -350,7 +350,6 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 norm_b = h_norm.data[idx_b] ; // precomputed
         Scalar3 norm_c = h_norm.data[idx_c] ; // precomputed
         Scalar3 norm_d = h_norm.data[idx_d] ; // precomputed
-	//std::cout << "tag a:" << h_tag.data[idx_a]<< " norm_a: " << norm_a.x << ","<< norm_a.y << ","<< norm_a.z << "," <<  std::endl;
 					      //
         Scalar rsq_a =norm_a.x*norm_a.x +norm_a.y*norm_a.y+norm_a.z*norm_a.z; // precomputed
         Scalar rsq_b =norm_b.x*norm_b.x +norm_b.y*norm_b.y+norm_b.z*norm_b.z; // precomputed
@@ -384,7 +383,8 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar H_c = h_ival.data[idx_c]; // precomputed
         Scalar H_d = h_ival.data[idx_d]; // precomputed
 					      //
-    	//std::cout << "idx:a:" <<h_tag.data[idx_a] << " dihedral sum ival:" << h_ival.data[idx_a] << " sum area ival:" << h_iarea.data[idx_a] << "sigma_a:" << sigma_a << std::endl;
+    	//std::cout << "idx:a:" << h_tag.data[idx_a] << " dihedral sum Hi:" << h_ival.data[idx_a] << " sum area ival:" << h_iarea.data[idx_a] << "sigma_a:" << sigma_a << std::endl;
+    	//std::cout << "idx:a:" << h_tag.data[idx_a] << " dot sigma dash a:" << dot(sigma_dash_a,sigma_dash_a) << std::endl;
     	//std::cout << "idx:b:" <<h_tag.data[idx_b] << " dihedral sum ival:" << h_ival.data[idx_b] << " sum area ival:" << h_iarea.data[idx_b] << "sigma_a:" << sigma_b << std::endl;
     	//std::cout << "idx:a:" << h_tag.data[idx_a] << " dihedral sum ival:" << h_ival.data[idx_a]  << "sigma_a:" << sigma_a << std::endl;
 	//
@@ -398,10 +398,10 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar3 Sij_one;
 	Scalar3 Sij_two;
 
-	Scalar Ha_sum = H_a + C0_a;
-	Scalar Hb_sum = H_b + C0_b;
-	Scalar Ha_diff = H_a - C0_a;
-	Scalar Hb_diff = H_b - C0_b;
+	Scalar Ha_sum =  (H_a + C0_a);
+	Scalar Hb_sum =  (H_b + C0_b);
+	Scalar Ha_diff = (H_a - C0_a);
+	Scalar Hb_diff = (H_b - C0_b);
 
 	// First we recalculate the dihedral angle for which we'll need the unit normal vectors of the faces
 	//
@@ -416,7 +416,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	//
 	//
 	Scalar3 local_norm_one =vec_to_scalar3(cross(vec3<Scalar>(dab),vec3<Scalar>(dac)));
-	Scalar3 local_norm_two =vec_to_scalar3(cross(vec3<Scalar>(dab),vec3<Scalar>(dad)));
+	Scalar3 local_norm_two =vec_to_scalar3(cross(vec3<Scalar>(dad),vec3<Scalar>(dab)));
 	Scalar rln_acab = sqrt(local_norm_one.x*local_norm_one.x + local_norm_one.y*local_norm_one.y + local_norm_one.z*local_norm_one.z);
 	Scalar rln_adab = sqrt(local_norm_two.x*local_norm_two.x + local_norm_two.y*local_norm_two.y + local_norm_two.z*local_norm_two.z);
 	Scalar3 unit_norm_one =local_norm_one / rln_acab;
@@ -462,8 +462,10 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
-                                     * (Ha_diff * Ha_diff ) + eps_kT);
+            //h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
+            //                         * (Ha_diff * Ha_diff )/area_a + eps_kT);
+            h_force.data[idx_a].w += (h_params.data[meshbond_type].k
+                                     * 0.5 * (Ha_diff * Ha_diff )/area_a + eps_kT);
             //h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
             //                         * (Ha_diff * Ha_diff )/area_a + eps_kT);
             for (int j = 0; j < 6; j++)
@@ -477,8 +479,10 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].z -= Fa.z;
             //h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
             //                         * (Hb_diff * Hb_diff)/area_b  + eps_kT);
-            h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
-                                     * (Hb_diff * Hb_diff)  + eps_kT);
+            //h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
+            //                         * (Hb_diff * Hb_diff)/area_b  + eps_kT);
+            h_force.data[idx_b].w += (h_params.data[meshbond_type].k
+                                     * 0.5 * (Hb_diff * Hb_diff)/area_b  + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -719,8 +723,11 @@ void CurvatureHelfrichMeshForceCompute::precomputeParameter()
 	//std::cout << "tag: a, b, c, d:" << h_tag.data[idx_a] << "," << h_tag.data[idx_b] << "," << h_tag.data[idx_c] << "," << h_tag.data[idx_d] << "," << std::endl;
 	//std::cout << "sigma_hat_ab:" << sigma_hat_ab << std::endl;
 	//
+	//Scalar3 local_norm_one =vec_to_scalar3(cross(vec3<Scalar>(dab),vec3<Scalar>(dac)));
+	//Scalar3 local_norm_two =vec_to_scalar3(cross(vec3<Scalar>(dab),vec3<Scalar>(dad)));
+	//Scalar3 local_norm_one =vec_to_scalar3(cross(vec3<Scalar>(dac),vec3<Scalar>(dab)));
 	Scalar3 local_norm_one =vec_to_scalar3(cross(vec3<Scalar>(dab),vec3<Scalar>(dac)));
-	Scalar3 local_norm_two =vec_to_scalar3(cross(vec3<Scalar>(dab),vec3<Scalar>(dad)));
+	Scalar3 local_norm_two =vec_to_scalar3(cross(vec3<Scalar>(dad),vec3<Scalar>(dab)));
 	Scalar rln_acab = sqrt(local_norm_one.x*local_norm_one.x + local_norm_one.y*local_norm_one.y + local_norm_one.z*local_norm_one.z);
 	Scalar rln_adab = sqrt(local_norm_two.x*local_norm_two.x + local_norm_two.y*local_norm_two.y + local_norm_two.z*local_norm_two.z);
 
