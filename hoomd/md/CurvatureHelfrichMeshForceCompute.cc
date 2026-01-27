@@ -474,12 +474,8 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            //h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
-            //                         * (Ha_diff * Ha_diff )/area_a + eps_kT);
-            h_force.data[idx_a].w += (h_params.data[meshbond_type].k
-                                     * 0.5 * (Ha_diff * Ha_diff )/area_a + eps_kT);
-            //h_force.data[idx_a].w += (h_params.data[meshbond_type].k * 0.5
-            //                         * (Ha_diff * Ha_diff )/area_a + eps_kT);
+            h_force.data[idx_a].w += (2 * h_params.data[meshbond_type].k
+                                      * (Ha_diff * Ha_diff )/area_a + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -493,8 +489,8 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
             //                         * (Hb_diff * Hb_diff)/area_b  + eps_kT);
             //h_force.data[idx_b].w += (h_params.data[meshbond_type].k * 0.5
             //                         * (Hb_diff * Hb_diff)/area_b  + eps_kT);
-            h_force.data[idx_b].w += (h_params.data[meshbond_type].k
-                                     * 0.5 * (Hb_diff * Hb_diff)/area_b  + eps_kT);
+            h_force.data[idx_b].w += (2 * h_params.data[meshbond_type].k
+                                     * (Hb_diff * Hb_diff)/area_b  + eps_kT);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
