@@ -424,7 +424,7 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
 	Scalar cos_dih = dot(unit_norm_one,unit_norm_two); // cosine of the dihedral
 	Scalar dihedral_angle = acos(cos_dih); // dihedral angle between the normal vectors of the two triangles bordering edge ij
-	Kij -= 0.5 * dihedral_angle * nab ; // 0.5 * dihedral_angle * nba
+	Kij = - 0.5 * dihedral_angle * nab ; // 0.5 * dihedral_angle * nba
 					    //
 	Scalar cot_angle_abc=cot_abbc;// this is used for Sij1
 	Scalar cot_angle_abd=cot_abbd;// this is used for Sij1
@@ -432,16 +432,28 @@ void CurvatureHelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar cot_angle_adb=cot_addb;// this is used for Sij2
 	//std::cout << "cot_angle_abc: " << cot_angle_abc << " cot_angle_abd: " <<cot_angle_abd  << " cot_angle_bca: " << cot_angle_bca << std::endl;
 				    //
-	Sij_one +=  0.5 * (cot_angle_abc * unit_norm_one + cot_angle_abd * unit_norm_two); //
-	Sij_two -=  0.5 * (cot_angle_bca * unit_norm_one + cot_angle_adb * unit_norm_two); //
+	Sij_one=  0.5 * (cot_angle_abc * unit_norm_one + cot_angle_abd * unit_norm_two); //
+	Sij_two =  -0.5 * (cot_angle_bca * unit_norm_one + cot_angle_adb * unit_norm_two); //
+												 //
+	//Sij_one.x=  0.5 * (cot_angle_abc * unit_norm_one.x + cot_angle_abd * unit_norm_two.x); //
+	//Sij_one.y=  0.5 * (cot_angle_abc * unit_norm_one.y + cot_angle_abd * unit_norm_two.y); //
+	//Sij_one.z=  0.5 * (cot_angle_abc * unit_norm_one.z + cot_angle_abd * unit_norm_two.z); //
+	//										       //
+	//Sij_two.x =  -0.5 * (cot_angle_bca * unit_norm_one.x + cot_angle_adb * unit_norm_two.x); //
+	//Sij_two.y =  -0.5 * (cot_angle_bca * unit_norm_one.y + cot_angle_adb * unit_norm_two.y); //
+	//Sij_two.z =  -0.5 * (cot_angle_bca * unit_norm_one.z + cot_angle_adb * unit_norm_two.z); //
 	//std::cout << "Sij_one.x: " << Sij_one.x << " Sij_one.y: " << Sij_one.y << " Sij_one.z: " << Sij_one.z << std::endl;
+	//std::cout << "Sij_two.x: " << Sij_two.x << " Sij_two.y: " << Sij_two.y << " Sij_two.z: " << Sij_two.z << std::endl;
+	std::cout << "Hij_two.x: " << Hij_two.x << " Hij_two.y: " << Hij_two.y << " Hij_two.z: " << Hij_two.z << std::endl;
+	std::cout << "Kij.x: " << Kij.x << " Kij.y: " << Kij.y << " Kij.z: " << Kij.z << std::endl;
+	std::cout << "Ha diff: " << Ha_diff << " H_asum: " << Ha_sum << std::endl;
 											   //
 											   //
         Scalar3 Fa;
-	//Fa = (Ha_diff * Ha_sum / 3 + 2 * Hb_diff * Hb_sum / 3) * Hij_two - (Ha_diff + Hb_diff) * Kij  - (Ha_diff * Sij_one + Hb_diff * Sij_two);
-	Fa.x = (Ha_diff * Ha_sum / 3 + 2 * Hb_diff * Hb_sum / 3) * Hij_two.x - (Ha_diff + Hb_diff) * Kij.x  - (Ha_diff * Sij_one.x + Hb_diff * Sij_two.x);
-	Fa.y = (Ha_diff * Ha_sum / 3 + 2 * Hb_diff * Hb_sum / 3) * Hij_two.y - (Ha_diff + Hb_diff) * Kij.y  - (Ha_diff * Sij_one.y + Hb_diff * Sij_two.y);
-	Fa.z = (Ha_diff * Ha_sum / 3 + 2 * Hb_diff * Hb_sum / 3) * Hij_two.z - (Ha_diff + Hb_diff) * Kij.z  - (Ha_diff * Sij_one.z + Hb_diff * Sij_two.z);
+	Fa =   (Ha_diff * Ha_sum / 3  + 2 * Hb_diff * Hb_sum / 3) * Hij_two -   (Ha_diff + Hb_diff) * Kij  -   (Ha_diff * Sij_one +   Hb_diff * Sij_two);
+	//Fa.x = (Ha_diff * Ha_sum / 3  + 2 * Hb_diff * Hb_sum / 3) * Hij_two.x - (Ha_diff + Hb_diff) * Kij.x  - (Ha_diff * Sij_one.x + Hb_diff * Sij_two.x);
+	//Fa.y = (Ha_diff * Ha_sum / 3  + 2 * Hb_diff * Hb_sum / 3) * Hij_two.y - (Ha_diff + Hb_diff) * Kij.y  - (Ha_diff * Sij_one.y + Hb_diff * Sij_two.y);
+	//Fa.z = (Ha_diff * Ha_sum / 3  + 2 * Hb_diff * Hb_sum / 3) * Hij_two.z - (Ha_diff + Hb_diff) * Kij.z  - (Ha_diff * Sij_one.z + Hb_diff * Sij_two.z);
 
         Fa *= h_params.data[meshbond_type].k;
         if (compute_virial)
