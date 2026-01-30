@@ -20,6 +20,7 @@ See Also:
 from hoomd.md import alchemy
 from hoomd.md import angle
 from hoomd.md import bond
+from hoomd.md import box_deformer
 from hoomd.md import compute
 from hoomd.md import constrain
 from hoomd.md import data
@@ -47,6 +48,7 @@ __all__ = [
     "alchemy",
     "angle",
     "bond",
+    "box_deformer",
     "compute",
     "constrain",
     "data",

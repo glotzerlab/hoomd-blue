@@ -46,6 +46,13 @@ void BoxDeformer::update(uint64_t timestep)
         }
     }
 
+BoxDim BoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& old_box)
+    {
+    // By default, just return the current box (no deformation)
+    // Derived classes should override this to apply actual deformation.
+    return old_box;
+    }
+
 // Post deformation particle processing: PBC wrapping by default but child classes can add up
 void BoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box)
     {

@@ -699,6 +699,7 @@ install(TARGETS _md EXPORT HOOMDTargets
 set(files __init__.py
           angle.py
           bond.py
+          box_deformer.py
           compute.py
           constrain.py
           dihedral.py

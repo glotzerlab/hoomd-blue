@@ -22,6 +22,7 @@ set(files __init__.py
     test_improper.py
     test_integrate.py
     test_kernel_parameters.py
+    test_lees_edwards_box_deformer.py
     test_manifolds.py
     test_meta_wall_list.py
     test_methods.py

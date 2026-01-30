@@ -28,7 +28,7 @@ LeesEdwardsBoxDeformer::~LeesEdwardsBoxDeformer()
 
 BoxDim LeesEdwardsBoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& old_box)
     {
-    // Get the tilt factors
+    // Get the tilt factors (xz, yz are unchanged but needed to reset the box)
     Scalar xy = old_box.getTiltFactorXY();
     const Scalar xz = old_box.getTiltFactorXZ();
     const Scalar yz = old_box.getTiltFactorYZ();
@@ -46,33 +46,60 @@ BoxDim LeesEdwardsBoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& ol
 
 void LeesEdwardsBoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box)
     {
-    // Call base class to perform default PBC wrapping
-    BoxDeformer::processAfterDeformation(old_box, new_box);
-
-    // Extra processing: box flipping and particle remapping
-    int flip = static_cast<int>(std::floor(old_box.getTiltFactorXY() + m_max_xy_tilt));
+    // Box flipping and particle remapping
+    Scalar xy = new_box.getTiltFactorXY();
+    int flip = static_cast<int>(std::floor((xy + m_max_xy_tilt) / (2.0 * m_max_xy_tilt)));
 
     if (flip != 0)
         {
-        // Get and update tilt
-        Scalar xy = old_box.getTiltFactorXY();
-        const Scalar xz = old_box.getTiltFactorXZ();
-        const Scalar yz = old_box.getTiltFactorYZ();
+        // Update xy tilt and get L
+        xy -= 2.0 * m_max_xy_tilt * Scalar(flip);
+        Scalar Ly = new_box.getL().y;
 
-        xy -= Scalar(flip);
-        new_box.setTiltFactors(xy, xz, yz);
+        // Remap particle coordinates
+#ifdef ENABLE_MPI
+        SnapshotParticleData<Scalar> snap;
 
-        // Remap particle positions
+        // Take a snapshot on rank 0
+        m_pdata->takeSnapshot(snap);
+
+        if (m_exec_conf->getRank() == 0)
+            {
+            for (unsigned int i = 0; i < snap.size; i++)
+                {
+                snap.pos[i].x -= Scalar(flip) * Ly;
+                //  Immediately wrap into box to avoid temporal out-of-bounds errors on MPI
+                new_box.wrap(snap.pos[i], snap.vel[i], snap.image[i]);
+                }
+            }
+        // Broadcast updates to all ranks
+        bcast(snap.pos, 0, m_exec_conf->getMPICommunicator());
+
+        m_pdata->initializeFromSnapshot(snap);
+#else
+        // Serial execution
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
 
-        Scalar Ly = new_box.getL().y;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             h_pos.data[i].x -= Scalar(flip) * Ly;
             }
+#endif
+        // Reset the box with updated xy tilt (and the unchanged xz, yz)
+        const Scalar xz = new_box.getTiltFactorXZ();
+        const Scalar yz = new_box.getTiltFactorYZ();
+        new_box.setTiltFactors(xy, xz, yz);
+
+        m_pdata->setGlobalBox(new_box);
         }
+
+    // Call base class to perform default PBC wrapping
+    BoxDeformer::processAfterDeformation(old_box, new_box);
     }
 
 namespace detail
