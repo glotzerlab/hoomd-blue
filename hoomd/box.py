@@ -610,8 +610,6 @@ class Box:
         """(3, ) `numpy.ndarray` of `float`: The deformation rates on box tilts,
         ``[xy_rate, xz_rate, yz_rate]``.
 
-        If the box is 2D ``xz_rate`` and ``yz_rate`` will automatically be set to zero.
-
         .. rubric:: Example:
 
         .. code-block:: python
@@ -619,15 +617,6 @@ class Box:
             box.tilt_rates = (0.01, 0.0, 0.0)
         """
         return np.array([self.xy_rate, self.xz_rate, self.yz_rate])
-
-    @tilt_rates.setter
-    def tilt_rates(self, new_tilt_rates):
-        new_tilt_rates = _make_scalar3(new_tilt_rates)
-        if self.is2D and (new_tilt_rates.y != 0 or new_tilt_rates.z != 0):
-            raise ValueError("Cannot set xz or yz deformations on a 2D box.")
-        self._cpp_obj.setTiltDeformationRates(
-            new_tilt_rates.x, new_tilt_rates.y, new_tilt_rates.z
-        )
 
     @property
     def xy_rate(self):
@@ -641,10 +630,6 @@ class Box:
         """
         return self._cpp_obj.getTiltDeformationRateXY()
 
-    @xy_rate.setter
-    def xy_rate(self, xy_rate):
-        self.tilt_rates = [xy_rate, self.xz_rate, self.yz_rate]
-
     @property
     def xz_rate(self):
         """float: The deformation rate on xz.
@@ -657,12 +642,6 @@ class Box:
         """
         return self._cpp_obj.getTiltDeformationRateXZ()
 
-    @xz_rate.setter
-    def xz_rate(self, xz_rate):
-        if self.is2D:
-            raise ValueError("Cannot set xz deformation on a 2D box.")
-        self.tilt_rates = [self.xy_rate, xz_rate, self.yz_rate]
-
     @property
     def yz_rate(self):
         """float: The deformation rate on yz.
@@ -674,12 +653,6 @@ class Box:
             box.yz_rate = 0.0
         """
         return self._cpp_obj.getTiltDeformationRateYZ()
-
-    @yz_rate.setter
-    def yz_rate(self, yz_rate):
-        if self.is2D:
-            raise ValueError("Cannot set yz deformation on a 2D box.")
-        self.tilt_rates = [self.xy_rate, self.xz_rate, yz_rate]
 
     # Misc. properties
     @property

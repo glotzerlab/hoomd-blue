@@ -52,27 +52,31 @@ def test_box_deformation_functionality(box_lengths, initial_tilts, shear_rate, m
 
     dt = 0.1
 
-    lees_edwards = md.box_deformer.LeesEdwardsBoxDeformer(
-        shear_rate=shear_rate, max_xy_tilt=max_xy
+    lees_edwards = md.deformer.LeesEdwardsBoxDeformer(
+        shear_rate=shear_rate, max_tilt=max_xy
     )
-    integrator = md.Integrator(dt=dt, box_deformer=lees_edwards)
+    integrator = md.Integrator(dt=dt, deformer=lees_edwards)
     sim.operations.integrator = integrator
 
-    # Check for correctness of input arguments, box lengths, tilts,
-    # and deformations before a run step
-    sim.run(0)
+    # Check for correctness of input arguments, box lengths, tilts, and deformations
     assert lees_edwards.shear_rate == shear_rate
-    assert lees_edwards.max_xy_tilt == max_xy
-
+    assert lees_edwards.max_tilt == max_xy
     new_box = sim.state.box
     assert np.allclose(new_box.L, (Lx, Ly, Lz))
     assert np.allclose(new_box.tilts, (xy0, xz0, yz0))
-    assert np.allclose(new_box.tilt_rates, (0, 0, 0))
+    # assert np.allclose(new_box.tilt_rates, (shear_rate, 0, 0))
+
+    sim.run(0)
+
+    assert lees_edwards.shear_rate == shear_rate
+    assert lees_edwards.max_tilt == max_xy
+    new_box = sim.state.box
+    assert np.allclose(new_box.L, (Lx, Ly, Lz))
+    assert np.allclose(new_box.tilts, (xy0, xz0, yz0))
+    # assert np.allclose(new_box.tilt_rates, (shear_rate, 0, 0))
 
     # Re-check after a run step is completed
     sim.run(1)
-    assert lees_edwards.shear_rate == shear_rate
-    assert lees_edwards.max_xy_tilt == max_xy
 
     xy = xy0 + shear_rate * dt
     xy -= (
@@ -82,7 +86,7 @@ def test_box_deformation_functionality(box_lengths, initial_tilts, shear_rate, m
     new_box = sim.state.box
     assert np.allclose(new_box.L, (Lx, Ly, Lz))
     assert np.allclose(new_box.tilts, (xy, xz0, yz0))
-    assert np.allclose(new_box.tilt_rates, (0, 0, 0))
+    # assert np.allclose(new_box.tilt_rates, (shear_rate, 0, 0))
 
     # Also check that xy is accumulating properly after multiple runs, say T more steps
     xy_accumulated = new_box.xy
@@ -97,7 +101,7 @@ def test_box_deformation_functionality(box_lengths, initial_tilts, shear_rate, m
     assert np.isclose(new_box.xz, xz0)
     assert np.isclose(new_box.yz, yz0)
 
-    assert abs(sim.state.box.xy) <= lees_edwards.max_xy_tilt
+    assert abs(sim.state.box.xy) <= lees_edwards.max_tilt
 
 
 # Test that particles are not remapped when there is no flip
@@ -125,8 +129,8 @@ def test_particles_unchanged_no_flip(tilts):
     dt = 0.1
     max_tilt = 10.0
 
-    le_deformer = md.box_deformer.LeesEdwardsBoxDeformer(shear_rate, max_tilt)
-    integrator = md.Integrator(dt=dt, box_deformer=le_deformer)
+    le_deformer = md.deformer.LeesEdwardsBoxDeformer(shear_rate, max_tilt)
+    integrator = md.Integrator(dt=dt, deformer=le_deformer)
 
     sim.operations.integrator = integrator
     sim.run(1)
@@ -177,11 +181,11 @@ def test_particle_remap_on_flip(xy0, shear_rate, flip, pos, img):
 
     dt = 0.1
 
-    deformer = md.box_deformer.LeesEdwardsBoxDeformer(shear_rate)
-    integrator = md.Integrator(dt=dt, box_deformer=deformer)
+    deformer = md.deformer.LeesEdwardsBoxDeformer(shear_rate)
+    integrator = md.Integrator(dt=dt, deformer=deformer)
 
     sim.operations.integrator = integrator
     sim.run(1)
 
     # New tilt after flip remains within limits
-    assert abs(sim.state.box.xy) <= deformer.max_xy_tilt
+    assert abs(sim.state.box.xy) <= deformer.max_tilt

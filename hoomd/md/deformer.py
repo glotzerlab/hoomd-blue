@@ -8,7 +8,7 @@ These transformations enable deformation protocols such as shear, strain,
 and controlled box shape evolution during molecular dynamics simulations.
 
 Classes in this module are intended to be assigned to
-:attr:`hoomd.md.Integrator.box_deformer`.
+:attr:`hoomd.md.Integrator.deformer`.
 """
 
 from hoomd.md import _md
@@ -89,47 +89,47 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
 
     See Also:
         :class:`hoomd.md.Integrator`
-        :attr:`hoomd.md.Integrator.box_deformer`
+        :attr:`hoomd.md.Integrator.deformer`
 
     Args:
         shear_rate (float):
             Shear rate :math:`[\mathrm{time}^{-1}]`.
-        max_xy_tilt (float, optional):
+        max_tilt (float, optional):
             Maximum allowed xy tilt factor before box flipping occurs.
             Must be positive. Defaults to ``0.5``.
 
     Example::
 
-        deformer = hoomd.md.box_deformer.LeesEdwardsBoxDeformer(
+        deformer = hoomd.md.deformer.LeesEdwardsBoxDeformer(
             shear_rate=0.01,
-            max_xy_tilt=0.5,
+            max_tilt=0.5,
         )
 
         integrator = hoomd.md.Integrator(dt=0.001)
-        integrator.box_deformer = deformer
+        integrator.deformer = deformer
         simulation.operations.integrator = integrator
     """
 
-    def __init__(self, shear_rate, max_xy_tilt=0.5):
+    def __init__(self, shear_rate, max_tilt=0.5):
         super().__init__()
 
         param_dict = ParameterDict(
             shear_rate=float(shear_rate),
-            max_xy_tilt=OnlyTypes(float, preprocess=positive_real),
+            max_tilt=OnlyTypes(float, preprocess=positive_real),
         )
-        param_dict["max_xy_tilt"] = max_xy_tilt
+        param_dict["max_tilt"] = max_tilt
         self._param_dict.update(param_dict)
 
     def _attach(self, simulation):
         """Attach the deformer and construct it.
 
         Called automatically when assigned to
-        :attr:`hoomd.md.Integrator.box_deformer`.
+        :attr:`hoomd.md.Integrator.deformer`.
         """
         super()._attach(simulation)
         sysdef = simulation.state._cpp_sys_def
         self._cpp_obj_private = _md.LeesEdwardsBoxDeformer(
-            sysdef, self.shear_rate, self.max_xy_tilt
+            sysdef, self.shear_rate, self.max_tilt
         )
 
     @property
@@ -148,20 +148,20 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
             self._cpp_obj.setShearRate(float(value))
 
     @property
-    def max_xy_tilt(self):
+    def max_tilt(self):
         r"""float: Maximum allowed xy tilt before box flipping occurs.
         The tilt is constrained such that:
 
         .. math::
 
-            -\mathrm{max\_xy\_tilt} \le xy(t) \le \mathrm{max\_xy\_tilt}
+            -\mathrm{max\_tilt} \le xy(t) \le \mathrm{max\_tilt}
         """
-        return self._param_dict["max_xy_tilt"]
+        return self._param_dict["max_tilt"]
 
-    @max_xy_tilt.setter
-    def max_xy_tilt(self, value):
+    @max_tilt.setter
+    def max_tilt(self, value):
         """Set the maximum allowed xy tilt."""
-        self._param_dict["max_xy_tilt"] = float(value)
+        self._param_dict["max_tilt"] = float(value)
         if self._attached:
             self._cpp_obj.setMaxXYTilt(float(value))
 

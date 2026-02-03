@@ -113,7 +113,7 @@ void export_LeesEdwardsBoxDeformer(pybind11::module& m)
         .def_property("shear_rate",
                       &LeesEdwardsBoxDeformer::getShearRate,
                       &LeesEdwardsBoxDeformer::setShearRate)
-        .def_property("max_xy_tilt",
+        .def_property("max_tilt",
                       &LeesEdwardsBoxDeformer::getMaxXYTilt,
                       &LeesEdwardsBoxDeformer::setMaxXYTilt);
     }

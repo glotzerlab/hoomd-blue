@@ -12,7 +12,7 @@ from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
-from hoomd.md.box_deformer import BoxDeformer
+from hoomd.md.deformer import BoxDeformer
 import inspect
 
 
@@ -22,7 +22,7 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
-    def __init__(self, forces, constraints, methods, rigid, box_deformer=None):
+    def __init__(self, forces, constraints, methods, rigid, deformer=None):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
@@ -40,18 +40,18 @@ class _DynamicIntegrator(BaseIntegrator):
             Method, syncedlist._PartialGetAttr("_cpp_obj"), iterable=methods
         )
 
-        if box_deformer is not None and not isinstance(box_deformer, BoxDeformer):
-            raise TypeError("box deformer must be a BoxDeformer subclass")
-        self._box_deformer = box_deformer
+        if deformer is not None and not isinstance(deformer, BoxDeformer):
+            raise TypeError("deformer must be a BoxDeformer subclass")
+        self._deformer = deformer
 
         param_dict = ParameterDict(
             rigid=OnlyTypes(Rigid, allow_none=True),
-            box_deformer=OnlyTypes(BoxDeformer, allow_none=True),
+            deformer=OnlyTypes(BoxDeformer, allow_none=True),
         )
         if rigid is not None and rigid._attached:
             raise ValueError("Rigid object can only belong to one integrator.")
         param_dict["rigid"] = rigid
-        param_dict["box_deformer"] = box_deformer
+        param_dict["deformer"] = deformer
         self._param_dict.update(param_dict)
         super().__init__()
 
@@ -61,8 +61,8 @@ class _DynamicIntegrator(BaseIntegrator):
         self._methods._sync(self._simulation, self._cpp_obj.methods)
         if self.rigid is not None:
             self.rigid._attach(self._simulation)
-        if self._box_deformer is not None:
-            self._box_deformer._attach(self._simulation)
+        if self._deformer is not None:
+            self._deformer._attach(self._simulation)
 
         super()._attach_hook()
 
@@ -75,8 +75,8 @@ class _DynamicIntegrator(BaseIntegrator):
         self._constraints._unsync()
         if self.rigid is not None:
             self.rigid._detach()
-        if self._box_deformer is not None:
-            self._box_deformer._detach()
+        if self._deformer is not None:
+            self._deformer._detach()
 
     def validate_groups(self):
         """Verify groups.
@@ -115,8 +115,8 @@ class _DynamicIntegrator(BaseIntegrator):
         if attr == "rigid":
             self._set_rigid(value)
             return
-        if attr == "box_deformer":
-            self._set_box_deformer(value)
+        if attr == "deformer":
+            self._set_deformer(value)
             return
         super()._setattr_param(attr, value)
 
@@ -144,22 +144,20 @@ class _DynamicIntegrator(BaseIntegrator):
             new_rigid._attach(self._simulation)
         self._param_dict["rigid"] = new_rigid
 
-    def _set_box_deformer(self, new_box_deformer):
-        if new_box_deformer is self._box_deformer:
+    def _set_deformer(self, new_deformer):
+        if new_deformer is self._deformer:
             return
 
-        if new_box_deformer is not None and not isinstance(
-            new_box_deformer, BoxDeformer
-        ):
-            raise TypeError("box deformer must be a BoxDeformer")
+        if new_deformer is not None and not isinstance(new_deformer, BoxDeformer):
+            raise TypeError("deformer must be a BoxDeformer")
 
         if self._attached:
-            if self._box_deformer is not None:
-                self._box_deformer._detach()
-            if new_box_deformer is not None:
-                new_box_deformer._attach(self._simulation)
+            if self._deformer is not None:
+                self._deformer._detach()
+            if new_deformer is not None:
+                new_deformer._attach(self._simulation)
 
-        self._param_dict["box_deformer"] = new_box_deformer
+        self._param_dict["deformer"] = new_deformer
 
 
 @hoomd.logging.modify_namespace(("md", "Integrator"))
@@ -188,7 +186,7 @@ class Integrator(_DynamicIntegrator):
         rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
           the simulation.
 
-        box_deformer (hoomd.md.box_deformer.BoxDeformer): Controls time-dependent
+        deformer (hoomd.md.deformer.BoxDeformer): Controls time-dependent
           deformations of the simulation box, enabling changes to box size, shape,
           or tilt during a simulation.
 
@@ -279,9 +277,9 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.constrain`
 
     Only one of the classes in the following module can be used as
-    an object in `box_deformer`:
+    an object in `deformer`:
 
-    - `hoomd.md.box_deformer`
+    - `hoomd.md.deformer`
 
     Examples::
 
@@ -290,9 +288,9 @@ class Integrator(_DynamicIntegrator):
         lj.params.default = dict(epsilon=1.0, sigma=1.0)
         lj.r_cut[('A', 'A')] = 2**(1/6)
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
-        le = hoomd.md.box_deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
+        le = hoomd.md.deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj],
-                                    box_deformer=le)
+                                    deformer=le)
         sim.operations.integrator = integrator
 
     {inherited}
@@ -322,7 +320,7 @@ class Integrator(_DynamicIntegrator):
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
 
-        box_deformer (hoomd.md.box_deformer.BoxDeformer): Object that applies
+        deformer (hoomd.md.deformer.BoxDeformer): Object that applies
             prescribed time-dependent deformations to the simulation box.
     """
 
@@ -371,10 +369,10 @@ class Integrator(_DynamicIntegrator):
         Rigid body constraint.
         `Read more... <hoomd.md.Integrator.rigid>`
 
-    .. py:attribute:: box_deformer
+    .. py:attribute:: deformer
 
         Time-dependent deformation of the simulation box.
-        `Read more... <hoomd.md.Integrator.box_deformer>`
+        `Read more... <hoomd.md.Integrator.deformer>`
 
     .. py:property:: linear_momentum
 
@@ -392,10 +390,10 @@ class Integrator(_DynamicIntegrator):
         constraints=None,
         methods=None,
         rigid=None,
-        box_deformer=None,
+        deformer=None,
         half_step_hook=None,
     ):
-        super().__init__(forces, constraints, methods, rigid, box_deformer)
+        super().__init__(forces, constraints, methods, rigid, deformer)
 
         self._param_dict.update(
             ParameterDict(

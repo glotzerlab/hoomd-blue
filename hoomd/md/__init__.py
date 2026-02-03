@@ -20,10 +20,10 @@ See Also:
 from hoomd.md import alchemy
 from hoomd.md import angle
 from hoomd.md import bond
-from hoomd.md import box_deformer
 from hoomd.md import compute
 from hoomd.md import constrain
 from hoomd.md import data
+from hoomd.md import deformer
 from hoomd.md import dihedral
 from hoomd.md import external
 from hoomd.md import force
@@ -48,10 +48,10 @@ __all__ = [
     "alchemy",
     "angle",
     "bond",
-    "box_deformer",
     "compute",
     "constrain",
     "data",
+    "deformer",
     "dihedral",
     "external",
     "force",

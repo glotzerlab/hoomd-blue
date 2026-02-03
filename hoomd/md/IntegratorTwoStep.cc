@@ -415,7 +415,7 @@ void export_IntegratorTwoStep(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
-        .def_property("box_deformer",
+        .def_property("deformer",
                       &IntegratorTwoStep::getBoxDeformer,
                       &IntegratorTwoStep::setBoxDeformer)
         .def_property("integrate_rotational_dof",
