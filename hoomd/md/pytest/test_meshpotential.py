@@ -50,6 +50,16 @@ _Helfrich_arg_list = [
     for val in zip(*_Helfrich_args.values())
 ]
 
+_GeneralHelfrich_args = {
+    "k": [1.0, 20.0, 100.0],
+    "H0": [3.37047, 0.0, 2.0],
+}
+_GeneralHelfrich_arg_list = [
+    (hoomd.md.mesh.bending.GeneralHelfrich, dict(zip(_GeneralHelfrich_args, val)))
+    for val in zip(*_GeneralHelfrich_args.values())
+]
+
+
 _AreaConservation_args = {
     "k": [1.0, 20.0, 100.0],
     "A0": [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)],
@@ -86,6 +96,7 @@ def get_mesh_potential_and_args():
         + _TriangleAreaConservation_arg_list
         + _BendingRigidity_arg_list
         + _Helfrich_arg_list
+        + _GeneralHelfrich_arg_list
         + _Volume_arg_list
     )
 
@@ -170,13 +181,35 @@ def get_mesh_potential_args_forces_and_energies():
             [0.0, 254.216837, -179.758449],
         ],
         [
-            [-1271.084184, 0.0, 898.792246],
+            [-1271.08414, 0.0, 898.792246],
             [1271.084184, 0.0, 898.792246],
             [0.0, -1271.084184, -898.792246],
             [0.0, 1271.084184, -898.792246],
         ],
     ]
     Helfrich_energies = [27.712812, 554.256258, 2771.281293]
+
+    GeneralHelfrich_forces = [
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ],
+        [
+            [-254.216837, 0.0, 179.758449],
+            [254.216837, 0.0, 179.758449],
+            [0.0, -254.216837, -179.758449],
+            [0.0, 254.216837, -179.758449],
+        ],
+        [
+            [-670.1796, 0.0, 473.8885],
+            [670.1796, 0.0, 473.8885],
+            [0.0, -670.1796, -473.8885],
+            [0.0, 670.1796, -473.8885],
+        ],
+    ]
+    GeneralHelfrich_energies = [0, 554.256258, 458.1156]
 
     AreaConservation_forces = [
         [
@@ -221,6 +254,7 @@ def get_mesh_potential_args_forces_and_energies():
     Tether_args_and_vals = []
     BendingRigidity_args_and_vals = []
     Helfrich_args_and_vals = []
+    GeneralHelfrich_args_and_vals = []
     AreaConservation_args_and_vals = []
     TriangleAreaConservation_args_and_vals = []
     Volume_args_and_vals = []
@@ -244,6 +278,9 @@ def get_mesh_potential_args_forces_and_energies():
         )
         Helfrich_args_and_vals.append(
             (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i])
+        )
+        GeneralHelfrich_args_and_vals.append(
+            (*_GeneralHelfrich_arg_list[i], GeneralHelfrich_forces[i], GeneralHelfrich_energies[i])
         )
         AreaConservation_args_and_vals.append(
             (
@@ -270,16 +307,16 @@ def get_mesh_potential_args_forces_and_energies():
         + TriangleAreaConservation_args_and_vals
         + BendingRigidity_args_and_vals
         + Helfrich_args_and_vals
+        + GeneralHelfrich_args_and_vals
         + Volume_args_and_vals
     )
 
 
 def _skip_if_helfrich_mpi(sim, pair_potential):
     """Determines if the simulation is able to run this pair potential."""
-    if sim.device.communicator.num_ranks > 1 and issubclass(
-        pair_potential, hoomd.md.mesh.bending.Helfrich
-    ):
-        pytest.skip("Cannot run Helfrich with MPI")
+    if sim.device.communicator.num_ranks > 1:
+        if issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich) or issubclass(pair_potential, hoomd.md.mesh.bending.GeneralHelfrich):
+            pytest.skip("Cannot run Helfrich with MPI")
 
 
 @pytest.fixture(scope="session")

@@ -159,6 +159,80 @@ class Helfrich(MeshPotential):
         else:
             raise MPINotAvailableError("Helfrich is not implemented for MPI")
 
+class GeneralHelfrich(MeshPotential):
+    r"""Helfrich bending potential.
+
+    Args:
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+
+    `Helfrich` specifies a Helfrich bending energy applied to
+    all particles within the mesh.
+
+    .. math::
+
+        U(i) = \frac{1}{2} k \frac{1}{\sigma_i}\left( \sum_{j \in
+        \mathrm{Neigh}(i)} \frac{\sigma_{ij}}{l_{ij}} (\mathbf{r}_j
+        - \mathbf{r}_k) \right)^2
+
+    with the area of the dual cell of vertex i
+    :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij})/4`, the
+    length of the bond in the dual lattice  :math:`\sigma_{ij}=
+    l_{ij}(\text{cot}\theta_1+\text{cot}\theta_2)/2` and the angles
+    :math:`\theta_1` and :math:`\theta_2` opposite to the shared bond of
+    vertex :math:`i` and :math:`j`.
+
+    See Also:
+        * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
+        * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
+
+    Attention:
+        `Helfrich` is NOT implemented for MPI parallel execution!
+
+    .. rubric:: Example:
+
+    .. skip: next if(hoomd.version.mpi_enabled)
+
+    .. code-block:: python
+
+        helfrich_potential = hoomd.md.mesh.bending.Helfrich(mesh)
+        helfrich_potential.params["mesh"] = dict(k=10.0)
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Helfrich`:
+
+    Attributes:
+        params (TypeParameter[dict]):
+            The parameter of the Helfrich energy for the defined mesh.
+            As the mesh can only have one type a type name does not have
+            to be stated. The dictionary has the following keys:
+
+            * ``k`` (`float`, **required**) - bending stiffness
+              :math:`[\mathrm{energy}]`
+
+    """
+
+    _cpp_class_name = "HelfrichGeneralMeshForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
+    )
+
+    def __init__(self, mesh):
+        params = TypeParameter(
+            "params", "types", TypeParameterDict(k=float, H0=float, len_keys=1)
+        )
+        self._add_typeparam(params)
+
+        super().__init__(mesh)
+
+    def _attach_hook(self):
+        if self._simulation.device.communicator.num_ranks == 1:
+            super()._attach_hook()
+        else:
+            raise MPINotAvailableError("Helfrich is not implemented for MPI")
+
 
 class CurvatureHelfrich(MeshPotential):
     r"""Helfrich bending potential.
@@ -238,5 +312,6 @@ class CurvatureHelfrich(MeshPotential):
 __all__ = [
     "BendingRigidity",
     "Helfrich",
+    "GeneralHelfrich",
     "CurvatureHelfrich",
 ]
