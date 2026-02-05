@@ -187,7 +187,7 @@ def get_mesh_potential_args_forces_and_energies():
             [0.0, 1271.084184, -898.792246],
         ],
     ]
-    Helfrich_energies = [27.712812, 554.256258, 2771.281293]
+    Helfrich_energies = [9.237604, 184.752086, 923.760431]
 
     GeneralHelfrich_forces = [
         [
@@ -209,7 +209,7 @@ def get_mesh_potential_args_forces_and_energies():
             [0.0, 670.1796, -473.8885],
         ],
     ]
-    GeneralHelfrich_energies = [0, 554.256258, 458.1156]
+    GeneralHelfrich_energies = [0, 184.752086, 152.7052]
 
     AreaConservation_forces = [
         [

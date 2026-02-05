@@ -381,7 +381,7 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += h_params.data[meshbond_type].k * 0.5
+            h_force.data[idx_a].w = h_params.data[meshbond_type].k * 0.5
                                      * Curv_a * Curv_a * inv_sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
@@ -392,7 +392,7 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w += h_params.data[meshbond_type].k * 0.5
+            h_force.data[idx_b].w = h_params.data[meshbond_type].k * 0.5
                                      * Curv_b * Curv_b * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
