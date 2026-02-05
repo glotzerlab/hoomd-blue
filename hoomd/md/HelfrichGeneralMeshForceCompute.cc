@@ -32,7 +32,7 @@ HelfrichGeneralMeshForceCompute::HelfrichGeneralMeshForceCompute(std::shared_ptr
     m_exec_conf->msg->notice(5) << "Constructing HelfrichGeneralMeshForceCompute" << endl;
 
     // allocate the parameters
-    GPUArray<Scalar> params(m_mesh_data->getMeshBondData()->getNTypes(), m_exec_conf);
+    GPUArray<helfrich_param_t> params(m_mesh_data->getMeshBondData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
     // allocate memory for the per-type normal verctors
@@ -295,6 +295,8 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar sigma_dash_b2 = dot(sigma_dash_b,sigma_dash_b);
 	Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
 	Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
+
+        unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
 					      //
 	Scalar Curv_a = sqrt(sigma_dash_a2)-h_params.data[meshbond_type].H0*sigma_a;
 	Scalar Curv_b = sqrt(sigma_dash_b2)-h_params.data[meshbond_type].H0*sigma_b;
@@ -358,7 +360,6 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         Fa.z += (Curv_c * inv_sigma_c * dCurv_c.z - Curv_c2 * dsigma_c.z);
         Fa.z += (Curv_d * inv_sigma_d * dCurv_d.z - Curv_d2 * dsigma_d.z);
 
-        unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
 
         Fa *= h_params.data[meshbond_type].k;
         if (compute_virial)
@@ -389,7 +390,7 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w += h_params.data[meshbond_type] * 0.5
+            h_force.data[idx_b].w += h_params.data[meshbond_type].k * 0.5
                                      * Curv_b * Curv_b * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
@@ -551,7 +552,7 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
 
-    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<helfrich_param_t> h_params(m_params, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
@@ -812,7 +813,7 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     if (energy_new < 0)
         return DBL_MAX;
 
-    return h_params.data[type_id] * 0.5 * (energy_new - energy_old);
+    return h_params.data[type_id].k * 0.5 * (energy_new - energy_old);
     }
 
 void HelfrichGeneralMeshForceCompute::postcomputeParameter(unsigned int idx_a,

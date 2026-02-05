@@ -35,7 +35,7 @@ namespace kernel
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
 */
-__global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
+__global__ void gpu_compute_curvature_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   Scalar3* d_sigma_dash,
                                                   const unsigned int N,
                                                   const Scalar4* d_pos,
@@ -182,7 +182,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
+hipError_t gpu_compute_curvature_helfrich_sigma(Scalar* d_sigma,
                                       Scalar3* d_sigma_dash,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
@@ -196,7 +196,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_sigma_kernel);
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_curvature_helfrich_sigma_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -206,7 +206,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_helfrich_sigma_kernel),
+    hipLaunchKernelGGL((gpu_compute_curvature_helfrich_sigma_kernel),
                        dim3(grid),
                        dim3(threads),
                        0,
@@ -241,7 +241,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
 */
-__global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
+__global__ void gpu_compute_curvature_helfrich_force_kernel(Scalar4* d_force,
                                                   Scalar* d_virial,
                                                   const size_t virial_pitch,
                                                   const unsigned int N,
@@ -525,7 +525,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
+hipError_t gpu_compute_curvature_helfrich_force(Scalar4* d_force,
                                       Scalar* d_virial,
                                       const size_t virial_pitch,
                                       const unsigned int N,
@@ -538,13 +538,13 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                                       const Index2D blist_idx,
                                       const unsigned int* bpos_list,
                                       const unsigned int* n_bonds_list,
-                                      Scalar* d_params,
+                                      curvature_helfrich_param_t* d_params,
                                       const unsigned int n_bond_type,
                                       int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_force_kernel);
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_curvature_helfrich_force_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -554,7 +554,7 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_helfrich_force_kernel),
+    hipLaunchKernelGGL((gpu_compute_curvature_helfrich_force_kernel),
                        dim3(grid),
                        dim3(threads),
                        0,

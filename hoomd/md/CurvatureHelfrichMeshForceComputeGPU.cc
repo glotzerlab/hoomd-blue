@@ -108,7 +108,7 @@ void CurvatureHelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<curvature_helfrich_param_t> d_params(m_params, access_location::device, access_mode::read);
 
     m_tuner_force->begin();
-    kernel::gpu_compute_helfrich_force(d_force.data,
+    kernel::gpu_compute_curvature_helfrich_force(d_force.data,
                                        d_virial.data,
                                        m_virial.getPitch(),
                                        m_pdata->getN(),
@@ -168,7 +168,7 @@ void CurvatureHelfrichMeshForceComputeGPU::precomputeParameter()
         access_mode::read);
 
     m_tuner_sigma->begin();
-    kernel::gpu_compute_helfrich_sigma(d_sigma.data,
+    kernel::gpu_compute_curvature_helfrich_sigma(d_sigma.data,
                                        d_sigma_dash.data,
                                        m_pdata->getN(),
                                        d_pos.data,
