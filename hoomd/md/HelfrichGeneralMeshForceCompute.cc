@@ -297,11 +297,13 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
 
         unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
+
+	Scalar H0 = h_params.data[meshbond_type].H0;
 					      //
-	Scalar Curv_a = sqrt(sigma_dash_a2)-h_params.data[meshbond_type].H0*sigma_a;
-	Scalar Curv_b = sqrt(sigma_dash_b2)-h_params.data[meshbond_type].H0*sigma_b;
-	Scalar Curv_c = sqrt(sigma_dash_c2)-h_params.data[meshbond_type].H0*sigma_c;
-	Scalar Curv_d = sqrt(sigma_dash_d2)-h_params.data[meshbond_type].H0*sigma_d;
+	Scalar Curv_a = sqrt(sigma_dash_a2)-H0*sigma_a;
+	Scalar Curv_b = sqrt(sigma_dash_b2)-H0*sigma_b;
+	Scalar Curv_c = sqrt(sigma_dash_c2)-H0*sigma_c;
+	Scalar Curv_d = sqrt(sigma_dash_d2)-H0*sigma_d;
 					      //
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -328,10 +330,10 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 
 	Scalar3 dCurv_a, dCurv_b, dCurv_c, dCurv_d;
 
-	dCurv_a = dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - h_params.data[meshbond_type].H0*dsigma_a;
-	dCurv_b = dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - h_params.data[meshbond_type].H0*dsigma_b;
-	dCurv_c = dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - h_params.data[meshbond_type].H0*dsigma_c;
-	dCurv_d = dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - h_params.data[meshbond_type].H0*dsigma_d;
+	dCurv_a = dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0*dsigma_a;
+	dCurv_b = dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0*dsigma_b;
+	dCurv_c = dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0*dsigma_c;
+	dCurv_d = dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0*dsigma_d;
 
         Scalar inv_sigma_a = 1.0 / sigma_a;
         Scalar inv_sigma_b = 1.0 / sigma_b;
@@ -790,6 +792,19 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
     Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
 
+    Scalar sigma_dash_a2 = dot(sigma_dash_a,sigma_dash_a);
+    Scalar sigma_dash_b2 = dot(sigma_dash_b,sigma_dash_b);
+    Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
+    Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
+    
+    Scalar H0 = h_params.data[type_id].H0;
+    
+    Scalar Curv_a = sqrt(sigma_dash_a2)-H0*sigma_a;
+    Scalar Curv_b = sqrt(sigma_dash_b2)-H0*sigma_b;
+    Scalar Curv_c = sqrt(sigma_dash_c2)-H0*sigma_c;
+    Scalar Curv_d = sqrt(sigma_dash_d2)-H0*sigma_d;
+    
+    
     m_sigma_dash_diff_a = sigma_hat_ab * dab + sigma_hat_ac * dac + sigma_hat_ad * dad;
     m_sigma_dash_diff_b = -sigma_hat_ab * dab + sigma_hat_bc * dbc + sigma_hat_bd * dbd;
     m_sigma_dash_diff_c = -sigma_hat_ac * dac - sigma_hat_bc * dbc + sigma_hat_cd * dcd;
@@ -800,15 +815,25 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 sigma_dash_c_n = sigma_dash_c + m_sigma_dash_diff_c;
     Scalar3 sigma_dash_d_n = sigma_dash_d + m_sigma_dash_diff_d;
 
-    Scalar energy_old = dot(sigma_dash_a, sigma_dash_a) / sigma_a;
-    energy_old += (dot(sigma_dash_b, sigma_dash_b) / sigma_b);
-    energy_old += (dot(sigma_dash_c, sigma_dash_c) / sigma_c);
-    energy_old += (dot(sigma_dash_d, sigma_dash_d) / sigma_d);
+    Scalar sigma_dash_a2_n = dot(sigma_dash_a_n,sigma_dash_a_n);
+    Scalar sigma_dash_b2_n = dot(sigma_dash_b_n,sigma_dash_b_n);
+    Scalar sigma_dash_c2_n = dot(sigma_dash_c_n,sigma_dash_c_n);
+    Scalar sigma_dash_d2_n = dot(sigma_dash_d_n,sigma_dash_d_n);
 
-    Scalar energy_new = dot(sigma_dash_a_n, sigma_dash_a_n) / sigma_a_n;
-    energy_new += (dot(sigma_dash_b_n, sigma_dash_b_n) / sigma_b_n);
-    energy_new += (dot(sigma_dash_c_n, sigma_dash_c_n) / sigma_c_n);
-    energy_new += (dot(sigma_dash_d_n, sigma_dash_d_n) / sigma_d_n);
+    Scalar Curv_a_n = sqrt(sigma_dash_a2_n)-H0*sigma_a_n;
+    Scalar Curv_b_n = sqrt(sigma_dash_b2_n)-H0*sigma_b_n;
+    Scalar Curv_c_n = sqrt(sigma_dash_c2_n)-H0*sigma_c_n;
+    Scalar Curv_d_n = sqrt(sigma_dash_d2_n)-H0*sigma_d_n;
+
+    Scalar energy_old = Curv_a*Curv_a / sigma_a;
+    energy_old += (Curv_b * Curv_b) / sigma_b;
+    energy_old += (Curv_c * Curv_c) / sigma_c;
+    energy_old += (Curv_d * Curv_d) / sigma_d;
+
+    Scalar energy_new = Curv_a_n*Curv_a_n / sigma_a_n;
+    energy_new += (Curv_b_n * Curv_b_n) / sigma_b_n;
+    energy_new += (Curv_c_n * Curv_c_n) / sigma_c_n;
+    energy_new += (Curv_d_n * Curv_d_n) / sigma_d_n;
 
     if (energy_new < 0)
         return DBL_MAX;
