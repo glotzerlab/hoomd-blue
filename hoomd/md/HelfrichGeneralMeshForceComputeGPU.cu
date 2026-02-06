@@ -69,12 +69,21 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
+    unsigned int type_a = __scalar_as_int(postype.w);
+
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
     Scalar inv_sigma_a = 1.0 / sigma_a;
     Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
 
+    helfrich_param_t params_a = d_params[type_a];
+    Scalar K_a = params_a.k;
+    Scalar H0_a = params_a.H0;
+    Scalar Curv_a = sqrt(sigma_dash_a2)-H0_a*sigma_a;
+
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
 
     // initialize the virial to 0
     Scalar virial[6];
@@ -98,7 +107,6 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
             continue;
 
         int cur_bond_idx = cur_bond.idx[0];
-        int cur_bond_type = cur_bond.idx[3];
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
@@ -109,6 +117,10 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
+
+    	unsigned int type_b = __scalar_as_int(bb_postype.w);
+    	unsigned int type_c = __scalar_as_int(cc_postype.w);
+    	unsigned int type_d = __scalar_as_int(dd_postype.w);
 
         Scalar3 dab = pos - bb_pos;
         Scalar3 dac = pos - cc_pos;
@@ -234,14 +246,21 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
         Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
 
-        helfrich_param_t params = d_params[cur_bond_type];
-        Scalar K = params.k;
-        Scalar H0 = params.H0;
+        helfrich_param_t params_b = d_params[type_b];
+        Scalar K_b = params_b.k;
+        Scalar H0_b = params_b.H0;
 
-	Scalar Curv_a = sqrt(sigma_dash_a2)-H0*sigma_a;
-        Scalar Curv_b = sqrt(sigma_dash_b2)-H0*sigma_b;
-        Scalar Curv_c = sqrt(sigma_dash_c2)-H0*sigma_c;
-        Scalar Curv_d = sqrt(sigma_dash_d2)-H0*sigma_d;
+        helfrich_param_t params_c = d_params[type_c];
+        Scalar K_c = params_c.k;
+        Scalar H0_c = params_c.H0;
+
+        helfrich_param_t params_d = d_params[type_d];
+        Scalar K_d = params_d.k;
+        Scalar H0_d = params_d.H0;
+
+        Scalar Curv_b = sqrt(sigma_dash_b2)-H0_b*sigma_b;
+        Scalar Curv_c = sqrt(sigma_dash_c2)-H0_c*sigma_c;
+        Scalar Curv_d = sqrt(sigma_dash_d2)-H0_d*sigma_d;
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -268,10 +287,10 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 	
 	Scalar3 dCurv_a, dCurv_b, dCurv_c, dCurv_d;
 
-	dCurv_a = dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0*dsigma_a;
-	dCurv_b = dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0*dsigma_b;
-	dCurv_c = dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0*dsigma_c;
-	dCurv_d = dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0*dsigma_d;
+	dCurv_a = dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0_a*dsigma_a;
+	dCurv_b = dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0_b*dsigma_b;
+	dCurv_c = dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0_c*dsigma_c;
+	dCurv_d = dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0_d*dsigma_d;
 
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
@@ -284,27 +303,24 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 
         Scalar3 Fa;
 
-        Fa.x =   Curv_a * inv_sigma_a * dCurv_a.x - Curv_a2 * dsigma_a.x;
-        Fa.x += (Curv_b * inv_sigma_b * dCurv_b.x - Curv_b2 * dsigma_b.x);
-        Fa.x += (Curv_c * inv_sigma_c * dCurv_c.x - Curv_c2 * dsigma_c.x);
-        Fa.x += (Curv_d * inv_sigma_d * dCurv_d.x - Curv_d2 * dsigma_d.x);
+        Fa.x =  K_a*(Curv_a * inv_sigma_a * dCurv_a.x - Curv_a2 * dsigma_a.x);
+        Fa.x += K_b*(Curv_b * inv_sigma_b * dCurv_b.x - Curv_b2 * dsigma_b.x);
+        Fa.x += K_c*(Curv_c * inv_sigma_c * dCurv_c.x - Curv_c2 * dsigma_c.x);
+        Fa.x += K_d*(Curv_d * inv_sigma_d * dCurv_d.x - Curv_d2 * dsigma_d.x);
 
-        Fa.y =   Curv_a * inv_sigma_a * dCurv_a.y - Curv_a2 * dsigma_a.y;
-        Fa.y += (Curv_b * inv_sigma_b * dCurv_b.y - Curv_b2 * dsigma_b.y);
-        Fa.y += (Curv_c * inv_sigma_c * dCurv_c.y - Curv_c2 * dsigma_c.y);
-        Fa.y += (Curv_d * inv_sigma_d * dCurv_d.y - Curv_d2 * dsigma_d.y);
+        Fa.y =  K_a*(Curv_a * inv_sigma_a * dCurv_a.y - Curv_a2 * dsigma_a.y);
+        Fa.y += K_b*(Curv_b * inv_sigma_b * dCurv_b.y - Curv_b2 * dsigma_b.y);
+        Fa.y += K_c*(Curv_c * inv_sigma_c * dCurv_c.y - Curv_c2 * dsigma_c.y);
+        Fa.y += K_d*(Curv_d * inv_sigma_d * dCurv_d.y - Curv_d2 * dsigma_d.y);
 
-        Fa.z =   Curv_a * inv_sigma_a * dCurv_a.z - Curv_a2 * dsigma_a.z;
-        Fa.z += (Curv_b * inv_sigma_b * dCurv_b.z - Curv_b2 * dsigma_b.z);
-        Fa.z += (Curv_c * inv_sigma_c * dCurv_c.z - Curv_c2 * dsigma_c.z);
-        Fa.z += (Curv_d * inv_sigma_d * dCurv_d.z - Curv_d2 * dsigma_d.z);
-
-        Fa *= K;
+        Fa.z =  K_a*(Curv_a * inv_sigma_a * dCurv_a.z - Curv_a2 * dsigma_a.z);
+        Fa.z += K_b*(Curv_b * inv_sigma_b * dCurv_b.z - Curv_b2 * dsigma_b.z);
+        Fa.z += K_c*(Curv_c * inv_sigma_c * dCurv_c.z - Curv_c2 * dsigma_c.z);
+        Fa.z += K_d*(Curv_d * inv_sigma_d * dCurv_d.z - Curv_d2 * dsigma_d.z);
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K / 2.0 * Curv_a * Curv_a * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy

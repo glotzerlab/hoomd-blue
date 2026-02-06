@@ -318,6 +318,13 @@ def _skip_if_helfrich_mpi(sim, pair_potential):
         if issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich) or issubclass(pair_potential, hoomd.md.mesh.bending.GeneralHelfrich):
             pytest.skip("Cannot run Helfrich with MPI")
 
+def _find_type_name(pair_potential):
+    """Determines if particle or mesh type has to be used."""
+    if issubclass(pair_potential, hoomd.md.mesh.bending.GeneralHelfrich):
+        return "A"
+    else:
+        return "mesh"
+
 
 @pytest.fixture(scope="session")
 def tetrahedron_snapshot_factory(device):
@@ -350,13 +357,15 @@ def tetrahedron_snapshot_factory(device):
     "mesh_potential_cls, potential_kwargs", get_mesh_potential_and_args()
 )
 def test_before_attaching(mesh_potential_cls, potential_kwargs):
+    type_name = _find_type_name(mesh_potential_cls)
+
     mesh = hoomd.mesh.Mesh()
     mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
+    mesh_potential.params[type_name] = potential_kwargs
 
     assert mesh is mesh_potential.mesh
     for key in potential_kwargs:
-        assert mesh_potential.params["mesh"][key] == pytest.approx(
+        assert mesh_potential.params[type_name][key] == pytest.approx(
             potential_kwargs[key], rel=1e-6
         )
 
@@ -382,8 +391,10 @@ def test_after_attaching(
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
+    type_name = _find_type_name(mesh_potential_cls)
+
     mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
+    mesh_potential.params[type_name] = potential_kwargs
 
     _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
@@ -400,7 +411,7 @@ def test_after_attaching(
 
     sim.run(0)
     for key in potential_kwargs:
-        assert mesh_potential.params["mesh"][key] == pytest.approx(
+        assert mesh_potential.params[type_name][key] == pytest.approx(
             potential_kwargs[key], rel=1e-6
         )
 
@@ -418,7 +429,7 @@ def test_multiple_types(
     mesh_potential_cls,
     potential_kwargs,
 ):
-    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5,particle_types=["A","B"])
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
@@ -443,13 +454,17 @@ def test_multiple_types(
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in potential_kwargs:
-        assert mesh_potential.params["mesh"][key] == pytest.approx(
-            potential_kwargs[key], rel=1e-6
-        )
-        assert mesh_potential.params["patch"][key] == pytest.approx(
-            potential_kwargs[key], rel=1e-6
-        )
+    
+    type_name = ["mesh","patch"]
+
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.GeneralHelfrich):
+         type_name = ["A","B"]
+
+    for tn in type_name:
+        for key in potential_kwargs:
+            assert mesh_potential.params[tn][key] == pytest.approx(
+                potential_kwargs[key], rel=1e-6
+            )
 
 
 def test_area(simulation_factory, tetrahedron_snapshot_factory):
@@ -566,8 +581,11 @@ def test_forces_and_energies(
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
-    mesh_potential.params["patch"] = potential_kwargs
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.GeneralHelfrich):
+        mesh_potential.params["A"] = potential_kwargs
+    else:
+        mesh_potential.params["mesh"] = potential_kwargs
+        mesh_potential.params["patch"] = potential_kwargs
 
     _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 

@@ -221,7 +221,7 @@ class GeneralHelfrich(MeshPotential):
 
     def __init__(self, mesh):
         params = TypeParameter(
-            "params", "types", TypeParameterDict(k=float, H0=float, len_keys=1)
+            "params", "particle_types", TypeParameterDict(k=float, H0=float, len_keys=1)
         )
         self._add_typeparam(params)
 
@@ -232,6 +232,15 @@ class GeneralHelfrich(MeshPotential):
             super()._attach_hook()
         else:
             raise MPINotAvailableError("Helfrich is not implemented for MPI")
+
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam._attach(cpp_obj, simulation.state)
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
+                )
 
 
 class CurvatureHelfrich(MeshPotential):
