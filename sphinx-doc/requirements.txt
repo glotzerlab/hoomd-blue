@@ -10,7 +10,7 @@ attrs==25.4.0
     # via
     #   jsonschema
     #   referencing
-babel==2.17.0
+babel==2.18.0
     # via sphinx
 beautifulsoup4==4.14.3
     # via
@@ -40,7 +40,7 @@ idna==3.11
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==9.9.0
+ipython==9.10.0
     # via -r sphinx-doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.8
     # via -r sphinx-doc/requirements.in
-numpy==2.4.1
+numpy==2.4.2
     # via -r sphinx-doc/requirements.in
 packaging==26.0
     # via
@@ -96,11 +96,11 @@ pandoc==2.4
     # via -r sphinx-doc/requirements.in
 pandocfilters==1.5.1
     # via nbconvert
-parso==0.8.5
+parso==0.8.6
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.5.1
+platformdirs==4.9.2
     # via jupyter-core
 plumbum==1.10.0
     # via pandoc
@@ -195,7 +195,7 @@ typing-extensions==4.15.0
     # via beautifulsoup4
 urllib3==2.6.3
     # via requests
-wcwidth==0.3.0
+wcwidth==0.6.0
     # via prompt-toolkit
 webencodings==0.5.1
     # via
