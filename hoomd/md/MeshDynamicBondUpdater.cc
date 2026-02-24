@@ -188,40 +188,41 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 }
             }
 
-        typename Angle::members_t& triangle1 = h_triangles.data[tr_idx1];
+        //typename Angle::members_t& triangle1 = h_triangles.data[tr_idx1];
 
-        unsigned int iterator = 0;
+        //unsigned int iterator = 0;
 
-        bool a_before_b = false;
+        //bool a_before_b = false;
 
-        while (tag_a != triangle1.tag[iterator])
-            iterator++;
+        //while (tag_a != triangle1.tag[iterator])
+        //    iterator++;
 
-        iterator = (iterator + 1) % 3;
+        //iterator = (iterator + 1) % 3;
 
-        if (tag_b == triangle1.tag[iterator])
-            {
-            a_before_b = true;
-            iterator = (iterator + 1) % 3;
-            }
+        //if (tag_b == triangle1.tag[iterator])
+        //    {
+        //    a_before_b = true;
+        //    iterator = (iterator + 1) % 3;
+        //    }
 
         unsigned int type_id = h_typeval.data[i].type;
 
         Scalar energyDifference = 0;
 
-        unsigned int idx_cc = idx_d;
-        unsigned int idx_dd = idx_c;
+        //unsigned int idx_cc = idx_d;
+        //unsigned int idx_dd = idx_c;
 
-        if (a_before_b)
-            {
-            idx_cc = idx_c;
-            idx_dd = idx_d;
-            }
+        //if (a_before_b)
+        //    {
+        //    idx_cc = idx_c;
+        //    idx_dd = idx_d;
+        //    }
 
         bool have_to_check_surrounding = false;
         for (auto& force : m_forces)
             {
-            energyDifference += force->energyDiff(idx_a, idx_b, idx_cc, idx_dd, type_id);
+            //energyDifference += force->energyDiff(idx_a, idx_b, idx_cc, idx_dd, type_id);
+            energyDifference += force->energyDiff(idx_a, idx_b, idx_c, idx_d, type_id);
             if (force->checkSurrounding())
                 have_to_check_surrounding = true;
             }
@@ -242,21 +243,23 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
         if (have_to_check_surrounding || part_func > rand_number)
             {
-            tr_idx[1] = tr_idx1;
-            tr_idx[0] = tr_idx2;
+            //tr_idx[1] = tr_idx1;
+            //tr_idx[0] = tr_idx2;
 
             v_idx[0] = tag_a;
             v_idx[1] = tag_b;
-            v_idx[2] = tag_d;
-            v_idx[3] = tag_c;
+            //v_idx[2] = tag_d;
+            //v_idx[3] = tag_c;
 
-            if (a_before_b)
-                {
+            //if (a_before_b)
+            //    {
                 tr_idx[0] = tr_idx1;
                 tr_idx[1] = tr_idx2;
                 v_idx[2] = tag_c;
                 v_idx[3] = tag_d;
-                }
+           //     }
+
+	    std::cout << "Str "<< v_idx[0] << " " << " " << v_idx[1] << " " << v_idx[2] << " " << v_idx[3] << std::endl;
 
             unsigned int counter = 4;
 
@@ -338,16 +341,22 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             // Flip bond
             if (v_idx[2] > v_idx[3])
                 {
-                h_bonds.data[i].tag[1] = v_idx[2];
                 h_bonds.data[i].tag[0] = v_idx[3];
+                h_bonds.data[i].tag[1] = v_idx[2];
+
+            	h_bonds.data[i].tag[2] = v_idx[0];
+            	h_bonds.data[i].tag[3] = v_idx[1];
                 }
             else
                 {
                 h_bonds.data[i].tag[0] = v_idx[2];
                 h_bonds.data[i].tag[1] = v_idx[3];
+
+            	h_bonds.data[i].tag[2] = v_idx[1];
+            	h_bonds.data[i].tag[3] = v_idx[0];
                 }
-            h_bonds.data[i].tag[2] = v_idx[0];
-            h_bonds.data[i].tag[3] = v_idx[1];
+            //h_bonds.data[i].tag[2] = v_idx[0];
+            //h_bonds.data[i].tag[3] = v_idx[1];
 
             // Update triagles asociated with the bond
             h_triangles.data[tr_idx[0]].tag[0] = v_idx[0];
@@ -358,17 +367,25 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             h_triangles.data[tr_idx[1]].tag[1] = v_idx[2];
             h_triangles.data[tr_idx[1]].tag[2] = v_idx[3];
 
-            h_bonds.data[b_idx[0]].tag[2] = v_idx[3];
-            h_bonds.data[b_idx[0]].tag[3] = v_idx[4];
+	    if(h_bonds.data[b_idx[0]].tag[2] == v_idx[4])
+            	h_bonds.data[b_idx[0]].tag[3] = v_idx[3];
+            else
+            	h_bonds.data[b_idx[0]].tag[2] = v_idx[3];
 
-            h_bonds.data[b_idx[1]].tag[2] = v_idx[3];
-            h_bonds.data[b_idx[1]].tag[3] = v_idx[5];
+	    if(h_bonds.data[b_idx[1]].tag[2] == v_idx[5])
+            	h_bonds.data[b_idx[1]].tag[3] = v_idx[3];
+            else
+            	h_bonds.data[b_idx[1]].tag[2] = v_idx[3];
 
-            h_bonds.data[b_idx[2]].tag[2] = v_idx[2];
-            h_bonds.data[b_idx[2]].tag[3] = v_idx[6];
+	    if(h_bonds.data[b_idx[2]].tag[2] == v_idx[6])
+            	h_bonds.data[b_idx[2]].tag[3] = v_idx[2];
+            else
+            	h_bonds.data[b_idx[2]].tag[2] = v_idx[2];
 
-            h_bonds.data[b_idx[3]].tag[2] = v_idx[2];
-            h_bonds.data[b_idx[3]].tag[3] = v_idx[7];
+	    if(h_bonds.data[b_idx[3]].tag[2] == v_idx[7])
+            	h_bonds.data[b_idx[3]].tag[3] = v_idx[2];
+            else
+            	h_bonds.data[b_idx[3]].tag[2] = v_idx[2];
 
             // Update triangle neighbors list for the surrounding bonds
             h_neigh_bonds.data[b_idx[0]].x = tr_idx[0];
@@ -397,7 +414,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
             for (auto& force : m_forces)
                 {
-                force->postcomputeParameter(idx_a, idx_b, idx_cc, idx_dd, type_id);
+                //force->postcomputeParameter(idx_a, idx_b, idx_cc, idx_dd, type_id);
+                force->postcomputeParameter(idx_a, idx_b, idx_c, idx_d, type_id);
                 }
             m_mesh->getMeshBondData()->groupReorder();
             m_mesh->getMeshTriangleData()->groupReorder();

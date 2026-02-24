@@ -174,9 +174,9 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
                     {
                     unsigned int find_idx = all_helper[i].tag[2];
 		    if(switched[j])
-                    	all_groups[find_idx].tag[2] = bonds[j].tag[2];
-		    else
                     	all_groups[find_idx].tag[3] = bonds[j].tag[2];
+		    else
+                    	all_groups[find_idx].tag[2] = bonds[j].tag[2];
 
                     all_helper.erase(all_helper.begin() + i);
                     i -= 1;
