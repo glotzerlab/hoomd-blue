@@ -127,6 +127,7 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
     for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
         {
         std::vector<unsigned int> triag_tag(3);
+        std::vector<bool> switched(3);
         std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(3);
         triag_tag[0] = snapshot.groups[group_idx].tag[0];
         triag_tag[1] = snapshot.groups[group_idx].tag[1];
@@ -156,7 +157,11 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
 
                 bonds[j].tag[0] = bonds1;
                 bonds[j].tag[1] = bonds0;
+
+		switched[j] = true;
                 }
+	    else
+		switched[j] = false;
             }
 
         // Remove any duplicate bonds.
@@ -168,11 +173,15 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
                     && bonds[j].tag[1] == all_helper[i].tag[1])
                     {
                     unsigned int find_idx = all_helper[i].tag[2];
-                    all_groups[find_idx].tag[3] = bonds[j].tag[2];
+		    if(switched[j])
+                    	all_groups[find_idx].tag[2] = bonds[j].tag[2];
+		    else
+                    	all_groups[find_idx].tag[3] = bonds[j].tag[2];
 
                     all_helper.erase(all_helper.begin() + i);
                     i -= 1;
                     bonds.erase(bonds.begin() + j);
+                    switched.erase(switched.begin() + j);
                     break;
                     }
                 }
