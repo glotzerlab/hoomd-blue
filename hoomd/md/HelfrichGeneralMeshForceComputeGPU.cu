@@ -25,6 +25,234 @@ namespace md
 namespace kernel
     {
 //! Kernel for calculating helfrich sigmas on the GPU
+/*! \param d_sigma Device memory to write per paricle sigma
+    \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
+    \param N number of particles
+    \param d_pos device array of particle positions
+    \param d_rtag device array of particle reverse tags
+    \param box Box dimensions (in GPU format) to use for periodic boundary conditions
+    \param blist List of mesh bonds stored on the GPU
+    \param bpos_list Position of current index in list of mesh bonds stored on the GPU
+    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
+*/
+__global__ void gpu_compute_generalhelfrich_sigma_kernel(Scalar* d_sigma,
+                                                  Scalar3* d_sigma_dash,
+                                                  Scalar3* d_normal,
+                                                  const unsigned int N,
+                                                  const Scalar4* d_pos,
+                                                  const unsigned int* d_rtag,
+                                                  BoxDim box,
+                                                  const group_storage<4>* blist,
+                                                  const Index2D blist_idx,
+                                                  const unsigned int* bpos_list,
+                                                  const unsigned int* n_bonds_list)
+    {
+    // start by identifying which particle we are to handle
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+        return;
+
+    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    int n_bonds = n_bonds_list[idx];
+
+    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    Scalar4 postype = __ldg(d_pos + idx);
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+    // initialize the force to 0
+    Scalar3 sigma_dash = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    Scalar sigma = 0.0;
+
+    Scalar3 normal = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    // loop over all angles
+    for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+        {
+        int cur_bond_pos = bpos_list[blist_idx(idx, bond_idx)];
+
+        if (cur_bond_pos > 1)
+            continue;
+
+        group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
+
+        unsigned int cur_idx_c = cur_bond.idx[1];
+        unsigned int cur_idx_d = cur_bond.idx[2];
+
+        if (cur_idx_c == cur_idx_d)
+            continue;
+
+        unsigned int cur_bond_idx = cur_bond.idx[0];
+
+        // get the b-particle's position (MEM TRANSFER: 16 bytes)
+        Scalar4 bb_postype = d_pos[cur_bond_idx];
+        Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
+        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        Scalar4 cc_postype = d_pos[cur_idx_c];
+        Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
+        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        Scalar4 dd_postype = d_pos[cur_idx_d];
+        Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
+
+        Scalar3 dab = pos - bb_pos;
+        Scalar3 dac = pos - cc_pos;
+        Scalar3 dad = pos - dd_pos;
+        Scalar3 dbc = bb_pos - cc_pos;
+        Scalar3 dbd = bb_pos - dd_pos;
+
+        dab = box.minImage(dab);
+        dac = box.minImage(dac);
+        dad = box.minImage(dad);
+        dbc = box.minImage(dbc);
+        dbd = box.minImage(dbd);
+
+        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
+        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
+
+        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        rac = sqrt(rac);
+        Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        rad = sqrt(rad);
+
+        Scalar rbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+        rbc = sqrt(rbc);
+        Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+        rbd = sqrt(rbd);
+
+        Scalar3 nac, nad, nbc, nbd;
+        nac = dac / rac;
+        nad = dad / rad;
+        nbc = dbc / rbc;
+        nbd = dbd / rbd;
+
+	Scalar3 normal_abcd;
+
+	normal_abcd.x = dac.y*dab.z - dac.z*dab.y + dab.y*dad.z - dab.z*dad.y;
+	normal_abcd.y = dac.z*dab.x - dac.x*dab.z + dab.z*dad.x - dab.x*dad.z;
+	normal_abcd.z = dac.x*dab.y - dac.y*dab.x + dab.x*dad.y - dab.y*dad.x;
+
+	if (cur_bond_pos == 1)
+		normal_abcd *= -1;
+
+	normal += normal_abcd;
+
+        Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
+
+        if (c_accb > 1.0)
+            c_accb = 1.0;
+        if (c_accb < -1.0)
+            c_accb = -1.0;
+
+        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
+
+        if (c_addb > 1.0)
+            c_addb = 1.0;
+        if (c_addb < -1.0)
+            c_addb = -1.0;
+
+        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
+
+        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (inv_s_addb < SMALL)
+            inv_s_addb = SMALL;
+        inv_s_addb = 1.0 / inv_s_addb;
+
+        Scalar cot_accb = c_accb * inv_s_accb;
+        Scalar cot_addb = c_addb * inv_s_addb;
+
+        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
+
+        Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
+
+        Scalar3 sigma_dash_a = sigma_hat_ab * dab;
+
+        sigma += sigma_a;
+        sigma_dash += sigma_dash_a;
+        }
+
+    Scalar factor = dot(normal,sigma_dash);
+
+    if(factor < 0)
+	    d_normal[idx].x = -1;
+    else
+	    d_normal[idx].x = 1;
+    d_normal[idx].y = 0;
+    d_normal[idx].z = 0;
+
+    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    d_sigma[idx] = sigma;
+    d_sigma_dash[idx] = sigma_dash;
+    }
+
+/*! \param d_sigma Device memory to write per paricle sigma
+    \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
+    \param N number of particles
+    \param d_pos device array of particle positions
+    \param d_rtag device array of particle reverse tags
+    \param box Box dimensions (in GPU format) to use for periodic boundary conditions
+    \param blist List of mesh bonds stored on the GPU
+    \param d_triangles device array of mesh triangles
+    \param n_bonds_list List of numbers of mesh bonds stored on the GPU
+    \param block_size Block size to use when performing calculations
+    \param compute_capability Device compute capability (200, 300, 350, ...)
+
+    \returns Any error code resulting from the kernel launch
+    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+*/
+hipError_t gpu_compute_generalhelfrich_sigma(Scalar* d_sigma,
+                                      Scalar3* d_sigma_dash,
+                                      Scalar3* d_normal,
+                                      const unsigned int N,
+                                      const Scalar4* d_pos,
+                                      const unsigned int* d_rtag,
+                                      const BoxDim& box,
+                                      const group_storage<4>* blist,
+                                      const Index2D blist_idx,
+                                      const unsigned int* bpos_list,
+                                      const unsigned int* n_bonds_list,
+                                      int block_size)
+    {
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_generalhelfrich_sigma_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
+    // setup the grid to run the kernel
+    dim3 grid(N / run_block_size + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    // run the kernel
+    hipLaunchKernelGGL((gpu_compute_generalhelfrich_sigma_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_sigma,
+                       d_sigma_dash,
+                       d_normal,
+                       N,
+                       d_pos,
+                       d_rtag,
+                       box,
+                       blist,
+                       blist_idx,
+                       bpos_list,
+                       n_bonds_list);
+
+    return hipSuccess;
+    }
+
+//! Kernel for calculating helfrich sigmas on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch
@@ -34,6 +262,7 @@ namespace kernel
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param blist List of mesh bonds stored on the GPU
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
@@ -49,6 +278,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
                                                   BoxDim box,
                                                   const Scalar* d_sigma,
                                                   const Scalar3* d_sigma_dash,
+                                                  const Scalar3* d_normal,
                                                   const group_storage<4>* blist,
                                                   const Index2D blist_idx,
                                                   const unsigned int* bpos_list,
@@ -73,6 +303,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
+    Scalar factor_a = d_normal[idx].x;
     Scalar inv_sigma_a = 1.0 / sigma_a;
     Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
 
@@ -82,6 +313,8 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
+    Scalar Curv_a = factor_a*sqrt(sigma_dash_a2)-H0_a*sigma_a;
+    force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
 
 
     // initialize the virial to 0
@@ -132,22 +365,6 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         dad = box.minImage(dad);
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
-
-	Scalar3 normal_abc, normal_abd;
-
-	normal_abc.x = dac.y*dab.z - dac.z*dab.y;
-	normal_abc.y = dac.z*dab.x - dac.x*dab.z;
-	normal_abc.z = dac.x*dab.y - dac.y*dab.x;
-
-	normal_abd.x = dab.y*dad.z - dab.z*dad.y;
-	normal_abd.y = dab.z*dad.x - dab.x*dad.z;
-	normal_abd.z = dab.x*dad.y - dab.y*dad.x;
-
-	if (cur_bond_pos == 1)
-	{
-		normal_abc *= -1;
-		normal_abd *= -1;
-	}
 
         // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
@@ -273,25 +490,10 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         Scalar K_d = params_d.k;
         Scalar H0_d = params_d.H0;
 
+	Scalar factor_b = d_normal[cur_bond_idx].x;
+	Scalar factor_c = d_normal[cur_idx_c].x;
+	Scalar factor_d = d_normal[cur_idx_d].x;
 
-	Scalar factor_a = 1;
-	Scalar factor_b = 1;
-	Scalar factor_c = 1;
-	Scalar factor_d = 1;
-
-	if( dot(sigma_dash_a, normal_abc) < 0)
-		factor_a = -1;
-
-	if( dot(sigma_dash_b, normal_abc) < 0)
-		factor_b = -1;
-
-	if( dot(sigma_dash_c, normal_abc) < 0)
-		factor_c = -1;
-
-	if( dot(sigma_dash_d, normal_abd) < 0)
-		factor_d = -1;
-
-    	Scalar Curv_a = factor_a*sqrt(sigma_dash_a2)-H0_a*sigma_a;
         Scalar Curv_b = factor_b*sqrt(sigma_dash_b2)-H0_b*sigma_b;
         Scalar Curv_c = factor_c*sqrt(sigma_dash_c2)-H0_c*sigma_c;
         Scalar Curv_d = factor_d*sqrt(sigma_dash_d2)-H0_d*sigma_d;
@@ -355,7 +557,6 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-    	force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
@@ -381,6 +582,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param blist List of mesh bonds stored on the GPU
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
@@ -400,6 +602,7 @@ hipError_t gpu_compute_generalhelfrich_force(Scalar4* d_force,
                                       const BoxDim& box,
                                       const Scalar* d_sigma,
                                       const Scalar3* d_sigma_dash,
+                                      const Scalar3* d_normal,
                                       const group_storage<4>* blist,
                                       const Index2D blist_idx,
                                       const unsigned int* bpos_list,
@@ -434,6 +637,7 @@ hipError_t gpu_compute_generalhelfrich_force(Scalar4* d_force,
                        box,
                        d_sigma,
                        d_sigma_dash,
+                       d_normal,
                        blist,
                        blist_idx,
                        bpos_list,
