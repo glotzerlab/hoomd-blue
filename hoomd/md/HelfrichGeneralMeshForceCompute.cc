@@ -196,6 +196,16 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
 
+	Scalar3 normal_abc, normal_abd;
+
+	normal_abc.x = dac.y*dab.z - dac.z*dab.y;
+	normal_abc.y = dac.z*dab.x - dac.x*dab.z;
+	normal_abc.z = dac.x*dab.y - dac.y*dab.x;
+
+	normal_abd.x = dab.y*dad.z - dab.z*dad.y;
+	normal_abd.y = dab.z*dad.x - dab.x*dad.z;
+	normal_abd.z = dab.x*dad.y - dab.y*dad.x;
+
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -306,10 +316,27 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar H0_c = h_params.data[type_c].H0;
 	Scalar H0_d = h_params.data[type_d].H0;
 
-	Scalar Curv_a = sqrt(sigma_dash_a2)-H0_a*sigma_a;
-	Scalar Curv_b = sqrt(sigma_dash_b2)-H0_b*sigma_b;
-	Scalar Curv_c = sqrt(sigma_dash_c2)-H0_c*sigma_c;
-	Scalar Curv_d = sqrt(sigma_dash_d2)-H0_d*sigma_d;
+	Scalar factor_a = 1;
+	Scalar factor_b = 1;
+	Scalar factor_c = 1;
+	Scalar factor_d = 1;
+
+	if( dot(sigma_dash_a, normal_abc) < 0)
+		factor_a = -1;
+
+	if( dot(sigma_dash_b, normal_abc) < 0)
+		factor_b = -1;
+
+	if( dot(sigma_dash_c, normal_abc) < 0)
+		factor_c = -1;
+
+	if( dot(sigma_dash_d, normal_abd) < 0)
+		factor_d = -1;
+
+	Scalar Curv_a = factor_a*sqrt(sigma_dash_a2)-H0_a*sigma_a;
+	Scalar Curv_b = factor_b*sqrt(sigma_dash_b2)-H0_b*sigma_b;
+	Scalar Curv_c = factor_c*sqrt(sigma_dash_c2)-H0_c*sigma_c;
+	Scalar Curv_d = factor_d*sqrt(sigma_dash_d2)-H0_d*sigma_d;
 					      //
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -336,10 +363,10 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 
 	Scalar3 dCurv_a, dCurv_b, dCurv_c, dCurv_d;
 
-	dCurv_a = dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0_a*dsigma_a;
-	dCurv_b = dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0_b*dsigma_b;
-	dCurv_c = dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0_c*dsigma_c;
-	dCurv_d = dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0_d*dsigma_d;
+	dCurv_a = factor_a*dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0_a*dsigma_a;
+	dCurv_b = factor_b*dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0_b*dsigma_b;
+	dCurv_c = factor_c*dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0_c*dsigma_c;
+	dCurv_d = factor_d*dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0_d*dsigma_d;
 
         Scalar inv_sigma_a = 1.0 / sigma_a;
         Scalar inv_sigma_b = 1.0 / sigma_b;
@@ -614,6 +641,24 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     dbd = box.minImage(dbd);
     dcd = box.minImage(dcd);
 
+    Scalar3 normal_abc, normal_abd, normal_cdb, normal_cda;
+
+    normal_abc.x = dac.y*dab.z - dac.z*dab.y;
+    normal_abc.y = dac.z*dab.x - dac.x*dab.z;
+    normal_abc.z = dac.x*dab.y - dac.y*dab.x;
+
+    normal_abd.x = dab.y*dad.z - dab.z*dad.y;
+    normal_abd.y = dab.z*dad.x - dab.x*dad.z;
+    normal_abd.z = dab.x*dad.y - dab.y*dad.x;
+
+    normal_cdb.x = -dcd.y*dbc.z + dcd.z*dbc.y;
+    normal_cdb.y = -dcd.z*dbc.x + dcd.x*dbc.z;
+    normal_cdb.z = -dcd.x*dbc.y + dcd.y*dbc.x;
+
+    normal_cda.x = -dac.y*dcd.z + dac.z*dcd.y;
+    normal_cda.y = -dac.z*dcd.x + dac.x*dcd.z;
+    normal_cda.z = -dac.x*dcd.y + dac.y*dcd.x;
+
     Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
     Scalar rab = sqrt(rsqab);
     Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -823,11 +868,28 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar K_b = h_params.data[type_b].k;
     Scalar K_c = h_params.data[type_c].k;
     Scalar K_d = h_params.data[type_d].k;
+
+    Scalar factor_a = 1;
+    Scalar factor_b = 1;
+    Scalar factor_c = 1;
+    Scalar factor_d = 1;
     
-    Scalar Curv_a = sqrt(sigma_dash_a2)-H0_a*sigma_a;
-    Scalar Curv_b = sqrt(sigma_dash_b2)-H0_b*sigma_b;
-    Scalar Curv_c = sqrt(sigma_dash_c2)-H0_c*sigma_c;
-    Scalar Curv_d = sqrt(sigma_dash_d2)-H0_d*sigma_d;
+    if( dot(sigma_dash_a, normal_abc) < 0)
+    	factor_a = -1;
+    
+    if( dot(sigma_dash_b, normal_abc) < 0)
+    	factor_b = -1;
+    
+    if( dot(sigma_dash_c, normal_abc) < 0)
+    	factor_c = -1;
+    
+    if( dot(sigma_dash_d, normal_abd) < 0)
+    	factor_d = -1;
+    
+    Scalar Curv_a = factor_a*sqrt(sigma_dash_a2)-H0_a*sigma_a;
+    Scalar Curv_b = factor_b*sqrt(sigma_dash_b2)-H0_b*sigma_b;
+    Scalar Curv_c = factor_c*sqrt(sigma_dash_c2)-H0_c*sigma_c;
+    Scalar Curv_d = factor_d*sqrt(sigma_dash_d2)-H0_d*sigma_d;
     
     
     m_sigma_dash_diff_a = sigma_hat_ab * dab + sigma_hat_ac * dac + sigma_hat_ad * dad;
@@ -845,10 +907,27 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar sigma_dash_c2_n = dot(sigma_dash_c_n,sigma_dash_c_n);
     Scalar sigma_dash_d2_n = dot(sigma_dash_d_n,sigma_dash_d_n);
 
-    Scalar Curv_a_n = sqrt(sigma_dash_a2_n)-H0_a*sigma_a_n;
-    Scalar Curv_b_n = sqrt(sigma_dash_b2_n)-H0_b*sigma_b_n;
-    Scalar Curv_c_n = sqrt(sigma_dash_c2_n)-H0_c*sigma_c_n;
-    Scalar Curv_d_n = sqrt(sigma_dash_d2_n)-H0_d*sigma_d_n;
+    Scalar factor_a_n = 1;
+    Scalar factor_b_n = 1;
+    Scalar factor_c_n = 1;
+    Scalar factor_d_n = 1;
+    
+    if( dot(sigma_dash_a_n, normal_cda) < 0)
+    	factor_a_n = -1;
+    
+    if( dot(sigma_dash_b_n, normal_cdb) < 0)
+    	factor_b_n = -1;
+    
+    if( dot(sigma_dash_c_n, normal_cdb) < 0)
+    	factor_c_n = -1;
+    
+    if( dot(sigma_dash_d_n, normal_cdb) < 0)
+    	factor_d_n = -1;
+
+    Scalar Curv_a_n = factor_a_n*sqrt(sigma_dash_a2_n)-H0_a*sigma_a_n;
+    Scalar Curv_b_n = factor_b_n*sqrt(sigma_dash_b2_n)-H0_b*sigma_b_n;
+    Scalar Curv_c_n = factor_c_n*sqrt(sigma_dash_c2_n)-H0_c*sigma_c_n;
+    Scalar Curv_d_n = factor_d_n*sqrt(sigma_dash_d2_n)-H0_d*sigma_d_n;
 
     Scalar energy_old = K_a * Curv_a*Curv_a / sigma_a;
     energy_old += K_b * (Curv_b * Curv_b) / sigma_b;

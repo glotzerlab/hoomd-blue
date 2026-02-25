@@ -79,11 +79,10 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
     helfrich_param_t params_a = d_params[type_a];
     Scalar K_a = params_a.k;
     Scalar H0_a = params_a.H0;
-    Scalar Curv_a = sqrt(sigma_dash_a2)-H0_a*sigma_a;
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
-    force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
+
 
     // initialize the virial to 0
     Scalar virial[6];
@@ -133,6 +132,22 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         dad = box.minImage(dad);
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
+
+	Scalar3 normal_abc, normal_abd;
+
+	normal_abc.x = dac.y*dab.z - dac.z*dab.y;
+	normal_abc.y = dac.z*dab.x - dac.x*dab.z;
+	normal_abc.z = dac.x*dab.y - dac.y*dab.x;
+
+	normal_abd.x = dab.y*dad.z - dab.z*dad.y;
+	normal_abd.y = dab.z*dad.x - dab.x*dad.z;
+	normal_abd.z = dab.x*dad.y - dab.y*dad.x;
+
+	if (cur_bond_pos == 1)
+	{
+		normal_abc *= -1;
+		normal_abd *= -1;
+	}
 
         // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
@@ -258,9 +273,28 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         Scalar K_d = params_d.k;
         Scalar H0_d = params_d.H0;
 
-        Scalar Curv_b = sqrt(sigma_dash_b2)-H0_b*sigma_b;
-        Scalar Curv_c = sqrt(sigma_dash_c2)-H0_c*sigma_c;
-        Scalar Curv_d = sqrt(sigma_dash_d2)-H0_d*sigma_d;
+
+	Scalar factor_a = 1;
+	Scalar factor_b = 1;
+	Scalar factor_c = 1;
+	Scalar factor_d = 1;
+
+	if( dot(sigma_dash_a, normal_abc) < 0)
+		factor_a = -1;
+
+	if( dot(sigma_dash_b, normal_abc) < 0)
+		factor_b = -1;
+
+	if( dot(sigma_dash_c, normal_abc) < 0)
+		factor_c = -1;
+
+	if( dot(sigma_dash_d, normal_abd) < 0)
+		factor_d = -1;
+
+    	Scalar Curv_a = factor_a*sqrt(sigma_dash_a2)-H0_a*sigma_a;
+        Scalar Curv_b = factor_b*sqrt(sigma_dash_b2)-H0_b*sigma_b;
+        Scalar Curv_c = factor_c*sqrt(sigma_dash_c2)-H0_c*sigma_c;
+        Scalar Curv_d = factor_d*sqrt(sigma_dash_d2)-H0_d*sigma_d;
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -287,16 +321,16 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 	
 	Scalar3 dCurv_a, dCurv_b, dCurv_c, dCurv_d;
 
-	dCurv_a = dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0_a*dsigma_a;
-	dCurv_b = dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0_b*dsigma_b;
-	dCurv_c = dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0_c*dsigma_c;
-	dCurv_d = dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0_d*dsigma_d;
+	dCurv_a = factor_a*dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0_a*dsigma_a;
+	dCurv_b = factor_b*dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0_b*dsigma_b;
+	dCurv_c = factor_c*dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0_c*dsigma_c;
+	dCurv_d = factor_d*dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0_d*dsigma_d;
 
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
         Scalar inv_sigma_d = 1.0 / sigma_d;
 
-        Scalar Curv_a2 = 0.5 * Curv_a * Curv_a * inv_sigma_a * inv_sigma_a;
+    	Scalar Curv_a2 = 0.5 * Curv_a * Curv_a * inv_sigma_a * inv_sigma_a;
         Scalar Curv_b2 = 0.5 * Curv_b * Curv_b * inv_sigma_b * inv_sigma_b;
         Scalar Curv_c2 = 0.5 * Curv_c * Curv_c * inv_sigma_c * inv_sigma_c;
         Scalar Curv_d2 = 0.5 * Curv_d * Curv_d * inv_sigma_d * inv_sigma_d;
@@ -321,6 +355,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
+    	force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
