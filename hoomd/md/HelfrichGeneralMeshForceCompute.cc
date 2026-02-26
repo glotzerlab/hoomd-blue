@@ -671,13 +671,13 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     ncd = dcd / rcd;
 
     Scalar3 normal_cdb, normal_cda;
-    normal_cdb.x = -ncd.y*nbc.z + ncd.z*nbc.y;
-    normal_cdb.y = -ncd.z*nbc.x + ncd.x*nbc.z;
-    normal_cdb.z = -ncd.x*nbc.y + ncd.y*nbc.x;
+    normal_cdb.x = ncd.y*nbc.z - ncd.z*nbc.y;
+    normal_cdb.y = ncd.z*nbc.x - ncd.x*nbc.z;
+    normal_cdb.z = ncd.x*nbc.y - ncd.y*nbc.x;
 
-    normal_cda.x = -nac.y*ncd.z + nac.z*ncd.y;
-    normal_cda.y = -nac.z*ncd.x + nac.x*ncd.z;
-    normal_cda.z = -nac.x*ncd.y + nac.y*ncd.x;
+    normal_cda.x = nac.y*ncd.z - nac.z*ncd.y;
+    normal_cda.y = nac.z*ncd.x - nac.x*ncd.z;
+    normal_cda.z = nac.x*ncd.y - nac.y*ncd.x;
 
     Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
     if (c_accb > 1.0)
