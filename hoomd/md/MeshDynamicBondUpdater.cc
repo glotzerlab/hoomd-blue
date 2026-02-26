@@ -259,8 +259,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 v_idx[3] = tag_d;
            //     }
 
-	    std::cout << "Str "<< v_idx[0] << " " << " " << v_idx[1] << " " << v_idx[2] << " " << v_idx[3] << std::endl;
-
             unsigned int counter = 4;
 
             bool check_tic = true;
