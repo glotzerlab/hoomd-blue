@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-6.x
----
+Recent releases
+---------------
 
 Next release
 ^^^^^^^^^^^^^^^^^^^^
@@ -16,6 +16,38 @@ Next release
 *Removed*
 
 *Fixed*
+
+* Fixed Helfrich equation in the docs (#2242)
+
+6.1.1 (2026-02-19)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Divide by zero with MPCD if rigid body has constituent with zero mass (#2228).
+* Ensure that GSD files are always flushed on exit (#2236).
+* Code examples in ``md.nlist``, ``md.angle``, ``md.bond``, ``md.special_pair``, ``md.compute``,
+  ``md.dihedral``, ``md.force``, ``md.integrate``, and ``md.update`` now execute without
+  errors (#2185).
+
+6.1.0 (2026-02-07)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support 2D simulations in ``hoomd.md.pair.friction`` (#2184).
+
+*Removed*
+
+* ``SIGTERM`` handler (#2209).
+
+*Fixed*
+
+* Table writer no longer errors on ``NaN`` scalar values (#2189).
+* Table writer no longer errors on ``Inf`` scalar values (#2196).
+
+* Fixed vertex neighbor check in dynamical bonding code (#2202).
+* Fixed Helfrich energy calculation for logging (#2215)
 
 6.0.0 (2025-11-21)
 ^^^^^^^^^^^^^^^^^^^^

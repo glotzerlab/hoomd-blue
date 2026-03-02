@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """An MPCD collision method is required to update the particle velocities over
@@ -52,8 +52,6 @@ class CellList(Compute):
         cell_list = simulation.operations.integrator.cell_list
 
     {inherited}
-
-    ----------
 
     **Members defined in** `CellList`:
 
@@ -111,7 +109,6 @@ class CollisionMethod(Operation):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CollisionMethod`:
 
@@ -179,7 +176,6 @@ class CollisionMethod(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `CollisionMethod <hoomd.mpcd.collide.CollisionMethod>`:
@@ -261,7 +257,6 @@ class AndersenThermostat(CollisionMethod):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `AndersenThermostat`:
     """
@@ -356,8 +351,6 @@ class StochasticRotationDynamics(CollisionMethod):
         simulation.operations.integrator.collision_method = srd
 
     {inherited}
-
-    ----------
 
     **Members defined in** `StochasticRotationDynamics`:
 
