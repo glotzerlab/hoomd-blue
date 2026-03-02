@@ -61,6 +61,14 @@ jobs:
 
         - config: [cuda, 125, -py, 313, -mpi, -debug]
 
+        - config: [cuda, 130, -py, 313, -mpi]
+          validate: true
+
+        - config: [cuda, 130, -py, 313]
+          validate: true
+
+        - config: [cuda, 130, -py, 313, -mpi, -debug]
+
 
   release:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
