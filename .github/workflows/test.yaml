@@ -94,7 +94,6 @@ jobs:
         - config: [gcc, 13, -py, 312, -mpi]
         - config: [gcc, 12, -py, 311, -mpi]
         - config: [gcc, 11, -py, 310, -mpi]
-        - config: [cuda, 124, -py, 313, -mpi]
         - config: [cuda, 125, -py, 313, -mpi]
         - config: [cuda, 126, -py, 313, -mpi]
         - config: [cuda, 128, -py, 313, -mpi]
