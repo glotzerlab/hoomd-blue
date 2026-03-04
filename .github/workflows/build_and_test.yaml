@@ -87,6 +87,8 @@ jobs:
           echo 'test_docker_options=--gpus=all' >> "$GITHUB_OUTPUT"
 
           case "${{ inputs.compiler_version }}" in
+            131)
+              echo "image=nvidia/cuda:13.1.1-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             130)
               echo "image=nvidia/cuda:13.0.2-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             129)

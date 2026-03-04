@@ -53,22 +53,13 @@ jobs:
         - config: [gcc, 14, -py, 313, -nomd, -nohpmc]
         - config: [gcc, 10, -py, 310, -mpi]
 
-        - config: [cuda, 125, -py, 313, -mpi]
+        - config: [cuda, 129, -py, 313, -mpi]
           validate: true
 
-        - config: [cuda, 125, -py, 313]
+        - config: [cuda, 129, -py, 313]
           validate: true
 
-        - config: [cuda, 125, -py, 313, -mpi, -debug]
-
-        - config: [cuda, 130, -py, 313, -mpi]
-          validate: true
-
-        - config: [cuda, 130, -py, 313]
-          validate: true
-
-        - config: [cuda, 130, -py, 313, -mpi, -debug]
-
+        - config: [cuda, 129, -py, 313, -mpi, -debug]
 
   release:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
@@ -103,9 +94,13 @@ jobs:
         - config: [gcc, 13, -py, 312, -mpi]
         - config: [gcc, 12, -py, 311, -mpi]
         - config: [gcc, 11, -py, 310, -mpi]
+        - config: [cuda, 124, -py, 313, -mpi]
+        - config: [cuda, 125, -py, 313, -mpi]
         - config: [cuda, 126, -py, 313, -mpi]
         - config: [cuda, 128, -py, 313, -mpi]
         - config: [cuda, 129, -py, 313, -mpi]
+        - config: [cuda, 130, -py, 313, -mpi]
+        - config: [cuda, 131, -py, 313, -mpi]
 
   tests_complete:
     name: Unit test
