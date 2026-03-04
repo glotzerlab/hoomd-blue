@@ -18,7 +18,7 @@ beautifulsoup4==4.14.3
     #   nbconvert
 bleach==6.3.0
     # via nbconvert
-certifi==2026.1.4
+certifi==2026.2.25
     # via requests
 charset-normalizer==3.4.4
     # via requests
@@ -38,7 +38,7 @@ furo==2025.12.19
     # via -r sphinx-doc/requirements.in
 idna==3.11
     # via requests
-imagesize==1.4.1
+imagesize==2.0.0
     # via sphinx
 ipython==9.10.0
     # via -r sphinx-doc/requirements.in
@@ -156,7 +156,7 @@ sphinx-basic-ng==1.0.0b2
     # via furo
 sphinx-copybutton==0.5.2
     # via -r sphinx-doc/requirements.in
-sphinx-inline-tabs==2023.4.21
+sphinx-inline-tabs==2025.12.21.14
     # via -r sphinx-doc/requirements.in
 sphinx-notfound-page==1.1.0
     # via -r sphinx-doc/requirements.in
