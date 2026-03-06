@@ -1,6 +1,10 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+/*! \file md/BoxDeformer.h
+    \brief Declaration of box deformers
+*/
+
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif

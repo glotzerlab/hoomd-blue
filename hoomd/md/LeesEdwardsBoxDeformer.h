@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*! \file LeesEdwardsBoxDeformer.h
-    \brief Lees–Edwards box deformer for triclinic boxes.
+/*! \file md/LeesEdwardsBoxDeformer.h
+    \brief Declaration of Lees–Edwards box deformer for triclinic boxes
 */
 
 #ifdef __HIPCC__

@@ -187,8 +187,8 @@ class Integrator(_DynamicIntegrator):
           the simulation.
 
         deformer (hoomd.md.deformer.BoxDeformer): Controls time-dependent
-          deformations of the simulation box, enabling changes to box size, shape,
-          or tilt during a simulation.
+          deformations of the simulation box, enabling changes to the lengths
+          and tilt factors of the box during a simulation.
 
         half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
             arbitrary computations during the half-step of the integration.
@@ -277,7 +277,7 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.constrain`
 
     Only one of the classes in the following module can be used as
-    an object in `deformer`:
+    a `deformer`:
 
     - `hoomd.md.deformer`
 
@@ -289,9 +289,15 @@ class Integrator(_DynamicIntegrator):
         lj.r_cut[('A', 'A')] = 2**(1/6)
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         le = hoomd.md.deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
+        sim.operations.integrator = integrator
+
+    And for a simulation with box deformation,
+    .. code-block:: python
+
+        le = hoomd.md.deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj],
                                     deformer=le)
-        sim.operations.integrator = integrator
 
     {inherited}
 
@@ -320,8 +326,8 @@ class Integrator(_DynamicIntegrator):
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
 
-        deformer (hoomd.md.deformer.BoxDeformer): Object that applies
-            prescribed time-dependent deformations to the simulation box.
+        deformer (hoomd.md.deformer.BoxDeformer): The deformation method that
+            applies prescribed time-dependent deformations to the simulation box.
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(

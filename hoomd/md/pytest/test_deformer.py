@@ -7,15 +7,6 @@ import numpy as np
 import pytest
 
 
-@pytest.fixture
-def snap():
-    snap = hoomd.Snapshot()
-    if snap.communicator.rank == 0:
-        snap.particles.N = 3
-        snap.particles.types = ["A"]
-    return snap
-
-
 # Function for pbc wrapping
 def pbc_wrap(x, y, z, Lx, Ly, Lz, xy, xz, yz):
     lo_x, hi_x = -Lx / 2, Lx / 2
@@ -72,11 +63,14 @@ class TestLeesEdwardsBoxDeformer:
         [0.3, 0.5, 1.0],  # default value is 0.5
     )
     def test_ceate(
-        self, simulation_factory, snap, box_lengths, initial_tilts, shear_rate, max_xy
+        self, simulation_factory, box_lengths, initial_tilts, shear_rate, max_xy
     ):
         Lx, Ly, Lz = box_lengths
         xy0, xz0, yz0 = initial_tilts
+        snap = hoomd.Snapshot()
         if snap.communicator.rank == 0:
+            snap.particles.N = 3
+            snap.particles.types = ["A"]
             snap.configuration.box = [Lx, Ly, Lz, xy0, xz0, yz0]
             snap.particles.position[:] = [[1.0, 2.0, 3.0], [0.1, -0.2, 0.3], [0, 0, 0]]
         sim = simulation_factory(snap)
@@ -144,10 +138,13 @@ class TestLeesEdwardsBoxDeformer:
             (0.49, 0.0, 0.0),
         ],
     )
-    def test_particles_unchanged_no_flip(self, simulation_factory, snap, tilts):
+    def test_particles_unchanged_no_flip(self, simulation_factory, tilts):
         xy, xz, yz = tilts
         pos = [[0.1, -0.2, 0.3], [1.0, 2.0, 3.0], [-0.5, 3.0, 0.0]]
+        snap = hoomd.Snapshot()
         if snap.communicator.rank == 0:
+            snap.particles.N = 3
+            snap.particles.types = ["A"]
             snap.configuration.box = [10, 10, 10, xy, xz, yz]
             snap.particles.position[:] = pos
         sim = simulation_factory(snap)
@@ -192,10 +189,13 @@ class TestLeesEdwardsBoxDeformer:
         [(10.0, 10.0, 10.0), (10.0, 8.0, 6.0)],
     )
     def test_particle_remap_on_flip(
-        self, simulation_factory, snap, xy0, shear_rate, flip, pos, box_lengths
+        self, simulation_factory, xy0, shear_rate, flip, pos, box_lengths
     ):
         Lx, Ly, Lz = box_lengths
+        snap = hoomd.Snapshot()
         if snap.communicator.rank == 0:
+            snap.particles.N = 3
+            snap.particles.types = ["A"]
             snap.configuration.box = [Lx, Ly, Lz, xy0, 0, 0]
             snap.particles.position[:] = pos
         sim = simulation_factory(snap)

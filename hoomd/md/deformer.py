@@ -8,6 +8,7 @@ They are intended to be attached to a `hoomd.md.Integrator`.
 """
 
 from hoomd.md import _md
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes, positive_real
 from hoomd.operation import _HOOMDBaseObject
 
@@ -50,22 +51,22 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
     def __init__(self, shear_rate, max_tilt=0.5):
         super().__init__()
 
-        # Initialize ParameterDict
-        self._param_dict["shear_rate"] = float(shear_rate)
-        self._param_dict["max_tilt"] = OnlyTypes(float, preprocess=positive_real)(
-            max_tilt
+        param_dict = ParameterDict(
+            shear_rate=float(shear_rate),
+            max_tilt=OnlyTypes(float, preprocess=positive_real),
         )
+        param_dict["max_tilt"] = max_tilt
+        self._param_dict.update(param_dict)
 
     def _attach_hook(self):
         """Create the underlying C++ Lees-Edwards deformer object."""
-        sysdef = self._simulation.state._cpp_sys_def
         self._cpp_obj = _md.LeesEdwardsBoxDeformer(
-            sysdef,
-            self._param_dict["shear_rate"],
-            self._param_dict["max_tilt"],
+            self._simulation.state._cpp_sys_def,
+            self.shear_rate,
+            self.max_tilt,
         )
 
-        super()._attach(self._simulation)
+        super()._attach_hook()
 
 
 __all__ = [

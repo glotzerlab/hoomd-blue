@@ -85,6 +85,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 BondTablePotentialGPU.h
                 BondTablePotential.h
                 BoxDeformer.h
+                BoxDeformerGPU.cuh
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
                 ComputeThermoGPU.cuh
@@ -168,6 +169,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
                 LeesEdwardsBoxDeformer.h
+                LeesEdwardsBoxDeformerGPU.cuh
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
@@ -318,6 +320,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairYLZGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
             	      BendingRigidityMeshForceComputeGPU.cu
+                      BoxDeformerGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       ConstantForceComputeGPU.cu
@@ -330,6 +333,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       HarmonicDihedralForceGPU.cu
                       HarmonicImproperForceGPU.cu
             	      HelfrichMeshForceComputeGPU.cu
+                      LeesEdwardsBoxDeformerGPU.cu
                       MolecularForceCompute.cu
                       NeighborListGPUBinned.cu
                       NeighborListGPU.cu

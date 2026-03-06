@@ -1,11 +1,12 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*! \file LeesEdwardsBoxDeformer.cc
-    \brief Lees–Edwards box deformer for triclinic boxes.
+/*! \file md/LeesEdwardsBoxDeformer.cc
+    \brief Definition of Lees–Edwards box deformer for triclinic boxes
 */
 
 #include "LeesEdwardsBoxDeformer.h"
+#include "LeesEdwardsBoxDeformerGPU.cuh"
 
 namespace hoomd
     {
@@ -53,49 +54,78 @@ void LeesEdwardsBoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxD
     if (flip != 0)
         {
         // Update xy tilt and get L
-        xy -= 2.0 * m_max_xy_tilt * Scalar(flip);
+        xy -= Scalar(2.0 * flip) * m_max_xy_tilt;
         Scalar Ly = new_box.getL().y;
-
-        // Remap particle coordinates
-#ifdef ENABLE_MPI
-        SnapshotParticleData<Scalar> snap;
-
-        // Take a snapshot on rank 0
-        m_pdata->takeSnapshot(snap);
-
-        if (m_exec_conf->getRank() == 0)
+#ifdef ENABLE_HIP
+        if (m_exec_conf->isCUDAEnabled())
             {
-            for (unsigned int i = 0; i < snap.size; i++)
-                {
-                snap.pos[i].x -= Scalar(flip) * Ly;
-                //  Immediately wrap into box to avoid temporal out-of-bounds errors on MPI
-                new_box.wrap(snap.pos[i], snap.vel[i], snap.image[i]);
-                }
-            }
-        // Broadcast updates to all ranks
-        bcast(snap.pos, 0, m_exec_conf->getMPICommunicator());
+            // GPU path
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                       access_location::device,
+                                       access_mode::readwrite);
 
-        m_pdata->initializeFromSnapshot(snap);
-#else
-        // Serial execution
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-        ArrayHandle<int3> h_image(m_pdata->getImages(),
-                                  access_location::host,
-                                  access_mode::readwrite);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                       access_location::device,
+                                       access_mode::readwrite);
 
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            h_pos.data[i].x -= Scalar(flip) * Ly;
+            ArrayHandle<int3> d_image(m_pdata->getImages(),
+                                      access_location::device,
+                                      access_mode::readwrite);
+
+            kernel::gpu_lees_edwards_remap(m_pdata->getN(),
+                                           d_pos.data,
+                                           d_vel.data,
+                                           d_image.data,
+                                           new_box,
+                                           Ly,
+                                           flip,
+                                           256);
             }
 #endif
-        // Reset the box with updated xy tilt (and the unchanged xz, yz)
+        else
+            {
+            // CPU path
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+
+            ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                      access_location::host,
+                                      access_mode::readwrite);
+
+            const unsigned int N = m_pdata->getN();
+
+            for (unsigned int i = 0; i < N; i++)
+                {
+                h_pos.data[i].x -= Scalar(flip) * Ly;
+                h_image.data[i].x -= flip;
+
+                new_box.wrap(h_pos.data[i], h_vel.data[i], h_image.data[i]);
+                }
+            }
+
+        // reset tilt factors
         const Scalar xz = new_box.getTiltFactorXZ();
         const Scalar yz = new_box.getTiltFactorYZ();
         new_box.setTiltFactors(xy, xz, yz);
 
+        // update global box
         m_pdata->setGlobalBox(new_box);
+
+#ifdef ENABLE_MPI
+        // broadcast across MPI ranks
+        if (m_sysdef->isDomainDecomposed())
+            {
+            SnapshotParticleData<Scalar> snap;
+
+            m_pdata->takeSnapshot(snap);
+            m_pdata->initializeFromSnapshot(snap);
+            }
+#endif
         }
 
     // Call base class to perform default PBC wrapping

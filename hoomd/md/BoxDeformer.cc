@@ -1,7 +1,12 @@
 // Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+/*! \file md/BoxDeformer.cc
+    \brief Definition of box deformers
+*/
+
 #include "BoxDeformer.h"
+#include "BoxDeformerGPU.cuh"
 
 namespace hoomd
     {
@@ -56,20 +61,49 @@ BoxDim BoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& old_box)
 // Post deformation particle processing: PBC wrapping by default but child classes can add up
 void BoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box)
     {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                               access_location::host,
-                               access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
-                               access_location::host,
-                               access_mode::readwrite);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+#ifdef ENABLE_HIP
+    if (m_exec_conf->isCUDAEnabled())
         {
-        new_box.wrap(h_pos.data[i], h_vel.data[i], h_image.data[i]);
+        // GPU path
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                   access_location::device,
+                                   access_mode::readwrite);
+
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                   access_location::device,
+                                   access_mode::readwrite);
+
+        ArrayHandle<int3> d_image(m_pdata->getImages(),
+                                  access_location::device,
+                                  access_mode::readwrite);
+
+        hoomd::md::kernel::gpu_boxdeformer_wrap(m_pdata->getN(),
+                                                d_pos.data,
+                                                d_vel.data,
+                                                d_image.data,
+                                                new_box,
+                                                256);
+        }
+#endif
+    else
+        {
+        // CPU path
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            {
+            new_box.wrap(h_pos.data[i], h_vel.data[i], h_image.data[i]);
+            }
         }
     }
-
 namespace detail
     {
 void export_BoxDeformer(pybind11::module& m)
