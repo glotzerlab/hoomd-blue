@@ -88,7 +88,8 @@ class TestLeesEdwardsBoxDeformer:
         new_box = sim.state.box
         assert np.allclose(new_box.L, (Lx, Ly, Lz))
         assert np.allclose(new_box.tilts, (xy0, xz0, yz0))
-        assert np.allclose(new_box.tilt_rates, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.L_rate, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.tilts_rate, (0.0, 0.0, 0.0))
 
         sim.run(0)
 
@@ -97,7 +98,8 @@ class TestLeesEdwardsBoxDeformer:
         new_box = sim.state.box
         assert np.allclose(new_box.L, (Lx, Ly, Lz))
         assert np.allclose(new_box.tilts, (xy0, xz0, yz0))
-        assert np.allclose(new_box.tilt_rates, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.L_rate, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.tilts_rate, (0.0, 0.0, 0.0))
 
         # Re-check after a run step is completed
         sim.run(1)
@@ -110,7 +112,8 @@ class TestLeesEdwardsBoxDeformer:
         new_box = sim.state.box
         assert np.allclose(new_box.L, (Lx, Ly, Lz))
         assert np.allclose(new_box.tilts, (xy, xz0, yz0))
-        assert np.allclose(new_box.tilt_rates, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.L_rate, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.tilts_rate, (shear_rate, 0.0, 0.0))
 
         # Also check that xy is accumulating properly after multiple runs
         xy_accumulated = new_box.xy
