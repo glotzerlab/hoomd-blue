@@ -288,7 +288,6 @@ class Integrator(_DynamicIntegrator):
         lj.params.default = dict(epsilon=1.0, sigma=1.0)
         lj.r_cut[('A', 'A')] = 2**(1/6)
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
-        le = hoomd.md.deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
         sim.operations.integrator = integrator
 

@@ -62,7 +62,7 @@ class TestLeesEdwardsBoxDeformer:
         "max_xy",
         [0.3, 0.5, 1.0],  # default value is 0.5
     )
-    def test_ceate(
+    def test_create(
         self, simulation_factory, box_lengths, initial_tilts, shear_rate, max_xy
     ):
         Lx, Ly, Lz = box_lengths

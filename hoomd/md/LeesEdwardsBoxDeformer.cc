@@ -38,7 +38,7 @@ BoxDim LeesEdwardsBoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& ol
     xy += m_xy_rate * m_deltaT;
 
     // Return updated box
-    BoxDim new_box = old_box;
+    BoxDim new_box(old_box);
     new_box.setTiltFactors(xy, xz, yz);
     new_box.setTiltDeformationRates(m_xy_rate, 0.0, 0.0);
 
@@ -114,7 +114,12 @@ void LeesEdwardsBoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxD
         new_box.setTiltFactors(xy, xz, yz);
 
         // update global box
-        m_pdata->setGlobalBox(new_box);
+        // update global box to reflect flip
+        BoxDim flipped_box(new_box);
+        const Scalar xz = new_box.getTiltFactorXZ();
+        const Scalar yz = new_box.getTiltFactorYZ();
+        flipped_box.setTiltFactors(xy, xz, yz);
+        m_pdata->setGlobalBox(flipped_box);
 
 #ifdef ENABLE_MPI
         // broadcast across MPI ranks
@@ -127,9 +132,11 @@ void LeesEdwardsBoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxD
             }
 #endif
         }
-
-    // Call base class to perform default PBC wrapping
-    BoxDeformer::processAfterDeformation(old_box, new_box);
+    else
+        {
+        // Call base class to perform default PBC wrapping
+        BoxDeformer::processAfterDeformation(old_box, new_box);
+        }
     }
 
 namespace detail

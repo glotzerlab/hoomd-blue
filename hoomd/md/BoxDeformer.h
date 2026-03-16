@@ -51,14 +51,13 @@ class PYBIND11_EXPORT BoxDeformer
 
     virtual BoxDim computeNewBox(uint64_t timestep, const BoxDim& old_box);
 
-    virtual void processAfterDeformation(const BoxDim& old_box, BoxDim& new_box);
+    virtual void processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box);
     };
 
 namespace detail
     {
 /// Export the BoxDeformer class to python
 void export_BoxDeformer(pybind11::module& m);
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

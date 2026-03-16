@@ -84,8 +84,8 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box
                                                 new_box,
                                                 256);
         }
-#endif
     else
+#endif
         {
         // CPU path
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),

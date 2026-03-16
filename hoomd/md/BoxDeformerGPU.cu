@@ -14,7 +14,7 @@ namespace md
 namespace kernel
     {
 
-__global__ void gpu_boxdeformer_wrap_kernel(const unsigned int N,
+__global__ void gpu_boxdeformer_wrap_kernel(unsigned int N,
                                             Scalar4* d_pos,
                                             Scalar4* d_vel,
                                             int3* d_image,

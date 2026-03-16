@@ -545,7 +545,7 @@ class Box:
         self.L = L
 
     @property
-    def L_rate(self):  # noqa: N802 - Allow function name
+    def L_rates(self):  # noqa: N802 - Allow function name
         """(3, ) `numpy.ndarray` of `float`: The deformation rates on box lengths \
         :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
 

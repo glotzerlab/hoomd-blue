@@ -66,11 +66,6 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
     void processAfterDeformation(const BoxDim& old_box, BoxDim& new_box) override;
     };
 
-namespace detail
-    {
-/// Export LeesEdwardsBoxDeformer to python
-void export_LeesEdwardsBoxDeformer(pybind11::module& m);
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
