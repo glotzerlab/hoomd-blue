@@ -392,8 +392,12 @@ class Box:
             xy = getattr(box, "xy", 0)
             xz = getattr(box, "xz", 0)
             yz = getattr(box, "yz", 0)
-            L_rate = getattr(box, "L_rate", None)
-            tilts_rate = getattr(box, "tilts_rate", None)
+            Lx_rate = getattr(box, "Lx_rate", 0)
+            Ly_rate = getattr(box, "Ly_rate", 0)
+            Lz_rate = getattr(box, "Lz_rate", 0)
+            xy_rate = getattr(box, "xy_rate", 0)
+            xz_rate = getattr(box, "xz_rate", 0)
+            yz_rate = getattr(box, "yz_rate", 0)
         except AttributeError:
             try:
                 # Handle dictionary-like
@@ -403,8 +407,12 @@ class Box:
                 xy = box.get("xy", 0)
                 xz = box.get("xz", 0)
                 yz = box.get("yz", 0)
-                L_rate = getattr(box, "L_rate", None)
-                tilts_rate = box.get("tilts_rate", None)
+                Lx_rate = box.get("Lx_rate", 0)
+                Ly_rate = box.get("Ly_rate", 0)
+                Lz_rate = box.get("Lz_rate", 0)
+                xy_rate = box.get("xy_rate", 0)
+                xz_rate = box.get("xz_rate", 0)
+                yz_rate = box.get("yz_rate", 0)
             except (IndexError, KeyError, TypeError):
                 if len(box) not in [2, 3, 6]:
                     raise ValueError(
@@ -416,18 +424,17 @@ class Box:
                 Ly = box[1]
                 Lz = box[2] if len(box) > 2 else 0
                 xy, xz, yz = box[3:6] if len(box) == 6 else (0, 0, 0)
-                L_rate = None
-                tilts_rate = None
+                # No rates provided, default to 0
+                Lx_rate = Ly_rate = Lz_rate = 0
+                xy_rate = xz_rate = yz_rate = 0
         except:
             raise
 
         b = cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
 
-        # Preserve deformation rates if present
-        if L_rate is not None:
-            b.L_rate = L_rate
-        if tilts_rate is not None:
-            b.tilts_rate = tilts_rate
+        # Preserve deformation rates on box
+        b._cpp_obj.setLDeformationRate(_make_scalar3((Lx_rate, Ly_rate, Lz_rate)))
+        b._cpp_obj.setTiltDeformationRates(xy_rate, xz_rate, yz_rate)
 
         return b
 
@@ -553,16 +560,9 @@ class Box:
 
         .. code-block:: python
 
-            box.L_rate = (0.1, 0.03, 0.2)
+            box.L_rates = (0.1, 0.03, 0.2)
         """
         return _vec3_to_array(self._cpp_obj.getLDeformationRate())
-
-    @L_rate.setter
-    def L_rate(self, new_L_rate):  # noqa: N802 - Allow function name
-        newL_rate = _make_scalar3(new_L_rate)
-        if self.is2D and newL_rate.z != 0:
-            raise ValueError("Cannot set the Lz deformation rate on a 2D box.")
-        self._cpp_obj.setLDeformationRate(newL_rate)
 
     @property
     def Lx_rate(self):  # noqa: N802 - Allow function name
@@ -575,7 +575,7 @@ class Box:
 
             box.Lx_rate = 0.01
         """
-        return self.L_rate[0]
+        return self.L_rates[0]
 
     @property
     def Ly_rate(self):  # noqa: N802 - Allow function name
@@ -588,7 +588,7 @@ class Box:
 
             box.Ly_rate = 0.15
         """
-        return self.L_rate[1]
+        return self.L_rates[1]
 
     @property
     def Lz_rate(self):  # noqa: N802 - Allow function name
@@ -601,7 +601,7 @@ class Box:
 
             box.Lz_rate = 0.05
         """
-        return self.L_rate[2]
+        return self.L_rates[2]
 
     # Box tilt based properties
     @property
@@ -679,7 +679,7 @@ class Box:
         self.tilts = [self.xy, self.xz, yz]
 
     @property
-    def tilts_rate(self):
+    def tilt_rates(self):
         """(3, ) `numpy.ndarray` of `float`: The deformation rates on box tilts \
         :math:`[\\mathrm{time^{-1}}]`.
 
@@ -687,20 +687,9 @@ class Box:
 
         .. code-block:: python
 
-            box.tilts_rate = (0.01, 0.0, 0.0)
+            box.tilt_rates = (0.01, 0.0, 0.0)
         """
         return np.array([self.xy_rate, self.xz_rate, self.yz_rate])
-
-    @tilts_rate.setter
-    def tilts_rate(self, new_tilts_rate):
-        new_tilts_rate = _make_scalar3(new_tilts_rate)
-        if self.is2D and (new_tilts_rate.y != 0 or new_tilts_rate.z != 0):
-            raise ValueError(
-                "Cannot set the xz or yz tilt deformation rate on a 2D box."
-            )
-        self._cpp_obj.setTiltDeformationRates(
-            new_tilts_rate.x, new_tilts_rate.y, new_tilts_rate.z
-        )
 
     @property
     def xy_rate(self):

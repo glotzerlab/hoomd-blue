@@ -7,38 +7,6 @@ import numpy as np
 import pytest
 
 
-# Function for pbc wrapping
-def pbc_wrap(x, y, z, Lx, Ly, Lz, xy, xz, yz):
-    lo_x, hi_x = -Lx / 2, Lx / 2
-    lo_y, hi_y = -Ly / 2, Ly / 2
-    lo_z, hi_z = -Lz / 2, Lz / 2
-
-    tilt_x = (xz - xy * yz) * z + xy * y
-    if x >= hi_x + tilt_x:
-        x -= Lx
-    elif x < lo_x + tilt_x:
-        x += Lx
-
-    tilt_y = yz * z
-    if y >= hi_y + tilt_y:
-        y -= Ly
-        x -= Ly * xy
-    elif y < lo_y + tilt_y:
-        y += Ly
-        x += Ly * xy
-
-    if z >= hi_z:
-        z -= Lz
-        y -= Lz * yz
-        x -= Lz * xz
-    elif z < lo_z:
-        z += Lz
-        y += Lz * yz
-        x += Lz * xz
-
-    return (x, y, z)
-
-
 class TestLeesEdwardsBoxDeformer:
     # Test basic functionalities of the Lees-Edwards deformer
     @pytest.mark.parametrize(
@@ -88,8 +56,8 @@ class TestLeesEdwardsBoxDeformer:
         new_box = sim.state.box
         assert np.allclose(new_box.L, (Lx, Ly, Lz))
         assert np.allclose(new_box.tilts, (xy0, xz0, yz0))
-        assert np.allclose(new_box.L_rate, (0.0, 0.0, 0.0))
-        assert np.allclose(new_box.tilts_rate, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.L_rates, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.tilt_rates, (0.0, 0.0, 0.0))
 
         sim.run(0)
 
@@ -98,8 +66,8 @@ class TestLeesEdwardsBoxDeformer:
         new_box = sim.state.box
         assert np.allclose(new_box.L, (Lx, Ly, Lz))
         assert np.allclose(new_box.tilts, (xy0, xz0, yz0))
-        assert np.allclose(new_box.L_rate, (0.0, 0.0, 0.0))
-        assert np.allclose(new_box.tilts_rate, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.L_rates, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.tilt_rates, (0.0, 0.0, 0.0))
 
         # Re-check after a run step is completed
         sim.run(1)
@@ -112,8 +80,8 @@ class TestLeesEdwardsBoxDeformer:
         new_box = sim.state.box
         assert np.allclose(new_box.L, (Lx, Ly, Lz))
         assert np.allclose(new_box.tilts, (xy, xz0, yz0))
-        assert np.allclose(new_box.L_rate, (0.0, 0.0, 0.0))
-        assert np.allclose(new_box.tilts_rate, (shear_rate, 0.0, 0.0))
+        assert np.allclose(new_box.L_rates, (0.0, 0.0, 0.0))
+        assert np.allclose(new_box.tilt_rates, (shear_rate, 0.0, 0.0))
 
         # Also check that xy is accumulating properly after multiple runs
         xy_accumulated = new_box.xy
@@ -212,16 +180,19 @@ class TestLeesEdwardsBoxDeformer:
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             for i in range(snap.particles.N):
-                x_shifted = pos[i][0] - flip * Ly
-                new_pos = pbc_wrap(
-                    x_shifted,
-                    pos[i][1],
-                    pos[i][2],
-                    Lx,
-                    Ly,
-                    Lz,
-                    xy=sim.state.box.xy,
-                    xz=sim.state.box.xz,
-                    yz=sim.state.box.yz,
-                )
-                assert np.allclose(snap.particles.position[i], new_pos)
+                x = pos[i][0] - flip * Ly
+                y = pos[i][1]
+                z = pos[i][2]
+
+                # x wrapping (with tilt)
+                xy = sim.state.box.xy
+                xz = sim.state.box.xz
+                yz = sim.state.box.yz
+
+                tilt_x = (xz - xy * yz) * z + xy * y
+                if x >= (Lx / 2) + tilt_x:
+                    x -= Lx
+                elif x < (-Lx / 2) + tilt_x:
+                    x += Lx
+
+                assert np.allclose(snap.particles.position[i], (x, y, z))

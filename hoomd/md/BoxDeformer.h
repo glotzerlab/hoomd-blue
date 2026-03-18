@@ -12,6 +12,7 @@
 #ifndef __BOX_DEFORMER_H__
 #define __BOX_DEFORMER_H__
 
+#include "hoomd/Autotuner.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/ParticleData.h"
 #include "hoomd/SystemDefinition.h"
@@ -52,12 +53,18 @@ class PYBIND11_EXPORT BoxDeformer
     virtual BoxDim computeNewBox(uint64_t timestep, const BoxDim& old_box);
 
     virtual void processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box);
+
+#ifdef ENABLE_HIP
+    private:
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+#endif
     };
 
 namespace detail
     {
 /// Export the BoxDeformer class to python
 void export_BoxDeformer(pybind11::module& m);
+    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

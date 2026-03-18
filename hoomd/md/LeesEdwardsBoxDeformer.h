@@ -13,6 +13,7 @@
 #define __LEES_EDWARDS_BOX_DEFORMER_H__
 
 #include "BoxDeformer.h"
+#include "hoomd/Autotuner.h"
 
 namespace hoomd
     {
@@ -52,6 +53,10 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
     /// Set the maximum tilt in xy before remapping
     void setMaxXYTilt(const Scalar max_xy_tilt)
         {
+        if (max_xy_tilt < 0.0)
+            {
+            throw std::invalid_argument("max_xy_tilt must be non-negative");
+            }
         m_max_xy_tilt = max_xy_tilt;
         }
 
@@ -63,7 +68,12 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
     BoxDim computeNewBox(uint64_t timestep, const BoxDim& old_box) override;
 
     /// Box flip and particle remapping (called after default PBC wrapping)
-    void processAfterDeformation(const BoxDim& old_box, BoxDim& new_box) override;
+    void processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box) override;
+
+#ifdef ENABLE_HIP
+    private:
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+#endif
     };
 
     } // end namespace md

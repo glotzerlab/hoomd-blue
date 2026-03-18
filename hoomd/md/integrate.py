@@ -40,10 +40,6 @@ class _DynamicIntegrator(BaseIntegrator):
             Method, syncedlist._PartialGetAttr("_cpp_obj"), iterable=methods
         )
 
-        if deformer is not None and not isinstance(deformer, BoxDeformer):
-            raise TypeError("deformer must be a BoxDeformer subclass")
-        self._deformer = deformer
-
         param_dict = ParameterDict(
             rigid=OnlyTypes(Rigid, allow_none=True),
             deformer=OnlyTypes(BoxDeformer, allow_none=True),
@@ -51,6 +47,8 @@ class _DynamicIntegrator(BaseIntegrator):
         if rigid is not None and rigid._attached:
             raise ValueError("Rigid object can only belong to one integrator.")
         param_dict["rigid"] = rigid
+        if deformer is not None and deformer._attached:
+            raise ValueError("Box Deformer object can only belong to one integrator.")
         param_dict["deformer"] = deformer
         self._param_dict.update(param_dict)
         super().__init__()
@@ -61,8 +59,8 @@ class _DynamicIntegrator(BaseIntegrator):
         self._methods._sync(self._simulation, self._cpp_obj.methods)
         if self.rigid is not None:
             self.rigid._attach(self._simulation)
-        if self._deformer is not None:
-            self._deformer._attach(self._simulation)
+        if self.deformer is not None:
+            self.deformer._attach(self._simulation)
 
         super()._attach_hook()
 
@@ -75,8 +73,8 @@ class _DynamicIntegrator(BaseIntegrator):
         self._constraints._unsync()
         if self.rigid is not None:
             self.rigid._detach()
-        if self._deformer is not None:
-            self._deformer._detach()
+        if self.deformer is not None:
+            self.deformer._detach()
 
     def validate_groups(self):
         """Verify groups.
@@ -145,18 +143,25 @@ class _DynamicIntegrator(BaseIntegrator):
         self._param_dict["rigid"] = new_rigid
 
     def _set_deformer(self, new_deformer):
-        if new_deformer is self._deformer:
+        """Handles the adding and detaching of potential box deformer objects."""
+        if new_deformer is self.deformer:
             return
 
-        if new_deformer is not None and not isinstance(new_deformer, BoxDeformer):
-            raise TypeError("deformer must be a BoxDeformer")
+        old_deformer = self.deformer
+
+        if new_deformer is not None and new_deformer._attached:
+            raise ValueError("Cannot add Box Deformer object to multiple integrators.")
+
+        if old_deformer is not None:
+            if self._attached:
+                old_deformer._detach()
+
+        if new_deformer is None:
+            self._param_dict["deformer"] = None
+            return
 
         if self._attached:
-            if self._deformer is not None:
-                self._deformer._detach()
-            if new_deformer is not None:
-                new_deformer._attach(self._simulation)
-
+            new_deformer._attach(self._simulation)
         self._param_dict["deformer"] = new_deformer
 
 
@@ -283,6 +288,10 @@ class Integrator(_DynamicIntegrator):
 
     Examples::
 
+    Integrator without a box deformation method.
+
+    .. code-block:: python
+
         nlist = hoomd.md.nlist.Cell()
         lj = hoomd.md.pair.LJ(nlist=nlist)
         lj.params.default = dict(epsilon=1.0, sigma=1.0)
@@ -291,9 +300,15 @@ class Integrator(_DynamicIntegrator):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
         sim.operations.integrator = integrator
 
-    And for a simulation with box deformation,
+    And for an integrator with Lees-Edwards box deformation.
+
     .. code-block:: python
 
+        nlist = hoomd.md.nlist.Cell()
+        lj = hoomd.md.pair.LJ(nlist=nlist)
+        lj.params.default = dict(epsilon=1.0, sigma=1.0)
+        lj.r_cut[('A', 'A')] = 2**(1/6)
+        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         le = hoomd.md.deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj],
                                     deformer=le)

@@ -13,7 +13,7 @@ namespace md
     {
 namespace kernel
     {
-
+//! Wrap particles after box deformation
 __global__ void gpu_boxdeformer_wrap_kernel(unsigned int N,
                                             Scalar4* d_pos,
                                             Scalar4* d_vel,

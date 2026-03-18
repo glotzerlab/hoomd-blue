@@ -17,7 +17,7 @@ namespace md
     {
 namespace kernel
     {
-
+//! Kernel driver for pbc wrapping after box deformation
 hipError_t gpu_boxdeformer_wrap(const unsigned int N,
                                 Scalar4* d_pos,
                                 Scalar4* d_vel,

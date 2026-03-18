@@ -13,21 +13,20 @@ namespace md
     {
 namespace kernel
     {
-
+//! Flip box and remap particles
 __global__ void gpu_lees_edwards_remap_kernel(const unsigned int N,
                                               Scalar4* d_pos,
                                               Scalar4* d_vel,
                                               int3* d_image,
-                                              const Scalar Ly,
+                                              const BoxDim& new_box,
                                               const int flip)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
-        d_pos[idx].x -= Scalar(flip) * Ly;
+        d_pos[idx].x -= Scalar(flip) * new_box.getL().y;
         d_image[idx].x -= flip;
-
         new_box.wrap(d_pos[idx], d_vel[idx], d_image[idx]);
         }
     }
@@ -37,7 +36,6 @@ hipError_t gpu_lees_edwards_remap(const unsigned int N,
                                   Scalar4* d_vel,
                                   int3* d_image,
                                   const BoxDim& new_box,
-                                  const Scalar Ly,
                                   const int flip,
                                   unsigned int block_size)
     {
@@ -60,7 +58,6 @@ hipError_t gpu_lees_edwards_remap(const unsigned int N,
                        d_vel,
                        d_image,
                        new_box,
-                       Ly,
                        flip);
 
     return hipSuccess;

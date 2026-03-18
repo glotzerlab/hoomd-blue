@@ -6,19 +6,29 @@
 */
 
 #include "BoxDeformer.h"
+
+#ifdef ENABLE_HIP
 #include "BoxDeformerGPU.cuh"
+#endif
 
 namespace hoomd
     {
 namespace md
     {
-/**
- * \param sysdef System definition containing the particle data this method acts on
+/*!
+    \param sysdef System definition containing the particle data this method acts on
  */
 BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf())
     {
     m_exec_conf->msg->notice(5) << "Constructing BoxDeformer" << std::endl;
+
+#ifdef ENABLE_HIP
+    if (m_exec_conf->isCUDAEnabled())
+        m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "box_deformer_remap"));
+#endif
     }
 
 BoxDeformer::~BoxDeformer()
@@ -28,8 +38,6 @@ BoxDeformer::~BoxDeformer()
 
 void BoxDeformer::setDeltaT(Scalar deltaT)
     {
-    if (deltaT < 0.0)
-        throw std::domain_error("delta_t must be positive");
     m_deltaT = deltaT;
     }
 
@@ -59,7 +67,7 @@ BoxDim BoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& old_box)
     }
 
 // Post deformation particle processing: PBC wrapping by default but child classes can add up
-void BoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box)
+void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box)
     {
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
@@ -77,12 +85,16 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, BoxDim& new_box
                                   access_location::device,
                                   access_mode::readwrite);
 
-        hoomd::md::kernel::gpu_boxdeformer_wrap(m_pdata->getN(),
-                                                d_pos.data,
-                                                d_vel.data,
-                                                d_image.data,
-                                                new_box,
-                                                256);
+        m_tuner->begin();
+        kernel::gpu_boxdeformer_wrap(m_pdata->getN(),
+                                     d_pos.data,
+                                     d_vel.data,
+                                     d_image.data,
+                                     new_box,
+                                     m_tuner->getParam()[0]);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner->end();
         }
     else
 #endif
