@@ -58,11 +58,11 @@ class Integrator(_MDIntegrator):
         mpcd_particle_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner that sorts
             the MPCD particles.
 
-    Note::
+    Warning::
 
-    `MPCDIntegrator` does not currently support box deformers
-    (see `hoomd.md.deformer.BoxDeformer`). Attempting to set a deformer will
-    result in an error. Support for deformers is planned for a future release.
+        `MPCDIntegrator` does not currently support box deformers
+        (see `hoomd.md.deformer.BoxDeformer`). Attempting to set a deformer will
+        result in an error. Support for deformers is planned for a future release.
 
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.

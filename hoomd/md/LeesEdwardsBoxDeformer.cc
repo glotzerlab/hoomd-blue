@@ -28,9 +28,10 @@ LeesEdwardsBoxDeformer::LeesEdwardsBoxDeformer(std::shared_ptr<SystemDefinition>
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
-        m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                       m_exec_conf,
-                                       "box_deformer_remap"));
+        m_tuner_remap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                             m_exec_conf,
+                                             "box_deformer_remap"));
+    m_autotuners.push_back(m_tuner_remap);
 #endif
     }
 
@@ -84,17 +85,17 @@ void LeesEdwardsBoxDeformer::processAfterDeformation(const BoxDim& old_box, cons
             ArrayHandle<int3> d_image(m_pdata->getImages(),
                                       access_location::device,
                                       access_mode::readwrite);
-            m_tuner->begin();
+            m_tuner_remap->begin();
             kernel::gpu_lees_edwards_remap(m_pdata->getN(),
                                            d_pos.data,
                                            d_vel.data,
                                            d_image.data,
                                            new_box,
                                            flip,
-                                           m_tuner->getParam()[0]);
+                                           m_tuner_remap->getParam()[0]);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
-            m_tuner->end();
+            m_tuner_remap->end();
             }
         else
 #endif

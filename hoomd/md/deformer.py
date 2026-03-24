@@ -22,11 +22,11 @@ which may include changes in box lengths and/or tilt factors.
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes, positive_real
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import AutotunedObject
 import inspect
 
 
-class BoxDeformer(_HOOMDBaseObject):
+class BoxDeformer(AutotunedObject):
     r"""Base class for box deformers.
 
     `BoxDeformer` defines the interface for time-dependent box deformations

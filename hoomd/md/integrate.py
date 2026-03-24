@@ -286,9 +286,10 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.deformer`
 
-    Examples::
+    Example::
 
-    Integrator without a box deformation method.
+        `Integrator` without a box deformation method.
+        (See `hoomd.md.deformer.BoxDeformer` on how to attach a box deformer.)
 
     .. code-block:: python
 
@@ -299,19 +300,6 @@ class Integrator(_DynamicIntegrator):
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
         sim.operations.integrator = integrator
-
-    And for an integrator with Lees-Edwards box deformation.
-
-    .. code-block:: python
-
-        nlist = hoomd.md.nlist.Cell()
-        lj = hoomd.md.pair.LJ(nlist=nlist)
-        lj.params.default = dict(epsilon=1.0, sigma=1.0)
-        lj.r_cut[('A', 'A')] = 2**(1/6)
-        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
-        le = hoomd.md.deformer.LeesEdwardsBoxDeformer(shear_rate=0.1)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj],
-                                    deformer=le)
 
     {inherited}
 

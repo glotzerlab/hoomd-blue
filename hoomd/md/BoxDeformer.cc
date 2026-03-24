@@ -25,9 +25,10 @@ BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef)
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
-        m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                       m_exec_conf,
-                                       "box_deformer_remap"));
+        m_tuner_wrap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "box_deformer_remap"));
+    m_autotuners.push_back(m_tuner_wrap);
 #endif
     }
 
@@ -85,16 +86,16 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& n
                                   access_location::device,
                                   access_mode::readwrite);
 
-        m_tuner->begin();
+        m_tuner_wrap->begin();
         kernel::gpu_boxdeformer_wrap(m_pdata->getN(),
                                      d_pos.data,
                                      d_vel.data,
                                      d_image.data,
                                      new_box,
-                                     m_tuner->getParam()[0]);
+                                     m_tuner_wrap->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        m_tuner->end();
+        m_tuner_wrap->end();
         }
     else
 #endif

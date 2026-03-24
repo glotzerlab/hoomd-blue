@@ -12,7 +12,7 @@
 #ifndef __BOX_DEFORMER_H__
 #define __BOX_DEFORMER_H__
 
-#include "hoomd/Autotuner.h"
+#include "hoomd/Autotuned.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/ParticleData.h"
 #include "hoomd/SystemDefinition.h"
@@ -27,7 +27,7 @@ namespace md
 /** Perform box deformation.
     Implement methods for simulation under box deformation.
 */
-class PYBIND11_EXPORT BoxDeformer
+class PYBIND11_EXPORT BoxDeformer : public Autotuned
     {
     public:
     /// Constructor
@@ -56,7 +56,7 @@ class PYBIND11_EXPORT BoxDeformer
 
 #ifdef ENABLE_HIP
     private:
-    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner_wrap; //!< Autotuner for block size
 #endif
     };
 

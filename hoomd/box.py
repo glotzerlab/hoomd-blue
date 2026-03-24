@@ -555,12 +555,6 @@ class Box:
     def L_rates(self):  # noqa: N802 - Allow function name
         """(3, ) `numpy.ndarray` of `float`: The deformation rates on box lengths \
         :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.L_rates = (0.1, 0.03, 0.2)
         """
         return _vec3_to_array(self._cpp_obj.getLDeformationRate())
 
@@ -568,12 +562,6 @@ class Box:
     def Lx_rate(self):  # noqa: N802 - Allow function name
         """float: The deformation of the box length in the x dimension \
         :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.Lx_rate = 0.01
         """
         return self.L_rates[0]
 
@@ -581,12 +569,6 @@ class Box:
     def Ly_rate(self):  # noqa: N802 - Allow function name
         """float: The deformation of the box length in the y dimension \
         :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.Ly_rate = 0.15
         """
         return self.L_rates[1]
 
@@ -594,12 +576,6 @@ class Box:
     def Lz_rate(self):  # noqa: N802 - Allow function name
         """float: The deformation of the box length in the z dimension \
         :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.Lz_rate = 0.05
         """
         return self.L_rates[2]
 
@@ -682,12 +658,6 @@ class Box:
     def tilt_rates(self):
         """(3, ) `numpy.ndarray` of `float`: The deformation rates on box tilts \
         :math:`[\\mathrm{time^{-1}}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.tilt_rates = (0.01, 0.0, 0.0)
         """
         return np.array([self.xy_rate, self.xz_rate, self.yz_rate])
 
@@ -695,12 +665,6 @@ class Box:
     def xy_rate(self):
         """float: The deformation rate on xy \
         :math:`[\\mathrm{time^{-1}}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.xy_rate = 1.1
         """
         return self._cpp_obj.getTiltDeformationRateXY()
 
@@ -708,12 +672,6 @@ class Box:
     def xz_rate(self):
         """float: The deformation rate on xz \
         :math:`[\\mathrm{time^{-1}}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.xz_rate = 0.08
         """
         return self._cpp_obj.getTiltDeformationRateXZ()
 
@@ -721,12 +679,6 @@ class Box:
     def yz_rate(self):
         """float: The deformation rate on yz \
         :math:`[\\mathrm{time^{-1}}]`.
-
-        .. rubric:: Example:
-
-        .. code-block:: python
-
-            box.yz_rate = 0.0
         """
         return self._cpp_obj.getTiltDeformationRateYZ()
 

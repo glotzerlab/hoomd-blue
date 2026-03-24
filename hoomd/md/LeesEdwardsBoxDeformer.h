@@ -72,7 +72,7 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
 
 #ifdef ENABLE_HIP
     private:
-    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner_remap; //!< Autotuner for block size
 #endif
     };
 
