@@ -3,19 +3,11 @@
 
 r"""Box deformation operations for MD simulations.
 
-Box deformers apply time-dependent deformations to the simulation box.
-
-These operations are typically attached to a `hoomd.md.Integrator` and are
-applied every time step.
-
-In general, a box deformation modifies the simulation box matrix
-:math:`\mathbf{H}` as a function of time:
-
-.. math::
-
-    \mathbf{H}(t)
-
-which may include changes in box lengths and/or tilt factors.
+Box deformers apply time-dependent changes to the simulation box,
+including both the box lengths and tilt factors. Unlike `hoomd.update.BoxResize`,
+the corresponding rates of deformation are calculated and applied to the velocities
+through the periodic boundary conditions. The update also occurs every time step
+as part of the integration step.
 
 """
 
@@ -90,10 +82,10 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
     corresponding to a simple shear flow in the *x*-direction, with gradient in
     the *y*-direction.
 
-    The ``max_tilt`` parameter controls when the simulation box is flipped
-    to avoid excessive skew. When :math:`|xy| > \mathrm{max\_tilt}`,
+    The `max_tilt` parameter controls when the simulation box is flipped
+    to avoid excessive skew. When ``|xy| > max_tilt``,
     the box is flipped (remapped by a lattice vector) to bring the
-    tilt back into the range :math:`[-\mathrm{max\_tilt}, +\mathrm{max\_tilt}]`.
+    tilt back into the range ``[-max_tilt, max_tilt]``.
 
     Box flipping and particle remap is mathematically equivalent to the original
     sheared system and does not affect the dynamics or measured properties, but it
