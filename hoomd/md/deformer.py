@@ -113,11 +113,11 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
     **Members defined in** `LeesEdwardsBoxDeformer`:
 
     Attributes:
-        shear_rate (float):
-            Imposed shear rate :math:`[\mathrm{time}^{-1}]`.
-
         max_tilt (float):
             Maximum allowed tilt before remapping.
+
+        shear_rate (float):
+            Imposed shear rate :math:`[\mathrm{time}^{-1}]`.
 
     .. rubric:: Example
 

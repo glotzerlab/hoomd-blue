@@ -191,12 +191,12 @@ class Integrator(_DynamicIntegrator):
         rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
           the simulation.
 
+        half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
+            arbitrary computations during the half-step of the integration.
+
         deformer (hoomd.md.deformer.BoxDeformer): Controls time-dependent
           deformations of the simulation box, enabling changes to the lengths
           and tilt factors of the box during a simulation.
-
-        half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
-            arbitrary computations during the half-step of the integration.
 
     `Integrator` is the top level class that orchestrates the time integration
     step in molecular dynamics simulations. The integration `methods` define
@@ -286,13 +286,7 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.deformer`
 
-    .. rubric:: Example
-
-    `Integrator` without a box deformation method.
-    (See `hoomd.md.deformer.LeesEdwardsBoxDeformer` on how to attach
-    a specific box deformer.)
-
-    .. code-block:: python
+    Examples::
 
         nlist = hoomd.md.nlist.Cell()
         lj = hoomd.md.pair.LJ(nlist=nlist)
@@ -313,6 +307,9 @@ class Integrator(_DynamicIntegrator):
         constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
 
+        deformer (hoomd.md.deformer.BoxDeformer): The deformation method that
+            applies prescribed time-dependent deformations to the simulation box.
+
         dt (float): Integrator time step size :math:`[\mathrm{time}]`.
 
         forces (list[hoomd.md.force.Force]): List of forces applied to
@@ -328,9 +325,6 @@ class Integrator(_DynamicIntegrator):
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
-
-        deformer (hoomd.md.deformer.BoxDeformer): The deformation method that
-            applies prescribed time-dependent deformations to the simulation box.
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -399,8 +393,8 @@ class Integrator(_DynamicIntegrator):
         constraints=None,
         methods=None,
         rigid=None,
-        deformer=None,
         half_step_hook=None,
+        deformer=None,
     ):
         super().__init__(forces, constraints, methods, rigid, deformer)
 
