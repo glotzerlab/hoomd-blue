@@ -28,10 +28,12 @@ LeesEdwardsBoxDeformer::LeesEdwardsBoxDeformer(std::shared_ptr<SystemDefinition>
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
+        {
         m_tuner_remap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                              m_exec_conf,
                                              "box_deformer_remap"));
-    m_autotuners.push_back(m_tuner_remap);
+        m_autotuners.push_back(m_tuner_remap);
+        }
 #endif
     }
 

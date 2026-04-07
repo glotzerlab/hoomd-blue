@@ -18,7 +18,7 @@ __global__ void gpu_lees_edwards_remap_kernel(const unsigned int N,
                                               Scalar4* d_pos,
                                               Scalar4* d_vel,
                                               int3* d_image,
-                                              const BoxDim& new_box,
+                                              const BoxDim new_box,
                                               const int flip)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;

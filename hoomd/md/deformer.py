@@ -48,8 +48,6 @@ class BoxDeformer(AutotunedObject):
     `BoxDeformer <hoomd.md.deformer.BoxDeformer>`:
     """
 
-    pass
-
 
 class LeesEdwardsBoxDeformer(BoxDeformer):
     r"""Lees-Edwards shear box deformer.
@@ -69,7 +67,7 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
 
     .. math::
 
-        xy(t) = xy(0) + \dot{\gamma} \, t
+        xy(t) = xy(0) + \dot{\gamma} \, t,
 
     where :math:`\dot{\gamma}` is the imposed shear rate.
 
@@ -91,13 +89,11 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
     sheared system and does not affect the dynamics or measured properties, but it
     improves numerical stability and avoids highly distorted boxes.
 
-    Recommended usage::
-
-        - Values of `max_tilt` around 0.5 are commonly used and provide
+    Recommended usage:
+        * Values of `max_tilt` around 0.5 are commonly used and provide
         a good balance between minimizing remapping frequency and avoiding
         extreme box distortions.
-
-        - Smaller values lead to more frequent flips, while larger values may
+        * Smaller values lead to more frequent flips, while larger values may
         result in highly skewed boxes that can impact computational performance.
 
     {inherited}

@@ -13,7 +13,6 @@
 #define __LEES_EDWARDS_BOX_DEFORMER_H__
 
 #include "BoxDeformer.h"
-#include "hoomd/Autotuner.h"
 
 namespace hoomd
     {

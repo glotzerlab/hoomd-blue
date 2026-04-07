@@ -132,8 +132,7 @@ class TestLeesEdwardsBoxDeformer:
 
         snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
-            for i in range(snap.particles.N):
-                assert np.allclose(snap.particles.position[i], pos[i])
+            assert np.allclose(snap.particles.position[:], pos[:])
 
     # Test particle remapping when box flips
     @pytest.mark.parametrize(
@@ -163,6 +162,7 @@ class TestLeesEdwardsBoxDeformer:
         self, simulation_factory, xy0, shear_rate, flip, pos, box_lengths
     ):
         Lx, Ly, Lz = box_lengths
+        pos = np.asarray(pos)
         snap = hoomd.Snapshot()
         if snap.communicator.rank == 0:
             snap.particles.N = 3
@@ -178,21 +178,16 @@ class TestLeesEdwardsBoxDeformer:
         sim.run(1)
 
         snap = sim.state.get_snapshot()
+
+        xy, xz, yz = sim.state.box.xy, sim.state.box.xz, sim.state.box.yz
+        x = pos[:, 0] - flip * Ly
+
+        # Compute tilt correction and apply wrap
+        tilt_x = (xz - xy * yz) * pos[:, 2] + xy * pos[:, 1]
+        x_wrapped = np.where(
+            x >= (Lx / 2) + tilt_x, x - Lx, np.where(x < (-Lx / 2) + tilt_x, x + Lx, x)
+        )
+        wrapped_pos = np.column_stack((x_wrapped, pos[:, 1], pos[:, 2]))
+
         if snap.communicator.rank == 0:
-            for i in range(snap.particles.N):
-                x = pos[i][0] - flip * Ly
-                y = pos[i][1]
-                z = pos[i][2]
-
-                # x wrapping (with tilt)
-                xy = sim.state.box.xy
-                xz = sim.state.box.xz
-                yz = sim.state.box.yz
-
-                tilt_x = (xz - xy * yz) * z + xy * y
-                if x >= (Lx / 2) + tilt_x:
-                    x -= Lx
-                elif x < (-Lx / 2) + tilt_x:
-                    x += Lx
-
-                assert np.allclose(snap.particles.position[i], (x, y, z))
+            assert np.allclose(snap.particles.position[:], wrapped_pos[:])

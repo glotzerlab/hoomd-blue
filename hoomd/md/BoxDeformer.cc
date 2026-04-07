@@ -25,10 +25,12 @@ BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef)
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
+        {
         m_tuner_wrap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                             m_exec_conf,
                                             "box_deformer_remap"));
-    m_autotuners.push_back(m_tuner_wrap);
+        m_autotuners.push_back(m_tuner_wrap);
+        }
 #endif
     }
 
