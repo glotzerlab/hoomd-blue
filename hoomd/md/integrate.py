@@ -289,7 +289,8 @@ class Integrator(_DynamicIntegrator):
     .. rubric:: Example
 
     `Integrator` without a box deformation method.
-    (See `hoomd.md.deformer.BoxDeformer` on how to attach a box deformer.)
+    (See `hoomd.md.deformer.LeesEdwardsBoxDeformer` on how to attach
+    a specific box deformer.)
 
     .. code-block:: python
 

@@ -11,6 +11,7 @@ as part of the integration step.
 
 """
 
+import hoomd
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes, positive_real
@@ -25,8 +26,8 @@ class BoxDeformer(AutotunedObject):
     applied during a simulation run.
 
     Subclasses implement specific deformation protocols (e.g., shear,
-    elongation, etc.). Instances are attached to a
-    `hoomd.md.Integrator`.
+    elongation, etc.). Instances are attached to an
+    `Integrator <hoomd.md.Integrator>`.
 
     Warning:
         This class should not be instantiated directly by users. Use a
@@ -38,85 +39,98 @@ class BoxDeformer(AutotunedObject):
 
     **Members defined in** `BoxDeformer`:
 
-    Subclasses define their specific deformation protocols and parameters.
     """
 
-    _doc_inherited = """
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(hoomd.operation.AutotunedObject._doc_inherited)
+    )
+    _doc_inherited = (
+        hoomd.operation.Integrator._doc_inherited
+        + """
     ----------
 
     **Members inherited from**
     `BoxDeformer <hoomd.md.deformer.BoxDeformer>`:
+
     """
+    )
 
 
 class LeesEdwardsBoxDeformer(BoxDeformer):
-    r"""Lees-Edwards shear box deformer.
+    r"""Box deformation with Lees-Edwards boundary conditions.
 
-    Args:
-        shear_rate (float): Shear rate :math:`[\mathrm{time}^{-1}]`.
+       Args:
+           shear_rate (float): Shear rate :math:`[\mathrm{time}^{-1}]`.
 
-        max_tilt (float, optional): Maximum allowed value of the box tilt
-            factor ``xy`` before a box flip is performed. It must be positive.
-            Defaults to 0.5.
+           max_tilt (float, optional): Maximum allowed value of the box tilt
+               factor ``xy`` before a box flip is performed. It must be positive.
+               Defaults to 0.5.
 
-    `LeesEdwardsBoxDeformer` applies Lees-Edwards boundary conditions to impose
-    a homogeneous shear flow in the simulation box by manipulating the box tilt
-    factor ``xy``.
+       `LeesEdwardsBoxDeformer` applies Lees-Edwards boundary conditions to impose
+       a homogeneous shear flow in the simulation box by manipulating the box tilt
+       factor ``xy``.
 
-    The box tilt deforms as
+       The box tilt deforms as
 
-    .. math::
+       .. math::
 
-        xy(t) = xy(0) + \dot{\gamma} \, t,
+           xy(t) = xy(0) + \dot{\gamma} \, t,
 
-    where :math:`\dot{\gamma}` is the imposed shear rate.
+       where :math:`\dot{\gamma}` is the imposed shear rate.
 
-    This produces a linear velocity profile
+       This produces a linear velocity profile
 
-    .. math::
+       .. math::
 
-        v_x(y) = \dot{\gamma} y
+           v_x(y) = \dot{\gamma} y
 
-    corresponding to a simple shear flow in the *x*-direction, with gradient in
-    the *y*-direction.
+       corresponding to a simple shear flow in the *x*-direction, with gradient in
+       the *y*-direction.
 
-    The `max_tilt` parameter controls when the simulation box is flipped
-    to avoid excessive skew. When ``|xy| > max_tilt``,
-    the box is flipped (remapped by a lattice vector) to bring the
-    tilt back into the range ``[-max_tilt, max_tilt]``.
+       The `max_tilt` parameter controls when the simulation box is flipped
+       to avoid excessive skew. When ``|xy| > max_tilt``,
+       the box is flipped (remapped by a lattice vector) to bring the
+       tilt back into the range ``[-max_tilt, max_tilt]``.
 
-    Box flipping and particle remap is mathematically equivalent to the original
-    sheared system and does not affect the dynamics or measured properties, but it
-    improves numerical stability and avoids highly distorted boxes.
+       Box flipping and particle remap is mathematically equivalent to the original
+       sheared system and does not affect the dynamics or measured properties, but it
+       improves numerical stability and avoids highly distorted boxes.
 
-    Recommended usage:
-        * Values of `max_tilt` around 0.5 are commonly used and provide
-        a good balance between minimizing remapping frequency and avoiding
-        extreme box distortions.
-        * Smaller values lead to more frequent flips, while larger values may
-        result in highly skewed boxes that can impact computational performance.
+    .. note::
 
-    {inherited}
+       * Values of `max_tilt` around 0.5 are commonly used and provide a good
+         balance between minimizing remapping frequency and avoiding extreme
+         box distortions.
 
-    ----------
+       * Smaller values lead to more frequent flips, while larger values may
+         result in highly skewed boxes that can impact computational performance.
 
-    **Members defined in** `LeesEdwardsBoxDeformer`:
 
-    Attributes:
-        shear_rate (float):
-            Imposed shear rate :math:`[\mathrm{time}^{-1}]`.
+       {inherited}
 
-        max_tilt (float):
-            Maximum allowed tilt before remapping.
+       ----------
 
-    Example::
+       **Members defined in** `LeesEdwardsBoxDeformer`:
 
-        deformer = hoomd.md.deformer.LeesEdwardsBoxDeformer(
-            shear_rate=0.01,
-            max_tilt=0.5,
-        )
-        integrator = hoomd.md.Integrator(dt=0.005, deformer=deformer)
-        simulation.operations.integrator = integrator
+       Attributes:
+           shear_rate (float):
+               Imposed shear rate :math:`[\mathrm{time}^{-1}]`.
+
+           max_tilt (float):
+               Maximum allowed tilt before remapping.
+
+       .. rubric:: Example
+
+       Create the deformer and attach it to the `Integrator <hoomd.md.Integrator>`.
+
+       .. code-block:: python
+
+           deformer = hoomd.md.deformer.LeesEdwardsBoxDeformer(
+               shear_rate=0.01,
+               max_tilt=0.5,
+           )
+           integrator = hoomd.md.Integrator(dt=0.005, deformer=deformer)
+           simulation.operations.integrator = integrator
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(

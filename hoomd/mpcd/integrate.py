@@ -60,7 +60,7 @@ class Integrator(_MDIntegrator):
 
     Warning:
         The MPCD `Integrator` does not currently support box deformers
-        (see `hoomd.md.deformer.BoxDeformer`). Attempting to set a deformer will
+        (see `hoomd.md.deformer`). Attempting to set a deformer will
         result in an error. Support for deformers is planned for a future release.
 
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
