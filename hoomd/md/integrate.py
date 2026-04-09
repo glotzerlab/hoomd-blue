@@ -342,6 +342,11 @@ class Integrator(_DynamicIntegrator):
         List of constraint forces applied to the system.
         `Read more... <hoomd.md.Integrator.constraints>`
 
+    .. py:attribute:: deformer
+
+        Time-dependent deformation of the simulation box.
+        `Read more... <hoomd.md.Integrator.deformer>`
+
     .. py:attribute:: dt
 
         Integrator time step size.
@@ -371,11 +376,6 @@ class Integrator(_DynamicIntegrator):
 
         Rigid body constraint.
         `Read more... <hoomd.md.Integrator.rigid>`
-
-    .. py:attribute:: deformer
-
-        Time-dependent deformation of the simulation box.
-        `Read more... <hoomd.md.Integrator.deformer>`
 
     .. py:property:: linear_momentum
 

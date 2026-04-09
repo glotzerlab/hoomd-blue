@@ -45,7 +45,7 @@ class BoxDeformer(AutotunedObject):
         "{inherited}", inspect.cleandoc(hoomd.operation.AutotunedObject._doc_inherited)
     )
     _doc_inherited = (
-        hoomd.operation.Integrator._doc_inherited
+        hoomd.operation.AutotunedObject._doc_inherited
         + """
     ----------
 
