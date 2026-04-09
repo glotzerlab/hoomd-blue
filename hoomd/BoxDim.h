@@ -64,6 +64,15 @@ namespace hoomd
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the
    box.
+
+    \par Box Deformation Rates
+    BoxDim supports time-dependent deformations of the simulation box. The member \a m_L_rate
+    specifies the rates of change of the box lengths in each dimension (dx/dt, dy/dt, dz/dt),
+    while \a m_xy_rate, \a m_xz_rate, and \a m_yz_rate define the rates of change of the respective
+    tilt factors. Methods that update both positions and velocities, such as wrap(pos, vel, img) and
+    minImage(pos, vel), use these rates to adjust velocities consistently with the box deformation.
+    These are useful for simulations under shear or elongational flow.
+
 */
 struct
 #ifndef __HIPCC__
@@ -456,7 +465,10 @@ struct
     /*!
         \param dr Position vector to compute / Minimum image vector returned
         \param dv Velocity vector to compute / Minimum image vector returned
-        \note \a dr must not extend more than 1 image beyond the box
+        \note This method and its overloaded functions below are similar to the position-only
+              minImage methods above, but additionally updates the velocities. It should be used
+              when computing relative positions between particles in a deforming box
+              (shear or elongation) where velocities must remain consistent with the deformation.
     */
     HOSTDEVICE void minImage(Scalar3& dr, Scalar3& dv) const
         {
@@ -675,7 +687,10 @@ struct
         \param img Image of the vector, updated to reflect the new image
         \param flags Vector of flags to force wrapping along certain directions
         \post \a img and \a pos are updated appropriately
-        \note \a pos must not extend more than 1 image beyond the box
+        \note This method and its overloaded functions below are similar to the position-only wrap
+              methods, but additionally updates the velocities. This is required for simulations
+              where the box is deforming (shear or elongational flows) and velocities must be
+              consistent with the deforming periodic boundaries.
     */
     HOSTDEVICE void
     wrap(Scalar3& pos, Scalar3& vel, int3& img, char3 flags = make_char3(0, 0, 0)) const
@@ -833,6 +848,9 @@ struct
     /*! \param pos The position vector to shift (and the new shifted position)
         \param vel The velocity vector to shift (and the new shifted velocity)
         \param _shift The displacement in lattice coordinates
+        \note This method and its overloaded functions below are similar to
+              the position-only shift methods, but additionally shifts the
+              velocities if required.
      */
     HOSTDEVICE void shift(Scalar3& pos, Scalar3& vel, const int3& _shift) const
         {

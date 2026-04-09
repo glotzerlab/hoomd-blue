@@ -58,6 +58,11 @@ class Integrator(_MDIntegrator):
         mpcd_particle_sorter (hoomd.mpcd.tune.ParticleSorter): Tuner that sorts
             the MPCD particles.
 
+    Warning:
+        The MPCD `Integrator` does not currently support box deformers
+        (see `hoomd.md.deformer`). Attempting to set a deformer will
+        result in an error. Support for deformers is planned for a future release.
+
     The MPCD `Integrator` enables the MPCD algorithm concurrently with standard
     MD methods.
 
@@ -287,3 +292,12 @@ class Integrator(_MDIntegrator):
             self._param_dict[attr] = value
         else:
             super()._setattr_param(attr, value)
+
+    # Throw an error for an attempt to set a box deformer
+    def _set_deformer(self, deformer):
+        if deformer is not None:
+            raise RuntimeError(
+                "MPCDIntegrator does not currently support box deformers. "
+                "Support is planned for a future release."
+            )
+        super()._set_deformer(deformer)
