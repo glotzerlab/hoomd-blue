@@ -11,7 +11,7 @@ name = "hoomd"
 dynamic = ["version"]
 description = "HOOMD-blue is a general-purpose particle simulation toolkit."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [
     { name = "Joshua A. Anderson", email = "joaander@umich.edu" },
 ]
