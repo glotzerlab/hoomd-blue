@@ -26,3 +26,9 @@ dependencies = [
 cmake.build-type = "Release"
 wheel.packages = ["hoomd"]
 sdist.include = ["hoomd/extern/*"] # Ensure external submodules are included if present
+editable.mode = "redirect"
+build-dir = "build/{wheel_tag}"
+
+[tool.pytest.ini_options]
+testpaths = ["hoomd"]
+addopts = "--import-mode=importlib"
