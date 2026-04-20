@@ -28,8 +28,6 @@ from hoomd import Simulation
 
 logger = logging.getLogger()
 
-pytest_plugins = ("hoomd.pytest_plugin_validate",)
-
 devices = [hoomd.device.CPU]
 _n_available_gpu = len(hoomd.device.GPU.get_available_devices())
 _require_gpu_tests = (
