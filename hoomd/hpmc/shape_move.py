@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """`ShapeMove` subclasses extend the Hamiltonian of the system by adding degrees of
@@ -41,7 +41,6 @@ class ShapeMove(_HOOMDBaseObject):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `ShapeMove <hoomd.hpmc.shape_move.ShapeMove>`:
 
@@ -134,8 +133,6 @@ class Elastic(ShapeMove):
         elastic_move.reference_shape["A"] = verts
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Elastic`:
 
@@ -246,7 +243,6 @@ class ShapeSpace(ShapeMove):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ShapeSpace`:
 
@@ -330,7 +326,6 @@ class Vertex(ShapeMove):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Vertex`:
 

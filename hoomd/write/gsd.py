@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Write GSD files storing simulation trajectories and logging data.
@@ -20,23 +20,8 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
-import atexit
-import weakref
 import inspect
-
-# Track open gsd writers to flush at exit.
-_open_gsd_writers = []
-
-
-def _flush_open_gsd_writers():
-    """Flush all open gsd writers at exit."""
-    for weak_writer in _open_gsd_writers:
-        writer = weak_writer()
-        if writer is not None:
-            writer.flush()
-
-
-atexit.register(_flush_open_gsd_writers)
+import weakref
 
 
 def _array_to_strings(value):
@@ -49,12 +34,6 @@ def _array_to_strings(value):
         return string_list
     else:
         return value
-
-
-def _finalize_gsd(weak_writer, cpp_obj):
-    """Finalize a GSD writer."""
-    _open_gsd_writers.remove(weak_writer)
-    cpp_obj.flush()
 
 
 class GSD(Writer):
@@ -72,6 +51,8 @@ class GSD(Writer):
             all frames. Defaults to ``['property']``.
         logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
             to `None`.
+        precision (str): Write precision for floating-point data. One of
+        ``'single'`` or ``'double'``. Defaults to ``'single'``.
 
     `GSD` writes the simulation trajectory to the specified file in the GSD
     format. `GSD` can store all particle, bond, angle, dihedral, improper,
@@ -184,8 +165,6 @@ class GSD(Writer):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `GSD`:
 
     Attributes:
@@ -271,6 +250,15 @@ class GSD(Writer):
             .. code-block:: python
 
                 gsd.auto_flush_period = 30
+
+        precision (str): Write precision for floating-point data.
+            One of ``'single'`` or ``'double'``.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                gsd.precision = "double"
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -280,7 +268,6 @@ class GSD(Writer):
     _doc_inherited = (
         Writer._doc_inherited
         + """
-    ----------
 
     **Members inherited from** `GSD <hoomd.write.GSD>`:
 
@@ -341,6 +328,7 @@ class GSD(Writer):
         truncate=False,
         dynamic=None,
         logger=None,
+        precision="single",
     ):
         super().__init__(trigger)
 
@@ -369,6 +357,7 @@ class GSD(Writer):
         )
 
         dynamic = ["property"] if dynamic is None else dynamic
+        precision_validation = OnlyFrom(["single", "double"])
         self._param_dict.update(
             ParameterDict(
                 filename=str(filename),
@@ -376,10 +365,11 @@ class GSD(Writer):
                 mode=str(mode),
                 truncate=bool(truncate),
                 dynamic=[dynamic_validation],
+                precision=precision_validation,
                 write_diameter=False,
                 maximum_write_buffer_size=1024 * 1024,
                 auto_flush_period=10,
-                _defaults=dict(filter=filter, dynamic=dynamic),
+                _defaults=dict(filter=filter, dynamic=dynamic, precision=precision),
             )
         )
 
@@ -393,19 +383,16 @@ class GSD(Writer):
             self._simulation.state._get_group(self.filter),
             self.mode,
             self.truncate,
+            self.precision,
         )
 
         self._cpp_obj.log_writer = self.logger
-
-        # Maintain a list of open gsd writers
-        weak_writer = weakref.ref(self)
-        _open_gsd_writers.append(weak_writer)
-        self._finalizer = (
-            weakref.finalize(self, _finalize_gsd, weak_writer, self._cpp_obj),
-        )
+        self._finalizer = weakref.finalize(self, self.flush)
 
     @staticmethod
-    def write(state, filename, filter=All(), mode="wb", logger=None):
+    def write(
+        state, filename, filter=All(), mode="wb", logger=None, precision="single"
+    ):
         """Write the given simulation state out to a GSD file.
 
         Args:
@@ -414,8 +401,10 @@ class GSD(Writer):
             filter (hoomd.filter.filter_like): Select the particles to write.
             mode (str): The file open mode. Defaults to ``'wb'``.
             logger (hoomd.logging.Logger): Provide log quantities to write.
+            precision (str): The float precision to write to. Defaults to ``'single'``.
 
         The valid file modes for `write` are ``'wb'`` and ``'xb'``.
+        The precision values for `write` are ``'single'`` and ``'double'``.
         """
         if mode != "wb" and mode != "xb":
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
@@ -427,6 +416,7 @@ class GSD(Writer):
             state._get_group(filter),
             mode,
             False,
+            precision,
         )
 
         if logger is not None:
@@ -467,13 +457,8 @@ class GSD(Writer):
 
             gsd.flush()
         """
-        if not self._attached:
-            raise RuntimeError(
-                "The GSD file is unavailable until the"
-                "simulation runs for 0 or more steps."
-            )
-
-        self._cpp_obj.flush()
+        if self._attached:
+            self._cpp_obj.flush()
 
 
 def _iterable_is_incomplete(iterable):

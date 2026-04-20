@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Anisotropic pair force classes apply a force, torque, and virial on every
@@ -99,7 +99,6 @@ class Dipole(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Dipole`:
 
@@ -109,7 +108,7 @@ class Dipole(AnisotropicPair):
         keys:
 
         * ``A`` (`float`, **required**) - :math:`A` - electrostatic energy
-          scale (*default*: 1.0)
+          scale
           :math:`[\mathrm{energy} \cdot \mathrm{length} \cdot
           \mathrm{charge}^{-2}]`
         * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
@@ -216,7 +215,6 @@ class YLZ(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `YLZ`:
 
@@ -342,7 +340,6 @@ class GayBerne(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `GayBerne`:
 
@@ -630,7 +627,6 @@ class ALJ(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ALJ`:
 
@@ -848,7 +844,6 @@ class Patchy(AnisotropicPair):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Patchy`:
 
@@ -903,7 +898,6 @@ class Patchy(AnisotropicPair):
     _doc_inherited = (
         AnisotropicPair._doc_inherited
         + r"""
-    ----------
 
     **Members inherited from** `Patchy <hoomd.md.pair.aniso.Patchy>`:
 
@@ -974,7 +968,6 @@ class PatchyLJ(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyLJ`:
 
@@ -1035,7 +1028,6 @@ class PatchyExpandedGaussian(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyExpandedGaussian`:
 
@@ -1096,7 +1088,6 @@ class PatchyExpandedLJ(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyExpandedLJ`:
 
@@ -1157,7 +1148,6 @@ class PatchyExpandedMie(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyExpandedMie`:
 
@@ -1228,7 +1218,6 @@ class PatchyGaussian(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyGaussian`:
 
@@ -1248,12 +1237,6 @@ class PatchyGaussian(Patchy):
             :math:`\epsilon` :math:`[\mathrm{energy}]`.
           * ``sigma`` (`float`, **required**) -
             :math:`\sigma` :math:`[\mathrm{length}]`.
-          * ``n`` (`float`, **required**) -
-            :math:`n` :math:`[\mathrm{dimensionless}]`.
-          * ``m`` (`float`, **required**) -
-            :math:`m` :math:`[\mathrm{dimensionless}]`.
-          * ``delta`` (`float`, **required**) -
-            :math:`\Delta` :math:`[\mathrm{length}]`.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1293,7 +1276,6 @@ class PatchyMie(Patchy):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PatchyMie`:
 
@@ -1354,8 +1336,6 @@ class PatchyYukawa(Patchy):
         simulation.operations.integrator.forces = [patchy_yukawa]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `PatchyYukawa`:
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """When compiled without MPI support, `Communicator` acts as if there is one MPI
@@ -68,7 +68,8 @@ class Communicator(object):
         if ranks_per_partition is not None:
             if not hoomd.version.mpi_enabled:
                 raise RuntimeError(
-                    "The ranks_per_partition option is only available in MPI.\n"
+                    "The ranks_per_partition option is only available when"
+                    "HOOMD-blue is compiled with MPI support.\n"
                 )
 
         mpi_available = hoomd.version.mpi_enabled

@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
 #include <iostream>
 
-#include "GSDHPMCSchema.h"
 #include "IntegratorHPMC.h"
 #include "Moves.h"
 #include "ShapeSpheropolyhedron.h"
@@ -544,7 +543,7 @@ template<class Shape> void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     continue;
                     }
 
-                move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
+                move_translate(pos_i, rng_i, h_d.data[typ_i], this->getTranslateMoveDimensions());
 
 #ifdef ENABLE_MPI
                 if (m_sysdef->isDomainDecomposed())

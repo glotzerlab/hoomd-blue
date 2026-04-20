@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Operations act on the state of the system at defined points during the
@@ -431,7 +431,6 @@ class AutotunedObject(_HOOMDBaseObject):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `AutotunedObject <hoomd.operation.AutotunedObject>`:
 
@@ -558,8 +557,6 @@ class TriggeredOperation(Operation):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `TriggeredOperation`:
 
     Attributes:
@@ -579,7 +576,6 @@ class TriggeredOperation(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `TriggeredOperation <hoomd.operation.TriggeredOperation>`:
