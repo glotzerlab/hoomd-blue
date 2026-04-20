@@ -9,7 +9,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "hoomd"
 dynamic = ["version"]
-description = "HOOMD-blue is a general-purpose particle simulation toolkit."
+description = "Molecular dynamics and Monte Carlo soft matter simulation on GPUs."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
