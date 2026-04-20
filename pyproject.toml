@@ -1,0 +1,28 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.5.0",
+    "pybind11>=2.12.0",
+    "numpy",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "hoomd"
+dynamic = ["version"]
+description = "HOOMD-blue is a general-purpose particle simulation toolkit."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Joshua A. Anderson", email = "joaander@umich.edu" },
+]
+dependencies = [
+    "numpy",
+    "gsd>=3.0.0",
+    "rowan>=1.2.0",
+    "h5py",
+]
+
+[tool.scikit-build]
+cmake.build-type = "Release"
+wheel.packages = ["hoomd"]
+sdist.include = ["hoomd/extern/*"] # Ensure external submodules are included if present
