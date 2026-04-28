@@ -10,7 +10,7 @@ To build the **HOOMD-blue** from source:
 
    .. code-block:: bash
 
-       micromamba install cmake eigen git ninja numpy pybind11 python pytest
+       micromamba install cmake eigen git ninja numpy pybind11 python pytest rowan
 
 2. `Obtain the source`_:
 
