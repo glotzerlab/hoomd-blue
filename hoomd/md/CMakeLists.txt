@@ -30,6 +30,7 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    HelfrichMeshForceCompute.cc
                    HelfrichGeneralMeshForceCompute.cc
+				   HelfrichGeneralLineTensionForceCompute.cc
 		   CurvatureHelfrichMeshForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
@@ -168,6 +169,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HelfrichGeneralMeshForceComputeGPU.h
                 HelfrichGeneralMeshForceComputeGPU.cuh
                 HelfrichGeneralMeshForceCompute.h
+				HelfrichGeneralLineTensionForceCompute.h
 		CurvatureHelfrichMeshParameters.h
 		CurvatureHelfrichMeshForceComputeGPU.h
                 CurvatureHelfrichMeshForceComputeGPU.cuh

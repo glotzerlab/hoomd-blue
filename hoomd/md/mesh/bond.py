@@ -230,8 +230,101 @@ class Tether(MeshPotential):
         super().__init__(mesh)
 
 
+class LineTension(MeshPotential):
+    r"""Helfrich Line Tension potential.
+    
+    Args:
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+
+    The line tension potential assigns an energy cost proportional to the
+    length of the boundary between two mesh domains. For a closed interface
+    curve :math:`\Gamma`, the energy is:
+
+    .. math::
+
+        U_{\mathrm{line}} = \lambda \oint_{\Gamma} ds
+
+    where :math:`\lambda` is the line tension coefficient and :math:`ds`
+    is the differential arc length along the closed boundary.
+
+
+    This is an energy contribution intended to be used in the case when 
+    there exists an interface between two mesh types of differing 
+    spontaneous curvature.
+    In a discretized triangulated mesh, this corresponds to summing the
+    lengths of edges shared by faces of different mesh types.
+
+     See Also:
+        * `KOHYAMA, KROLL, AND GOMPPER 2003 <https://juser.fz-juelich.de/record/31343/files/31905.pdf>`__
+
+    Attention:
+        `LineTension` is NOT implemented for MPI parallel execution!
+    .. rubric:: Example:
+    .. skip: next if(hoomd.version.mpi_enabled)
+    .. code-block:: python
+        line_tension_potential = hoomd.md.mesh.bond.LineTension(mesh) #FIX LATER
+        line_tension_potential.params["mesh"] = dict(l=10.0, types=("mesh0","mesh1")), #FIX LATER 
+    {inherited}
+    ----------
+    **Members defined in** `LineTension`:
+    Attributes:
+        params (TypeParameter[dict]):
+            The parameters of the `LineTension` potential for each mesh bond type.
+
+            The dictionary has the following keys:
+
+            * ``l`` (`float`, **required**) -
+              line tension strength :math:`l`
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-1}]`.
+
+            * ``types`` (`tuple` [`str`, `str`], **required**) -
+              pair of mesh type names defining the interface where line tension
+              acts, e.g. ``("mesh_0", "mesh_1")``.
+
+              The two type names must be different.
+    """
+
+    _cpp_class_name = "HelfrichGeneralLineTensionForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited) # FIX?
+    )
+
+    def __init__(self, mesh):
+        params = TypeParameter(`
+            "params", "particle_types", TypeParameterDict(l=float, types=(str,str), len_keys=1) #FIX 2nd type param
+        )
+        self._add_typeparam(params)
+
+        super().__init__(mesh)
+
+    def _attach_hook(self):
+        # validate all params
+        for key, value in self.params.items():
+            t1, t2 = value["types"]
+
+            if t1 == t2:
+                raise ValueError(
+                    f"LineTension types must be different, got ({t1}, {t2})"
+                )
+
+
+        if self._simulation.device.communicator.num_ranks == 1:
+            super()._attach_hook()
+        else:
+            raise MPINotAvailableError("LineTension is not implemented for MPI")
+
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam._attach(cpp_obj, simulation.state)
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
+                )
+
 __all__ = [
     "FENEWCA",
     "Harmonic",
     "Tether",
+    "LineTension",
 ]
