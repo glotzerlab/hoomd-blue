@@ -39,7 +39,8 @@ LineTensionForceCompute::~LineTensionForceCompute()
 }
 
 void LineTensionForceCompute::setParams(
-    unsigned int type,
+    unsigned int typ1,
+	unsigned int typ2
     const line_tension_param_t& params)
 {
     ArrayHandle<line_tension_param_t> h_params(
@@ -57,39 +58,53 @@ void LineTensionForceCompute::setParams(
 }
 
 void LineTensionForceCompute::setParamsPython(
-    std::string type,
+    pybind11::tuple typ,
     pybind11::dict params)
 {
-    unsigned int typ =
-        m_pdata->getTypeByName(type);
+    unsigned int typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    unsigned int typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
 
     setParams(
-        typ,
+        typ1,
+		typ2
         line_tension_param_t(params));
 }
 
-pybind11::dict LineTensionForceCompute::getParams(
-    std::string type)
+pybind11::dict LineTensionForceCompute::getParams(pybind11:tuple typ)
 {
-    unsigned int typ =
-        m_pdata->getTypeByName(type);
+    unsigned int typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    unsigned int typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
 
-    if (typ >= m_pdata->getNTypes())
+    if (typ1 >= m_pdata->getNTypes())
     {
         m_exec_conf->msg->error()
             << "mesh.line_tension: invalid type"
             << endl;
 
         throw runtime_error(
-            "Invalid type in LineTensionForceCompute");
+            "First type invalid in LineTensionForceCompute");
+    }
+    
+	if (typ2 >= m_pdata->getNTypes())
+    {
+        m_exec_conf->msg->error()
+            << "mesh.line_tension: invalid type"
+            << endl;
+
+        throw runtime_error(
+            "Second type invalide in LineTensionForceCompute");
     }
 
+	//Not in PotentialPair.h
+	/*
     ArrayHandle<line_tension_param_t> h_params(
         m_params,
         access_location::host,
         access_mode::read);
+	return h_params.data[typ].asDict();
+	*/
 
-    return h_params.data[typ].asDict();
+	return m_params[LineTensionForceCompute::m_typpair_idx(typ1, typ2)].asDict();
 }
 
 void LineTensionForceCompute::computeForces(uint64_t timestep)
@@ -147,7 +162,7 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
         unsigned int type_b =
             __scalar_as_int(h_pos.data[idx_b].w);
 
-        Scalar lambda = 0.0;
+        Scalar lam = 0.0;
         bool match = false;
 
         // Type-pair matching
@@ -158,13 +173,13 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
             if ((type_a == p.type_i && type_b == p.type_j) ||
                 (type_a == p.type_j && type_b == p.type_i))
             {
-                lambda = p.l;
+                lam = p.l;
                 match = true;
                 break;
             }
         }
 
-        if (!match || lambda == Scalar(0.0))
+        if (!match || lam == Scalar(0.0))
             continue;
 
         Scalar3 dr;
@@ -183,11 +198,11 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
         Scalar inv_r = Scalar(1.0) / r;
 
         Scalar3 F;
-        F.x = -lambda * dr.x * inv_r;
-        F.y = -lambda * dr.y * inv_r;
-        F.z = -lambda * dr.z * inv_r;
+        F.x = -lam * dr.x * inv_r;
+        F.y = -lam * dr.y * inv_r;
+        F.z = -lam * dr.z * inv_r;
 
-        Scalar energy = Scalar(0.5) * lambda * r;
+        Scalar energy = Scalar(0.5) * lam * r;
 
         if (idx_a < m_pdata->getN())
         {

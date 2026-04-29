@@ -27,24 +27,19 @@ namespace md
 struct line_tension_param_t
 {
     Scalar l;
-    unsigned int type_i;
-    unsigned int type_j;
 
     line_tension_param_t()
-        : l(0), type_i(0), type_j(0) {}
+        : l(0) {}
 
     line_tension_param_t(pybind11::dict params)
     {
-        l = pybind11::cast<Scalar>(params["l"]);
-
-        // Important to populate via TypeParameter system to resolve to ints
-    }
+		l = pybind11::cast<Scalar>(params["l"]);
+	}
 
     pybind11::dict asDict() const
     {
         pybind11::dict d;
         d["l"] = l;
-        d["types"] = pybind11::make_tuple(type_i, type_j);
         return d;
     }
 };
@@ -53,27 +48,37 @@ struct line_tension_param_t
 class PYBIND11_EXPORT LineTensionForceCompute
     : public MeshForceCompute
 {
-public:
+	public:
     //! Constructor
     LineTensionForceCompute(
-        std::shared_ptr<SystemDefinition> sysdef,
-        std::shared_ptr<MeshDefinition> meshdef);
-
-    //! Destructor
+			std::shared_ptr<SystemDefinition> sysdef,	
+			std::shared_ptr<MeshDefinition> meshdef);
+		: ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift),
+    	m_typpair_idx(m_pdata->getNTypes()
+	)
+    
+	//! Destructor
     virtual ~LineTensionForceCompute();
 
-    //! Set parameters
+    /*! \param typ1 First type index in the pair
+    	\param typ2 Second type index in the pair
+    	\param param Parameter to set
+    	\note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
+   		automatically set.
+	*/
+	//! Set parameters
     virtual void setParams(
-        unsigned int type,
+        unsigned int typ1,
+		unsigned int typ2
         const line_tension_param_t& params);
 
-    //! Set parameters from Python
-    virtual void setParamsPython(
-        std::string type,
-        pybind11::dict params);
 
-    //! Get parameters
-    pybind11::dict getParams(std::string type);
+    //! Set parameters from Python
+	virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+	
+    //! Get parameters for single type pair using tuple of strings
+	pybind11::dict getParams(pybind11::tuple typ);
+	
 
 #ifdef ENABLE_MPI
     CommFlags getRequestedCommFlags(
@@ -88,13 +93,27 @@ public:
     }
 #endif
 
+
 protected:
+	// Per type pair potential parameters
+	vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
+	
+	Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GPUArray<line_tension_param_t> m_params;
 
     //! Compute forces
     void computeForces(
         uint64_t timestep) override;
-};
+
+//Included later in PairPotential.h
+/*
+ m_params = std::vector<param_type, hoomd::detail::managed_allocator<param_type>>(          
+        m_typpair_idx.getNumElements(),
+        param_type(),
+        hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+*/
+	};
+
 
 namespace detail
 {

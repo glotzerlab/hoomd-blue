@@ -262,7 +262,7 @@ class LineTension(MeshPotential):
     .. rubric:: Example:
     .. skip: next if(hoomd.version.mpi_enabled)
     .. code-block:: python
-        line_tension_potential = hoomd.md.mesh.bond.LineTension(mesh) #FIX LATER
+        line_tension_potential = hoomd.md.mesh.bond.LineTension(mesh)
         line_tension_potential.params["mesh_0", "mesh_1"] = dict(l=10.0), #default to 2 particle type names 
     {inherited}
     ----------
