@@ -2,6 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MeshForceCompute.h"
+#include "HelfrichMeshParameters.h"
 
 #include <memory>
 
@@ -50,12 +51,8 @@ class PYBIND11_EXPORT LineTensionForceCompute
 {
 	public:
     //! Constructor
-    LineTensionForceCompute(
-			std::shared_ptr<SystemDefinition> sysdef,	
-			std::shared_ptr<MeshDefinition> meshdef);
-		: ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift),
-    	m_typpair_idx(m_pdata->getNTypes()
-	)
+	LineTensionForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                             	std::shared_ptr<MeshDefinition> meshdef);
     
 	//! Destructor
     virtual ~LineTensionForceCompute();
@@ -69,8 +66,9 @@ class PYBIND11_EXPORT LineTensionForceCompute
 	//! Set parameters
     virtual void setParams(
         unsigned int typ1,
-		unsigned int typ2
-        const line_tension_param_t& params);
+		unsigned int typ2,
+        const line_tension_param_t& params
+		);
 
 
     //! Set parameters from Python
@@ -96,7 +94,7 @@ class PYBIND11_EXPORT LineTensionForceCompute
 
 protected:
 	// Per type pair potential parameters
-	vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
+	//vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
 	
 	Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GPUArray<line_tension_param_t> m_params;

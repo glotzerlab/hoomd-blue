@@ -40,15 +40,17 @@ LineTensionForceCompute::~LineTensionForceCompute()
 
 void LineTensionForceCompute::setParams(
     unsigned int typ1,
-	unsigned int typ2
-    const line_tension_param_t& params)
+	unsigned int typ2,
+    const line_tension_param_t& params
+	)
 {
     ArrayHandle<line_tension_param_t> h_params(
         m_params,
         access_location::host,
         access_mode::readwrite);
-
-    h_params.data[type] = params;
+    
+	unsigned int idx = m_typpair_idx(typ1, typ2);
+    h_params.data[idx] = params;
 
     if (params.l < Scalar(0.0))
     {
@@ -66,11 +68,11 @@ void LineTensionForceCompute::setParamsPython(
 
     setParams(
         typ1,
-		typ2
+		typ2,
         line_tension_param_t(params));
 }
 
-pybind11::dict LineTensionForceCompute::getParams(pybind11:tuple typ)
+pybind11::dict LineTensionForceCompute::getParams(pybind11::tuple typ)
 {
     unsigned int typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     unsigned int typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
@@ -104,7 +106,7 @@ pybind11::dict LineTensionForceCompute::getParams(pybind11:tuple typ)
 	return h_params.data[typ].asDict();
 	*/
 
-	return m_params[LineTensionForceCompute::m_typpair_idx(typ1, typ2)].asDict();
+	return m_params[m_typpair_idx(typ1, typ2)].asDict();
 }
 
 void LineTensionForceCompute::computeForces(uint64_t timestep)
