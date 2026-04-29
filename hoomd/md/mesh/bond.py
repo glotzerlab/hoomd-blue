@@ -284,7 +284,7 @@ class LineTension(MeshPotential):
     )
 
     def __init__(self, mesh):
-        params = TypeParameter(`
+        params = TypeParameter(
             "params", "particle_types", TypeParameterDict(l=float, len_keys=2)
         )
         self._add_typeparam(params)
