@@ -263,7 +263,7 @@ class LineTension(MeshPotential):
     .. skip: next if(hoomd.version.mpi_enabled)
     .. code-block:: python
         line_tension_potential = hoomd.md.mesh.bond.LineTension(mesh) #FIX LATER
-        line_tension_potential.params["mesh"] = dict(l=10.0, types=("mesh0","mesh1")), #FIX LATER 
+        line_tension_potential.params["mesh_0", "mesh_1"] = dict(l=10.0), #default to 2 particle type names 
     {inherited}
     ----------
     **Members defined in** `LineTension`:
@@ -276,37 +276,22 @@ class LineTension(MeshPotential):
             * ``l`` (`float`, **required**) -
               line tension strength :math:`l`
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-1}]`.
-
-            * ``types`` (`tuple` [`str`, `str`], **required**) -
-              pair of mesh type names defining the interface where line tension
-              acts, e.g. ``("mesh_0", "mesh_1")``.
-
-              The two type names must be different.
     """
 
-    _cpp_class_name = "HelfrichGeneralLineTensionForceCompute"
+    _cpp_class_name = "LineTensionForceCompute"
     __doc__ = inspect.cleandoc(__doc__).replace(
-        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited) # FIX?
+        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
     )
 
     def __init__(self, mesh):
         params = TypeParameter(`
-            "params", "particle_types", TypeParameterDict(l=float, types=(str,str), len_keys=1) #FIX 2nd type param
+            "params", "particle_types", TypeParameterDict(l=float, len_keys=2)
         )
         self._add_typeparam(params)
 
         super().__init__(mesh)
 
     def _attach_hook(self):
-        # validate all params
-        for key, value in self.params.items():
-            t1, t2 = value["types"]
-
-            if t1 == t2:
-                raise ValueError(
-                    f"LineTension types must be different, got ({t1}, {t2})"
-                )
-
 
         if self._simulation.device.communicator.num_ranks == 1:
             super()._attach_hook()
