@@ -242,6 +242,14 @@ class GeneralHelfrich(MeshPotential):
                     f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
                 )
 
+    @log(category="particle", requires_run=True)
+    def curvatures(self):
+        """(*N_particles*, ) `numpy.ndarray` of ``float``: Curvature \
+        Mean curvature at each particle :math:`[\\mathrm{length^{-1}}]`.
+        """
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getCurvatures()
+
 
 class CurvatureHelfrich(MeshPotential):
     r"""Helfrich bending potential.
