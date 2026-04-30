@@ -377,10 +377,10 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
 	Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
 
-	Scalar H0_a = h_params.data[type_a].H0;
-	Scalar H0_b = h_params.data[type_b].H0;
-	Scalar H0_c = h_params.data[type_c].H0;
-	Scalar H0_d = h_params.data[type_d].H0;
+	Scalar H0_a = 2*h_params.data[type_a].H0;
+	Scalar H0_b = 2*h_params.data[type_b].H0;
+	Scalar H0_c = 2*h_params.data[type_c].H0;
+	Scalar H0_d = 2*h_params.data[type_d].H0;
 
 	Scalar factor_a =  h_normal.data[idx_a].x;
 	Scalar factor_b =  h_normal.data[idx_b].x;
@@ -926,10 +926,10 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
     Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
     
-    Scalar H0_a = h_params.data[type_a].H0;
-    Scalar H0_b = h_params.data[type_b].H0;
-    Scalar H0_c = h_params.data[type_c].H0;
-    Scalar H0_d = h_params.data[type_d].H0;
+    Scalar H0_a = 2*h_params.data[type_a].H0;
+    Scalar H0_b = 2*h_params.data[type_b].H0;
+    Scalar H0_c = 2*h_params.data[type_c].H0;
+    Scalar H0_d = 2*h_params.data[type_d].H0;
 
     Scalar K_a = h_params.data[type_a].k;
     Scalar K_b = h_params.data[type_b].k;
