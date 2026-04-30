@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -507,6 +507,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                       this->m_translation_move_probability,
                                       timestep,
                                       this->m_sysdef->getNDimensions(),
+                                      this->getTranslateMoveDimensions(),
                                       box,
                                       i,
                                       ghost_fraction,
@@ -647,6 +648,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                       this->m_translation_move_probability,
                                       timestep,
                                       this->m_sysdef->getNDimensions(),
+                                      this->getTranslateMoveDimensions(),
                                       box,
                                       i,
                                       ghost_fraction,

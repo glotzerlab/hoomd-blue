@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """A `Trigger` is a boolean valued function of the timestep. An operation will
@@ -82,8 +82,6 @@ class Trigger(_hoomd.Trigger):
     """
 
     _doc_inherited = """
-    ----------
-
     **Members inherited from** `Trigger <hoomd.trigger.Trigger>`:
 
     .. py:method:: __call__
@@ -125,8 +123,6 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
             trigger = hoomd.trigger.Periodic(period=100)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Periodic`:
 
@@ -174,8 +170,6 @@ class Before(_hoomd.BeforeTrigger, Trigger):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Before`:
 
     Attributes:
@@ -219,8 +213,6 @@ class On(_hoomd.OnTrigger, Trigger):
             trigger = hoomd.trigger.On(1000)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `On`:
 
@@ -266,8 +258,6 @@ class After(_hoomd.AfterTrigger, Trigger):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `After`:
 
     Attributes:
@@ -311,8 +301,6 @@ class Not(_hoomd.NotTrigger, Trigger):
             trigger = hoomd.trigger.Not(other_trigger)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Not`:
 
@@ -363,8 +351,6 @@ class And(_hoomd.AndTrigger, Trigger):
             trigger = hoomd.trigger.And([other_trigger1, other_trigger2])
 
     {inherited}
-
-    ----------
 
     **Members defined in** `And`:
 
@@ -421,8 +407,6 @@ class Or(_hoomd.OrTrigger, Trigger):
             trig = hoomd.trigger.Or([other_trigger1, other_trigger2])
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Or`:
 

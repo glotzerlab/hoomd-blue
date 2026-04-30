@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods.
@@ -67,8 +67,6 @@ class Thermostatted(Method):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Thermostatted`:
 
     Attributes:
@@ -97,7 +95,6 @@ class Thermostatted(Method):
     _doc_inherited = (
         Method._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Thermostatted <hoomd.md.methods.Thermostatted>`:
@@ -177,7 +174,6 @@ class ConstantVolume(Thermostatted):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConstantVolume`:
 
@@ -195,7 +191,6 @@ class ConstantVolume(Thermostatted):
     _doc_inherited = (
         Thermostatted._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `ConstantVolume <hoomd.md.methods.ConstantVolume>`:
@@ -437,7 +432,6 @@ class ConstantPressure(Thermostatted):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ConstantPressure`:
 
@@ -706,7 +700,6 @@ class DisplacementCapped(ConstantVolume):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `DisplacementCapped`:
 
@@ -815,7 +808,6 @@ class Langevin(Method):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Langevin`:
 
@@ -1042,7 +1034,6 @@ class Brownian(Method):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Brownian`:
 
@@ -1213,8 +1204,6 @@ class OverdampedViscous(Method):
         simulation.operations.integrator.methods = [overdamped_viscous]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `OverdampedViscous`:
 

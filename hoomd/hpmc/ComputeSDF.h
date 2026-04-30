@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_SDF__H__
@@ -10,6 +10,10 @@
 
 #include "HPMCCounters.h"
 #include "IntegratorHPMCMono.h"
+#include "ShapeConvexPolygon.h"
+#include "ShapeEllipsoid.h"
+#include "ShapeFacetedEllipsoid.h"
+#include "ShapeSpheropolygon.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Wall potentials HPMC simulations.
@@ -159,8 +159,6 @@ class WallPotential(External):
         simulation.operations.integrator.external_potentials = [wall_potential]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `WallPotential`:
     """

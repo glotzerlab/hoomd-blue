@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Alchemical MD integration methods."""
@@ -22,8 +22,6 @@ class Alchemostat(Method):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Alchemostat`:
     """
 
@@ -34,7 +32,6 @@ class Alchemostat(Method):
     _doc_inherited = (
         Method._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Alchemostat <hoomd.md.alchemy.methods.Alchemostat>`:
@@ -106,7 +103,6 @@ class NVT(Alchemostat):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `NVT`:
 

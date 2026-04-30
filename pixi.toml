@@ -22,17 +22,30 @@ rowan = "*"
 sybil = "*"
 bump-my-version = "*"
 
-[feature.py310.dependencies]
-python = "3.10.*"
 [feature.py311.dependencies]
 python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
 [feature.py313.dependencies]
 python = "3.13.*"
+[feature.py314.dependencies]
+python = "3.14.*"
+[feature.docs.dependencies]
+python = "3.14.*"
+ipython = "*"
+nbconvert = "*"
+nbsphinx = "*"
+pandoc = "*"
+tornado = "*"
+[feature.docs.pypi-dependencies]
+sphinxcontrib-katex = "*"
+sphinx-copybutton = "*"
+furo = "*"
+
 
 [environments]
-py310 = ["py310"]
 py311 = ["py311"]
 py312 = ["py312"]
 py313 = ["py313"]
+py314 = ["py314"]
+docs = ["docs"]

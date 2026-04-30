@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Virtual particles are MPCD particles that are added to ensure MPCD
@@ -45,8 +45,6 @@ class VirtualParticleFiller(Operation):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `VirtualParticleFiller`:
 
     Attributes:
@@ -90,7 +88,6 @@ class VirtualParticleFiller(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `VirtualParticleFiller <hoomd.mpcd.fill.VirtualParticleFiller>`:
@@ -157,8 +154,6 @@ class GeometryFiller(VirtualParticleFiller):
         simulation.operations.integrator.virtual_particle_fillers = [filler]
 
     {inherited}
-
-    ----------
 
     **Members defined in** `GeometryFiller`:
 

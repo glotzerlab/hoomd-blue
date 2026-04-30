@@ -1,6 +1,17 @@
 Migrating to the latest version
 ===============================
 
+Migrating to HOOMD-blue 7
+-------------------------
+
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* HOOMD-blue 7 samples 3D MC rotation moves from a new distribution. Retune saved or adjust
+  hard-coded values appropriately.
+* HOOMD-blue 7 writes GSD schema 2.0 files. You may need to update any tools that read GSD
+  to their latest version to ensure compatibility.
+
 Migrating to HOOMD-blue 6
 -------------------------
 
