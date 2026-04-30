@@ -23,12 +23,14 @@ LineTensionForceCompute::LineTensionForceCompute(
     m_exec_conf->msg->notice(5)
         << "Constructing LineTensionForceCompute"
         << endl;
+	
+	m_typpair_idx = Index2D(m_pdata->getNTypes());
 
-    GPUArray<line_tension_param_t> params(
-        m_pdata->getNTypes(),
-        m_exec_conf);
+	GPUArray<line_tension_param_t> params(
+		m_typpair_idx.getNumElements(),
+		m_exec_conf);
 
-    m_params.swap(params);
+	m_params.swap(params);
 }
 
 LineTensionForceCompute::~LineTensionForceCompute()
@@ -49,8 +51,11 @@ void LineTensionForceCompute::setParams(
         access_location::host,
         access_mode::readwrite);
     
-	unsigned int idx = m_typpair_idx(typ1, typ2);
-    h_params.data[idx] = params;
+	unsigned int idx1 = m_typpair_idx(typ1, typ2);
+	unsigned int idx2 = m_typpair_idx(typ2, typ1);
+
+	h_params.data[idx1] = params;
+	h_params.data[idx2] = params;
 
     if (params.l < Scalar(0.0))
     {
@@ -105,8 +110,12 @@ pybind11::dict LineTensionForceCompute::getParams(pybind11::tuple typ)
         access_mode::read);
 	return h_params.data[typ].asDict();
 	*/
+	ArrayHandle<line_tension_param_t> h_params(
+		m_params,
+		access_location::host,
+		access_mode::read);
 
-	return m_params[m_typpair_idx(typ1, typ2)].asDict();
+	return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
 }
 
 void LineTensionForceCompute::computeForces(uint64_t timestep)
@@ -164,27 +173,13 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
         unsigned int type_b =
             __scalar_as_int(h_pos.data[idx_b].w);
 
-        Scalar lam = 0.0;
-        bool match = false;
+		unsigned int idx = m_typpair_idx(type_a, type_b);
+		Scalar lam = h_params.data[idx].l;
 
-        // Type-pair matching
-        for (unsigned int t = 0; t < m_pdata->getNTypes(); t++)
-        {
-            const auto& p = h_params.data[t];
-
-            if ((type_a == p.type_i && type_b == p.type_j) ||
-                (type_a == p.type_j && type_b == p.type_i))
-            {
-                lam = p.l;
-                match = true;
-                break;
-            }
-        }
-
-        if (!match || lam == Scalar(0.0))
-            continue;
-
-        Scalar3 dr;
+		if (lam == Scalar(0.0))
+			continue;
+        
+		Scalar3 dr;
         dr.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dr.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
         dr.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
