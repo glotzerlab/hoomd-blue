@@ -40,16 +40,16 @@ HelfrichGeneralMeshForceComputeGPU::HelfrichGeneralMeshForceComputeGPU(std::shar
     m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_sigma});
 
     GPUVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
-    GPUVector<Scalar3> tmp_normal(m_pdata->getN(), m_exec_conf);
+    GPUVector<Scalar4> tmp_normal(m_pdata->getN(), m_exec_conf);
     GPUVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
 
         {
         ArrayHandle<Scalar3> old_sigma_dash(m_sigma_dash, access_location::host);
-        ArrayHandle<Scalar3> old_normal(m_normal, access_location::host);
+        ArrayHandle<Scalar4> old_normal(m_normal, access_location::host);
         ArrayHandle<Scalar> old_sigma(m_sigma, access_location::host);
 
         ArrayHandle<Scalar3> sigma_dash(tmp_sigma_dash, access_location::host);
-        ArrayHandle<Scalar3> normal(tmp_normal, access_location::host);
+        ArrayHandle<Scalar4> normal(tmp_normal, access_location::host);
         ArrayHandle<Scalar> sigma(tmp_sigma, access_location::host);
 
         // for each type of the particles in the group
@@ -83,7 +83,7 @@ void HelfrichGeneralMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar> d_sigma(m_sigma, access_location::device, access_mode::read);
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash, access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_normal(m_normal, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_normal(m_normal, access_location::device, access_mode::read);
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
@@ -153,7 +153,7 @@ void HelfrichGeneralMeshForceComputeGPU::precomputeParameter()
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash,
                                       access_location::device,
                                       access_mode::readwrite);
-    ArrayHandle<Scalar3> d_normal(m_normal,
+    ArrayHandle<Scalar4> d_normal(m_normal,
                                       access_location::device,
                                       access_mode::readwrite);
 

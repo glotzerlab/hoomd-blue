@@ -38,7 +38,7 @@ namespace kernel
 */
 __global__ void gpu_compute_generalhelfrich_sigma_kernel(Scalar* d_sigma,
                                                   Scalar3* d_sigma_dash,
-                                                  Scalar3* d_normal,
+                                                  Scalar4* d_normal,
                                                   const unsigned int N,
                                                   const Scalar4* d_pos,
                                                   const unsigned int* d_rtag,
@@ -131,9 +131,9 @@ __global__ void gpu_compute_generalhelfrich_sigma_kernel(Scalar* d_sigma,
 
 	Scalar3 normal_abcd;
 
-	normal_abcd.x = dac.y*dab.z - dac.z*dab.y + dab.y*dad.z - dab.z*dad.y;
-	normal_abcd.y = dac.z*dab.x - dac.x*dab.z + dab.z*dad.x - dab.x*dad.z;
-	normal_abcd.z = dac.x*dab.y - dac.y*dab.x + dab.x*dad.y - dab.y*dad.x;
+	normal_abcd.x = 0.5*(dac.y*dab.z - dac.z*dab.y + dab.y*dad.z - dab.z*dad.y);
+	normal_abcd.y = 0.5*(dac.z*dab.x - dac.x*dab.z + dab.z*dad.x - dab.x*dad.z);
+	normal_abcd.z = 0.5*(dac.x*dab.y - dac.y*dab.x + dab.x*dad.y - dab.y*dad.x);
 
 	if (cur_bond_pos == 1)
 		normal_abcd *= -1;
@@ -180,11 +180,12 @@ __global__ void gpu_compute_generalhelfrich_sigma_kernel(Scalar* d_sigma,
     Scalar factor = dot(normal,sigma_dash);
 
     if(factor < 0)
-	    d_normal[idx].x = -1;
+	    d_normal[idx].w = -1;
     else
-	    d_normal[idx].x = 1;
-    d_normal[idx].y = 0;
-    d_normal[idx].z = 0;
+	    d_normal[idx].w = 1;
+    d_normal[idx].x = normal.x;
+    d_normal[idx].y = normal.y;
+    d_normal[idx].z = normal.z;
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_sigma[idx] = sigma;
@@ -209,7 +210,7 @@ __global__ void gpu_compute_generalhelfrich_sigma_kernel(Scalar* d_sigma,
 */
 hipError_t gpu_compute_generalhelfrich_sigma(Scalar* d_sigma,
                                       Scalar3* d_sigma_dash,
-                                      Scalar3* d_normal,
+                                      Scalar4* d_normal,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
                                       const unsigned int* d_rtag,
@@ -278,7 +279,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
                                                   BoxDim box,
                                                   const Scalar* d_sigma,
                                                   const Scalar3* d_sigma_dash,
-                                                  const Scalar3* d_normal,
+                                                  const Scalar4* d_normal,
                                                   const group_storage<4>* blist,
                                                   const Index2D blist_idx,
                                                   const unsigned int* bpos_list,
@@ -303,7 +304,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
-    Scalar factor_a = d_normal[idx].x;
+    Scalar factor_a = d_normal[idx].w;
     Scalar inv_sigma_a = 1.0 / sigma_a;
     Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
 
@@ -490,9 +491,9 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
         Scalar K_d = params_d.k;
         Scalar H0_d = 2*params_d.H0;
 
-	Scalar factor_b = d_normal[cur_bond_idx].x;
-	Scalar factor_c = d_normal[cur_idx_c].x;
-	Scalar factor_d = d_normal[cur_idx_d].x;
+	Scalar factor_b = d_normal[cur_bond_idx].w;
+	Scalar factor_c = d_normal[cur_idx_c].w;
+	Scalar factor_d = d_normal[cur_idx_d].w;
 
         Scalar Curv_b = factor_b*sqrt(sigma_dash_b2)-H0_b*sigma_b;
         Scalar Curv_c = factor_c*sqrt(sigma_dash_c2)-H0_c*sigma_c;
@@ -602,7 +603,7 @@ hipError_t gpu_compute_generalhelfrich_force(Scalar4* d_force,
                                       const BoxDim& box,
                                       const Scalar* d_sigma,
                                       const Scalar3* d_sigma_dash,
-                                      const Scalar3* d_normal,
+                                      const Scalar4* d_normal,
                                       const group_storage<4>* blist,
                                       const Index2D blist_idx,
                                       const unsigned int* bpos_list,

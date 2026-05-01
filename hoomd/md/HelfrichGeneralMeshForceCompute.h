@@ -81,7 +81,7 @@ class PYBIND11_EXPORT HelfrichGeneralMeshForceCompute : public MeshForceCompute
     GPUArray<Scalar>
         m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
 		 //
-    GPUArray<Scalar3>
+    GPUArray<Scalar4>
         m_normal; //! normal vector at each vertex
 
     Scalar m_sigma_diff_a;
@@ -89,10 +89,10 @@ class PYBIND11_EXPORT HelfrichGeneralMeshForceCompute : public MeshForceCompute
     Scalar m_sigma_diff_c;
     Scalar m_sigma_diff_d;
 
-    Scalar m_factor_a;
-    Scalar m_factor_b;
-    Scalar m_factor_c;
-    Scalar m_factor_d;
+    Scalar4 m_normal_diff_a;
+    Scalar4 m_normal_diff_b;
+    Scalar4 m_normal_diff_c;
+    Scalar4 m_normal_diff_d;
 
     Scalar3 m_sigma_dash_diff_a;
     Scalar3 m_sigma_dash_diff_b;
