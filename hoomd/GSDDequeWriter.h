@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -27,7 +27,8 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
                    std::string mode,
                    bool write_on_init,
                    bool clear_whole_buffer_after_dump,
-                   uint64_t timestep);
+                   uint64_t timestep,
+                   std::string precision);
     ~GSDDequeWriter() = default;
 
     void analyze(uint64_t timestep) override;

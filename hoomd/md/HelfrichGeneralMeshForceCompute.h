@@ -3,6 +3,7 @@
 
 #include "MeshForceCompute.h"
 #include "HelfrichMeshParameters.h"
+#include "hoomd/PythonLocalDataAccess.h"
 
 #include <memory>
 
@@ -14,6 +15,11 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
 #ifndef __HELFRICHGENERALMESHFORCECOMPUTE_H__
@@ -59,6 +65,12 @@ class PYBIND11_EXPORT HelfrichGeneralMeshForceCompute : public MeshForceCompute
         return flags;
         }
 #endif
+
+    /** Get per particle energies
+
+        @returns a Numpy array with per particle energies in increasing tag order.
+    */
+    pybind11::object getCurvaturesPython();
 
     protected:
     GPUArray<helfrich_param_t> m_params; //!< Parameters

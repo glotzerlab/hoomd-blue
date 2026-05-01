@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Mesh bending force classes apply a force and virial to every mesh vertex
@@ -25,6 +25,7 @@ See Also:
 """
 
 from hoomd.md.mesh.potential import MeshPotential
+from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.error import MPINotAvailableError
@@ -56,8 +57,6 @@ class BendingRigidity(MeshPotential):
         bending_potential.params["mesh"] = dict(k=10.0)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `BendingRigidity`:
 
@@ -98,14 +97,14 @@ class Helfrich(MeshPotential):
 
         U(i) = \frac{1}{2} k \frac{1}{\sigma_i}\left( \sum_{j \in
         \mathrm{Neigh}(i)} \frac{\sigma_{ij}}{l_{ij}} (\mathbf{r}_j
-        - \mathbf{r}_k) \right)^2
+        - \mathbf{r}_i) \right)^2
 
-    with the area of the dual cell of vertex i
-    :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij})/4`, the
-    length of the bond in the dual lattice  :math:`\sigma_{ij}=
-    l_{ij}(\text{cot}\theta_1+\text{cot}\theta_2)/2` and the angles
-    :math:`\theta_1` and :math:`\theta_2` opposite to the shared bond of
-    vertex :math:`i` and :math:`j`.
+    with the area of the dual cell of vertex :math:`i`
+    :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij}\cdot l_{ij})/4`,
+    the length of the bond between :math:`i` and :math:`j` :math:`l_{ij}`, the length of
+    the bond in the dual lattice  :math:`\sigma_{ij}=l_{ij}(\text{cot}\theta_1+
+    \text{cot}\theta_2)/2` and the angles :math:`\theta_1` and :math:`\theta_2` opposite
+    to the shared bond of vertex :math:`i` and :math:`j`.
 
     See Also:
         * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
@@ -125,7 +124,6 @@ class Helfrich(MeshPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Helfrich`:
 
@@ -241,6 +239,14 @@ class GeneralHelfrich(MeshPotential):
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
                 )
+
+    @log(category="particle", requires_run=True)
+    def curvatures(self):
+        """(*N_particles*, ) `numpy.ndarray` of ``float``: Curvature \
+        Mean curvature at each particle :math:`[\\mathrm{length^{-1}}]`.
+        """
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getCurvatures()
 
 
 class CurvatureHelfrich(MeshPotential):

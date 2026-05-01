@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Newtonain Event-Chain Integrators for Hard Particle Monte Carlo."""
@@ -25,8 +25,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `HPMCNECIntegrator`:
     """
 
@@ -34,7 +32,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
     _doc_inherited = (
         HPMCIntegrator._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `HPMCNECIntegrator <hoomd.hpmc.nec.integrate.HPMCNECIntegrator>`:
@@ -207,8 +204,6 @@ class Sphere(HPMCNECIntegrator):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Sphere`:
 
     Attributes:
@@ -320,8 +315,6 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `ConvexPolyhedron`:
 

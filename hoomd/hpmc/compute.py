@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """The HPMC compute classes analyze the system configuration and provide results
@@ -90,8 +90,6 @@ class FreeVolume(Compute):
 
 
     {inherited}
-
-    ----------
 
     **Members defined in** `FreeVolume`:
 
@@ -328,8 +326,6 @@ class SDF(Compute):
     including self overlap.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `SDF`:
 

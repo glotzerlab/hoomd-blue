@@ -7,6 +7,9 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <pybind11/numpy.h>
+#include <memory>
+
 using namespace std;
 
 // SMALL a relatively small number
@@ -91,6 +94,72 @@ pybind11::dict HelfrichGeneralMeshForceCompute::getParams(std::string type)
                                                              access_mode::read);
     return h_params.data[typ].asDict();
     }
+
+
+pybind11::object HelfrichGeneralMeshForceCompute::getCurvaturesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(1);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        }
+    else
+        {
+        dims[0] = 0;
+        }
+    std::vector<double> global_curvature(dims[0]);
+
+    // sort energies by particle tag
+    sortLocalTags();
+    std::vector<double> local_curvature;
+    local_curvature.reserve(m_pdata->getN());
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_normal(m_normal, access_location::host, access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+	unsigned int idx = h_rtag.data[m_local_tag[i]];
+        Scalar3 sigma_dash = h_sigma_dash.data[idx];
+
+        Scalar sigma = h_sigma.data[idx];
+					      
+	Scalar sigma_dash2 = dot(sigma_dash,sigma_dash);
+
+	Scalar factor =  h_normal.data[idx].x;
+        local_curvature.push_back(factor*sqrt(sigma_dash2)/sigma);
+        }
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+#ifdef ENABLE_MPI
+        m_gather_tag_order.setLocalTagsSorted(m_local_tag);
+        m_gather_tag_order.gatherArray(global_curvature, local_curvature);
+#endif
+        }
+    else
+        {
+        global_curvature = std::move(local_curvature);
+        }
+
+    if (root)
+        {
+	pybind11::array_t<double> arr(global_curvature.size());
+	std::memcpy(arr.mutable_data(), global_curvature.data(),
+            global_curvature.size() * sizeof(double));
+        return arr;
+        }
+    return pybind11::none();
+    }
+
+
 
 /*! Actually perform the force computation
     \param timestep Current time step
@@ -308,10 +377,10 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
 	Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
 
-	Scalar H0_a = h_params.data[type_a].H0;
-	Scalar H0_b = h_params.data[type_b].H0;
-	Scalar H0_c = h_params.data[type_c].H0;
-	Scalar H0_d = h_params.data[type_d].H0;
+	Scalar H0_a = 2*h_params.data[type_a].H0;
+	Scalar H0_b = 2*h_params.data[type_b].H0;
+	Scalar H0_c = 2*h_params.data[type_c].H0;
+	Scalar H0_d = 2*h_params.data[type_d].H0;
 
 	Scalar factor_a =  h_normal.data[idx_a].x;
 	Scalar factor_b =  h_normal.data[idx_b].x;
@@ -857,10 +926,10 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
     Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
     
-    Scalar H0_a = h_params.data[type_a].H0;
-    Scalar H0_b = h_params.data[type_b].H0;
-    Scalar H0_c = h_params.data[type_c].H0;
-    Scalar H0_d = h_params.data[type_d].H0;
+    Scalar H0_a = 2*h_params.data[type_a].H0;
+    Scalar H0_b = 2*h_params.data[type_b].H0;
+    Scalar H0_c = 2*h_params.data[type_c].H0;
+    Scalar H0_d = 2*h_params.data[type_d].H0;
 
     Scalar K_a = h_params.data[type_a].k;
     Scalar K_b = h_params.data[type_b].k;
@@ -967,7 +1036,8 @@ void export_HelfrichGeneralMeshForceCompute(pybind11::module& m)
                      std::shared_ptr<HelfrichGeneralMeshForceCompute>>(m, "HelfrichGeneralMeshForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &HelfrichGeneralMeshForceCompute::setParamsPython)
-        .def("getParams", &HelfrichGeneralMeshForceCompute::getParams);
+        .def("getParams", &HelfrichGeneralMeshForceCompute::getParams)
+        .def("getCurvatures", &HelfrichGeneralMeshForceCompute::getCurvaturesPython);
     }
 
     } // end namespace detail

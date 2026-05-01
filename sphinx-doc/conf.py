@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Sphinx configuration."""
@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
+    "sphinx_inline_tabs",
 ]
 
 if find_spec("sphinxcontrib.katex") is not None:
@@ -39,8 +40,10 @@ if find_spec("sphinxcontrib.katex") is not None:
 else:
     extensions.append("sphinx.ext.mathjax")
 
-if os.getenv("READTHEDOCS"):
+if find_spec("sphinx_copybutton") is not None:
     extensions.append("sphinx_copybutton")
+
+if os.getenv("READTHEDOCS"):
     extensions.append("notfound.extension")
     extensions.append("sphinxcontrib.googleanalytics")
     googleanalytics_id = "G-ZR0DNZD21E"
@@ -87,8 +90,8 @@ year = datetime.date.today().year
 copyright = f"2009-{year} The Regents of the University of Michigan"
 author = "The Regents of the University of Michigan"
 
-version = "6.0.0"
-release = "6.0.0"
+version = "7.0.1"
+release = "7.0.1"
 
 language = "en"
 

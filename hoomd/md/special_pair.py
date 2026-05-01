@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Special pair force classes apply a force and virial on every particle in the
@@ -97,15 +97,15 @@ class LJ(SpecialPair):
         fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
         `LJ` and `Coulomb` interactions are scaled by 0.5.
 
-    Examples::
+    .. rubric:: Example:
 
-        lj = special_pair.LJ()
-        lj.params['cluster'] = dict(epsilon=3, sigma=0.5)
-        lj.r_cut['cluster'] = 5
+    .. code-block:: python
+
+            lj = hoomd.md.special_pair.LJ()
+            lj.params['cluster'] = dict(epsilon=3, sigma=0.5)
+            lj.r_cut['cluster'] = 5
 
     {inherited}
-
-    ----------
 
     **Members defined in** `LJ`:
 
@@ -164,15 +164,15 @@ class Coulomb(SpecialPair):
         fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
         `LJ` and `Coulomb` interactions are scaled by 0.5.
 
-    Examples::
+    .. rubric:: Example:
 
-        coulomb = special_pair.Coulomb()
-        coulomb.params['cluster'] = dict(alpha=1.0)
-        coulomb.r_cut['cluster'] = 2
+    .. code-block:: python
+
+            coulomb = hoomd.md.special_pair.Coulomb()
+            coulomb.params['cluster'] = dict(alpha=1.0)
+            coulomb.r_cut['cluster'] = 2
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Coulomb`:
 

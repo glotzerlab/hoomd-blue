@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -139,7 +139,7 @@ class TestCollisionMethod:
         "angmom_rigid", [[0, 0, 0, 0], [0, 2, 3, 4]], ids=["Nonrotating", "Rotating"]
     )
     @pytest.mark.parametrize(
-        "pos_rigid", [[0, 0, 0], [10, 10, 10]], ids=["center", "edge"]
+        "pos_rigid", [[0, 0, 0], [5, 5, 5]], ids=["center", "edge"]
     )
     @pytest.mark.parametrize(
         "def_rigid,properties_rigid",
@@ -208,6 +208,7 @@ class TestCollisionMethod:
     ):
         if "kT" not in init_args:
             init_args["kT"] = 1.0
+        L = 11  # length of box
 
         N_mpcd = len(def_rigid["constituent_types"])
         rng = np.random.default_rng(seed=42)
@@ -216,7 +217,7 @@ class TestCollisionMethod:
 
         # create simulation
         initial_snap = one_particle_snapshot_factory(
-            particle_types=["A", "B"], position=pos_rigid, L=21
+            particle_types=["A", "B"], position=pos_rigid, L=L
         )
         total_mass = properties_rigid["mass"][0]
         if initial_snap.communicator.rank == 0:
@@ -225,10 +226,13 @@ class TestCollisionMethod:
             initial_snap.particles.velocity[:] = [velo_rigid]
             initial_snap.particles.angmom[:] = [angmom_rigid]
 
-            # place the mpcd particles on top of constituents
+            # place the mpcd particles on top of constituents, accounting for PBCs
+            positions = np.add(def_rigid["positions"], pos_rigid)
+            positions[positions < -L * 0.5] = positions[positions < -L * 0.5] + L
+            positions[positions > L * 0.5] = positions[positions > L * 0.5] - L
             initial_snap.mpcd.N = N_mpcd
             initial_snap.mpcd.types = ["C"]
-            initial_snap.mpcd.position[:] = def_rigid["positions"]
+            initial_snap.mpcd.position[:] = positions
             initial_snap.mpcd.velocity[:] = velo_mpcd
 
         sim = simulation_factory(initial_snap)
@@ -338,7 +342,7 @@ class TestCollisionMethod:
         # create simulation
         total_mass = properties_rigid["mass"][0]
         initial_snap = two_particle_snapshot_factory(
-            particle_types=["A", "B", "C", "D"], L=21
+            particle_types=["A", "B", "C", "D"], L=11
         )
         if initial_snap.communicator.rank == 0:
             # put a free particle that doesn't participate in collision on top of
@@ -529,3 +533,39 @@ def test_rigid_mass_errors(
     # run simulation
     with pytest.raises(RuntimeError):
         sim.run(1)
+
+
+@pytest.mark.serial
+def test_rigid_nonparticipatory_zero_mass(small_snap, simulation_factory):
+    # create simulation
+    initial_snap = small_snap
+    if initial_snap.communicator.rank == 0:
+        initial_snap.particles.types = ["A", "B", "C"]
+        initial_snap.particles.mass[:] = [2]
+    sim = simulation_factory(initial_snap)
+    sim.seed = 5
+
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body["A"] = {
+        "constituent_types": ["B", "B", "C"],
+        "positions": [[-2.4, 0, 0], [2.4, 0, 0], [0, 1, 0]],
+        "orientations": [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+    }
+    rigid.create_bodies(sim.state, masses={"A": np.array([1, 1, 0])})
+
+    sim.operations.integrator = hoomd.mpcd.Integrator(dt=0, rigid=rigid)
+    sim.operations.integrator.collision_method = (
+        hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=1,
+            embedded_particles=hoomd.filter.Type("B"),
+            angle=90,
+            kT=1,
+        )
+    )
+
+    # run simulation
+    # velocities should all stay zero because there is no solvent to collide with
+    sim.run(1)
+    new_snap = sim.state.get_snapshot()
+    if new_snap.communicator.rank == 0:
+        assert np.array_equal(np.zeros((4, 3)), new_snap.particles.velocity)

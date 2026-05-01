@@ -309,7 +309,7 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 
     helfrich_param_t params_a = d_params[type_a];
     Scalar K_a = params_a.k;
-    Scalar H0_a = params_a.H0;
+    Scalar H0_a = 2*params_a.H0;
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
@@ -480,15 +480,15 @@ __global__ void gpu_compute_generalhelfrich_force_kernel(Scalar4* d_force,
 
         helfrich_param_t params_b = d_params[type_b];
         Scalar K_b = params_b.k;
-        Scalar H0_b = params_b.H0;
+        Scalar H0_b = 2*params_b.H0;
 
         helfrich_param_t params_c = d_params[type_c];
         Scalar K_c = params_c.k;
-        Scalar H0_c = params_c.H0;
+        Scalar H0_c = 2*params_c.H0;
 
         helfrich_param_t params_d = d_params[type_d];
         Scalar K_d = params_d.k;
-        Scalar H0_d = params_d.H0;
+        Scalar H0_d = 2*params_d.H0;
 
 	Scalar factor_b = d_normal[cur_bond_idx].x;
 	Scalar factor_c = d_normal[cur_idx_c].x;

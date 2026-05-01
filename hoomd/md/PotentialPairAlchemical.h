@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -78,16 +78,14 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
     void enableAlchemicalPairParticle(std::shared_ptr<alpha_particle_type> alpha_p)
         {
         m_alchemy_mask[m_alchemy_index(alpha_p->m_type_pair_param.x, alpha_p->m_type_pair_param.y)]
-                      [alpha_p->m_type_pair_param.z]
-            = true;
+                      [alpha_p->m_type_pair_param.z] = true;
         alpha_p->resizeForces(m_pdata->getN());
         }
 
     void disableAlchemicalPairParticle(std::shared_ptr<alpha_particle_type> alpha_p)
         {
         m_alchemy_mask[m_alchemy_index(alpha_p->m_type_pair_param.x, alpha_p->m_type_pair_param.y)]
-                      [alpha_p->m_type_pair_param.z]
-            = false;
+                      [alpha_p->m_type_pair_param.z] = false;
         }
 
     protected:

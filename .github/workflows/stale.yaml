@@ -8,4 +8,4 @@ on:
 
 jobs:
   stale:
-    uses: glotzerlab/workflows/.github/workflows/stale.yaml@2245be9e78600bf7846aaf9555da322446f46110 # 0.11.0
+    uses: glotzerlab/workflows/.github/workflows/stale.yaml@204dc7c0f82720090703712694b7cab761aacaa0 # 0.13.0
