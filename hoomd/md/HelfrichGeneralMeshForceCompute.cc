@@ -415,12 +415,19 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         Scalar dsigma_dash_c = -dot(dsigma_hat_ac, dac) - dot(dsigma_hat_bc, dbc);
         Scalar dsigma_dash_d = -dot(dsigma_hat_ad, dad) - dot(dsigma_hat_bd, dbd);
 
-	Scalar3 dCurv_a, dCurv_b, dCurv_c, dCurv_d;
+	Scalar3 dCurv_a = -H0_a*dsigma_a;
+	Scalar3 dCurv_b = -H0_b*dsigma_b;
+	Scalar3 dCurv_c = -H0_c*dsigma_c;
+	Scalar3 dCurv_d = -H0_d*dsigma_d;
 
-	dCurv_a = factor_a*dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a - H0_a*dsigma_a;
-	dCurv_b = factor_b*dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b - H0_b*dsigma_b;
-	dCurv_c = factor_c*dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c - H0_c*dsigma_c;
-	dCurv_d = factor_d*dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d - H0_d*dsigma_d;
+	if(sigma_dash_a2 > 0 )
+		dCurv_a += factor_a*dsigma_dash_a/sqrt(sigma_dash_a2)*sigma_dash_a;
+	if(sigma_dash_b2 > 0 )
+		dCurv_b += factor_b*dsigma_dash_b/sqrt(sigma_dash_b2)*sigma_dash_b;
+	if(sigma_dash_c2 > 0 )
+		dCurv_c += factor_c*dsigma_dash_c/sqrt(sigma_dash_c2)*sigma_dash_c;
+	if(sigma_dash_d2 > 0 )
+		dCurv_d += factor_d*dsigma_dash_d/sqrt(sigma_dash_d2)*sigma_dash_d;
 
         Scalar inv_sigma_a = 1.0 / sigma_a;
         Scalar inv_sigma_b = 1.0 / sigma_b;
@@ -453,6 +460,10 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         Fa.z += K_b*(Curv_b * inv_sigma_b * dCurv_b.z - Curv_b2 * dsigma_b.z);
         Fa.z += K_c*(Curv_c * inv_sigma_c * dCurv_c.z - Curv_c2 * dsigma_c.z);
         Fa.z += K_d*(Curv_d * inv_sigma_d * dCurv_d.z - Curv_d2 * dsigma_d.z);
+
+	if (idx_a ==55 || idx_b ==55)
+		std::cout << idx_a << " " << idx_b << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
+
 
 
         //Fa *= h_params.data[type_a].k;
