@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HPMC updaters work with the `hpmc.integrate.HPMCIntegrator` to apply changes to
@@ -234,8 +234,6 @@ class BoxMC(Updater):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `BoxMC`:
 
     Attributes:
@@ -432,7 +430,6 @@ class MuVT(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `MuVT`:
 
@@ -602,7 +599,6 @@ class Shape(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Shape`:
 
@@ -729,7 +725,6 @@ class GCA(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `GCA`:
 
@@ -961,8 +956,6 @@ class QuickCompress(Updater):
     checking for particle overlaps in the local particle reference frame.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `QuickCompress`:
 

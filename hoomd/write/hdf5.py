@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Provides an HDF5 logging backend for a fast binary logging format.
@@ -292,8 +292,6 @@ class HDF5Log(_InternalCustomWriter):
         simulation.operations.writers.append(hdf5_log)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `HDF5Log`:
 

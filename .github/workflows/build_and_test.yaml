@@ -96,6 +96,20 @@ jobs:
             *)
               echo "Unknown compiler" && exit 1;;
             esac
+        elif [[ "${{ inputs.compiler_family }}" == "rocm" ]]
+        then
+          echo "rocm=rocm${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
+
+          case "${{ inputs.compiler_version }}" in
+            72)
+              echo "image=rocm/dev-ubuntu-24.04:7.2-complete" >> "$GITHUB_OUTPUT";;
+            71)
+              echo "image=rocm/dev-ubuntu-24.04:7.1.1-complete" >> "$GITHUB_OUTPUT";;
+            64)
+              echo "image=rocm/dev-ubuntu-24.04:6.4.2-complete" >> "$GITHUB_OUTPUT";;
+            *)
+              echo "Unknown compiler" && exit 1;;
+            esac
         else
           echo "Invalid compiler family"
           exit 1
@@ -115,18 +129,18 @@ jobs:
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
     - name: Install git
-      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') }}
+      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') || startsWith(needs.prepare.outputs.image, 'rocm') }}
       run: |
         apt-get update
         apt-get install git --yes
     - name: Checkout
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         path: code
         submodules: true
 
     - name: Create Python Environment
-      uses: prefix-dev/setup-pixi@82d477f15f3a381dbcc8adc1206ce643fe110fb7 # v0.9.3
+      uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
       with:
         pixi-version: v0.54.1
         cache: false
@@ -134,11 +148,17 @@ jobs:
         activate-environment: true
         manifest-path: code/pixi.toml
 
-    - name: Set compiler
-      if: ${{ inputs.compiler_family != 'cuda' }}
+    - name: Set compiler (gcc)
+      if: ${{ inputs.compiler_family == 'gcc' }}
       run: |
-        echo "CC=${{ inputs.compiler_family == 'gcc' && 'gcc' || 'clang' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
-        echo "CXX=${{ inputs.compiler_family == 'gcc' && 'g++' || 'clang++' }}-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+        echo "CC=gcc-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+        echo "CXX=g++-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+
+    - name: Set compiler (clang)
+      if: ${{ inputs.compiler_family == 'clang' }}
+      run: |
+        echo "CC='clang'-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
+        echo "CXX='clang++'-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
 
     - name: Treat warnings as errors
       if: ${{ !inputs.release }}
@@ -154,18 +174,22 @@ jobs:
                                -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                                -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                                -DBUILD_MD=${BUILD_MD:-"ON"} \
-                               -DBUILD_MPCD=${BUILD_MD:-"ON"} \
+                               -DBUILD_MPCD=${BUILD_MPCD:-"ON"} \
                                -DBUILD_METAL=${BUILD_MD:-"ON"} \
                                -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
+                               -DHOOMD_GPU_PLATFORM=${HOOMD_GPU_PLATFORM} \
                                -DCUDA_ARCH_LIST="60;70" \
                                -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
                                -DPLUGINS=""
       env:
-        ENABLE_GPU: ${{ contains(inputs.config, 'cuda') }}
+        ENABLE_GPU: ${{ contains(inputs.config, 'cuda') || contains(inputs.config, 'rocm') }}
         ENABLE_MPI: ${{ contains(inputs.config, 'mpi') }}
         BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
+        BUILD_MPCD: ${{ !contains(inputs.config, 'nomd') && inputs.compiler_family != 'rocm' }}
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
+        HOOMD_GPU_PLATFORM: ${{ inputs.compiler_family == 'rocm' && 'HIP' || 'CUDA' }}
+        CMAKE_PREFIX_PATH: /opt/rocm-7.2.0:/opt/rocm-7.1.1:/opt/rocm-6.4.2
 
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
@@ -181,13 +205,13 @@ jobs:
       run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
 
     - name: 'Upload build'
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
         path: install.tar
@@ -195,6 +219,7 @@ jobs:
 
   test:
     needs: [prepare, build]
+    if: ${{ inputs.compiler_family != 'rocm' }}
     runs-on: ${{ fromJson(needs.prepare.outputs.test_runner) }}
     container:
       image: ${{ needs.prepare.outputs.image }}
@@ -211,12 +236,12 @@ jobs:
         apt-get update
         apt-get install git --yes
     - name: Checkout
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         path: code
 
     - name: Create Python Environment
-      uses: prefix-dev/setup-pixi@82d477f15f3a381dbcc8adc1206ce643fe110fb7 # v0.9.3
+      uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
       with:
         pixi-version: v0.54.1
         cache: false
@@ -229,7 +254,7 @@ jobs:
         echo "PYTHONPATH=$GITHUB_WORKSPACE/install" >> $GITHUB_ENV
 
     - name: Download install
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: install-${{ inputs.config }}-${{ github.sha }}
     - name: Untar install
@@ -302,7 +327,7 @@ jobs:
         echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
     - name: Download build
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: build-${{ inputs.config }}-${{ github.sha }}
     - name: Untar build

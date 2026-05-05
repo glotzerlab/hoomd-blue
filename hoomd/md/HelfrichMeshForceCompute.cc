@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
@@ -360,8 +360,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += h_params.data[meshbond_type] * 0.5
-                                     * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
+            h_force.data[idx_a].w = h_params.data[meshbond_type] * 0.5
+                                    * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -371,8 +371,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w += h_params.data[meshbond_type] * 0.5
-                                     * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
+            h_force.data[idx_b].w = h_params.data[meshbond_type] * 0.5
+                                    * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }

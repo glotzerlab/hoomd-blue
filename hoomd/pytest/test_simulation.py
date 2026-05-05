@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import time
@@ -203,8 +203,14 @@ def state_args(request):
 
 
 @skip_gsd
+@pytest.mark.parametrize("precision", ["single", "double"])
 def test_state_from_gsd(
-    device, simulation_factory, lattice_snapshot_factory, state_args, tmp_path
+    device,
+    simulation_factory,
+    lattice_snapshot_factory,
+    state_args,
+    tmp_path,
+    precision,
 ):
     snap_params, nsteps = state_args
 
@@ -212,7 +218,7 @@ def test_state_from_gsd(
     d.mkdir()
     filename = d / "temporary_test_file.gsd"
     if device.communicator.rank == 0:
-        f = gsd.hoomd.open(name=filename, mode="w")
+        f = gsd.hoomd.open(name=filename, mode="w", precision=precision)
 
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0], particle_types=snap_params[1])

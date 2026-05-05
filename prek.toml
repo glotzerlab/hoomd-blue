@@ -1,0 +1,160 @@
+#:schema https://www.schemastore.org/prek.json
+
+minimum_prek_version = "0.3.8"
+
+exclude = """
+(?x)(
+  ^hoomd/_hoomd.py|
+  ^hoomd/version_config.py|
+  ^hoomd/md/_md.py|
+  ^hoomd/hpmc/_hpmc.py|
+  ^hoomd/mpcd/_mpcd.py|
+  ^hoomd/extern/|
+  ^sphinx-doc/tutorial/
+  ^hoomd/metal/
+)
+"""
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "check-maintainer",
+    name = "Check for maintainer comments",
+    description = "Enforce that `maintainer` comments are removed.",
+    entry = '(# Maintainer:|\/\/ Maintainer:)',
+    language = "pygrep",
+    types_or = [
+      "python",
+      "c",
+      "c++",
+      "cuda",
+      "inc"
+    ]
+  }
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "generate_toctree",
+    name = "Generate Sphinx toctree",
+    language = "python",
+    entry = "python3 sphinx-doc/generate-toctree.py",
+    pass_filenames = false,
+    always_run = true,
+    additional_dependencies = ["numpy==2.3.5"]
+  }
+]
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  {
+    id = "end-of-file-fixer",
+    exclude_types = ["svg"]
+  },
+  {
+    id = "trailing-whitespace",
+    exclude_types = ["svg"]
+  },
+  { id = "check-json" },
+  {
+    id = "check-yaml",
+    exclude = '\.clang-format'
+  },
+  { id = "mixed-line-ending" },
+  { id = "check-case-conflict" },
+  { id = "check-added-large-files" },
+  { id = "check-executables-have-shebangs" },
+  { id = "check-symlinks" },
+  { id = "detect-private-key" },
+  { id = "check-vcs-permalinks" },
+  { id = "check-shebang-scripts-are-executable" },
+  { id = "check-illegal-windows-names" },
+]
+
+[[repos]]
+repo = "https://github.com/glotzerlab/fix-license-header"
+rev = "v0.4.1"
+hooks = [
+  {
+    id = "fix-license-header",
+    name = "Fix license headers",
+    exclude = """
+(?x)(
+    ^hoomd/extern/|
+    ^sphinx-doc/tutorial/|
+    ^sphinx-doc/howto/
+    )
+""",
+    types_or = [
+      "python",
+      "c",
+      "c++",
+      "cuda",
+      "inc"
+    ],
+    args = [
+      "--license-file=LICENSE",
+      "--add=Part of HOOMD-blue, released under the BSD 3-Clause License.",
+      "--keep-before=#!",
+      "--keep-after=.. include"
+    ]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/kynan/nbstripout"
+rev = "0.9.1"
+hooks = [
+  { id = "nbstripout" }
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.9"
+hooks = [
+  {
+    id = "ruff-format",
+    types_or = ["python"]
+  },
+  {
+    id = "ruff-check",
+    types_or = ["python"]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/mirrors-clang-format"
+rev = "v22.1.2"
+hooks = [
+  {
+    id = "clang-format",
+    types_or = [
+      "c",
+      "c++",
+      "cuda",
+      "inc"
+    ],
+    exclude = """
+(?x)(
+  ^CMake/|
+  ^hoomd/extern/
+)
+"""
+  }
+]
+
+[[repos]]
+repo = "https://github.com/mit-d/check-unicode"
+rev = "v0.6.0"
+hooks = [
+  { id = "check-unicode",
+    args = [
+      "--allow-printable",
+      "--check-confusables",
+    ]
+  }
+]

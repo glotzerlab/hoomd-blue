@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Angular-step pair potential.
@@ -78,8 +78,6 @@ class AngularStep(Pair):
     opening angles of the patch in radian.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `AngularStep`:
 

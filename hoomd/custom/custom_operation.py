@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomOperation."""
@@ -37,8 +37,6 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `CustomOperation`:
     """
 
@@ -49,7 +47,6 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     _doc_inherited = (
         TriggeredOperation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `CustomOperation <hoomd.custom.CustomOperation>`:

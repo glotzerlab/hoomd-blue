@@ -18,9 +18,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: prek
-      uses: glotzerlab/workflows/prek@2245be9e78600bf7846aaf9555da322446f46110 # 0.11.0
+      uses: j178/prek-action@cbc2f23eb5539cf20d82d1aabd0d0ecbcc56f4e3 # v2.0.2
+      with:
+        prek-version: '0.3.8'
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""A geometry defines solid boundaries that cannot be penetrated. These
@@ -49,7 +49,6 @@ class Geometry(_HOOMDBaseObject):
     """
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from**
     `Geometry <hoomd.mpcd.geometry.Geometry>`:
@@ -122,8 +121,6 @@ class ConcentricCylinders(Geometry):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `ConcentricCylinders`:
 
     Attributes:
@@ -190,7 +187,6 @@ class CosineChannel(Geometry):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CosineChannel`:
 
@@ -259,7 +255,6 @@ class CosineExpansionContraction(Geometry):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CosineExpansionContraction`:
 
@@ -347,7 +342,6 @@ class ParallelPlates(Geometry):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ParallelPlates`:
 
@@ -405,7 +399,6 @@ class PlanarPore(Geometry):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `PlanarPore`:
 
@@ -464,8 +457,6 @@ class Sphere(Geometry):
         simulation.operations.integrator.streaming_method = stream
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Sphere`:
 

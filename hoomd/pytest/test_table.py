@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from io import StringIO
@@ -239,3 +239,39 @@ def test_invalid_permutations(device, combination):
     # Now ensure category formatting operates correctly
     for category in combination - {"string", "scalar"}:
         assert category in str(ve.value)
+
+
+def test_nan_is_ok():
+    # Ensure that NaN value doesn't cause table writer to error
+    sim = hoomd.util.make_example_simulation()
+
+    logger = hoomd.logging.Logger(categories=["scalar"])
+    logger[("test", "nan")] = (lambda: float("NaN"), "scalar")
+
+    output = StringIO("")
+
+    table_writer = hoomd.write.Table(
+        trigger=1, logger=logger, output=output, delimiter=","
+    )
+
+    sim.operations.writers.append(table_writer)
+
+    sim.run(1)
+
+
+def test_inf_is_ok():
+    # Ensure that Inf value doesn't cause table writer to error
+    sim = hoomd.util.make_example_simulation()
+
+    logger = hoomd.logging.Logger(categories=["scalar"])
+    logger[("test", "inf")] = (lambda: float("inf"), "scalar")
+
+    output = StringIO("")
+
+    table_writer = hoomd.write.Table(
+        trigger=1, logger=logger, output=output, delimiter=","
+    )
+
+    sim.operations.writers.append(table_writer)
+
+    sim.run(1)
