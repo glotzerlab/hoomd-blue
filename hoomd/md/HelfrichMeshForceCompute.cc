@@ -343,15 +343,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
 
-	Scalar spont_C = 0.0;
-	Scalar attraction_kT = 0.0;
-
-        if (idx_a > 0)
-	   spont_C = 0.1;
-
-        if (idx_b > 0 && idx_a > 0)
-	   attraction_kT = -1.0;
-
         Fa *= h_params.data[meshbond_type];
         if (compute_virial)
             {
