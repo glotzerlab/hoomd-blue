@@ -98,7 +98,6 @@ protected:
 	
 	Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GPUArray<line_tension_param_t> m_params;
-	GPUArray<Scalar> m_particle_energy;
 
     //! Compute forces
     void computeForces(

@@ -31,23 +31,6 @@ LineTensionForceCompute::LineTensionForceCompute(
 		m_exec_conf);
 
 	m_params.swap(params);
-	
-	// Try to add per-particle energy fix
-	unsigned int N = m_pdata->getN() + m_pdata->getNGhosts();
-
-    GPUArray<Scalar> energy_array(N, m_exec_conf); //mem safe allocation
-    m_particle_energy.swap(energy_array); //internal ownership is correct
-
-    // zero initialize
-    ArrayHandle<Scalar> h_energy(
-        m_particle_energy,
-        access_location::host,
-        access_mode::overwrite);
-
-    for (unsigned int i = 0; i < N; i++)
-    {
-        h_energy.data[i] = Scalar(0.0);
-    }
 }
 
 LineTensionForceCompute::~LineTensionForceCompute()
