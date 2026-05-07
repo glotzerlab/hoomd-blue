@@ -4,6 +4,14 @@ Change Log
 Recent releases
 ---------------
 
+Next release
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.md.deformer`` provides an interface for applying time-dependent changes to the box in MD simulations (#2122).
+* ``hoomd.md.deformer.LeesEdwardsBoxDeformer``: Lees-Edwards boundary conditions (bulk shear flow) for MD simulations (#2122).
+
 7.0.1 (2026-04-08)
 ^^^^^^^^^^^^^^^^^^^^
 
