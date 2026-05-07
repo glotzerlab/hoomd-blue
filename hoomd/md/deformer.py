@@ -35,8 +35,6 @@ class BoxDeformer(AutotunedObject):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `BoxDeformer`:
 
     """
@@ -47,10 +45,8 @@ class BoxDeformer(AutotunedObject):
     _doc_inherited = (
         hoomd.operation.AutotunedObject._doc_inherited
         + """
-    ----------
 
-    **Members inherited from**
-    `BoxDeformer <hoomd.md.deformer.BoxDeformer>`:
+    **Members inherited from** `BoxDeformer <hoomd.md.deformer.BoxDeformer>`:
 
     """
     )
@@ -62,7 +58,7 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
     Args:
         shear_rate (float): Shear rate :math:`[\mathrm{time}^{-1}]`.
 
-        max_tilt (float, optional): Maximum allowed value of the box tilt
+        max_tilt (float): Maximum allowed value of the box tilt
             factor ``xy`` before a box flip is performed. It must be positive.
             Defaults to 0.5.
 
@@ -105,10 +101,7 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
         * Smaller values lead to more frequent flips, while larger values may
           result in highly skewed boxes that can impact computational performance.
 
-
     {inherited}
-
-    ----------
 
     **Members defined in** `LeesEdwardsBoxDeformer`:
 
@@ -130,7 +123,6 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
             max_tilt=0.5,
         )
         integrator = hoomd.md.Integrator(dt=0.005, deformer=deformer)
-        simulation.operations.integrator = integrator
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
