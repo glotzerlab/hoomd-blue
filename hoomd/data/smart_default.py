@@ -10,6 +10,7 @@ from inspect import isclass
 from hoomd.util import _is_iterable
 from hoomd.data.typeconverter import RequiredArg
 
+import numpy
 
 class _NoDefault:
     pass
@@ -157,6 +158,8 @@ class _SmartDefaultMapping(_SmartDefault):
 
 
 def _to_default(value, defaults=_NoDefault):
+    if isinstance(value, numpy.ndarray):
+        return value
     if isinstance(value, tuple):
         if defaults is _NoDefault or _is_iterable(defaults):
             return _SmartDefaultFixedLengthSequence(value, defaults)
