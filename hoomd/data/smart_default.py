@@ -50,18 +50,7 @@ class _SmartDefaultSequence(_SmartDefault):
                     else:
                         new_sequence.append(v)
             else:
-                given_length = len(sequence)
-                for i, d in enumerate(self):
-                    if i < given_length:
-                        if isinstance(d, _SmartDefault):
-                            new_sequence.append(d(sequence[i]))
-                        else:
-                            new_sequence.append(sequence[i])
-                    else:
-                        if isinstance(d, _SmartDefault):
-                            new_sequence.append(d.to_base())
-                        else:
-                            new_sequence.append(d)
+                new_sequence = sequence
             return new_sequence
 
     def __iter__(self):
