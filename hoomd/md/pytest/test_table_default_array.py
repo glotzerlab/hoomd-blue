@@ -14,11 +14,9 @@ def test_table_default_arrays():
     table.params[("A", "B")] = {'U': [1, 2, 3, 4]}
     
     numpy.testing.assert_array_equal(
-        table.params.default["U"],
-        numpy.array([1.0, 1.0, 1.0, 1.0])
+        table.params.default["U"], numpy.array([1.0, 1.0, 1.0, 1.0])
     )
     
     numpy.testing.assert_array_equal(
-        table.params[("A", "B")]["U"],
-        numpy.array([1.0, 2.0, 3.0, 4.0])
+        table.params[("A", "B")]["U"], numpy.array([1.0, 2.0, 3.0, 4.0])
     )
