@@ -142,7 +142,7 @@ jobs:
     - name: Create Python Environment
       uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
       with:
-        pixi-version: v0.54.1
+        pixi-version: v0.69.0
         cache: false
         environments: py${{ inputs.python }}
         activate-environment: true
@@ -243,7 +243,7 @@ jobs:
     - name: Create Python Environment
       uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
       with:
-        pixi-version: v0.54.1
+        pixi-version: v0.69.0
         cache: false
         environments: py${{ inputs.python }}
         activate-environment: true
