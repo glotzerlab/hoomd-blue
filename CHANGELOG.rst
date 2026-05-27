@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+Next release
+^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+*Deprecated*
+
+*Removed*
+
+*Fixed*
+
+* Fixed incorrect smart default behavior for sequences and numpy arrays (#2190 and #2289).
+
 Recent releases
 ---------------
 
