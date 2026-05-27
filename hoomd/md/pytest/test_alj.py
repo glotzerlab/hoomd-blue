@@ -135,5 +135,3 @@ def test_default_shape_still_allows_setting():
     alj.shape.default = dict(vertices=[], faces=[])
 
     alj.shape["A"] = dict(vertices=vertices, faces=faces)
-    
-    breakpoint()
