@@ -12,6 +12,7 @@ from hoomd.data.typeconverter import RequiredArg
 
 import numpy
 
+
 class _NoDefault:
     pass
 

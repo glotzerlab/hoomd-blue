@@ -10,13 +10,13 @@ def test_table_default_arrays():
     allows setting it for specific types."""
     table = hoomd.md.pair.Table(hoomd.md.nlist.Tree(2))
 
-    table.params.default = {'U': [1, 1, 1, 1]}
-    table.params[("A", "B")] = {'U': [1, 2, 3, 4]}
-    
+    table.params.default = {"U": [1, 1, 1, 1]}
+    table.params[("A", "B")] = {"U": [1, 2, 3, 4]}
+
     numpy.testing.assert_array_equal(
         table.params.default["U"], numpy.array([1.0, 1.0, 1.0, 1.0])
     )
-    
+
     numpy.testing.assert_array_equal(
         table.params[("A", "B")]["U"], numpy.array([1.0, 2.0, 3.0, 4.0])
     )
