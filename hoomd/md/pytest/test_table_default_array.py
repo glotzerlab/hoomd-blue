@@ -4,8 +4,10 @@
 import hoomd
 import numpy
 
+
 def test_table_default_arrays():
-    """Ensure setting default for a table pair potential's array param still allows setting it for specific types."""
+    """Ensure setting default for a table pair potential's array param still
+    allows setting it for specific types."""
     table = hoomd.md.pair.Table(hoomd.md.nlist.Tree(2))
 
     table.params.default = {'U': [1, 1, 1, 1]}
