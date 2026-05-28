@@ -2,7 +2,7 @@ Change Log
 ==========
 
 Next release
-^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -14,7 +14,7 @@ Next release
 
 *Fixed*
 
-* Fixed incorrect smart default behavior for sequences and numpy arrays (#2190 and #2289).
+* Fixed incorrect smart default behavior for sequences and numpy arrays (#2292).
 
 Recent releases
 ---------------
