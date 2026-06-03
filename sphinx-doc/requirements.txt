@@ -18,11 +18,11 @@ beautifulsoup4==4.14.3
     #   nbconvert
 bleach==6.3.0
     # via nbconvert
-certifi==2026.2.25
+certifi==2026.5.20
     # via requests
 charset-normalizer==3.4.7
     # via requests
-decorator==5.2.1
+decorator==5.3.1
     # via ipython
 defusedxml==0.7.1
     # via nbconvert
@@ -36,15 +36,15 @@ fastjsonschema==2.21.2
     # via nbformat
 furo==2025.12.19
     # via -r sphinx-doc/requirements.in
-idna==3.11
+idna==3.16
     # via requests
 imagesize==2.0.0
     # via sphinx
-ipython==9.12.0
+ipython==9.13.0
     # via -r sphinx-doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
-jedi==0.19.2
+jedi==0.20.0
     # via ipython
 jinja2==3.1.6
     # via
@@ -69,9 +69,9 @@ markupsafe==3.0.3
     # via
     #   jinja2
     #   nbconvert
-matplotlib-inline==0.2.1
+matplotlib-inline==0.2.2
     # via ipython
-mistune==3.2.0
+mistune==3.2.1
     # via nbconvert
 nbclient==0.10.4
     # via nbconvert
@@ -86,9 +86,9 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.8
     # via -r sphinx-doc/requirements.in
-numpy==2.4.4
+numpy==2.4.6
     # via -r sphinx-doc/requirements.in
-packaging==26.1
+packaging==26.2
     # via
     #   nbconvert
     #   sphinx
@@ -96,7 +96,7 @@ pandoc==2.4
     # via -r sphinx-doc/requirements.in
 pandocfilters==1.5.1
     # via nbconvert
-parso==0.8.6
+parso==0.8.7
     # via jedi
 pexpect==4.9.0
     # via ipython
@@ -107,6 +107,8 @@ plumbum==1.10.0
 ply==3.11
     # via pandoc
 prompt-toolkit==3.0.52
+    # via ipython
+psutil==7.2.2
     # via ipython
 ptyprocess==0.7.0
     # via pexpect
@@ -128,7 +130,7 @@ referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.33.1
+requests==2.34.2
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
@@ -138,9 +140,9 @@ rpds-py==0.30.0
     #   referencing
 six==1.17.0
     # via python-dateutil
-snowballstemmer==3.0.1
+snowballstemmer==3.1.0
     # via sphinx
-soupsieve==2.8.3
+soupsieve==2.8.4
     # via beautifulsoup4
 sphinx==9.1.0
     # via
@@ -184,7 +186,7 @@ tornado==6.5.5
     # via
     #   -r sphinx-doc/requirements.in
     #   jupyter-client
-traitlets==5.14.3
+traitlets==5.15.0
     # via
     #   ipython
     #   jupyter-client
@@ -196,9 +198,9 @@ traitlets==5.14.3
     #   nbsphinx
 typing-extensions==4.15.0
     # via beautifulsoup4
-urllib3==2.6.3
+urllib3==2.7.0
     # via requests
-wcwidth==0.6.0
+wcwidth==0.7.0
     # via prompt-toolkit
 webencodings==0.5.1
     # via
