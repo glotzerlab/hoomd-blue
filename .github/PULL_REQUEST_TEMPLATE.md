@@ -1,8 +1,3 @@
-<!-- Please confirm that your work is based on the correct branch. -->
-<!-- Bug fixes should be based on *trunk-patch*. -->
-<!-- Backwards compatible new features should be based on *trunk-minor*. -->
-<!-- Incompatible API changes should be based on *trunk-major*. -->
-
 ## Description
 
 <!-- Describe your changes in detail. -->
@@ -21,15 +16,9 @@ Resolves #???
 <!--- Please build the sphinx documentation and check that any changes to
       documentation display properly. -->
 
-## Change log
-
-<!-- Propose a change log entry. -->
-```
-
-```
-
 ## Checklist:
 
-- [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/CONTRIBUTING.rst).
-- [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ContributorAgreement.md).
+- [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/trunk/CONTRIBUTING.rst).
+- [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/trunk/ContributorAgreement.md).
 - [ ] My name is on the list of contributors (`sphinx-doc/credits.rst`) in the pull request source branch.
+- [ ] I have summarized these changes in `CHANGELOG.rst` following the established format.

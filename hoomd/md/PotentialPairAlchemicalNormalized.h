@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -26,8 +26,8 @@ template<class evaluator> struct AlchemyPackageNormalized : AlchemyPackage<evalu
     {
     std::vector<Scalar> normalization_values = {};
 
-    AlchemyPackageNormalized(std::nullptr_t) {};
-    AlchemyPackageNormalized() {};
+    AlchemyPackageNormalized(std::nullptr_t) { };
+    AlchemyPackageNormalized() { };
     };
 
 template<class evaluator> struct Normalized : public evaluator
@@ -73,10 +73,10 @@ class PotentialPairAlchemicalNormalized
     //! Construct the pair potential
     PotentialPairAlchemicalNormalized(std::shared_ptr<SystemDefinition> sysdef,
                                       std::shared_ptr<NeighborList> nlist)
-        : PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>(sysdef, nlist) {};
+        : PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>(sysdef, nlist) { };
 
     //! Destructor
-    ~PotentialPairAlchemicalNormalized() {};
+    ~PotentialPairAlchemicalNormalized() { };
 
     void setNormalizer(pybind11::function& callback)
         {

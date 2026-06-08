@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
@@ -61,7 +60,6 @@ struct a_pair_args_t
                   const unsigned int _shift_mode,
                   const unsigned int _compute_virial,
                   const unsigned int _threads_per_particle,
-                  const GPUPartition& _gpu_partition,
                   const hipDeviceProp_t& _devprop,
                   bool _update_shape_param)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
@@ -69,8 +67,8 @@ struct a_pair_args_t
           d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
           d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes), block_size(_block_size),
           shift_mode(_shift_mode), compute_virial(_compute_virial),
-          threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
-          devprop(_devprop), update_shape_param(_update_shape_param) {};
+          threads_per_particle(_threads_per_particle), devprop(_devprop),
+          update_shape_param(_update_shape_param) { };
 
     Scalar4* d_force;             //!< Force to write out
     Scalar4* d_torque;            //!< Torque to write out
@@ -93,8 +91,7 @@ struct a_pair_args_t
     const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
-    const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs
-    const hipDeviceProp_t& devprop;    //!< CUDA device properties
+    const hipDeviceProp_t& devprop;          //!< CUDA device properties
     bool update_shape_param; //!< If true, update size of shape param and synchronize GPU execution
                              //!< stream
     };
@@ -159,7 +156,6 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const typename evaluator::shape_type* d_shape_params,
                                      const Scalar* d_rcutsq,
                                      const unsigned int ntypes,
-                                     const unsigned int offset,
                                      unsigned int max_extra_bytes)
     {
     Index2D typpair_idx(ntypes);
@@ -201,6 +197,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 = ((int*)d_shape_params)[cur_offset + threadIdx.x];
             }
         }
+
     __syncthreads();
 
     // initialize extra shared mem
@@ -213,6 +210,8 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
     for (unsigned int cur_type = 0; cur_type < ntypes; ++cur_type)
         s_shape_params[cur_type].load_shared(s_extra, available_bytes);
 
+    __syncthreads();
+
     // start by identifying which particle we are to handle
     unsigned int idx;
     idx = blockIdx.x * (blockDim.x / tpp) + threadIdx.x / tpp;
@@ -222,9 +221,6 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         // need to mask this thread, but still participate in warp-level reduction
         active = false;
         }
-
-    // particle index
-    idx += offset;
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0), Scalar(0), Scalar(0), Scalar(0));
@@ -402,19 +398,16 @@ struct AnisoPairForceComputeKernel
     //! Launcher for the pair force kernel
     /*!
      * \param pair_args Other arguments to pass onto the kernel
-     * \param range Range of particle indices this GPU operates on
+     * \param N Number of particles to compute.
      * \param params Parameters for the potential, stored per type pair
      * \param shape_params Parameters for the potential, stored per type pair
      */
 
     static void launch(const a_pair_args_t& pair_args,
-                       std::pair<unsigned int, unsigned int> range,
+                       unsigned int N,
                        const typename evaluator::param_type* params,
                        const typename evaluator::shape_type* shape_params)
         {
-        unsigned int N = range.second - range.first;
-        unsigned int offset = range.first;
-
         if (tpp == pair_args.threads_per_particle)
             {
             unsigned int block_size = pair_args.block_size;
@@ -489,14 +482,13 @@ struct AnisoPairForceComputeKernel
                 shape_params,
                 pair_args.d_rcutsq,
                 pair_args.ntypes,
-                offset,
                 max_extra_bytes);
             }
         else
             {
             AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, tpp / 2>::launch(
                 pair_args,
-                range,
+                N,
                 params,
                 shape_params);
             }
@@ -508,7 +500,7 @@ template<class evaluator, unsigned int shift_mode, unsigned int compute_virial>
 struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     {
     static void launch(const a_pair_args_t& pair_args,
-                       std::pair<unsigned int, unsigned int> range,
+                       unsigned int N,
                        const typename evaluator::param_type* d_params,
                        const typename evaluator::shape_type* shape_params)
         {
@@ -531,67 +523,61 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     assert(pair_args.d_rcutsq);
     assert(pair_args.ntypes > 0);
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = pair_args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    // run the kernel
+    if (pair_args.compute_virial)
         {
-        auto range = pair_args.gpu_partition.getRangeAndSetGPU(idev);
-
-        // run the kernel
-        if (pair_args.compute_virial)
+        switch (pair_args.shift_mode)
             {
-            switch (pair_args.shift_mode)
-                {
-            case 0:
-                {
-                AnisoPairForceComputeKernel<evaluator, 0, 1, gpu_aniso_pair_force_max_tpp>::launch(
-                    pair_args,
-                    range,
-                    d_params,
-                    d_shape_params);
-                break;
-                }
-            case 1:
-                {
-                AnisoPairForceComputeKernel<evaluator,
-                                            1 && evaluator::implementsEnergyShift(),
-                                            1,
-                                            gpu_aniso_pair_force_max_tpp>::launch(pair_args,
-                                                                                  range,
-                                                                                  d_params,
-                                                                                  d_shape_params);
-                break;
-                }
-            default:
-                return hipErrorUnknown;
-                }
+        case 0:
+            {
+            AnisoPairForceComputeKernel<evaluator, 0, 1, gpu_aniso_pair_force_max_tpp>::launch(
+                pair_args,
+                pair_args.N,
+                d_params,
+                d_shape_params);
+            break;
             }
-        else
+        case 1:
             {
-            switch (pair_args.shift_mode)
-                {
-            case 0:
-                {
-                AnisoPairForceComputeKernel<evaluator, 0, 0, gpu_aniso_pair_force_max_tpp>::launch(
-                    pair_args,
-                    range,
-                    d_params,
-                    d_shape_params);
-                break;
-                }
-            case 1:
-                {
-                AnisoPairForceComputeKernel<evaluator,
-                                            1 && evaluator::implementsEnergyShift(),
-                                            0,
-                                            gpu_aniso_pair_force_max_tpp>::launch(pair_args,
-                                                                                  range,
-                                                                                  d_params,
-                                                                                  d_shape_params);
-                break;
-                }
-            default:
-                return hipErrorUnknown;
-                }
+            AnisoPairForceComputeKernel<evaluator,
+                                        1 && evaluator::implementsEnergyShift(),
+                                        1,
+                                        gpu_aniso_pair_force_max_tpp>::launch(pair_args,
+                                                                              pair_args.N,
+                                                                              d_params,
+                                                                              d_shape_params);
+            break;
+            }
+        default:
+            return hipErrorUnknown;
+            }
+        }
+    else
+        {
+        switch (pair_args.shift_mode)
+            {
+        case 0:
+            {
+            AnisoPairForceComputeKernel<evaluator, 0, 0, gpu_aniso_pair_force_max_tpp>::launch(
+                pair_args,
+                pair_args.N,
+                d_params,
+                d_shape_params);
+            break;
+            }
+        case 1:
+            {
+            AnisoPairForceComputeKernel<evaluator,
+                                        1 && evaluator::implementsEnergyShift(),
+                                        0,
+                                        gpu_aniso_pair_force_max_tpp>::launch(pair_args,
+                                                                              pair_args.N,
+                                                                              d_params,
+                                                                              d_shape_params);
+            break;
+            }
+        default:
+            return hipErrorUnknown;
             }
         }
     return hipSuccess;

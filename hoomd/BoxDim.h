@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxDim.h
@@ -11,8 +11,10 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-// Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
-#if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
+#include <array>
+
+// Don't include MPI when compiling with __HIPCC__
+#if defined(ENABLE_MPI) && !defined(__HIPCC__)
 #include "HOOMDMPI.h"
 #endif
 
@@ -139,6 +141,16 @@ struct
         setLoHi(lo, hi);
         m_periodic = periodic;
         m_xz = m_xy = m_yz = Scalar(0.0);
+        }
+
+    /// Constructs a box from a std::array<Scalar, 6>
+    /** @param array Box parameters
+     */
+    explicit BoxDim(const std::array<Scalar, 6>& array)
+        {
+        setL(make_scalar3(array[0], array[1], array[2]));
+        setTiltFactors(array[3], array[4], array[5]);
+        m_periodic = make_uchar3(1, 1, 1);
         }
 
     //! Get the periodic flags
@@ -438,7 +450,7 @@ struct
                 }
             }
 
-        if (m_periodic.z)
+        if (m_periodic.z && m_hi.z != Scalar(0.0))
             {
             if (((w.z >= m_hi.z) && !flags.z) || flags.z == 1)
                 {

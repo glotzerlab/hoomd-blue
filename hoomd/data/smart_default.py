@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implements intelligent and nested defaults for TypeParameters."""
@@ -10,13 +10,14 @@ from inspect import isclass
 from hoomd.util import _is_iterable
 from hoomd.data.typeconverter import RequiredArg
 
+import numpy
+
 
 class _NoDefault:
     pass
 
 
 class _SmartDefault(ABC):
-
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -31,15 +32,12 @@ class _SmartDefault(ABC):
 
 
 class _SmartDefaultSequence(_SmartDefault):
-
     def __init__(self, sequence, default):
         if _is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
-        self.default = [
-            _to_default(item, dft) for item, dft in zip(sequence, dft_iter)
-        ]
+        self.default = [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)]
 
     def __call__(self, sequence):
         if sequence is None:
@@ -53,18 +51,7 @@ class _SmartDefaultSequence(_SmartDefault):
                     else:
                         new_sequence.append(v)
             else:
-                given_length = len(sequence)
-                for i, d in enumerate(self):
-                    if i < given_length:
-                        if isinstance(d, _SmartDefault):
-                            new_sequence.append(d(sequence[i]))
-                        else:
-                            new_sequence.append(sequence[i])
-                    else:
-                        if isinstance(d, _SmartDefault):
-                            new_sequence.append(d.to_base())
-                        else:
-                            new_sequence.append(d)
+                new_sequence = sequence
             return new_sequence
 
     def __iter__(self):
@@ -78,14 +65,14 @@ class _SmartDefaultSequence(_SmartDefault):
 
 
 class _SmartDefaultFixedLengthSequence(_SmartDefault):
-
     def __init__(self, sequence, default):
         if _is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
         self.default = tuple(
-            [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)])
+            [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)]
+        )
 
     def __call__(self, sequence):
         if sequence is None:
@@ -114,12 +101,10 @@ class _SmartDefaultFixedLengthSequence(_SmartDefault):
 
 
 class _SmartDefaultMapping(_SmartDefault):
-
     def __init__(self, mapping, defaults):
         if defaults is _NoDefault:
             self.default = {
-                key: _to_default(value, _NoDefault)
-                for key, value in mapping.items()
+                key: _to_default(value, _NoDefault) for key, value in mapping.items()
             }
         else:
             self.default = {
@@ -163,6 +148,8 @@ class _SmartDefaultMapping(_SmartDefault):
 
 
 def _to_default(value, defaults=_NoDefault):
+    if isinstance(value, numpy.ndarray):
+        return value
     if isinstance(value, tuple):
         if defaults is _NoDefault or _is_iterable(defaults):
             return _SmartDefaultFixedLengthSequence(value, defaults)
@@ -199,8 +186,7 @@ def _to_base_defaults(value, _defaults=_NoDefault):
             if isinstance(_defaults, Mapping):
                 for key, dft in value.items():
                     sub_explicit_default = _defaults.get(key, _NoDefault)
-                    new_default[key] = _to_base_defaults(
-                        dft, sub_explicit_default)
+                    new_default[key] = _to_base_defaults(dft, sub_explicit_default)
             else:
                 return None
         else:

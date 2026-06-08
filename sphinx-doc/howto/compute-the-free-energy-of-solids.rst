@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 How to compute the free energy of solids
@@ -34,7 +34,7 @@ HPMC simulations
 ----------------
 
 1. Initialize your system in the ideal crystal structure.
-2. Apply the harmonic external potential (`hoomd.hpmc.external.field.Harmonic`), using variants
+2. Apply the harmonic external potential (`hoomd.hpmc.external.Harmonic`), using variants
    to adjust the spring constants as needed during the simulation.
 3. Apply trial moves to the mobile particles.
 

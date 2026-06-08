@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the ParticleSorter class."""
@@ -9,6 +9,7 @@ from hoomd.operation import Tuner
 from hoomd import _hoomd
 import hoomd
 from math import log2, ceil
+import inspect
 
 
 class ParticleSorter(Tuner):
@@ -31,9 +32,11 @@ class ParticleSorter(Tuner):
         New `hoomd.Operations` instances include a `ParticleSorter`
         constructed with default parameters.
 
-    Attributes:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to sort.
+    {inherited}
 
+    **Members defined in** `ParticleSorter`:
+
+    Attributes:
         grid (int): Set the resolution of the space-filling curve.
             `grid` rounds up to the nearest power of 2 when set. Larger values
             of `grid` provide more accurate space-filling curves, but consume
@@ -41,19 +44,26 @@ class ParticleSorter(Tuner):
             of the system).
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
+
     def __init__(self, trigger=200, grid=None):
         super().__init__(trigger)
         sorter_params = ParameterDict(
-            grid=OnlyTypes(int,
-                           postprocess=ParticleSorter._to_power_of_two,
-                           preprocess=ParticleSorter._natural_number,
-                           allow_none=True))
+            grid=OnlyTypes(
+                int,
+                postprocess=ParticleSorter._to_power_of_two,
+                preprocess=ParticleSorter._natural_number,
+                allow_none=True,
+            )
+        )
         self._param_dict.update(sorter_params)
         self.grid = grid
 
     @staticmethod
     def _to_power_of_two(value):
-        return int(2.**ceil(log2(value)))
+        return int(2.0 ** ceil(log2(value)))
 
     @staticmethod
     def _natural_number(value):
@@ -67,8 +77,7 @@ class ParticleSorter(Tuner):
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
+            cpp_cls = getattr(_hoomd, "SFCPackTunerGPU")
         else:
-            cpp_cls = getattr(_hoomd, 'SFCPackTuner')
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                self.trigger)
+            cpp_cls = getattr(_hoomd, "SFCPackTuner")
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.trigger)

@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Operation class types.
-
-Operations act on the state of the system at defined points during the
+"""Operations act on the state of the system at defined points during the
 simulation's run loop. Add operation objects to the `Simulation.operations`
 collection.
 
@@ -23,6 +21,7 @@ See Also:
 from copy import copy
 import itertools
 import weakref
+import inspect
 
 import hoomd
 from hoomd.logging import Loggable
@@ -40,7 +39,7 @@ class _HOOMDGetSetAttrBase:
             `_param_dict` and `_typeparam_dict` keys by default.
         _override_setattr (set[str]): Attributes that should not use the
             provided `__setattr__`. `super().__setattr__` is called for them.
-            Likely, this wil no longer be necessary when triggers are added to
+            Likely, this will no longer be necessary when triggers are added to
             C++ Updaters and Analyzers.
         _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
@@ -50,8 +49,8 @@ class _HOOMDGetSetAttrBase:
             that exist due to ``__getattr__`` such as those from ``_param_dict``
             or ``_typeparam_dict``.
     """
-    _reserved_default_attrs = dict(_param_dict=ParameterDict,
-                                   _typeparam_dict=dict)
+
+    _reserved_default_attrs = dict(_param_dict=ParameterDict, _typeparam_dict=dict)
     _override_setattr = set()
 
     _skip_for_equality = set()
@@ -105,8 +104,9 @@ class _HOOMDGetSetAttrBase:
             for k, v in value.items():
                 self._typeparam_dict[attr][k] = v
         except TypeError:
-            raise ValueError("To set {}, you must use a dictionary "
-                             "with types as keys.".format(attr))
+            raise ValueError(
+                "To set {}, you must use a dictionary with types as keys.".format(attr)
+            )
 
     def __dir__(self):
         """Expose all attributes for dynamic querying in notebooks and IDEs."""
@@ -181,9 +181,7 @@ class _DependencyRelation:
             pass
 
 
-class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
-                       _DependencyRelation,
-                       metaclass=Loggable):
+class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation, metaclass=Loggable):
     """Handles attaching/detaching to a simulation.
 
     ``_StatefulAttrBase`` handles getting and setting attributes as well as
@@ -210,23 +208,28 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     its consumers. This does allow for simple dependency handling outside of the
     features of `_DependencyRelation`.
     """
+
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs,
-        '_cpp_obj': None,
-        '_simulation_': None,
-        '_dependents': list,
-        '_dependencies': list,
+        "_cpp_obj": None,
+        "_simulation_": None,
+        "_dependents": list,
+        "_dependencies": list,
         # Keeps track of the number of times _attach is called to avoid
         # premature detaching.
         "_use_count": int,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation_', "_use_count"
+        "_cpp_obj",
+        "_dependents",
+        "_dependencies",
+        "_simulation_",
+        "_use_count",
     }
     # _use_count must be included or attaching and detaching won't work as
     # expected as _use_count may not equal 0.
-    _remove_for_pickling = ('_simulation_', '_cpp_obj', "_use_count")
+    _remove_for_pickling = ("_simulation_", "_cpp_obj", "_use_count")
 
     def _detach(self, force=False):
         """Decrement attach count and destroy C++ object if count == 0.
@@ -307,7 +310,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         if self._use_count > 1:
             if simulation != self._simulation:
                 raise hoomd.error.SimulationDefinitionError(
-                    f"Cannot add {self} to multiple simulations simultaneously."
+                    f"Cannot add {self} to the simulation. It has been attached"
+                    "to a different simulation previously."
                 )
             return
         self._simulation = simulation
@@ -355,8 +359,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
                 typeparam._attach(cpp_obj, simulation.state)
             except ValueError as err:
                 raise err.__class__(
-                    f"For {type(self)} in TypeParameter {typeparam.name} "
-                    f"{str(err)}")
+                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
+                )
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
@@ -426,6 +430,26 @@ class AutotunedObject(_HOOMDBaseObject):
         * `hoomd.Operations.tune_kernel_parameters`
     """
 
+    _doc_inherited = """
+
+    **Members inherited from** `AutotunedObject <hoomd.operation.AutotunedObject>`:
+
+    .. py:property:: kernel_parameters
+
+        Kernel parameters.
+        `Read more... <hoomd.operation.AutotunedObject.kernel_parameters>`
+
+    .. py:property:: is_tuning_complete
+
+        Check if kernel parameter tuning is complete.
+        `Read more... <hoomd.operation.AutotunedObject.is_tuning_complete>`
+
+    .. py:method:: tune_kernel_parameters
+
+        Start tuning kernel parameters.
+        `Read more... <hoomd.operation.AutotunedObject.tune_kernel_parameters>`
+    """
+
     @property
     def kernel_parameters(self):
         """dict[str, tuple[float]]: Kernel parameters.
@@ -477,7 +501,7 @@ class AutotunedObject(_HOOMDBaseObject):
 
         .. code-block:: python
 
-            while (not operation.is_tuning_complete):
+            while not operation.is_tuning_complete:
                 simulation.run(1000)
         """
         if not self._attached:
@@ -499,8 +523,7 @@ class AutotunedObject(_HOOMDBaseObject):
             operation.tune_kernel_parameters()
         """
         if not self._attached:
-            raise RuntimeError("Call Simulation.run() before "
-                               "tune_kernel_parameters.")
+            raise RuntimeError("Call Simulation.run() before tune_kernel_parameters.")
         self._cpp_obj.startAutotuning()
 
 
@@ -516,23 +539,25 @@ class Operation(AutotunedObject):
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
-
-    Note:
-        Developers or those contributing to HOOMD-blue, see our architecture
-        `file`_ for information on HOOMD-blue's architecture decisions regarding
-        operations.
-
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ \
-        ARCHITECTURE.md
     """
+
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(AutotunedObject._doc_inherited)
+    )
 
 
 class TriggeredOperation(Operation):
-    """Operations that include a trigger to determine when to run.
+    """Operations that execute on timesteps determined by a trigger.
 
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
+
+    {inherited}
+
+    **Members defined in** `TriggeredOperation`:
 
     Attributes:
         trigger (hoomd.trigger.Trigger): The trigger to activate this operation.
@@ -543,6 +568,24 @@ class TriggeredOperation(Operation):
 
                 operation.trigger = hoomd.trigger.Periodic(10)
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Operation._doc_inherited)
+    )
+
+    _doc_inherited = (
+        Operation._doc_inherited
+        + """
+
+    **Members inherited from**
+    `TriggeredOperation <hoomd.operation.TriggeredOperation>`:
+
+    .. py:attribute:: trigger
+
+        The trigger to activate this operation.
+        `Read more... <hoomd.operation.TriggeredOperation.trigger>`
+    """
+    )
 
     def __init__(self, trigger):
         trigger_param = ParameterDict(trigger=hoomd.trigger.Trigger)
@@ -559,7 +602,14 @@ class Updater(TriggeredOperation):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
-    _cpp_list_name = 'updaters'
+
+    _cpp_list_name = "updaters"
+
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(TriggeredOperation._doc_inherited)
+    )
 
 
 class Writer(TriggeredOperation):
@@ -571,7 +621,14 @@ class Writer(TriggeredOperation):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
-    _cpp_list_name = 'analyzers'
+
+    _cpp_list_name = "analyzers"
+
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(TriggeredOperation._doc_inherited)
+    )
 
 
 class Compute(Operation):
@@ -584,7 +641,10 @@ class Compute(Operation):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
-    pass
+
+    __doc__ = (
+        inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Operation._doc_inherited)
+    )
 
 
 class Tuner(TriggeredOperation):
@@ -599,7 +659,12 @@ class Tuner(TriggeredOperation):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
-    pass
+
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(TriggeredOperation._doc_inherited)
+    )
 
 
 class Integrator(Operation):
@@ -615,8 +680,24 @@ class Integrator(Operation):
         for `isinstance` or `issubclass` checks.
     """
 
+    __doc__ = (
+        inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Operation._doc_inherited)
+    )
+
     def _attach_hook(self):
         self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
 
         # The integrator has changed, update the number of DOF in all groups
         self._simulation.state.update_group_dof()
+
+
+__all__ = [
+    "AutotunedObject",
+    "Compute",
+    "Integrator",
+    "Operation",
+    "TriggeredOperation",
+    "Tuner",
+    "Updater",
+    "Writer",
+]

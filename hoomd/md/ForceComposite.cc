@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
@@ -28,21 +28,17 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
 
-    GlobalArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
+    GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
-    TAG_ALLOCATION(m_body_types);
 
-    GlobalArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
+    GPUArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_pos.swap(body_pos);
-    TAG_ALLOCATION(m_body_pos);
 
-    GlobalArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
+    GPUArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_orientation.swap(body_orientation);
-    TAG_ALLOCATION(m_body_orientation);
 
-    GlobalArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
+    GPUArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
     m_body_len.swap(body_len);
-    TAG_ALLOCATION(m_body_len);
 
     // reset elements to zero
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
@@ -50,6 +46,12 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         {
         h_body_len.data[i] = 0;
         }
+
+    GPUVector<unsigned int> rigid_center(m_exec_conf);
+    m_rigid_center.swap(rigid_center);
+
+    GPUVector<unsigned int> lookup_center(m_exec_conf);
+    m_lookup_center.swap(lookup_center);
 
     m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
@@ -200,7 +202,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
     particle i determined by cutoff and other interactions.
 
     The body ghost layer width for constituent particles *should be* the maximum diameter d_i among
-    all rigid body types that have this particle as a consituent. However, this must be larger due
+    all rigid body types that have this particle as a constituent. However, this must be larger due
     to limitations in the way that individual rigid body particles are indexed relative to the
     molecules in MolecularForceCompute. In the worst case, for a ghost particle within the
     interaction ghost width r_ghost_i of a boundary, *ALL* other particles in that body must be
@@ -398,8 +400,8 @@ void ForceComposite::validateRigidBodies()
                 {
                 std::ostringstream error_msg;
                 error_msg << "Error validating rigid bodies: Incomplete rigid body with only "
-                          << molecule_size << " constituent particles "
-                          << "instead of " << h_body_len.data[central_particle_type] << " for body "
+                          << molecule_size << " constituent particles " << "instead of "
+                          << h_body_len.data[central_particle_type] << " for body "
                           << central_particle_tag;
                 throw std::runtime_error(error_msg.str());
                 }
@@ -432,39 +434,58 @@ void ForceComposite::validateRigidBodies()
     m_particles_added_removed = false;
     }
 
-void ForceComposite::pyCreateRigidBodies(pybind11::dict charges)
+void ForceComposite::pyCreateRigidBodies(pybind11::dict charges, pybind11::dict masses)
     {
-    if (pybind11::len(charges) == 0)
-        {
-        createRigidBodies(std::unordered_map<unsigned int, std::vector<Scalar>>());
-        return;
-        }
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
     std::unordered_map<unsigned int, std::vector<Scalar>> charges_map;
-    for (const auto& item : charges)
+    std::unordered_map<unsigned int, std::vector<Scalar>> masses_map;
         {
-        const auto type = m_pdata->getTypeByName(item.first.cast<std::string>());
-        if (h_body_len.data[type] == 0)
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        for (const auto& item : charges)
             {
-            throw std::runtime_error("Charge provided for non-central particle type.");
+            const auto type = m_pdata->getTypeByName(item.first.cast<std::string>());
+            if (h_body_len.data[type] == 0)
+                {
+                throw std::runtime_error("Charge provided for non-central particle type.");
+                }
+            const auto charges_list = item.second.cast<pybind11::list>();
+            if (pybind11::len(charges_list) != h_body_len.data[type])
+                {
+                throw std::runtime_error("Charges provided not consistent with rigid body size.");
+                }
+            std::vector<Scalar> charges_vector;
+            for (auto& charge : charges_list)
+                {
+                charges_vector.emplace_back(charge.cast<Scalar>());
+                }
+            charges_map.insert({type, charges_vector});
             }
-        const auto charges_list = item.second.cast<pybind11::list>();
-        if (pybind11::len(charges_list) != h_body_len.data[type])
+        for (const auto& item : masses)
             {
-            throw std::runtime_error("Charges provided not consistent with rigid body size.");
+            const auto type = m_pdata->getTypeByName(item.first.cast<std::string>());
+            if (h_body_len.data[type] == 0)
+                {
+                throw std::runtime_error("Masses provided for non-central particle type.");
+                }
+            const auto masses_list = item.second.cast<pybind11::list>();
+            if (pybind11::len(masses_list) != h_body_len.data[type])
+                {
+                throw std::runtime_error("Masses provided not consistent with rigid body size.");
+                }
+            std::vector<Scalar> masses_vector;
+            for (auto& mass : masses_list)
+                {
+                masses_vector.emplace_back(mass.cast<Scalar>());
+                }
+            masses_map.insert({type, masses_vector});
             }
-        std::vector<Scalar> charges_vector;
-        for (auto& charge : charges_list)
-            {
-            charges_vector.emplace_back(charge.cast<Scalar>());
-            }
-        charges_map.insert({type, charges_vector});
         }
-    createRigidBodies(charges_map);
+
+    createRigidBodies(charges_map, masses_map);
     }
 
 void ForceComposite::createRigidBodies(
-    const std::unordered_map<unsigned int, std::vector<Scalar>> charges)
+    const std::unordered_map<unsigned int, std::vector<Scalar>> charges,
+    const std::unordered_map<unsigned int, std::vector<Scalar>> masses)
     {
     SnapshotParticleData<Scalar> snap;
     const BoxDim& global_box = m_pdata->getGlobalBox();
@@ -567,7 +588,10 @@ void ForceComposite::createRigidBodies(
                     snap.charge[constituent_particle_tag]
                         = charges.at(body_type)[current_body_index];
                     }
-
+                if (!masses.empty())
+                    {
+                    snap.mass[constituent_particle_tag] = masses.at(body_type)[current_body_index];
+                    }
                 // Set position and orientation of constituents
                 vec3<Scalar> body_position(snap.pos[particle_tag]);
                 quat<Scalar> body_orientation(snap.orientation[particle_tag]);
@@ -629,6 +653,11 @@ CommFlags ForceComposite::getRequestedCommFlags(uint64_t timestep)
 
     // request orientations
     flags[comm_flag::orientation] = 1;
+
+    // request velocity, angular momentum, and inertia
+    flags[comm_flag::velocity] = 1;
+    flags[comm_flag::angmom] = 1;
+    flags[comm_flag::inertia] = 1;
 
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
@@ -705,9 +734,9 @@ void ForceComposite::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     // reset constraint forces and torques
-    memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
-    memset(h_torque.data, 0, sizeof(Scalar4) * m_pdata->getN());
-    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    m_force.zeroFill();
+    m_torque.zeroFill();
+    m_virial.zeroFill();
 
     unsigned int n_particles_local = m_pdata->getN() + m_pdata->getNGhosts();
     size_t net_virial_pitch = m_pdata->getNetVirial().getPitch();
@@ -799,8 +828,7 @@ void ForceComposite::computeForces(uint64_t timestep)
                 h_torque.data[central_idx].z += delta_torque.z;
 
                 /* from previous rigid body implementation: Access Torque elements from a single
-                   particle. Right now I will am assuming that the particle and rigid body reference
-                   frames are the same. Probably have to rotate first.
+                   particle. Probably have to rotate first.
                  */
                 h_torque.data[central_idx].x += net_torque.x;
                 h_torque.data[central_idx].y += net_torque.y;
@@ -867,9 +895,18 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+    ArrayHandle<Scalar4> h_velocity(m_pdata->getVelocities(),
+                                    access_location::host,
+                                    access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                        access_location::host,
                                        access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::read);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::read);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
@@ -947,8 +984,8 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
                 // if the molecule is incomplete and has local members, this is an error
                 std::ostringstream error_msg;
                 error_msg << "Error while updating constituent particles:"
-                          << "Composite particle with body tag " << central_tag << " incomplete: "
-                          << "body_len=" << body_len
+                          << "Composite particle with body tag " << central_tag
+                          << " incomplete: " << "body_len=" << body_len
                           << ", molecule_len=" << h_molecule_len.data[mol_idx] - 1;
                 throw std::runtime_error(error_msg.str());
                 }
@@ -973,11 +1010,55 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         updated_pos += dr_space;
         quat<Scalar> updated_orientation = orientation * local_orientation;
 
+        /* Update velocity of constituents
+         *
+         * Calculate the angular momentum in the body frame as a vector,
+         * then divide by the moment of inertia to get the angular velocity.
+         * The tangential velocity in the body frame is the angular velocity
+         * cross the position relative to the center of mass, which is then
+         * rotated into the space frame and added to the velocity of the center
+         * of mass.
+         */
+        const quat<Scalar> angmom(h_angmom.data[central_idx]);
+        const vec3<Scalar> inertia(h_inertia.data[central_idx]);
+        const quat<Scalar> angvel_body_quat = Scalar(0.5) * conj(orientation) * angmom;
+        vec3<Scalar> angvel_body = angvel_body_quat.v;
+        if (inertia.x != Scalar(0))
+            {
+            angvel_body.x /= inertia.x;
+            }
+        else
+            {
+            angvel_body.x = Scalar(0);
+            }
+
+        if (inertia.y != Scalar(0))
+            {
+            angvel_body.y /= inertia.y;
+            }
+        else
+            {
+            angvel_body.y = Scalar(0);
+            }
+
+        if (inertia.z != Scalar(0))
+            {
+            angvel_body.z /= inertia.z;
+            }
+        else
+            {
+            angvel_body.z = Scalar(0);
+            }
+
+        const vec3<Scalar> updated_vel = vec3<Scalar>(h_velocity.data[central_idx])
+                                         + rotate(orientation, cross(angvel_body, local_pos));
+
         // this runs before the ForceComputes,
         // wrap into box, allowing rigid bodies to span multiple images
         int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
         updated_pos = global_box.shift(updated_pos, negimgi);
+        const Scalar mass = h_velocity.data[particle_index].w;
 
         h_postype.data[particle_index]
             = make_scalar4(updated_pos.x,
@@ -985,8 +1066,49 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
                            updated_pos.z,
                            __int_as_scalar(h_body_types.data[m_body_idx(type, idx_in_body)]));
         h_orientation.data[particle_index] = quat_to_scalar4(updated_orientation);
+        h_velocity.data[particle_index]
+            = make_scalar4(updated_vel.x, updated_vel.y, updated_vel.z, mass);
         h_image.data[particle_index] = img + imgi;
         }
+    }
+
+void ForceComposite::findRigidCenters()
+    {
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
+
+    m_rigid_center.resize(m_pdata->getN() + m_pdata->getNGhosts());
+    m_lookup_center.resize(m_pdata->getN() + m_pdata->getNGhosts());
+    ArrayHandle<unsigned int> h_rigid_center(m_rigid_center,
+                                             access_location::host,
+                                             access_mode::overwrite);
+    ArrayHandle<unsigned int> h_lookup_center(m_lookup_center,
+                                              access_location::host,
+                                              access_mode::overwrite);
+    unsigned int num_centers = 0;
+    const unsigned int n_particles_local = m_pdata->getN() + m_pdata->getNGhosts();
+    for (unsigned int idx = 0; idx < n_particles_local; ++idx)
+        {
+        unsigned int lookup_center = NO_BODY;
+
+        // if particle is in a rigid body, find its center
+        const unsigned int central_tag = h_body.data[idx];
+        if (central_tag < MIN_FLOPPY)
+            {
+            lookup_center = h_rtag.data[central_tag];
+            // also record rigid particles that are centers
+            if (lookup_center == idx)
+                {
+                h_rigid_center.data[num_centers++] = lookup_center;
+                }
+            }
+
+        h_lookup_center.data[idx] = lookup_center;
+        }
+    m_n_rigid = num_centers;
     }
 
 namespace detail

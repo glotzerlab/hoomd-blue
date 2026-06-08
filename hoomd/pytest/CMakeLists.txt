@@ -4,6 +4,7 @@ set(files __init__.py
           test_balance.py
           test_box.py
           test_box_resize.py
+          test_box_variant.py
           test_collections.py
           test_communicator.py
           test_custom_tuner.py
@@ -45,4 +46,4 @@ install(PROGRAMS ${programs}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/pytest
        )
 
-copy_files_to_build("${programs}" "hoomd_pytest_programs" "*.py")
+copy_files_to_build("${programs}" "hoomd_pytest_programs" "*.sh")

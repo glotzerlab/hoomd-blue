@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -15,9 +15,11 @@
 
 #include "hoomd/CellList.h"
 #include "hoomd/Integrator.h"
+#include <hoomd/Variant.h>
 
-#include "ExternalField.h"
+#include "ExternalPotential.h"
 #include "HPMCCounters.h"
+#include "PairPotential.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -26,7 +28,6 @@
 
 #ifdef ENABLE_HIP
 #include "hoomd/Autotuner.h"
-#include "hoomd/GPUPartition.cuh"
 #endif
 
 namespace hoomd
@@ -65,8 +66,7 @@ struct hpmc_patch_args_t
                       unsigned int* _d_reject_out,
                       const Scalar* _d_charge,
                       const Scalar* _d_diameter,
-                      const unsigned int* _d_reject_out_of_cell,
-                      const GPUPartition& _gpu_partition)
+                      const unsigned int* _d_reject_out_of_cell)
         : d_postype(_d_postype), d_orientation(_d_orientation), d_trial_postype(_d_trial_postype),
           d_trial_orientation(_d_trial_orientation), d_trial_move_type(_d_trial_move_type), ci(_ci),
           cell_dim(_cell_dim), ghost_width(_ghost_width), N(_N), seed(_seed), rank(_rank),
@@ -75,7 +75,7 @@ struct hpmc_patch_args_t
           r_cut_patch(_r_cut_patch), d_additive_cutoff(_d_additive_cutoff),
           d_update_order_by_ptl(_d_update_order_by_ptl), d_reject_in(_d_reject_in),
           d_reject_out(_d_reject_out), d_charge(_d_charge), d_diameter(_d_diameter),
-          d_reject_out_of_cell(_d_reject_out_of_cell), gpu_partition(_gpu_partition)
+          d_reject_out_of_cell(_d_reject_out_of_cell)
         {
         }
 
@@ -105,84 +105,11 @@ struct hpmc_patch_args_t
     const Scalar* d_charge;                    //!< Particle charges
     const Scalar* d_diameter;                  //!< Particle diameters
     const unsigned int*
-        d_reject_out_of_cell;          //!< Flag if a particle move has been rejected a priori
-    const GPUPartition& gpu_partition; //!< split particles among GPUs
+        d_reject_out_of_cell; //!< Flag if a particle move has been rejected a priori
     };
 #endif
 
     } // end namespace detail
-
-//! Functor that computes patch interactions between particles
-/*! PatchEnergy allows cutoff energetic interactions to be included in an HPMC simulation. This
-    abstract base class defines the API for the patch energy object, consisting of cutoff radius
-    and the pair energy evaluation fuction.
-
-    Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
-    when needed during the HPMC trial moves.
-*/
-class PatchEnergy : public Autotuned
-    {
-    public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Autotuned(), m_sysdef(sysdef) { }
-    virtual ~PatchEnergy() { }
-
-#ifdef ENABLE_HIP
-    //! A struct that contains the kernel arguments
-    typedef detail::hpmc_patch_args_t gpu_args_t;
-#endif
-
-    //! Returns the non-additive distance from the center of the particle beyond which energies are
-    //! always zero
-    virtual Scalar getRCut()
-        {
-        return 0;
-        }
-
-    //! Returns the additive part of the cutoff distance
-    virtual Scalar getAdditiveCutoff(unsigned int type)
-        {
-        return 0;
-        }
-
-    //! evaluate the energy of the patch interaction
-    /*! \param r_ij Vector pointing from particle i to j
-        \param type_i Integer type index of particle i
-        \param d_i Diameter of particle i
-        \param charge_i Charge of particle i
-        \param q_i Orientation quaternion of particle i
-        \param type_j Integer type index of particle j
-        \param q_j Orientation quaternion of particle j
-        \param d_j Diameter of particle j
-        \param charge_j Charge of particle j
-        \returns Energy of the patch interaction.
-    */
-    virtual float energy(const vec3<float>& r_ij,
-                         unsigned int type_i,
-                         const quat<float>& q_i,
-                         float d_i,
-                         float charge_i,
-                         unsigned int type_j,
-                         const quat<float>& q_j,
-                         float d_j,
-                         float charge_j)
-        {
-        return 0;
-        }
-
-#ifdef ENABLE_HIP
-    //! Asynchronously launch the JIT kernel
-    /*! \param args Kernel arguments
-        \param hStream stream to execute on
-        */
-    virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
-        {
-        throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
-        }
-#endif
-
-    protected:
-    std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
-    };                                          // end class PatchEnergy
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
@@ -314,6 +241,35 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_translation_move_probability / 65536.0;
         }
 
+    //! Set number of dimensions for translation moves.
+    //! \param translate_move_dimensions 0 (None) = use system dimensionality, 2 = xy-only, 3 = xyz.
+    //! When set to 2 in a 3D simulation, the z component of trial trans. displacements is
+    //! zeroed at proposal time.
+    void setTranslateMoveDimensions(unsigned int translate_move_dimensions)
+        {
+        if (translate_move_dimensions != 0 && translate_move_dimensions != 2
+            && translate_move_dimensions != 3)
+            {
+            throw std::runtime_error("translate_move_dimensions must be None (0), 2, or 3");
+            }
+        if (translate_move_dimensions == 3 && m_sysdef->getNDimensions() == 2)
+            {
+            throw std::runtime_error("translate_move_dimensions cannot be 3 in a 2D simulation");
+            }
+        m_translate_move_dimensions = translate_move_dimensions;
+        }
+
+    //! Get number of dimensions for translation moves.
+    //! \returns 0 if not set (use system dimensionality), otherwise 2 or 3.
+    unsigned int getTranslateMoveDimensionsRaw() const
+        {
+        return m_translate_move_dimensions;
+        }
+
+    //! Get effective number of dimensions for translation moves (resolved at call time).
+    //! When translate_move_dimensions is 0 (None), returns system dimensionality.
+    unsigned int getTranslateMoveDimensions() const;
+
     //! Set nselect
     /*! \param nselect new nselect value to set
      */
@@ -328,6 +284,21 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     inline unsigned int getNSelect()
         {
         return m_nselect;
+        }
+
+    //! Set kT variant
+    /*! \param kT new k_BT variant to set
+     */
+    void setKT(const std::shared_ptr<Variant>& kT)
+        {
+        m_kT = kT;
+        }
+
+    //! Get kT variant
+    //! \returns current value of kT parameter
+    std::shared_ptr<Variant> getKT()
+        {
+        return m_kT;
         }
 
     //! Get performance in moves per second
@@ -403,16 +374,26 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Method to scale the box
     virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
-    ExternalField* getExternalField()
+    /// Compute the total energy due to potentials in m_external_potentials
+    double computeTotalExternalEnergy(uint64_t timestep,
+                                      ExternalPotential::Trial trial
+                                      = ExternalPotential::Trial::None)
         {
-        return m_external_base;
+        double total_energy = 0.0;
+
+        for (const auto& external : m_external_potentials)
+            {
+            total_energy += external->totalEnergy(timestep, trial);
+            }
+
+        return total_energy;
         }
 
-    //! Compute the energy due to patch interactions
+    //! Compute the total energy from pair interactions.
     /*! \param timestep the current time step
      * \returns the total patch energy
      */
-    virtual float computePatchEnergy(uint64_t timestep)
+    virtual double computeTotalPairEnergy(uint64_t timestep)
         {
         // base class method returns 0
         return 0.0;
@@ -425,26 +406,132 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         m_past_first_run = true;
         }
 
-    //! Set the patch energy
-    virtual void setPatchEnergy(std::shared_ptr<PatchEnergy> patch)
+    /// Test if this has pairwise interactions.
+    bool hasPairInteractions()
         {
-        m_patch = patch;
+        return m_pair_potentials.size() > 0;
         }
 
-    //! Get the patch energy
-    std::shared_ptr<PatchEnergy> getPatchEnergy()
+    /// Get pairwise interaction maximum non-additive r_cut.
+    LongReal getMaxPairEnergyRCutNonAdditive() const
         {
-        return m_patch;
+        LongReal r_cut = 0;
+        for (const auto& pair : m_pair_potentials)
+            {
+            r_cut = std::max(r_cut, pair->getMaxRCutNonAdditive());
+            }
+
+        return r_cut;
+        }
+
+    /// Get pairwise interaction maximum additive r_cut.
+    LongReal getMaxPairInteractionAdditiveRCut(unsigned int type) const
+        {
+        LongReal r_cut = 0;
+        for (const auto& pair : m_pair_potentials)
+            {
+            r_cut = std::max(r_cut, pair->getRCutAdditive(type));
+            }
+
+        return r_cut;
+        }
+
+    __attribute__((always_inline)) inline LongReal computeOnePairEnergy(const LongReal r_squared,
+                                                                        const vec3<LongReal>& r_ij,
+                                                                        unsigned int type_i,
+                                                                        const quat<LongReal>& q_i,
+                                                                        LongReal d_i,
+                                                                        LongReal charge_i,
+                                                                        unsigned int type_j,
+                                                                        const quat<LongReal>& q_j,
+                                                                        LongReal d_j,
+                                                                        LongReal charge_j)
+        {
+        LongReal energy = 0;
+        for (const auto& pair : m_pair_potentials)
+            {
+            if (r_squared < pair->getRCutSquaredTotal(type_i, type_j))
+                {
+                energy
+                    += pair->energy(r_squared, r_ij, type_i, q_i, charge_i, type_j, q_j, charge_j);
+                }
+            }
+
+        return energy;
+        }
+
+    /*** Evaluate the total energy of all external fields interacting with one particle.
+
+        @param timestep The current timestep in the simulation
+        @param tag_i Tag of the particle
+        @param type_i Type index of the particle.
+        @param r_i Posiion of the particle in the box.
+        @param q_i Orientation of the particle.
+        @param charge_i Charge of the particle.
+        @param trial A value of None indicates that the energy should be evaluated directly.
+          Pass Old or New when evaluating the old or new configuration in a trial move.
+          Hard potentials always return 0 in old configurations to avoid infinity - infinity.
+        @returns Energy of the external interaction (possibly INFINITY).
+
+        Note: Potentials that may return INFINITY should assume valid old configurations and return
+        0 when trial is false. This avoids computing INFINITY - INFINITY -> NaN.
+    */
+    inline LongReal computeOneExternalEnergy(uint64_t timestep,
+                                             unsigned int tag_i,
+                                             unsigned int type_i,
+                                             const vec3<LongReal>& r_i,
+                                             const quat<LongReal>& q_i,
+                                             LongReal charge_i,
+                                             ExternalPotential::Trial trial
+                                             = ExternalPotential::Trial::None)
+        {
+        LongReal energy = 0;
+        for (const auto& external : m_external_potentials)
+            {
+            energy += external->particleEnergy(timestep, tag_i, type_i, r_i, q_i, charge_i, trial);
+            }
+
+        return energy;
+        }
+
+    /// Get the list of pair potentials.
+    std::vector<std::shared_ptr<PairPotential>>& getPairPotentials()
+        {
+        return m_pair_potentials;
+        }
+
+    /// Get the list of external potentials.
+    std::vector<std::shared_ptr<ExternalPotential>>& getExternalPotentials()
+        {
+        return m_external_potentials;
+        }
+
+    /// Returns an array (indexed by type) of the AABB tree search radius needed.
+    const std::vector<LongReal>& getPairEnergySearchRadius()
+        {
+        const LongReal max_pair_interaction_r_cut = getMaxPairEnergyRCutNonAdditive();
+        const unsigned int n_types = m_pdata->getNTypes();
+        m_pair_energy_search_radius.resize(n_types);
+
+        for (unsigned int type = 0; type < n_types; type++)
+            {
+            m_pair_energy_search_radius[type]
+                = max_pair_interaction_r_cut
+                  + LongReal(0.5) * getMaxPairInteractionAdditiveRCut(type);
+            }
+
+        return m_pair_energy_search_radius;
         }
 
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
+    unsigned int m_translate_move_dimensions;    //!< 0 = use system dim, 2 = xy-only, 3 = xyz
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
 
     GPUVector<Scalar> m_d; //!< Maximum move displacement by type
     GPUVector<Scalar> m_a; //!< Maximum angular displacement by type
 
-    GlobalArray<hpmc_counters_t> m_count_total; //!< Accept/reject total count
+    GPUArray<hpmc_counters_t> m_count_total; //!< Accept/reject total count
 
     Scalar m_nominal_width;     //!< nominal cell width
     Scalar m_extra_ghost_width; //!< extra ghost width to add
@@ -453,10 +540,19 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     /// Moves-per-second value last recorded
     double m_mps = 0;
 
-    ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be
-                                    //! used in a more general setting.
-
     bool m_past_first_run; //!< Flag to test if the first run() has started
+
+    std::shared_ptr<Variant> m_kT; //!< kT variant
+
+    /// Pair potential evaluators.
+    std::vector<std::shared_ptr<PairPotential>> m_pair_potentials;
+
+    /// External potential evaluators
+    std::vector<std::shared_ptr<ExternalPotential>> m_external_potentials;
+
+    /// Cached pair energy search radius.
+    std::vector<LongReal> m_pair_energy_search_radius;
+
     //! Update the nominal width of the cells
     /*! This method is virtual so that derived classes can set appropriate widths
         (for example, some may want max diameter while others may want a buffer distance).
@@ -478,8 +574,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
 #endif
 
-    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
-
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
     hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
@@ -494,5 +588,5 @@ void export_IntegratorHPMC(pybind11::module& m);
 
     } // end namespace hpmc
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

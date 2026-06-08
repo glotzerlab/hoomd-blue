@@ -40,7 +40,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     endif()
 
     add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_cuda_sources})
-    target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     add_dependencies(test_all ${CUR_TEST})
 
@@ -48,7 +47,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
         # these options are needed to avoid linker errors with GCC
         set(additional_link_options "-Wl,--allow-shlib-undefined -Wl,--no-as-needed")
     endif()
-    target_link_libraries(${CUR_TEST} _md ${additional_link_options} ${PYTHON_LIBRARIES})
+    target_link_libraries(${CUR_TEST} _md ${additional_link_options} pybind11::embed)
 
 endforeach (CUR_TEST)
 

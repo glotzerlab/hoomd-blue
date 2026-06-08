@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -87,9 +87,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     virtual CommFlags determineFlags(uint64_t timestep);
 #endif
 
-    /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool areForcesAnisotropic();
-
     /// Updates the rigid body constituent particles
     virtual void updateRigidBodies(uint64_t timestep);
 
@@ -105,7 +102,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         return m_rigid_bodies;
         }
 
-    void setRigid(std::shared_ptr<ForceComposite> new_rigid)
+    virtual void setRigid(std::shared_ptr<ForceComposite> new_rigid)
         {
         m_rigid_bodies = new_rigid;
         }

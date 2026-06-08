@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Angle forces.
-
-Angle force classes apply a force and virial on every particle in the simulation
+r"""Angle force classes apply a force and virial on every particle in the simulation
 state commensurate with the potential energy:
 
 .. math::
@@ -14,7 +12,7 @@ Each angle is defined by an ordered triplet of particle tags in the
 `hoomd.State` member ``angle_group``. HOOMD-blue does not construct angle
 groups, users must explicitly define angles in the initial condition.
 
-.. image:: md-angle.svg
+.. image:: /md-angle.svg
     :alt: Definition of the angle bond between particles i, j, and k.
 
 In the angle group (i,j,k), :math:`\theta` is the angle between the vectors
@@ -39,6 +37,7 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
 import numpy
+import inspect
 
 
 class Angle(Force):
@@ -50,6 +49,8 @@ class Angle(Force):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Force._doc_inherited)
 
     # Module where the C++ class is defined. Reassign this when developing an
     # external plugin.
@@ -82,6 +83,18 @@ class Harmonic(Angle):
 
         U(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            harmonic = hoomd.md.angle.Harmonic()
+            harmonic.params["A-A-A"] = dict(k=3.0, t0=0.7851)
+            harmonic.params["A-B-A"] = dict(k=100.0, t0=1.0)
+
+    {inherited}
+
+    **Members defined in** `Harmonic`:
+
     Attributes:
         params (TypeParameter[``angle type``, dict]):
             The parameter of the harmonic bonds for each particle type.
@@ -92,21 +105,18 @@ class Harmonic(Angle):
 
             * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
               :math:`[\mathrm{radians}]`
-
-    Examples::
-
-        harmonic = angle.Harmonic()
-        harmonic.params['A-A-A'] = dict(k=3.0, t0=0.7851)
-        harmonic.params['A-B-A'] = dict(k=100.0, t0=1.0)
-
     """
 
-    _cpp_class_name = 'HarmonicAngleForceCompute'
+    _cpp_class_name = "HarmonicAngleForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Angle._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()
-        params = TypeParameter('params', 'angle_types',
-                               TypeParameterDict(t0=float, k=float, len_keys=1))
+        params = TypeParameter(
+            "params", "angle_types", TypeParameterDict(t0=float, k=float, len_keys=1)
+        )
         self._add_typeparam(params)
 
 
@@ -122,6 +132,19 @@ class CosineSquared(Angle):
 
     `CosineSquared` is used in the gromos96 and MARTINI force fields.
 
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            cosinesq = hoomd.md.angle.CosineSquared()
+            cosinesq.params["A-A-A"] = dict(k=3.0, t0=0.7851)
+            cosinesq.params["A-B-A"] = dict(k=100.0, t0=1.0)
+
+    {inherited}
+
+
+    **Members defined in** `CosineSquared`:
+
     Attributes:
         params (TypeParameter[``angle type``, dict]):
             The parameter of the harmonic bonds for each particle type.
@@ -132,20 +155,18 @@ class CosineSquared(Angle):
 
             * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
               :math:`[\mathrm{radians}]`
-
-    Examples::
-
-        cosinesq = angle.CosineSquared()
-        cosinesq.params['A-A-A'] = dict(k=3.0, t0=0.7851)
-        cosinesq.params['A-B-A'] = dict(k=100.0, t0=1.0)
     """
 
-    _cpp_class_name = 'CosineSqAngleForceCompute'
+    _cpp_class_name = "CosineSqAngleForceCompute"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Angle._doc_inherited)
+    )
 
     def __init__(self):
         super().__init__()
-        params = TypeParameter('params', 'angle_types',
-                               TypeParameterDict(t0=float, k=float, len_keys=1))
+        params = TypeParameter(
+            "params", "angle_types", TypeParameterDict(t0=float, k=float, len_keys=1)
+        )
         self._add_typeparam(params)
 
 
@@ -172,8 +193,12 @@ class Table(Angle):
     :math:`U_\\mathrm{table}(\\theta)` on evenly spaced grid points points
     in the range :math:`\\theta \\in [0,\\pi]`. `Table` linearly
     interpolates values when :math:`\\theta` lies between grid points. The
-    torque must be specificed commensurate with the potential: :math:`\\tau =
+    torque must be commensurate with the potential: :math:`\\tau =
     -\\frac{\\partial U}{\\partial \\theta}`.
+
+    {inherited}
+
+    **Members defined in** `Table`:
 
     Attributes:
         params (`TypeParameter` [``angle type``, `dict`]):
@@ -190,18 +215,25 @@ class Table(Angle):
         width (int): Number of points in the table.
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Angle._doc_inherited)
+    )
+
     def __init__(self, width):
         super().__init__()
         param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
-        param_dict['width'] = width
+        param_dict["width"] = width
         self._param_dict = param_dict
 
         params = TypeParameter(
-            "params", "angle_types",
+            "params",
+            "angle_types",
             TypeParameterDict(
                 U=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                len_keys=1))
+                len_keys=1,
+            ),
+        )
         self._add_typeparam(params)
 
     def _attach_hook(self):
@@ -212,3 +244,11 @@ class Table(Angle):
             cpp_cls = _md.TableAngleForceComputeGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
+
+
+__all__ = [
+    "Angle",
+    "CosineSquared",
+    "Harmonic",
+    "Table",
+]

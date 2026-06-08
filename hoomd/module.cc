@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Action.h"
@@ -38,14 +38,24 @@
 #include "Updater.h"
 #include "UpdaterRemoveDrift.h"
 #include "Variant.h"
+#include "VectorVariant.h"
 
 // ParticleFilter objects
 #include "filter/export_filters.h"
 
 // optional MPCD classes
 #ifdef BUILD_MPCD
-#include "hoomd/mpcd/ParticleData.h"
-#include "hoomd/mpcd/ParticleDataSnapshot.h"
+namespace hoomd
+    {
+namespace mpcd
+    {
+namespace detail
+    {
+void export_ParticleData(pybind11::module& pybind11);
+void export_ParticleDataSnapshot(pybind11::module& pybind11);
+    } // namespace detail
+    } // namespace mpcd
+    } // namespace hoomd
 #endif
 
 // include GPU classes
@@ -75,14 +85,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-
-#ifdef ENABLE_TBB
-#include <tbb/task_arena.h>
-#endif
-
-/*! \file hoomd_module.cc
-    \brief Brings all of the export_* functions together to export the hoomd python module
-*/
 
 namespace hoomd
     {
@@ -209,7 +211,6 @@ PYBIND11_MODULE(_hoomd, m)
         .def_static("getGPUAPIVersion", BuildInfo::getGPUAPIVersion)
         .def_static("getGPUPlatform", BuildInfo::getGPUPlatform)
         .def_static("getCXXCompiler", BuildInfo::getCXXCompiler)
-        .def_static("getEnableTBB", BuildInfo::getEnableTBB)
         .def_static("getEnableMPI", BuildInfo::getEnableMPI)
         .def_static("getSourceDir", BuildInfo::getSourceDir)
         .def_static("getInstallDir", BuildInfo::getInstallDir)
@@ -352,6 +353,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // variant
     export_Variant(m);
+
+    // vector variant
+    export_VectorVariantBoxClasses(m);
 
     // messenger
     export_Messenger(m);

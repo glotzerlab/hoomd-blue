@@ -1,14 +1,12 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Wall forces.
-
-Wall potential classes compute forces, virials, and energies between all
+r"""Wall potential classes compute forces, virials, and energies between all
 particles and the given walls consistent with the energy:
 
 .. math::
 
-    U_\mathrm{wall} = \sum_{i=0}^{\mathrm{N_particles-1}}
+    U_\mathrm{wall} = \sum_{i=0}^{N_\mathrm{particles}-1}
                       \sum_{w \in walls} U_w(d_i),
 
 where :math:`d_i` is the signed distance between particle :math:`i` and the wall
@@ -65,12 +63,12 @@ Below we show the potential for a `hoomd.wall.Sphere` with radius 5 in 2D,
 using the Gaussian potential with :math:`\epsilon=1, \sigma=1` and
 ``inside=True``:
 
-.. image:: md-wall-potential.svg
+.. image:: /md-wall-potential.svg
     :alt: Example plot of wall potential.
 
 When ``inside=False``, the potential becomes:
 
-.. image:: md-wall-potential-outside.svg
+.. image:: /md-wall-potential-outside.svg
     :alt: Example plot of an outside wall potential.
 
 .. rubric:: Extrapolated Mode:
@@ -104,7 +102,7 @@ to the wall:
 Below is an example of extrapolation with ``r_extrap=1.1`` for a LJ
 potential with :math:`\epsilon=1, \sigma=1`.
 
-.. image:: md-wall-extrapolate.svg
+.. image:: /md-wall-extrapolate.svg
     :alt: Example plot demonstrating potential extrapolation.
 
 To use extrapolated mode ``r_extrap`` must be set per particle type.
@@ -142,29 +140,34 @@ from hoomd.md import force
 from hoomd.data.array_view import _ArrayViewWrapper
 from hoomd.md import _md
 import hoomd
+import inspect
 
 
 def _to_md_cpp_wall(wall):
     if isinstance(wall, hoomd.wall.Sphere):
-        return _md.SphereWall(wall.radius, wall.origin.to_base(), wall.inside,
-                              wall.open)
+        return _md.SphereWall(
+            wall.radius, wall.origin.to_base(), wall.inside, wall.open
+        )
     if isinstance(wall, hoomd.wall.Cylinder):
-        return _md.CylinderWall(wall.radius, wall.origin.to_base(),
-                                wall.axis.to_base(), wall.inside, wall.open)
+        return _md.CylinderWall(
+            wall.radius,
+            wall.origin.to_base(),
+            wall.axis.to_base(),
+            wall.inside,
+            wall.open,
+        )
     if isinstance(wall, hoomd.wall.Plane):
-        return _md.PlaneWall(wall.origin.to_base(), wall.normal.to_base(),
-                             wall.open)
+        return _md.PlaneWall(wall.origin.to_base(), wall.normal.to_base(), wall.open)
     raise TypeError(f"Unknown wall type encountered {type(wall)}.")
 
 
 class _WallArrayViewFactory:
-
     def __init__(self, cpp_wall_potential, wall_type):
         self.cpp_obj = cpp_wall_potential
         self.func_name = {
             hoomd.wall.Sphere: "get_sphere_list",
             hoomd.wall.Cylinder: "get_cylinder_list",
-            hoomd.wall.Plane: "get_plane_list"
+            hoomd.wall.Plane: "get_plane_list",
         }[wall_type]
 
     def __call__(self):
@@ -178,7 +181,33 @@ class WallPotential(force.Force):
         `WallPotential` should not be used directly.  It is a base class that
         provides features and documentation common to all standard wall
         potentials.
+
+    {inherited}
+
+    **Members defined in** `WallPotential`:
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(force.Force._doc_inherited)
+    )
+
+    _doc_inherited = (
+        force.Force._doc_inherited
+        + """
+
+    **Members inherited from**
+    `WallPotential <hoomd.md.external.wall.WallPotential>`:
+
+    .. py:attribute:: walls
+
+        A list of wall definitions to use for the force.
+        `Read more... <hoomd.md.external.wall.WallPotential.walls>`
+    """
+    )
+
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
 
     def __init__(self, walls):
         self._walls = None
@@ -186,26 +215,29 @@ class WallPotential(force.Force):
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cls = getattr(_md, self._cpp_class_name)
+            cls = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cls = getattr(_md, self._cpp_class_name + "GPU")
+            cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
-        self._walls._sync({
-            hoomd.wall.Sphere:
-                _ArrayViewWrapper(
-                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Sphere)),
-            hoomd.wall.Cylinder:
-                _ArrayViewWrapper(
-                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Cylinder)),
-            hoomd.wall.Plane:
-                _ArrayViewWrapper(
-                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
-        })
+        self._walls._sync(
+            {
+                hoomd.wall.Sphere: _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Sphere)
+                ),
+                hoomd.wall.Cylinder: _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Cylinder)
+                ),
+                hoomd.wall.Plane: _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)
+                ),
+            }
+        )
 
     @property
     def walls(self):
         """`list` [`hoomd.wall.WallGeometry`]: \
-            The walls associated with this wall potential."""
+            The walls associated with this wall potential.
+        """
         return self._walls
 
     @walls.setter
@@ -214,19 +246,19 @@ class WallPotential(force.Force):
             return
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_md_cpp_wall)
         if self._attached:
-            self._walls._sync({
-                hoomd.wall.Sphere:
-                    _ArrayViewWrapper(
-                        _WallArrayViewFactory(self._cpp_obj,
-                                              hoomd.wall.Sphere)),
-                hoomd.wall.Cylinder:
-                    _ArrayViewWrapper(
-                        _WallArrayViewFactory(self._cpp_obj,
-                                              hoomd.wall.Cylinder)),
-                hoomd.wall.Plane:
-                    _ArrayViewWrapper(
-                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
-            })
+            self._walls._sync(
+                {
+                    hoomd.wall.Sphere: _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Sphere)
+                    ),
+                    hoomd.wall.Cylinder: _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Cylinder)
+                    ),
+                    hoomd.wall.Plane: _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)
+                    ),
+                }
+            )
 
 
 class LJ(WallPotential):
@@ -243,9 +275,22 @@ class LJ(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         lj = hoomd.md.external.wall.LJ(walls=walls)
-        lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0, "r_cut": 2.5}
-        lj.params[['A','B']] = {"epsilon": 2.0, "sigma": 1.0, "r_cut": 2.8}
+        lj.params["A"] = {
+            "sigma": 1.0,
+            "epsilon": 1.0,
+            "r_cut": 2.5,
+        }
+        lj.params[["A", "B"]] = {
+            "epsilon": 2.0,
+            "sigma": 1.0,
+            "r_cut": 2.8,
+        }
         lj.params["A"] = {"r_extrap": 1.1}
+
+    {inherited}
+
+
+    **Members defined in** `LJ`:
 
     .. py:attribute:: params
 
@@ -266,19 +311,21 @@ class LJ(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialLJ"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
-
         # initialize the base class
         super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
-                                                        sigma=float,
-                                                        r_cut=float,
-                                                        r_extrap=0.0,
-                                                        len_keys=1))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                epsilon=float, sigma=float, r_cut=float, r_extrap=0.0, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -296,13 +343,21 @@ class Gaussian(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         gaussian_wall = hoomd.md.external.wall.Gaussian(walls=walls)
-        gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
-        gaussian_wall.params[['A','B']] = {
-            "epsilon": 2.0, "sigma": 1.0, "r_cut": 1.0}
+        gaussian_wall.params["A"] = {
+            "epsilon": 1.0,
+            "sigma": 1.0,
+            "r_cut": 2.5,
+        }
+        gaussian_wall.params[["A", "B"]] = {
+            "epsilon": 2.0,
+            "sigma": 1.0,
+            "r_cut": 1.0,
+        }
 
-    Attributes:
-        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the force.
+    {inherited}
+
+
+    **Members defined in** `Gaussian`:
 
     .. py:attribute:: params
 
@@ -323,19 +378,21 @@ class Gaussian(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialGauss"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
-
         # initialize the base class
         super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
-                                                        sigma=float,
-                                                        r_cut=float,
-                                                        r_extrap=0.0,
-                                                        len_keys=1))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                epsilon=float, sigma=float, r_cut=float, r_extrap=0.0, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -353,14 +410,21 @@ class Yukawa(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         yukawa_wall = hoomd.md.external.wall.Yukawa(walls=walls)
-        yukawa_wall.params['A'] = {
-            "epsilon": 1.0, "kappa": 1.0, "r_cut": 3.0}
-        yukawa_wall.params[['A','B']] = {
-            "epsilon": 0.5, "kappa": 3.0, "r_cut": 3.2}
+        yukawa_wall.params["A"] = {
+            "epsilon": 1.0,
+            "kappa": 1.0,
+            "r_cut": 3.0,
+        }
+        yukawa_wall.params[["A", "B"]] = {
+            "epsilon": 0.5,
+            "kappa": 3.0,
+            "r_cut": 3.2,
+        }
 
-    Attributes:
-        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the force.
+    {inherited}
+
+
+    **Members defined in** `Yukawa`:
 
     .. py:attribute:: params
 
@@ -381,19 +445,21 @@ class Yukawa(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialYukawa"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
-
         # initialize the base class
         super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
-                                                        kappa=float,
-                                                        r_cut=float,
-                                                        r_extrap=0.0,
-                                                        len_keys=1))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                epsilon=float, kappa=float, r_cut=float, r_extrap=0.0, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -412,14 +478,23 @@ class Morse(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         morse_wall = hoomd.md.external.wall.Morse(walls=walls)
-        morse_wall.params['A'] = {
-            "D0": 1.0, "alpha": 1.0, "r0": 1.0, "r_cut": 3.0}
-        morse_wall.params[['A','B']] = {
-            "D0": 0.5, "alpha": 3.0, "r0": 1.0, "r_cut": 3.2}
+        morse_wall.params["A"] = {
+            "D0": 1.0,
+            "alpha": 1.0,
+            "r0": 1.0,
+            "r_cut": 3.0,
+        }
+        morse_wall.params[["A", "B"]] = {
+            "D0": 0.5,
+            "alpha": 3.0,
+            "r0": 1.0,
+            "r_cut": 3.2,
+        }
 
-    Attributes:
-        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the force.
+    {inherited}
+
+
+    **Members defined in** `Morse`:
 
     .. py:attribute:: params
 
@@ -440,20 +515,21 @@ class Morse(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialMorse"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
-
         # initialize the base class
         super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(D0=float,
-                                                        r0=float,
-                                                        alpha=float,
-                                                        r_cut=float,
-                                                        r_extrap=0.0,
-                                                        len_keys=1))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                D0=float, r0=float, alpha=float, r_cut=float, r_extrap=0.0, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -471,16 +547,22 @@ class ForceShiftedLJ(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        shifted_lj_wall = hoomd.md.external.wall.ForceShiftedLJ(
-            walls=walls)
-        shifted_lj_wall.params['A'] = {
-            "epsilon": 1.0, "sigma": 1.0, "r_cut": 3.0}
-        shifted_lj_wall.params[['A','B']] = {
-            "epsilon": 0.5, "sigma": 3.0, "r_cut": 3.2}
+        shifted_lj_wall = hoomd.md.external.wall.ForceShiftedLJ(walls=walls)
+        shifted_lj_wall.params["A"] = {
+            "epsilon": 1.0,
+            "sigma": 1.0,
+            "r_cut": 3.0,
+        }
+        shifted_lj_wall.params[["A", "B"]] = {
+            "epsilon": 0.5,
+            "sigma": 3.0,
+            "r_cut": 3.2,
+        }
 
-    Attributes:
-        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the force.
+    {inherited}
+
+
+    **Members defined in** `ForceShiftedLJ`:
 
     .. py:attribute:: params
 
@@ -501,19 +583,21 @@ class ForceShiftedLJ(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialForceShiftedLJ"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
-
         # initialize the base class
         super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
-                                                        sigma=float,
-                                                        r_cut=float,
-                                                        r_extrap=0.0,
-                                                        len_keys=1))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                epsilon=float, sigma=float, r_cut=float, r_extrap=0.0, len_keys=1
+            ),
+        )
         self._add_typeparam(params)
 
 
@@ -531,14 +615,24 @@ class Mie(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         mie_wall = hoomd.md.external.wall.Mie(walls=walls)
-        mie_wall.params['A'] = {
-            "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6, "r_cut": 3.0}
-        mie_wall.params[['A','B']] = {
-            "epsilon": 0.5, "sigma": 3.0, "n": 49, "m": 50, "r_cut": 3.2}
+        mie_wall.params["A"] = {
+            "epsilon": 1.0,
+            "sigma": 1.0,
+            "n": 12,
+            "m": 6,
+            "r_cut": 3.0,
+        }
+        mie_wall.params[["A", "B"]] = {
+            "epsilon": 0.5,
+            "sigma": 3.0,
+            "n": 49,
+            "m": 50,
+            "r_cut": 3.2,
+        }
 
-    Attributes:
-        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the force.
+    {inherited}
+
+    **Members defined in** `Mie`:
 
     .. py:attribute:: params
 
@@ -559,19 +653,36 @@ class Mie(WallPotential):
     """
 
     _cpp_class_name = "WallsPotentialMie"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(WallPotential._doc_inherited)
+    )
 
     def __init__(self, walls):
-
         # initialize the base class
         super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
-                                                        sigma=float,
-                                                        m=float,
-                                                        n=float,
-                                                        r_cut=float,
-                                                        r_extrap=0.0,
-                                                        len_keys=1))
+            "params",
+            "particle_types",
+            hoomd.data.parameterdicts.TypeParameterDict(
+                epsilon=float,
+                sigma=float,
+                m=float,
+                n=float,
+                r_cut=float,
+                r_extrap=0.0,
+                len_keys=1,
+            ),
+        )
         self._add_typeparam(params)
+
+
+__all__ = [
+    "LJ",
+    "ForceShiftedLJ",
+    "Gaussian",
+    "Mie",
+    "Morse",
+    "WallPotential",
+    "Yukawa",
+]

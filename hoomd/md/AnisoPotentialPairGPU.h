@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_H__
@@ -41,7 +41,7 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
     AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<NeighborList> nlist);
     //! Destructor
-    virtual ~AnisoPotentialPairGPU() {};
+    virtual ~AnisoPotentialPairGPU() { };
 
     virtual void
     setParams(unsigned int typ1, unsigned int typ2, const typename evaluator::param_type& param);
@@ -135,7 +135,7 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
-    this->m_exec_conf->beginMultiGPU();
+    this->m_exec_conf->setDevice();
 
     this->m_tuner->begin();
     unsigned int block_size = this->m_tuner->getParam()[0];
@@ -166,7 +166,6 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                               this->m_shift_mode,
                               flags[pdata_flag::pressure_tensor],
                               threads_per_particle,
-                              this->m_pdata->getGPUPartition(),
                               this->m_exec_conf->dev_prop,
                               first),
         this->m_params.data(),
@@ -176,8 +175,6 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    this->m_exec_conf->endMultiGPU();
     }
 
 template<class evaluator>

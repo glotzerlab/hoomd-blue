@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomOperation."""
@@ -6,6 +6,7 @@
 from abc import abstractmethod
 import functools
 import itertools
+import inspect
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
@@ -23,7 +24,7 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     so they can be added to the simulation operations.
 
     This class also implements a "pass-through" system for attributes.
-    Attributes and methods from the passed in `action` will be available
+    Attributes and methods from the passed in :py:attr:`action` will be available
     directly in this class. This does not apply to attributes with these names:
     ``trigger``, ``_action``, and ``action``.
 
@@ -34,12 +35,35 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     Note:
         This object should not be instantiated or subclassed by an user.
 
-    Attributes:
-        trigger (hoomd.trigger.Trigger): A trigger to determine when the
-            wrapped `hoomd.custom.Action` is run.
+    {inherited}
+
+    **Members defined in** `CustomOperation`:
     """
 
-    _override_setattr = {'_action', "_export_dict", "_simulation"}
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(TriggeredOperation._doc_inherited)
+    )
+
+    _doc_inherited = (
+        TriggeredOperation._doc_inherited
+        + """
+
+    **Members inherited from**
+    `CustomOperation <hoomd.custom.CustomOperation>`:
+
+    .. py:method:: act
+
+        Perform the action of the custom action if attached
+        `Read more... <hoomd.custom.CustomOperation.act>`
+
+    .. py:property:: action
+
+        Action that this operation wraps.
+        `Read more... <hoomd.custom.CustomOperation.action>`
+    """
+    )
+
+    _override_setattr = {"_action", "_export_dict", "_simulation"}
 
     @abstractmethod
     def _cpp_class_name(self):
@@ -48,13 +72,14 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
 
     def __init__(self, trigger, action):
         if not isinstance(action, Action):
-            raise ValueError("action must be a subclass of "
-                             "hoomd.custom_action.custom.Action.")
+            raise ValueError(
+                "action must be a subclass of hoomd.custom_action.custom.Action."
+            )
         self._action = action
         self._export_dict = action._export_dict
 
         param_dict = ParameterDict(trigger=Trigger)
-        param_dict['trigger'] = trigger
+        param_dict["trigger"] = trigger
         self._param_dict.update(param_dict)
 
     def __getattr__(self, attr):
@@ -65,8 +90,9 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
             try:
                 return getattr(self._action, attr)
             except AttributeError:
-                raise AttributeError("{} object has no attribute {}".format(
-                    type(self), attr))
+                raise AttributeError(
+                    "{} object has no attribute {}".format(type(self), attr)
+                )
 
     def _setattr_hook(self, attr, value):
         """This implements the __setattr__ pass through to the Action."""
@@ -78,7 +104,8 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     def _attach_hook(self):
         """Create the C++ custom operation."""
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
-            self._simulation.state._cpp_sys_def, self.trigger, self._action)
+            self._simulation.state._cpp_sys_def, self.trigger, self._action
+        )
         self._action.attach(self._simulation)
 
     def _detach_hook(self):
@@ -98,7 +125,7 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
 
     @property
     def action(self):
-        """`hoomd.custom.Action` The action the operation wraps."""
+        """hoomd.custom.Action: Action that this operation wraps."""
         return self._action
 
     def __setstate__(self, state):
@@ -133,7 +160,8 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
         extra_methods = dct.get("_wrap_methods", [])
         for name in itertools.chain(action_cls._export_dict, extra_methods):
             wrapped_method = _AbstractLoggableWithPassthrough._wrap_loggable(
-                name, getattr(action_cls, name))
+                name, getattr(action_cls, name)
+            )
             setattr(cls, name, wrapped_method)
         cls._export_dict = action_cls._export_dict
         _AbstractLoggable.__init__(cls, name, base, dct)
@@ -143,7 +171,6 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
         if isinstance(mthd, property):
 
             @property
-            @functools.wraps(mthd)
             def getter(self):
                 return getattr(self._action, name)
 
@@ -153,6 +180,7 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
                 def setter(self, new_value):
                     setattr(self._action, name, new_value)
 
+            getter.__doc__ = mthd.__doc__
             return getter
 
         @functools.wraps(mthd)
@@ -172,12 +200,14 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
             # classmethods in the wrapping operation should be fine.
             return getattr(self._internal_class, attr)
         except AttributeError:
-            raise AttributeError("{} object {} has no attribute {}".format(
-                type(self), self, attr))
+            raise AttributeError(
+                "{} object {} has no attribute {}".format(type(self), self, attr)
+            )
 
 
-class _InternalCustomOperation(CustomOperation,
-                               metaclass=_AbstractLoggableWithPassthrough):
+class _InternalCustomOperation(
+    CustomOperation, metaclass=_AbstractLoggableWithPassthrough
+):
     """Internal class for Python `Action`s. Offers a streamlined ``__init__``.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute
@@ -189,18 +219,20 @@ class _InternalCustomOperation(CustomOperation,
     # These attributes are not accessible or able to be passed through to
     # prevent leaky abstractions and help promote the illusion of a single
     # object for cases of internal custom actions.
-    _disallowed_attrs = {'detach', 'attach', 'action', "act"}
+    _disallowed_attrs = {"detach", "attach", "action", "act"}
 
     def __getattribute__(self, attr):
         if attr in object.__getattribute__(self, "_disallowed_attrs"):
-            raise AttributeError("{} object {} has no attribute {}.".format(
-                type(self), self, attr))
+            raise AttributeError(
+                "{} object {} has no attribute {}.".format(type(self), self, attr)
+            )
         return object.__getattribute__(self, attr)
 
     def __getattr__(self, attr):
         if attr in self._disallowed_attrs:
-            raise AttributeError("{} object {} has no attribute {}.".format(
-                type(self), self, attr))
+            raise AttributeError(
+                "{} object {} has no attribute {}.".format(type(self), self, attr)
+            )
         return super().__getattr__(attr)
 
     @property
@@ -216,17 +248,12 @@ class _InternalCustomOperation(CustomOperation,
             key: value.update_cls(self.__class__)
             for key, value in self._export_dict.items()
         }
-        # Wrap action act method with operation appropriate one.
-        wrapping_method = getattr(self, self._operation_func).__func__
-        setattr(wrapping_method, "__doc__", self._action.act.__doc__)
 
     def __dir__(self):
         """Expose all attributes for dynamic querying in notebooks and IDEs."""
         list_ = super().__dir__()
         act = self._action
-        action_list = [
-            k for k in itertools.chain(act._param_dict, act._typeparam_dict)
-        ]
+        action_list = [k for k in itertools.chain(act._param_dict, act._typeparam_dict)]
         list_.remove("action")
         list_.remove("act")
         return list_ + action_list

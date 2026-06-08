@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Long-range potentials evaluated using the PPPM method."""
@@ -7,6 +7,7 @@ import hoomd
 from hoomd.md.force import Force
 import math
 import numpy
+import inspect
 
 
 def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
@@ -28,7 +29,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
 
     .. math::
 
-        U_\\mathrm{coulomb} = \\frac{1}{2} \\sum_\\vec{n} \\sum_{i=0}^{N-1}
+        U_\\mathrm{coulomb} = \\frac{1}{2} \\sum_{\\vec{n}} \\sum_{i=0}^{N-1}
           \\sum_{j=0}^{N-1} u_\\mathrm{coulomb}(\\vec{r}_j - \\vec{r}_i +
           n_1 \\cdot \\vec{a}_1 + n_2 \\cdot \\vec{a}_2 +
           n_3 \\cdot \\vec{a}_3, q_i, q_j)
@@ -46,7 +47,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
 
     Note:
         In HOOMD-blue, the :math:`\\frac{1}{4\\pi\\epsilon_0}` factor is
-        included in the `units of charge <units>`.
+        included in the `units of charge </units>`.
 
     The particle particle particle mesh (PPPM) method splits this computation
     into real space and reciprocal space components.
@@ -110,16 +111,16 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
         Add both of these forces to the integrator.
 
     Warning:
-        `make_pppm_coulomb_forces` sets all parameters for the returned `Force`
-        objects given the input resolution and order. Do not change the
+        :py:func:`make_pppm_coulomb_forces` sets all parameters for the returned
+        `Force` objects given the input resolution and order. Do not change the
         parameters of the returned objects directly.
 
     .. _J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980:
       https://doi.org/10.1063/1.464397
 
-    .. _D. LeBard et. al. 2012: http://dx.doi.org/10.1039/c1sm06787g
+    .. _D. LeBard et. al. 2012: https://dx.doi.org/10.1039/c1sm06787g
 
-    .. _Salin, G and Caillol, J. 2000: http://dx.doi.org/10.1063/1.1326477
+    .. _Salin, G and Caillol, J. 2000: https://dx.doi.org/10.1063/1.1326477
     """
     real_space_force = hoomd.md.pair.Ewald(nlist)
 
@@ -128,12 +129,14 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     real_space_force.params.default = dict(kappa=0, alpha=0)
     real_space_force.r_cut.default = r_cut
 
-    reciprocal_space_force = Coulomb(nlist=nlist,
-                                     resolution=resolution,
-                                     order=order,
-                                     r_cut=r_cut,
-                                     alpha=0,
-                                     pair_force=real_space_force)
+    reciprocal_space_force = Coulomb(
+        nlist=nlist,
+        resolution=resolution,
+        order=order,
+        r_cut=r_cut,
+        alpha=alpha,
+        pair_force=real_space_force,
+    )
 
     return real_space_force, reciprocal_space_force
 
@@ -142,9 +145,13 @@ class Coulomb(Force):
     """Reciprocal space part of the PPPM Coulomb forces.
 
     Note:
-        Use `make_pppm_coulomb_forces` to create a connected pair of
+        Use :py:func:`make_pppm_coulomb_forces` to create a connected pair of
         `md.pair.Ewald` and `md.long_range.pppm.Coulomb` instances that together
         implement the PPPM method for electrostatics.
+
+    {inherited}
+
+    **Members defined in** `Coulomb`:
 
     Attributes:
         resolution (tuple[int, int, int]): Number of grid points in the x, y,
@@ -157,15 +164,20 @@ class Coulomb(Force):
           :math:`\\mathrm{[length^{-1}]}`.
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
     def __init__(self, nlist, resolution, order, r_cut, alpha, pair_force):
         super().__init__()
-        self._nlist = hoomd.data.typeconverter.OnlyTypes(
-            hoomd.md.nlist.NeighborList)(nlist)
+        self._nlist = hoomd.data.typeconverter.OnlyTypes(hoomd.md.nlist.NeighborList)(
+            nlist
+        )
         self._param_dict.update(
-            hoomd.data.parameterdicts.ParameterDict(resolution=(int, int, int),
-                                                    order=int,
-                                                    r_cut=float,
-                                                    alpha=float))
+            hoomd.data.parameterdicts.ParameterDict(
+                resolution=(int, int, int), order=int, r_cut=float, alpha=float
+            )
+        )
 
         self.resolution = resolution
         self.order = order
@@ -190,8 +202,9 @@ class Coulomb(Force):
         alpha = self.alpha
 
         group = self._simulation.state._get_group(hoomd.filter.All())
-        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
-                            self.nlist._cpp_obj, group)
+        self._cpp_obj = cls(
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj, group
+        )
 
         # compute the kappa parameter
         q2 = self._cpp_obj.getQ2Sum()
@@ -214,8 +227,7 @@ class Coulomb(Force):
         fmid = _diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
 
         if f * fmid >= 0.0:
-            raise RuntimeError("Cannot compute PPPM Coloumb forces,\n"
-                               "f*fmid >= 0.0")
+            raise RuntimeError("Cannot compute PPPM Coloumb forces,\nf*fmid >= 0.0")
 
         if f < 0.0:
             dgew = gew2 - gew1
@@ -235,8 +247,7 @@ class Coulomb(Force):
                 rtb = kappa
             ncount += 1
             if ncount > 10000.0:
-                raise RuntimeError("Cannot compute PPPM\n"
-                                   "kappa is not converging")
+                raise RuntimeError("Cannot compute PPPM\nkappa is not converging")
 
         # set parameters
         particle_types = self._simulation.state.particle_types
@@ -266,14 +277,11 @@ class Coulomb(Force):
             raise RuntimeError("nlist cannot be set after scheduling.")
         else:
             self._nlist = hoomd.data.typeconverter.OnlyTypes(
-                hoomd.md.nlist.NeighborList)(value)
+                hoomd.md.nlist.NeighborList
+            )(value)
 
             # ensure that the pair force uses the same neighbor list
             self._pair_force.nlist = value
-
-    @property
-    def _children(self):
-        return [self.nlist]
 
 
 def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
@@ -281,10 +289,13 @@ def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = _rms(hx, xprd, N, order, kappa, q2)
     lpry = _rms(hy, yprd, N, order, kappa, q2)
     lprz = _rms(hz, zprd, N, order, kappa, q2)
-    kspace_prec = math.sqrt(lprx * lprx + lpry * lpry
-                            + lprz * lprz) / math.sqrt(3.0)
-    real_prec = 2.0 * q2 * math.exp(-kappa * kappa * rcut * rcut) / math.sqrt(
-        N * rcut * xprd * yprd * zprd)
+    kspace_prec = math.sqrt(lprx * lprx + lpry * lpry + lprz * lprz) / math.sqrt(3.0)
+    real_prec = (
+        2.0
+        * q2
+        * math.exp(-kappa * kappa * rcut * rcut)
+        / math.sqrt(N * rcut * xprd * yprd * zprd)
+    )
     value = kspace_prec - real_prec
     return value
 
@@ -325,6 +336,17 @@ def _rms(h, prd, N, order, kappa, q2):
     sum = 0.0
     for m in range(0, order):
         sum += acons[order][m] * pow(h * kappa, 2.0 * m)
-    value = q2 * pow(h * kappa, order) * math.sqrt(
-        kappa * prd * math.sqrt(2.0 * math.pi) * sum / N) / prd / prd
+    value = (
+        q2
+        * pow(h * kappa, order)
+        * math.sqrt(kappa * prd * math.sqrt(2.0 * math.pi) * sum / N)
+        / prd
+        / prd
+    )
     return value
+
+
+__all__ = [
+    "Coulomb",
+    "make_pppm_coulomb_forces",
+]

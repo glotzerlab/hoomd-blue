@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -26,20 +26,25 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
                    int queue_size,
                    std::string mode,
                    bool write_on_init,
-                   uint64_t timestep);
+                   bool clear_whole_buffer_after_dump,
+                   uint64_t timestep,
+                   std::string precision);
     ~GSDDequeWriter() = default;
 
     void analyze(uint64_t timestep) override;
 
-    void dump();
+    void dump(long int start, long int end);
 
     int getMaxQueueSize() const;
     void setMaxQueueSize(int new_max_size);
+    bool getClearWholeBufferAfterDump() const;
+    void setClearWholeBufferAfterDump(bool clear_whole_buffer_after_dump);
 
     size_t getCurrentQueueSize() const;
 
     protected:
     int m_queue_size;
+    bool m_clear_whole_buffer_after_dump;
     std::deque<GSDDumpWriter::GSDFrame> m_frame_queue;
     std::deque<pybind11::dict> m_log_queue;
     };

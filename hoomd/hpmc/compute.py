@@ -1,16 +1,11 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Compute properties of hard particle configurations.
-
-The HPMC compute classes analyze the system configuration and provide results
+"""The HPMC compute classes analyze the system configuration and provide results
 as loggable quantities for use with `hoomd.logging.Logger` or by direct access
 via the Python API. `FreeVolume` computes the free volume available to small
-particles, such as depletants, and `SDF` computes the pressure in system of
-convex particles with a fixed box size.
+particles and `SDF` samples the pressure.
 """
-
-from __future__ import print_function
 
 from hoomd import _hoomd
 from hoomd.operation import Compute
@@ -20,6 +15,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
 import numpy
+import inspect
 
 
 class FreeVolume(Compute):
@@ -72,7 +68,6 @@ class FreeVolume(Compute):
     2D).
 
     Note:
-
         `FreeVolume` respects the HPMC integrator's ``interaction_matrix``.
 
     .. rubric:: Mixed precision
@@ -89,9 +84,14 @@ class FreeVolume(Compute):
 
     Examples::
 
-        fv = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
-                                           num_samples=1000)
+        fv = hoomd.hpmc.compute.FreeVolume(
+            test_particle_type="B", num_samples=1000
+        )
 
+
+    {inherited}
+
+    **Members defined in** `FreeVolume`:
 
     Attributes:
         test_particle_type (str): Test particle type.
@@ -100,13 +100,18 @@ class FreeVolume(Compute):
 
     """
 
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
+
     def __init__(self, test_particle_type, num_samples):
         # store metadata
         param_dict = ParameterDict(test_particle_type=str, num_samples=int)
         param_dict.update(
-            dict(test_particle_type=test_particle_type,
-                 num_samples=num_samples))
+            dict(test_particle_type=test_particle_type, num_samples=num_samples)
+        )
         self._param_dict.update(param_dict)
+        super().__init__()
 
     def _attach_hook(self):
         integrator = self._simulation.operations.integrator
@@ -117,22 +122,23 @@ class FreeVolume(Compute):
         integrator_name = integrator.__class__.__name__
         try:
             if isinstance(self._simulation.device, hoomd.device.CPU):
-                cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name)
+                cpp_cls = getattr(_hpmc, "ComputeFreeVolume" + integrator_name)
             else:
-                cpp_cls = getattr(_hpmc,
-                                  'ComputeFreeVolume' + integrator_name + 'GPU')
+                cpp_cls = getattr(_hpmc, "ComputeFreeVolume" + integrator_name + "GPU")
         except AttributeError:
             raise RuntimeError("Unsupported integrator.")
 
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj, cl)
+        self._cpp_obj = cpp_cls(
+            self._simulation.state._cpp_sys_def, integrator._cpp_obj, cl
+        )
 
     @log(requires_run=True)
     def free_volume(self):
         """Free volume available to the test particle \
         :math:`[\\mathrm{length}^{2}]` in 2D and \
-        :math:`[\\mathrm{length}^{3}]` in 3D."""
+        :math:`[\\mathrm{length}^{3}]` in 3D.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.free_volume
 
@@ -184,6 +190,7 @@ class SDF(Compute):
 
     .. math::
 
+        \begin{split}
         x_{ij}(\vec{A}) = \min \{ & x \in \mathbb{R}_{> 0} : \\
            & \mathrm{overlap}\left(
                 S_i(\mathbf{q}_i),
@@ -199,6 +206,7 @@ class SDF(Compute):
                                  \mathbf{q}_i,
                                  \mathbf{q}_j) \\
             \} &
+        \end{split}
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle :math:`i`, and
@@ -207,6 +215,7 @@ class SDF(Compute):
 
     .. math::
 
+        \begin{split}
         x_{ij}(\vec{A}) = \max \{ & x \in \mathbb{R}_{< 0} : \\
            & \mathrm{overlap}\left(
                 S_i(\mathbf{q}_i),
@@ -222,6 +231,7 @@ class SDF(Compute):
                                  \mathbf{q}_i,
                                  \mathbf{q}_j) \\
             \} &
+        \end{split}
 
 
     For particle :math:`i`, `SDF` finds the the minimum (maximum for expansive
@@ -284,7 +294,7 @@ class SDF(Compute):
     where :math:`d` is the dimensionality of the system, :math:`\rho` is the
     number density, and :math:`\beta = \frac{1}{kT}`. This measurement of the
     pressure is inherently noisy due to the nature of the sampling. Average
-    `betaP` over many timesteps to obtain accurate results.
+    `P` over many timesteps to obtain accurate results.
 
     Assuming particle diameters are ~1, these parameter values typically
     achieve good results:
@@ -315,12 +325,20 @@ class SDF(Compute):
     where particles may overlap with non-primary images of other particles,
     including self overlap.
 
+    {inherited}
+
+    **Members defined in** `SDF`:
+
     Attributes:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
             bin :math:`[\mathrm{length}]`.
 
         dx (float): Bin width :math:`[\mathrm{length}]`.
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
 
     def __init__(self, xmax, dx):
         # store metadata
@@ -329,6 +347,7 @@ class SDF(Compute):
             dx=float(dx),
         )
         self._param_dict.update(param_dict)
+        super().__init__()
 
     def _attach_hook(self):
         integrator = self._simulation.operations.integrator
@@ -338,7 +357,7 @@ class SDF(Compute):
         # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
         integrator_name = integrator.__class__.__name__
 
-        cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
+        cpp_cls = getattr(_hpmc, "ComputeSDF" + integrator_name)
 
         self._cpp_obj = cpp_cls(
             self._simulation.state._cpp_sys_def,
@@ -347,7 +366,7 @@ class SDF(Compute):
             self.dx,
         )
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def sdf_compression(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s_\\mathrm{comp}[k]`\
         - The scale distribution function for compression moves \
@@ -363,7 +382,7 @@ class SDF(Compute):
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_compression
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def sdf_expansion(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s_\\mathrm{exp}[k]` \
         - The scale distribution function for the expansion moves \
@@ -384,24 +403,26 @@ class SDF(Compute):
         else:
             return None
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def x_compression(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): The x \
         values at the center of each bin corresponding to the scale \
         distribution function for the compressive perturbations \
-        :math:`[\\mathrm{length}]`."""
+        :math:`[\\mathrm{length}]`.
+        """
         # Ensure that num_bins is up to date.
         self._cpp_obj.compute(self._simulation.timestep)
 
         x = numpy.arange(0, self._cpp_obj.num_bins, 1) * self.dx + self.dx / 2
         return x
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def x_expansion(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): The x \
         values at the center of each bin corresponding to the scale \
         distribution function for the expansion moves \
-        :math:`[\\mathrm{length}]`."""
+        :math:`[\\mathrm{length}]`.
+        """
         # Ensure that num_bins is up to date.
         self._cpp_obj.compute(self._simulation.timestep)
 
@@ -418,8 +439,8 @@ class SDF(Compute):
         required) and computes the pressure via:
 
         .. math::
-            \\beta P = \\rho \\left(1 + \\frac{s_\\mathrm{comp}(0+)}{2d} +
-            \\frac{s_\\mathrm{exp}(0-)}{2d} \
+            \\beta P = \\rho \\left(1 +
+            \\frac{s_\\mathrm{comp}(0+) - s_\\mathrm{exp}(0-)}{2d} \
             \\right)
 
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
@@ -446,8 +467,7 @@ class SDF(Compute):
             # perform the fit and extrapolation
             p = numpy.polyfit(x_fit_compression, sdf_fit_compression, 5)
             p0_compression = numpy.polyval(p, 0.0)
-            compression_contribution = rho * p0_compression / (2
-                                                               * box.dimensions)
+            compression_contribution = rho * p0_compression / (2 * box.dimensions)
 
             # expansive contribution
             # perform the fit and extrapolation
@@ -458,3 +478,32 @@ class SDF(Compute):
             return rho + compression_contribution + expansion_contribution
         else:
             return None
+
+    @log(requires_run=True)
+    def P(self):  # noqa: N802 - allow function name
+        """float: Pressure in NVT simulations \
+        :math:`\\left[ \\mathrm{energy} \\ \\mathrm{length}^{-d} \\right]`.
+
+        .. math::
+            P = \\frac{1}{\\beta} \\beta P
+
+        where :math:`\\beta P` is given by `betaP`.
+
+        Attention:
+            In MPI parallel execution, `P` is available on rank 0 only.
+            `P` is `None` on ranks >= 1.
+        """
+        integrator = self._simulation.operations.integrator
+
+        result = self.betaP
+
+        if result is not None:
+            return result * integrator.kT(self._simulation.timestep)
+        else:
+            return None
+
+
+__all__ = [
+    "SDF",
+    "FreeVolume",
+]

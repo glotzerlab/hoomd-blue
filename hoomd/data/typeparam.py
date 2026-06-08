@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement TypeParameter.
@@ -52,7 +52,8 @@ class TypeParameter(MutableMapping):
         lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4))
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.0)
     """
-    __slots__ = ("name", "type_kind", "param_dict")
+
+    __slots__ = ("name", "param_dict", "type_kind")
 
     def __init__(self, name, type_kind, param_dict):
         self.name = name
@@ -66,8 +67,9 @@ class TypeParameter(MutableMapping):
         try:
             return getattr(self.param_dict, attr)
         except AttributeError:
-            raise AttributeError("'{}' object has no attribute "
-                                 "'{}'".format(type(self), attr))
+            raise AttributeError(
+                "'{}' object has no attribute '{}'".format(type(self), attr)
+            )
 
     def __setitem__(self, key, value):
         """Set parameters for a given type (or type pair).
@@ -80,7 +82,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            langevin.gamma['A'] = 2.0
+            langevin.gamma["A"] = 2.0
 
         Set parameters for multiple types:
 
@@ -88,7 +90,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            langevin.gamma[['B', 'C']] = 3.0
+            langevin.gamma["B", "C", "D"] = 3.0
 
         Set type pair parameters with a tuple of names:
 
@@ -96,24 +98,16 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            lj.params[('A', 'A')] = dict(epsilon=1.5, sigma=2.0)
+            lj.params[("A", "A")] = dict(epsilon=1.5, sigma=2.0)
 
-        Set parameters for multiple pairs (e.g. ('A', 'B') and ('A', 'C')):
-
-        .. skip: next if(not hoomd.version.md_built)
-
-        .. code-block:: python
-
-            lj.params[('A', ['B', 'C'])] = dict(epsilon=0, sigma=0)
-
-        Set parameters for multiple pairs (e.g. ('B', 'B'), ('B', 'C'), ('C',
-        'B'), and ('C', 'C')):
+        Set parameters for multiple pairs (e.g. ('A', 'B'), ('C', 'D'),
+        and ('E', 'F')):
 
         .. skip: next if(not hoomd.version.md_built)
 
         .. code-block:: python
 
-            lj.params[(['B', 'C'], ['B', 'C'])] = dict(epsilon=1, sigma=1)
+            lj.params[("A", "B"), ("B", "C"), ("E", "F")] = dict(epsilon=0, sigma=0)
 
         Note:
             Setting the value for *(a,b)* automatically sets the symmetric
@@ -130,13 +124,13 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            gamma_A = langevin.gamma['A']
+            gamma_A = langevin.gamma["A"]
 
         .. skip: next if(not hoomd.version.md_built)
 
         .. code-block:: python
 
-            lj_epsilon_AB = lj.params[('A', 'B')]['epsilon']
+            lj_epsilon_AB = lj.params[("A", "B")]["epsilon"]
 
         .. rubric:: Multiple keys
 
@@ -147,7 +141,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            gammas = langevin.gamma[['A', 'B']]
+            gammas = langevin.gamma[["A", "B"]]
 
         is equivalent to:
 
@@ -155,7 +149,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            gammas = {key: langevin.gamma[key] for key in ['A', 'B']}
+            gammas = {key: langevin.gamma[key] for key in ["A", "B"]}
         """
         return self.param_dict[key]
 
@@ -182,7 +176,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            gamma_D = langevin.gamma.get('D', default=5.0)
+            gamma_D = langevin.gamma.get("D", default=5.0)
         """
         return self.param_dict.get(key, default)
 
@@ -201,7 +195,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            langevin.gamma.setdefault('D', default=5.0)
+            langevin.gamma.setdefault("D", default=5.0)
         """
         self.param_dict.setdefault(key, default)
 
@@ -214,9 +208,11 @@ class TypeParameter(MutableMapping):
 
             langevin.gamma == lj.params
         """
-        return self.name == other.name and \
-            self.type_kind == other.type_kind and \
-            self.param_dict == other.param_dict
+        return (
+            self.name == other.name
+            and self.type_kind == other.type_kind
+            and self.param_dict == other.param_dict
+        )
 
     @property
     def default(self):
@@ -253,8 +249,7 @@ class TypeParameter(MutableMapping):
         self.param_dict.default = value
 
     def _attach(self, cpp_obj, state):
-        self.param_dict._attach(cpp_obj, self.name,
-                                getattr(state, self.type_kind))
+        self.param_dict._attach(cpp_obj, self.name, getattr(state, self.type_kind))
         return self
 
     def _detach(self):

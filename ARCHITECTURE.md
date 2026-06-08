@@ -11,27 +11,23 @@ Each minor and major release of HOOMD-blue at a minimum supports:
 
 * x86_64 CPUs released in the four prior years.
 * NVIDIA GPUs released in the four prior years.
-* Compilers and software dependencies available on the oldest maintained Ubuntu LTS release.
-* The two most recent major **CUDA** toolkit versions
+* Compilers and software dependencies available on the two most recent Ubuntu LTS releases.
+* The most recent major **CUDA** toolkit version.
 
 ## Testing
 
 ### Continuous integration
 
-[Github Actions] performs continuous integration testing on HOOMD-blue. GitHub
-Actions compiles HOOMD-blue, runs the unit tests, and and reports the
+[GitHub Actions] performs continuous integration testing on HOOMD-blue. GitHub
+Actions compiles HOOMD-blue, runs the unit tests, and reports the
 status to GitHub pull requests. A number of parallel builds test a variety of
 compiler and build configurations as defined above.
 
 Visit the [workflows] page to find recent builds. The pipeline configuration
-files are in [.github/workflows/] and are built from Jinja templates in
-[.github/workflows/templates/] using `make_workflows.py` which is automatically
-run by `pre-commit`. To make changes to the workflows, edit the templates.
+files are in `.github/workflows/`.
 
 [GitHub Actions]: https://docs.github.com/en/actions
 [workflows]: https://github.com/glotzerlab/hoomd-blue/actions
-[.github/workflows/]: .github/workflows/
-[.github/workflows/templates/]: .github/workflows/templates/
 
 ## Build system
 
@@ -47,7 +43,7 @@ config files. It manages the linked libraries and additional include directories
 appropriate visibility in `target_link_libraries` to pass these dependencies on to external
 components. HOOMD-blue itself produces a CMake config file to use with `find_package`.
 
-HOOMD has many optional dependencies (e.g. LLVM) and developers can build with or without components
+HOOMD has many optional dependencies and developers can build with or without components
 or features (e.g. HPMC). These are set in CMake `ENABLE_*` and `BUILD_*` variables and passed
 into the C++ code as preprocessor definitions. New code must observe these definitions so that
 the code compiles correctly (or is excluded as needed) when a given option is set or not set.
@@ -92,10 +88,9 @@ neighboring ranks.
 
 ## Data model
 
-If you think HOOMD-blue's data model is unnecessarily complex, you are correct. Understand that it
-is a product of continual development since the year 2007 and has grown along with improving CUDA
-functionality. No developer has the time or inclination to completely refactor the entire codebase
-to be consistent with the current features. New code should follow the guidelines documented here.
+HOOMD-blue's data model is a product of continual development since the year 2007 and has grown
+along with improving CUDA functionality, but has not been refactored to be entirely
+self-consistent.
 
 Base data types:
 
@@ -114,20 +109,16 @@ Array data:
 
 * `GPUArray<T>` - Template array data type that stores two copies of the data, one on the CPU and
   one on the GPU. Use `ArrayHandle` to request a pointer to the data, which will copy the most
-  recently written data to the requested device when needed. New code should use `ArrayHandle` to
-  access existing data structures that use `GPUArray`. New code **should not** define new `GPUArray`
-  arrays, use `GlobalArray` or `std::vector` with a managed allocator.
-* `GlobalArray<T>` - Template array data type that stores one copy of the data in CUDA's unified
-  memory in single process, multi-GPU execution. When using a single GPU per process, falls back on
-  `GPUArray`. Use `ArrayHandle` to access data in `GlobalArray`.
+  recently written data to the requested device when needed.
 * `std::vector<T, hoomd::detail::managed_allocator<T>>` - Store array data in a `std::vector` in
-  CUDA's unifed memory. This data type is useful for parameter arrays that are exposed to Python.
+  CUDA's unified memory. This data type is useful for parameter arrays that are exposed to Python.
 
-When using `GlobalArray` or `std::vector<T, hoomd::detail::managed_allocator<T>>`, call
+Use `GPUArray<T>` for most data types. When unified memory is required, use the managed
+allocator.
+
+When using `std::vector<T, hoomd::detail::managed_allocator<T>>`, call
 `cudaMemadvise` to set the appropriate memory hints for the array. Small parameter arrays should be
-set to `cudaMemAdviseSetReadMostly`. Larger arrays accessed in portions in single-process multi-GPU
-execution should be set to `cudaMemAdviseSetPreferredLocation` appropriately for the different
-portions of the array.
+set to `cudaMemAdviseSetReadMostly`.
 
 System data:
 
@@ -161,7 +152,7 @@ simulation in `System::run`. There are numerous types of operations, each with t
 ### HPMC
 
 The integrator `HPMCIntegrator` defines and stores the core parameters of the simulation, such as
-the particle shape. All HPMC specific operations (such as `UpdaterClusters` and `UpdaterBoxMC`) take
+the particle shape. All HPMC specific operations (such as `UpdaterGCA` and `UpdaterBoxMC`) take
 a shared pointer to the HPMC integrator to access this information.
 
 ### MD
@@ -169,7 +160,7 @@ a shared pointer to the HPMC integrator to access this information.
 There are two MD integrators: `IntegratorTwoStep` implements normal MD simulations and
 `FIREENergyMinimizer` implements energy minimization. In MD, the integrator maintains the list of
 user-supplied forces (`ForceCompute`) to apply to particles. Both integrators also maintain a list
-of user-supplied integration methos (`IntegrationMethodTwoStep`). Each method instance operates
+of user-supplied integration methods (`IntegrationMethodTwoStep`). Each method instance operates
 on a single particle group (`ParticleGroup`) and is solely responsible for integrating the equations
 of motion of all particles in that group.
 
@@ -204,19 +195,19 @@ even when the use of that code is used only in host code. To work around these c
 kernels in HOOMD-blue are called via minimal driver functions. These driver functions are not member
 functions of their respective class, and therefore must take a long C-style argument list consisting
 of bare pointers to data arrays, array sizes, etc... The ABI for these calls is not strictly C, as
-driver functions may be templated on functor classes and/or accept lightwight C++ objects as
+driver functions may be templated on functor classes and/or accept lightweight C++ objects as
 parameters (such as `BoxDim`).
 
 ## Autotuning
 
 HOOMD-blue automatically tunes kernel block sizes, threads per particle, and other kernel launch
-paramters. The `Autotuner` class manages the sparse multi-dimensional of parameters for each kernel.
+parameters. The `Autotuner` class manages the sparse multidimensional of parameters for each kernel.
 It dynamically cycles through the possible parameters and records the performance of each using CUDA
 events. After scanning through all parameters, it selects the best performing one to continue
 executing. GPU code in HOOMD-blue should instantiate and use one `Autotuner` for each kernel.
 Classes that use have `Autotuner` member variables should inherit from `Autotuned` which tracks all
 the autotuners and provides a UI to users. When needed, classes should override the base class
-`isAutotuningComplete` and `startAutotuning` as to pass the calls on to child objects. not otherwise
+`isAutotuningComplete` and `startAutotuning` as to pass the calls on to child objects not otherwise
 managed by the `Simulation`. For example, `PotentialPair::isAutotuningComplete`, calls both
 `ForceCompute::isAutotuningComplete` and `m_nlist->isAutotuningComplete` and combines the results.
 
@@ -309,13 +300,13 @@ specification defining the validation logic for its keys. `ParameterDict`
 contains logic when given a pybind11 produced Python object can sync between C++
 and Python. See `ParameterDict.__setitem__` for this logic. Attribute specific
 logic can be created using the `_getters` and `_setters` attributes. The logic
-requires (outside custom getters and setters that all `ParameterDict` keys be
+requires (outside custom getters and setters) that all `ParameterDict` keys be
 available as properties of the C++ object using the pybind11 property
 implementation
 (https://pybind11.readthedocs.io/en/stable/classes.html#instance-and-static-fields).
 Properties can be read-only which means they will never be set through
 `ParameterDict`, but can be through the C++ class constructor. Attempting to set
-such a property after attaching will result in an `MutabiliyError` being thrown.
+such a property after attaching will result in a `MutabilityError` being thrown.
 
 This class should be used to define all attributes shared with C++ member
 variables that are on a per-object basis (i.e. not per type). Examples of
@@ -398,7 +389,7 @@ classes is automated through previously described classes.
 
 HOOMD-blue version 3 allows for much more interaction with Python objects within
 its C++ core. One feature is custom actions (see the tutorial
-https://hoomd-blue.readthedocs.io/en/latest/tutorial/03-Custom-Actions-In-Python/00-index.html
+https://hoomd-blue.readthedocs.io/en/latest/tutorial/04-Custom-Actions-In-Python/00-index.html
 or API documentation for more introductory information). When using custom
 actions internally for HOOMD, the classes `hoomd.custom._InternalAction` and one
 of the `hoomd.custom._InternalOperation` subclasses are to be used. They allow
@@ -408,18 +399,18 @@ written in Python. See the examples in `hoomd/write/table.py` and
 
 ### Pickling
 
-By default all Python subclasses of `hoomd.operation._HOOMDBaseObject` support
+By default, all Python subclasses of `hoomd.operation._HOOMDBaseObject` support
 pickling. This is to facilitate restartability and reproducibility of
 simulations. For understanding what *pickling* and Python's supported magic
-methods regarding it are see https://docs.python.org/3/library/pickle.html. In
-general we prefer using `__getstate__` and `__setstate__` if possible to make
+methods regarding it see https://docs.python.org/3/library/pickle.html. In
+general, we prefer using `__getstate__` and `__setstate__` if possible to make
 class's picklable.  For the implementation of the default pickling support for
 `hoomd.operation._HOOMDBaseObject` see the class's `__getstate__` method.
 *Notice* that we do not implement a generic `__setstate__`. We rely on Python's
 default generally which is somewhat equivalent to `self.__dict__ =
 self.__getstate__()`. Adding a custom `__setstate__` method is fine if necessary
 (see [hoomd/write/table.py](hoomd/write/table.py)).  However, using `__reduce__`
-is an appropriate alternative if is significantly reduces code complexity or has
+is an appropriate alternative if significantly reduces code complexity or has
 demonstrable advantages; see [hoomd/filter/set\_.py](hoomd/filter/set_.py) for
 an example of this approach.  _Note_ that `__reduce__` requires that a function
 be able to fully recreate the current state of the object (this means that often
@@ -445,7 +436,7 @@ wrappers, supporting pickling using pybind11 (see
 https://pybind11.readthedocs.io/en/stable/advanced/classes.html#pickling-support)
 is acceptable as well. Care just needs to be made that users are not exposed to
 C++ classes that "slip" out of their Python subclasses which can happen if no
-reference in Python remains to a unpickled object. See
+reference in Python remains to an unpickled object. See
 [hoomd/Trigger.cc](hoomd/Trigger.cc) for examples of using pybind11.
 
 **Supporting Class Changes**
@@ -466,7 +457,7 @@ internal attributes should not cause problems as well.
 
 HOOMD allows for C++ classes to expose their GPU and CPU data buffers directly
 in Python using the `__cuda_array_interface__` and `__array_interface__`. This
-behavior is controlled using the `hoomd.data.local_access._LocalAcces` class in
+behavior is controlled using the `hoomd.data.local_access._LocalAccess` class in
 Python and the classes found in `hoomd/PythonLocalDataAccess.h`. See these files
 for more details. For example implementations look at `hoomd/ParticleData.h`.
 
@@ -475,7 +466,6 @@ for more details. For example implementations look at `hoomd/ParticleData.h`.
 The top level directories are:
 
 * `CMake` - CMake scripts.
-* `example_plugin` - External developers to copy this to start developing an external component.
 * `hoomd` - Source code for the `hoomd` Python package. Subdirectories under `hoomd` follow the same
   layout as the final Python package.
 * `sphinx-doc` - Sphinx configuration and input files for the user-facing documentation.
@@ -484,12 +474,49 @@ The top level directories are:
 
 ## User
 
-The user facing documentation is compiled into a human readable document by Sphinx. The
+The user facing documentation is compiled into a human-readable document by Sphinx. The
 documentation consists of `.rst` files in the `sphinx-doc` directory and the docstrings of
 user-facing Python classes in the implementation (imported by the Sphinx autodoc extension).
 HOOMD-blue's Sphinx configuration defines mocked imports so that the documentation may be built from
-the source directory without needing to compile the C++ source code. This is greatly beneficial when
-building the documentation on readthedocs.
+the source directory without needing to compile the C++ source code.
+
+`autodoc` defaults to one HTML page per module. Users find it more convenient to read
+documentation with one page per class. The file `sphinx-doc/generate-toctree.py`
+imports `hoomd`, reads the `__all__` member and then recursively generates `.rst` files
+for each module and class. `generate-toctree.py` is run as a `prek` hook to ensure
+that the documentation is always updated.
+
+Users also strongly prefer not to navigate up the super class chain in the documentation
+in order to discover the members of a given class. Unfortunately, we are not able to
+use Sphinx'x automatic inherit-documentation because HOOMD extensively uses
+`__getattr__/__setattr__`. To meet this need, HOOMD based classes define a class-level
+`_doc_inherited` string that summarizes the inherited members. Classes should append
+this string to `__doc__` and _then_ add their inherited members (if any) to
+`_doc_inherited`.
+
+Sybil parses only docstrings, so there can be no Sybil codeblock examples in
+`_doc_inherited`. At the same time, Sphinx always adds autodoc members **after** the
+docstring contents. To work around this and provide documentation in a consistent and
+meaningful order: class docstrints should include the text `{inherited}` and update the
+docstring with
+`__doc__ = inspect.cleandoc(__doc__).replace("{inherited}", inspect.cleandoc(Parent._doc_inherited))`.
+
+After `{inherited}`, the docstring should include the lines
+```
+----------
+
+**Members defined in** `ThisClassName`:
+```
+Similarly, any additions to `_doc_inherited` should start with
+```
+----------
+
+**Members inherited from** `ThisClassName <hoomd.module.ThisClassName>:`
+```
+Together, these visually break up the sections and allow the user to see which
+methods come from where. Each entry in `_doc_inherited` should repeat only the brief
+description and provide a link to the full description (follow
+the examples in the codebase when writing your own).
 
 The tutorial portion of the documentation is written in Jupyter notebooks housed in the
 [hoomd-examples][hoomd_examples] repository. HOOMD-blue includes these in the generated Sphinx

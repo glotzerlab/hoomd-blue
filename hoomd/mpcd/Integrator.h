@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -18,11 +18,13 @@
 #include "Sorter.h"
 #include "StreamingMethod.h"
 #include "VirtualParticleFiller.h"
+
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif // ENABLE_MPI
 
 #include "hoomd/SystemDefinition.h"
+#include "hoomd/md/ForceComposite.h"
 #include "hoomd/md/IntegratorTwoStep.h"
 #include <pybind11/pybind11.h>
 
@@ -40,17 +42,38 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     virtual ~Integrator();
 
     //! Take one timestep forward
-    virtual void update(uint64_t timestep);
+    void update(uint64_t timestep) override;
 
     //! Change the timestep
-    virtual void setDeltaT(Scalar deltaT);
+    void setDeltaT(Scalar deltaT) override;
 
     //! Prepare for the run
-    virtual void prepRun(uint64_t timestep);
+    void prepRun(uint64_t timestep) override;
+
+    //! Start autotuning kernel launch parameters
+    void startAutotuning() override;
+
+    //! Check if kernel autotuning is complete
+    bool isAutotuningComplete() override;
+
+    //! Get the MPCD cell list shared by all methods
+    std::shared_ptr<mpcd::CellList> getCellList() const
+        {
+        return m_cl;
+        }
+
+    //! Set the MPCD cell list shared by all methods
+    void setCellList(std::shared_ptr<mpcd::CellList> cl)
+        {
+        m_cl = cl;
+        syncCellList();
+        }
+
+    void setRigid(std::shared_ptr<hoomd::md::ForceComposite> new_rigid) override;
 
 #ifdef ENABLE_MPI
     //! Set the MPCD communicator to use
-    virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
+    void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
         {
         // if the current communicator is set, first disable the migrate signal request
         if (m_mpcd_comm)
@@ -77,15 +100,10 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     void setCollisionMethod(std::shared_ptr<mpcd::CollisionMethod> collide)
         {
         m_collide = collide;
-        }
-
-    //! Remove the collision method
-    /*!
-     * \post The collision method is set to a null shared pointer.
-     */
-    void removeCollisionMethod()
-        {
-        m_collide.reset();
+        if (m_collide)
+            {
+            m_collide->setRigid(m_rigid_bodies);
+            }
         }
 
     //! Get current streaming method
@@ -101,16 +119,16 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     void setStreamingMethod(std::shared_ptr<mpcd::StreamingMethod> stream)
         {
         m_stream = stream;
-        m_stream->setDeltaT(m_deltaT);
+        if (m_stream)
+            {
+            m_stream->setDeltaT(m_deltaT);
+            }
         }
 
-    //! Remove the streaming method
-    /*!
-     * \post The streaming method is set to a null shared pointer.
-     */
-    void removeStreamingMethod()
+    //! Get the current sorting method
+    std::shared_ptr<mpcd::Sorter> getSorter() const
         {
-        m_stream.reset();
+        return m_sorter;
         }
 
     //! Set the sorting method
@@ -122,54 +140,33 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         m_sorter = sorter;
         }
 
-    //! Get the current sorting method
-    std::shared_ptr<mpcd::Sorter> getSorter() const
+    //! Get the virtual particle fillers
+    std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>& getFillers()
         {
-        return m_sorter;
-        }
-
-    //! Remove the current sorting method
-    /*!
-     * \post The sorting method is set to a null shared pointer.
-     */
-    void removeSorter()
-        {
-        m_sorter.reset();
-        }
-
-    //! Add a virtual particle filling method
-    void addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler);
-
-    //! Remove all virtual particle fillers
-    void removeAllFillers()
-        {
-        m_fillers.clear();
+        return m_fillers;
         }
 
     protected:
+    std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
     std::shared_ptr<mpcd::CollisionMethod> m_collide; //!< MPCD collision rule
     std::shared_ptr<mpcd::StreamingMethod> m_stream;  //!< MPCD streaming rule
     std::shared_ptr<mpcd::Sorter> m_sorter;           //!< MPCD sorter
-
 #ifdef ENABLE_MPI
     std::shared_ptr<mpcd::Communicator> m_mpcd_comm; //!< MPCD communicator
-#endif                                               // ENABLE_MPI
-
+#endif
     std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>
         m_fillers; //!< MPCD virtual particle fillers
+
     private:
     //! Check if a collision will occur at the current timestep
     bool checkCollide(uint64_t timestep)
         {
         return (m_collide && m_collide->peekCollide(timestep));
         }
-    };
 
-namespace detail
-    {
-//! Exports the mpcd::Integrator to python
-void export_Integrator(pybind11::module& m);
-    }  // end namespace detail
-    }  // end namespace mpcd
-    }  // end namespace hoomd
+    //! Synchronize cell list to integrator dependencies
+    void syncCellList();
+    };
+    } // end namespace mpcd
+    } // end namespace hoomd
 #endif // MPCD_INTEGRATOR_H_

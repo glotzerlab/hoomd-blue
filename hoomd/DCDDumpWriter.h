@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __DCDDUMPWRITER_H__
@@ -30,7 +30,7 @@
 
 // Developed by:       Theoretical and Computational Biophysics Group
 //             University of Illinois at Urbana-Champaign
-//            http://www.ks.uiuc.edu/
+//            https://www.ks.uiuc.edu/
 
 namespace hoomd
     {

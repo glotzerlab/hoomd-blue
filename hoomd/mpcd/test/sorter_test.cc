@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/Sorter.h"
@@ -66,7 +66,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
     snap->mpcd_data.type[0] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
 
     // add an embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
@@ -75,7 +75,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
     cl->setEmbeddedGroup(group);
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, nullptr);
     sorter->setCellList(cl);
     sorter->update(0);
 
@@ -245,7 +245,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
     snap->mpcd_data.type[0] = 7;
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    auto cl = std::make_shared<mpcd::CellList>(sysdef);
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
 
     // add 2 virtual particles to fill in the rest of the cells
     auto pdata = sysdef->getMPCDParticleData();
@@ -273,7 +273,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
         }
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, 0, 1);
+    std::shared_ptr<T> sorter = std::make_shared<T>(sysdef, nullptr);
     sorter->setCellList(cl);
     sorter->update(0);
 

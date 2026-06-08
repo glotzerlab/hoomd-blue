@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -47,7 +47,7 @@ template<int group_size> struct bond_args_t
           d_pos(_d_pos), d_charge(_d_charge), box(_box), d_gpu_bondlist(_d_gpu_bondlist),
           gpu_table_indexer(_gpu_table_indexer), d_gpu_bond_pos(_d_gpu_bond_pos),
           d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size),
-          devprop(_devprop) {};
+          devprop(_devprop) { };
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -331,10 +331,10 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     }
 #else
 template<class evaluator, int group_size>
-__attribute__((visibility("default"))) hipError_t
-gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
-                        const typename evaluator::param_type* d_params,
-                        unsigned int* d_flags);
+__attribute__((visibility("default")))
+hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
+                                   const typename evaluator::param_type* d_params,
+                                   unsigned int* d_flags);
 #endif
 
     } // end namespace kernel

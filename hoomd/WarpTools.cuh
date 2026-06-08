@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -24,6 +24,7 @@
 #else
 #include <cub/warp/warp_reduce.cuh>
 #include <cub/warp/warp_scan.cuh>
+#include <cuda/std/type_traits>
 #endif
 
 #ifndef __CUDACC_RTC__
@@ -55,7 +56,9 @@ namespace detail
      */
 
 #ifdef __HIP_PLATFORM_HCC__
-template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
+template<typename T,
+         int LOGICAL_WARP_THREADS = HIPCUB_DEVICE_WARP_THREADS,
+         int PTX_ARCH = HIPCUB_ARCH>
 #else
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
 #endif
@@ -69,7 +72,7 @@ class WarpReduce
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #else
-        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS,
+        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_DEVICE_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #endif
         static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS - 1)),
@@ -89,7 +92,7 @@ class WarpReduce
 #ifdef __HIP_PLATFORM_HCC__
         return Reduce(input, hipcub::Sum());
 #else
-        return Reduce(input, cub::Sum());
+        return Reduce(input, ::cuda::std::plus<> {});
 #endif
         }
 
@@ -108,7 +111,7 @@ class WarpReduce
 #ifdef __HIP_PLATFORM_HCC__
         return Reduce(input, hipcub::Sum(), valid_items);
 #else
-        return Reduce(input, cub::Sum(), valid_items);
+        return Reduce(input, ::cuda::std::plus<> {}, valid_items);
 #endif
         }
 
@@ -154,8 +157,7 @@ class WarpReduce
     typedef hipcub::WarpReduce<T, LOGICAL_WARP_THREADS, PTX_ARCH>
         MyWarpReduce; //!< CUB shuffle-based reduce
 #else
-    typedef cub::WarpReduce<T, LOGICAL_WARP_THREADS, PTX_ARCH>
-        MyWarpReduce; //!< CUB shuffle-based reduce
+    typedef cub::WarpReduce<T, LOGICAL_WARP_THREADS> MyWarpReduce; //!< CUB shuffle-based reduce
 #endif
     typedef typename MyWarpReduce::TempStorage
         TempStorage; //!< Nominal data type for CUB temporary storage
@@ -187,7 +189,9 @@ class WarpReduce
  * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
  */
 #ifdef __HIP_PLATFORM_HCC__
-template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
+template<typename T,
+         int LOGICAL_WARP_THREADS = HIPCUB_DEVICE_WARP_THREADS,
+         int PTX_ARCH = HIPCUB_ARCH>
 #else
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
 #endif
@@ -201,7 +205,7 @@ class WarpScan
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #else
-        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS,
+        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_DEVICE_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #endif
         static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS - 1)),
@@ -221,7 +225,7 @@ class WarpScan
 #ifdef __HIP_PLATFORM_HCC__
         InclusiveScan(input, output, hipcub::Sum());
 #else
-        InclusiveScan(input, output, cub::Sum());
+        InclusiveScan(input, output, ::cuda::std::plus<> {});
 #endif
         }
 
@@ -239,7 +243,7 @@ class WarpScan
 #ifdef __HIP_PLATFORM_HCC__
         InclusiveScan(input, output, hipcub::Sum(), aggregate);
 #else
-        InclusiveScan(input, output, cub::Sum(), aggregate);
+        InclusiveScan(input, output, ::cuda::std::plus<> {}, aggregate);
 #endif
         }
 
@@ -295,7 +299,7 @@ class WarpScan
 #ifdef __HIP_PLATFORM_HCC__
         ExclusiveScan(input, output, initial, hipcub::Sum());
 #else
-        ExclusiveScan(input, output, initial, cub::Sum());
+        ExclusiveScan(input, output, initial, ::cuda::std::plus<> {});
 #endif
         }
 
@@ -314,7 +318,7 @@ class WarpScan
 #ifdef __HIP_PLATFORM_HCC__
         ExclusiveScan(input, output, initial, hipcub::Sum(), aggregate);
 #else
-        ExclusiveScan(input, output, initial, cub::Sum(), aggregate);
+        ExclusiveScan(input, output, initial, ::cuda::std::plus<> {}, aggregate);
 #endif
         }
 
@@ -424,7 +428,7 @@ class WarpScan
     typedef hipcub::WarpScan<T, LOGICAL_WARP_THREADS, PTX_ARCH>
         MyWarpScan; //!< CUB shuffle-based scan
 #else
-    typedef cub::WarpScan<T, LOGICAL_WARP_THREADS, PTX_ARCH> MyWarpScan; //!< CUB shuffle-based scan
+    typedef cub::WarpScan<T, LOGICAL_WARP_THREADS> MyWarpScan; //!< CUB shuffle-based scan
 #endif
     typedef typename MyWarpScan::TempStorage
         TempStorage; //!< Nominal data type for CUB temporary storage

@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2024 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Contributing
@@ -34,9 +34,7 @@ Version control
 Base your work off the correct branch
 _____________________________________
 
-- Base backwards compatible bug fixes on ``trunk-patch``.
-- Base additional functionality on ``trunk-minor``.
-- Base API incompatible changes on ``trunk-major``.
+- Base bug fixes, new functionality, and API incompatible changes on ``trunk``.
 
 Propose a minimal set of related changes
 ________________________________________
@@ -88,15 +86,9 @@ User documentation
 Write user documentation
 ________________________
 
-Document public-facing API with Python docstrings in Google style.
-
-Document version status
-_______________________
-
-Add `versionadded, versionchanged, and deprecated Sphinx directives
-<https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded>`__
-to each user-facing Python class, method, etc., so that users will be aware of how functionality
-changes from version to version. Remove this when breaking APIs in major releases.
+Document public-facing API with Python docstrings in Google style, use the ``_doc_inherited``
+member as documented in ``ARCHITECTURE.md`` and list new public classes and functions in
+``__all__``.
 
 Add developer to the credits
 ____________________________
@@ -107,4 +99,4 @@ contributed to the code.
 Propose a change log entry
 __________________________
 
-Propose a short concise entry describing the change in the pull request description.
+Propose a concise entry describing the change in ``CHANGELOG.rst``.

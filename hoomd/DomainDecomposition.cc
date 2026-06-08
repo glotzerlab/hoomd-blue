@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DomainDecomposition.cc
@@ -77,9 +77,9 @@ DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration>
         || (nz > 0 && try_fzs.size() != m_nz - 1))
         {
         std::ostringstream o;
-        o << "Domain decomposition grid does not match specification:"
-          << "(" << m_nx << "," << m_ny << "," << m_nz << ") is not (" << try_fxs.size() + 1 << ","
-          << try_fys.size() + 1 << "," << try_fzs.size() + 1 << ")";
+        o << "Domain decomposition grid does not match specification:" << "(" << m_nx << "," << m_ny
+          << "," << m_nz << ") is not (" << try_fxs.size() + 1 << "," << try_fys.size() + 1 << ","
+          << try_fzs.size() + 1 << ")";
         throw std::invalid_argument(o.str());
         }
 
@@ -174,10 +174,10 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
     m_index = Index3D(m_nx, m_ny, m_nz);
 
     // map cartesian grid onto ranks
-    GlobalArray<unsigned int> cart_ranks(nranks, m_exec_conf);
+    GPUArray<unsigned int> cart_ranks(nranks, m_exec_conf);
     m_cart_ranks.swap(cart_ranks);
 
-    GlobalArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
+    GPUArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
     m_cart_ranks_inv.swap(cart_ranks_inv);
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks,
@@ -735,5 +735,5 @@ void export_DomainDecomposition(pybind11::module& m)
     }
     } // end namespace detail
 
-    }  // end namespace hoomd
+    } // end namespace hoomd
 #endif // ENABLE_MPI

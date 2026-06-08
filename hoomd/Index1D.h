@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __INDEX1D_H__
@@ -71,16 +71,6 @@ struct Index2D
     HOSTDEVICE inline unsigned int getH() const
         {
         return m_h;
-        }
-
-    //! Get the inverse mapping 1D-index -> coordinate pair
-    HOSTDEVICE inline uint2 getPair(const unsigned int idx) const
-        {
-        uint2 t;
-
-        t.y = idx / m_w;
-        t.x = idx % m_w;
-        return t;
         }
 
     private:
@@ -184,7 +174,7 @@ struct Index2DUpperTriangular
         \param j row index
         \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         \note Formula adapted from:
-       http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
+       https://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
     */
     HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j) const
         {

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_TERSOFF_H__
@@ -133,7 +133,10 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
     bool m_attached = true;
 
     // r_cut (not squared) given to the neighborlist
-    std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
+    std::shared_ptr<GPUArray<Scalar>> m_r_cut_nlist;
+
+    // scratch pad memory per type
+    std::vector<Scalar> m_phi_ab;
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -145,7 +148,8 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
 template<class evaluator>
 PotentialTersoff<evaluator>::PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
                                               std::shared_ptr<NeighborList> nlist)
-    : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
+    : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes()),
+      m_phi_ab(m_pdata->getNTypes())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
 
@@ -157,8 +161,7 @@ PotentialTersoff<evaluator>::PotentialTersoff(std::shared_ptr<SystemDefinition> 
     GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
-    m_r_cut_nlist
-        = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
+    m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
     }
 
@@ -316,8 +319,8 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
         // need to start from a zero force, energy
-        memset(h_force.data, 0, sizeof(Scalar4) * (m_pdata->getN() + m_pdata->getNGhosts()));
-        memset(h_virial.data, 0, sizeof(Scalar) * 6 * m_virial_pitch);
+        m_force.zeroFill();
+        m_virial.zeroFill();
 
         // for each particle
         for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -579,8 +582,8 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
         // need to start from a zero force, energy
-        memset(h_force.data, 0, sizeof(Scalar4) * (m_pdata->getN() + m_pdata->getNGhosts()));
-        memset(h_virial.data, 0, sizeof(Scalar) * 6 * m_virial_pitch);
+        m_force.zeroFill();
+        m_virial.zeroFill();
 
         unsigned int ntypes = m_pdata->getNTypes();
 
@@ -605,12 +608,10 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
             Scalar viriali_yz(0.0);
             Scalar viriali_zz(0.0);
 
-            Scalar phi_ab[ntypes];
-
             // reset phi
             for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
                 {
-                phi_ab[typ_b] = Scalar(0.0);
+                m_phi_ab[typ_b] = Scalar(0.0);
                 }
 
             // all neighbors of this particle
@@ -645,7 +646,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
 
                     // evaluate the scalar per-neighbor contribution
                     evaluator eval(rij_sq, rcutsq, param);
-                    eval.evalPhi(phi_ab[typej]);
+                    eval.evalPhi(m_phi_ab[typej]);
                     }
 
                 // self-energy
@@ -656,7 +657,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                     Scalar rcutsq = h_rcutsq.data[typpair_idx];
                     evaluator eval(Scalar(0.0), rcutsq, param);
                     Scalar energy(0.0);
-                    eval.evalSelfEnergy(energy, phi_ab[typ_b]);
+                    eval.evalSelfEnergy(energy, m_phi_ab[typ_b]);
                     pei += energy;
                     }
                 }
@@ -760,7 +761,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                     Scalar force_divr = Scalar(0.0);
                     Scalar potential_eng = Scalar(0.0);
                     Scalar bij = Scalar(0.0);
-                    eval.evalForceij(fR, fA, chi, phi_ab[typej], bij, force_divr, potential_eng);
+                    eval.evalForceij(fR, fA, chi, m_phi_ab[typej], bij, force_divr, potential_eng);
 
                     // add this force to particle i
                     fi += force_divr * dxij;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Messenger.h
@@ -27,7 +27,7 @@ namespace hoomd
 namespace detail
     {
 //! A null stream that doesn't write anything sent to it
-/*! From: http://bytes.com/topic/c/answers/127843-null-output-stream#post444998
+/*! From: https://bytes.com/topic/c/answers/127843-null-output-stream#post444998
  */
 struct PYBIND11_EXPORT nullstream : std::ostream
     {

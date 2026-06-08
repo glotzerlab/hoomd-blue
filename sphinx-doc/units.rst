@@ -1,6 +1,3 @@
-.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
-.. Part of HOOMD-blue, released under the BSD 3-Clause License.
-
 Units
 +++++
 
@@ -45,17 +42,6 @@ Example unit conversions between derived units and base units:
      - :math:`\left(4 \pi \epsilon_{0} \cdot [\mathrm{energy}] \cdot [\mathrm{length}] \right)^{1/2}`
        - where :math:`\epsilon_{0}` is permittivity of free space
 
-.. note::
-
-    Most of the units on this page apply to MD simulations.
-
-    In HPMC, the primary unit is that of length. Mass is factored out of the partition function and
-    does not enter into the simulation. In addition, the energy scale is irrelevant in athermal
-    HPMC systems where overlapping energies are infinite and valid configurations have
-    zero potential energy. However, energy does appear implicitly in derived units like
-    :math:`[\mathrm{pressure}] = [\mathrm{energy}] \cdot [\mathrm{length}]^{-3}`.  In
-    HPMC, :math:`kT` is set to 1 :math:`\mathrm{energy}`.
-
 Common unit systems
 ===================
 
@@ -81,10 +67,10 @@ Example base and derived units for common MD unit systems.
      - atomic mass unit
      - atomic mass unit
    * - :math:`[\mathrm{area}]`
-     - :math:`\mathrm{Å}^2`
+     - :math:`\text{\AA}^2`
      - :math:`\mathrm{nm}^2`
    * - :math:`[\mathrm{volume}]`
-     - :math:`\mathrm{Å}^3`
+     - :math:`\text{\AA}^3`
      - :math:`\mathrm{nm}^3`
    * - :math:`[\mathrm{time}]`
      - `48.8882129 fs <https://www.wolframalpha.com/input/?i=angstrom+*+amu%5E%281%2F2%29+*+%28kcal%2FAvogadro+number%29%5E%28%E2%88%921%2F2%29>`__

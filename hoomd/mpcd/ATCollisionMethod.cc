@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -17,8 +17,10 @@ mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<SystemDefinition> sys
                                            uint64_t period,
                                            int phase,
                                            std::shared_ptr<Variant> T)
-    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_T(T)
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase)
     {
+    setTemperature(T);
+    requireTemperature();
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
     }
 
@@ -26,6 +28,25 @@ mpcd::ATCollisionMethod::~ATCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD AT collision method" << std::endl;
     detachCallbacks();
+    }
+
+void mpcd::ATCollisionMethod::startAutotuning()
+    {
+    mpcd::CollisionMethod::startAutotuning();
+    if (m_thermo)
+        m_thermo->startAutotuning();
+    if (m_rand_thermo)
+        m_rand_thermo->startAutotuning();
+    }
+
+bool mpcd::ATCollisionMethod::isAutotuningComplete()
+    {
+    bool result = mpcd::CollisionMethod::isAutotuningComplete();
+    if (m_thermo)
+        result = result && m_thermo->isAutotuningComplete();
+    if (m_rand_thermo)
+        result = result && m_rand_thermo->isAutotuningComplete();
+    return result;
     }
 
 /*!
@@ -243,10 +264,14 @@ void mpcd::ATCollisionMethod::detachCallbacks()
         }
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
+void export_ATCollisionMethod(pybind11::module& m)
     {
     pybind11::class_<mpcd::ATCollisionMethod,
                      mpcd::CollisionMethod,
@@ -255,8 +280,8 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
                             uint64_t,
                             uint64_t,
                             int,
-                            std::shared_ptr<Variant>>())
-        .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
+                            std::shared_ptr<Variant>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

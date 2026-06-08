@@ -1,18 +1,19 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement BoxMCMoveSize."""
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
-                                      to_type_converter)
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, OnlyIf, to_type_converter
+import inspect
 
-from hoomd.tune import _InternalCustomTuner
+from hoomd.tune.custom_tuner import _InternalCustomTuner
 from hoomd.tune import ScaleSolver, SecantSolver
 
 from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.hpmc.tune import mc_move_tune
+from hoomd.operation import Tuner
 
 
 class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
@@ -22,15 +23,24 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
     move sizes. For this class 'x' is the move size and 'y' is the acceptance
     rate.
     """
+
     acceptable_attrs = {
-        "volume", "aspect", "shear_x", "shear_y", "shear_z", "length_x",
-        "length_y", "length_z"
+        "volume",
+        "aspect",
+        "shear_x",
+        "shear_y",
+        "shear_z",
+        "length_x",
+        "length_y",
+        "length_z",
     }
 
     def __init__(self, boxmc, attr, target, domain=None):
         if attr not in self.acceptable_attrs:
-            raise ValueError(f"Only {self.acceptable_attrs} are allowed as "
-                             f"tunable attributes not {attr}.")
+            raise ValueError(
+                f"Only {self.acceptable_attrs} are allowed as "
+                f"tunable attributes not {attr}."
+            )
         splits = attr.split("_")
         self.attr = splits[0]
         if len(splits) > 1:
@@ -66,8 +76,11 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
         return hash((self.attr, self._target, self._domain))
 
     def __eq__(self, other):
-        return (self.attr == other.attr and self._target == other._target
-                and self._domain == other._domain)
+        return (
+            self.attr == other.attr
+            and self._target == other._target
+            and self._domain == other._domain
+        )
 
 
 class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
@@ -92,17 +105,24 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
         params = ParameterDict(
             boxmc=hoomd.hpmc.update.BoxMC,
             moves=[
-                OnlyFrom(_MoveSizeTuneDefinition.acceptable_attrs,
-                         postprocess=self._flag_new_tunables)
+                OnlyFrom(
+                    _MoveSizeTuneDefinition.acceptable_attrs,
+                    postprocess=self._flag_new_tunables,
+                )
             ],
             max_move_size=OnlyIf(
-                to_type_converter({
-                    attr:
-                        OnlyTypes(float,
-                                  allow_none=True,
-                                  postprocess=self._flag_move_size_update)
-                    for attr in _MoveSizeTuneDefinition.acceptable_attrs
-                }),))
+                to_type_converter(
+                    {
+                        attr: OnlyTypes(
+                            float,
+                            allow_none=True,
+                            postprocess=self._flag_move_size_update,
+                        )
+                        for attr in _MoveSizeTuneDefinition.acceptable_attrs
+                    }
+                ),
+            ),
+        )
         params["boxmc"] = boxmc
         params["moves"] = moves
         if max_move_size is None:
@@ -116,8 +136,7 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
 
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCIntegrator):
-            raise RuntimeError(
-                "MoveSizeTuner can only be used in HPMC simulations.")
+            raise RuntimeError("MoveSizeTuner can only be used in HPMC simulations.")
         super().attach(simulation)
 
     def act(self, timestep=None):
@@ -156,8 +175,8 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
                 continue
             max_move_size = self.max_move_size[move]
             move_definition = _MoveSizeTuneDefinition(
-                self.boxmc, move, self.target,
-                (self._min_move_size, max_move_size))
+                self.boxmc, move, self.target, (self._min_move_size, max_move_size)
+            )
             self._tunables.append(move_definition)
         self._should_update_tunables = False
         self._tuned = 0
@@ -184,7 +203,7 @@ class BoxMCMoveSize(_InternalCustomTuner):
     conditions change the move sizes will continue to change and the tuner will
     no longer be ``tuned``. The changes to the move size are completely
     controlled by the given `hoomd.tune.RootSolver` instance. See the
-    doumentation at `hoomd.tune` for more information.
+    documentation at `hoomd.tune` for more information.
 
     Warning:
         The tuner should be removed from the simulation once tuned to prevent
@@ -208,9 +227,20 @@ class BoxMCMoveSize(_InternalCustomTuner):
             the `moves` attribute documentation. Defaults to no maximum ``None``
             for each move type.
 
+    Warning:
+        Over-limiting the maximum move sizes can lead to the inability to
+        converge to the desired acceptance rate.
+
+    Warning:
+        Since each dimension of length and shear moves are tuned independently
+        but the acceptance statistics are collected collectively, the reachable
+        target acceptance rates is limited by the other dimensions.
+
+    {inherited}
+
+    **Members defined in** `BoxMCMoveSize`:
+
     Attributes:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
         boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
             tune.
         moves (list[str]): A list of types of moves to tune. Available options
@@ -224,29 +254,26 @@ class BoxMCMoveSize(_InternalCustomTuner):
         max_move_size (float): The maximum volume move size
             to attempt for each move time. See the available moves in the
             `moves` attribute documentation.
-
-    Warning:
-        Over-limiting the maximum move sizes can lead to the inability to
-        converge to the desired acceptance rate.
-
-    Warning:
-        Since each dimension of length and shear moves are tuned independently
-        but the acceptance statistics are collected collectively, the reachable
-        target acceptance rates is limited by the other dimensions.
     """
+
     _internal_class = _InternalBoxMCMoveSize
     _wrap_methods = ("tuned",)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     @classmethod
-    def scale_solver(cls,
-                     trigger,
-                     boxmc,
-                     moves,
-                     target,
-                     max_move_size=None,
-                     max_scale=2.,
-                     gamma=1.,
-                     tol=1e-2):
+    def scale_solver(
+        cls,
+        trigger,
+        boxmc,
+        moves,
+        target,
+        max_move_size=None,
+        max_scale=2.0,
+        gamma=1.0,
+        tol=1e-2,
+    ):
         """Create a `BoxMCMoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
@@ -273,18 +300,13 @@ class BoxMCMoveSize(_InternalCustomTuner):
                 than the default of 0.01 as acceptance rates can vary
                 significantly at typical tuning rates.
         """
-        solver = ScaleSolver(max_scale, gamma, 'negative', tol)
+        solver = ScaleSolver(max_scale, gamma, "negative", tol)
         return cls(trigger, boxmc, moves, target, solver, max_move_size)
 
     @classmethod
-    def secant_solver(cls,
-                      trigger,
-                      boxmc,
-                      moves,
-                      target,
-                      max_move_size=None,
-                      gamma=0.8,
-                      tol=1e-2):
+    def secant_solver(
+        cls, trigger, boxmc, moves, target, max_move_size=None, gamma=0.8, tol=1e-2
+    ):
         """Create a `BoxMCMoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
@@ -317,8 +339,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
 
         Note:
             Increasing ``gamma`` towards 1 does not necessarily speed up
-            convergence and can slow it done. In addition, large values of
-            ``gamma`` can make the solver unstable especially when tuning
+            convergence and can slow it down. In addition, large values of
+            ``gamma`` can make the solver unstable, especially when tuning
             frequently.
         """
         solver = SecantSolver(gamma, tol)

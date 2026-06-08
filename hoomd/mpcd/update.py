@@ -1,163 +1,158 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r""" MPCD particle updaters
+r"""MPCD updaters.
 
-Updates properties of MPCD particles.
+.. invisible-code-block: python
+
+    simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
+    simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
 
 """
 
 import hoomd
-from hoomd.md import _md
+from hoomd.mpcd import _mpcd
+from hoomd.operation import Updater
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.logging import log
+from hoomd.data.typeconverter import OnlyTypes, positive_real
 
-from . import _mpcd
+import math
+import inspect
 
 
-class sort():
-    r""" Sorts MPCD particles in memory to improve cache coherency.
+class ReverseNonequilibriumShearFlow(Updater):
+    r"""Reverse nonequilibrium shear flow.
 
     Args:
-        system (:py:class:`hoomd.mpcd.data.system`): MPCD system to create sorter for
-        period (int): Sort whenever the timestep is a multiple of *period*.
-            .. versionadded:: 2.6
+        trigger (hoomd.trigger.trigger_like): Select the time steps on which to
+            to swap momentum.
 
-    Warning:
-        Do not create :py:class:`hoomd.mpcd.update.sort` explicitly in your script.
-        HOOMD creates a sorter by default.
+        num_swaps (int): Maximum number of pairs to swap per update.
 
-    Every *period* time steps, particles are reordered in memory based on
-    the cell list generated at the current timestep. Sorting can significantly improve
-    performance of all other cell-based steps of the MPCD algorithm. The efficiency of
-    the sort operation obviously depends on the number of particles, and so the *period*
-    should be tuned to give the maximum performance.
+        slab_width (float): Width of momentum-exchange slabs.
 
-    Note:
-        The *period* should be no smaller than the MPCD collision period, or unnecessary
-        cell list builds will occur.
+        target_momentum (float): Target magnitude of momentum for swapped
+            particles (must be positive).
 
-    Essentially all MPCD systems benefit from sorting, and so a sorter is created by
-    default with the MPCD system. To disable it or modify parameters, save the system
-    and access the sorter through it::
+    `ReverseNonequilibriumShearFlow` generates a bidirectional shear flow in
+    *x* by imposing a momentum flux on MPCD particles in *y*. Particles are
+    selected from two momentum-exchange slabs with normal to *y*, width *w*,
+    and separated by :math:`L_y/2`. The lower slab accordingly has particles
+    with :math:`-L_y/2 \le y < L_y/2 + w`, while the upper slab has particles
+    with :math:`0 \le y < w`.
 
-        s = mpcd.init.read_snapshot(snap)
-        # the sorter is only available after initialization
-        s.sorter.set_period(period=5)
-        s.sorter.disable()
+    MPCD particles are sorted into these slabs, and the particles whose *x*
+    momenta are closest to the `target_momentum` :math:`p_0` in the lower slab
+    and :math:`-p_0` in the upper slab are selected for a momentum swap.
+    Up to `num_swaps` swaps are executed each time.
+
+    The amount of momentum transferred from the lower slab to the upper slab
+    is accumulated into `summed_exchanged_momentum`. This quantity can be used
+    to calculate the momentum flux and, in conjunction with the shear velocity
+    field that is generated, determine the shear viscosity.
+
+    .. rubric:: Examples:
+
+    To implement the method as originally proposed by `Müller-Plathe`_,
+    only the fastest particle and the slowest particle in the momentum-exchange
+    slabs are swapped. Set `num_swaps` to 1 and `target_momentum` at its
+    default value of infinity.
+
+    .. code-block:: python
+
+            flow = hoomd.mpcd.update.ReverseNonequilibriumShearFlow(
+                trigger=1, num_swaps=1, slab_width=1
+            )
+            simulation.operations.updaters.append(flow)
+
+    An alternative approach proposed by `Tenney and Maginn`_ swaps particles
+    that are instead closest to the `target_momentum`, typically requiring more
+    swaps per update.
+
+    .. code-block:: python
+
+            flow = hoomd.mpcd.update.ReverseNonequilibriumShearFlow(
+                trigger=1, num_swaps=10, slab_width=1, target_momentum=5
+            )
+            simulation.operations.updaters.append(flow)
+
+    {inherited}
+
+    **Members defined in** `ReverseNonequilibriumShearFlow`:
+
+    Attributes:
+        num_swaps (int): Maximum number of times to swap momentum per update.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                flow.num_swaps = 10
+
+        slab_width (float): Width of momentum-exchange slabs.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                flow.slab_width = 1
+
+        target_momentum (float): Target momentum for swapped particles.
+
+            .. rubric:: Example:
+
+            .. code-block:: python
+
+                flow.target_momentum = 5
+
+    .. _Müller-Plathe: https://doi.org/10.1103/PhysRevE.59.4894
+    .. _Tenney and Maginn: https://doi.org/10.1063/1.3276454
 
     """
 
-    def __init__(self, system, period=50):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Updater._doc_inherited)
+    )
 
-        # check for mpcd initialization
-        if system.sorter is not None:
-            hoomd.context.current.device.cpp_msg.error(
-                'mpcd.update: system already has a sorter created!\n')
-            raise RuntimeError('MPCD sorter already created')
+    def __init__(self, trigger, num_swaps, slab_width, target_momentum=math.inf):
+        super().__init__(trigger)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            cpp_class = _mpcd.Sorter
+        param_dict = ParameterDict(
+            num_swaps=int(num_swaps),
+            slab_width=float(slab_width),
+            target_momentum=OnlyTypes(float, preprocess=positive_real),
+        )
+        param_dict["target_momentum"] = target_momentum
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            class_ = _mpcd.ReverseNonequilibriumShearFlowGPU
         else:
-            cpp_class = _mpcd.SorterGPU
-        self._cpp = cpp_class(system.data,
-                              hoomd.context.current.system.getCurrentTimeStep(),
-                              period)
+            class_ = _mpcd.ReverseNonequilibriumShearFlow
 
-        self.period = period
-        self.enabled = True
+        self._cpp_obj = class_(
+            self._simulation.state._cpp_sys_def,
+            self.trigger,
+            self.num_swaps,
+            self.slab_width,
+            self.target_momentum,
+        )
 
-    def disable(self):
-        self.enabled = False
+        super()._attach_hook()
 
-    def enable(self):
-        self.enabled = True
+    @log(category="scalar", requires_run=True)
+    def summed_exchanged_momentum(self):
+        r"""float: Total momentum exchanged.
 
-    def set_period(self, period):
-        """ Change the sorting period.
-
-        Args:
-            period (int): New period to set.
-
-        Examples::
-
-            sorter.set_period(100)
-            sorter.set_period(1)
-
-        While the simulation is running, the action of each updater
-        is executed every *period* time steps. Changing the period does
-        not change the phase set when the analyzer was first created.
+        This quantity is the total momentum exchanged from the lower slab
+        to the upper slab.
 
         """
+        return self._cpp_obj.summed_exchanged_momentum
 
-        self.period = period
-        self._cpp.setPeriod(hoomd.context.current.system.getCurrentTimeStep(),
-                            self.period)
 
-    def tune(self, start, stop, step, tsteps, quiet=False):
-        """ Tune the sorting period.
-
-        Args:
-            start (int): Start of tuning interval to scan (inclusive).
-            stop (int): End of tuning interval to scan (inclusive).
-            step (int): Spacing between tuning points.
-            tsteps (int): Number of timesteps to run at each tuning point.
-            quiet (bool): Quiet the individual run calls.
-
-        Returns:
-            int: The optimal sorting period from the scanned range.
-
-        The optimal sorting period for the MPCD particles is determined from
-        a sequence of short runs. The sorting period is first set to *start*.
-        The TPS value is determined for a run of length *tsteps*. This run is
-        repeated 3 times, and the median TPS of the runs is saved. The sorting
-        period is then incremented by *step*, and the process is repeated until
-        *stop* is reached. The period giving the fastest TPS is determined, and
-        the sorter period is updated to this value. The results of the scan
-        are also reported as output, and the fastest sorting period is also
-        returned.
-
-        Note:
-            A short warmup run is **required** before calling :py:meth:`tune()`
-            in order to ensure the runtime autotuners have found optimal
-            kernel launch parameters.
-
-        Examples::
-
-            # warmup run
-            hoomd.run(5000)
-
-            # tune sorting period
-            sorter.tune(start=5, stop=50, step=5, tsteps=1000)
-
-        """
-
-        # scan through range of sorting periods and log TPS
-        periods = range(start, stop + 1, step)
-        tps = []
-        for p in periods:
-            cur_tps = []
-            self.set_period(period=p)
-            for i in range(0, 3):
-                hoomd.run(tsteps, quiet=quiet)
-                cur_tps.append(hoomd.context.current.system.getLastTPS())
-
-            # save the median tps
-            cur_tps.sort()
-            tps.append(cur_tps[1])
-
-        # determine fastest period and set it on the sorter
-        fastest = tps.index(max(tps))
-        opt_period = periods[fastest]
-        self.set_period(period=opt_period)
-
-        # output results
-        hoomd.context.current.device.cpp_msg.notice(
-            2, '--- sort.tune() statistics\n')
-        hoomd.context.current.device.cpp_msg.notice(
-            2, 'Optimal period = {0}\n'.format(opt_period))
-        hoomd.context.current.device.cpp_msg.notice(
-            2, '        period = ' + str(periods) + '\n')
-        hoomd.context.current.device.cpp_msg.notice(
-            2, '          TPS  = ' + str(tps) + '\n')
-
-        return opt_period
+__all__ = [
+    "ReverseNonequilibriumShearFlow",
+]

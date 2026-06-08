@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Constraints.
-
-Constraint force classes apply forces and the resulting virial to particles that
+"""Constraint force classes apply forces and the resulting virial to particles that
 enforce specific constraints on the positions of the particles. The constraint
 is satisfied at all times, so there is no potential energy associated with the
 constraint.
@@ -27,6 +25,7 @@ from hoomd.md.force import Force
 from hoomd.filter import ParticleFilter
 from hoomd.md.manifold import Manifold
 import hoomd
+import inspect
 
 
 class Constraint(Force):
@@ -39,12 +38,18 @@ class Constraint(Force):
         for `isinstance` or `issubclass` checks.
     """
 
+    __doc__ = inspect.cleandoc(__doc__) + "\n" + inspect.cleandoc(Force._doc_inherited)
+
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = getattr(_md, self._cpp_class_name)
+            cpp_cls = getattr(self._ext_module, self._cpp_class_name)
         else:
-            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
+            cpp_cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
 
@@ -75,7 +80,7 @@ class Distance(Constraint):
 
     Where :math:`i` and :math:`j` are the the particle tags in the
     ``constraint_group`` and :math:`d_{ij}` is the constraint distance as given
-    by the `system state <hoomd.State>`_.
+    by the system state.
 
     The method sets the second derivative of the Lagrange multipliers with
     respect to time to zero, such that both the distance constraints and their
@@ -98,11 +103,18 @@ class Distance(Constraint):
         issue a warning message. It does not influence the computation of the
         constraint force.
 
+    {inherited}
+
+    **Members defined in** `Distance`:
+
     Attributes:
         tolerance (float): Relative tolerance for constraint violation warnings.
     """
 
     _cpp_class_name = "ForceDistanceConstraint"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Constraint._doc_inherited)
+    )
 
     def __init__(self, tolerance=1e-3):
         self._param_dict.update(ParameterDict(tolerance=float(tolerance)))
@@ -136,9 +148,11 @@ class Rigid(Constraint):
 
     .. math::
 
+        \begin{split}
         \vec{r}_c &= \vec{r}_b
                     + \mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^* \\
         \mathbf{q}_c &= \mathbf{q}_b \mathbf{q}_{c,\mathrm{body}}
+        \end{split}
 
     where :math:`\vec{r}_c` and :math:`\mathbf{q}_c` are the position and
     orientation of a constituent particle in the simulation box,
@@ -185,11 +199,13 @@ class Rigid(Constraint):
 
     .. math::
 
+        \begin{split}
         \vec{F}_b' &= \vec{F}_b + \sum_c \vec{F}_c \\
         \vec{U}_b' &= U_b + \sum_c U_c \\
         \vec{\tau}_b' &= \vec{\tau}_b + \sum_c \vec{\tau}_c +
             (\mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^*)
             \times \vec{F}_c
+        \end{split}
 
     `Rigid` also computes the corrected virial accounting for the effective
     constraint force (see `Glaser 2020
@@ -257,6 +273,11 @@ class Rigid(Constraint):
         changing rigid body definitions or adding/removing particles from the
         simulation.
 
+    {inherited}
+
+
+    **Members defined in** `Rigid`:
+
     .. py:attribute:: body
 
         `body` is a mapping from the central particle type to a body definition
@@ -284,21 +305,32 @@ class Rigid(Constraint):
     """
 
     _cpp_class_name = "ForceComposite"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Constraint._doc_inherited)
+    )
 
     def __init__(self):
         body = TypeParameter(
-            "body", "particle_types",
-            TypeParameterDict(OnlyIf(to_type_converter({
-                'constituent_types': [str],
-                'positions': [(float,) * 3],
-                'orientations': [(float,) * 4],
-            }),
-                                     allow_none=True),
-                              len_keys=1))
+            "body",
+            "particle_types",
+            TypeParameterDict(
+                OnlyIf(
+                    to_type_converter(
+                        {
+                            "constituent_types": [str],
+                            "positions": [(float,) * 3],
+                            "orientations": [(float,) * 4],
+                        }
+                    ),
+                    allow_none=True,
+                ),
+                len_keys=1,
+            ),
+        )
         self._add_typeparam(body)
         self.body.default = None
 
-    def create_bodies(self, state, charges=None):
+    def create_bodies(self, state, charges=None, masses=None):
         r"""Create rigid bodies from central particles in state.
 
         Args:
@@ -306,16 +338,20 @@ class Rigid(Constraint):
             charges (dict[str, list[float]]): (optional) The charges for each of
                 the constituent particles, defaults to ``None``. If ``None``,
                 all charges are zero. The keys should be the central particles.
+            masses (dict[str, list[float]]): (optional) The masses for each of
+                the constituent particles, defaults to ``None``. If ``None``,
+                all masses are one. The keys should be the central particles.
 
         `create_bodies` removes any existing constituent particles and adds new
         ones based on the body definitions in `body`. It overwrites all existing
         particle ``body`` tags in the state.
         """
         if self._attached:
-            raise RuntimeError(
-                "Cannot call create_bodies after running simulation.")
+            raise RuntimeError("Cannot call create_bodies after running simulation.")
         super()._attach(state._simulation)
-        self._cpp_obj.createRigidBodies({} if charges is None else charges)
+        self._cpp_obj.createRigidBodies(
+            {} if charges is None else charges, {} if masses is None else masses
+        )
         # Restore previous state
         self._detach()
 
@@ -376,3 +412,9 @@ class WallWithFriction(Constraint):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj,
                                  self.brownian)
+__all__ = [
+    "Constraint",
+    "Distance",
+    "Rigid",
+    "WallWithFriction",
+]

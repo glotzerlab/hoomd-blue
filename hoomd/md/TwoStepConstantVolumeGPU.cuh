@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 
@@ -25,7 +24,6 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                     unsigned int block_size,
                                     Scalar rescale_factor,
                                     Scalar deltaT,
-                                    const GPUPartition& gpu_partition,
                                     bool limit = false,
                                     Scalar limit_displacement = Scalar(0.));
 
@@ -38,9 +36,9 @@ hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
                                     unsigned int block_size,
                                     Scalar deltaT,
                                     Scalar rescale_factor,
-                                    const GPUPartition& gpu_partition);
+                                    unsigned int n_dimensions);
 
-    }  // end namespace kernel
-    }  // end namespace md
-    }  // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 #endif // HOOMD_TWOSTEPNVTBASEGPU_CUH

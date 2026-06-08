@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshDefinition.cc
@@ -28,10 +28,14 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigne
           std::shared_ptr<TriangleData>(new TriangleData(m_sysdef->getParticleData(), n_types)))
 
     {
+    // allocate the max number of neighbors per type allowed
+    GPUArray<unsigned int> globalN(n_types, m_sysdef->getParticleData()->getExecConf());
+    m_globalN.swap(globalN);
     }
 
 void MeshDefinition::setTypes(pybind11::list types)
     {
+    m_globalN.resize(len(types));
     for (unsigned int i = 0; i < len(types); i++)
         {
         m_meshbond_data->setTypeName(i, types[i].cast<string>());
@@ -106,6 +110,11 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
     triangle_data.resize(static_cast<unsigned int>(len_triang));
     TriangleData::members_t triangle_new;
 
+    ArrayHandle<unsigned int> h_globalN(m_globalN, access_location::host, access_mode::overwrite);
+
+    for (unsigned int i = 0; i < m_meshtriangle_data->getNTypes(); i++)
+        h_globalN.data[i] = 0;
+
     for (size_t i = 0; i < len_triang; i++)
         {
         triangle_new.tag[0] = ptr1[i * 3];
@@ -113,6 +122,8 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
         triangle_new.tag[2] = ptr1[i * 3 + 2];
         triangle_data.groups[i] = triangle_new;
         triangle_data.type_id[i] = ptr2[i];
+
+        h_globalN.data[triangle_data.type_id[i]] += 1;
         }
 
     m_meshtriangle_data = std::shared_ptr<TriangleData>(
@@ -133,6 +144,97 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
 #endif
     }
 
+void MeshDefinition::createMeshNeighborhood()
+    {
+    unsigned int len_triang = m_meshtriangle_data->getNGlobal();
+    GPUArray<uint3> neigh_to_triag(len_triang, m_sysdef->getParticleData()->getExecConf());
+    m_neigh_to_triag.swap(neigh_to_triag);
+
+    unsigned int len_bond = m_meshbond_data->getNGlobal();
+    GPUArray<uint2> neigh_to_bond(len_bond, m_sysdef->getParticleData()->getExecConf());
+    m_neigh_to_bond.swap(neigh_to_bond);
+
+    ArrayHandle<uint2> h_neigh_to_bond(m_neigh_to_bond,
+                                       access_location::host,
+                                       access_mode::overwrite);
+
+    ArrayHandle<uint3> h_neigh_to_triag(m_neigh_to_triag,
+                                        access_location::host,
+                                        access_mode::overwrite);
+
+    ArrayHandle<typename MeshBond::members_t> h_bonds(m_meshbond_data->getMembersArray(),
+                                                      access_location::host,
+                                                      access_mode::read);
+
+    ArrayHandle<typename Angle::members_t> h_triangles(m_meshtriangle_data->getMembersArray(),
+                                                       access_location::host,
+                                                       access_mode::read);
+
+    std::vector<uint2> bonds(3);
+
+    unsigned int bond_length = m_meshbond_data->getNGlobal();
+
+    for (unsigned int i = 0; i < bond_length; ++i)
+        {
+        h_neigh_to_bond.data[i] = make_uint2(bond_length, bond_length);
+        }
+
+    for (unsigned int i = 0; i < m_meshtriangle_data->getNGlobal(); i++)
+        {
+        const typename Angle::members_t& triangle = h_triangles.data[i];
+
+        if (triangle.tag[0] < triangle.tag[1])
+            bonds[0] = make_uint2(triangle.tag[0], triangle.tag[1]);
+        else
+            bonds[0] = make_uint2(triangle.tag[1], triangle.tag[0]);
+
+        if (triangle.tag[1] < triangle.tag[2])
+            bonds[1] = make_uint2(triangle.tag[1], triangle.tag[2]);
+        else
+            bonds[1] = make_uint2(triangle.tag[2], triangle.tag[1]);
+
+        if (triangle.tag[0] < triangle.tag[2])
+            bonds[2] = make_uint2(triangle.tag[0], triangle.tag[2]);
+        else
+            bonds[2] = make_uint2(triangle.tag[2], triangle.tag[0]);
+
+        unsigned int counter = 0;
+        std::vector<unsigned int> t_idx;
+        std::vector<bool> b_done(bond_length);
+
+        for (unsigned int j = 0; j < bond_length; ++j)
+            b_done[j] = false;
+
+        for (unsigned int j = 0; j < bond_length; ++j)
+            {
+            if (b_done[j])
+                continue;
+            const typename MeshBond::members_t& meshbond = h_bonds.data[j];
+            for (unsigned int k = 0; k < 3; ++k)
+                {
+                if (bonds[k].x == meshbond.tag[0] && bonds[k].y == meshbond.tag[1])
+                    {
+                    t_idx.push_back(j);
+                    h_neigh_to_bond.data[j].y = i;
+                    if (h_neigh_to_bond.data[j].x != bond_length)
+                        b_done[j] = true;
+                    else
+                        h_neigh_to_bond.data[j].x = i;
+                    counter++;
+                    break;
+                    }
+                }
+            if (counter == 3)
+                {
+                h_neigh_to_triag.data[i].x = t_idx[0];
+                h_neigh_to_triag.data[i].y = t_idx[1];
+                h_neigh_to_triag.data[i].z = t_idx[2];
+                break;
+                }
+            }
+        }
+    }
+
 namespace detail
     {
 void export_MeshDefinition(pybind11::module& m)
@@ -142,6 +244,8 @@ void export_MeshDefinition(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
+        .def("getNeighToTriag", &MeshDefinition::getNeighToTriag)
+        .def("getNeighToBond", &MeshDefinition::getNeighToBond)
         .def("getBondData", &MeshDefinition::getBondData)
         .def("setTypes", &MeshDefinition::setTypes)
         .def("getSize", &MeshDefinition::getSize)

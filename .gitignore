@@ -3,12 +3,12 @@
 *.dcd
 *.gsd
 build
+html
 __pycache__
+.gdb_history
 *.pyc
 *.swp
-.vscode/launch.json
-.vscode/*.db*
-.vscode/c_cpp_properties.json
+.vscode
 
 # clangd
 .clangd
@@ -20,3 +20,6 @@ compile_commands.json
 
 # virtualenv
 .venv
+# pixi environments
+.pixi/*
+!.pixi/config.toml

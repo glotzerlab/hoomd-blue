@@ -25,4 +25,4 @@ you are authorized to sign this contract on behalf of your company (if identifie
 
 Based on the Sun Contributor Agreement - version 1.5.
 This document is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License
-http://creativecommons.org/licenses/by-sa/3.0/
+https://creativecommons.org/licenses/by-sa/3.0/

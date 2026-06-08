@@ -1,0 +1,12 @@
+ipython
+nbconvert
+nbsphinx
+numpy
+pandoc
+furo
+tornado
+sphinxcontrib-googleanalytics
+sphinxcontrib-katex
+sphinx-copybutton
+sphinx-notfound-page
+sphinx-inline-tabs

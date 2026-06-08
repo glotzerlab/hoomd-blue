@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Neighbor list acceleration structures.
-
-Pair forces (`hoomd.md.pair`) use neighbor list data structures to find
+r"""Pair forces (`hoomd.md.pair`) use neighbor list data structures to find
 neighboring particle pairs (those within a distance of :math:`r_\mathrm{cut}`)
 efficiently. HOOMD-blue provides a several types of neighbor list construction
 algorithms that you can select from: `Cell`, `Tree`, and `Stencil`.
@@ -48,8 +46,10 @@ Note:
 
 Attention:
     Users should only set this attribute when utilizing the accessor APIs,
-    `pair_list`, `local_pair_list`, `cpu_local_nlist_arrays`, or
-    `gpu_local_nlist_arrays`.
+    `pair_list <NeighborList.pair_list>`,
+    `local_pair_list <NeighborList.local_pair_list>`,
+    `cpu_local_nlist_arrays <NeighborList.cpu_local_nlist_arrays>`, or
+    `gpu_local_nlist_arrays <NeighborList.gpu_local_nlist_arrays>`.
 
 .. rubric:: Exclusions
 
@@ -82,6 +82,8 @@ from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, nonnegative_real
 from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.operation import Compute
+import warnings
+import inspect
 
 
 class NeighborList(Compute):
@@ -93,16 +95,18 @@ class NeighborList(Compute):
         Users should not instantiate this class directly. The class can be used
         for `isinstance` or `issubclass` checks.
 
+    {inherited}
+
+    **Members defined in** `NeighborList`:
+
     Attributes:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
+        check_dist (bool): Flag to enable / disable distance checking.
         exclusions (tuple[str]): Defines which particles to exclude from the
-            neighbor list, see more details above.
+            neighbor list, as described in `hoomd.md.nlist`.
+        mesh (Mesh): Associated mesh data structure.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
-        check_dist (bool): Flag to enable / disable distance checking.
-        mesh (Mesh): mesh data structure (optional)
-        default_r_cut (float): Default cutoff distance :math:`[\mathrm{length}]`
-            (optional).
 
     .. py:attribute:: r_cut
 
@@ -114,74 +118,173 @@ class NeighborList(Compute):
         `float`])
     """
 
-    def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist,
-                 mesh, default_r_cut):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
 
-        validate_exclusions = OnlyFrom([
-            'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
-            '1-3', '1-4', 'meshbond'
-        ])
+    _doc_inherited = (
+        Compute._doc_inherited
+        + """
+
+    **Members inherited from**
+    `NeighborList <hoomd.md.nlist.NeighborList>`:
+
+    .. py:attribute:: buffer
+
+        Buffer width.
+        `Read more... <hoomd.md.nlist.NeighborList.buffer>`
+
+    .. py:attribute:: check_dist
+
+        Flag to enable / disable distance checking.
+        `Read more... <hoomd.md.nlist.NeighborList.check_dist>`
+
+    .. py:attribute:: exclusions
+
+        Defines which particles to exclude from the neighbor list.
+        `Read more... <hoomd.md.nlist.NeighborList.exclusions>`
+
+    .. py:attribute:: mesh
+
+        Associated mesh data structure.
+        `Read more... <hoomd.md.nlist.NeighborList.mesh>`
+
+    .. py:attribute:: rebuild_check_delay
+
+        How often to attempt to rebuild the neighbor list.
+        `Read more... <hoomd.md.nlist.NeighborList.rebuild_check_delay>`
+
+    .. py:attribute:: r_cut
+
+        Base cutoff radius for neighbor list queries.
+        `Read more... <hoomd.md.nlist.NeighborList.r_cut>`
+
+    .. py:property:: cpu_local_nlist_arrays
+
+        Local nlist arrays on the CPU.
+        `Read more... <hoomd.md.nlist.NeighborList.cpu_local_nlist_arrays>`
+
+    .. py:property:: gpu_local_nlist_arrays
+
+        Local nlist arrays on the GPU.
+        `Read more... <hoomd.md.nlist.NeighborList.gpu_local_nlist_arrays>`
+
+    .. py:property:: local_pair_list
+
+        Local pair list.
+        `Read more... <hoomd.md.nlist.NeighborList.local_pair_list>`
+
+    .. py:property:: num_builds
+
+        The number of neighbor list builds.
+        `Read more... <hoomd.md.nlist.NeighborList.num_builds>`
+
+    .. py:property:: pair_list
+
+        Global pair list.
+        `Read more... <hoomd.md.nlist.NeighborList.pair_list>`
+
+    .. py:property:: shortest_rebuild
+
+        The shortest period between neighbor list rebuilds.
+        `Read more... <hoomd.md.nlist.NeighborList.shortest_rebuild>`
+
+    """
+    )
+
+    def __init__(
+        self, buffer, exclusions, rebuild_check_delay, check_dist, mesh, default_r_cut
+    ):
+        validate_exclusions = OnlyFrom(
+            [
+                "bond",
+                "angle",
+                "constraint",
+                "dihedral",
+                "special_pair",
+                "body",
+                "1-3",
+                "1-4",
+                "meshbond",
+            ]
+        )
 
         validate_mesh = OnlyTypes(Mesh, allow_none=True)
 
         tp_r_cut = TypeParameter(
-            'r_cut', 'particle_types',
-            TypeParameterDict(nonnegative_real, len_keys=2))
+            "r_cut", "particle_types", TypeParameterDict(nonnegative_real, len_keys=2)
+        )
         tp_r_cut.default = default_r_cut
         self._add_typeparam(tp_r_cut)
 
         # default exclusions
-        params = ParameterDict(exclusions=[validate_exclusions],
-                               buffer=float(buffer),
-                               rebuild_check_delay=int(rebuild_check_delay),
-                               check_dist=bool(check_dist))
+        params = ParameterDict(
+            exclusions=[validate_exclusions],
+            buffer=float(buffer),
+            rebuild_check_delay=int(rebuild_check_delay),
+            check_dist=bool(check_dist),
+            mesh=validate_mesh,
+        )
         params["exclusions"] = exclusions
+        params["mesh"] = mesh
         self._param_dict.update(params)
-
-        self._mesh = validate_mesh(mesh)
 
         self._in_context_manager = False
 
+        super().__init__()
+
     def _attach_hook(self):
-        if self._mesh is not None:
-            self._cpp_obj.addMesh(self._mesh._cpp_obj)
+        if self.mesh is not None:
+            if self.mesh._attached and self._simulation != self.mesh._simulation:
+                warnings.warn(
+                    f"{self} object is creating a new equivalent mesh structure."
+                    f" This is happending since the neighbor list is moving to"
+                    f" a new simulation. To suppress the warning explicitly set"
+                    f" a new mesh.",
+                    RuntimeWarning,
+                )
+            self.mesh._attach(self._simulation)
+            self._cpp_obj.addMesh(self.mesh._cpp_obj)
 
     def _detach_hook(self):
-        if self._mesh is not None:
-            self._mesh._detach_hook()
+        if self.mesh is not None:
+            self.mesh._detach_hook()
 
     @property
     def cpu_local_nlist_arrays(self):
-        """hoomd.md.data.NeighborListLocalAccess: Expose nlist arrays on the \
+        """hoomd.md.data.NeighborListLocalAccess: Local nlist arrays on the \
         CPU.
 
-        Provides direct acces to the neighbor list arrays on the cpu. All data
+        Provides direct access to the neighbor list arrays on the cpu. All data
         is MPI rank-local.
 
         The `hoomd.md.data.NeighborListLocalAccess` object exposes the internal
-        data representation to efficently iterate over the neighbor list.
+        data representation to efficiently iterate over the neighbor list.
 
         Note:
             The local arrays are read only.
 
-        Examples::
+        .. rubric:: Example:
 
-            with self.cpu_local_nlist_arrays as arrays:
-                nlist_iter = zip(arrays.head_list, arrays.n_neigh)
-                for i, (head, nn) in enumerate(nlist_iter):
-                    for j_idx in range(head, head + nn):
-                        j = arrays.nlist[j_idx]
-                        # i and j are "neighbor" indices
+        .. code-block::
+
+                with self.cpu_local_nlist_arrays as arrays:
+                    nlist_iter = zip(arrays.head_list, arrays.n_neigh)
+                    for i, (head, nn) in enumerate(nlist_iter):
+                        for j_idx in range(head, head + nn):
+                            j = arrays.nlist[j_idx]
+                            # i and j are "neighbor" indices
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("cpu_local_nlist_arrays")
         if self._in_context_manager:
-            raise RuntimeError("Cannot enter cpu_local_nlist_arrays context "
-                               "manager inside another local_nlist_arrays "
-                               "context manager")
+            raise RuntimeError(
+                "Cannot enter cpu_local_nlist_arrays context "
+                "manager inside another local_nlist_arrays "
+                "context manager"
+            )
         self._cpp_obj.compute(self._simulation.timestep)
-        return hoomd.md.data.NeighborListLocalAccess(self,
-                                                     self._simulation.state)
+        return hoomd.md.data.NeighborListLocalAccess(self, self._simulation.state)
 
     @property
     def gpu_local_nlist_arrays(self):
@@ -192,7 +295,7 @@ class NeighborList(Compute):
         is MPI rank-local.
 
         The `hoomd.md.data.NeighborListLocalAccessGPU` object exposes the
-        internal data representation to efficently iterate over the neighbor
+        internal data representation to efficiently iterate over the neighbor
         list.
 
         Note:
@@ -201,65 +304,67 @@ class NeighborList(Compute):
         See Also:
             `cpu_local_nlist_arrays`
 
-        Examples::
+        .. rubric:: Example:
 
-            get_local_pairs = cupy.RawKernel(r'''
-            extern "C" __global__
-            void get_local_pairs(
-                    const unsigned int N,
-                    const unsigned long* heads,
-                    const unsigned int* nns,
-                    const unsigned int* nlist,
-                    const unsigned int* tags,
-                    const unsigned long* offsets,
-                    unsigned long* pairs) {
-                unsigned int i = (unsigned int)
-                    (blockDim.x * blockIdx.x + threadIdx.x);
-                if (i >= N)
-                    return;
-                uint2* pair = (uint2*)pairs;
-                unsigned long head = heads[i];
-                unsigned int nn = nns[i];
-                unsigned long offset = offsets[i];
-                unsigned int tag_i = tags[i];
-                for (unsigned int idx = 0; idx < nn; idx++) {
-                    unsigned int j = nlist[head + idx];
-                    pair[offset + idx] = make_uint2(tag_i, tags[j]);
+        .. code-block::
+
+                get_local_pairs = cupy.RawKernel(r'''
+                extern "C" __global__
+                void get_local_pairs(
+                        const unsigned int N,
+                        const unsigned long* heads,
+                        const unsigned int* nns,
+                        const unsigned int* nlist,
+                        const unsigned int* tags,
+                        const unsigned long* offsets,
+                        unsigned long* pairs) {
+                    unsigned int i = (unsigned int)
+                        (blockDim.x * blockIdx.x + threadIdx.x);
+                    if (i >= N)
+                        return;
+                    uint2* pair = (uint2*)pairs;
+                    unsigned long head = heads[i];
+                    unsigned int nn = nns[i];
+                    unsigned long offset = offsets[i];
+                    unsigned int tag_i = tags[i];
+                    for (unsigned int idx = 0; idx < nn; idx++) {
+                        unsigned int j = nlist[head + idx];
+                        pair[offset + idx] = make_uint2(tag_i, tags[j]);
+                    }
                 }
-            }
-            ''', 'get_local_pairs')
+                ''', 'get_local_pairs')
 
-            with nlist.gpu_local_nlist_arrays as data:
-                with sim.state.gpu_local_snapshot as snap_data:
-                    tags = snap_data.particles.tag_with_ghost
-                    tags = tags._coerce_to_ndarray()
+                with nlist.gpu_local_nlist_arrays as data:
+                    with sim.state.gpu_local_snapshot as snap_data:
+                        tags = snap_data.particles.tag_with_ghost
+                        tags = tags._coerce_to_ndarray()
 
-                    head_list = data.head_list._coerce_to_ndarray()
-                    n_neigh = data.n_neigh._coerce_to_ndarray()
-                    raw_nlist = data.nlist._coerce_to_ndarray()
+                        head_list = data.head_list._coerce_to_ndarray()
+                        n_neigh = data.n_neigh._coerce_to_ndarray()
+                        raw_nlist = data.nlist._coerce_to_ndarray()
 
-                    N = int(head_list.size)
-                    n_pairs = int(cupy.sum(n_neigh))
-                    offsets = cupy.cumsum(n_neigh.astype(cupy.uint64)
-                    offsets -= n_neigh[0]
-                    device_local_pairs = cupy.zeros(
-                        (n_pairs, 2),
-                        dtype=cupy.uint32)
+                        N = int(head_list.size)
+                        n_pairs = int(cupy.sum(n_neigh))
+                        offsets = cupy.cumsum(n_neigh.astype(cupy.uint64)
+                        offsets -= n_neigh[0]
+                        device_local_pairs = cupy.zeros(
+                            (n_pairs, 2),
+                            dtype=cupy.uint32)
 
-                    block = 256
-                    n_grid = (N + 255) // 256
-                    get_local_pairs(
-                        (n_grid,),
-                        (block,),
-                        (
-                            N,
-                            head_list,
-                            n_neigh,
-                            raw_nlist,
-                            tags,
-                            offsets,
-                            device_local_pairs
-                        ))
+                        block = 256
+                        n_grid = (N + 255) // 256
+                        get_local_pairs(
+                            (n_grid,),
+                            (block,),
+                            (
+                                N,
+                                head_list,
+                                n_neigh,
+                                raw_nlist,
+                                tags,
+                                offsets,
+                                device_local_pairs
+                            ))
 
         Note:
             GPU local nlist data is not available if the chosen device for the
@@ -267,16 +372,17 @@ class NeighborList(Compute):
         """
         if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
-                "Cannot access gpu_local_nlist_arrays without a GPU device")
+                "Cannot access gpu_local_nlist_arrays without a GPU device"
+            )
         if not self._attached:
             raise hoomd.error.DataAccessError("gpu_local_nlist_arrays")
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot enter gpu_local_nlist_arrays context manager inside "
-                "another local_nlist_arrays context manager")
+                "another local_nlist_arrays context manager"
+            )
         self._cpp_obj.compute(self._simulation.timestep)
-        return hoomd.md.data.NeighborListLocalAccessGPU(self,
-                                                        self._simulation.state)
+        return hoomd.md.data.NeighborListLocalAccessGPU(self, self._simulation.state)
 
     @property
     def local_pair_list(self):
@@ -349,7 +455,7 @@ class Cell(NeighborList):
     is usually the best option for most users when the asymmetry between the
     largest and smallest cutoff radius is less than 2:1.
 
-    .. image:: cell_list.png
+    .. image:: /cell_list.png
         :width: 250 px
         :align: center
         :alt: Cell list schematic
@@ -363,40 +469,51 @@ class Cell(NeighborList):
         number of cells in the system. In these cases, consider using `Stencil`
         or `Tree`, which can use less memory.
 
-    Examples::
+    .. rubric:: Example:
 
-        cell = nlist.Cell()
+    .. code-block:: python
+
+            cell = hoomd.md.nlist.Cell(buffer=0.4)
+
+    {inherited}
+
+
+    **Members defined in** `Cell`:
 
     Attributes:
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
     """
 
-    def __init__(self,
-                 buffer,
-                 exclusions=('bond',),
-                 rebuild_check_delay=1,
-                 check_dist=True,
-                 deterministic=False,
-                 mesh=None,
-                 default_r_cut=0.0):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(NeighborList._doc_inherited)
+    )
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh, default_r_cut)
+    def __init__(
+        self,
+        buffer,
+        exclusions=("bond",),
+        rebuild_check_delay=1,
+        check_dist=True,
+        deterministic=False,
+        mesh=None,
+        default_r_cut=0.0,
+    ):
+        super().__init__(
+            buffer, exclusions, rebuild_check_delay, check_dist, mesh, default_r_cut
+        )
 
-        self._param_dict.update(
-            ParameterDict(deterministic=bool(deterministic)))
+        self._param_dict.update(ParameterDict(deterministic=bool(deterministic)))
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListBinned
         else:
             nlist_cls = _md.NeighborListGPUBinned
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
-                                  self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
         super()._attach_hook()
 
-    @log(requires_run=True, default=False, category='sequence')
+    @log(requires_run=True, default=False, category="sequence")
     def dimensions(self):
         """tuple[int, int, int]: Cell list dimensions.
 
@@ -441,9 +558,9 @@ class Stencil(NeighborList):
     particles per cell. In contrast with `Cell`, `Stencil` allows the user to
     choose the cell width: `cell_width` instead of fixing it to the largest
     cutoff radius (`P.J. in't Veld et al. 2008
-    <http://dx.doi.org/10.1016/j.cpc.2008.03.005>`_):
+    <https://dx.doi.org/10.1016/j.cpc.2008.03.005>`_):
 
-    .. image:: stencil_schematic.png
+    .. image:: /stencil_schematic.png
         :width: 300 px
         :align: center
         :alt: Stenciled cell list schematic
@@ -463,14 +580,20 @@ class Stencil(NeighborList):
     *cell_width*, and when the *cell_width* covers the simulation box with a
     roughly integer number of cells.
 
-    Examples::
+    .. rubric:: Example:
 
-        nl_s = nlist.Stencil(cell_width=1.5)
+    .. code-block:: python
+
+            nl_s = hoomd.md.nlist.Stencil(cell_width=1.5, buffer=0.4)
 
     Important:
-        `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
+        `M.P. Howard et al. 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
         describes this neighbor list implementation. Cite it if you utilize
         `Stencil` in your research.
+
+    {inherited}
+
+    **Members defined in** `Stencil`:
 
     Attributes:
         cell_width (float): The underlying stencil bin width for the cell list
@@ -479,21 +602,28 @@ class Stencil(NeighborList):
             deterministic simulation runs.
     """
 
-    def __init__(self,
-                 cell_width,
-                 buffer,
-                 exclusions=('bond',),
-                 rebuild_check_delay=1,
-                 check_dist=True,
-                 deterministic=False,
-                 mesh=None,
-                 default_r_cut=0.0):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(NeighborList._doc_inherited)
+    )
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh, default_r_cut)
+    def __init__(
+        self,
+        cell_width,
+        buffer,
+        exclusions=("bond",),
+        rebuild_check_delay=1,
+        check_dist=True,
+        deterministic=False,
+        mesh=None,
+        default_r_cut=0.0,
+    ):
+        super().__init__(
+            buffer, exclusions, rebuild_check_delay, check_dist, mesh, default_r_cut
+        )
 
-        params = ParameterDict(deterministic=bool(deterministic),
-                               cell_width=float(cell_width))
+        params = ParameterDict(
+            deterministic=bool(deterministic), cell_width=float(cell_width)
+        )
 
         self._param_dict.update(params)
 
@@ -502,8 +632,7 @@ class Stencil(NeighborList):
             nlist_cls = _md.NeighborListStencil
         else:
             nlist_cls = _md.NeighborListGPUStencil
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
-                                  self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
         super()._attach_hook()
 
 
@@ -532,7 +661,7 @@ class Tree(NeighborList):
     per type.) The user should carefully benchmark neighbor list build times to
     select the appropriate neighbor list construction type.
 
-    .. image:: tree_schematic.png
+    .. image:: /tree_schematic.png
         :width: 400 px
         :align: center
         :alt: BVH tree schematic
@@ -542,34 +671,51 @@ class Tree(NeighborList):
     for large, sparse systems.
 
     Important:
-        `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
+        `M.P. Howard et al. 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
         describes the original implementation of this algorithm for HOOMD-blue.
         `M.P. Howard et al. 2019
         <https://doi.org/10.1016/j.commatsci.2019.04.004>`_ describes the
         improved algorithm that is currently implemented. Cite both if you
         utilize this neighbor list style in your work.
 
-    Examples::
+    .. rubric:: Example:
 
-        nl_t = nlist.Tree(check_dist=False)
+    .. code-block:: python
+
+            nl_t = hoomd.md.nlist.Tree(buffer=0.4)
     """
 
-    def __init__(self,
-                 buffer,
-                 exclusions=('bond',),
-                 rebuild_check_delay=1,
-                 check_dist=True,
-                 mesh=None,
-                 default_r_cut=0.0):
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n\n"
+        + inspect.cleandoc(NeighborList._doc_inherited)
+    )
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh, default_r_cut)
+    def __init__(
+        self,
+        buffer,
+        exclusions=("bond",),
+        rebuild_check_delay=1,
+        check_dist=True,
+        mesh=None,
+        default_r_cut=0.0,
+    ):
+        super().__init__(
+            buffer, exclusions, rebuild_check_delay, check_dist, mesh, default_r_cut
+        )
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListTree
         else:
             nlist_cls = _md.NeighborListGPUTree
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
-                                  self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
         super()._attach_hook()
+
+
+__all__ = [
+    "Cell",
+    "NeighborList",
+    "Stencil",
+    "Tree",
+]

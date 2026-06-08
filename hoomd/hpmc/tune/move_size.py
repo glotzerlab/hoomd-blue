@@ -1,16 +1,17 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement MoveSize."""
 
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
-                                      to_type_converter)
-from hoomd.tune import _InternalCustomTuner
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, OnlyIf, to_type_converter
 from hoomd.tune import ScaleSolver, SecantSolver
 from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.hpmc.tune import mc_move_tune
+from hoomd.operation import Tuner
+from hoomd.tune.custom_tuner import _InternalCustomTuner
+import inspect
 
 
 class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
@@ -20,12 +21,16 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
     move sizes. For this class 'x' is the move size and 'y' is the acceptance
     rate.
     """
-    _attr_acceptance = {'a': 'rotate_moves', 'd': 'translate_moves'}
+
+    _attr_acceptance = {"a": "rotate_moves", "d": "translate_moves"}
 
     def __init__(self, attr, type, target, domain=None):
         if attr not in self._attr_acceptance:
-            raise ValueError("Only {} are allowed as tunable "
-                             "attributes.".format(self._available_attrs))
+            raise ValueError(
+                "Only {} are allowed as tunable attributes.".format(
+                    self._available_attrs
+                )
+            )
         self.attr = attr
         self.type = type
         self.integrator = None
@@ -44,52 +49,69 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
         return hash((self.attr, self.type, self._target, self._domain))
 
     def __eq__(self, other):
-        return (self.attr == other.attr and self.type == other.type
-                and self._target == other._target
-                and self._domain == other._domain)
+        return (
+            self.attr == other.attr
+            and self.type == other.type
+            and self._target == other._target
+            and self._domain == other._domain
+        )
 
 
 class _InternalMoveSize(mc_move_tune._TuneMCMove):
     """Internal class for the MoveSize tuner."""
 
-    def __init__(self,
-                 moves,
-                 target,
-                 solver,
-                 types=None,
-                 max_translation_move=None,
-                 max_rotation_move=None):
+    def __init__(
+        self,
+        moves,
+        target,
+        solver,
+        types=None,
+        max_translation_move=None,
+        max_rotation_move=None,
+    ):
         super().__init__(target, solver)
         # A flag for knowing when to update the maximum move sizes
         self._should_update_move_sizes = False
 
         # set up maximum trial move sizes
         t_moves = TypeParameter(
-            'max_translation_move', 'particle_type',
-            TypeParameterDict(OnlyTypes(float,
-                                        postprocess=self._flag_move_size_update,
-                                        allow_none=True),
-                              len_keys=1))
+            "max_translation_move",
+            "particle_type",
+            TypeParameterDict(
+                OnlyTypes(
+                    float, postprocess=self._flag_move_size_update, allow_none=True
+                ),
+                len_keys=1,
+            ),
+        )
         r_moves = TypeParameter(
-            'max_rotation_move', 'particle_type',
-            TypeParameterDict(OnlyTypes(float,
-                                        postprocess=self._flag_move_size_update,
-                                        allow_none=True),
-                              len_keys=1))
+            "max_rotation_move",
+            "particle_type",
+            TypeParameterDict(
+                OnlyTypes(
+                    float, postprocess=self._flag_move_size_update, allow_none=True
+                ),
+                len_keys=1,
+            ),
+        )
         self._typeparam_dict = {
-            'max_translation_move': t_moves,
-            'max_rotation_move': r_moves
+            "max_translation_move": t_moves,
+            "max_rotation_move": r_moves,
         }
 
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
         param_dict = ParameterDict(
-            moves=OnlyIf(to_type_converter([OnlyFrom(['a', 'd'])]),
-                         postprocess=self._update_moves),
-            types=OnlyIf(to_type_converter([str]),
-                         postprocess=self._update_types,
-                         allow_none=True),
+            moves=OnlyIf(
+                to_type_converter([OnlyFrom(["a", "d"])]),
+                postprocess=self._update_moves,
+            ),
+            types=OnlyIf(
+                to_type_converter([str]),
+                postprocess=self._update_types,
+                allow_none=True,
+            ),
         )
 
         self._param_dict.update(param_dict)
@@ -105,21 +127,20 @@ class _InternalMoveSize(mc_move_tune._TuneMCMove):
 
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCIntegrator):
-            raise RuntimeError(
-                "MoveSizeTuner can only be used in HPMC simulations.")
+            raise RuntimeError("MoveSizeTuner can only be used in HPMC simulations.")
         particle_types = simulation.state.particle_types
         if self.types is None:
             self.types = particle_types
         if not all(t in particle_types for t in self.types):
             raise RuntimeError(
-                "Invalid particle type found specified types for tuning.")
+                "Invalid particle type found specified types for tuning."
+            )
         self._update_tunables(new_moves=self.moves, new_types=self.types)
-        self._update_tunables_attr('integrator',
-                                   simulation.operations.integrator)
+        self._update_tunables_attr("integrator", simulation.operations.integrator)
         super().attach(simulation)
 
     def detach(self):
-        self._update_tunables_attr('integrator', None)
+        self._update_tunables_attr("integrator", None)
         super().detach()
 
     def act(self, timestep=None):
@@ -139,8 +160,9 @@ class _InternalMoveSize(mc_move_tune._TuneMCMove):
         # First filter out any move size tune definitions that don't match
         # the new specification.
         def filter_tunables(tunable):
-            return ((new_moves is None or tunable.attr in new_moves)
-                    and (new_types is None or tunable.type in new_types))
+            return (new_moves is None or tunable.attr in new_moves) and (
+                new_types is None or tunable.type in new_types
+            )
 
         self._tunables = list(filter(filter_tunables, tunables))
         tune_definitions = set(self._tunables)
@@ -149,13 +171,13 @@ class _InternalMoveSize(mc_move_tune._TuneMCMove):
         # specification.
         for move in new_moves:
             for new_type in new_types:
-                if move == 'a':
+                if move == "a":
                     max_move_size = self.max_rotation_move[new_type]
                 else:
                     max_move_size = self.max_translation_move[new_type]
                 move_definition = _MoveSizeTuneDefinition(
-                    move, new_type, self.target,
-                    (self._min_move_size, max_move_size))
+                    move, new_type, self.target, (self._min_move_size, max_move_size)
+                )
                 if move_definition not in tune_definitions:
                     self._tunables.append(move_definition)
 
@@ -175,7 +197,7 @@ class _InternalMoveSize(mc_move_tune._TuneMCMove):
 
     def _update_move_sizes(self):
         for tunable in self._tunables:
-            if tunable.attr == 'a':
+            if tunable.attr == "a":
                 max_move_size = self.max_rotation_move[tunable.type]
             else:
                 max_move_size = self.max_translation_move[tunable.type]
@@ -208,23 +230,6 @@ class MoveSize(_InternalCustomTuner):
         max_rotation_move (float): The maximum value of a rotational move size
             to attempt.
 
-    Attributes:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-            run the tuner.
-        moves (list[str]): A list of types of moves to tune. Available options
-            are ``'a'`` and ``'d'``.
-        target (float): The acceptance rate for trial moves that is desired. The
-            value should be between 0 and 1.
-        solver (hoomd.tune.RootSolver): A solver that tunes move sizes to reach
-            the specified target.
-        types (list[str]): A list of string particle
-            types to tune the move size for, defaults to None which upon
-            attaching will tune all types in the system currently.
-        max_translation_move (float): The maximum value of a translational move
-            size to attempt :math:`[\\mathrm{length}]`.
-        max_rotation_move (float): The maximum value of a rotational move size
-            to attempt.
-
     Note:
         Limiting the maximum move sizes can lead to the inability to converge to
         the desired acceptance rate. Also, not limiting the move size can lead
@@ -246,21 +251,45 @@ class MoveSize(_InternalCustomTuner):
         ``ignore_statistics`` flag of the shape property of the HPMC integrator
         for all other types to ``True``.
 
+    {inherited}
+
+    **Members defined in** `MoveSize`:
+
+    Attributes:
+        moves (list[str]): A list of types of moves to tune. Available options
+            are ``'a'`` and ``'d'``.
+        target (float): The acceptance rate for trial moves that is desired. The
+            value should be between 0 and 1.
+        solver (hoomd.tune.RootSolver): A solver that tunes move sizes to reach
+            the specified target.
+        types (list[str]): A list of string particle
+            types to tune the move size for, defaults to None which upon
+            attaching will tune all types in the system currently.
+        max_translation_move (float): The maximum value of a translational move
+            size to attempt :math:`[\\mathrm{length}]`.
+        max_rotation_move (float): The maximum value of a rotational move size
+            to attempt.
     """
+
     _internal_class = _InternalMoveSize
     _wrap_methods = ("tuned",)
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Tuner._doc_inherited)
+    )
 
     @classmethod
-    def scale_solver(cls,
-                     trigger,
-                     moves,
-                     target,
-                     types=None,
-                     max_translation_move=None,
-                     max_rotation_move=None,
-                     max_scale=2.,
-                     gamma=1.,
-                     tol=1e-2):
+    def scale_solver(
+        cls,
+        trigger,
+        moves,
+        target,
+        types=None,
+        max_translation_move=None,
+        max_rotation_move=None,
+        max_scale=2.0,
+        gamma=1.0,
+        tol=1e-2,
+    ):
         """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
@@ -288,20 +317,29 @@ class MoveSize(_InternalCustomTuner):
                 than the default of 0.01 as acceptance rates can vary
                 significantly at typical tuning rates.
         """
-        solver = ScaleSolver(max_scale, gamma, 'negative', tol)
-        return cls(trigger, moves, target, solver, types, max_translation_move,
-                   max_rotation_move)
+        solver = ScaleSolver(max_scale, gamma, "negative", tol)
+        return cls(
+            trigger,
+            moves,
+            target,
+            solver,
+            types,
+            max_translation_move,
+            max_rotation_move,
+        )
 
     @classmethod
-    def secant_solver(cls,
-                      trigger,
-                      moves,
-                      target,
-                      types=None,
-                      max_translation_move=None,
-                      max_rotation_move=None,
-                      gamma=0.8,
-                      tol=1e-2):
+    def secant_solver(
+        cls,
+        trigger,
+        moves,
+        target,
+        types=None,
+        max_translation_move=None,
+        max_rotation_move=None,
+        gamma=0.8,
+        tol=1e-2,
+    ):
         """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
@@ -341,5 +379,12 @@ class MoveSize(_InternalCustomTuner):
             frequently.
         """
         solver = SecantSolver(gamma, tol)
-        return cls(trigger, moves, target, solver, types, max_translation_move,
-                   max_rotation_move)
+        return cls(
+            trigger,
+            moves,
+            target,
+            solver,
+            types,
+            max_translation_move,
+            max_rotation_move,
+        )

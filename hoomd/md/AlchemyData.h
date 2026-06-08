@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file AlchemyData.h
@@ -31,7 +31,7 @@ namespace md
 struct AlchemicalParticle
     {
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
-        : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) {};
+        : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) { };
 
     void notifyDetach()
         {
@@ -39,7 +39,7 @@ struct AlchemicalParticle
         }
 
     Scalar value; //!< Alpha space dimensionless position of the particle
-    uint64_t m_nextTimestep;
+    uint64_t m_nextTimestep = 0;
 
     protected:
     bool m_attached;
@@ -52,19 +52,19 @@ struct AlchemicalMDParticle : AlchemicalParticle
     {
     AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
 
-        : AlchemicalParticle(exec_conf) {};
+        : AlchemicalParticle(exec_conf) { };
 
     void inline zeroForces()
         {
         ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
                                      access_location::host,
                                      access_mode::overwrite);
-        memset((void*)h_forces.data, 0, sizeof(Scalar) * m_alchemical_derivatives.getNumElements());
+        m_alchemical_derivatives.zeroFill();
         }
 
     void resizeForces(unsigned int N)
         {
-        GlobalArray<Scalar> new_forces(N, m_exec_conf);
+        GPUArray<Scalar> new_forces(N, m_exec_conf);
         m_alchemical_derivatives.swap(new_forces);
         }
 
@@ -126,7 +126,7 @@ struct AlchemicalMDParticle : AlchemicalParticle
         = make_scalar2(1.0,
                        1.0); // mass (x) and it's inverse (y) (don't have to recompute constantly)
     Scalar mu = 0.;          //!< the alchemical potential of the particle
-    GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
+    GPUArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     protected:
     // the timestep the net force was computed and the netforce
     std::pair<uint64_t, Scalar> m_timestep_net_force;
@@ -136,7 +136,7 @@ struct AlchemicalPairParticle : AlchemicalMDParticle
     {
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                            int3 type_pair_param)
-        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) {};
+        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) { };
     int3 m_type_pair_param;
     };
 

@@ -3,12 +3,15 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   AreaConservationMeshForceCompute.cc
                    AlchemostatTwoStep.cc
                    AnisoPotentialPairALJ2.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
+                   AnisoPotentialPairYLZ.cc
                    AnisoPotentialPairGB.cc
                    AlchemyData.cc
+                   BendingRigidityMeshForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -20,10 +23,12 @@ set(_md_sources module-md.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
+                   FrictionPairFrictionLJBase.cc
                    HalfStepHook.cc
                    HarmonicAngleForceCompute.cc
                    HarmonicDihedralForceCompute.cc
                    HarmonicImproperForceCompute.cc
+                   HelfrichMeshForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
 		   ManifoldCuboid.cc
@@ -34,6 +39,8 @@ set(_md_sources module-md.cc
                    ManifoldSphere.cc
                    ManifoldXYPlane.cc
                    ManifoldZCylinder.cc
+		   MeshDynamicBondUpdater.cc
+		   MeshForceCompute.cc
                    MolecularForceCompute.cc
                    MuellerPlatheFlow.cc
                    NeighborListBinned.cc
@@ -42,8 +49,10 @@ set(_md_sources module-md.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
+                   PeriodicImproperForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
+                   TriangleAreaConservationMeshForceCompute.cc
                    TwoStepBD.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
@@ -52,6 +61,7 @@ set(_md_sources module-md.cc
                    Thermostat.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
+		   VolumeConservationMeshForceCompute.cc
                    ZeroMomentumUpdater.cc
                    )
 
@@ -65,6 +75,12 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
+                AreaConservationMeshParameters.h
+                AreaConservationMeshForceCompute.h
+                AreaConservationMeshForceComputeGPU.h
+                AreaConservationMeshForceComputeGPU.cuh
+                BendingRigidityMeshForceComputeGPU.h
+                BendingRigidityMeshForceCompute.h
                 BondTablePotentialGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
@@ -78,8 +94,10 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
                 ConstantForceComputeGPU.h
+                ConstantForceComputeGPU.cuh
                 ConstantForceCompute.h
                 CosineSqAngleForceComputeGPU.h
+                CosineSqAngleForceGPU.cuh
                 CosineSqAngleForceCompute.h
                 CustomForceCompute.h
                 EvaluatorBondFENE.h
@@ -88,11 +106,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
-		EvaluatorExternalMagneticField.h
+                EvaluatorExternalMagneticField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+                EvaluatorPairFrictionLJBase.h
+                EvaluatorPairFrictionLJVariants.h
+                EvaluatorPairYLZ.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
                 EvaluatorPairDPDThermoDPD.h
@@ -115,21 +136,33 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairTable.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
+                EvaluatorPairWangFrenkel.h
                 EvaluatorPairZBL.h
+                EvaluatorPairZetterling.h
                 EvaluatorTersoff.h
                 EvaluatorWalls.h
                 FIREEnergyMinimizerGPU.h
+                FIREEnergyMinimizerGPU.cuh
                 FIREEnergyMinimizer.h
                 ForceCompositeGPU.h
+                ForceCompositeGPU.cuh
                 ForceComposite.h
                 ForceDistanceConstraintGPU.h
+                ForceDistanceConstraintGPU.cuh
                 ForceDistanceConstraint.h
+                PatchEnvelope.h
                 HarmonicAngleForceComputeGPU.h
                 HarmonicAngleForceCompute.h
+                HarmonicAngleForceGPU.cuh
                 HarmonicDihedralForceComputeGPU.h
                 HarmonicDihedralForceCompute.h
+                HarmonicDihedralForceGPU.cuh
                 HarmonicImproperForceComputeGPU.h
                 HarmonicImproperForceCompute.h
+                HarmonicImproperForceGPU.cuh
+                HelfrichMeshForceComputeGPU.h
+                HelfrichMeshForceComputeGPU.cuh
+                HelfrichMeshForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
 		ManifoldCuboid.h
@@ -140,21 +173,29 @@ set(_md_headers ActiveForceComputeGPU.h
                 ManifoldSphere.h
                 ManifoldXYPlane.h
                 ManifoldZCylinder.h
+		MeshDynamicBondUpdater.h
+		MeshForceCompute.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 MuellerPlatheFlowEnum.h
                 MuellerPlatheFlow.h
                 MuellerPlatheFlowGPU.h
+                MuellerPlatheFlowGPU.cuh
                 NeighborListBinned.h
                 NeighborListGPUBinned.h
                 NeighborListGPU.h
+                NeighborListGPU.cuh
                 NeighborListGPUStencil.h
+                NeighborListGPUStencil.cuh
                 NeighborListGPUTree.h
+                NeighborListGPUTree.cuh
                 NeighborList.h
                 NeighborListStencil.h
                 NeighborListTree.h
                 OPLSDihedralForceComputeGPU.h
+                OPLSDihedralForceGPU.cuh
                 OPLSDihedralForceCompute.h
+                PairModulator.h
                 PotentialBondGPU.h
                 PotentialBondGPU.cuh
                 PotentialBond.h
@@ -173,12 +214,25 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
+                PeriodicImproper.h
+                PeriodicImproperForceCompute.h
+                PeriodicImproperForceComputeGPU.h
+                PeriodicImproperForceGPU.cuh
                 PPPMForceComputeGPU.h
+                PPPMForceComputeGPU.cuh
                 PPPMForceCompute.h
+                FrictionPairGPU.cuh
+                FrictionPairGPU.h
+                FrictionPair.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
+                TableAngleForceGPU.cuh
                 TableDihedralForceComputeGPU.h
                 TableDihedralForceCompute.h
+                TriangleAreaConservationMeshParameters.h
+                TriangleAreaConservationMeshForceCompute.h
+                TriangleAreaConservationMeshForceComputeGPU.h
+                TriangleAreaConservationMeshForceComputeGPU.cuh
                 TwoStepBDGPU.h
                 TwoStepRATTLEBDGPU.h
                 TwoStepRATTLEBDGPU.cuh
@@ -186,6 +240,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLEBD.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
+                TwoStepLangevinGPU.cuh
                 TwoStepRATTLELangevinGPU.h
                 TwoStepRATTLELangevinGPU.cuh
                 TwoStepLangevin.h
@@ -195,9 +250,17 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLENVE.h
                 TwoStepConstantVolume.h
                 TwoStepConstantVolumeGPU.h
+                TwoStepConstantVolumeGPU.cuh
                 TwoStepConstantPressure.h
+                TwoStepConstantPressureGPU.h
+                TwoStepConstantPressureGPU.cuh
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
+                VolumeConservationMeshParameters.h
+                VolumeConservationMeshForceCompute.h
+                VolumeConservationMeshForceComputeGPU.h
+                VolumeConservationMeshForceComputeGPU.cuh
+                AlchemostatTwoStep.h
                 WallData.h
 		WallForceConstraintCompute.h
                 WallForceConstraintComputeGPU.h
@@ -207,10 +270,13 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
+                           AreaConservationMeshForceComputeGPU.cc
                            AnisoPotentialPairALJ2GPU.cc
                            AnisoPotentialPairALJ3GPU.cc
                            AnisoPotentialPairDipoleGPU.cc
+                           AnisoPotentialPairYLZGPU.cc
                            AnisoPotentialPairGBGPU.cc
+                           BendingRigidityMeshForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
@@ -222,17 +288,22 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            HarmonicAngleForceComputeGPU.cc
                            HarmonicDihedralForceComputeGPU.cc
                            HarmonicImproperForceComputeGPU.cc
+                  	   HelfrichMeshForceComputeGPU.cc
                            MolecularForceCompute.cu
                            NeighborListGPU.cc
                            NeighborListGPUBinned.cc
                            NeighborListGPUStencil.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
+                           PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
+                           FrictionPairFrictionLJBaseGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
+                           TriangleAreaConservationMeshForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepLangevinGPU.cc
+                  	   VolumeConservationMeshForceComputeGPU.cc
                            TwoStepConstantVolumeGPU.cc
                            TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
@@ -241,10 +312,13 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
+                      AreaConservationMeshForceComputeGPU.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
+                      AnisoPotentialPairYLZGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
+            	      BendingRigidityMeshForceComputeGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       ConstantForceComputeGPU.cu
@@ -256,15 +330,19 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       HarmonicAngleForceGPU.cu
                       HarmonicDihedralForceGPU.cu
                       HarmonicImproperForceGPU.cu
+            	      HelfrichMeshForceComputeGPU.cu
                       MolecularForceCompute.cu
                       NeighborListGPUBinned.cu
                       NeighborListGPU.cu
                       NeighborListGPUStencil.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
+                      PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
+                      FrictionPairFrictionLJBaseGPUKernel.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
+                      TriangleAreaConservationMeshForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
@@ -272,6 +350,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepConstantVolumeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
+            	      VolumeConservationMeshForceComputeGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
@@ -402,7 +481,6 @@ foreach(_bond ${_bonds})
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
-
 
 set(_pairs LJ Coulomb)
 
@@ -541,7 +619,9 @@ set(_pair_evaluators Buckingham
                      LJGauss
                      ForceShiftedLJ
                      Table
-                     ExpandedGaussian)
+                     ExpandedGaussian
+                     WangFrenkel
+                     Zetterling)
 
 
 foreach(_evaluator ${_pair_evaluators})
@@ -570,6 +650,34 @@ foreach(_evaluator ${_pair_evaluators})
     endif()
 endforeach()
 
+set(_patchy_evaluators ExpandedGaussian
+                       ExpandedLJ
+                       ExpandedMie
+                       Gauss
+                       LJ
+                       Mie
+                       Yukawa
+                       Table)
+
+foreach(_evaluator ${_patchy_evaluators})
+    configure_file(export_AnisoPotentialPairPatchy.cc.inc
+                   export_AnisoPotentialPairPatchy${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}.cc)
+    if(ENABLE_HIP)
+        configure_file(export_AnisoPotentialPairPatchyGPU.cc.inc
+                       export_AnisoPotentialPairPatchy${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(AnisoPotentialPairPatchyGPUKernel.cu.inc
+                       AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
 set(_alchemical_pair_evaluators LJGauss)
 
 foreach(_evaluator ${_alchemical_pair_evaluators})
@@ -579,7 +687,7 @@ foreach(_evaluator ${_alchemical_pair_evaluators})
     set(_md_sources ${_md_sources} export_PotentialPairAlchemical${_evaluator}.cc)
 endforeach()
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
+hoomd_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_md ALIAS _md)
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_H__
@@ -51,7 +51,7 @@ template<class evaluator> class PotentialPairDPDThermo : public PotentialPair<ev
     PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<NeighborList> nlist);
     //! Destructor
-    virtual ~PotentialPairDPDThermo() {};
+    virtual ~PotentialPairDPDThermo() { };
 
     //! Set the temperature
     virtual void setT(std::shared_ptr<Variant> T);
@@ -138,8 +138,8 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
 
     // need to start from a zero force, energy and virial
-    memset((void*)h_force.data, 0, sizeof(Scalar4) * this->m_force.getNumElements());
-    memset((void*)h_virial.data, 0, sizeof(Scalar) * this->m_virial.getNumElements());
+    this->m_force.zeroFill();
+    this->m_virial.zeroFill();
 
     uint16_t seed = this->m_sysdef->getSeed();
 
@@ -243,7 +243,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10
                 // scalars / FLOPS: 8)
-                if (third_law)
+                if (third_law && j < this->m_pdata->getN())
                     {
                     unsigned int mem_idx = j;
                     h_force.data[mem_idx].x -= dx.x * force_divr;

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomUpdater.
@@ -13,12 +13,13 @@
     custom_action = ExampleAction()
 """
 
-from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
+from hoomd.custom import CustomOperation, Action
+from hoomd.custom.custom_operation import _InternalCustomOperation
 from hoomd.operation import Updater
+import inspect
 
 
 class _UpdaterProperty:
-
     @property
     def updater(self):
         return self._action
@@ -28,8 +29,7 @@ class _UpdaterProperty:
         if isinstance(updater, Action):
             self._action = updater
         else:
-            raise ValueError(
-                "updater must be an instance of hoomd.custom.Action")
+            raise ValueError("updater must be an instance of hoomd.custom.Action")
 
 
 class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
@@ -52,7 +52,8 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
 
             custom_updater = hoomd.update.CustomUpdater(
                 action=custom_action,
-                trigger=hoomd.trigger.Periodic(1000))
+                trigger=hoomd.trigger.Periodic(1000),
+            )
             simulation.operations.updaters.append(custom_updater)
 
     See Also:
@@ -62,14 +63,17 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
 
         `hoomd.write.CustomWriter`
     """
-    _cpp_list_name = 'updaters'
-    _cpp_class_name = 'PythonUpdater'
+
+    _cpp_list_name = "updaters"
+    _cpp_class_name = "PythonUpdater"
+    __doc__ = (
+        inspect.cleandoc(__doc__)
+        + "\n"
+        + inspect.cleandoc(CustomOperation._doc_inherited)
+    )
 
 
 class _InternalCustomUpdater(_InternalCustomOperation, Updater):
-    _cpp_list_name = 'updaters'
-    _cpp_class_name = 'PythonUpdater'
+    _cpp_list_name = "updaters"
+    _cpp_class_name = "PythonUpdater"
     _operation_func = "update"
-
-    def update(self, timestep):
-        return self._action.act(timestep)

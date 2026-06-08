@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GSDDequeWriter.h"
@@ -14,11 +14,14 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
                                int queue_size,
                                std::string mode,
                                bool write_at_init,
-                               uint64_t timestep)
-    : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size)
+                               bool clear_whole_buffer_after_dump,
+                               uint64_t timestep,
+                               std::string precision = "single")
+    : GSDDumpWriter(sysdef, trigger, fname, group, mode, false, precision), m_queue_size(queue_size)
     {
     setLogWriter(logger);
     bool file_empty = true;
+    m_clear_whole_buffer_after_dump = true;
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -42,9 +45,10 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
         else
             {
             analyze(timestep);
-            dump();
+            dump(0, -1);
             }
         }
+    setClearWholeBufferAfterDump(clear_whole_buffer_after_dump);
     }
 
 void GSDDequeWriter::analyze(uint64_t timestep)
@@ -59,14 +63,42 @@ void GSDDequeWriter::analyze(uint64_t timestep)
         }
     }
 
-void GSDDequeWriter::dump()
+void GSDDequeWriter::dump(long int start, long int end)
     {
-    for (auto i {static_cast<long int>(m_frame_queue.size()) - 1}; i >= 0; --i)
+    auto buffer_length = static_cast<long int>(m_frame_queue.size());
+    if (end > buffer_length)
+        {
+        throw std::runtime_error("Burst.dump's end index is out of range.");
+        }
+    if (start < 0 || start > buffer_length)
+        {
+        throw std::runtime_error("Burst.dump's start index is out of range.");
+        }
+    long int iterator_start, iterator_end;
+    if (end < 0)
+        {
+        iterator_end = buffer_length - start;
+        iterator_start = 0;
+        }
+    else
+        {
+        iterator_end = buffer_length - start;
+        iterator_start = buffer_length - end;
+        }
+    for (auto i = iterator_end - 1; i >= iterator_start; --i)
         {
         write(m_frame_queue[i], m_log_queue[i]);
         }
-    m_frame_queue.clear();
-    m_log_queue.clear();
+    if (m_clear_whole_buffer_after_dump)
+        {
+        m_frame_queue.clear();
+        m_log_queue.clear();
+        }
+    else
+        {
+        m_frame_queue.erase(m_frame_queue.begin() + iterator_start, m_frame_queue.end());
+        m_log_queue.erase(m_log_queue.begin() + iterator_start, m_log_queue.end());
+        }
     }
 
 int GSDDequeWriter::getMaxQueueSize() const
@@ -93,6 +125,16 @@ void GSDDequeWriter::setMaxQueueSize(int new_max_size)
         }
     }
 
+bool GSDDequeWriter::getClearWholeBufferAfterDump() const
+    {
+    return m_clear_whole_buffer_after_dump;
+    }
+
+void GSDDequeWriter::setClearWholeBufferAfterDump(bool clear_whole_buffer_after_dump)
+    {
+    m_clear_whole_buffer_after_dump = clear_whole_buffer_after_dump;
+    }
+
 namespace detail
     {
 void export_GSDDequeWriter(pybind11::module& m)
@@ -108,10 +150,15 @@ void export_GSDDequeWriter(pybind11::module& m)
                             int,
                             std::string,
                             bool,
-                            uint64_t>())
+                            bool,
+                            uint64_t,
+                            std::string>())
         .def_property("max_burst_size",
                       &GSDDequeWriter::getMaxQueueSize,
                       &GSDDequeWriter::setMaxQueueSize)
+        .def_property("clear_whole_buffer_after_dump",
+                      &GSDDequeWriter::getClearWholeBufferAfterDump,
+                      &GSDDequeWriter::setClearWholeBufferAfterDump)
         .def("__len__", &GSDDequeWriter::getCurrentQueueSize)
         .def("dump", &GSDDequeWriter::dump);
     }

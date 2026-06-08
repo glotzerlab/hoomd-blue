@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_PAIR_ALJ_H__
@@ -719,7 +719,10 @@ template<unsigned int ndim> class EvaluatorPairALJ
         {
         return "alj";
         }
-
+    static std::string getShapeParamName()
+        {
+        return "Shape";
+        }
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this pair potential.");
@@ -1015,7 +1018,7 @@ HOSTDEVICE inline void edgeEdgeDistance(const vec3<Scalar>& e00,
     // This math is identical to DEM's but is simplified to reduce the number
     // of dot products and clarify the purpose of the calculations that are
     // present.
-    // in the style of http://paulbourke.net/geometry/pointlineplane/
+    // in the style of https://paulbourke.net/geometry/pointlineplane/
     const vec3<Scalar> r0(e01 - e00);
     const vec3<Scalar> r1(e11 - e10);
     const Scalar r0sq(dot(r0, r0));

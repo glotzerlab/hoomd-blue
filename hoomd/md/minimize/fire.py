@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Energy minimizer."""
@@ -69,7 +69,7 @@ class FIRE(_DynamicIntegrator):
     Engine (FIRE) algorithm to minimize the potential energy for a group of
     particles while keeping all other particles fixed. This method is published
     in `Bitzek, et. al., PRL, 2006
-    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_. HOOMD-blue's
+    <https://dx.doi.org/10.1103/PhysRevLett.97.170201>`_. HOOMD-blue's
     implementation extends the original formulation to include rotational
     degrees of freedom.
 
@@ -97,10 +97,14 @@ class FIRE(_DynamicIntegrator):
 
     .. math::
 
-        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < \\mathrm{\\text{force_tol}}
-        \\;\\;, \\;\\ \\Delta \\frac{\\sum|E|}{N} <
-        \\mathrm{\\text{energy_tol}} \\;\\;, and \\;\\ \\frac{\\sum|L|}{N} <
-        \\mathrm{\\text{angmom_tol}}
+        \\frac{\\sum |F|}{N\\sqrt{N_{dof}}} \\le \\mathrm{force\\_tol}
+
+    .. math::
+
+        \\Delta \\frac{\\sum|E|}{N} \\le \\mathrm{energy\\_tol}
+
+    .. math::
+        \\frac{\\sum|L|}{N} \\le \\mathrm{angmom\\_tol}
 
     where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the
     minimization is acting over. Any of the criterion can be effectively
@@ -112,21 +116,26 @@ class FIRE(_DynamicIntegrator):
 
     Examples::
 
-        fire = md.minimize.FIRE(dt=0.05,
-                                force_tol=1e-2,
-                                angmom_tol=1e-2,
-                                energy_tol=1e-7)
+        fire = md.minimize.FIRE(
+            dt=0.05,
+            force_tol=1e-2,
+            angmom_tol=1e-2,
+            energy_tol=1e-7,
+        )
         fire.methods.append(md.methods.ConstantVolume(hoomd.filter.All()))
         sim.operations.integrator = fire
-        while not(fire.converged):
-           sim.run(100)
+        while not (fire.converged):
+            sim.run(100)
 
         fire = md.minimize.FIRE(dt=0.05)
-        fire.methods.append(md.methods.ConstantPressure(
-            hoomd.filter.All(), S=1, tauS=1, couple='none'))
+        fire.methods.append(
+            md.methods.ConstantPressure(
+                hoomd.filter.All(), S=1, tauS=1, couple="none"
+            )
+        )
         sim.operations.integrator = fire
-        while not(fire.converged):
-           sim.run(100)
+        while not (fire.converged):
+            sim.run(100)
 
     Note:
         To use `FIRE`, set it as the simulation's integrator in place of the
@@ -196,25 +205,27 @@ class FIRE(_DynamicIntegrator):
             considered.
 
     """
+
     _cpp_class_name = "FIREEnergyMinimizer"
 
-    def __init__(self,
-                 dt,
-                 force_tol,
-                 angmom_tol,
-                 energy_tol,
-                 integrate_rotational_dof=False,
-                 forces=None,
-                 constraints=None,
-                 methods=None,
-                 rigid=None,
-                 min_steps_adapt=5,
-                 finc_dt=1.1,
-                 fdec_dt=0.5,
-                 alpha_start=0.1,
-                 fdec_alpha=0.99,
-                 min_steps_conv=10):
-
+    def __init__(
+        self,
+        dt,
+        force_tol,
+        angmom_tol,
+        energy_tol,
+        integrate_rotational_dof=False,
+        forces=None,
+        constraints=None,
+        methods=None,
+        rigid=None,
+        min_steps_adapt=5,
+        finc_dt=1.1,
+        fdec_dt=0.5,
+        alpha_start=0.1,
+        fdec_alpha=0.99,
+        min_steps_conv=10,
+    ):
         super().__init__(forces, constraints, methods, rigid)
 
         pdict = ParameterDict(
@@ -229,10 +240,8 @@ class FIRE(_DynamicIntegrator):
             angmom_tol=float(angmom_tol),
             energy_tol=float(energy_tol),
             min_steps_conv=OnlyTypes(int, preprocess=positive_real),
-            _defaults={
-                'min_steps_adapt': 5,
-                'min_steps_conv': 10
-            })
+            _defaults={"min_steps_adapt": 5, "min_steps_conv": 10},
+        )
 
         self._param_dict.update(pdict)
 
@@ -245,11 +254,16 @@ class FIRE(_DynamicIntegrator):
         self._methods.clear()
 
         methods_list = syncedlist.SyncedList(
-            OnlyTypes((hoomd.md.methods.ConstantVolume,
-                       hoomd.md.methods.ConstantPressure,
-                       hoomd.md.methods.rattle.NVE)),
+            OnlyTypes(
+                (
+                    hoomd.md.methods.ConstantVolume,
+                    hoomd.md.methods.ConstantPressure,
+                    hoomd.md.methods.rattle.NVE,
+                )
+            ),
             syncedlist._PartialGetAttr("_cpp_obj"),
-            iterable=methods)
+            iterable=methods,
+        )
         self._methods = methods_list
 
     def _attach_hook(self):

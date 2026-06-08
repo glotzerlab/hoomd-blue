@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ParticleGroup.h"
@@ -36,11 +36,6 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
       m_global_ptl_num_change(false), m_selector(selector), m_update_tags(update_tags),
       m_warning_printed(false)
     {
-#ifdef ENABLE_HIP
-    if (m_pdata->getExecConf()->isCUDAEnabled())
-        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-#endif
-
     // update member tag arrays
     updateMemberTags(true);
 
@@ -54,9 +49,6 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
     // connect updateMemberTags() method to maximum particle number change signal
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
-
-    // update GPU memory hints
-    updateGPUAdvice();
     }
 
 /*! \param sysdef System definition to build the group from
@@ -105,9 +97,8 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
     sort(sorted_member_tags.begin(), sorted_member_tags.end());
 
     // store member tags
-    GlobalArray<unsigned int> member_tags_array(member_tags.size(), m_exec_conf);
+    GPUArray<unsigned int> member_tags_array(member_tags.size(), m_exec_conf);
     m_member_tags.swap(member_tags_array);
-    TAG_ALLOCATION(m_member_tags);
 
         {
         ArrayHandle<unsigned int> h_member_tags(m_member_tags,
@@ -118,25 +109,17 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
 
     // one byte per particle to indicate membership in the group, initialize with current number of
     // local particles
-    GlobalArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
+    GPUArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
-    TAG_ALLOCATION(m_is_member);
 
-    GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
+    GPUArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
-    TAG_ALLOCATION(m_is_member_tag);
 
     // build the reverse lookup table for tags
     buildTagHash();
 
-    GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
+    GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
-    TAG_ALLOCATION(m_member_idx);
-
-#ifdef ENABLE_HIP
-    if (m_pdata->getExecConf()->isCUDAEnabled())
-        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-#endif
 
     // now that the tag list is completely set up and all memory is allocated, rebuild the index
     // list
@@ -152,9 +135,6 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
     // connect updateMemberTags() method to maximum particle number change signal
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
-
-    // update GPU memory hints
-    updateGPUAdvice();
     }
 
 ParticleGroup::~ParticleGroup()
@@ -219,9 +199,8 @@ void ParticleGroup::updateMemberTags(bool force_update)
 #endif
 
         // store member tags in GlobalArray
-        GlobalArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
+        GPUArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
         m_member_tags.swap(member_tags_array);
-        TAG_ALLOCATION(m_member_tags);
 
         // sort member tags
         std::sort(member_tags.begin(), member_tags.end());
@@ -233,20 +212,17 @@ void ParticleGroup::updateMemberTags(bool force_update)
             std::copy(member_tags.begin(), member_tags.end(), h_member_tags.data);
             }
 
-        GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
+        GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
         m_member_idx.swap(member_idx);
-        TAG_ALLOCATION(m_member_idx);
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of
     // local particles
-    GlobalArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
+    GPUArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
-    TAG_ALLOCATION(m_is_member);
 
-    GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
+    GPUArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
-    TAG_ALLOCATION(m_is_member_tag);
 
     // build the reverse lookup table for tags
     buildTagHash();
@@ -297,9 +273,8 @@ void ParticleGroup::reallocate()
     if (m_is_member_tag.getNumElements() != m_pdata->getRTags().size())
         {
         // reallocate if necessary
-        GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
+        GPUArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
         m_is_member_tag.swap(is_member_tag);
-        TAG_ALLOCATION(m_is_member_tag);
 
         buildTagHash();
         }
@@ -579,51 +554,6 @@ void ParticleGroup::rebuildIndexList()
 
     // index has been rebuilt
     m_particles_sorted = false;
-
-#ifdef ENABLE_HIP
-    if (m_pdata->getExecConf()->isCUDAEnabled())
-        {
-        // Update GPU load balancing info
-        m_gpu_partition.setN(m_num_local_members);
-        }
-#endif
-    }
-
-void ParticleGroup::updateGPUAdvice()
-    {
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // split preferred location of group indices across GPUs
-        auto gpu_map = m_exec_conf->getGPUIds();
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            auto range = m_gpu_partition.getRange(idev);
-            unsigned int nelem = range.second - range.first;
-
-            if (!nelem)
-                continue;
-
-            cudaMemAdvise(m_member_idx.get() + range.first,
-                          sizeof(unsigned int) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-            cudaMemAdvise(m_is_member.get() + range.first,
-                          sizeof(unsigned int) * nelem,
-                          cudaMemAdviseSetPreferredLocation,
-                          gpu_map[idev]);
-
-            // migrate data to preferred location
-            cudaMemPrefetchAsync(m_member_idx.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_is_member.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
-                                 gpu_map[idev]);
-            }
-        CHECK_CUDA_ERROR();
-        }
-#endif
     }
 
 #ifdef ENABLE_HIP
@@ -730,12 +660,12 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate a random velocity, excluding constituent particles
+        // Generate a random velocity, excluding constituent particles of rigid bodies
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
-        // check if particles are constituent particles
-        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != NO_BODY)
+        // check if particles are constituent particles of a rigid body
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] < MIN_FLOPPY)
             {
             h_vel.data[j].x = 0;
             h_vel.data[j].y = 0;
@@ -757,7 +687,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] >= MIN_FLOPPY)
             {
             if (I.x > 0)
                 p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);

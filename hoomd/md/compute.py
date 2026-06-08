@@ -1,9 +1,7 @@
-# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Compute properties of molecular dynamics simulations.
-
-The MD compute classes compute instantaneous properties of the simulation state
+"""The MD compute classes compute instantaneous properties of the simulation state
 and provide results as loggable quantities for use with `hoomd.logging.Logger`
 or by direct access via the Python API.
 """
@@ -13,6 +11,7 @@ from hoomd.operation import Compute
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
+import inspect
 
 
 class ThermodynamicQuantities(Compute):
@@ -34,11 +33,21 @@ class ThermodynamicQuantities(Compute):
         rigid body centers - ignoring constituent particles to avoid double
         counting.
 
-    Examples::
+    .. rubric:: Example:
 
-        f = filter.Type('A')
-        compute.ThermodynamicQuantities(filter=f)
+    .. code-block:: python
+
+            f = hoomd.filter.Type(["A"])
+            hoomd.md.compute.ThermodynamicQuantities(filter=f)
+
+    {inherited}
+
+    **Members defined in** `ThermodynamicQuantities`:
     """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
 
     def __init__(self, filter):
         super().__init__()
@@ -80,6 +89,7 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
+            \\begin{align*}
             W_\\mathrm{isotropic} = & \\left(
             W_{\\mathrm{net},\\mathrm{additional}}^{xx}
             + W_{\\mathrm{net},\\mathrm{additional}}^{yy}
@@ -89,6 +99,7 @@ class ThermodynamicQuantities(Compute):
             + W_\\mathrm{{net},i}^{yy}
             + W_\\mathrm{{net},i}^{zz}
             \\right)
+            \\end{align*}
 
         where the net virial terms are computed by `hoomd.md.Integrator`
         over all of the forces in `hoomd.md.Integrator.forces` and
@@ -97,7 +108,7 @@ class ThermodynamicQuantities(Compute):
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.pressure
 
-    @log(category='sequence', requires_run=True)
+    @log(category="sequence", requires_run=True)
     def pressure_tensor(self):
         """Instantaneous pressure tensor of the subset \
         :math:`[\\mathrm{pressure}]`.
@@ -300,7 +311,8 @@ class ThermodynamicQuantities(Compute):
     @log(requires_run=True)
     def volume(self):
         """Volume :math:`V` of the simulation box (area in 2D) \
-        :math:`[\\mathrm{length}^{D}]`."""
+        :math:`[\\mathrm{length}^{D}]`.
+        """
         return self._cpp_obj.volume
 
 
@@ -332,11 +344,17 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         by molecular simulation". Phys. Rev. E 92, 043303
         doi:10.1103/PhysRevE.92.043303
 
-    Examples::
+    .. rubric:: Example:
 
-        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(
-            filter=hoomd.filter.Type('A'), kT=1.0)
+    .. code-block:: python
 
+            hma = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+                filter=hoomd.filter.Type(["A"]), kT=1.0
+            )
+
+    {inherited}
+
+    **Members defined in** `HarmonicAveragedThermodynamicQuantities`:
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles compute
@@ -349,11 +367,15 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             :math:`[\\mathrm{pressure}]`.
     """
 
-    def __init__(self, filter, kT, harmonic_pressure=0):
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Compute._doc_inherited)
+    )
 
+    def __init__(self, filter, kT, harmonic_pressure=0):
         # store metadata
-        param_dict = ParameterDict(kT=float(kT),
-                                   harmonic_pressure=float(harmonic_pressure))
+        param_dict = ParameterDict(
+            kT=float(kT), harmonic_pressure=float(harmonic_pressure)
+        )
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -367,8 +389,9 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         else:
             thermoHMA_cls = _md.ComputeThermoHMAGPU
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
-                                      group, self.kT, self.harmonic_pressure)
+        self._cpp_obj = thermoHMA_cls(
+            self._simulation.state._cpp_sys_def, group, self.kT, self.harmonic_pressure
+        )
 
     @log(requires_run=True)
     def potential_energy(self):
@@ -381,3 +404,9 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         """Average pressure :math:`[\\mathrm{pressure}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.pressure
+
+
+__all__ = [
+    "HarmonicAveragedThermodynamicQuantities",
+    "ThermodynamicQuantities",
+]

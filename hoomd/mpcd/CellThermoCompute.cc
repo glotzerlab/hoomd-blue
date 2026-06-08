@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -73,6 +73,29 @@ void mpcd::CellThermoCompute::compute(uint64_t timestep)
 
     computeCellProperties(timestep);
     m_needs_net_reduce = true;
+    }
+
+void mpcd::CellThermoCompute::startAutotuning()
+    {
+    Compute::startAutotuning();
+#ifdef ENABLE_MPI
+    if (m_vel_comm)
+        m_vel_comm->startAutotuning();
+    if (m_energy_comm)
+        m_energy_comm->startAutotuning();
+#endif // ENABLE_MPI
+    }
+
+bool mpcd::CellThermoCompute::isAutotuningComplete()
+    {
+    bool result = Compute::isAutotuningComplete();
+#ifdef ENABLE_MPI
+    if (m_vel_comm)
+        result = result && m_vel_comm->isAutotuningComplete();
+    if (m_energy_comm)
+        result = result && m_energy_comm->isAutotuningComplete();
+#endif // ENABLE_MPI
+    return result;
     }
 
 void mpcd::CellThermoCompute::computeCellProperties(uint64_t timestep)
@@ -446,8 +469,8 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                     h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
                     }
                 } // i
-            }     // j
-        }         // k
+            } // j
+        } // k
     }
 
 void mpcd::CellThermoCompute::computeNetProperties()
@@ -575,15 +598,20 @@ void mpcd::CellThermoCompute::reallocate(unsigned int ncells)
     m_ncells_alloc = ncells;
     }
 
+namespace mpcd
+    {
+namespace detail
+    {
 /*!
- * \param m Python module
+ * \param m Python module to export to
  */
-void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
+void export_CellThermoCompute(pybind11::module& m)
     {
     pybind11::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute>>(
         m,
         "CellThermoCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::CellList>>());
     }
-
+    } // namespace detail
+    } // namespace mpcd
     } // end namespace hoomd

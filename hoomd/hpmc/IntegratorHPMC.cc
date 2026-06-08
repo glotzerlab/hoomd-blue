@@ -1,10 +1,14 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMC.h"
 
 #include "hoomd/VectorMath.h"
 #include <sstream>
+
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::PairPotential>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::ExternalPotential>>);
 
 using namespace std;
 
@@ -17,12 +21,13 @@ namespace hoomd
 namespace hpmc
     {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
-    : Integrator(sysdef, 0.005), m_translation_move_probability(32768), m_nselect(4),
-      m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_past_first_run(false)
+    : Integrator(sysdef, 0.005), m_translation_move_probability(32768),
+      m_translate_move_dimensions(0), m_nselect(4), m_nominal_width(1.0), m_extra_ghost_width(0),
+      m_past_first_run(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 
-    GlobalArray<hpmc_counters_t> counters(1, this->m_exec_conf);
+    GPUArray<hpmc_counters_t> counters(1, this->m_exec_conf);
     m_count_total.swap(counters);
 
     GPUVector<Scalar> d(this->m_pdata->getNTypes(), this->m_exec_conf);
@@ -69,6 +74,22 @@ IntegratorHPMC::~IntegratorHPMC()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
         }
 #endif
+    }
+
+/*! \returns  number of dimensions for translation moves.
+    When m_translate_move_dimensions is 0, returns system dimensionality.
+*/
+unsigned int IntegratorHPMC::getTranslateMoveDimensions() const
+    {
+    if (m_translate_move_dimensions == 2 || m_translate_move_dimensions == 3)
+        {
+        if (m_translate_move_dimensions == 3 && m_sysdef->getNDimensions() == 2)
+            {
+            throw std::runtime_error("translate_move_dimensions cannot be 3 in a 2D simulation");
+            }
+        return m_translate_move_dimensions;
+        }
+    return m_sysdef->getNDimensions();
     }
 
 /*! \returns True if the particle orientations are normalized
@@ -254,16 +275,52 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
+        .def_property("kT", &IntegratorHPMC::getKT, &IntegratorHPMC::setKT)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
-                      &IntegratorHPMC::setTranslationMoveProbability);
+                      &IntegratorHPMC::setTranslationMoveProbability)
+        .def_property(
+            "translate_move_dimensions",
+            [](const IntegratorHPMC& self) -> pybind11::object
+            {
+                // Return stored value: None (unset) or explicit 2/3.
+                unsigned int raw = self.getTranslateMoveDimensionsRaw();
+                if (raw == 0)
+                    return pybind11::none();
+                return pybind11::cast(raw);
+            },
+            [](IntegratorHPMC& self, pybind11::object v)
+            {
+                // Accept `None` (use system dimensionality) or explicit values {2, 3}.
+                if (v.is_none())
+                    {
+                    self.setTranslateMoveDimensions(0);
+                    return;
+                    }
+
+                int vi = pybind11::cast<int>(v);
+                if (vi != 2 && vi != 3)
+                    throw std::runtime_error("translate_move_dimensions must be None, 2, or 3");
+
+                self.setTranslateMoveDimensions(static_cast<unsigned int>(vi));
+            })
+        .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials)
+        .def("computeTotalPairEnergy", &IntegratorHPMC::computeTotalPairEnergy)
+        .def_property_readonly("external_potentials", &IntegratorHPMC::getExternalPotentials)
+        .def("computeTotalExternalEnergy",
+             [](std::shared_ptr<IntegratorHPMC> self, uint64_t timestep)
+             { return self->computeTotalExternalEnergy(timestep); });
 
     pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
+
+    pybind11::bind_vector<std::vector<std::shared_ptr<ExternalPotential>>>(m,
+                                                                           "ExternalPotentialList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<PairPotential>>>(m, "PairPotentialList");
     }
 
     } // end namespace detail

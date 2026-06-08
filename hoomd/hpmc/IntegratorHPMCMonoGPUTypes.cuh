@@ -1,10 +1,9 @@
-// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
 #include "hoomd/BoxDim.h"
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/VectorMath.h"
@@ -41,6 +40,7 @@ struct hpmc_args_t
                 const unsigned int _move_ratio,
                 const uint64_t _timestep,
                 const unsigned int _dim,
+                const unsigned int _translate_dim,
                 const BoxDim& _box,
                 const unsigned int _select,
                 const Scalar3 _ghost_fraction,
@@ -48,7 +48,6 @@ struct hpmc_args_t
                 const unsigned int _block_size,
                 const unsigned int _tpp,
                 const unsigned int _overlap_threads,
-                const bool _have_auxilliary_variable,
                 unsigned int* _d_reject_out_of_cell,
                 Scalar4* _d_trial_postype,
                 Scalar4* _d_trial_orientation,
@@ -61,22 +60,20 @@ struct hpmc_args_t
                 const unsigned int* _d_reject_in,
                 unsigned int* _d_reject_out,
                 const hipDeviceProp_t& _devprop,
-                const GPUPartition& _gpu_partition,
-                const hipStream_t* _streams)
+                const hipStream_t& _stream)
         : d_postype(_d_postype), d_orientation(_d_orientation), d_vel(_d_vel),
           d_counters(_d_counters), counters_pitch(_counters_pitch), ci(_ci), cell_dim(_cell_dim),
           ghost_width(_ghost_width), N(_N), num_types(_num_types), seed(_seed), rank(_rank),
           d_d(_d), d_a(_a), d_check_overlaps(_check_overlaps), overlap_idx(_overlap_idx),
-          move_ratio(_move_ratio), timestep(_timestep), dim(_dim), box(_box), select(_select),
-          ghost_fraction(_ghost_fraction), domain_decomposition(_domain_decomposition),
-          block_size(_block_size), tpp(_tpp), overlap_threads(_overlap_threads),
-          have_auxilliary_variable(_have_auxilliary_variable),
-          d_reject_out_of_cell(_d_reject_out_of_cell), d_trial_postype(_d_trial_postype),
-          d_trial_orientation(_d_trial_orientation), d_trial_vel(_d_trial_vel),
-          d_trial_move_type(_d_trial_move_type), d_update_order_by_ptl(_d_update_order_by_ptl),
-          d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
-          d_reject_in(_d_reject_in), d_reject_out(_d_reject_out), devprop(_devprop),
-          gpu_partition(_gpu_partition), streams(_streams) {};
+          move_ratio(_move_ratio), timestep(_timestep), dim(_dim), translate_dim(_translate_dim),
+          box(_box), select(_select), ghost_fraction(_ghost_fraction),
+          domain_decomposition(_domain_decomposition), block_size(_block_size), tpp(_tpp),
+          overlap_threads(_overlap_threads), d_reject_out_of_cell(_d_reject_out_of_cell),
+          d_trial_postype(_d_trial_postype), d_trial_orientation(_d_trial_orientation),
+          d_trial_vel(_d_trial_vel), d_trial_move_type(_d_trial_move_type),
+          d_update_order_by_ptl(_d_update_order_by_ptl), d_excell_idx(_d_excell_idx),
+          d_excell_size(_d_excell_size), excli(_excli), d_reject_in(_d_reject_in),
+          d_reject_out(_d_reject_out), devprop(_devprop), stream(_stream) { };
 
     const Scalar4* d_postype;             //!< postype array
     const Scalar4* d_orientation;         //!< orientation array
@@ -96,7 +93,8 @@ struct hpmc_args_t
     const Index2D& overlap_idx;           //!< Indexer into interaction matrix
     const unsigned int move_ratio;        //!< Ratio of translation to rotation moves
     const uint64_t timestep;              //!< Current time step
-    const unsigned int dim;               //!< Number of dimensions
+    const unsigned int dim;               //!< Number of dimensions (for rotation)
+    const unsigned int translate_dim;     //!< Number of dimensions for translation (2 = xy-only)
     const BoxDim box;                     //!< Current simulation box
     unsigned int select;                  //!< Current selection
     const Scalar3 ghost_fraction;         //!< Width of the inactive layer
@@ -104,8 +102,6 @@ struct hpmc_args_t
     unsigned int block_size;              //!< Block size to execute
     unsigned int tpp;                     //!< Threads per particle
     unsigned int overlap_threads;         //!< Number of parallel threads per overlap check
-    const bool have_auxilliary_variable;  //!< True if we are using the velocity field to store
-                                          //!< auxilliary state information
     unsigned int* d_reject_out_of_cell;   //!< Set to one to reject particle move
     Scalar4* d_trial_postype;             //!< New positions (and type) of particles
     Scalar4* d_trial_orientation;         //!< New orientations of particles
@@ -119,8 +115,7 @@ struct hpmc_args_t
     const unsigned int* d_reject_in;           //!< Reject flags per particle (in)
     unsigned int* d_reject_out;                //!< Reject flags per particle (out)
     const hipDeviceProp_t& devprop;            //!< CUDA device properties
-    const GPUPartition& gpu_partition;         //!< Multi-GPU partition
-    const hipStream_t* streams;                //!< kernel streams
+    const hipStream_t& stream;                 //!< kernel streams
     };
 
 //! Wraps arguments for hpmc_update_pdata
@@ -132,8 +127,7 @@ struct hpmc_update_args_t
                        Scalar4* _d_vel,
                        hpmc_counters_t* _d_counters,
                        unsigned int _counters_pitch,
-                       const GPUPartition& _gpu_partition,
-                       const bool _have_auxilliary_variable,
+                       const unsigned int _N,
                        const Scalar4* _d_trial_postype,
                        const Scalar4* _d_trial_orientation,
                        const Scalar4* _d_trial_vel,
@@ -141,10 +135,10 @@ struct hpmc_update_args_t
                        const unsigned int* _d_reject,
                        const unsigned int _block_size)
         : d_postype(_d_postype), d_orientation(_d_orientation), d_vel(_d_vel),
-          d_counters(_d_counters), counters_pitch(_counters_pitch), gpu_partition(_gpu_partition),
-          have_auxilliary_variable(_have_auxilliary_variable), d_trial_postype(_d_trial_postype),
-          d_trial_orientation(_d_trial_orientation), d_trial_vel(_d_trial_vel),
-          d_trial_move_type(_d_trial_move_type), d_reject(_d_reject), block_size(_block_size)
+          d_counters(_d_counters), counters_pitch(_counters_pitch), N(_N),
+          d_trial_postype(_d_trial_postype), d_trial_orientation(_d_trial_orientation),
+          d_trial_vel(_d_trial_vel), d_trial_move_type(_d_trial_move_type), d_reject(_d_reject),
+          block_size(_block_size)
         {
         }
 
@@ -154,8 +148,7 @@ struct hpmc_update_args_t
     Scalar4* d_vel;
     hpmc_counters_t* d_counters;
     unsigned int counters_pitch;
-    const GPUPartition& gpu_partition;
-    const bool have_auxilliary_variable;
+    const unsigned int N;
     const Scalar4* d_trial_postype;
     const Scalar4* d_trial_orientation;
     const Scalar4* d_trial_vel;
@@ -186,7 +179,6 @@ void hpmc_excell(unsigned int* d_excell_idx,
                  const Index3D& ci,
                  const Index2D& cli,
                  const Index2D& cadji,
-                 const unsigned int ngpu,
                  const unsigned int block_size);
 
 //! Kernel driver for kernel::hpmc_shift()
@@ -203,7 +195,7 @@ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
                             unsigned int* d_reject_in,
                             unsigned int* d_reject_out,
                             unsigned int* d_condition,
-                            const GPUPartition& gpu_partition,
+                            const unsigned int N,
                             unsigned int block_size);
 
     } // end namespace gpu
