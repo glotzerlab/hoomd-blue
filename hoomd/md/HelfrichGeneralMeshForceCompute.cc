@@ -461,9 +461,6 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         Fa.z += K_c*(Curv_c * inv_sigma_c * dCurv_c.z - Curv_c2 * dsigma_c.z);
         Fa.z += K_d*(Curv_d * inv_sigma_d * dCurv_d.z - Curv_d2 * dsigma_d.z);
 
-	if (idx_a ==55 || idx_b ==55)
-		std::cout << idx_a << " " << idx_b << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
-
 
 
         //Fa *= h_params.data[type_a].k;
