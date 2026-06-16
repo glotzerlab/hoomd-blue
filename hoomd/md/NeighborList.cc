@@ -761,7 +761,7 @@ void NeighborList::addExclusionsFromMeshBonds()
     {
     // access bond data by snapshot
     BondData::Snapshot snapshot;
-    m_meshbond_data->takeSnapshot(snapshot);
+    m_meshbond_data->takeSnapshotBond(snapshot);
 
     // broadcast global bond list
     std::vector<BondData::members_t> bonds;

@@ -364,7 +364,7 @@ unsigned int MeshGroupData<group_size, Group, name>::addBondedGroup(Group g)
  */
 template<unsigned int group_size, typename Group, const char* name>
 std::map<unsigned int, unsigned int>
-MeshGroupData<group_size, Group, name>::takeSnapshot(BondData::Snapshot& snapshot) const
+MeshGroupData<group_size, Group, name>::takeSnapshotBond(BondData::Snapshot& snapshot) const
     {
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
@@ -527,7 +527,7 @@ void export_MeshGroupData(pybind11::module& m,
         .def(
             pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromTriangleSnapshot", &T::initializeFromTriangleSnapshot)
-        .def("takeSnapshot", &T::takeSnapshot)
+        .def("takeSnapshotBond", &T::takeSnapshotBond)
         .def("getN", &T::getN)
         .def("getNGlobal", &T::getNGlobal)
         .def("getNTypes", &T::getNTypes)

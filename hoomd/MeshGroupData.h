@@ -70,7 +70,7 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     void initializeFromTriangleSnapshot(const TriangleData::Snapshot& snapshot);
 
     //! Take a snapshot
-    std::map<unsigned int, unsigned int> takeSnapshot(BondData::Snapshot& snapshot) const;
+    std::map<unsigned int, unsigned int> takeSnapshotBond(BondData::Snapshot& snapshot) const;
 
     //! Add a single bonded mesh group on all processors
     /*! \param g Definition of group to add
