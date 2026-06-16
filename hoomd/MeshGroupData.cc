@@ -29,7 +29,7 @@ namespace hoomd
  */
 template<unsigned int group_size, typename Group, const char* name>
 MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
-                                                            unsigned int n_group_types)
+                                                      unsigned int n_group_types)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5)
@@ -65,7 +65,7 @@ MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleDa
  */
 template<unsigned int group_size, typename Group, const char* name>
 MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
-                                                            const TriangleData::Snapshot& snapshot)
+                                                      const TriangleData::Snapshot& snapshot)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing MeshGroupData (" << name << ") " << endl;

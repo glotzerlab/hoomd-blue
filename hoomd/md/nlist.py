@@ -63,8 +63,8 @@ of exclusions. The valid exclusion types are:
 * ``'body'``: Exclude particles that belong to the same rigid body.
 * ``'bond'``: Exclude particles that are directly bonded together.
 * ``'meshbond'``: Exclude particles that are bonded together via a mesh.
-* ``'meshbond_dynamic'``: Exclude particles that are bonded together via 
-  a mesh or are separated by a single mesh edge (use when 
+* ``'meshbond_dynamic'``: Exclude particles that are bonded together via
+  a mesh or are separated by a single mesh edge (use when
   `MeshDynamicalBonding` is applied).
 * ``'constraint'``: Exclude particles that have a distance constraint applied
   between them.

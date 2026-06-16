@@ -791,8 +791,8 @@ void NeighborList::addExclusionsFromMeshBonds()
         addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
     }
 
-/*! After calling addExclusionsFromMeshBondsDynamic() all bonds and diagonals specified in 
-   the attached Mesh will be added as exclusions. Any additional meshbonds added after this 
+/*! After calling addExclusionsFromMeshBondsDynamic() all bonds and diagonals specified in
+   the attached Mesh will be added as exclusions. Any additional meshbonds added after this
    will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromMeshBondsDynamic()
@@ -820,11 +820,11 @@ void NeighborList::addExclusionsFromMeshBondsDynamic()
 
     // for each bond
     for (unsigned int i = 0; i < bonds.size(); i++)
-	{
+        {
         // add an exclusion
         addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
         addExclusion(bonds[i].tag[2], bonds[i].tag[3]);
-	}
+        }
     }
 
 /*! After calling addExclusionsFromAngles(), all angles specified in the attached ParticleData will
