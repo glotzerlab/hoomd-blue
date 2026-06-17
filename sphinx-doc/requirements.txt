@@ -182,7 +182,7 @@ stack-data==0.6.3
     # via ipython
 tinycss2==1.4.0
     # via bleach
-tornado==6.5.6
+tornado==6.5.7
     # via
     #   -r sphinx-doc/requirements.in
     #   jupyter-client
