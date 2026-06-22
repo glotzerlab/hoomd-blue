@@ -1396,6 +1396,8 @@ __all__ = [
     "AnisotropicPair",
     "Dipole",
     "GayBerne",
+    "LubricationCoupling",
+    "RotationalCoupling",
     "Patchy",
     "PatchyExpandedGaussian",
     "PatchyExpandedLJ",
