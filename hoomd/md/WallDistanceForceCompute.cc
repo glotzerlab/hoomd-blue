@@ -51,10 +51,10 @@ void WallDistanceForceCompute::setForces()
 	if(m_inverse)
 	{
 		Scalar norm = fast::sqrt(pi.x*pi.x+pi.y*pi.y);
-		if( norm > 0)
+		if( norm < m_R)
 		{
 			Scalar dist = 1/(m_R - norm);
-			dist = (dist*dist);
+			//dist = (dist*dist);
 			fi.x = m_k*dist*pi.x/norm;
 			fi.y = m_k*dist*pi.y/norm;
 		}

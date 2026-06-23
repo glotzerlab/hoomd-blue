@@ -49,7 +49,7 @@ void WallCouplingForceCompute::setForces()
 
 	Scalar dist = 2*(m_R - norm);
 
-	dist = 1/(dist*dist*norm);
+	dist = 1/(dist*norm);
 
         vec3<Scalar> fi(0, 0, 0);
 
