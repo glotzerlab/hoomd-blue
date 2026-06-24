@@ -17,6 +17,8 @@ Next release
 *Fixed*
 
 * Fixed incorrect smart default behavior for sequences and numpy arrays (#2292).
+* Prevent motion in the z direction on the first step after starting a simulation (#2303).
+* Prevent rigid bodies from rotating out of the plane in 2D simulations (#2303).
 
 Recent releases
 ---------------

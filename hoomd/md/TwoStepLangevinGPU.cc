@@ -93,7 +93,8 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                              false,
                              0,
                              false,
-                             m_tuner_one->getParam()[0]);
+                             m_tuner_one->getParam()[0],
+                             m_sysdef->getNDimensions());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -125,6 +126,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          1.0,
                                          m_tuner_angular_one->getParam()[0]);
 
