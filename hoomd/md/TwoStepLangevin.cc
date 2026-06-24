@@ -70,14 +70,20 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
 
         h_pos.data[j].x += dx;
         h_pos.data[j].y += dy;
-        h_pos.data[j].z += dz;
+        if (m_sysdef->getNDimensions() > 2)
+            {
+            h_pos.data[j].z += dz;
+            }
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
         box.wrap(h_pos.data[j], h_image.data[j]);
 
         h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;
         h_vel.data[j].y += Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT;
-        h_vel.data[j].z += Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT;
+        if (m_sysdef->getNDimensions() > 2)
+            {
+            h_vel.data[j].z += Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT;
+            }
         }
 
     if (m_aniso)

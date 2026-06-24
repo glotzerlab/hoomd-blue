@@ -90,6 +90,7 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                          m_tuner_one->getParam()[0],
                                          rescalingFactors[0], // m_exp_thermo_fac,
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          limits.first,
                                          limits.second);
 

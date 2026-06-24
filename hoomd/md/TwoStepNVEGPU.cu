@@ -53,7 +53,8 @@ __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
                                         Scalar deltaT,
                                         bool limit,
                                         Scalar limit_val,
-                                        bool zero_force)
+                                        bool zero_force,
+                                        unsigned int n_dimensions)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -78,6 +79,10 @@ __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
         Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         if (!zero_force)
             accel = d_accel[idx];
+        if (n_dimensions == 2)
+            {
+            accel.z = Scalar(0.0);
+            }
 
         // update the position (FLOPS: 15)
         Scalar3 dx = vel * deltaT + (Scalar(1.0) / Scalar(2.0)) * accel * deltaT * deltaT;
@@ -135,7 +140,8 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
                             bool limit,
                             Scalar limit_val,
                             bool zero_force,
-                            unsigned int block_size)
+                            unsigned int block_size,
+                            unsigned int n_dimensions)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -166,7 +172,8 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
                        deltaT,
                        limit,
                        limit_val,
-                       zero_force);
+                       zero_force,
+                       n_dimensions);
     return hipSuccess;
     }
 

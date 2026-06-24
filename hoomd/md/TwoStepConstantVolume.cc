@@ -37,6 +37,11 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
             Scalar3 pos = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
             Scalar3 accel = h_accel.data[j];
 
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                accel.z = Scalar(0.0);
+                }
+
             // update velocity and position
             v = v + Scalar(1.0 / 2.0) * accel * m_deltaT;
 

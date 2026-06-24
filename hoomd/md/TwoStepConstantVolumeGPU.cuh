@@ -24,6 +24,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                     unsigned int block_size,
                                     Scalar rescale_factor,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     bool limit = false,
                                     Scalar limit_displacement = Scalar(0.));
 

@@ -184,7 +184,8 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          m_mat_exp_r_int,
                                          m_deltaT,
                                          m_rescale_all,
-                                         m_tuner_one->getParam()[0]);
+                                         m_tuner_one->getParam()[0],
+                                         m_sysdef->getNDimensions());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
