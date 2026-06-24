@@ -56,13 +56,17 @@ def test_2d_rigid(simulation_factory, create_method):
     lj_1.r_cut[("dimer", "dimer"), ("dimer", "A")] = 0
     integrator_1.forces.append(lj_1)
 
+    thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
+    simulation_1.operations.add(thermo)
+
     simulation_1.state.thermalize_particle_momenta(filter = rigid_centers_and_free, kT = 1.5)
     simulation_1.run(1000)
 
     snapshot_1 = simulation_1.state.get_snapshot()
 
-    # TODO assert checks
-
+    numpy.testing.assert_array_equal(snapshot_1.particles.position[:,2], [0.0]*9)
+    numpy.testing.assert_array_equal(snapshot_1.particles.velocity[:,2], [0.0]*9)
+    assert thermo.rotational_degrees_of_freedom == 3.0
 
     simulation_2 = simulation_factory(snapshot_1)
 
