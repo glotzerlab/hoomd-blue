@@ -1,12 +1,26 @@
 Change Log
 ==========
 
+Next release
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+*Deprecated*
+
+*Removed*
+
+*Fixed*
+
+
 7.1.0 (2026-06-24)
 ^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-* Added additional mesh exclusion 'meshbond_dynamic' for dynamical bond updater (#2297).
+* Added additional mesh exclusion ``meshbond_dynamic`` for dynamical bond updater (#2297).
 
 *Fixed*
 
