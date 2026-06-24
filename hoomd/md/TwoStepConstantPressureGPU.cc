@@ -244,6 +244,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
 
@@ -346,6 +347,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          rescalingFactors[1], // exp_thermo_fac_rot,
                                          m_tuner_angular_two->getParam()[0]);
 

@@ -40,6 +40,7 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                                     unsigned int* d_group_members,
                                     const unsigned int group_size,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     Scalar scale,
                                     const unsigned int block_size);
 
@@ -51,6 +52,7 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     unsigned int* d_group_members,
                                     const unsigned int group_size,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     Scalar scale,
                                     const unsigned int block_size);
 

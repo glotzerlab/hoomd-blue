@@ -193,6 +193,7 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4* d_orientation,
                                                 const unsigned int* d_group_members,
                                                 const unsigned int nwork,
                                                 Scalar deltaT,
+                                                unsigned int n_dimensions,
                                                 Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
@@ -214,8 +215,8 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4* d_orientation,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x == 0);
-        y_zero = (I.y == 0);
+        x_zero = (I.x == 0 || n_dimensions == 2);
+        y_zero = (I.y == 0 || n_dimensions == 2);
         z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
@@ -320,6 +321,7 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                                     unsigned int* d_group_members,
                                     const unsigned int group_size,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     Scalar scale,
                                     const unsigned int block_size)
     {
@@ -349,6 +351,7 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                        d_group_members,
                        nwork,
                        deltaT,
+                       n_dimensions,
                        scale);
 
     return hipSuccess;
@@ -370,6 +373,7 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4* d_orientation,
                                                 unsigned int* d_group_members,
                                                 const unsigned int nwork,
                                                 Scalar deltaT,
+                                                unsigned int n_dimensions,
                                                 Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
@@ -391,8 +395,8 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4* d_orientation,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x == 0);
-        y_zero = (I.y == 0);
+        x_zero = (I.x == 0 || n_dimensions == 2);
+        y_zero = (I.y == 0 || n_dimensions == 2);
         z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
@@ -428,6 +432,7 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     unsigned int* d_group_members,
                                     const unsigned int group_size,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     Scalar scale,
                                     const unsigned int block_size)
     {
@@ -457,6 +462,7 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                        d_group_members,
                        nwork,
                        deltaT,
+                       n_dimensions,
                        scale);
 
     return hipSuccess;

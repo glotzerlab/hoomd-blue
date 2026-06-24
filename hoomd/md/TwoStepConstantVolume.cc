@@ -115,8 +115,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+            y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
             z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
@@ -300,8 +300,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+            y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
             z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
