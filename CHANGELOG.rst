@@ -8,12 +8,6 @@ Next release
 
 * Added additional mesh exclusion 'meshbond_dynamic' for dynamical bond updater (#2297).
 
-*Changed*
-
-*Deprecated*
-
-*Removed*
-
 *Fixed*
 
 * Fixed incorrect smart default behavior for sequences and numpy arrays (#2292).
