@@ -178,7 +178,7 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                        mat_exp_r_int[5],
                        deltaT,
                        rescale_all,
-                       unsigned int n_dimensions);
+                       n_dimensions);
 
     return hipSuccess;
     }
