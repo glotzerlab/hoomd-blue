@@ -38,6 +38,7 @@ _methods = [
 ]
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("create_method", _methods)
 def test_2d_rigid(simulation_factory, create_method):
     # Test case from: https://github.com/glotzerlab/hoomd-blue/discussions/2299
