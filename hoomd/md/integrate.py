@@ -12,7 +12,7 @@ from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
-from hoomd.md.deformer import BoxDeformer
+from hoomd.md.deform import BoxDeformer
 import inspect
 
 
@@ -194,7 +194,7 @@ class Integrator(_DynamicIntegrator):
         half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
             arbitrary computations during the half-step of the integration.
 
-        deformer (hoomd.md.deformer.BoxDeformer): Controls time-dependent
+        deformer (hoomd.md.deform.BoxDeformer): Controls time-dependent
           deformations of the simulation box, enabling changes to the lengths
           and tilt factors of the box during a simulation.
 
@@ -284,7 +284,7 @@ class Integrator(_DynamicIntegrator):
     Only one of the classes in the following module can be used as
     a `deformer`:
 
-    - `hoomd.md.deformer`
+    - `hoomd.md.deform`
 
     .. rubric:: Example:
 
@@ -313,7 +313,7 @@ class Integrator(_DynamicIntegrator):
         constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
 
-        deformer (hoomd.md.deformer.BoxDeformer): The deformation method that
+        deformer (hoomd.md.deform.BoxDeformer): The deformation method that
             applies prescribed time-dependent deformations to the simulation box.
 
         dt (float): Integrator time step size :math:`[\mathrm{time}]`.

@@ -1,7 +1,7 @@
-deformer
-========
+deform
+======
 
-.. automodule:: hoomd.md.deformer
+.. automodule:: hoomd.md.deform
    :members:
    :exclude-members: BoxDeformer,LeesEdwardsBoxDeformer
 
@@ -10,5 +10,5 @@ deformer
 .. toctree::
     :maxdepth: 1
 
-    deformer/boxdeformer
-    deformer/leesedwardsboxdeformer
+    deform/boxdeformer
+    deform/leesedwardsboxdeformer

@@ -46,7 +46,7 @@ class BoxDeformer(AutotunedObject):
         hoomd.operation.AutotunedObject._doc_inherited
         + """
 
-    **Members inherited from** `BoxDeformer <hoomd.md.deformer.BoxDeformer>`:
+    **Members inherited from** `BoxDeformer <hoomd.md.deform.BoxDeformer>`:
 
     """
     )
@@ -118,7 +118,7 @@ class LeesEdwardsBoxDeformer(BoxDeformer):
 
     .. code-block:: python
 
-        deformer = hoomd.md.deformer.LeesEdwardsBoxDeformer(
+        deformer = hoomd.md.deform.LeesEdwardsBoxDeformer(
             shear_rate=0.01,
             max_tilt=0.5,
         )

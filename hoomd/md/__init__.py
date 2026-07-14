@@ -23,7 +23,7 @@ from hoomd.md import bond
 from hoomd.md import compute
 from hoomd.md import constrain
 from hoomd.md import data
-from hoomd.md import deformer
+from hoomd.md import deform
 from hoomd.md import dihedral
 from hoomd.md import external
 from hoomd.md import force
@@ -51,7 +51,7 @@ __all__ = [
     "compute",
     "constrain",
     "data",
-    "deformer",
+    "deform",
     "dihedral",
     "external",
     "force",

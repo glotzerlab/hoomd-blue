@@ -20,10 +20,9 @@ namespace kernel
 //! Kernel driver for box flipping and particle remapping
 hipError_t gpu_lees_edwards_remap(const unsigned int N,
                                   Scalar4* d_pos,
-                                  Scalar4* d_vel,
                                   int3* d_image,
-                                  const BoxDim& new_box,
-                                  const int flip,
+                                  const BoxDim& flipped_box,
+                                  const Scalar xy,
                                   unsigned int block_size);
 
     } // namespace kernel

@@ -1,7 +1,7 @@
 LeesEdwardsBoxDeformer
 ======================
 
-.. py:currentmodule:: hoomd.md.deformer
+.. py:currentmodule:: hoomd.md.deform
 
 .. autoclass:: LeesEdwardsBoxDeformer
    :members:

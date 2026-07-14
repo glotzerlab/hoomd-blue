@@ -13,30 +13,64 @@ namespace md
     {
 namespace kernel
     {
-//! Flip box and remap particles
+/*! Particle remap procedure
+    First update the x image index using the transformation below:
+        i1' = i1 - i2*(xy' - xy)*Ly/Lx
+    This preserves the particle's physical periodic image under the new lattice basis.
+
+    Convert the particle position to fractional coordinates with respect to the flipped box.
+    Wrap the fractional coordinates into the interval [0,1), updating the image flags for any
+    periodic crossings.
+
+    Convert the wrapped fractional coordinates back to Cartesian coordinates in the flipped box.
+*/
 __global__ void gpu_lees_edwards_remap_kernel(const unsigned int N,
                                               Scalar4* d_pos,
-                                              Scalar4* d_vel,
                                               int3* d_image,
-                                              const BoxDim new_box,
-                                              const int flip)
+                                              const BoxDim flipped_box,
+                                              const Scalar xy)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+    Scalar3 L = flipped_box.getL();
+    Scalar xy_flip = flipped_box.getTiltFactorXY();
+
     if (idx < N)
         {
-        d_pos[idx].x -= Scalar(flip) * new_box.getL().y;
-        d_image[idx].x -= flip;
-        new_box.wrap(d_pos[idx], d_vel[idx], d_image[idx]);
+        // Transformation of x-images
+        d_image[idx].x -= d_image[idx].y * static_cast<int>(std::round((xy_flip - xy) * L.y / L.x));
+
+        // Convert position to fractional coordinates
+        Scalar3 pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
+        Scalar3 fpos = flipped_box.makeFraction(pos);
+
+        int ix = static_cast<int>(std::floor(fpos.x));
+        int iy = static_cast<int>(std::floor(fpos.y));
+        int iz = static_cast<int>(std::floor(fpos.z));
+
+        // Wrap into flipped box and update image flags
+        fpos.x -= ix;
+        fpos.y -= iy;
+        fpos.z -= iz;
+
+        d_image[idx].x += ix;
+        d_image[idx].y += iy;
+        d_image[idx].z += iz;
+
+        // Convert back to Cartesian coordinates
+        pos = flipped_box.makeCoordinates(fpos);
+
+        d_pos[idx].x = pos.x;
+        d_pos[idx].y = pos.y;
+        d_pos[idx].z = pos.z;
         }
     }
 
 hipError_t gpu_lees_edwards_remap(const unsigned int N,
                                   Scalar4* d_pos,
-                                  Scalar4* d_vel,
                                   int3* d_image,
-                                  const BoxDim& new_box,
-                                  const int flip,
+                                  const BoxDim& flipped_box,
+                                  const Scalar xy,
                                   unsigned int block_size)
     {
     unsigned int max_block_size;
@@ -55,10 +89,9 @@ hipError_t gpu_lees_edwards_remap(const unsigned int N,
                        0,
                        N,
                        d_pos,
-                       d_vel,
                        d_image,
-                       new_box,
-                       flip);
+                       flipped_box,
+                       xy);
 
     return hipSuccess;
     }

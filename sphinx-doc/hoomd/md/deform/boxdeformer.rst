@@ -1,7 +1,7 @@
 BoxDeformer
 ===========
 
-.. py:currentmodule:: hoomd.md.deformer
+.. py:currentmodule:: hoomd.md.deform
 
 .. autoclass:: BoxDeformer
    :members:

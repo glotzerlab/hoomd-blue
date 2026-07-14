@@ -16,7 +16,7 @@ md
     md/module-compute
     md/module-constrain
     md/module-data
-    md/module-deformer
+    md/module-deform
     md/module-dihedral
     md/module-external
     md/module-force

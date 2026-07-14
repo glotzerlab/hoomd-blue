@@ -705,7 +705,7 @@ set(files __init__.py
           bond.py
           compute.py
           constrain.py
-          deformer.py
+          deform.py
           dihedral.py
           force.py
           half_step_hook.py
