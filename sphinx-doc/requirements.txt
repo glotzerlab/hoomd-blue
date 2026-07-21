@@ -4,7 +4,7 @@ accessible-pygments==0.0.5
     # via furo
 alabaster==1.0.0
     # via sphinx
-asttokens==3.0.1
+asttokens==3.0.2
     # via stack-data
 attrs==26.1.0
     # via
@@ -20,7 +20,7 @@ bleach==6.4.0
     # via nbconvert
 certifi==2026.6.17
     # via requests
-charset-normalizer==3.4.7
+charset-normalizer==3.4.9
     # via requests
 decorator==5.3.1
     # via ipython
@@ -40,7 +40,7 @@ idna==3.18
     # via requests
 imagesize==2.0.0
     # via sphinx
-ipython==9.14.1
+ipython==9.15.0
     # via -r sphinx-doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -71,7 +71,7 @@ markupsafe==3.0.3
     #   nbconvert
 matplotlib-inline==0.2.2
     # via ipython
-mistune==3.3.2
+mistune==3.3.3
     # via nbconvert
 nbclient==0.11.0
     # via nbconvert
@@ -86,7 +86,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.8
     # via -r sphinx-doc/requirements.in
-numpy==2.5.0
+numpy==2.5.1
     # via -r sphinx-doc/requirements.in
 packaging==26.2
     # via
@@ -100,7 +100,7 @@ parso==0.8.7
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.10.0
+platformdirs==4.10.1
     # via jupyter-core
 plumbum==2.0.1
     # via pandoc
@@ -134,7 +134,7 @@ requests==2.34.2
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
-rpds-py==2026.5.1
+rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
@@ -142,7 +142,7 @@ six==1.17.0
     # via python-dateutil
 snowballstemmer==3.1.1
     # via sphinx
-soupsieve==2.8.4
+soupsieve==2.9
     # via beautifulsoup4
 sphinx==9.1.0
     # via
@@ -196,13 +196,13 @@ traitlets==5.15.1
     #   nbconvert
     #   nbformat
     #   nbsphinx
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   beautifulsoup4
     #   jupyter-client
 urllib3==2.7.0
     # via requests
-wcwidth==0.8.1
+wcwidth==0.8.2
     # via prompt-toolkit
 webencodings==0.5.1
     # via
