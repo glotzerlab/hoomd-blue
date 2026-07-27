@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceCompute.h"
@@ -25,7 +25,7 @@ VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef,
     bool ignore_type)
-    : ForceCompute(sysdef), m_mesh_data(meshdef), m_ignore_type(ignore_type)
+    : MeshForceCompute(sysdef, meshdef), m_ignore_type(ignore_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing VolumeConservationMeshForceCompute" << endl;
 
@@ -95,7 +95,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
     unsigned int triN = m_mesh_data->getSize();
 
-    computeVolume(); // precompute volume
+    precomputeParameter();
 
     assert(m_pdata);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -262,7 +262,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         }
     }
 
-void VolumeConservationMeshForceCompute::computeVolume()
+void VolumeConservationMeshForceCompute::precomputeParameter()
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -354,12 +354,53 @@ void VolumeConservationMeshForceCompute::computeVolume()
         h_volume.data[i] = global_volume[i];
     }
 
+Scalar VolumeConservationMeshForceCompute::energyDiff(unsigned int idx_a,
+                                                      unsigned int idx_b,
+                                                      unsigned int idx_c,
+                                                      unsigned int idx_d,
+                                                      unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+
+    ArrayHandle<volume_conservation_param_t> h_params(m_params,
+                                                      access_location::host,
+                                                      access_mode::read);
+
+    ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    vec3<Scalar> pos_a(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+    vec3<Scalar> pos_b(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+    vec3<Scalar> pos_c(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+    vec3<Scalar> pos_d(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+    pos_a = box.shift(pos_a, h_image.data[idx_a]);
+    pos_b = box.shift(pos_b, h_image.data[idx_b]);
+    pos_c = box.shift(pos_c, h_image.data[idx_c]);
+    pos_d = box.shift(pos_d, h_image.data[idx_d]);
+
+    Scalar volume_old = dot(cross(pos_c, pos_b), pos_a) + dot(cross(pos_d, pos_a), pos_b);
+    Scalar volume_new = dot(cross(pos_a, pos_c), pos_d) + dot(cross(pos_b, pos_d), pos_c);
+
+    m_volume_diff = (volume_new - volume_old) / 6.0;
+
+    Scalar energy_old = h_volume.data[type_id] - h_params.data[type_id].V0;
+    Scalar energy_new = energy_old + m_volume_diff;
+
+    energy_old = energy_old * energy_old;
+    energy_new = energy_new * energy_new;
+
+    return h_params.data[type_id].k / (2.0 * h_params.data[type_id].V0) * (energy_new - energy_old);
+    }
+
 namespace detail
     {
 void export_VolumeConservationMeshForceCompute(pybind11::module& m)
     {
     pybind11::class_<VolumeConservationMeshForceCompute,
-                     ForceCompute,
+                     MeshForceCompute,
                      std::shared_ptr<VolumeConservationMeshForceCompute>>(
         m,
         "VolumeConservationMeshForceCompute")

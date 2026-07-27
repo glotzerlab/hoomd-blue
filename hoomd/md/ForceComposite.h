@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
@@ -87,7 +87,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep);
+    CommFlags getRequestedCommFlags(uint64_t timestep) override;
 #endif
 
     /// Update the constituent particles of a composite particle using the position, velocity
@@ -99,11 +99,12 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     virtual void validateRigidBodies();
 
     //! Create rigid body constituent particles
-    void pyCreateRigidBodies(pybind11::dict charges);
+    void pyCreateRigidBodies(pybind11::dict charges, pybind11::dict masses);
 
     //! Create rigid body constituent particles
     virtual void
-    createRigidBodies(const std::unordered_map<unsigned int, std::vector<Scalar>> charges);
+    createRigidBodies(const std::unordered_map<unsigned int, std::vector<Scalar>> charges,
+                      const std::unordered_map<unsigned int, std::vector<Scalar>> masses);
 
     /// Construct from a Python dictionary
     void setBody(std::string typ, pybind11::object v)
@@ -199,6 +200,56 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         return m_n_free_particles_global;
         }
 
+    /// Get constituent particle types per type id
+    const GPUArray<unsigned int>& getBodyTypes() const
+        {
+        return m_body_types;
+        }
+
+    /// Get constituent particle offsets per type id
+    const GPUArray<Scalar3>& getBodyOffsets() const
+        {
+        return m_body_pos;
+        }
+
+    /// Get constituent particle orientations per type id
+    const GPUArray<Scalar4>& getBodyOrientations() const
+        {
+        return m_body_orientation;
+        }
+
+    /// Get length of body per type id
+    const GPUArray<unsigned int>& getBodyLengths() const
+        {
+        return m_body_len;
+        }
+
+    /// Get body parameter indexer
+    const Index2D& getBodyIndexer()
+        {
+        return m_body_idx;
+        }
+
+    //! Get rigid centers
+    GPUVector<unsigned int>& getRigidCenters()
+        {
+        checkParticlesSorted();
+        return m_rigid_center;
+        }
+
+    //! Get lookup centers
+    GPUVector<unsigned int>& getLookupCenters()
+        {
+        checkParticlesSorted();
+        return m_lookup_center;
+        }
+
+    //! Get number of local rigid bodies
+    const unsigned int getNLocal() const
+        {
+        return m_n_rigid;
+        }
+
     protected:
     bool m_bodies_changed;          //!< True if constituent particles have changed
     bool m_particles_added_removed; //!< True if particles have been added or removed
@@ -216,6 +267,10 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     std::vector<Scalar> m_d_max;       //!< Maximum body diameter per constituent particle type
     std::vector<bool> m_d_max_changed; //!< True if maximum body diameter changed (per type)
 
+    unsigned int m_n_rigid;                  //!< Number of rigid bodies on the local rank.
+    GPUVector<unsigned int> m_rigid_center;  //!< Local particle indices of all central particles
+    GPUVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
+
 #ifdef ENABLE_MPI
     /// The system's communicator.
     std::shared_ptr<Communicator> m_comm;
@@ -227,11 +282,26 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         m_particles_added_removed = true;
         }
 
+    //! Helper function to check if particles have been sorted and rebuild indices if necessary
+    void checkParticlesSorted() override
+        {
+        if (m_rebuild_molecules)
+            // identify center particles for use in GPU kernel
+            findRigidCenters();
+
+        // Must be called second since the method sets m_rebuild_molecules
+        // to false if it is true.
+        MolecularForceCompute::checkParticlesSorted();
+        }
+
+    //! Helper kernel to sort rigid bodies by their center particles
+    virtual void findRigidCenters();
+
     /// Return the requested minimum ghost layer width for a body's central particle.
     virtual Scalar requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost);
 
     //! Compute the forces and torques on the central particle
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
     };
 
     } // end namespace md

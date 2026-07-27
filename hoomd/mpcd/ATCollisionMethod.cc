@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -17,8 +17,10 @@ mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<SystemDefinition> sys
                                            uint64_t period,
                                            int phase,
                                            std::shared_ptr<Variant> T)
-    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase), m_T(T)
+    : mpcd::CollisionMethod(sysdef, cur_timestep, period, phase)
     {
+    setTemperature(T);
+    requireTemperature();
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
     }
 
@@ -278,10 +280,7 @@ void export_ATCollisionMethod(pybind11::module& m)
                             uint64_t,
                             uint64_t,
                             int,
-                            std::shared_ptr<Variant>>())
-        .def_property("kT",
-                      &mpcd::ATCollisionMethod::getTemperature,
-                      &mpcd::ATCollisionMethod::setTemperature);
+                            std::shared_ptr<Variant>>());
     }
     } // namespace detail
     } // namespace mpcd

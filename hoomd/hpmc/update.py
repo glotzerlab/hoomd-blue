@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HPMC updaters work with the `hpmc.integrate.HPMCIntegrator` to apply changes to
@@ -171,7 +171,7 @@ class BoxMC(Updater):
           \left( xy^t = xy,
                 \enspace xz,
                 \enspace yz + s_{yz} \right) & \frac{2}{3} \le u \le 1 \\
-          \end{cases} \\
+          \end{cases}
 
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[0, 1]` and :math:`s_k` is a random value uniformly distributed in
@@ -233,8 +233,6 @@ class BoxMC(Updater):
     for particle overlaps in the local particle reference frame.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `BoxMC`:
 
@@ -432,7 +430,6 @@ class MuVT(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `MuVT`:
 
@@ -602,7 +599,6 @@ class Shape(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Shape`:
 
@@ -729,7 +725,6 @@ class GCA(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `GCA`:
 
@@ -870,7 +865,7 @@ class QuickCompress(Updater):
           & yz_\mathrm{target} < yz \\
           \max( yz + (1-s) \cdot yz_\mathrm{target}, yz_\mathrm{target} )
           & yz_\mathrm{target} \ge yz
-          \end{cases} \\
+          \end{cases}
           \end{split}
 
     and in 2D:
@@ -961,8 +956,6 @@ class QuickCompress(Updater):
     checking for particle overlaps in the local particle reference frame.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `QuickCompress`:
 

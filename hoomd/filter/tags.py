@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Tags filter."""
@@ -28,8 +28,6 @@ class Tags(ParticleFilter, ParticleFilterTags):
         tags = hoomd.filter.Tags([0, 1, 2])
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Tags`:
     """

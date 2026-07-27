@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshDefinition.h
@@ -90,6 +90,16 @@ class PYBIND11_EXPORT MeshDefinition
         return m_globalN;
         }
 
+    const GPUArray<uint2>& getNeighToBond() const
+        {
+        return m_neigh_to_bond;
+        }
+
+    const GPUArray<uint3>& getNeighToTriag() const
+        {
+        return m_neigh_to_triag;
+        }
+
     void setTypes(pybind11::list types);
 
     BondData::Snapshot getBondData();
@@ -100,12 +110,16 @@ class PYBIND11_EXPORT MeshDefinition
 
     void setTriangulationData(pybind11::dict triangulation);
 
+    void createMeshNeighborhood();
+
     private:
     GPUArray<unsigned int> m_globalN;
-    std::shared_ptr<SystemDefinition>
-        m_sysdef; //!< System definition later needed for dynamic bonding
+    std::shared_ptr<SystemDefinition> m_sysdef;        //!< System definition
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<TriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
+                                                       //
+    GPUArray<uint2> m_neigh_to_bond;                   //!< triangle ids corresponding to bond
+    GPUArray<uint3> m_neigh_to_triag;                  //!< bond ids corresponding to triangle
     };
 
 namespace detail

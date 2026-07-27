@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -102,7 +102,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         return m_rigid_bodies;
         }
 
-    void setRigid(std::shared_ptr<ForceComposite> new_rigid)
+    virtual void setRigid(std::shared_ptr<ForceComposite> new_rigid)
         {
         m_rigid_bodies = new_rigid;
         }

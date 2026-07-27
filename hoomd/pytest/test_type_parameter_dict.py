@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import itertools
@@ -129,16 +129,26 @@ class TestTypeParameterDict(BaseMappingTest):
             if len_keys == 1:
                 yield types, set(types)
                 return
-            yield (types[0], types[1:]), {(types[0], t) for t in types[1:]}
-            keys = [(types[-1], t) for t in types[:2]]
-            yield keys, set(tuple(sorted(k)) for k in keys)
-            if len(types) > 4:
-                mid_point = len(types) // 2
-                key_spec = (types[:mid_point], types[mid_point:])
-                keys = {
-                    (t1, t2) for t2 in types[mid_point:] for t1 in types[mid_point:]
-                }
-                yield key_spec, keys
+            for i in range(n):
+                for j in range(n):
+                    key = (types[i], types[j])
+                    sorted_key = list(key)
+                    sorted_key.sort()
+                    yield key, set((tuple(sorted_key),))
+
+            if n >= 2:
+                keys = ((types[0], types[0]), (types[1], types[1]))
+                yield keys, set(keys)
+                keys = ((types[0], types[1]), (types[1], types[1]))
+                yield keys, set(keys)
+
+            if n >= 3:
+                keys = (
+                    (types[0], types[0]),
+                    (types[1], types[1]),
+                    (types[2], types[2]),
+                )
+                yield keys, set(keys)
 
         return yield_key_pairs
 

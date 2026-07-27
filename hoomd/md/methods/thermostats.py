@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """The thermostat classes are for use with `hoomd.md.methods.ConstantVolume` and
@@ -281,9 +281,9 @@ class Bussi(Thermostat):
     given characteristic time constant and :math:`\alpha` is given by:
 
     .. math::
-        \alpha = \sqrt{e^{\delta t / \tau}
-                 + (1 - e^{\delta t / \tau}) \frac{(2 g_{N-1} + n^2) kT}{2 K}
-                 + 2 n \sqrt{e^{\delta t / \tau} (1-e^{\delta t / \tau})
+        \alpha = \sqrt{e^{-\delta t / \tau}
+                 + (1 - e^{-\delta t / \tau}) \frac{(2 g_{N-1} + n^2) kT}{2 K}
+                 + 2 n \sqrt{e^{-\delta t / \tau} (1-e^{-\delta t / \tau})
                     \frac{kT}{2 K}}}
 
     where :math:`\delta t` is the step size and :math:`n` is a random value

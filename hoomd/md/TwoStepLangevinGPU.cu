@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -331,8 +331,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || D == 2);
+            y_zero = (I.y == 0 || D == 2);
             z_zero = (I.z == 0);
 
             bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
@@ -372,8 +372,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x == 0);
-        y_zero = (I.y == 0);
+        x_zero = (I.x == 0 || D == 2);
+        y_zero = (I.y == 0 || D == 2);
         z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero

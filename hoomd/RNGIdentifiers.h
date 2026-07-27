@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file RNGIdentifiers.h
@@ -38,7 +38,7 @@ struct RNGIdentifier
     static const uint8_t Unused3 = 12;
     static const uint8_t Unused4 = 13;
     static const uint8_t Unused5 = 14;
-    static const uint8_t Unused6 = 15;
+    static const uint8_t EvaluatorPairFrictionLJBase = 15;
     static const uint8_t Unused7 = 16;
     static const uint8_t Unused8 = 17;
     static const uint8_t Unused9 = 18;
@@ -70,6 +70,8 @@ struct RNGIdentifier
     static const uint8_t BussiThermostat = 45;
     static const uint8_t ConstantPressure = 46;
     static const uint8_t MPCDCellList = 47;
+    static const uint8_t MeshDynamicBondUpdateOrder = 48;
+    static const uint8_t MeshDynamicBondUpdater = 49;
     };
 
     } // namespace hoomd

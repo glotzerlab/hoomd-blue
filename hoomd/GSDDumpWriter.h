@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
 #include "Analyzer.h"
 #include "ParticleGroup.h"
-#include "SharedSignal.h"
 
 #include "hoomd/extern/gsd.h"
 #include <memory>
@@ -41,7 +40,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                   const std::string& fname,
                   std::shared_ptr<ParticleGroup> group,
                   std::string mode = "ab",
-                  bool truncate = false);
+                  bool truncate = false,
+                  const std::string precision = "single");
 
     //! Control topology writes
     void setWriteTopology(bool b)
@@ -70,6 +70,20 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         }
 
     pybind11::tuple getDynamic();
+
+    std::string getPrecision()
+        {
+        return m_precision;
+        }
+
+    void setPrecision(const std::string& precision)
+        {
+        if (precision != "single" && precision != "double")
+            {
+            throw std::invalid_argument("Invalid precision: " + precision);
+            }
+        m_precision = precision;
+        }
 
     void setDynamic(pybind11::object dynamic);
 
@@ -128,6 +142,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     /// Get the maximum write buffer size (in bytes)
     uint64_t getMaximumWriteBufferSize();
 
+    /// Set the automatic flush period (in seconds)
+    void setAutoFlushPeriod(double period);
+
+    /// Get the automatic flush period (in seconds)
+    double getAutoFlushPeriod();
+
     protected:
     gsd_handle m_handle; //!< Handle to the file
 
@@ -174,7 +194,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
         std::vector<unsigned int> particle_tags;
 
-        SnapshotParticleData<float> particle_data;
+        SnapshotParticleData<double> particle_data;
         BondData::Snapshot bond_data;
         AngleData::Snapshot angle_data;
         DihedralData::Snapshot dihedral_data;
@@ -227,11 +247,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 #endif
 
     private:
-    std::string m_fname;           //!< The file name we are writing to
-    std::string m_mode;            //!< The file open mode
-    bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
-    bool m_write_topology = false; //!< True if topology should be written
-    bool m_write_diameter = false; //!< True if the diameter attribute should be written
+    std::string m_fname;                //!< The file name we are writing to
+    std::string m_mode;                 //!< The file open mode
+    bool m_truncate = false;            //!< True if we should truncate the file on every analyze()
+    bool m_write_topology = false;      //!< True if topology should be written
+    bool m_write_diameter = false;      //!< True if the diameter attribute should be written
+    std::string m_precision = "single"; //!< Precision for float data ("single" or "double")
 
     /// Flags indicating which particle fields are dynamic.
     std::bitset<n_gsd_flags> m_dynamic;
@@ -254,11 +275,31 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     /// Working array to sort local particles by tag
     std::vector<unsigned int> m_index;
 
+    /// Temporary buffer for storing single precision values
+    std::vector<float> m_float_buffer;
+
+    /// Time of last flush.
+    double m_last_flush_time = 0.0;
+
+    /// Time (in seconds) between automatic calls to flush.
+    double m_auto_flush_period = 10;
+
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
 
     //! Write frame header
     void writeFrameHeader(const GSDFrame& frame);
+
+    /// Helper to write float/double chunks with precision handling
+    void writeFloatDoubleChunk(const std::string& name,
+                               const std::vector<double>& data,
+                               uint32_t N,
+                               uint32_t M); // number of components (1 for scalar, 3 for vec3, etc)
+
+    /// Helper to write float/double chunks to vec3 with precision handling
+    void writeVec3FloatDoubleChunk(const std::string& name,
+                                   const std::vector<vec3<double>>& data,
+                                   uint32_t N);
 
     //! Write particle attributes
     void writeAttributes(const GSDFrame& frame);

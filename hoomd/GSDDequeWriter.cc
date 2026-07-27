@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GSDDequeWriter.h"
@@ -15,8 +15,9 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
                                std::string mode,
                                bool write_at_init,
                                bool clear_whole_buffer_after_dump,
-                               uint64_t timestep)
-    : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size)
+                               uint64_t timestep,
+                               std::string precision = "single")
+    : GSDDumpWriter(sysdef, trigger, fname, group, mode, false, precision), m_queue_size(queue_size)
     {
     setLogWriter(logger);
     bool file_empty = true;
@@ -150,7 +151,8 @@ void export_GSDDequeWriter(pybind11::module& m)
                             std::string,
                             bool,
                             bool,
-                            uint64_t>())
+                            uint64_t,
+                            std::string>())
         .def_property("max_burst_size",
                       &GSDDequeWriter::getMaxQueueSize,
                       &GSDDequeWriter::setMaxQueueSize)

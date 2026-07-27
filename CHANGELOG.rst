@@ -1,18 +1,209 @@
 Change Log
 ==========
 
-5.x
----
+Next release
+^^^^^^^^^^^^^^^^^^^^
 
-5.2.1 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^
+*Added*
+
+*Changed*
+
+*Deprecated*
+
+*Removed*
 
 *Fixed*
 
-* The formulas in the docs for `variant.box.Interpolate` are now consistent
+
+7.1.0 (2026-06-24)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Added additional mesh exclusion ``meshbond_dynamic`` for dynamical bond updater (#2297).
+
+*Fixed*
+
+* Fixed incorrect smart default behavior for sequences and numpy arrays (#2292).
+* Prevent motion in the z direction on the first step after starting a simulation (#2303).
+* Prevent rigid bodies from rotating out of the plane in 2D simulations (#2303).
+
+Recent releases
+---------------
+
+7.0.1 (2026-04-08)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Fixed external component builds with Eigen 5.x (#2272).
+
+7.0.0 (2026-04-07)
+^^^^^^^^^^^^^^^^^^^^
+
+HOOMD-blue 7.0 writes GSD schema 2.0 files. Update your other software for compatibility:
+
+* gsd >= 5.0
+* Ovito >= 3.15.2
+* gsd-vmd >= 0.6.0
+
+HOOMD-blue 7.0 also changes the definition of the 3D rotation trial move
+size ``a`` (2D rotation moves are not changed). You will need to retune any
+hard-coded or saved values. Here are the distributions of the trial move
+rotation angles in HOOMD-blue 2.0–6.x and in 7.0+ for comparison:
+
+.. image:: https://github.com/user-attachments/assets/4a713aa9-2ec4-40dc-8363-aaf93e7eca2b
+
+*Added*
+
+* ``hoomd.hpmc.integrate.HPMCIntegrator.translate_move_dimensions``: Sets the dimensionality of HPMC translation moves,
+  enabling interfacial confinement (xy) in 3D simulations (#2265).
+* ``create_state_from_gsd`` can now read GSD schema 2.0 files (#2249).
+* ``write.GSD`` and ``write.Burst`` can now write double precision values to GSD files.
+  Set ``precision="double"`` to enable. The default value is ``"single"``, consistent
+  with previous releases (#2249).
+
+*Changed*
+
+* Use tabs in binary installation documentation (#2246).
+* Improve the sampling of 3D rotation trial moves (#2264).
+
+*Fixed*
+
+* Fixed Helfrich equation in the docs (#2242)
+* Build with Eigen 5.x (#2261)
+
+6.1.1 (2026-02-19)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Divide by zero with MPCD if rigid body has constituent with zero mass (#2228).
+* Ensure that GSD files are always flushed on exit (#2236).
+* Code examples in ``md.nlist``, ``md.angle``, ``md.bond``, ``md.special_pair``, ``md.compute``,
+  ``md.dihedral``, ``md.force``, ``md.integrate``, and ``md.update`` now execute without
+  errors (#2185).
+
+6.1.0 (2026-02-07)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support 2D simulations in ``hoomd.md.pair.friction`` (#2184).
+
+*Removed*
+
+* ``SIGTERM`` handler (#2209).
+
+*Fixed*
+
+* Table writer no longer errors on ``NaN`` scalar values (#2189).
+* Table writer no longer errors on ``Inf`` scalar values (#2196).
+
+* Fixed vertex neighbor check in dynamical bonding code (#2202).
+* Fixed Helfrich energy calculation for logging (#2215)
+
+6.0.0 (2025-11-21)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Implemented rigid body compatibility with MPCD without MPI (#2136).
+* Add thermodynamically consistent frictional contact forces: ``hoomd.md.pair.friction`` (#2116).
+* ``create_bodies`` method takes optional ``masses`` argument to set masses (#2169).
+
+*Fixed*
+
+* Use the provided alpha parameter in ``make_pppm_coulomb_forces`` (#2153).
+* Add a unit test to verify that the export name of ``hoomd.hpmc.compute.FreeVolume``, and resolved the existing export name conflicts (#2163).
+* Scale move sizes correctly when the acceptance rate is 0 (#2174).
+
+*Changed*
+
+* Setting two tuples of type parameters like this ``lj.r_cut[('A', 'B'), ('C', 'D')] = ...``
+  now sets the parameters A-B and C-D. This is consistent with the behavior when setting
+  more than two parameters. For example: ``lj.r_cut[('A', 'B'), ('C', 'D'), ('E', 'F')] = ...``
+  sets parameters for A-B, C-D, and E-F. In previous HOOMD-blue releases, the two-tuple
+  code path was different (it would set A-C, A-D, B-C, and B-D). Update your scripts
+  accordingly. (#2157)
+
+5.x
+---
+
+5.4.0 (2025-09-26)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The Zetterling MD pair potential: ``hoomd.md.pair.Zetterling``
+  (`#2086 <https://github.com/glotzerlab/hoomd-blue/pull/2086>`__).
+* The YLZ anisotropic MD pair potential: ``hoomd.md.pair.aniso.YLZ``
+  (`#2110 <https://github.com/glotzerlab/hoomd-blue/pull/2110>`__).
+* Dynamic bond topologies with mesh potentials: ``hoomd.md.update.MeshDynamicalBonding``
+  (`#2093 <https://github.com/glotzerlab/hoomd-blue/pull/2093>`__).
+
+*Fixed*
+
+* Display vector math symbol correctly in the documentation
+  (`#2109 <https://github.com/glotzerlab/hoomd-blue/pull/2109>`__).
+* Display equations correctly in the documentation
+  (`#2118 <https://github.com/glotzerlab/hoomd-blue/pull/2118>`__).
+
+5.3.1 (2025-07-18)
+^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Ensure that GPU devices have concurrent unified memory capabilities
+  (`#2099 <https://github.com/glotzerlab/hoomd-blue/pull/2099>`__).
+* Fix segfault when attaching nlists with meshes
+  (`#2089 <https://github.com/glotzerlab/hoomd-blue/pull/2089>`__).
+* Install cuh headers
+  (`#2091 <https://github.com/glotzerlab/hoomd-blue/pull/2091>`__).
+* Reduce the time needed to generate mesh bonds
+  (`#2097 <https://github.com/glotzerlab/hoomd-blue/pull/2097>`__).
+* Equations displayed in ``hoomd.hpmc.compute.SDF`` documentation
+  (`#2096 <https://github.com/glotzerlab/hoomd-blue/discussions/2096>`__).
+* Support CUDA 12.9
+  (`#2102 <https://github.com/glotzerlab/hoomd-blue/discussions/2102>`__).
+
+5.3.0 (2025-06-26)
+^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The Zetterling pair potential: ``hoomd.hpmc.pair.Zetterling``
+  (`#2057 <https://github.com/glotzerlab/hoomd-blue/pull/2057>`__).
+* ``hoomd.write.GSD`` now automatically flushes on frame writes 10 seconds
+  or longer since the previous flush. Configure this time with
+  ``auto_flush_period``. The flush does not occur on a timer -- it is only
+  called after a normally scheduled frame write
+  (`#2085 <https://github.com/glotzerlab/hoomd-blue/pull/2085>`__).
+
+*Changed*
+
+* The ``GSD`` write buffer size now defaults to 1 MiB. Files will thus
+  grow in size more continuiously (the previous default was 64 MiB).
+  File size changes are subject to additional buffering by the OS
+  and may or may not be predictable.
+  At the same time, new frames will no longer be available for reading
+  until after the file is flushed (which occurs on write after 10 seconds
+  by default) or closed
+  (`#2085 <https://github.com/glotzerlab/hoomd-blue/pull/2085>`__).
+
+*Fixed*
+
+* The formulas in the docs for ``variant.box.Interpolate`` are now consistent
   (`#2060 <https://github.com/glotzerlab/hoomd-blue/pull/2060>`__).
 * Do not increment z image in 2D simulation boxes
   (`#2071 <https://github.com/glotzerlab/hoomd-blue/pull/2071>`__).
+* Code block example in ``hoomd.md.pair.DPDConservative``
+  (`#2084 <https://github.com/glotzerlab/hoomd-blue/pull/2084>`__).
+* Equations displayed in ``hoomd.md.methods.thermostats.Bussi`` documentation
+  (`#2081 <https://github.com/glotzerlab/hoomd-blue/pull/2081>`__).
+* Do not issue "Cannot acquire access to array in use" error when using FIRE on the GPU with
+  ``integrate_rotational_dof=True``
+  (`#2082 <https://github.com/glotzerlab/hoomd-blue/pull/2082>`__).
 
 5.2.0 (2025-05-06)
 ^^^^^^^^^^^^^^^^^^
@@ -2284,7 +2475,7 @@ v2.3.0 (2018-04-25)
       frame indices to index from the end of the trajectory.
    -  Faster reinitialization from snapshots when done frequently.
    -  New command line option ``--single-mpi`` allows non-mpi builds of
-      hoomd to launch within mpirun (i.e. for use with mpi4py managed
+      hoomd to launch within mpirun (i.e. for use with mpi4py managed
       pools of jobs)
    -  For users of the University of Michigan Flux system: A ``--mode``
       option is no longer required to run hoomd.
@@ -2499,7 +2690,7 @@ v2.2.0 (2017-09-08)
    -  Check that composite body dimensions are consistent with minimum
       image convention and generate an error if they are not.
    -  ``md.integrate.mode.minimize_fire()`` now supports anisotropic
-      particles (i.e. composite bodies)
+      particles (i.e. composite bodies)
    -  ``md.integrate.mode.minimize_fire()`` now supports flexible
       specification of integration methods
    -  ``md.integrate.npt()/md.integrate.nph()`` now accept a friction
@@ -3260,7 +3451,7 @@ v1.0.1 (2014-09-09)
 **Bug fixes**
 
 1.  Fixed bug where error messages were truncated and HOOMD exited with
-    a segmentation fault instead (e.g. on Blue Waters)
+    a segmentation fault instead (e.g. on Blue Waters)
 2.  Fixed bug where plug-ins did not load on Blue Waters
 3.  Fixed compile error with gcc4.4 and cuda5.0
 4.  Fixed syntax error in ``read_snapshot()``
@@ -4123,7 +4314,7 @@ Version 0.8.0 (2008-12-22)
     computation, thanks to David Tarjan
 19. A header prefix can be added to log files to make them more gnuplot
     friendly
-20. Log quantities completely revamped. Common quantities (i.e. kinetic
+20. Log quantities completely revamped. Common quantities (i.e. kinetic
     energy, potential energy can now be logged in any simulation)
 21. Particle groups can now be created. Currently only analyze.msd makes
     use of them.

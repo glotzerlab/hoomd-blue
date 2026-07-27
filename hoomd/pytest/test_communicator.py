@@ -1,20 +1,20 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 import pytest
 import time
+import importlib.util
 
-try:
-    from mpi4py import MPI
-
-    mpi4py_available = True
-except ImportError:
-    mpi4py_available = False
-
-skip_mpi4py = pytest.mark.skipif(
-    not mpi4py_available, reason="mpi4py could not be imported."
+skip_mpi4py = (
+    not hoomd.version.mpi_enabled or importlib.util.find_spec("mpi4py") is None
 )
+if not skip_mpi4py:
+    from mpi4py import MPI
+else:
+    MPI = None
+
+skip_mpi4py = pytest.mark.skipif(skip_mpi4py, reason="mpi4py could not be imported.")
 
 
 def test_communicator_methods():
@@ -39,7 +39,7 @@ def test_communicator_ranks():
     assert communicator.rank < communicator.num_ranks
     assert communicator.partition == 0
 
-    if mpi4py_available:
+    if MPI is not None:
         mpi_communicator = MPI.COMM_WORLD
         assert communicator.rank == mpi_communicator.Get_rank()
         assert communicator.num_ranks == mpi_communicator.Get_size()
@@ -56,7 +56,7 @@ def test_communicator_partition():
         assert communicator.rank == 0
         assert communicator.partition < communicator.num_partitions
 
-        if mpi4py_available:
+        if MPI is not None:
             mpi_communicator = MPI.COMM_WORLD
             assert communicator.partition == mpi_communicator.Get_rank()
 

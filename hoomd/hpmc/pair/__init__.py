@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define :math:`U_{\\mathrm{pair},ij}` for use with `HPMCIntegrator
@@ -30,6 +30,7 @@ from .lennard_jones import LennardJones
 from .expanded_gaussian import ExpandedGaussian
 from .lj_gauss import LJGauss
 from .opp import OPP
+from .zetterling import Zetterling
 from .union import Union
 from .angular_step import AngularStep
 from .step import Step
@@ -43,4 +44,5 @@ __all__ = [
     "Pair",
     "Step",
     "Union",
+    "Zetterling",
 ]

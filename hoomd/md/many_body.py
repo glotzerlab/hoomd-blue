@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Triplet force classes apply a force and virial on every particle in the
@@ -6,7 +6,7 @@ simulation state commensurate with the potential energy:
 
 .. math::
 
-    U_\mathrm{many-body} = \frac{1}{2} \sum_{i=0}^\mathrm{N_particles-1}
+    U_\mathrm{many-body} = \frac{1}{2} \sum_{i=0}^{N_\mathrm{particles}-1}
                            \sum_{j \ne i}
                            \sum_{j \ne k} U(\vec{r}_{ij}, \vec{r}_{ik})
 
@@ -64,8 +64,6 @@ class Triplet(Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Triplet`:
 
     .. py:attribute:: r_cut
@@ -89,7 +87,6 @@ class Triplet(Force):
     _doc_inherited = (
         Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `Triplet <hoomd.md.many_body.Triplet>`:
@@ -225,7 +222,6 @@ class Tersoff(Triplet):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Tersoff`:
 
@@ -386,7 +382,6 @@ class RevCross(Triplet):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `RevCross`:
 
@@ -477,8 +472,6 @@ class SquareDensity(Triplet):
     no. 6 Pt 2, p. 066702, 2003.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `SquareDensity`:
 

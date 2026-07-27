@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -34,7 +34,7 @@ void export_union_convex_polyhedron(pybind11::module& m)
         "IntegratorHPMCMonoConvexPolyhedronUnion");
     export_ComputeFreeVolume<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "ComputeFreeVolumeConvexPolyhedronUnion");
+        "ComputeFreeVolumeConvexSpheropolyhedronUnion");
     export_ComputeSDF<ShapeUnion<ShapeSpheropolyhedron>>(m,
                                                          "ComputeSDFConvexSpheropolyhedronUnion");
     export_UpdaterMuVT<ShapeUnion<ShapeSpheropolyhedron>>(m,
@@ -52,7 +52,7 @@ void export_union_convex_polyhedron(pybind11::module& m)
         "IntegratorHPMCMonoConvexPolyhedronUnionGPU");
     export_ComputeFreeVolumeGPU<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "ComputeFreeVolumeConvexPolyhedronUnionGPU");
+        "ComputeFreeVolumeConvexSpheropolyhedronUnionGPU");
     export_UpdaterGCAGPU<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "UpdaterGCAConvexSpheropolyhedronUnionGPU");

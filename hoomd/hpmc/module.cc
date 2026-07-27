@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -53,6 +53,8 @@ void exportPairPotentialExpandedGaussian(pybind11::module& m);
 void exportPairPotentialLJGauss(pybind11::module& m);
 
 void exportPairPotentialOPP(pybind11::module& m);
+
+void exportPairPotentialZetterling(pybind11::module& m);
 
 void exportPairPotentialAngularStep(pybind11::module& m);
 
@@ -160,6 +162,7 @@ PYBIND11_MODULE(_hpmc, m)
     exportPairPotentialExpandedGaussian(m);
     exportPairPotentialLJGauss(m);
     exportPairPotentialOPP(m);
+    exportPairPotentialZetterling(m);
     exportPairPotentialAngularStep(m);
     exportPairPotentialStep(m);
     exportPairPotentialUnion(m);

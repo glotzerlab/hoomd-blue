@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshGroupData.h
@@ -14,7 +14,6 @@
 
 #ifdef ENABLE_HIP
 #include "CachedAllocator.h"
-// #include "MeshGroupData.cuh"
 #endif
 
 using namespace std;
@@ -28,9 +27,9 @@ namespace hoomd
 /*! \param pdata The particle data to associate with
     \param n_group_types Number of bonded group types to initialize
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
-                                                            unsigned int n_group_types)
+template<unsigned int group_size, typename Group, const char* name>
+MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
+                                                      unsigned int n_group_types)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5)
@@ -64,9 +63,9 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
 /*! \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
-                                                            const TriangleData::Snapshot& snapshot)
+template<unsigned int group_size, typename Group, const char* name>
+MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
+                                                      const TriangleData::Snapshot& snapshot)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing MeshGroupData (" << name << ") " << endl;
@@ -90,8 +89,8 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
     }
 
 //! Destructor
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
+template<unsigned int group_size, typename Group, const char* name>
+MeshGroupData<group_size, Group, name>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
         .template disconnect<BondedGroupData<group_size, Group, name, true>,
@@ -105,8 +104,8 @@ MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
     }
 
 //! Initialize from a snapshot
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapshot(
+template<unsigned int group_size, typename Group, const char* name>
+void MeshGroupData<group_size, Group, name>::initializeFromTriangleSnapshot(
     const TriangleData::Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
@@ -123,129 +122,70 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
 
     std::vector<unsigned int> all_types;
 
-    if (group_size == 4)
+    unsigned int bond_idx = 0;
+
+    for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
         {
-        for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
+        std::vector<unsigned int> triag_tag(3);
+        std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(3);
+        triag_tag[0] = snapshot.groups[group_idx].tag[0];
+        triag_tag[1] = snapshot.groups[group_idx].tag[1];
+        triag_tag[2] = snapshot.groups[group_idx].tag[2];
+
+        bonds[0].tag[0] = triag_tag[0];
+        bonds[0].tag[1] = triag_tag[1];
+        bonds[0].tag[2] = triag_tag[2];
+        bonds[0].tag[3] = triag_tag[2];
+
+        bonds[1].tag[0] = triag_tag[1];
+        bonds[1].tag[1] = triag_tag[2];
+        bonds[1].tag[2] = triag_tag[0];
+        bonds[1].tag[3] = triag_tag[0];
+
+        bonds[2].tag[0] = triag_tag[2];
+        bonds[2].tag[1] = triag_tag[0];
+        bonds[2].tag[2] = triag_tag[1];
+        bonds[2].tag[3] = triag_tag[1];
+
+        for (unsigned int j = 0; j < bonds.size(); ++j)
             {
-            std::vector<unsigned int> triag_tag(3);
-            std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(
-                3);
-            triag_tag[0] = snapshot.groups[group_idx].tag[0];
-            triag_tag[1] = snapshot.groups[group_idx].tag[1];
-            triag_tag[2] = snapshot.groups[group_idx].tag[2];
-
-            bonds[0].tag[0] = triag_tag[0];
-            bonds[0].tag[1] = triag_tag[1];
-            bonds[0].tag[2] = triag_tag[2];
-            bonds[0].tag[3] = triag_tag[2];
-
-            bonds[1].tag[0] = triag_tag[1];
-            bonds[1].tag[1] = triag_tag[2];
-            bonds[1].tag[2] = triag_tag[0];
-            bonds[1].tag[3] = triag_tag[0];
-
-            bonds[2].tag[0] = triag_tag[2];
-            bonds[2].tag[1] = triag_tag[0];
-            bonds[2].tag[2] = triag_tag[1];
-            bonds[2].tag[3] = triag_tag[1];
-
-            for (unsigned int j = 0; j < bonds.size(); ++j)
+            if (bonds[j].tag[0] > bonds[j].tag[1])
                 {
-                if (bonds[j].tag[0] > bonds[j].tag[1])
-                    {
-                    unsigned int bonds0 = bonds[j].tag[0];
-                    unsigned int bonds1 = bonds[j].tag[1];
+                unsigned int bonds0 = bonds[j].tag[0];
+                unsigned int bonds1 = bonds[j].tag[1];
 
-                    bonds[j].tag[0] = bonds1;
-                    bonds[j].tag[1] = bonds0;
-                    }
-                }
-
-            // Remove any duplicate bonds.
-            for (unsigned int i = 0; i < all_helper.size(); ++i)
-                {
-                for (unsigned int j = 0; j < bonds.size(); ++j)
-                    {
-                    if (bonds[j].tag[0] == all_helper[i].tag[0]
-                        && bonds[j].tag[1] == all_helper[i].tag[1])
-                        {
-                        // all_helper[i].tag[3] = group_idx;
-                        all_helper[i].tag[3] = bonds[j].tag[2];
-                        bonds.erase(bonds.begin() + j);
-                        break;
-                        }
-                    }
-                }
-            for (unsigned int i = 0; i < bonds.size(); ++i)
-                {
-                all_helper.push_back(bonds[i]);
-                all_types.push_back(snapshot.type_id[group_idx]);
+                bonds[j].tag[0] = bonds1;
+                bonds[j].tag[1] = bonds0;
                 }
             }
-        all_groups = all_helper;
-        }
-    else // this part will be important later for dynamical bonding
-        {
-        all_groups.resize(snapshot.groups.size());
-        all_types.resize(snapshot.groups.size());
-        for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
+
+        // Remove any duplicate bonds.
+        for (unsigned int i = 0; i < all_helper.size(); ++i)
             {
-            typename BondedGroupData<group_size, Group, name, true>::members_t triag;
-            std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(
-                3);
-            unsigned int bonds0, bonds1;
-            std::vector<unsigned int> bond_id;
-            triag.tag[0] = snapshot.groups[group_idx].tag[0];
-            triag.tag[1] = snapshot.groups[group_idx].tag[1];
-            triag.tag[2] = snapshot.groups[group_idx].tag[2];
-
-            bonds[0].tag[0] = triag.tag[0];
-            bonds[0].tag[1] = triag.tag[1];
-            bonds[0].tag[2] = triag.tag[2];
-            bonds[1].tag[0] = triag.tag[1];
-            bonds[1].tag[1] = triag.tag[2];
-            bonds[1].tag[2] = triag.tag[0];
-            bonds[2].tag[0] = triag.tag[2];
-            bonds[2].tag[1] = triag.tag[0];
-            bonds[2].tag[2] = triag.tag[1];
-
-            for (unsigned int i = 0; i < all_helper.size(); ++i)
+            for (unsigned int j = 0; j < bonds.size(); ++j)
                 {
-                for (unsigned int j = 0; j < bonds.size(); ++j)
+                if (bonds[j].tag[0] == all_helper[i].tag[0]
+                    && bonds[j].tag[1] == all_helper[i].tag[1])
                     {
-                    if (bonds[j].tag[0] > bonds[j].tag[1])
-                        {
-                        bonds0 = bonds[j].tag[0];
-                        bonds1 = bonds[j].tag[1];
+                    unsigned int find_idx = all_helper[i].tag[2];
+                    all_groups[find_idx].tag[3] = bonds[j].tag[2];
 
-                        bonds[j].tag[0] = bonds1;
-                        bonds[j].tag[1] = bonds0;
-                        }
-                    if (bonds[j].tag[0] == all_helper[i].tag[0]
-                        && bonds[j].tag[1] == all_helper[i].tag[1])
-                        {
-                        // bond_id.push_back(i);
-                        bond_id.push_back(all_helper[i].tag[2]);
-                        bonds.erase(bonds.begin() + j);
-                        break;
-                        }
+                    all_helper.erase(all_helper.begin() + i);
+                    i -= 1;
+                    bonds.erase(bonds.begin() + j);
+                    break;
                     }
                 }
-            unsigned int j = 0;
-            for (j = 0; j < bond_id.size(); ++j)
-                {
-                triag.tag[3 + j] = bond_id[j];
-                }
+            }
+        for (unsigned int i = 0; i < bonds.size(); ++i)
+            {
+            all_groups.push_back(bonds[i]);
+            all_helper.push_back(bonds[i]);
+            long unsigned int all_helper_size = all_helper.size() - 1;
+            all_helper[all_helper_size].tag[2] = bond_idx;
+            bond_idx++;
 
-            for (unsigned int i = 0; i < bonds.size(); ++i)
-                {
-                // triag.tag[3 + j] = static_cast<unsigned int>(all_helper.size());
-                triag.tag[3 + j] = bonds[i].tag[2];
-                all_helper.push_back(bonds[i]);
-                j++;
-                }
-            all_groups[group_idx] = triag;
-            all_types[group_idx] = snapshot.type_id[group_idx];
+            all_types.push_back(snapshot.type_id[group_idx]);
             }
         }
 
@@ -289,8 +229,8 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
         }
     }
 
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group g)
+template<unsigned int group_size, typename Group, const char* name>
+unsigned int MeshGroupData<group_size, Group, name>::addBondedGroup(Group g)
     {
     this->removeAllGhostGroups();
 
@@ -300,9 +240,8 @@ unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group 
 
     unsigned int max_tag = this->m_pdata->getMaximumTag();
 
-    unsigned int group_size_half = group_size / 2;
     // validate user input
-    for (unsigned int i = 0; i < group_size_half; ++i)
+    for (unsigned int i = 0; i < group_size; ++i)
         {
         if (members_tags.tag[i] > max_tag)
             {
@@ -314,7 +253,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group 
             throw runtime_error(oss.str());
             }
 
-        for (unsigned int j = 0; j < group_size_half; ++j)
+        for (unsigned int j = 0; j < 2; ++j)
             {
             if (i != j && members_tags.tag[i] == members_tags.tag[j])
                 {
@@ -413,8 +352,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group 
     this->m_nglobal++;
 
     // notify observers
-    this->m_group_num_change_signal.emit();
-    this->notifyGroupReorder();
+    this->groupReorder();
 
     return tag;
     }
@@ -424,14 +362,12 @@ unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group 
  *
  *  Data in the snapshot is in tag order, where non-existent tags are skipped
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap>
+template<unsigned int group_size, typename Group, const char* name>
 std::map<unsigned int, unsigned int>
-MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
+MeshGroupData<group_size, Group, name>::takeSnapshotBond(BondData::Snapshot& snapshot) const
     {
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
-
-    unsigned int group_size_half = group_size / 2;
 
     std::map<unsigned int, unsigned int> rtag_map;
 
@@ -521,7 +457,7 @@ MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
                 unsigned int idx = rank_idx.second;
 
                 snapshot.type_id[snap_id] = typevals_proc[rank][idx].type;
-                for (unsigned int i = 0; i < group_size_half; i++)
+                for (unsigned int i = 0; i < 2; i++)
                     {
                     snapshot.groups[snap_id].tag[i] = members_proc[rank][idx].tag[i];
                     }
@@ -560,7 +496,7 @@ MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
             unsigned int group_idx = rtag_it->second;
             typename BondedGroupData<group_size, Group, name, true>::members_t member
                 = this->m_groups[group_idx];
-            for (unsigned int i = 0; i < group_size_half; i++)
+            for (unsigned int i = 0; i < 2; i++)
                 {
                 snapshot.groups[snap_id].tag[i] = member.tag[i];
                 }
@@ -591,7 +527,7 @@ void export_MeshGroupData(pybind11::module& m,
         .def(
             pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromTriangleSnapshot", &T::initializeFromTriangleSnapshot)
-        .def("takeSnapshot", &T::takeSnapshot)
+        .def("takeSnapshotBond", &T::takeSnapshotBond)
         .def("getN", &T::getN)
         .def("getNGlobal", &T::getNGlobal)
         .def("getNTypes", &T::getNTypes)
@@ -608,7 +544,7 @@ void export_MeshGroupData(pybind11::module& m,
 
     } // end namespace detail
 
-template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot>;
+template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data>;
 
 namespace detail
     {

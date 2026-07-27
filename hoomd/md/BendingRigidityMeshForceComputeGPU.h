@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BendingRigidityMeshForceCompute.h"
@@ -41,7 +41,7 @@ class PYBIND11_EXPORT BendingRigidityMeshForceComputeGPU : public BendingRigidit
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
     };
 
 namespace detail

@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "MeshForceCompute.h"
 #include "TriangleAreaConservationMeshParameters.h"
-#include "hoomd/ForceCompute.h"
-#include "hoomd/MeshDefinition.h"
 
 #include <memory>
 
@@ -29,7 +28,7 @@ namespace md
 /*! Triangle Area Conservation forces are computed on every triangle in a mesh.
     \ingroup computes
 */
-class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCompute
+class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public MeshForceCompute
     {
     public:
     //! Constructs the compute
@@ -57,7 +56,7 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
      */
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
+    CommFlags getRequestedCommFlags(uint64_t timestep) override
         {
         CommFlags flags = CommFlags(0);
         flags[comm_flag::tag] = 1;
@@ -70,11 +69,14 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
     GPUArray<triangle_area_conservation_param_t> m_params; //!< Parameters
     GPUArray<Scalar> m_area;                               //!< memory space for area
 
-    std::shared_ptr<MeshDefinition>
-        m_mesh_data; //!< Mesh data to use in computing area conservation energy
-
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
+
+    Scalar energyDiff(unsigned int idx_a,
+                      unsigned int idx_b,
+                      unsigned int idx_c,
+                      unsigned int idx_d,
+                      unsigned int type_id) override;
     };
 
 namespace detail

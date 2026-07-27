@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.external.field."""
@@ -264,7 +264,7 @@ class TestExternalPotentialLinear:
     ):
         # create simulation & attach objects
         sim = simulation_factory(two_particle_snapshot_factory())
-        mc, field = add_default_integrator(sim, "linear")
+        _mc, field = add_default_integrator(sim, "linear")
         field.plane_normal = (1, 2, 3)
         magnitude = np.linalg.norm(field.plane_normal)
 

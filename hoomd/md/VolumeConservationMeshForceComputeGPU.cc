@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceComputeGPU.h"
@@ -61,7 +61,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     unsigned int triN = m_mesh_data->getSize();
 
-    computeVolume();
+    precomputeParameter();
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -125,7 +125,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void VolumeConservationMeshForceComputeGPU::computeVolume()
+void VolumeConservationMeshForceComputeGPU::precomputeParameter()
     {
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

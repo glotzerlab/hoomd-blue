@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantVolume.h"
@@ -36,6 +36,11 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
             Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
             Scalar3 pos = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
             Scalar3 accel = h_accel.data[j];
+
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                accel.z = Scalar(0.0);
+                }
 
             // update velocity and position
             v = v + Scalar(1.0 / 2.0) * accel * m_deltaT;
@@ -110,8 +115,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+            y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
             z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
@@ -295,8 +300,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+            y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
             z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero

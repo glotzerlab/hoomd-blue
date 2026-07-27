@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Wall potential classes compute forces, virials, and energies between all
@@ -6,7 +6,7 @@ particles and the given walls consistent with the energy:
 
 .. math::
 
-    U_\mathrm{wall} = \sum_{i=0}^{\mathrm{N_particles-1}}
+    U_\mathrm{wall} = \sum_{i=0}^{N_\mathrm{particles}-1}
                       \sum_{w \in walls} U_w(d_i),
 
 where :math:`d_i` is the signed distance between particle :math:`i` and the wall
@@ -184,8 +184,6 @@ class WallPotential(force.Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `WallPotential`:
     """
 
@@ -196,7 +194,6 @@ class WallPotential(force.Force):
     _doc_inherited = (
         force.Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `WallPotential <hoomd.md.external.wall.WallPotential>`:
@@ -292,7 +289,6 @@ class LJ(WallPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `LJ`:
 
@@ -360,7 +356,6 @@ class Gaussian(WallPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Gaussian`:
 
@@ -428,7 +423,6 @@ class Yukawa(WallPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Yukawa`:
 
@@ -499,7 +493,6 @@ class Morse(WallPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `Morse`:
 
@@ -568,7 +561,6 @@ class ForceShiftedLJ(WallPotential):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ForceShiftedLJ`:
 
@@ -639,8 +631,6 @@ class Mie(WallPotential):
         }
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Mie`:
 

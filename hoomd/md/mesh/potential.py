@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Mesh potential base class."""
@@ -26,8 +26,6 @@ class MeshPotential(Force):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `MeshPotential`:
     """
 
@@ -37,7 +35,6 @@ class MeshPotential(Force):
     _doc_inherited = (
         Force._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `MeshPotential <hoomd.md.mesh.MeshPotential>`:
@@ -50,6 +47,7 @@ class MeshPotential(Force):
     )
 
     def __init__(self, mesh):
+        super().__init__()
         self._mesh = validate_mesh(mesh)
 
     def _attach_hook(self):

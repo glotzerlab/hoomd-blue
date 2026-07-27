@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -136,8 +136,7 @@ class PYBIND11_EXPORT BeforeTrigger : public Trigger
     const
 
         /// Set the timestep before which the trigger is active.
-        void
-        setTimestep(uint64_t timestep)
+        void setTimestep(uint64_t timestep)
         {
         m_timestep = timestep;
         }
@@ -168,8 +167,7 @@ class PYBIND11_EXPORT OnTrigger : public Trigger
     const
 
         /// Set the timestep when the trigger is active.
-        void
-        setTimestep(uint64_t timestep)
+        void setTimestep(uint64_t timestep)
         {
         m_timestep = timestep;
         }
@@ -200,8 +198,7 @@ class PYBIND11_EXPORT AfterTrigger : public Trigger
     const
 
         /// Set the timestep after which the trigger is active.
-        void
-        setTimestep(uint64_t timestep)
+        void setTimestep(uint64_t timestep)
         {
         m_timestep = timestep;
         }

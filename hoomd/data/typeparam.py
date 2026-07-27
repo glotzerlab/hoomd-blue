@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement TypeParameter.
@@ -90,7 +90,7 @@ class TypeParameter(MutableMapping):
 
         .. code-block:: python
 
-            langevin.gamma[["B", "C"]] = 3.0
+            langevin.gamma["B", "C", "D"] = 3.0
 
         Set type pair parameters with a tuple of names:
 
@@ -100,22 +100,14 @@ class TypeParameter(MutableMapping):
 
             lj.params[("A", "A")] = dict(epsilon=1.5, sigma=2.0)
 
-        Set parameters for multiple pairs (e.g. ('A', 'B') and ('A', 'C')):
+        Set parameters for multiple pairs (e.g. ('A', 'B'), ('C', 'D'),
+        and ('E', 'F')):
 
         .. skip: next if(not hoomd.version.md_built)
 
         .. code-block:: python
 
-            lj.params[("A", ["B", "C"])] = dict(epsilon=0, sigma=0)
-
-        Set parameters for multiple pairs (e.g. ('B', 'B'), ('B', 'C'), ('C',
-        'B'), and ('C', 'C')):
-
-        .. skip: next if(not hoomd.version.md_built)
-
-        .. code-block:: python
-
-            lj.params[(["B", "C"], ["B", "C"])] = dict(epsilon=1, sigma=1)
+            lj.params[("A", "B"), ("B", "C"), ("E", "F")] = dict(epsilon=0, sigma=0)
 
         Note:
             Setting the value for *(a,b)* automatically sets the symmetric

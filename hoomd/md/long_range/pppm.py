@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Long-range potentials evaluated using the PPPM method."""
@@ -134,7 +134,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
         resolution=resolution,
         order=order,
         r_cut=r_cut,
-        alpha=0,
+        alpha=alpha,
         pair_force=real_space_force,
     )
 
@@ -150,8 +150,6 @@ class Coulomb(Force):
         implement the PPPM method for electrostatics.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Coulomb`:
 

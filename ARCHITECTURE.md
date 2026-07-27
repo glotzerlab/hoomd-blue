@@ -483,7 +483,7 @@ the source directory without needing to compile the C++ source code.
 `autodoc` defaults to one HTML page per module. Users find it more convenient to read
 documentation with one page per class. The file `sphinx-doc/generate-toctree.py`
 imports `hoomd`, reads the `__all__` member and then recursively generates `.rst` files
-for each module and class. `generate-toctree.py` is run as a `pre-commit` hook to ensure
+for each module and class. `generate-toctree.py` is run as a `prek` hook to ensure
 that the documentation is always updated.
 
 Users also strongly prefer not to navigate up the super class chain in the documentation

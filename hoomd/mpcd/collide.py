@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """An MPCD collision method is required to update the particle velocities over
@@ -13,6 +13,7 @@ transport coefficients.
 
     simulation = hoomd.util.make_example_simulation(mpcd_types=["A"])
     simulation.operations.integrator = hoomd.mpcd.Integrator(dt=0.1)
+    collision_method = hoomd.mpcd.collide.AndersenThermostat(period=1, kT=1.0)
 
 """
 
@@ -51,8 +52,6 @@ class CellList(Compute):
         cell_list = simulation.operations.integrator.cell_list
 
     {inherited}
-
-    ----------
 
     **Members defined in** `CellList`:
 
@@ -99,16 +98,17 @@ class CellList(Compute):
 
 
 class CollisionMethod(Operation):
-    """Base collision method.
+    r"""Base collision method.
 
     Args:
         period (int): Number of integration steps between collisions.
         embedded_particles (hoomd.filter.filter_like): HOOMD particles to
             include in collision.
+        kT (hoomd.variant.variant_like): Temperature of the thermostat
+            :math:`[\mathrm{energy}]`.
 
     {inherited}
 
-    ----------
 
     **Members defined in** `CollisionMethod`:
 
@@ -126,10 +126,15 @@ class CollisionMethod(Operation):
             MPCD particles themselves already act as a heat bath for the
             embedded particles.
 
+            When embedding particles in a rigid body, it is required that constituent
+            particles have a combined mass equal to the mass of the central particle
+            and that the center of mass of the rigid body is located at the central
+            particle. It is **not** recommended to include the central particle of a
+            rigid body in the embedding particles.
+
             Warning:
-                Do not embed particles that are part of a rigid body. Momentum
-                will not be correctly transferred to the body. Support for this
-                is planned in future.
+                Embedding particles that are part of a rigid body is not available
+                when using domain decomposition. Support for this is planned in future.
 
         period (int): Number of integration steps between collisions
             (*read only*).
@@ -140,6 +145,29 @@ class CollisionMethod(Operation):
             :class:`~hoomd.mpcd.stream.StreamingMethod` if one is attached to
             the :class:`~hoomd.mpcd.Integrator`.
 
+        kT (hoomd.variant.variant_like): Temperature of the thermostat
+            :math:`[\mathrm{energy}]`.
+
+            This temperature determines the distribution used to generate the
+            random numbers.
+
+            Warning:
+                Setting kT is required if embedded_particles contains particles
+                from rigid bodies.
+
+            .. rubric:: Examples:
+
+            Constant temperature.
+
+            .. code-block:: python
+
+                collision_method.kT = 1.0
+
+            Variable temperature.
+
+            .. code-block:: python
+
+                collision_method.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -148,7 +176,6 @@ class CollisionMethod(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `CollisionMethod <hoomd.mpcd.collide.CollisionMethod>`:
@@ -162,17 +189,26 @@ class CollisionMethod(Operation):
 
         Number of integration steps between collisions.
         `Read more... <hoomd.mpcd.collide.CollisionMethod.period>`
+
+    .. py:attribute:: kT
+
+        Temperature of the thermostat.
+        `Read more... <hoomd.mpcd.collide.CollisionMethod.kT>`
     """
     )
 
-    def __init__(self, period, embedded_particles=None):
+    def __init__(self, period, embedded_particles=None, kT=None):
         super().__init__()
 
         param_dict = ParameterDict(
             period=int(period),
             embedded_particles=OnlyTypes(hoomd.filter.ParticleFilter, allow_none=True),
+            kT=OnlyTypes(
+                hoomd.variant.Variant, allow_none=True, preprocess=variant_preprocessing
+            ),
         )
         param_dict["embedded_particles"] = embedded_particles
+        param_dict["kT"] = kT
         self._param_dict.update(param_dict)
 
 
@@ -221,31 +257,8 @@ class AndersenThermostat(CollisionMethod):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `AndersenThermostat`:
-
-    Attributes:
-        kT (hoomd.variant.variant_like): Temperature of the thermostat
-            :math:`[\mathrm{energy}]`.
-
-            This temperature determines the distribution used to generate the
-            random numbers.
-
-            .. rubric:: Examples:
-
-            Constant temperature.
-
-            .. code-block:: python
-
-                andersen_thermostat.kT = 1.0
-
-            Variable temperature.
-
-            .. code-block:: python
-
-                andersen_thermostat.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
-
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -253,11 +266,7 @@ class AndersenThermostat(CollisionMethod):
     )
 
     def __init__(self, period, kT, embedded_particles=None):
-        super().__init__(period, embedded_particles)
-
-        param_dict = ParameterDict(kT=hoomd.variant.Variant)
-        param_dict["kT"] = kT
-        self._param_dict.update(param_dict)
+        super().__init__(period=period, kT=kT, embedded_particles=embedded_particles)
 
     def _attach_hook(self):
         sim = self._simulation
@@ -343,8 +352,6 @@ class StochasticRotationDynamics(CollisionMethod):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `StochasticRotationDynamics`:
 
     Attributes:
@@ -356,23 +363,6 @@ class StochasticRotationDynamics(CollisionMethod):
 
                 srd.angle = 130
 
-        kT (hoomd.variant.variant_like): Temperature for the collision
-            thermostat :math:`[\mathrm{energy}]`.
-
-            .. rubric:: Examples:
-
-            Constant temperature.
-
-            .. code-block:: python
-
-                srd.kT = 1.0
-
-            Variable temperature.
-
-            .. code-block:: python
-
-                srd.kT = hoomd.variant.Ramp(1.0, 2.0, 0, 100)
-
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -380,15 +370,11 @@ class StochasticRotationDynamics(CollisionMethod):
     )
 
     def __init__(self, period, angle, kT=None, embedded_particles=None):
-        super().__init__(period, embedded_particles)
+        super().__init__(period=period, kT=kT, embedded_particles=embedded_particles)
 
         param_dict = ParameterDict(
             angle=float(angle),
-            kT=OnlyTypes(
-                hoomd.variant.Variant, allow_none=True, preprocess=variant_preprocessing
-            ),
         )
-        param_dict["kT"] = kT
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):

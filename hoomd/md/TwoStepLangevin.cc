@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
@@ -70,14 +70,20 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
 
         h_pos.data[j].x += dx;
         h_pos.data[j].y += dy;
-        h_pos.data[j].z += dz;
+        if (m_sysdef->getNDimensions() > 2)
+            {
+            h_pos.data[j].z += dz;
+            }
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
         box.wrap(h_pos.data[j], h_image.data[j]);
 
         h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;
         h_vel.data[j].y += Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT;
-        h_vel.data[j].z += Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT;
+        if (m_sysdef->getNDimensions() > 2)
+            {
+            h_vel.data[j].z += Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT;
+            }
         }
 
     if (m_aniso)
@@ -109,8 +115,8 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+            y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
             z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
@@ -334,8 +340,8 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x == 0);
-                y_zero = (I.y == 0);
+                x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+                y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
                 z_zero = (I.z == 0);
 
                 bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
@@ -382,8 +388,8 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x == 0);
-            y_zero = (I.y == 0);
+            x_zero = (I.x == 0 || m_sysdef->getNDimensions() == 2);
+            y_zero = (I.y == 0 || m_sysdef->getNDimensions() == 2);
             z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero

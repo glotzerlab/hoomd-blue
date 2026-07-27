@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "MeshForceCompute.h"
 #include "VolumeConservationMeshParameters.h"
-#include "hoomd/ForceCompute.h"
-#include "hoomd/MeshDefinition.h"
 
 #include <memory>
 
@@ -30,7 +29,7 @@ namespace md
 
     \ingroup computes
 */
-class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
+class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public MeshForceCompute
     {
     public:
     //! Constructs the compute
@@ -62,7 +61,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
      */
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
+    CommFlags getRequestedCommFlags(uint64_t timestep) override
         {
         CommFlags flags = CommFlags(0);
         flags[comm_flag::tag] = 1;
@@ -74,17 +73,33 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     protected:
     GPUArray<volume_conservation_param_t> m_params; //!< Parameters
 
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing volume energy
-
     GPUArray<Scalar> m_volume; //!< memory space for volume
+
+    Scalar m_volume_diff;
 
     bool m_ignore_type; //! do we ignore type to calculate global area
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute volumes
-    virtual void computeVolume();
+    void precomputeParameter() override;
+
+    void postcomputeParameter(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id) override
+        {
+        ArrayHandle<Scalar> h_volume(m_volume, access_location::host, access_mode::readwrite);
+        h_volume.data[type_id] += m_volume_diff;
+        };
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id) override;
     };
 
 namespace detail

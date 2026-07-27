@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Code to support unit and validation tests.
@@ -1092,7 +1092,7 @@ class BaseListTest(BaseSequenceTest):
 
     def test_clear(self, populated_collection):
         """Test clear."""
-        test_list, plain_list = populated_collection
+        test_list, _plain_list = populated_collection
         test_list.clear()
         assert len(test_list) == 0
         self.final_check(test_list)
@@ -1284,7 +1284,7 @@ class BaseMappingTest(BaseCollectionsTest):
 
     def test_clear(self, populated_collection):
         """Test clear."""
-        test_mapping, plain_mapping = populated_collection
+        test_mapping, _plain_mapping = populated_collection
         if self._deletion_error is not None:
             with pytest.raises(self._deletion_error):
                 test_mapping.clear()
@@ -1410,14 +1410,14 @@ class BaseMappingTest(BaseCollectionsTest):
 
     def test_popitem(self, populated_collection):
         """Test popitem."""
-        test_mapping, plain_mapping = populated_collection
+        test_mapping, _plain_mapping = populated_collection
         if self._deletion_error is not None:
             with pytest.raises(self._deletion_error):
                 test_mapping.popitem()
             return
 
         for length in range(len(test_mapping) - 1, -1, -1):
-            key, item = test_mapping.popitem()
+            key, _item = test_mapping.popitem()
             assert key not in test_mapping
             assert len(test_mapping) == length
         self.final_check(test_mapping)

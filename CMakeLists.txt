@@ -16,7 +16,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "5.2.0")
+set(HOOMD_VERSION_RAW "7.1.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -134,7 +134,7 @@ include(HOOMDPythonSetup)
 
 include (hoomd-macros)
 
-find_package(Eigen3 3.2 CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
 if (Eigen3_FOUND)
     find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")
 endif()

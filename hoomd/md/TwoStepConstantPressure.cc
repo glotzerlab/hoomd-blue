@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantPressure.h"
@@ -309,6 +309,11 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
             Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
             Scalar3 accel = h_accel.data[j];
             Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                accel.z = Scalar(0.0);
+                }
 
             // advance velocity
             v += m_deltaT / Scalar(2.0) * accel;

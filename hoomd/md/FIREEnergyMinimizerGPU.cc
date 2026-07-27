@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "FIREEnergyMinimizerGPU.h"
@@ -206,10 +206,13 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                 CHECK_CUDA_ERROR();
             }
 
-        ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
-        Pt += h_sum.data[0];
-        vnorm += h_sum.data[1];
-        fnorm += h_sum.data[2];
+            // Ensure h_sum goes out of scope before anisotropic block
+            {
+            ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
+            Pt += h_sum.data[0];
+            vnorm += h_sum.data[1];
+            fnorm += h_sum.data[2];
+            }
 
         if ((*method)->getAnisotropic())
             {

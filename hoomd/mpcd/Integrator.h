@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -18,11 +18,13 @@
 #include "Sorter.h"
 #include "StreamingMethod.h"
 #include "VirtualParticleFiller.h"
+
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif // ENABLE_MPI
 
 #include "hoomd/SystemDefinition.h"
+#include "hoomd/md/ForceComposite.h"
 #include "hoomd/md/IntegratorTwoStep.h"
 #include <pybind11/pybind11.h>
 
@@ -67,6 +69,8 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         syncCellList();
         }
 
+    void setRigid(std::shared_ptr<hoomd::md::ForceComposite> new_rigid) override;
+
 #ifdef ENABLE_MPI
     //! Set the MPCD communicator to use
     void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
@@ -96,6 +100,10 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     void setCollisionMethod(std::shared_ptr<mpcd::CollisionMethod> collide)
         {
         m_collide = collide;
+        if (m_collide)
+            {
+            m_collide->setRigid(m_rigid_bodies);
+            }
         }
 
     //! Get current streaming method

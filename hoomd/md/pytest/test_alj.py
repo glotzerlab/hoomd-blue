@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -114,3 +114,22 @@ def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
     assert np.isclose(
         shape_spec["a"], get_rounding_radius(ellipse_axes[1], alj.params[("A", "A")])
     )
+
+
+def test_default_shape_still_allows_setting():
+    """Ensure setting the default shape for an ALJ still allows the shape to be
+    set for specific types."""
+    alj = hoomd.md.pair.aniso.ALJ(hoomd.md.nlist.Cell(2))
+
+    vertices = [
+        [0.0, 0.0, 1.24902477],
+        [-0.58879592, -1.01982445, -0.41634159],
+        [-0.58879592, 1.01982445, -0.41634159],
+        [1.17759184, 0.0, -0.41634159],
+    ]
+
+    faces = [[1, 2, 3], [0, 1, 3], [0, 2, 1], [0, 3, 2]]
+
+    alj.shape.default = dict(vertices=[], faces=[])
+
+    alj.shape["A"] = dict(vertices=vertices, faces=faces)

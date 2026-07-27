@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement parameter dictionaries."""
@@ -6,7 +6,7 @@
 from abc import abstractmethod
 from collections.abc import Mapping, MutableMapping
 from copy import copy
-from itertools import product, combinations_with_replacement
+from itertools import combinations_with_replacement
 
 import numpy as np
 
@@ -112,7 +112,7 @@ class _SmartTypeIndexer:
         if self.len_key == 1:
             return self.validate_and_split_len_one(key)
         else:
-            return self.validate_and_split_len(key)
+            return self.validate_and_split_len(key, key)
 
     def validate_and_split_len_one(self, key):
         """Validate single type keys.
@@ -130,28 +130,25 @@ class _SmartTypeIndexer:
         else:
             raise KeyError("The key {} is not valid.".format(key))
 
-    def validate_and_split_len(self, key):
+    def validate_and_split_len(self, key, parent):
         """Validate all key lengths greater than one, N.
 
-        Valid input is an arbitrarily deep series of iterables that culminate
-        in N length tuples, this includes an iterable depth of zero.  The N
-        length tuples can contain for each member either a type string or an
-        iterable of type strings.
+        Due to the way that __setitem__ behaves, inputs are either a tuple with
+        ``len_key`` strings OR an iterator over tuples of ``len_key`` strings.
         """
-        if isinstance(key, tuple) and len(key) == self.len_key:
-            if any([not _is_key_iterable(v) and not isinstance(v, str) for v in key]):
-                raise KeyError("The key {} is not valid.".format(key))
-            # convert str to single item list for proper enumeration using
-            # product
-            key_types_list = [[v] if isinstance(v, str) else v for v in key]
-            return list(product(*key_types_list))
+        if (
+            isinstance(key, tuple)
+            and len(key) == self.len_key
+            and all(isinstance(v, str) for v in key)
+        ):
+            return [key]
         elif _is_iterable(key):
             keys = []
             for k in key:
-                keys.extend(self.validate_and_split_len(k))
+                keys.extend(self.validate_and_split_len(k, key))
             return keys
         else:
-            raise KeyError("The key {} is not valid.".format(key))
+            raise KeyError("The key {} is not valid.".format(parent))
 
     @property
     def valid_types(self):

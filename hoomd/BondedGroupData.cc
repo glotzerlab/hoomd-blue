@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
@@ -438,8 +438,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
     m_nglobal++;
 
     // notify observers
-    m_group_num_change_signal.emit();
-    notifyGroupReorder();
+    groupReorder();
 
     return tag;
     }
@@ -669,8 +668,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     m_nglobal--;
 
     // notify observers
-    m_group_num_change_signal.emit();
-    notifyGroupReorder();
+    groupReorder();
     }
 
 /*! \param name Type name
@@ -1299,8 +1297,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
         }
 
     // notify observers
-    m_group_num_change_signal.emit();
-    notifyGroupReorder();
+    groupReorder();
     }
 #endif
 

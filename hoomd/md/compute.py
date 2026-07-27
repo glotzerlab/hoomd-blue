@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """The MD compute classes compute instantaneous properties of the simulation state
@@ -33,14 +33,14 @@ class ThermodynamicQuantities(Compute):
         rigid body centers - ignoring constituent particles to avoid double
         counting.
 
-    Examples::
+    .. rubric:: Example:
 
-        f = filter.Type("A")
-        compute.ThermodynamicQuantities(filter=f)
+    .. code-block:: python
+
+            f = hoomd.filter.Type(["A"])
+            hoomd.md.compute.ThermodynamicQuantities(filter=f)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `ThermodynamicQuantities`:
     """
@@ -89,6 +89,7 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
+            \\begin{align*}
             W_\\mathrm{isotropic} = & \\left(
             W_{\\mathrm{net},\\mathrm{additional}}^{xx}
             + W_{\\mathrm{net},\\mathrm{additional}}^{yy}
@@ -98,6 +99,7 @@ class ThermodynamicQuantities(Compute):
             + W_\\mathrm{{net},i}^{yy}
             + W_\\mathrm{{net},i}^{zz}
             \\right)
+            \\end{align*}
 
         where the net virial terms are computed by `hoomd.md.Integrator`
         over all of the forces in `hoomd.md.Integrator.forces` and
@@ -342,15 +344,15 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         by molecular simulation". Phys. Rev. E 92, 043303
         doi:10.1103/PhysRevE.92.043303
 
-    Examples::
+    .. rubric:: Example:
 
-        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(
-            filter=hoomd.filter.Type("A"), kT=1.0
-        )
+    .. code-block:: python
+
+            hma = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+                filter=hoomd.filter.Type(["A"]), kT=1.0
+            )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `HarmonicAveragedThermodynamicQuantities`:
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceComputeGPU.h"
@@ -72,7 +72,7 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
  */
 void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
-    computeSigma();
+    precomputeParameter();
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -133,7 +133,7 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HelfrichMeshForceComputeGPU::computeSigma()
+void HelfrichMeshForceComputeGPU::precomputeParameter()
     {
     const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list
         = this->m_mesh_data->getMeshBondData()->getGPUTable();

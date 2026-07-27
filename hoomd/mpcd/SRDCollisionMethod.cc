@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -308,10 +308,7 @@ void export_SRDCollisionMethod(pybind11::module& m)
                  init<std::shared_ptr<SystemDefinition>, unsigned int, unsigned int, int, Scalar>())
         .def_property("angle",
                       &mpcd::SRDCollisionMethod::getRotationAngle,
-                      &mpcd::SRDCollisionMethod::setRotationAngle)
-        .def_property("kT",
-                      &mpcd::SRDCollisionMethod::getTemperature,
-                      &mpcd::SRDCollisionMethod::setTemperature);
+                      &mpcd::SRDCollisionMethod::setRotationAngle);
     }
     } // namespace detail
     } // namespace mpcd

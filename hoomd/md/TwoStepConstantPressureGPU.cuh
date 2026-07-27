@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __TWOSTEP_NPT_MTK_GPU_CUH__
@@ -32,7 +32,8 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                     Scalar* mat_exp_r_int,
                                     Scalar deltaT,
                                     bool rescale_all,
-                                    const unsigned int block_size);
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
 hipError_t gpu_npt_rescale_wrap(const unsigned int N,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -24,6 +24,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                     unsigned int block_size,
                                     Scalar rescale_factor,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     bool limit = false,
                                     Scalar limit_displacement = Scalar(0.));
 

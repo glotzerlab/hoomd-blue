@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections import namedtuple
@@ -472,11 +472,11 @@ def test_aniso_force_computes(make_two_particle_simulation, aniso_forces_and_ene
 
     .. math::
 
-        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 0.85) \\
-        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.86615809, 0.4997701, 0, 0) \\
-        \\
-        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 1.6) \\
-        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
+        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 0.85)
+        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.86615809, 0.4997701, 0, 0)
+
+        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 1.6)
+        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518)
 
     """
     pot = aniso_forces_and_energies.pair_potential(

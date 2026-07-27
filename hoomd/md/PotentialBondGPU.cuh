@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -331,10 +331,10 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     }
 #else
 template<class evaluator, int group_size>
-__attribute__((visibility("default"))) hipError_t
-gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
-                        const typename evaluator::param_type* d_params,
-                        unsigned int* d_flags);
+__attribute__((visibility("default")))
+hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
+                                   const typename evaluator::param_type* d_params,
+                                   unsigned int* d_flags);
 #endif
 
     } // end namespace kernel

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Harmonic potential that restrains particles to a lattice."""
@@ -62,8 +62,6 @@ class Harmonic(External):
         `Harmonic` does not support execution on GPUs.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `Harmonic`:
 

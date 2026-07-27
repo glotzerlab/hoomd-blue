@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from pathlib import Path
@@ -183,8 +183,9 @@ def test_burst_dump(sim, tmp_path, start, end):
         if end == -1:
             end = len(dumped_frames)
         with gsd.hoomd.open(name=filename, mode="r") as traj:
-            assert [frame.configuration.step for frame in traj] == [0] + dumped_frames[
-                start:end
+            assert [frame.configuration.step for frame in traj] == [
+                0,
+                *dumped_frames[start:end],
             ]
 
 

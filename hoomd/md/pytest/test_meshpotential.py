@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -68,14 +68,6 @@ _TriangleAreaConservation_arg_list = [
         dict(zip(_TriangleAreaConservation_args, val)),
     )
     for val in zip(*_TriangleAreaConservation_args.values())
-]
-
-_Helfrich_args = {
-    "k": [1.0, 20.0, 100.0],
-}
-_Helfrich_arg_list = [
-    (hoomd.md.mesh.bending.Helfrich, dict(zip(_Helfrich_args, val)))
-    for val in zip(*_Helfrich_args.values())
 ]
 
 _Volume_args = {"k": [20.0, 50.0, 100.0], "V0": [0.107227, 1, 0.01]}
@@ -184,7 +176,7 @@ def get_mesh_potential_args_forces_and_energies():
             [0.0, 1271.084184, -898.792246],
         ],
     ]
-    Helfrich_energies = [27.712812, 554.256258, 2771.281293]
+    Helfrich_energies = [9.237604, 184.752086, 923.760431]
 
     AreaConservation_forces = [
         [

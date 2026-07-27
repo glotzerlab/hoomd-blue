@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence
@@ -66,7 +66,7 @@ def test_body_setting(valid_body_definition):
         current_body_definition[key] = valid_body_definition[key]
 
 
-def check_bodies(snapshot, definition, charges=None):
+def check_bodies(snapshot, definition, charges=None, masses=None):
     """Non-general assumes a snapshot from two_particle_snapshot_factory.
 
     This is just to prevent duplication of code from test_create_bodies and
@@ -85,6 +85,12 @@ def check_bodies(snapshot, definition, charges=None):
         for i in range(4):
             assert snapshot.particles.charge[i + 2] == charges[i]
             assert snapshot.particles.charge[i + 6] == charges[i]
+
+    # check masses
+    if masses is not None:
+        for i in range(4):
+            assert snapshot.particles.mass[i + 2] == masses[i]
+            assert snapshot.particles.mass[i + 6] == masses[i]
 
     particle_one = (snapshot.particles.position[0], snapshot.particles.orientation[0])
     particle_two = (snapshot.particles.position[1], snapshot.particles.orientation[1])
@@ -131,11 +137,18 @@ def check_bodies(snapshot, definition, charges=None):
 
 
 @skip_rowan
+@pytest.mark.parametrize(
+    "include_charge,include_mass",
+    [(False, False), (True, False), (False, True), (True, True)],
+    ids=["default", "optional-change", "optional-mass", "optional-charge-mass"],
+)
 def test_create_bodies(
     simulation_factory,
     two_particle_snapshot_factory,
     lattice_snapshot_factory,
     valid_body_definition,
+    include_charge,
+    include_mass,
 ):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
@@ -145,11 +158,20 @@ def test_create_bodies(
         initial_snapshot.particles.types = ["A", "B"]
     sim = simulation_factory(initial_snapshot)
 
-    charges = [1.0, 2.0, 3.0, 4.0]
-    rigid.create_bodies(sim.state, charges={"A": charges})
+    optional_kwargs = {}
+    if include_charge:
+        optional_kwargs["charges"] = {"A": [1.0, 2.0, 3.0, 4.0]}
+    if include_mass:
+        optional_kwargs["masses"] = {"A": [5.0, 6.0, 7.0, 8.0]}
+    rigid.create_bodies(sim.state, **optional_kwargs)
     snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
-        check_bodies(snapshot, valid_body_definition, charges)
+        check_bodies(
+            snapshot,
+            valid_body_definition,
+            optional_kwargs["charges"]["A"] if include_charge else None,
+            optional_kwargs["masses"]["A"] if include_mass else None,
+        )
 
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
     # Ensure validate bodies passes
@@ -262,12 +284,13 @@ def test_running_simulation(
     sim.seed = 5
 
     charges = [1.0, 2.0, 3.0, 4.0]
-    rigid.create_bodies(sim.state, charges={"A": charges})
+    masses = [5.0, 6.0, 7.0, 8.0]
+    rigid.create_bodies(sim.state, charges={"A": charges}, masses={"A": masses})
     sim.operations += integrator
     sim.run(5)
     snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
-        check_bodies(snapshot, valid_body_definition, charges)
+        check_bodies(snapshot, valid_body_definition, charges, masses)
 
     autotuned_kernel_parameter_check(instance=rigid, activate=lambda: sim.run(1))
 
@@ -587,16 +610,7 @@ def test_velocity_constituents_constant_angmom(
 
     rigid = md.constrain.Rigid()
     rigid.body["A"] = body_definition
-    rigid.create_bodies(sim.state)
-
-    intermed_snapshot = sim.state.get_snapshot()
-    if intermed_snapshot.communicator.rank == 0:
-        flags = (
-            intermed_snapshot.particles.typeid
-            == intermed_snapshot.particles.types.index("B")
-        )
-        intermed_snapshot.particles.mass[flags] = mass[flags]
-    sim.state.set_snapshot(intermed_snapshot)
+    rigid.create_bodies(sim.state, masses={"A": mass[1:]})
 
     constvol = md.methods.ConstantVolume(filter=hoomd.filter.Rigid())
     integrator = md.Integrator(

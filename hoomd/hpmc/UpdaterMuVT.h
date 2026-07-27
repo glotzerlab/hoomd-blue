@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __UPDATER_MUVT_H__
@@ -692,8 +692,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 {
                 const std::vector<typename Shape::param_type,
                                   hoomd::detail::managed_allocator<typename Shape::param_type>>&
-                    params
-                    = m_mc->getParams();
+                    params = m_mc->getParams();
                 const typename Shape::param_type& param = params[type];
 
                 // Propose a random position uniformly in the box

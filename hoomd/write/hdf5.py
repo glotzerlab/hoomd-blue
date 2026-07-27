@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Provides an HDF5 logging backend for a fast binary logging format.
@@ -185,7 +185,7 @@ class _HDF5LogInternal(_InternalAction):
             shape,
             dtype=dtype,
             chunks=chunk_size,
-            maxshape=(None,) + shape[1:],
+            maxshape=(None, *shape[1:]),
         )
 
     @_skip_fh
@@ -218,7 +218,8 @@ class _HDF5LogInternal(_InternalAction):
                 dtype = value.dtype
                 chunk_size = (
                     max(self._MULTIFRAME_ARRAY_CHUNK_MAXIMUM // value.nbytes, 1),
-                ) + data_shape[1:]
+                    *data_shape[1:],
+                )
             self._create_dataset(
                 "/".join(("hoomd-data", *key)), data_shape, dtype, chunk_size
             )
@@ -291,8 +292,6 @@ class HDF5Log(_InternalCustomWriter):
         simulation.operations.writers.append(hdf5_log)
 
     {inherited}
-
-    ----------
 
     **Members defined in** `HDF5Log`:
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence, Mapping
@@ -347,6 +347,19 @@ def _invalid_params():
         _make_invalid_params(wangfrenkel_invalid_dicts, hoomd.md.pair.WangFrenkel, {})
     )
 
+    zetterling_valid_dict = {
+        "A": 1.58,
+        "alpha": -0.22,
+        "kf": 4.12,
+        "B": 0.95533,
+        "sigma": 1.0,
+        "n": 18.0,
+    }
+    zetterling_invalid_dicts = _make_invalid_param_dict(zetterling_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(zetterling_invalid_dicts, hoomd.md.pair.Zetterling, {})
+    )
+
     tersoff_valid_dict = {
         "cutoff_thickness": 1.0,
         "magnitudes": (5.0, 2.0),
@@ -664,6 +677,23 @@ def _valid_params(particle_types=["A", "B"]):
         paramtuple(hoomd.md.pair.OPP, dict(zip(combos, opp_valid_param_dicts)), {})
     )
 
+    zetterling_arg_dict = {
+        "A": [1.58, 1.58, 1.04],
+        "alpha": [-0.22, -0.22, 0.33],
+        "kf": [4.12, 4.12, 4.139],
+        "B": [0.95533, 4.2e8, 4.2e7],
+        "sigma": [1.0, 0.331, 0.348],
+        "n": [18.0, 18.0, 14.5],
+    }
+    zetterling_valid_param_dicts = _make_valid_param_dicts(zetterling_arg_dict)
+    valid_params_list.append(
+        paramtuple(
+            hoomd.md.pair.Zetterling,
+            dict(zip(combos, zetterling_valid_param_dicts)),
+            {},
+        )
+    )
+
     expanded_mie_arg_dict = {
         "epsilon": [0.05, 0.025, 0.010],
         "sigma": [0.5, 1, 1.5],
@@ -744,7 +774,7 @@ def _skip_if_triplet_gpu_mpi(sim, pair_potential):
 
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory, valid_params):
-    pair_potential, pair_potential_dict, extra_args = valid_params
+    _pair_potential, _pair_potential_dict, _extra_args = valid_params
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(
@@ -1106,19 +1136,10 @@ def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
     sim1.operations.integrator.forces.remove(lj)
     sim2.operations.integrator.forces.append(lj)
     sim2.run(0)
+    sim1.run(0)
     # Ensure that when attached cannot add to new integrator
     with pytest.raises(RuntimeError):
         sim1.operations.integrator.forces.append(lj)
-
-    # Test that correct removal with a necessary nlist copy properly warns but
-    # does not error.
-    lj2 = md.pair.LJ(nlist, default_r_cut=1.1)
-    lj2.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
-    sim2.operations.integrator.forces.append(lj2)
-    sim2.operations.integrator.forces.remove(lj)
-    sim1.operations.integrator.forces.append(lj)
-    with pytest.warns(RuntimeWarning):
-        sim1.run(0)
 
 
 @pytest.mark.filterwarnings("always")

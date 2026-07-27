@@ -1,6 +1,31 @@
 Migrating to the latest version
 ===============================
 
+Migrating to HOOMD-blue 7
+-------------------------
+
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* HOOMD-blue 7 samples 3D MC rotation moves from a new distribution. Retune saved or adjust
+  hard-coded values appropriately.
+* HOOMD-blue 7 writes GSD schema 2.0 files. You may need to update any tools that read GSD
+  to their latest version to ensure compatibility.
+
+Migrating to HOOMD-blue 6
+-------------------------
+
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Check your scripts for anywhere you set type parameters with two tuples. For example:
+``lj.r_cut[('A', 'B'), ('C', 'D')] = ...``. In HOOMD-blue 5.x and prior versions, this
+would take the product and set the A-C, A-D, B-C, and B-D parameters. In HOOMD-blue
+6 and later, this will set the A-B and C-D parameters. Identify what parameters  you
+intend to set and adjust your script accordingly. Many users expect the new behavior
+because it is consistent with setting 3 (or more) tuples:
+``lj.r_cut[('A', 'B'), ('C', 'D'), ('E', 'F')] = ...`` sets parameters for A-B, C-D, and E-F.
+
 Migrating to HOOMD-blue 5
 -------------------------
 

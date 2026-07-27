@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import copy as cp
@@ -127,7 +127,7 @@ def _assert_correct_params(external_obj, param_attr, params):
 def test_get_set(simulation_factory, two_particle_snapshot_factory, external_params):
     """Test we can get/set parameter while attached and while not attached."""
     # unpack parameters
-    cls_obj, param_attr, list_params, evaluator = external_params
+    cls_obj, param_attr, list_params, _evaluator = external_params
 
     # create class instance, get/set params when not attached
     obj_instance = cls_obj()
@@ -213,7 +213,7 @@ def test_kernel_parameters(
     simulation_factory, two_particle_snapshot_factory, external_params
 ):
     # unpack parameters
-    cls_obj, param_attr, list_params, evaluator = external_params
+    cls_obj, param_attr, list_params, _evaluator = external_params
 
     # create class instance, get/set params when not attached
     obj_instance = cls_obj()
@@ -234,7 +234,7 @@ def test_kernel_parameters(
 def test_pickling(simulation_factory, two_particle_snapshot_factory, external_params):
     """Test pickling while attached and while not attached."""
     # unpack parameters
-    cls_obj, param_attr, list_params, evaluator = external_params
+    cls_obj, param_attr, list_params, _evaluator = external_params
 
     # create class instance, get/set params when not attached
     obj_instance = cls_obj()

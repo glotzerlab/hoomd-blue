@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -14,6 +14,7 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <cub/device/device_partition.cuh>
 #include <cub/iterator/counting_input_iterator.cuh>
+#include <thrust/iterator/counting_iterator.h>
 #pragma GCC diagnostic pop
 
 namespace hoomd
@@ -155,7 +156,7 @@ cudaError_t mpcd::gpu::partition_particles(void* d_tmp,
                                            unsigned int* d_num_remove,
                                            const unsigned int N)
     {
-    cub::CountingInputIterator<unsigned int> ids(0);
+    thrust::counting_iterator<unsigned int> ids(0);
     cub::DevicePartition::Flagged(d_tmp,
                                   tmp_bytes,
                                   ids,

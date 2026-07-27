@@ -3,7 +3,7 @@ update
 
 .. automodule:: hoomd.md.update
    :members:
-   :exclude-members: ActiveRotationalDiffusion,ReversePerturbationFlow,ZeroMomentum
+   :exclude-members: ActiveRotationalDiffusion,MeshDynamicalBonding,ReversePerturbationFlow,ZeroMomentum
 
 .. rubric:: Classes
 
@@ -11,5 +11,6 @@ update
     :maxdepth: 1
 
     update/activerotationaldiffusion
+    update/meshdynamicalbonding
     update/reverseperturbationflow
     update/zeromomentum

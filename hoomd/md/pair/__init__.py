@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Pair force classes apply a force and virial on every particle in the
@@ -6,7 +6,7 @@ simulation state commensurate with the potential energy:
 
 .. math::
 
-    U_\mathrm{pair,total} = \frac{1}{2} \sum_{i=0}^\mathrm{N_particles-1}
+    U_\mathrm{pair,total} = \frac{1}{2} \sum_{i=0}^{N_\mathrm{particles}-1}
                       \sum_{j \ne i, (i,j) \notin \mathrm{exclusions}}
                       U_\mathrm{pair}(r_{ij})
 
@@ -131,6 +131,7 @@ For anisotropic potentials see `hoomd.md.pair.aniso`
 """
 
 from . import aniso
+from . import friction
 from .pair import (
     Pair,
     LJ,
@@ -146,6 +147,7 @@ from .pair import (
     ForceShiftedLJ,
     Moliere,
     ZBL,
+    Zetterling,
     Mie,
     ExpandedMie,
     ReactionField,
@@ -192,5 +194,7 @@ __all__ = [
     "Table",
     "WangFrenkel",
     "Yukawa",
+    "Zetterling",
     "aniso",
+    "friction",
 ]

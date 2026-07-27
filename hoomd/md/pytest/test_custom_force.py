@@ -1,9 +1,13 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
 import numpy as np
 import numpy.testing as npt
+import importlib.util
+
+import hoomd
+from hoomd import md
 
 # cupy works implicitly to set values in GPU force arrays
 try:
@@ -15,16 +19,11 @@ except ImportError:
     cupy = None
     CUPY_IMPORTED = False
 
-# mpi4py is needed for the ghost data test
-try:
+MPI4PY_IMPORTED = (
+    hoomd.version.mpi_enabled and importlib.util.find_spec("mpi4py") is not None
+)
+if MPI4PY_IMPORTED:
     from mpi4py import MPI
-
-    MPI4PY_IMPORTED = True
-except ImportError:
-    MPI4PY_IMPORTED = False
-
-import hoomd
-from hoomd import md
 
 
 @pytest.fixture(scope="module")

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Base Pair class.
@@ -38,7 +38,6 @@ class Pair(hoomd.operation._HOOMDBaseObject):
     _ext_module = _hpmc
 
     _doc_inherited = """
-    ----------
 
     **Members inherited from** `Pair <hoomd.hpmc.pair.Pair>`:
 
@@ -83,8 +82,8 @@ class Pair(hoomd.operation._HOOMDBaseObject):
 
         .. math::
 
-            U = \\sum_{i=0}^\\mathrm{N_particles-1}
-            \\sum_{j=i+1}^\\mathrm{N_particles-1}
+            U = \\sum_{i=0}^{N_\\mathrm{particles}-1}
+            \\sum_{j=i+1}^{N_\\mathrm{particles}-1}
             U_{\\mathrm{pair},ij}
 
         See `hoomd.hpmc.integrate` for the full expression which includes

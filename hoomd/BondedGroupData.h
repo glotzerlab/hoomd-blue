@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
@@ -625,6 +625,12 @@ class BondedGroupData
     void setDirty()
         {
         m_groups_dirty = true;
+        }
+
+    virtual void groupReorder()
+        {
+        m_group_num_change_signal.emit();
+        notifyGroupReorder();
         }
 
 #ifdef ENABLE_MPI

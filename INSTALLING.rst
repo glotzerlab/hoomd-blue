@@ -20,32 +20,81 @@ Serial CPU and single GPU builds
 *linux-64*, *osx-64*, and *osx-arm64* platforms. Install the ``hoomd`` package from the conda-forge_
 channel:
 
-.. code-block:: bash
+.. tab:: Pixi
 
-    micromamba install hoomd=5.2.0
+    .. code-block:: bash
+
+        pixi add hoomd=7.1.0
+
+.. tab:: Micromamba
+
+    .. code-block:: bash
+
+        micromamba install hoomd=7.1.0
+
+.. tab:: Mamba
+
+    .. code-block:: bash
+
+        mamba install hoomd=7.1.0
 
 .. _conda-forge: https://conda-forge.org/docs/user/introduction.html
 
 By default, micromamba auto-detects whether your system has a GPU and attempts to install the
 appropriate package. Override this and force the GPU enabled package installation with:
 
-.. code-block:: bash
+.. tab:: Pixi
 
-    export CONDA_OVERRIDE_CUDA="12.6"
-    micromamba install "hoomd=5.2.0=*gpu*" "cuda-version=12.6"
+    First add the following to your ``pixi.toml`` file:
+
+    .. code-block:: toml
+
+        [system-requirements]
+        cuda = "12.9"
+
+    Then, add hoomd with:
+
+    .. code-block:: bash
+
+        pixi add "hoomd=7.1.0=*gpu*"
+
+
+.. tab:: Micromamba
+
+    .. code-block:: bash
+
+        export CONDA_OVERRIDE_CUDA="12.9"
+        micromamba install "hoomd=7.1.0=*gpu*" "cuda-version=12.9"
+
+.. tab:: Mamba
+
+    .. code-block:: bash
+
+        export CONDA_OVERRIDE_CUDA="12.9"
+        mamba install "hoomd=7.1.0=*gpu*" "cuda-version=12.9"
 
 .. note::
 
-    conda-forge_ may update to a new version of CUDA. If the above command results in an error,
-    replace ``12.6`` with the version noted in micromamba's error message.
+    conda-forge_ may update to a new version of CUDA after these instructions are published.
+    If the above command results in an error, replace ``12.9`` with the version noted in
+    micromamba's error message.
 
 Similarly, you can force CPU-only package installation with:
 
-.. code-block:: bash
+.. tab:: Pixi
 
-    micromamba install "hoomd=5.2.0=*cpu*"
+    .. code-block:: bash
 
-.. note::
+        pixi add "hoomd=7.1.0=*cpu*"
 
-    CUDA 11.8 compatible packages are also available. Replace "12.0" with "11.8" above when
-    installing HOOMD-blue on systems with CUDA 11 compatible drivers.
+.. tab:: Micromamba
+
+    .. code-block:: bash
+
+        micromamba install "hoomd=7.1.0=*cpu*"
+
+.. tab:: Mamba
+
+    .. code-block:: bash
+
+        mamba install "hoomd=7.1.0=*cpu*"

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceCompute.h"
@@ -47,10 +47,10 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     GPUArray<Scalar> m_sum;         //!< memory space for sum over volume
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute volumes
-    virtual void computeVolume();
+    void precomputeParameter() override;
     };
 
 namespace detail

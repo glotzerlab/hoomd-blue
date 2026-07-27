@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantVolumeGPU.h"
@@ -90,6 +90,7 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                          m_tuner_one->getParam()[0],
                                          rescalingFactors[0], // m_exp_thermo_fac,
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          limits.first,
                                          limits.second);
 
@@ -125,6 +126,7 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
 
@@ -205,6 +207,7 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          rescalingFactors[1],
                                          m_tuner_angular_two->getParam()[0]);
 

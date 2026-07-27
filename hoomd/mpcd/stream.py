@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""An MPCD streaming method is required to update the particle positions over time.
@@ -46,8 +46,6 @@ class StreamingMethod(Operation):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `StreamingMethod`:
 
     Attributes:
@@ -77,7 +75,6 @@ class StreamingMethod(Operation):
     _doc_inherited = (
         Operation._doc_inherited
         + """
-    ----------
 
     **Members inherited from**
     `StreamingMethod <hoomd.mpcd.stream.StreamingMethod>`:
@@ -252,8 +249,6 @@ class BounceBack(StreamingMethod):
         simulation.operations.integrator.streaming_method = stream
 
     {inherited}
-
-    ----------
 
     **Members defined in** `BounceBack`:
 

@@ -1,16 +1,20 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD updaters."""
 
 from hoomd.md import _md
 import hoomd
-from hoomd.error import SimulationDefinitionError
+from hoomd.error import SimulationDefinitionError, MPINotAvailableError
 from hoomd.operation import Updater
+from hoomd.data import syncedlist
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.logging import log
+from hoomd.mesh import Mesh
+from hoomd.md.mesh.potential import MeshPotential
 import inspect
+import warnings
 
 
 class ZeroMomentum(Updater):
@@ -40,11 +44,13 @@ class ZeroMomentum(Updater):
     Note:
         `ZeroMomentum` executes on the CPU even when using a GPU device.
 
-    Examples::
+    .. rubric:: Example:
 
-        zero_momentum = hoomd.md.update.ZeroMomentum(
-            hoomd.trigger.Periodic(100)
-        )
+    .. code-block:: python
+
+            zero_momentum = hoomd.md.update.ZeroMomentum(
+                hoomd.trigger.Periodic(100)
+            )
     """
 
     __doc__ = (
@@ -117,22 +123,22 @@ class ReversePerturbationFlow(Updater):
         The attributes of this updater are immutable once the updater is
         attached to a simulation.
 
-    Examples::
+    .. rubric:: Example:
 
-        # const integrated flow with 0.1 slope for max 1e8 timesteps
-        ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
-        # velocity gradient in z direction and shear flow in x direction.
-        mpf = hoomd.md.update.ReversePerturbationFlow(
-            filter=hoomd.filter.All(),
-            flow_target=ramp,
-            slab_direction="Z",
-            flow_direction="X",
-            n_slabs=20,
-        )
+    .. code-block:: python
+
+            # const integrated flow with 0.1 slope for max 1e8 timesteps
+            ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
+            # velocity gradient in z direction and shear flow in x direction.
+            mpf = hoomd.md.update.ReversePerturbationFlow(
+                filter=hoomd.filter.All(),
+                flow_target=ramp,
+                slab_direction="Z",
+                flow_direction="X",
+                n_slabs=20,
+            )
 
     {inherited}
-
-    ----------
 
     **Members defined in** `ReversePerturbationFlow`:
 
@@ -298,7 +304,6 @@ class ActiveRotationalDiffusion(Updater):
 
     {inherited}
 
-    ----------
 
     **Members defined in** `ActiveRotationalDiffusion`:
 
@@ -357,8 +362,117 @@ class ActiveRotationalDiffusion(Updater):
         super()._setattr_param(attr, value)
 
 
+class MeshDynamicalBonding(Updater):
+    r"""Dynamical bonding of the applied mesh that allows edge flips according to
+    a Metropolic Monte Carlo algorithm.
+
+    Args:
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to triger bond
+            flip attempt.
+        mesh (hoomd.mesh.Mesh): Mesh data structure.
+        kT (float): Temperature of the simulation :math:`[\mathrm{energy}]`.
+        forces (Sequence[hoomd.md.mesh.MeshPotential]): Sequence of mesh
+          potentials applied to the updater. The default value of ``None``
+          initializes an empty list.
+
+    `MeshDynamicalBonding` works directly with `hoomd.mesh.Mesh` to apply edge
+    flips between neighboring triangles in the mesh. At each step, the updater
+    attempts to flip each edge within the mesh in random order. The probability
+    of fliping an edge :math:`ij` between the common vertices :math:`i` and
+    :math:`j` of triangles :math:`ijk` and :math:`jil` to an edge :math:`kl`
+    between :math:`k` and :math:`l` is:
+
+    .. math::
+
+        p_\mathrm{accept} =
+        \begin{cases}
+          \exp(-\beta (U(kl)-U(ij))) & U(kl) > U(ij) \\
+          1 & \Delta U(kl) \le U(ij).\\
+        \end{cases}
+
+    To obtain energies :math:`U(ij)` and :math:`U(kl)` for the corresponding edge
+    configurations, only the mesh potentials attached to the updater are
+    considered.
+
+    Tip:
+        Use `hoomd.mesh.Mesh.create_dynamical_bonding_updater` to construct a
+        `MeshDynamicalBonding` instance.
+
+    Attention:
+        Use 'meshbond_dynamic' exclusions in `NeighborList` when applying this
+        updater!
+
+    Attention:
+        `MeshDynamicalBonding` is NOT implemented for MPI parallel execution!
+
+
+    {inherited}
+    """
+
+    def __init__(self, trigger, mesh, kT, forces=[]):
+        # initialize base class
+        super().__init__(trigger)
+
+        self._forces = syncedlist.SyncedList(
+            MeshPotential, syncedlist._PartialGetAttr("_cpp_obj"), iterable=forces
+        )
+
+        validate_mesh = OnlyTypes(Mesh, allow_none=True)
+
+        param_dict = ParameterDict(
+            kT=float(kT),
+            mesh=validate_mesh,
+        )
+
+        param_dict["mesh"] = mesh
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        # create the c++ mirror class
+
+        if self._simulation.device.communicator.num_ranks == 1:
+            if self.mesh._attached and self._simulation != self.mesh._simulation:
+                warnings.warn(
+                    f"{self} object is creating a new equivalent mesh structure."
+                    f" This is happending since the force is moving to a new "
+                    f"simulation. To suppress the warning explicitly set new mesh.",
+                    RuntimeWarning,
+                )
+            self.mesh._attach(self._simulation)
+
+            self._cpp_obj = _md.MeshDynamicBondUpdater(
+                self._simulation.state._cpp_sys_def,
+                self.trigger,
+                self.mesh._cpp_obj,
+                self.kT,
+            )
+
+            self._forces._sync(self._simulation, self._cpp_obj.forces)
+
+            super()._attach_hook()
+        else:
+            raise MPINotAvailableError(
+                "MeshDynamicalBonding is not implemented for MPI"
+            )
+
+    def _detach_hook(self):
+        self._forces._unsync()
+        self.mesh._detach()
+
+    @property
+    def forces(self):
+        """Returns the applied mesh potentials."""
+        return self._forces
+
+    @forces.setter
+    def forces(self, value):
+        self._forces.clear()
+        self._forces.extend(value)
+
+
 __all__ = [
     "ActiveRotationalDiffusion",
+    "MeshDynamicalBonding",
     "ReversePerturbationFlow",
     "ZeroMomentum",
 ]

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Synced list utility classes."""
@@ -189,10 +189,7 @@ class SyncedList(MutableSequence):
             return
         if self._synced:
             value._attach(self._simulation)
-            return
-        else:
-            if value._attached:
-                raise RuntimeError(f"Cannot place {value} into two simulations.")
+        return
 
     def _unregister_item(self, value):
         """Detaches and/or removes value to simulation if attached.

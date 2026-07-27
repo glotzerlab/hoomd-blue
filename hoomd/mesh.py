@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2025 The Regents of the University of Michigan.
+# Copyright (c) 2009-2026 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """The mesh data structure combines particles into a connected triangulated
@@ -152,6 +152,25 @@ class Mesh(_HOOMDBaseObject):
         if self.triangulation is None:
             return 0
         return len(self.triangulation["triangles"])
+
+    def create_dynamical_bonding_updater(self, trigger, kT, forces=[]):
+        r"""Create a dynamical bonding updater for this mesh.
+
+        Args:
+            trigger (hoomd.trigger.trigger_like): Select the timesteps to triger bond
+                flip attempt.
+
+            kT (float): Temperature of the simulation :math:`[\mathrm{energy}]`.
+
+            forces (Sequence[hoomd.md.mesh.MeshPotential]): Sequence of mesh
+              potentials applied to the updater. The default value of ``None``
+              initializes an empty list.
+
+        Returns:
+            hoomd.md.update.MeshDynamicalBonding:
+                The dynamical bonding updater.
+        """
+        return hoomd.md.update.MeshDynamicalBonding(trigger, self, kT, forces)
 
 
 __all__ = ["Mesh"]

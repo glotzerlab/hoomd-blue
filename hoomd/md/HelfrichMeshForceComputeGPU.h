@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
@@ -40,10 +40,10 @@ class PYBIND11_EXPORT HelfrichMeshForceComputeGPU : public HelfrichMeshForceComp
     std::shared_ptr<Autotuner<1>> m_tuner_sigma;
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
 
     //! compute sigmas
-    virtual void computeSigma();
+    void precomputeParameter() override;
     };
 
 namespace detail

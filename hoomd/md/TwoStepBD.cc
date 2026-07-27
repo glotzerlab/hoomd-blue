@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
@@ -184,12 +184,12 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
-                if (x_zero)
+                if (x_zero || D == 2)
                     {
                     bf_torque.x = 0;
                     t.x = 0;
                     }
-                if (y_zero)
+                if (y_zero || D == 2)
                     {
                     bf_torque.y = 0;
                     t.y = 0;
@@ -206,13 +206,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 // different gamma_r and then rotate the "angular velocity" back to lab frame and
                 // integrate
                 bf_torque = rotate(q, bf_torque);
-                if (D < 3)
-                    {
-                    bf_torque.x = 0;
-                    bf_torque.y = 0;
-                    t.x = 0;
-                    t.y = 0;
-                    }
 
                 // do the integration for quaternion
                 q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q;
@@ -233,15 +226,12 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                     p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
                     }
 
-                if (x_zero)
+                if (x_zero || D == 2)
                     p_vec.x = 0;
-                if (y_zero)
+                if (y_zero || D == 2)
                     p_vec.y = 0;
                 if (z_zero)
                     p_vec.z = 0;
-
-                // !! Note this isn't well-behaving in 2D,
-                // !! because may have effective non-zero ang_mom in x,y
 
                 // store ang_mom quaternion
                 quat<Scalar> p = Scalar(2.0) * q * p_vec;

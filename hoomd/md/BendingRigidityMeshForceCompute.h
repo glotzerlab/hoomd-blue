@@ -1,8 +1,7 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/ForceCompute.h"
-#include "hoomd/MeshDefinition.h"
+#include "MeshForceCompute.h"
 
 #include <memory>
 
@@ -51,7 +50,7 @@ struct bending_params
 
     \ingroup computes
 */
-class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
+class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public MeshForceCompute
     {
     public:
     //! Constructs the compute
@@ -73,7 +72,7 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
      */
-    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
+    CommFlags getRequestedCommFlags(uint64_t timestep) override
         {
         CommFlags flags = CommFlags(0);
         flags[comm_flag::tag] = 1;
@@ -83,12 +82,37 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    GPUArray<Scalar> m_params;                   //!< Parameters
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing
-                                                 // the bending energy
+    GPUArray<Scalar> m_params; //!< Parameters
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    void computeForces(uint64_t timestep) override;
+
+    virtual Scalar calcEnergy(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id);
+
+    Scalar energyDiff(unsigned int idx_a,
+                      unsigned int idx_b,
+                      unsigned int idx_c,
+                      unsigned int idx_d,
+                      unsigned int type_id) override;
+
+    Scalar energyDiffSurrounding(unsigned int idx_a,
+                                 unsigned int idx_b,
+                                 unsigned int idx_c,
+                                 unsigned int idx_d,
+                                 unsigned int idx_e,
+                                 unsigned int idx_f,
+                                 unsigned int idx_g,
+                                 unsigned int idx_h,
+                                 unsigned int type_id) override;
+
+    bool checkSurrounding() override
+        {
+        return true;
+        }
     };
 
 namespace detail

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -221,6 +221,16 @@ void mpcd::Integrator::syncCellList()
     for (auto& filler : m_fillers)
         {
         filler->setCellList(m_cl);
+        }
+    }
+
+//! Set the rigid body definition for the collision method
+void mpcd::Integrator::setRigid(std::shared_ptr<hoomd::md::ForceComposite> new_rigid)
+    {
+    IntegratorTwoStep::setRigid(new_rigid);
+    if (m_collide)
+        {
+        m_collide->setRigid(new_rigid);
         }
     }
 
