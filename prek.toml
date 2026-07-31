@@ -114,7 +114,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "745be0411e3c150e246d527e531e5a221b8c3462"  # frozen: v0.15.19
+rev = "39d9ac5938dadb73df0564a45f163e25ff9fa6e2"  # frozen: v0.16.1
 hooks = [
   {
     id = "ruff-format",
@@ -128,7 +128,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/pre-commit/mirrors-clang-format"
-rev = "dd18dad857d6133e90bbe478f4f2f22ec0030269"  # frozen: v22.1.5
+rev = "f4d7745e17a28aad7eed2f4874ca8d1568c11c4c"  # frozen: v22.1.8
 hooks = [
   {
     id = "clang-format",
