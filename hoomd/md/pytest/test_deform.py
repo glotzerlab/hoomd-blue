@@ -96,68 +96,94 @@ class TestLeesEdwardsBoxDeformer:
 
         assert abs(sim.state.box.xy) <= lees_edwards.max_tilt
 
-    @pytest.mark.parametrize("max_xy", [0.3, 0.5, 0.8])
+    @staticmethod
+    def _box_geometry(box):
+        """Return the triclinic-box origin and lattice vectors.
+        The lattice vectors are stored as rows, such that
+            position = origin + fractional @ lattice_vectors
+        """
+        Lx, Ly, Lz, xy, xz, yz = np.asarray(box, dtype=float)
+
+        lattice_vectors = np.array(
+            [
+                [Lx, 0.0, 0.0],
+                [xy * Ly, Ly, 0.0],
+                [xz * Lz, yz * Lz, Lz],
+            ],
+            dtype=float,
+        )
+        lo = np.array([-Lx / 2.0, -Ly / 2.0, -Lz / 2.0], dtype=float)
+        origin = np.array(
+            [
+                lo[0] + xy * lo[1] + xz * lo[2],
+                lo[1] + yz * lo[2],
+                lo[2],
+            ],
+            dtype=float,
+        )
+        return origin, lattice_vectors
+
+    @classmethod
+    def _fractional_coordinates(cls, positions, box):
+        """Return fractional coordinates in the given box."""
+        origin, lattice_vectors = cls._box_geometry(box)
+        return (positions - origin) @ np.linalg.inv(lattice_vectors)
+
+    @classmethod
+    def _coordinates_from_fraction(cls, fractional, box):
+        """Return Cartesian coordinates from fractional coordinates."""
+        origin, lattice_vectors = cls._box_geometry(box)
+        return origin + fractional @ lattice_vectors
+
+    @classmethod
+    def _unwrap(cls, positions, images, box):
+        """Return unwrapped particle coordinates."""
+        _, lattice_vectors = cls._box_geometry(box)
+        return positions + images @ lattice_vectors
+
     @pytest.mark.parametrize(
-        "flip_case, shear_rate",
+        "Lx, Ly, max_xy",
         [
-            ("none", 0.9),
-            ("positive", 0.9),
-            ("negative", -0.9),
+            (10.0, 10.0, 0.5),
+            (12.0, 8.0, 0.75),
+            (8.0, 12.0, 1.0 / 3.0),
         ],
     )
+    @pytest.mark.parametrize("flip_sign", [1, -1])
     def test_box_flip_and_remap(
         self,
         simulation_factory,
+        Lx,
+        Ly,
         max_xy,
-        flip_case,
-        shear_rate,
+        flip_sign,
     ):
-        Lx = Ly = Lz = 10.0
-        dt = 0.1
+        # Begin beyond the tilt threshold to trigger a flip; no particle motion (dt=0)
+        xy0 = flip_sign * (max_xy + 0.05)
+        shear_rate = 0.01
+        dt = 0.0
 
-        # Start from positions unaffected by base class wrapping
-        if flip_case == "none":
-            xy0 = 0.5 * max_xy
-            positions = np.array(
-                [
-                    [2.0, 2.0, 0.0],
-                    [-2.0, -2.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [1.0, -1.0, 1.0],
-                ],
-            )
-        elif flip_case == "positive":
-            xy0 = max_xy - 0.05
-            positions = np.array(
-                [
-                    [4.8, 4.0, 0.0],
-                    [-4.8, -4.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [1.0, -1.0, 1.0],
-                ],
-                dtype=float,
-            )
-        elif flip_case == "negative":
-            xy0 = -max_xy + 0.05
-            positions = np.array(
-                [
-                    [-4.8, 4.0, 0.0],
-                    [4.8, -4.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [1.0, -1.0, 1.0],
-                ],
-                dtype=float,
-            )
+        initial_box = np.array([Lx, Ly, 10, xy0, 0.1, 0.3], dtype=float)
+
+        # Define the initial positions through fractional coordinates so that
+        # they lie inside the initial box for both signs of xy0
+        fractional_initial = np.array(
+            [
+                [0.90, 0.90, 0.50],
+                [0.10, 0.10, 0.50],
+                [0.50, 0.50, 0.50],
+            ],
+            dtype=float,
+        )
+        positions = self._coordinates_from_fraction(fractional_initial, initial_box)
         images = np.array(
             [
                 [2, 1, 0],
                 [-1, 2, 1],
                 [3, -2, 0],
-                [-2, -1, -1],
             ],
             dtype=np.int32,
         )
-        initial_box = [Lx, Ly, Lz, xy0, 0.1, 0.3]
 
         snap = hoomd.Snapshot()
         if snap.communicator.rank == 0:
@@ -172,54 +198,36 @@ class TestLeesEdwardsBoxDeformer:
         )
         sim.operations.integrator = md.Integrator(dt=dt, deformer=deformer)
 
+        # Read the actual state before the flip (in case initialization modified state)
+        snap_before = sim.state.get_snapshot()
+        if snap_before.communicator.rank == 0:
+            positions_before = np.asarray(snap_before.particles.position, dtype=float)
+            images_before = np.asarray(snap_before.particles.image, dtype=np.int32)
+            box_before = np.asarray(snap_before.configuration.box, dtype=float)
+            unwrapped_before = self._unwrap(positions_before, images_before, box_before)
+
         sim.run(1)
 
+        # Now, read the state after the flip run.
         snap_after = sim.state.get_snapshot()
         if snap_after.communicator.rank == 0:
+            positions_after = np.asarray(snap_after.particles.position, dtype=float)
+            images_after = np.asarray(snap_after.particles.image, dtype=np.int32)
+            box_after = np.asarray(snap_after.configuration.box, dtype=float)
+
             xy_unflipped = xy0 + shear_rate * dt
-            xy_flipped = xy_unflipped - (
-                np.floor((xy_unflipped + max_xy) / (2.0 * max_xy)) * 2.0 * max_xy
+            xy_expected = (
+                xy_unflipped
+                - np.floor((xy_unflipped + max_xy) / (2.0 * max_xy)) * 2.0 * max_xy
             )
+            # Confirm that the resulting tilt has the expected value
+            assert np.isclose(box_after[3], xy_expected)
 
-            # Image update from Lees-Edwards flip
-            shift_value = (xy_flipped - xy_unflipped) * Ly / Lx
-            if shift_value >= 0:
-                image_shift = int(np.floor(shift_value + 0.5))
-            else:
-                image_shift = int(np.ceil(shift_value - 0.5))
+            # Confirm that wrapped coordinates lie inside the flipped box
+            fractional_after = self._fractional_coordinates(positions_after, box_after)
+            assert np.all(fractional_after >= -1e-6)
+            assert np.all(fractional_after < 1.0 + 1e-6)
 
-            expected_images = images.copy()
-            expected_images[:, 0] -= images[:, 1] * image_shift
-
-            # Wrap positions into the flipped box
-            expected_positions = positions.copy()
-            Lx, Ly, Lz, xy, xz, yz = snap_after.configuration.box
-            lo = np.array([-Lx / 2.0, -Ly / 2.0, -Lz / 2.0])
-
-            # Compute fractional coordinates
-            delta = expected_positions - lo
-            delta[:, 0] -= (xz - yz * xy) * expected_positions[
-                :, 2
-            ] + xy * expected_positions[:, 1]
-            delta[:, 1] -= yz * expected_positions[:, 2]
-            fpos = delta / np.array([Lx, Ly, Lz])
-
-            # Integer box crossings required to wrap particles into the primary box.
-            wrap_shift = np.floor(fpos).astype(np.int32)
-            fpos -= wrap_shift
-            expected_images += wrap_shift
-
-            # All final fractional coordinates must lie inside [0, 1).
-            assert np.all((fpos >= -1e-6) & (fpos < 1.0 + 1e-6))
-
-            # Convert fractional coordinates back to Cartesian coordinates
-            expected_positions = lo + fpos * np.array([Lx, Ly, Lz])
-            expected_positions[:, 0] += (
-                xy * expected_positions[:, 1] + xz * expected_positions[:, 2]
-            )
-            expected_positions[:, 1] += yz * expected_positions[:, 2]
-
-            # Assertions on expected tilt, images, and positions
-            assert np.isclose(snap_after.configuration.box[3], xy_flipped)
-            assert np.array_equal(snap_after.particles.image, expected_images)
-            assert np.allclose(snap_after.particles.position, expected_positions)
+            # Confirm that unwrapped coordinates after and before are the same
+            unwrapped_after = self._unwrap(positions_after, images_after, box_after)
+            assert np.allclose(unwrapped_after, unwrapped_before)

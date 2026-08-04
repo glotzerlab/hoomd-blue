@@ -56,10 +56,10 @@ void BoxDeformer::update(uint64_t timestep)
         {
         // Set the new global box
         m_pdata->setGlobalBox(new_box);
-
-        // Apply any post-deformation processing
-        processAfterDeformation(old_box, new_box);
         }
+
+    // Apply any post-deformation processing
+    processAfterDeformation(old_box, new_box);
     }
 
 BoxDim BoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& old_box)
@@ -72,6 +72,9 @@ BoxDim BoxDeformer::computeNewBox(uint64_t timestep, const BoxDim& old_box)
 // Post deformation particle processing: PBC wrapping by default but child classes can add up
 void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box)
     {
+    if (old_box == new_box)
+        return;
+
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
