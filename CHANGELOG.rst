@@ -4,15 +4,9 @@ Change Log
 Next release
 ^^^^^^^^^^^^^^^^^^^^
 
-*Added*
-
-*Changed*
-
-*Deprecated*
-
-*Removed*
-
 *Fixed*
+
+* Fixed incorrect reading of net_force instead of acceleration in RATTLELangevin GPU code (#2325).
 
 7.1.1 (2026-07-31)
 ^^^^^^^^^^^^^^^^^^^^
