@@ -32,7 +32,8 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                     Scalar* mat_exp_r_int,
                                     Scalar deltaT,
                                     bool rescale_all,
-                                    const unsigned int block_size);
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
 hipError_t gpu_npt_rescale_wrap(const unsigned int N,

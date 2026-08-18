@@ -77,7 +77,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/glotzerlab/fix-license-header"
-rev = "v0.4.1"
+rev = "96a6da2d22354ecb4dbc50809e9455c7f1e20fe8"  # frozen: v0.4.1
 hooks = [
   {
     id = "fix-license-header",
@@ -107,14 +107,14 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/kynan/nbstripout"
-rev = "0.9.1"
+rev = "34071b78c181af3bf5af955c1426466e096fc3db"  # frozen: 0.9.1
 hooks = [
   { id = "nbstripout" }
 ]
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.15.9"
+rev = "39d9ac5938dadb73df0564a45f163e25ff9fa6e2"  # frozen: v0.16.1
 hooks = [
   {
     id = "ruff-format",
@@ -128,7 +128,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/pre-commit/mirrors-clang-format"
-rev = "v22.1.2"
+rev = "f4d7745e17a28aad7eed2f4874ca8d1568c11c4c"  # frozen: v22.1.8
 hooks = [
   {
     id = "clang-format",
@@ -149,7 +149,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/mit-d/check-unicode"
-rev = "v0.6.0"
+rev = "9d217f6f91d9e2de6bc31b54575ff35e595173f5"  # frozen: v0.6.0
 hooks = [
   { id = "check-unicode",
     args = [

@@ -40,6 +40,7 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
                                                 BoxDim box,
                                                 Scalar rescale_factor,
                                                 Scalar deltaT,
+                                                unsigned int n_dimensions,
                                                 bool limit = false,
                                                 Scalar maximum_displacement = Scalar(0.))
     {
@@ -57,6 +58,10 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
         Scalar4 velmass = d_vel[idx];
         Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
         Scalar3 accel = d_accel[idx];
+        if (n_dimensions == 2)
+            {
+            accel.z = Scalar(0.0);
+            }
 
         // velocity update
         vel = vel + Scalar(1.0 / 2.0) * accel * deltaT;
@@ -107,6 +112,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                     unsigned int block_size,
                                     Scalar rescale_factor,
                                     Scalar deltaT,
+                                    unsigned int n_dimensions,
                                     bool use_limit,
                                     Scalar maximum_displacement)
     {
@@ -138,6 +144,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                        box,
                        rescale_factor,
                        deltaT,
+                       n_dimensions,
                        use_limit,
                        maximum_displacement);
 

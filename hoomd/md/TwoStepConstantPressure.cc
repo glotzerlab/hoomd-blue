@@ -310,6 +310,11 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
             Scalar3 accel = h_accel.data[j];
             Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                accel.z = Scalar(0.0);
+                }
+
             // advance velocity
             v += m_deltaT / Scalar(2.0) * accel;
 
