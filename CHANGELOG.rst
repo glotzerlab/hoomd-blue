@@ -1,10 +1,16 @@
 Change Log
 ==========
 
+7.x
+---
+
 Next release
 ^^^^^^^^^^^^^^^^^^^^
 
 *Added*
+
+* ``hoomd.md.deformer`` provides an interface for applying time-dependent changes to the box in MD simulations (#2122).
+* ``hoomd.md.deformer.LeesEdwardsBoxDeformer``: Lees-Edwards boundary conditions (bulk shear flow) for MD simulations (#2122).
 
 *Changed*
 
@@ -41,17 +47,6 @@ Next release
 * Fixed incorrect smart default behavior for sequences and numpy arrays (#2292).
 * Prevent motion in the z direction on the first step after starting a simulation (#2303).
 * Prevent rigid bodies from rotating out of the plane in 2D simulations (#2303).
-
-Recent releases
----------------
-
-Next release
-^^^^^^^^^^^^^^^^^^^^
-
-*Added*
-
-* ``hoomd.md.deformer`` provides an interface for applying time-dependent changes to the box in MD simulations (#2122).
-* ``hoomd.md.deformer.LeesEdwardsBoxDeformer``: Lees-Edwards boundary conditions (bulk shear flow) for MD simulations (#2122).
 
 7.0.1 (2026-04-08)
 ^^^^^^^^^^^^^^^^^^^^
@@ -94,6 +89,9 @@ rotation angles in HOOMD-blue 2.0–6.x and in 7.0+ for comparison:
 
 * Fixed Helfrich equation in the docs (#2242)
 * Build with Eigen 5.x (#2261)
+
+6.x
+---
 
 6.1.1 (2026-02-19)
 ^^^^^^^^^^^^^^^^^^^^
