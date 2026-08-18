@@ -29,6 +29,11 @@ UP_TEST(ParticleDataGridShiftGetMethods)
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     BoxDim box = pdata->getBox();
+
+    // set a deformation on the box
+    const Scalar3 L_rate = make_scalar3(.1, .15, -0.2);
+    box.setLDeformationRate(L_rate);
+
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -39,6 +44,8 @@ UP_TEST(ParticleDataGridShiftGetMethods)
 
         h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
         h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
+        h_vel.data[0].x = h_vel.data[0].y = h_vel.data[0].z = 1.0;
+        h_vel.data[1].x = h_vel.data[1].y = h_vel.data[1].z = -1.0;
         }
 
     // compute a shift and apply it to all particles, and origin
@@ -46,6 +53,9 @@ UP_TEST(ParticleDataGridShiftGetMethods)
     pdata->translateOrigin(shift);
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,
                                    access_mode::readwrite);
         ArrayHandle<int3> h_img(pdata->getImages(), access_location::host, access_mode::readwrite);
@@ -57,11 +67,11 @@ UP_TEST(ParticleDataGridShiftGetMethods)
             vec3<Scalar> r_i = vec3<Scalar>(pos_i); // translation from local to global coordinates
             r_i += vec3<Scalar>(shift);
             h_pos.data[i] = vec_to_scalar4(r_i, pos_i.w);
-            box.wrap(h_pos.data[i], h_img.data[i]);
+            box.wrap(h_pos.data[i], h_vel.data[i], h_img.data[i]);
             }
         }
 
-    // check that the particle positions are still the original ones
+    // check that the particle positions, velocities and images are still the original ones
     Scalar3 pos = pdata->getPosition(0);
     MY_CHECK_SMALL(Scalar(pos.x - 0.0), tol_small);
     MY_CHECK_SMALL(Scalar(pos.y - 0.0), tol_small);
@@ -71,11 +81,20 @@ UP_TEST(ParticleDataGridShiftGetMethods)
     MY_CHECK_SMALL(Scalar(pos.y - 1.0), tol_small);
     MY_CHECK_SMALL(Scalar(pos.z - 1.0), tol_small);
 
+    Scalar3 vel = pdata->getVelocity(0);
+    MY_CHECK_SMALL(Scalar(vel.x - 1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.y - 1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.z - 1.0), tol_small);
+    vel = pdata->getVelocity(1);
+    MY_CHECK_SMALL(Scalar(vel.x - (-1.0)), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.y - (-1.0)), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.z - (-1.0)), tol_small);
+
     int3 pimg = pdata->getImage(0);
     UP_ASSERT_EQUAL(pimg.x, 0);
     UP_ASSERT_EQUAL(pimg.y, 0);
     UP_ASSERT_EQUAL(pimg.z, 0);
-    pimg = pdata->getImage(0);
+    pimg = pdata->getImage(1);
     UP_ASSERT_EQUAL(pimg.x, 0);
     UP_ASSERT_EQUAL(pimg.y, 0);
     UP_ASSERT_EQUAL(pimg.z, 0);
@@ -87,6 +106,9 @@ UP_TEST(ParticleDataGridShiftGetMethods)
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
         ArrayHandle<int3> h_img(pdata->getImages(), access_location::host, access_mode::readwrite);
 
         for (unsigned int i = 0; i < pdata->getN(); i++)
@@ -96,7 +118,7 @@ UP_TEST(ParticleDataGridShiftGetMethods)
             vec3<Scalar> r_i = vec3<Scalar>(pos_i); // translation from local to global coordinates
             r_i += vec3<Scalar>(shift_img);
             h_pos.data[i] = vec_to_scalar4(r_i, pos_i.w);
-            box.wrap(h_pos.data[i], h_img.data[i]);
+            box.wrap(h_pos.data[i], h_vel.data[i], h_img.data[i]);
             }
         }
 
@@ -110,11 +132,22 @@ UP_TEST(ParticleDataGridShiftGetMethods)
     MY_CHECK_SMALL(Scalar(pos.y - 1.0), tol_small);
     MY_CHECK_SMALL(Scalar(pos.z - 1.0), tol_small);
 
+    // check that the original velocities will change by the deformation rate, due to shift
+    vel = pdata->getVelocity(0);
+    MY_CHECK_SMALL(Scalar(vel.x - 1.0 + L_rate.x), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.y - 1.0 + L_rate.y), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.z - 1.0 + L_rate.z), tol_small);
+    vel = pdata->getVelocity(1);
+    MY_CHECK_SMALL(Scalar(vel.x - (-1.0) + L_rate.x), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.y - (-1.0) + L_rate.y), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.z - (-1.0) + L_rate.z), tol_small);
+
+    // check that the particle images are still the original ones
     pimg = pdata->getImage(0);
     UP_ASSERT_EQUAL(pimg.x, 0);
     UP_ASSERT_EQUAL(pimg.y, 0);
     UP_ASSERT_EQUAL(pimg.z, 0);
-    pimg = pdata->getImage(0);
+    pimg = pdata->getImage(1);
     UP_ASSERT_EQUAL(pimg.x, 0);
     UP_ASSERT_EQUAL(pimg.y, 0);
     UP_ASSERT_EQUAL(pimg.z, 0);
@@ -126,6 +159,11 @@ UP_TEST(ParticleDataGridShiftSetMethods)
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     BoxDim box = pdata->getBox();
+
+    // set a deformation on the box
+    const Scalar3 L_rate = make_scalar3(.1, .15, -0.2);
+    box.setLDeformationRate(L_rate);
+
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -136,6 +174,8 @@ UP_TEST(ParticleDataGridShiftSetMethods)
 
         h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
         h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
+        h_vel.data[0].x = h_vel.data[0].y = h_vel.data[0].z = 1.0;
+        h_vel.data[1].x = h_vel.data[1].y = h_vel.data[1].z = -1.0;
         }
 
     // compute a shift that will shift the image of the box
@@ -143,6 +183,9 @@ UP_TEST(ParticleDataGridShiftSetMethods)
     pdata->translateOrigin(shift_img);
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,
                                    access_mode::readwrite);
         ArrayHandle<int3> h_img(pdata->getImages(), access_location::host, access_mode::readwrite);
@@ -154,7 +197,7 @@ UP_TEST(ParticleDataGridShiftSetMethods)
             vec3<Scalar> r_i = vec3<Scalar>(pos_i); // translation from local to global coordinates
             r_i += vec3<Scalar>(shift_img);
             h_pos.data[i] = vec_to_scalar4(r_i, pos_i.w);
-            box.wrap(h_pos.data[i], h_img.data[i]);
+            box.wrap(h_pos.data[i], h_vel.data[i], h_img.data[i]);
             }
         }
 
@@ -168,6 +211,17 @@ UP_TEST(ParticleDataGridShiftSetMethods)
     MY_CHECK_SMALL(Scalar(pos.y - 1.0), tol_small);
     MY_CHECK_SMALL(Scalar(pos.z - 1.0), tol_small);
 
+    // check that the original velocities will change by the deformation rate, due to shift
+    Scalar3 vel = pdata->getVelocity(0);
+    MY_CHECK_SMALL(Scalar(vel.x - 1.0 + L_rate.x), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.y - 1.0 + L_rate.y), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.z - 1.0 + L_rate.z), tol_small);
+    vel = pdata->getVelocity(1);
+    MY_CHECK_SMALL(Scalar(vel.x - (-1.0) + L_rate.x), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.y - (-1.0) + L_rate.y), tol_small);
+    MY_CHECK_SMALL(Scalar(vel.z - (-1.0) + L_rate.z), tol_small);
+
+    // check that the images are still the original ones
     int3 pimg = pdata->getImage(0);
     UP_ASSERT_EQUAL(pimg.x, 0);
     UP_ASSERT_EQUAL(pimg.y, 0);
@@ -193,7 +247,23 @@ UP_TEST(ParticleDataGridShiftSetMethods)
     MY_CHECK_SMALL(ret_pos1.y - new_pos1.y, tol_small);
     MY_CHECK_SMALL(ret_pos1.z - new_pos1.z, tol_small);
 
-    // OK, now do the same with the images
+    // OK, now do the same with the velocities
+    Scalar3 new_vel0 = make_scalar3(0.5, 1.0, -2.0);
+    pdata->setVelocity(0, new_vel0);
+    Scalar3 new_vel1 = make_scalar3(5.0, 0.1, -0.2);
+    pdata->setVelocity(1, new_vel1);
+
+    Scalar3 ret_vel0 = pdata->getVelocity(0);
+    MY_CHECK_SMALL(ret_vel0.x - new_vel0.x, tol_small);
+    MY_CHECK_SMALL(ret_vel0.y - new_vel0.y, tol_small);
+    MY_CHECK_SMALL(ret_vel0.z - new_vel0.z, tol_small);
+
+    Scalar3 ret_vel1 = pdata->getVelocity(1);
+    MY_CHECK_SMALL(ret_vel1.x - new_vel1.x, tol_small);
+    MY_CHECK_SMALL(ret_vel1.y - new_vel1.y, tol_small);
+    MY_CHECK_SMALL(ret_vel1.z - new_vel1.z, tol_small);
+
+    // and then the images
     int3 new_img0 = make_int3(1, -5, 7);
     pdata->setImage(0, new_img0);
     int3 new_img1 = make_int3(4, 1, 10);

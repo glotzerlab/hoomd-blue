@@ -756,13 +756,13 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
         angvel_body.z = Scalar(0);
         }
 
-    const vec3<Scalar> updated_vel = vec3<Scalar>(d_velocity[central_idx])
-                                     + rotate(orientation, cross(angvel_body, local_pos));
+    vec3<Scalar> updated_vel = vec3<Scalar>(d_velocity[central_idx])
+                               + rotate(orientation, cross(angvel_body, local_pos));
     // this runs before the ForceComputes,
     // wrap into box, allowing rigid bodies to span multiple images
     int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
     int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
-    updated_pos = global_box.shift(updated_pos, negimgi);
+    global_box.shift(updated_pos, updated_vel, negimgi);
 
     unsigned int type = __scalar_as_int(d_postype[idx].w);
     const Scalar mass = d_velocity[idx].w;

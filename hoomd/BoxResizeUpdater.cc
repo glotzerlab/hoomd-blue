@@ -96,6 +96,9 @@ void BoxResizeUpdater::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim
 
     // ensure that the particles are still in their
     // local boxes by wrapping them if they are not
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     const BoxDim& local_box = m_pdata->getBox();
@@ -104,7 +107,7 @@ void BoxResizeUpdater::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim
         {
         // need to update the image if we move particles from one side
         // of the box to the other
-        local_box.wrap(h_pos.data[i], h_image.data[i]);
+        local_box.wrap(h_pos.data[i], h_vel.data[i], h_image.data[i]);
         }
     }
 

@@ -184,7 +184,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             assert(typej < this->m_pdata->getNTypes());
 
             // apply periodic boundary conditions
-            dx = box.minImage(dx);
+            box.minImage(dx, dv);
 
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);

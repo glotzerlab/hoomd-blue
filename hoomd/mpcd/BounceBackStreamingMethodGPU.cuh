@@ -114,7 +114,7 @@ __global__ void confined_stream(Scalar4* d_pos,
 
     // wrap and update the position
     int3 image = make_int3(0, 0, 0);
-    box.wrap(pos, image);
+    box.wrap(pos, vel, image);
 
     d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
     d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));

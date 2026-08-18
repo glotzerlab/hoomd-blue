@@ -151,10 +151,10 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
     const Scalar currentTemp = m_T->operator()(timestep);
 
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                access_location::host,
                                access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
@@ -297,7 +297,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
-        box.wrap(h_pos.data[j], h_image.data[j]);
+        box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
 
         // rotational random force and orientation quaternion updates
         if (m_aniso)

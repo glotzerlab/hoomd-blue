@@ -161,7 +161,7 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
-        box.wrap(postype, image);
+        box.wrap(postype, vel, image);
 
         if (d_noiseless_t)
             {

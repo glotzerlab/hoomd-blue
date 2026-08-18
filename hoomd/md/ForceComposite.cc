@@ -603,11 +603,13 @@ void ForceComposite::createRigidBodies(
                 quat<Scalar> constituent_orientation = body_orientation * local_orientation;
 
                 snap.pos[constituent_particle_tag] = constituent_position;
+                snap.vel[constituent_particle_tag] = snap.vel[particle_tag];
                 snap.image[constituent_particle_tag] = snap.image[particle_tag];
                 snap.orientation[constituent_particle_tag] = constituent_orientation;
 
                 // wrap back into the box
                 global_box.wrap(snap.pos[constituent_particle_tag],
+                                snap.vel[constituent_particle_tag],
                                 snap.image[constituent_particle_tag]);
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
@@ -1050,14 +1052,14 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
             angvel_body.z = Scalar(0);
             }
 
-        const vec3<Scalar> updated_vel = vec3<Scalar>(h_velocity.data[central_idx])
-                                         + rotate(orientation, cross(angvel_body, local_pos));
+        vec3<Scalar> updated_vel = vec3<Scalar>(h_velocity.data[central_idx])
+                                   + rotate(orientation, cross(angvel_body, local_pos));
 
         // this runs before the ForceComputes,
         // wrap into box, allowing rigid bodies to span multiple images
         int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
-        updated_pos = global_box.shift(updated_pos, negimgi);
+        global_box.shift(updated_pos, updated_vel, negimgi);
         const Scalar mass = h_velocity.data[particle_index].w;
 
         h_postype.data[particle_index]

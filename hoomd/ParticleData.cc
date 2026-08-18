@@ -793,6 +793,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 {
                 unsigned int snap_idx = (unsigned int)(it - snapshot.pos.begin());
 
+                Scalar3 v = vec_to_scalar3(snapshot.vel[snap_idx]);
+
                 // if requested, do not initialize constituent particles of bodies
                 if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY
                     && snapshot.body[snap_idx] != snap_idx)
@@ -834,7 +836,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 // only wrap if the particles is on one of the boundaries
                 uchar3 periodic = make_uchar3(flags.x, flags.y, flags.z);
                 global_box.setPeriodic(periodic);
-                global_box.wrap(pos, img, flags);
+                global_box.wrap(pos, v, img, flags);
 
                 // place particle using actual domain fractions, not global box fraction
                 unsigned int rank
@@ -1276,9 +1278,11 @@ template<class Real> void ParticleData::takeSnapshot(SnapshotParticleData<Real>&
                 snapshot.inertia[snap_id] = vec3<Real>(inertia_proc[rank][idx]);
 
                 // make sure the position stored in the snapshot is within the boundaries
-                Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
-                m_global_box->wrap(tmp, snapshot.image[snap_id]);
-                snapshot.pos[snap_id] = vec3<Real>(tmp);
+                Scalar3 tmp_p = vec_to_scalar3(snapshot.pos[snap_id]);
+                Scalar3 tmp_v = vec_to_scalar3(snapshot.vel[snap_id]);
+                m_global_box->wrap(tmp_p, tmp_v, snapshot.image[snap_id]);
+                snapshot.pos[snap_id] = vec3<Real>(tmp_p);
+                snapshot.vel[snap_id] = vec3<Real>(tmp_v);
 
                 std::advance(tag_set_it, 1);
                 }
@@ -1326,9 +1330,11 @@ template<class Real> void ParticleData::takeSnapshot(SnapshotParticleData<Real>&
             snapshot.inertia[snap_id] = vec3<Real>(h_inertia.data[idx]);
 
             // make sure the position stored in the snapshot is within the boundaries
-            Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
-            m_global_box->wrap(tmp, snapshot.image[snap_id]);
-            snapshot.pos[snap_id] = vec3<Real>(tmp);
+            Scalar3 tmp_p = vec_to_scalar3(snapshot.pos[snap_id]);
+            Scalar3 tmp_v = vec_to_scalar3(snapshot.vel[snap_id]);
+            m_global_box->wrap(tmp_p, tmp_v, snapshot.image[snap_id]);
+            snapshot.pos[snap_id] = vec3<Real>(tmp_p);
+            snapshot.vel[snap_id] = vec3<Real>(tmp_v);
             }
         }
 
@@ -1440,7 +1446,6 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
         }
 #endif
     assert(found);
-
     m_global_box->wrap(result, img);
     return result;
     }
@@ -1451,10 +1456,24 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
     unsigned int idx = getRTag(tag);
     bool found = (idx < getN());
     Scalar3 result = make_scalar3(0.0, 0.0, 0.0);
+    Scalar3 pos = make_scalar3(0.0, 0.0, 0.0);
+    int3 img = make_int3(0, 0, 0);
     if (found)
         {
         ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::read);
         result = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+
+        ArrayHandle<Scalar4> h_postype(m_pos, access_location::host, access_mode::read);
+        pos = make_scalar3(h_postype.data[idx].x, h_postype.data[idx].y, h_postype.data[idx].z);
+        pos = pos - m_origin;
+
+        ArrayHandle<int3> h_img(m_image, access_location::host, access_mode::read);
+        img = make_int3(h_img.data[idx].x, h_img.data[idx].y, h_img.data[idx].z);
+        img.x -= m_o_image.x;
+        img.y -= m_o_image.y;
+        img.z -= m_o_image.z;
+
+        m_global_box->wrap(pos, result, img);
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1509,6 +1528,14 @@ int3 ParticleData::getImage(unsigned int tag) const
         result = make_int3(h_image.data[idx].x, h_image.data[idx].y, h_image.data[idx].z);
         pos = make_scalar3(h_postype.data[idx].x, h_postype.data[idx].y, h_postype.data[idx].z);
         pos = pos - m_origin;
+
+        // correct for origin shift
+        result.x -= m_o_image.x;
+        result.y -= m_o_image.y;
+        result.z -= m_o_image.z;
+
+        // wrap into correct image
+        m_global_box->wrap(pos, result);
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1517,22 +1544,10 @@ int3 ParticleData::getImage(unsigned int tag) const
         bcast((int&)result.x, owner_rank, m_exec_conf->getMPICommunicator());
         bcast((int&)result.y, owner_rank, m_exec_conf->getMPICommunicator());
         bcast((int&)result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)pos.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)pos.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast((Scalar&)pos.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
     assert(found);
-
-    // correct for origin shift
-    result.x -= m_o_image.x;
-    result.y -= m_o_image.y;
-    result.z -= m_o_image.z;
-
-    // wrap into correct image
-    m_global_box->wrap(pos, result);
-
     return result;
     }
 
@@ -1823,31 +1838,40 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         owner_rank = getOwnerRank(tag);
 #endif
 
-    // load current particle image
+    // load current particle image and vel
     int3 img;
+    Scalar3 tmp_vel;
     if (ptl_local)
         {
         ArrayHandle<int3> h_image(m_image, access_location::host, access_mode::read);
         img = h_image.data[idx];
+
+        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::read);
+        tmp_vel = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
         }
     else
         {
-        // if we don't own the particle, we are not going to use image flags
+        // if we don't own the particle, we are not going to use any data
         img = make_int3(0, 0, 0);
+        tmp_vel = make_scalar3(0, 0, 0);
         }
 
-    // wrap into box and update image
-    m_global_box->wrap(tmp_pos, img);
+    // wrap into box and update image and vel
+    m_global_box->wrap(tmp_pos, tmp_vel, img);
 
-    // store position and image
+    // store position, velocity and image
     if (ptl_local)
         {
         ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_image, access_location::host, access_mode::readwrite);
 
         h_pos.data[idx].x = tmp_pos.x;
         h_pos.data[idx].y = tmp_pos.y;
         h_pos.data[idx].z = tmp_pos.z;
+        h_vel.data[idx].x = tmp_vel.x;
+        h_vel.data[idx].y = tmp_vel.y;
+        h_vel.data[idx].z = tmp_vel.z;
         h_image.data[idx] = img;
         }
 
@@ -2438,6 +2462,12 @@ void export_BoxDim(pybind11::module& m)
         .def("getTiltFactorXY", &BoxDim::getTiltFactorXY)
         .def("getTiltFactorXZ", &BoxDim::getTiltFactorXZ)
         .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
+        .def("setLDeformationRate", &BoxDim::setLDeformationRate)
+        .def("getLDeformationRate", &BoxDim::getLDeformationRate)
+        .def("setTiltDeformationRates", &BoxDim::setTiltDeformationRates)
+        .def("getTiltDeformationRateXY", &BoxDim::getTiltDeformationRateXY)
+        .def("getTiltDeformationRateXZ", &BoxDim::getTiltDeformationRateXZ)
+        .def("getTiltDeformationRateYZ", &BoxDim::getTiltDeformationRateYZ)
         .def("getLatticeVector", &BoxDim::getLatticeVector)
         .def("wrap", wrap_overload)
         .def("minImage", minImage_overload)
@@ -3225,12 +3255,14 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx,
     for (unsigned int i = 0; i < old_size; ++i)
         {
         // unwrap position of particle i in old box using image flags
-        vec3<Real> p = pos[i];
+        Scalar3 r = make_scalar3(pos[i].x, pos[i].y, pos[i].z);
+        Scalar3 v = make_scalar3(vel[i].x, vel[i].y, vel[i].z);
         int3 img = image[i];
 
-        // need to cast to a scalar and back because the Box is in Scalars, but we might be in a
+        // need to cast scalar to Real because the Box is in Scalars, but we might be in a
         // different type
-        p = vec3<Real>(old_box.shift(vec3<Scalar>(p), img));
+        old_box.shift(r, v, img);
+        vec3<Real> p(r);
         vec3<Real> f = old_box.makeFraction(p);
 
         unsigned int j = 0;
@@ -3252,10 +3284,10 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx,
                     // wrap by multiple box vectors if necessary
                     image[k] = new_box.getImage(q);
                     int3 negimg = make_int3(-image[k].x, -image[k].y, -image[k].z);
-                    q = new_box.shift(q, negimg);
+                    new_box.shift(q, v, negimg);
 
                     // rewrap using wrap so that rounding is consistent
-                    new_box.wrap(q, image[k]);
+                    new_box.wrap(q, v, image[k]);
 
                     pos[k] = vec3<Real>(q);
                     vel[k] = vel[i];

@@ -80,7 +80,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
             // wrap the particles around the box
-            box.wrap(h_pos.data[j], h_image.data[j]);
+            box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
             }
         }
 
