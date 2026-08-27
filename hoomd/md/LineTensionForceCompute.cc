@@ -152,26 +152,118 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     const unsigned int n_bonds =
-        m_mesh_data->getMeshBondData()->getN();
+        (unsigned int)m_mesh_data->getMeshBondData()->getN();
 
+	// Sum over bonds (as opposed to total particles in General Helfrich)
     for (unsigned int i = 0; i < n_bonds; i++)
     {
         const auto& bond = h_bonds.data[i];
 
         unsigned int tag_a = bond.tag[0];
         unsigned int tag_b = bond.tag[1];
+		unsigned int tag_c = bond.tag[2];
+		unsigned int tag_d = bond.tag[3];
+
+		if (tag_c == tag_d)
+			continue;
 
         unsigned int idx_a = h_rtag.data[tag_a];
         unsigned int idx_b = h_rtag.data[tag_b];
+        unsigned int idx_c = h_rtag.data[tag_c];
+        unsigned int idx_d = h_rtag.data[tag_d];
 
-        if (idx_a >= m_pdata->getN() + m_pdata->getNGhosts()
-         || idx_b >= m_pdata->getN() + m_pdata->getNGhosts())
-            continue;
+        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());                                                   
+        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
+        
+		Scalar3 dab;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+		
+		Scalar3 dac;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
-        unsigned int type_a =
+		Scalar3 dad;
+        dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+        dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+        dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+		Scalar3 dbd;
+        dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
+        dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
+        dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
+
+		Scalar3 dbc;
+        dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
+        dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
+        dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
+
+		unsigned int type_a =
             __scalar_as_int(h_pos.data[idx_a].w);
         unsigned int type_b =
             __scalar_as_int(h_pos.data[idx_b].w);
+        unsigned int type_c =
+            __scalar_as_int(h_pos.data[idx_c].w);
+        unsigned int type_d =
+            __scalar_as_int(h_pos.data[idx_d].w);
+
+		dab = box.minImage(dab);
+        dac = box.minImage(dac);
+        dad = box.minImage(dad);
+        dbc = box.minImage(dbc);
+        dbd = box.minImage(dbd);
+
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rab = sqrt(rsqab);
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        Scalar rac = sqrt(rsqac);
+        Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        Scalar rad = sqrt(rsqad);
+
+        Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+        Scalar rbc = sqrt(rsqbc);
+        Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+        Scalar rbd = sqrt(rsqbd);
+
+        Scalar3 nab, nac, nad, nbc, nbd;
+		nab = dab / rab;
+        nac = dac / rac;
+        nad = dad / rad;
+        nbc = dbc / rbc;
+        nbd = dbd / rbd;
+
+        Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z; 
+        if (c_accb > 1.0) 
+            c_accb = 1.0; 
+        if (c_accb < -1.0) 
+            c_accb = -1.0; 
+ 
+        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z; 
+        if (c_addb > 1.0) 
+            c_addb = 1.0; 
+        if (c_addb < -1.0) 
+            c_addb = -1.0; 
+
+		
+		Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
+
+        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (inv_s_addb < SMALL)
+            inv_s_addb = SMALL;
+        inv_s_addb = 1.0 / inv_s_addb;
+
+		Scalar cot_accb = c_accb * inv_s_accb;
+        Scalar cot_addb = c_addb * inv_s_addb;
+
+		// sigma_hat_ab is the norm of sigma_ij 
+        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
 		unsigned int idx = m_typpair_idx(type_a, type_b);
 		Scalar lam = h_params.data[idx].l;
@@ -179,27 +271,12 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
 		if (lam == Scalar(0.0))
 			continue;
         
-		Scalar3 dr;
-        dr.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
-        dr.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
-        dr.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
-
-        dr = box.minImage(dr);
-
-        Scalar rsq = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
-        Scalar r = sqrt(rsq);
-
-        if (r < SMALL)
-            continue;
-
-        Scalar inv_r = Scalar(1.0) / r;
-
         Scalar3 F;
-        F.x = -lam * dr.x * inv_r;
-        F.y = -lam * dr.y * inv_r;
-        F.z = -lam * dr.z * inv_r;
+        F.x = -lam * sigma_hat_ab * nab.x;
+        F.y = -lam * sigma_hat_ab * nab.y;
+        F.z = -lam * sigma_hat_ab * nab.z;
 
-        Scalar energy = Scalar(0.5) * lam * r;
+        Scalar energy = Scalar(0.5) * lam * sigma_hat_ab;
 
         if (idx_a < m_pdata->getN())
         {
