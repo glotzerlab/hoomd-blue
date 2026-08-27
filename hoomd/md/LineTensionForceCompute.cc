@@ -31,6 +31,12 @@ LineTensionForceCompute::LineTensionForceCompute(
 		m_exec_conf);
 
 	m_params.swap(params);
+
+	// allocate memory for the per-type normal verctors
+    GPUArray<Scalar3> tmp_sigma_hat_ab(m_pdata->getMaxN(), m_exec_conf);
+
+    m_sigma_hat_ab.swap(tmp_sigma_hat_ab);
+
 }
 
 LineTensionForceCompute::~LineTensionForceCompute()
@@ -145,6 +151,10 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
         access_location::host,
         access_mode::read);
 
+	assert(h_force.data);
+	assert(h_pos.data);
+    assert(h_rtag.data);
+    assert(h_bonds.data);
     m_force.zeroFill();
 
     const BoxDim& box = m_pdata->getGlobalBox();
@@ -257,7 +267,13 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
         Scalar cot_addb = c_addb * inv_s_addb;
 
 		// sigma_hat_ab is the norm of sigma_ij 
-        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
+        Scalar sigma_hat_ab_scalar = (cot_accb + cot_addb) / 2;
+		
+		Scalar3 sigma_hat_ab;
+		sigma_hat_ab.x = sigma_hat_ab_scalar * nab.x;
+		sigma_hat_ab.y = sigma_hat_ab_scalar * nab.y;
+		sigma_hat_ab.z = sigma_hat_ab_scalar * nab.z;
+
 
 		unsigned int idx = m_typpair_idx(type_a, type_b);
 		Scalar lam = h_params.data[idx].l;
@@ -266,11 +282,11 @@ void LineTensionForceCompute::computeForces(uint64_t timestep)
 			continue;
         
         Scalar3 F;
-        F.x = -lam * sigma_hat_ab * nab.x;
-        F.y = -lam * sigma_hat_ab * nab.y;
-        F.z = -lam * sigma_hat_ab * nab.z;
+        F.x = -lam * sigma_hat_ab.x;
+        F.y = -lam * sigma_hat_ab.y;
+        F.z = -lam * sigma_hat_ab.z;
 
-        Scalar energy = Scalar(0.5) * lam * sigma_hat_ab;
+        Scalar energy = Scalar(0.5) * lam * sigma_hat_ab_scalar;
 
         if (idx_a < m_pdata->getN())
         {
@@ -374,10 +390,6 @@ void LineTensionForceCompute::precomputeParameter()
             __scalar_as_int(h_pos.data[idx_a].w);
         unsigned int type_b =
             __scalar_as_int(h_pos.data[idx_b].w);
-        unsigned int type_c =
-            __scalar_as_int(h_pos.data[idx_c].w);
-        unsigned int type_d =
-            __scalar_as_int(h_pos.data[idx_d].w);
 
 		dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -431,7 +443,13 @@ void LineTensionForceCompute::precomputeParameter()
         Scalar cot_addb = c_addb * inv_s_addb;
 
 		// sigma_hat_ab is the norm of sigma_ij 
-        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
+        Scalar sigma_hat_ab_scalar = (cot_accb + cot_addb) / 2;
+		
+		Scalar3 sigma_hat_ab;
+		sigma_hat_ab.x = sigma_hat_ab_scalar * nab.x;
+		sigma_hat_ab.y = sigma_hat_ab_scalar * nab.y;
+		sigma_hat_ab.z = sigma_hat_ab_scalar * nab.z;
+		
 
 		unsigned int idx = m_typpair_idx(type_a, type_b);
 		Scalar lam = h_params.data[idx].l;
@@ -439,53 +457,36 @@ void LineTensionForceCompute::precomputeParameter()
 		if (lam == Scalar(0.0))
 			continue;
         
-        Scalar3 F;
-        F.x = -lam * sigma_hat_ab * nab.x;
-        F.y = -lam * sigma_hat_ab * nab.y;
-        F.z = -lam * sigma_hat_ab * nab.z;
-
-        Scalar energy = Scalar(0.5) * lam * sigma_hat_ab;
-
-        if (idx_a < m_pdata->getN())
-        {
-            h_force.data[idx_a].x += F.x;
-            h_force.data[idx_a].y += F.y;
-            h_force.data[idx_a].z += F.z;
-            h_force.data[idx_a].w += energy;
-        }
-
-        if (idx_b < m_pdata->getN())
-        {
-            h_force.data[idx_b].x -= F.x;
-            h_force.data[idx_b].y -= F.y;
-            h_force.data[idx_b].z -= F.z;
-            h_force.data[idx_b].w += energy;
-        }
 
 		if (idx_a < m_pdata->getN())
             {
-            h_sigma_hat_ab.data[idx_a].x += sigma_hat_ab * nab.x;
-            h_sigma_hat_ab.data[idx_a].y += sigma_hat_ab * nab.y;
-            h_sigma_hat_ab.data[idx_a].z += sigma_hat_ab * nab.z;
+            h_sigma_hat_ab.data[idx_a].x += sigma_hat_ab.x;
+            h_sigma_hat_ab.data[idx_a].y += sigma_hat_ab.y;
+            h_sigma_hat_ab.data[idx_a].z += sigma_hat_ab.z;
             }
 
         if (idx_b < m_pdata->getN())
             {
-            h_sigma_hat_ab.data[idx_b].x -= sigma_hat_ab * nab.x;
-            h_sigma_hat_ab.data[idx_b].y -= sigma_hat_ab * nab.y;
-            h_sigma_hat_ab.data[idx_b].z -= sigma_hat_ab * nab.z;
+            h_sigma_hat_ab.data[idx_b].x -= sigma_hat_ab.x;
+            h_sigma_hat_ab.data[idx_b].y -= sigma_hat_ab.y;
+            h_sigma_hat_ab.data[idx_b].z -= sigma_hat_ab.z;
             }
-        }
     }
+
 } // end precomputeParameter
 
-void HelfrichGeneralMeshForceCompute::postcomputeParameter(unsigned int idx_a),
+/*
+void HelfrichGeneralMeshForceCompute::postcomputeParameter(unsigned int idx_a, 
+														unsigned int idx_b, 
+														unsigned int type_id)
     {
     ArrayHandle<Scalar3> h_sigma_hat_ab(m_sigma_hat_ab, access_location::host, access_mode::readwrite);
 
-	// I am ocnfused here
+	// I am confused here
     h_sigma_hat_ab.data[idx_a] += m_sigma_hat_ab;
+    h_sigma_hat_ab.data[idx_b] += m_sigma_hat_ab;
     } // end postcompute
+*/
 
 namespace detail
 {
@@ -505,5 +506,6 @@ void export_LineTensionForceCompute(pybind11::module& m)
 }
 
 } // end namespace detail
+
 } // end namespace md
 } // end namespace hoomd

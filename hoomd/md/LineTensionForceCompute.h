@@ -97,19 +97,25 @@ protected:
 	//vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
 	
 	Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
+	protected:
     GPUArray<line_tension_param_t> m_params;
+
+	GPUArray<Scalar3> m_sigma_hat_ab;
+
 
     //! Compute forces
     void computeForces(
         uint64_t timestep) override;
 
-//Included later in PairPotential.h
-/*
- m_params = std::vector<param_type, hoomd::detail::managed_allocator<param_type>>(          
-        m_typpair_idx.getNumElements(),
-        param_type(),
-        hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
-*/
+	//! compute sigmas
+    void precomputeParameter() override;
+	
+	/*
+    void postcomputeParameter(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int type_id) override;
+	*/
+	
 	};
 
 
