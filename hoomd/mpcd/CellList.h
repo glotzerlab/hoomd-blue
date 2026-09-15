@@ -44,7 +44,7 @@ class PYBIND11_EXPORT CellList : public Compute
     virtual ~CellList();
 
     //! Build the cell list
-    virtual void compute(uint64_t timestep);
+    void compute(uint64_t timestep) override;
 
     //! Sizes the cell list based on the box
     void computeDimensions();
