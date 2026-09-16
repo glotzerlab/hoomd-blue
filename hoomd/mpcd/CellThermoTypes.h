@@ -3,7 +3,7 @@
 
 /*!
  * \file mpcd/CellThermoTypes.h
- * \brief Defines enums for mpcd::CellThermoCompute
+ * \brief Defines enums for mpcd::CellList
  */
 
 #ifndef MPCD_CELL_THERMO_TYPES_H_

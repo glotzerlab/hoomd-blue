@@ -817,9 +817,6 @@ void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,
@@ -878,9 +875,6 @@ void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,
@@ -938,9 +932,6 @@ void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,

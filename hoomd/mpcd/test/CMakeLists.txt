@@ -1,8 +1,6 @@
 # external_field test will not link properly due to separable compilation, disabling.
 set(TEST_LIST
-    at_collision_method
     cell_list
-    cell_thermo_compute
     force
     parallel_plate_geometry_filler
     planar_pore_geometry_filler
@@ -19,9 +17,7 @@ if(ENABLE_MPI)
     SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
     ENDMACRO(ADD_TO_MPI_TESTS)
 
-    ADD_TO_MPI_TESTS(cell_communicator 8)
     ADD_TO_MPI_TESTS(cell_list 8)
-    ADD_TO_MPI_TESTS(cell_thermo_compute 8)
     ADD_TO_MPI_TESTS(communicator 8)
     ADD_TO_MPI_TESTS(parallel_plate_geometry_filler 8)
     ADD_TO_MPI_TESTS(planar_pore_geometry_filler 8)

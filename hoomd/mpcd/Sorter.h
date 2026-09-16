@@ -64,8 +64,7 @@ class PYBIND11_EXPORT Sorter : public Tuner
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
     std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
 
-    GPUVector<unsigned int> m_order;  //!< Maps new sorted index onto old particle indexes
-    GPUVector<unsigned int> m_rorder; //!< Maps old particle indexes onto new sorted indexes
+    GPUVector<unsigned int> m_order; //!< Maps new sorted index onto old particle indexes
 
     //! Compute the sorting order at the current timestep
     virtual void computeOrder(uint64_t timestep);

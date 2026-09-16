@@ -18,13 +18,16 @@
 namespace hoomd
     {
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_size, bool shift)
-    : Compute(sysdef), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_cell_np_max(4),
-      m_cell_np(m_exec_conf), m_cell_list(m_exec_conf), m_embed_cell_ids(m_exec_conf),
-      m_conditions(m_exec_conf), m_needs_compute_dim(true), m_particles_sorted(false),
-      m_virtual_change(false)
+    : Compute(sysdef), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_cell_np(m_exec_conf),
+      m_embed_cell_ids(m_exec_conf), m_conditions(m_exec_conf), m_cell_vel(m_exec_conf),
+      m_cell_energy(m_exec_conf), m_cell_temp(m_exec_conf), m_needs_net_reduce(true),
+      m_needs_compute_dim(true), m_particles_sorted(false), m_virtual_change(false)
     {
     assert(m_mpcd_pdata);
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellList" << std::endl;
+
+    GPUArray<double> net_properties(mpcd::detail::thermo_index::num_quantities, m_exec_conf);
+    m_net_properties.swap(net_properties);
 
     setCellSize(cell_size);
     m_origin_idx = make_int3(0, 0, 0);
@@ -41,7 +44,6 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_s
     m_cover_box = m_pdata->getBox();
 #endif // ENABLE_MPI
 
-    m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
     m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(
         this);
     m_pdata->getParticleSortSignal().connect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
@@ -51,13 +53,16 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_s
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          const uint3& global_cell_dim,
                          bool shift)
-    : Compute(sysdef), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_cell_np_max(4),
-      m_cell_np(m_exec_conf), m_cell_list(m_exec_conf), m_embed_cell_ids(m_exec_conf),
-      m_conditions(m_exec_conf), m_needs_compute_dim(true), m_particles_sorted(false),
-      m_virtual_change(false)
+    : Compute(sysdef), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_cell_np(m_exec_conf),
+      m_embed_cell_ids(m_exec_conf), m_conditions(m_exec_conf), m_cell_vel(m_exec_conf),
+      m_cell_energy(m_exec_conf), m_cell_temp(m_exec_conf), m_needs_compute_dim(true),
+      m_particles_sorted(false), m_virtual_change(false)
     {
     assert(m_mpcd_pdata);
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellList" << std::endl;
+
+    GPUArray<double> net_properties(mpcd::detail::thermo_index::num_quantities, m_exec_conf);
+    m_net_properties.swap(net_properties);
 
     setGlobalDim(global_cell_dim);
     m_origin_idx = make_int3(0, 0, 0);
@@ -74,7 +79,6 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
     m_cover_box = m_pdata->getBox();
 #endif // ENABLE_MPI
 
-    m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
     m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(
         this);
     m_pdata->getParticleSortSignal().connect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
@@ -84,7 +88,6 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
 mpcd::CellList::~CellList()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD CellList" << std::endl;
-    m_mpcd_pdata->getSortSignal().disconnect<mpcd::CellList, &mpcd::CellList::sort>(this);
     m_mpcd_pdata->getNumVirtualSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(
         this);
     m_pdata->getParticleSortSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
@@ -113,6 +116,9 @@ void mpcd::CellList::compute(uint64_t timestep)
         m_force_compute = true;
         }
 
+    // ensure optional computation flags are up to date
+    updateFlags();
+
     if (peekCompute(timestep))
         {
         // ensure grid is shifted
@@ -138,23 +144,15 @@ void mpcd::CellList::compute(uint64_t timestep)
             m_embed_cell_ids.resize(m_embed_group->getNumMembers());
             }
 
-        bool overflowed = false;
-        do
-            {
-            buildCellList();
-
-            overflowed = checkConditions();
-
-            if (overflowed)
-                {
-                reallocate();
-                resetConditions();
-                }
-            } while (overflowed);
+        // bin particles and compute cell properties
+        buildCellList();
+        checkConditions();
+        finishComputeProperties();
 
         // we are finished building, explicitly mark everything (rather than using shouldCompute)
         m_first_compute = false;
         m_force_compute = false;
+        m_needs_net_reduce = true;
         m_last_computed = timestep;
 
         // signal to the ParticleData that the cell list cache is now valid
@@ -164,11 +162,10 @@ void mpcd::CellList::compute(uint64_t timestep)
 
 void mpcd::CellList::reallocate()
     {
-    m_exec_conf->msg->notice(6) << "Allocating MPCD cell list, " << m_cell_np_max
-                                << " particles in " << m_cell_indexer.getNumElements() << " cells."
-                                << std::endl;
-    m_cell_list_indexer = Index2D(m_cell_np_max, m_cell_indexer.getNumElements());
-    m_cell_list.resize(m_cell_list_indexer.getNumElements());
+    m_cell_np.resize(m_cell_indexer.getNumElements());
+    m_cell_vel.resize(m_cell_indexer.getNumElements());
+    m_cell_energy.resize(m_cell_indexer.getNumElements());
+    m_cell_temp.resize(m_cell_indexer.getNumElements());
     }
 
 void mpcd::CellList::computeDimensions()
@@ -307,7 +304,6 @@ void mpcd::CellList::computeDimensions()
     // resize the cell indexers and per-cell counter
     m_global_cell_indexer = Index3D(m_global_cell_dim.x, m_global_cell_dim.y, m_global_cell_dim.z);
     m_cell_indexer = Index3D(m_cell_dim.x, m_cell_dim.y, m_cell_dim.z);
-    m_cell_np.resize(m_cell_indexer.getNumElements());
 
     // reallocate per-cell memory
     reallocate();
@@ -315,6 +311,21 @@ void mpcd::CellList::computeDimensions()
     // dimensions are now current
     m_needs_compute_dim = false;
     notifySizeChange();
+    }
+
+void mpcd::CellList::startAutotuning()
+    {
+    Compute::startAutotuning();
+#ifdef ENABLE_MPI
+#endif // ENABLE_MPI
+    }
+
+bool mpcd::CellList::isAutotuningComplete()
+    {
+    bool result = Compute::isAutotuningComplete();
+#ifdef ENABLE_MPI
+#endif // ENABLE_MPI
+    return result;
     }
 
 #ifdef ENABLE_MPI
@@ -352,12 +363,17 @@ void mpcd::CellList::buildCellList()
     const BoxDim& box = m_pdata->getBox();
     const uchar3 periodic = box.getPeriodic();
 
-    ArrayHandle<unsigned int> h_cell_list(m_cell_list,
-                                          access_location::host,
-                                          access_mode::overwrite);
-    ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::overwrite);
     // zero the cell counter
     m_cell_np.zeroFill();
+    m_cell_vel.zeroFill();
+    if (m_flags[mpcd::detail::thermo_options::energy])
+        {
+        m_cell_energy.zeroFill();
+        }
+
+    ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::readwrite);
+    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
+    ArrayHandle<double> h_cell_energy(m_cell_energy, access_location::host, access_mode::readwrite);
 
     uint3 conditions = make_uint3(0, 0, 0);
 
@@ -373,6 +389,7 @@ void mpcd::CellList::buildCellList()
     // we can't modify the velocity of embedded particles, so we only read their position
     std::unique_ptr<ArrayHandle<unsigned int>> h_embed_cell_ids;
     std::unique_ptr<ArrayHandle<Scalar4>> h_pos_embed;
+    std::unique_ptr<ArrayHandle<Scalar4>> h_vel_embed;
     std::unique_ptr<ArrayHandle<unsigned int>> h_embed_member_idx;
     if (m_embed_group)
         {
@@ -380,6 +397,9 @@ void mpcd::CellList::buildCellList()
                                                              access_location::host,
                                                              access_mode::overwrite));
         h_pos_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getPositions(),
+                                                   access_location::host,
+                                                   access_mode::read));
+        h_vel_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getVelocities(),
                                                    access_location::host,
                                                    access_mode::read));
         h_embed_member_idx.reset(new ArrayHandle<unsigned int>(m_embed_group->getIndexArray(),
@@ -405,15 +425,22 @@ void mpcd::CellList::buildCellList()
     for (unsigned int cur_p = 0; cur_p < N_tot; ++cur_p)
         {
         Scalar4 postype_i;
+        Scalar4 vel_mass_i;
+        double mass_i;
         if (cur_p < N_mpcd)
             {
             postype_i = h_pos.data[cur_p];
+            vel_mass_i = h_vel.data[cur_p];
+            mass_i = m_mpcd_pdata->getMass();
             }
         else
             {
             postype_i = h_pos_embed->data[h_embed_member_idx->data[cur_p - N_mpcd]];
+            vel_mass_i = h_vel_embed->data[h_embed_member_idx->data[cur_p - N_mpcd]];
+            mass_i = vel_mass_i.w;
             }
-        Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
+        const Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
+        const double3 vel_i = make_double3(vel_mass_i.x, vel_mass_i.y, vel_mass_i.z);
 
         if (std::isnan(pos_i.x) || std::isnan(pos_i.y) || std::isnan(pos_i.z))
             {
@@ -488,16 +515,6 @@ void mpcd::CellList::buildCellList()
             }
 
         unsigned int bin_idx = m_cell_indexer(bin.x, bin.y, bin.z);
-        unsigned int offset = h_cell_np.data[bin_idx];
-        if (offset < m_cell_np_max)
-            {
-            h_cell_list.data[m_cell_list_indexer(offset, bin_idx)] = cur_p;
-            }
-        else
-            {
-            // overflow
-            conditions.x = std::max(conditions.x, offset + 1);
-            }
 
         // stash the current particle bin into the velocity array
         if (cur_p < N_mpcd)
@@ -509,6 +526,18 @@ void mpcd::CellList::buildCellList()
             h_embed_cell_ids->data[cur_p - N_mpcd] = bin_idx;
             }
 
+        // compute the contribution of the particle to cell velocity
+        double4& cell_vel = h_cell_vel.data[bin_idx];
+        cell_vel.x += mass_i * vel_i.x;
+        cell_vel.y += mass_i * vel_i.y;
+        cell_vel.z += mass_i * vel_i.z;
+        cell_vel.w += mass_i;
+        // compute optional cell properties
+        if (m_flags[mpcd::detail::thermo_options::energy])
+            {
+            h_cell_energy.data[bin_idx]
+                += 0.5 * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
+            }
         // increment the counter always
         ++h_cell_np.data[bin_idx];
         }
@@ -517,51 +546,134 @@ void mpcd::CellList::buildCellList()
     m_conditions.resetFlags(conditions);
     }
 
-/*!
- * \param timestep Timestep that the sorting occurred
- * \param order Mapping of sorted particle indexes onto old particle indexes
- * \param rorder Mapping of old particle indexes onto sorted particle indexes
- */
-void mpcd::CellList::sort(uint64_t timestep,
-                          const GPUArray<unsigned int>& order,
-                          const GPUArray<unsigned int>& rorder)
+void mpcd::CellList::finishComputeProperties()
     {
-    // no need to do any sorting if we can still be called at the current timestep
-    if (peekCompute(timestep))
-        return;
-
-    // if mapping is not valid, signal that we need to force a recompute next time
-    // that the cell list is needed. We don't call forceCompute() directly because this
-    // always runs compute(), and we just want to defer to the next compute() call.
-    if (rorder.isNull())
+    const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
+    if (need_energy)
         {
-        m_force_compute = true;
-        return;
+        m_cell_temp.zeroFill();
         }
 
-    // iterate through particles in cell list, and update their indexes using reverse
-    // mapping
-    ArrayHandle<unsigned int> h_rorder(rorder, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_cell_list(m_cell_list,
-                                          access_location::host,
-                                          access_mode::readwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
-
+    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
+    ArrayHandle<double> h_cell_energy(m_cell_energy, access_location::host, access_mode::read);
+    ArrayHandle<double> h_cell_temp(m_cell_temp, access_location::host, access_mode::overwrite);
+    // iterate over all cells and compute average velocity, energy, temperature
     for (unsigned int idx = 0; idx < getNCells(); ++idx)
         {
-        const unsigned int np = h_cell_np.data[idx];
-        for (unsigned int offset = 0; offset < np; ++offset)
+        // average cell properties if the cell has mass
+        const double4 cell_vel = h_cell_vel.data[idx];
+        double3 vel_cm = make_double3(cell_vel.x, cell_vel.y, cell_vel.z);
+        const double mass = cell_vel.w;
+
+        // get center of mass velocity from momentum
+        if (mass > 0.)
             {
-            const unsigned int cl_idx = m_cell_list_indexer(offset, idx);
-            const unsigned int pid = h_cell_list.data[cl_idx];
-            // only update indexes of MPCD particles, not virtual or embedded particles
-            if (pid < N_mpcd)
+            // average velocity is only defined when there is some mass in the cell
+            vel_cm.x /= mass;
+            vel_cm.y /= mass;
+            vel_cm.z /= mass;
+            }
+        h_cell_vel.data[idx] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+
+        if (need_energy)
+            {
+            const double cell_energy = h_cell_energy.data[idx];
+            double temp(0.0);
+            const unsigned int np = h_cell_np.data[idx];
+            // temperature is only defined for 2 or more particles
+            if (np > 1)
                 {
-                h_cell_list.data[cl_idx] = h_rorder.data[pid];
+                const double ke_cm
+                    = 0.5 * mass
+                      * (vel_cm.x * vel_cm.x + vel_cm.y * vel_cm.y + vel_cm.z * vel_cm.z);
+                temp = 2. * (cell_energy - ke_cm) / (m_sysdef->getNDimensions() * (np - 1));
                 }
+            h_cell_temp.data[idx] = temp;
             }
         }
+    }
+
+void mpcd::CellList::computeNetProperties()
+    {
+    unsigned int n_temp_cells = 0;
+        {
+        const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
+        ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::read);
+        ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::read);
+        ArrayHandle<double> h_cell_energy(m_cell_energy, access_location::host, access_mode::read);
+        ArrayHandle<double> h_cell_temp(m_cell_temp, access_location::host, access_mode::read);
+        double3 net_momentum = make_double3(0, 0, 0);
+        double net_energy(0.0), net_temp(0.0);
+
+        // iterate over all cells and compute average velocity, energy, temperature
+        for (unsigned int idx = 0; idx < getNCells(); ++idx)
+            {
+            // average cell properties if the cell has mass
+            const double4 cell_vel = h_cell_vel.data[idx];
+            const double3 vel_cm = make_double3(cell_vel.x, cell_vel.y, cell_vel.z);
+            const double mass = cell_vel.w;
+
+            // add accumulated momentum to total net momentum
+            net_momentum.x += vel_cm.x * mass;
+            net_momentum.y += vel_cm.y * mass;
+            net_momentum.z += vel_cm.z * mass;
+
+            if (need_energy)
+                {
+                const double cell_energy = h_cell_energy.data[idx];
+                const double cell_temp = h_cell_temp.data[idx];
+                // temperature is only defined for 2 or more particles
+                if (h_cell_np.data[idx] > 1)
+                    {
+                    ++n_temp_cells;
+                    }
+                // accumulate
+                net_energy += cell_energy;
+                net_temp += cell_temp;
+                }
+            }
+        ArrayHandle<double> h_net_properties(m_net_properties,
+                                             access_location::host,
+                                             access_mode::overwrite);
+
+        h_net_properties.data[mpcd::detail::thermo_index::momentum_x] = net_momentum.x;
+        h_net_properties.data[mpcd::detail::thermo_index::momentum_y] = net_momentum.y;
+        h_net_properties.data[mpcd::detail::thermo_index::momentum_z] = net_momentum.z;
+        h_net_properties.data[mpcd::detail::thermo_index::energy] = net_energy;
+        h_net_properties.data[mpcd::detail::thermo_index::temperature] = net_temp;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        ArrayHandle<double> h_net_properties(m_net_properties,
+                                             access_location::host,
+                                             access_mode::readwrite);
+        MPI_Allreduce(MPI_IN_PLACE,
+                      h_net_properties.data,
+                      mpcd::detail::thermo_index::num_quantities,
+                      MPI_DOUBLE,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &n_temp_cells,
+                      1,
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif // ENABLE_MPI
+    if (n_temp_cells > 0)
+        {
+        ArrayHandle<double> h_net_properties(m_net_properties,
+                                             access_location::host,
+                                             access_mode::readwrite);
+        h_net_properties.data[mpcd::detail::thermo_index::temperature] /= (double)n_temp_cells;
+        }
+    // ensure that properties will not be normalized twice
+    m_needs_net_reduce = false;
     }
 
 #ifdef ENABLE_MPI
@@ -609,17 +721,24 @@ bool mpcd::CellList::needsEmbedMigrate(uint64_t timestep)
     }
 #endif // ENABLE_MPI
 
+void mpcd::CellList::updateFlags()
+    {
+    mpcd::detail::ThermoFlags flags;
+
+    if (!m_flag_signal.empty())
+        {
+        m_flag_signal.emit_accumulate([&](mpcd::detail::ThermoFlags f) { flags |= f; });
+        }
+
+    m_flags = flags;
+    }
+
 bool mpcd::CellList::checkConditions()
     {
     bool result = false;
 
     uint3 conditions = m_conditions.readFlags();
 
-    if (conditions.x > m_cell_np_max)
-        {
-        m_cell_np_max = conditions.x;
-        result = true;
-        }
     if (conditions.y)
         {
         unsigned int n = conditions.y - 1;

@@ -13,7 +13,6 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "CellThermoCompute.h"
 #include "CollisionMethod.h"
 
 #include "hoomd/Variant.h"
@@ -81,9 +80,8 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
         }
 
     protected:
-    std::shared_ptr<mpcd::CellThermoCompute> m_thermo; //!< Cell thermo
-    GPUVector<double3> m_rotvec;                       //!< MPCD rotation vectors
-    Scalar m_angle;                                    //!< MPCD rotation angle (degrees)
+    GPUVector<double3> m_rotvec; //!< MPCD rotation vectors
+    Scalar m_angle;              //!< MPCD rotation angle (degrees)
 
     GPUVector<double> m_factors; //!< Cell-level rescale factors
 

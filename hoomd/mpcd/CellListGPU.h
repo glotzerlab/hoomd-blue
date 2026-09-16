@@ -14,6 +14,7 @@
 #endif
 
 #include "CellList.h"
+#include "CellListGPU.cuh"
 #include "hoomd/Autotuner.h"
 
 namespace hoomd
@@ -36,10 +37,11 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     //! Compute the cell list of particles on the GPU
     void buildCellList() override;
 
-    //! Callback to sort cell list on the GPU when particle data is sorted
-    virtual void sort(uint64_t timestep,
-                      const GPUArray<unsigned int>& order,
-                      const GPUArray<unsigned int>& rorder);
+    //! Do final cell property calculation
+    void finishComputeProperties() override;
+
+    //! Compute the net properties of all the cells
+    void computeNetProperties() override;
 
 #ifdef ENABLE_MPI
     //! Determine if embedded particles require migration on the gpu
@@ -48,11 +50,19 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 #endif                                     // ENABLE_MPI
 
     private:
+    GPUVector<mpcd::detail::cell_thermo_element>
+        m_tmp_thermo; //!< Temporary array for holding cell data
+    GPUFlags<mpcd::detail::cell_thermo_element> m_reduced; //!< Flags to hold reduced sum
+
     /// Autotuner for the cell list calculation.
     std::shared_ptr<Autotuner<1>> m_tuner_cell;
 
-    /// Autotuner for sorting the cell list.
-    std::shared_ptr<Autotuner<1>> m_tuner_sort;
+    /// Autotuner for finishing cell property calculation.
+    std::shared_ptr<Autotuner<1>> m_tuner_property;
+
+    /// Autotuner for the net property calculation.
+    std::shared_ptr<Autotuner<1>> m_tuner_net;
+
 #ifdef ENABLE_MPI
     /// Autotuner for checking embedded migration.
     std::shared_ptr<Autotuner<1>> m_tuner_embed_migrate;

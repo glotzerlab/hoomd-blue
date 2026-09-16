@@ -5,7 +5,6 @@
 #define MPCD_TEST_UTILS_H_
 
 #include "hoomd/mpcd/CellList.h"
-#include "hoomd/mpcd/CellThermoCompute.h"
 
 namespace hoomd
     {
@@ -15,15 +14,14 @@ class AllThermoRequest
     public:
     //! Constructor
     /*!
-     * \param thermo Thermo compute to supply flags to.
+     * \param cl CellList to supply flags to.
      *
-     * \post This object is connected to \a thermo.
+     * \post This object is connected to \a cl.
      */
-    AllThermoRequest(std::shared_ptr<mpcd::CellThermoCompute> thermo) : m_thermo(thermo)
+    AllThermoRequest(std::shared_ptr<mpcd::CellList> cl) : m_cl(cl)
         {
-        if (m_thermo)
-            m_thermo->getFlagsSignal().connect<AllThermoRequest, &AllThermoRequest::operator()>(
-                this);
+        if (m_cl)
+            m_cl->getFlagsSignal().connect<AllThermoRequest, &AllThermoRequest::operator()>(this);
         }
 
     //! Destructor
@@ -32,8 +30,8 @@ class AllThermoRequest
      */
     ~AllThermoRequest()
         {
-        if (m_thermo)
-            m_thermo->getFlagsSignal().disconnect<AllThermoRequest, &AllThermoRequest::operator()>(
+        if (m_cl)
+            m_cl->getFlagsSignal().disconnect<AllThermoRequest, &AllThermoRequest::operator()>(
                 this);
         }
 
@@ -48,7 +46,7 @@ class AllThermoRequest
         }
 
     private:
-    std::shared_ptr<mpcd::CellThermoCompute> m_thermo;
+    std::shared_ptr<mpcd::CellList> m_cl;
     };
 
 Scalar3 scale(const Scalar3& ref_pos, std::shared_ptr<BoxDim> ref_box, std::shared_ptr<BoxDim> box)

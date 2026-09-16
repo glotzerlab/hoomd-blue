@@ -22,7 +22,8 @@ namespace gpu
     {
 cudaError_t srd_draw_vectors(double3* d_rotvec,
                              double* d_factors,
-                             const double3* d_cell_energy,
+                             const unsigned int* d_cell_np,
+                             const double* d_cell_temp,
                              const Index3D& ci,
                              const int3 origin,
                              const uint3 global_dim,

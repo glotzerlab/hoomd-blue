@@ -168,40 +168,6 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[6].w), 6);
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[7].w), 7);
         }
-
-        // check that the cell list has been updated as well
-        {
-        ArrayHandle<unsigned int> h_cl(cl->getCellList(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_np(cl->getCellSizeArray(),
-                                       access_location::host,
-                                       access_mode::read);
-        const Index3D& ci = cl->getCellIndexer();
-        const Index2D& cli = cl->getCellListIndexer();
-
-        // all cells should have one particle, except the first cell, which has the embedded one
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 0, 0)], 2);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 0, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 1, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 1, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 0, 1)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 0, 1)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 1, 1)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 1, 1)], 1);
-
-        // the particles should be in ascending order
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 0, 0))], 1);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 1, 0))], 2);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 1, 0))], 3);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 0, 1))], 4);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 0, 1))], 5);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 1, 1))], 6);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 1, 1))], 7);
-        // do first cell separately, since it needs to be a sorted list
-        std::vector<unsigned int> cell_0
-            = {h_cl.data[cli(0, ci(0, 0, 0))], h_cl.data[cli(1, ci(0, 0, 0))]};
-        std::sort(cell_0.begin(), cell_0.end());
-        UP_ASSERT_EQUAL(cell_0, std::vector<unsigned int> {0, 8});
-        }
     }
 
 //! Test for MPCD sorting with virtual particles
@@ -369,36 +335,6 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
         // VPs
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[6].w), 1);
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[7].w), 3);
-        }
-
-        // check that the cell list has been updated as well
-        {
-        ArrayHandle<unsigned int> h_cl(cl->getCellList(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_np(cl->getCellSizeArray(),
-                                       access_location::host,
-                                       access_mode::read);
-        const Index3D& ci = cl->getCellIndexer();
-        const Index2D& cli = cl->getCellListIndexer();
-
-        // all cells should have one particle
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 0, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 0, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 1, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 1, 0)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 0, 1)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 0, 1)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(0, 1, 1)], 1);
-        UP_ASSERT_EQUAL(h_np.data[ci(1, 1, 1)], 1);
-
-        // the particles should be in ascending order, with VPs interleaved unsorted
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 0, 0))], 0);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 0, 0))], 6);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 1, 0))], 1);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 1, 0))], 7);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 0, 1))], 2);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 0, 1))], 3);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(0, 1, 1))], 4);
-        UP_ASSERT_EQUAL(h_cl.data[cli(0, ci(1, 1, 1))], 5);
         }
     }
 

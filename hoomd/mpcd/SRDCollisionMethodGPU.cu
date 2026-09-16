@@ -21,7 +21,8 @@ namespace kernel
 template<bool use_thermostat>
 __global__ void srd_draw_vectors(double3* d_rotvec,
                                  double* d_factors,
-                                 const double3* d_cell_energy,
+                                 const unsigned int* d_cell_np,
+                                 const double* d_cell_temp,
                                  const Index3D ci,
                                  const int3 origin,
                                  const uint3 global_dim,
@@ -73,8 +74,8 @@ __global__ void srd_draw_vectors(double3* d_rotvec,
 
     if (use_thermostat)
         {
-        const double3 cell_energy = d_cell_energy[idx];
-        const unsigned int np = __double_as_int(cell_energy.z);
+        const double cell_temp = d_cell_temp[idx];
+        const unsigned int np = d_cell_np[idx];
         double factor = 1.0;
         if (np > 1)
             {
@@ -88,7 +89,7 @@ __global__ void srd_draw_vectors(double3* d_rotvec,
             // generate the scale factor from the current temperature
             // (don't use the kinetic energy of this cell, since this
             // is total not relative to COM)
-            const double cur_ke = alpha * cell_energy.y;
+            const double cur_ke = alpha * cell_temp;
             factor = (cur_ke > 0.) ? fast::sqrt(rand_ke / cur_ke) : 1.;
             }
         d_factors[idx] = factor;
@@ -184,7 +185,8 @@ __global__ void srd_rotate(Scalar4* d_vel,
 
 cudaError_t srd_draw_vectors(double3* d_rotvec,
                              double* d_factors,
-                             const double3* d_cell_energy,
+                             const unsigned int* d_cell_np,
+                             const double* d_cell_temp,
                              const Index3D& ci,
                              const int3 origin,
                              const uint3 global_dim,
@@ -208,7 +210,8 @@ cudaError_t srd_draw_vectors(double3* d_rotvec,
         dim3 grid(Ncell / run_block_size + 1);
         mpcd::gpu::kernel::srd_draw_vectors<true><<<grid, run_block_size>>>(d_rotvec,
                                                                             d_factors,
-                                                                            d_cell_energy,
+                                                                            d_cell_np,
+                                                                            d_cell_temp,
                                                                             ci,
                                                                             origin,
                                                                             global_dim,
@@ -232,7 +235,8 @@ cudaError_t srd_draw_vectors(double3* d_rotvec,
         dim3 grid(Ncell / run_block_size + 1);
         mpcd::gpu::kernel::srd_draw_vectors<false><<<grid, run_block_size>>>(d_rotvec,
                                                                              d_factors,
-                                                                             d_cell_energy,
+                                                                             d_cell_np,
+                                                                             d_cell_temp,
                                                                              ci,
                                                                              origin,
                                                                              global_dim,

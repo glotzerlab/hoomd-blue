@@ -57,15 +57,6 @@ namespace mpcd
  * are based on around the velocity and cell. For details of what the cell means,
  * refer to the mpcd::CellList.
  *
- * \todo Because the local cell index changes with position, a signal will be put
- * in place to indicate when the cached cell index is still valid.
- *
- * \todo Likewise, MPCD benefits from sorting data into cell order, so a signal
- * needs to be put in place when the ordering changes.
- *
- * \todo Likewise, a signal should be incorporated to indicate when particles are
- * added or removed locally, as is the case during particle migration.
- *
  * \ingroup data_structs
  */
 class PYBIND11_EXPORT ParticleData : public Autotuned
@@ -272,9 +263,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
         }
 
     //! Signature for particle sort signal
-    typedef Nano::Signal<
-        void(uint64_t timestep, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)>
-        SortSignal;
+    typedef Nano::Signal<void(uint64_t timestep)> SortSignal;
 
     //! Get the sort signal
     /*!
@@ -289,31 +278,13 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     //! Notify subscribers of a particle sort
     /*!
      * \param timestep Timestep that the sorting occurred
-     * \param order Mapping of sorted particle indexes onto old particle indexes
-     * \param rorder Mapping of old particle indexes onto sorted particle indexes
-     *
-     * This method notifies the subscribers of the sort occurring at \a timestep.
-     * Subscribers may choose to use \a order and \a rorder to reorder their
-     * per-particle data immediately, or delay the sort until their next call.
-     */
-    void notifySort(uint64_t timestep,
-                    const GPUArray<unsigned int>& order,
-                    const GPUArray<unsigned int>& rorder)
-        {
-        m_sort_signal.emit(timestep, order, rorder);
-        }
-
-    //! Notify subscribers of a particle sort
-    /*!
-     * \param timestep Timestep that the sorting occurred
      *
      * This method notifies the subscribers of the sort occurring at \a timestep.
      * Subscribers are not given the updated particle order.
      */
     void notifySort(uint64_t timestep)
         {
-        GPUArray<unsigned int> order, rorder;
-        m_sort_signal.emit(timestep, order, rorder);
+        m_sort_signal.emit(timestep);
         }
     //@}
 

@@ -5,6 +5,7 @@
  * \file mpcd/CellListGPU.cu
  * \brief Defines GPU functions and kernels used by mpcd::CellListGPU
  */
+#include <cub/device/device_reduce.cuh>
 
 #include "CellListGPU.cuh"
 
@@ -19,12 +20,15 @@ namespace kernel
 //! Kernel to compute the MPCD cell list on the GPU
 /*!
  * \param d_cell_np Array of number of particles per cell
- * \param d_cell_list 2D array of MPCD particles in each cell
+ * \param d_cell_vel Array of center of mass velocity + cell mass per cell
+ * \param d_cell_energy Array of per cell kinetic energy
  * \param d_conditions Conditions flags for error reporting
  * \param d_vel MPCD particle velocities
+ * \param mpcd_mass MPCD particle mass
  * \param d_embed_cell_ids Cell indexes of embedded particles
  * \param d_pos MPCD particle positions
  * \param d_pos_embed Particle positions
+ * \param d_vel_embed Particle velocities
  * \param d_embed_member_idx Indexes of embedded particles in \a d_pos_embed
  * \param periodic Flags if local simulation is periodic
  * \param origin_idx Global origin index for the local box
@@ -32,26 +36,29 @@ namespace kernel
  * \param global_box Global simulation box
  * \param n_global_cell Global dimensions of the cell list, including padding
  * \param global_cell_dim Global cell dimensions, no padding
- * \param cell_np_max Maximum number of particles per cell
  * \param cell_indexer 3D indexer for cell id
- * \param cell_list_indexer 2D indexer for particle position in cell
  * \param N_mpcd Number of MPCD particles
  * \param N_tot Total number of particle (MPCD + embedded)
+ * \param need_energy True if computing the energy
  *
  * \b Implementation
  * One thread is launched per particle. The particle is floored into a bin subject to a random grid
- * shift. The number of particles in that bin is atomically incremented. If the addition of the
+ * shift. The number of particles in that bin is atomically incremented and the contribution of the
+ * particle's properties to the cell's properties is added to a running sum. If the addition of the
  * particle will not overflow the allocated memory, the particle is written into that bin.
  * Otherwise, a flag is set to resize the cell list and recompute. The MPCD particle's cell id is
  * stashed into the velocity array.
  */
 __global__ void compute_cell_list(unsigned int* d_cell_np,
-                                  unsigned int* d_cell_list,
+                                  double4* d_cell_vel,
+                                  double* d_cell_energy,
                                   uint3* d_conditions,
                                   Scalar4* d_vel,
+                                  double mpcd_mass,
                                   unsigned int* d_embed_cell_ids,
                                   const Scalar4* d_pos,
                                   const Scalar4* d_pos_embed,
+                                  const Scalar4* d_vel_embed,
                                   const unsigned int* d_embed_member_idx,
                                   const uchar3 periodic,
                                   const int3 origin_idx,
@@ -59,11 +66,10 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
                                   const BoxDim global_box,
                                   const uint3 n_global_cell,
                                   const uint3 global_cell_dim,
-                                  const unsigned int cell_np_max,
                                   const Index3D cell_indexer,
-                                  const Index2D cell_list_indexer,
                                   const unsigned int N_mpcd,
-                                  const unsigned int N_tot)
+                                  const unsigned int N_tot,
+                                  const bool need_energy)
     {
     // one thread per particle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -71,15 +77,22 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
         return;
 
     Scalar4 postype_i;
+    Scalar4 vel_mass_i;
+    double mass_i;
     if (idx < N_mpcd)
         {
         postype_i = d_pos[idx];
+        vel_mass_i = d_vel[idx];
+        mass_i = mpcd_mass;
         }
     else
         {
         postype_i = d_pos_embed[d_embed_member_idx[idx - N_mpcd]];
+        vel_mass_i = d_vel_embed[d_embed_member_idx[idx - N_mpcd]];
+        mass_i = vel_mass_i.w;
         }
     const Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
+    const double3 vel_i = make_double3(vel_mass_i.x, vel_mass_i.y, vel_mass_i.z);
 
     if (isnan(pos_i.x) || isnan(pos_i.y) || isnan(pos_i.z))
         {
@@ -156,15 +169,6 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
 
     const unsigned int bin_idx = cell_indexer(bin.x, bin.y, bin.z);
     const unsigned int offset = atomicInc(&d_cell_np[bin_idx], 0xffffffff);
-    if (offset < cell_np_max)
-        {
-        d_cell_list[cell_list_indexer(offset, bin_idx)] = idx;
-        }
-    else
-        {
-        // overflow
-        atomicMax(&(*d_conditions).x, offset + 1);
-        }
 
     // stash the current particle bin into the velocity array
     if (idx < N_mpcd)
@@ -175,6 +179,137 @@ __global__ void compute_cell_list(unsigned int* d_cell_np,
         {
         d_embed_cell_ids[idx - N_mpcd] = bin_idx;
         }
+
+    // compute the contribution of the particle to cell properties
+    double4& cell_vel = d_cell_vel[bin_idx];
+    atomicAdd(&cell_vel.x, vel_i.x * mass_i);
+    atomicAdd(&cell_vel.y, vel_i.y * mass_i);
+    atomicAdd(&cell_vel.z, vel_i.z * mass_i);
+    atomicAdd(&cell_vel.w, mass_i);
+
+    if (need_energy)
+        {
+        double ke = 0.5 * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
+        atomicAdd(&d_cell_energy[bin_idx], ke);
+        }
+    }
+
+/*!
+ * \param d_cell_np Array of number of particles per cell
+ * \param d_cell_vel Cell velocity to finish computing
+ * \param d_cell_energy Cell kinetic energy
+ * \param d_cell_temp Cell temperature to finish computing
+ * \param N_cells Number of cells
+ * \param N_dim Number of dimensions
+ * \param need_energy If true, compute the cell-level energy properties.
+ *
+ * \b Implementation details:
+ * Using one thread per cell, the cell properties are normalized from the
+ * additive contributions of the particles to their final values, e.g. the cell
+ * velocities are computed from the net momentum of the cell divided by the final
+ * mass. The temperature of each cell is calculated.
+ */
+__global__ void finish_cell_properties(const unsigned int* d_cell_np,
+                                       double4* d_cell_vel,
+                                       const double* d_cell_energy,
+                                       double* d_cell_temp,
+                                       const unsigned int N_cells,
+                                       const unsigned int N_dim,
+                                       const bool need_energy)
+    {
+    // one thread per cell
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N_cells)
+        return;
+
+    const double4 vel_cell = d_cell_vel[idx];
+    double3 vel_cm = make_double3(vel_cell.x, vel_cell.y, vel_cell.z);
+    const double mass = vel_cell.w;
+
+    // get center of mass velocity from momentum
+    if (mass > 0.)
+        {
+        // average velocity is only defined when there is some mass in the cell
+        vel_cm.x /= mass;
+        vel_cm.y /= mass;
+        vel_cm.z /= mass;
+        }
+    d_cell_vel[idx] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+
+    if (need_energy)
+        {
+        const double cell_energy = d_cell_energy[idx];
+        double temp(0.0);
+        const unsigned int np = d_cell_np[idx];
+
+        if (np > 1)
+            {
+            const double ke_cm
+                = 0.5 * mass * (vel_cm.x * vel_cm.x + vel_cm.y * vel_cm.y + vel_cm.z * vel_cm.z);
+            temp = 2. * (cell_energy - ke_cm) / (N_dim * (np - 1));
+            }
+        d_cell_temp[idx] = temp;
+        }
+    }
+
+/*!
+ * \param d_tmp_thermo Temporary cell packed thermo element
+ * \param d_cell_np Number of particles per cell
+ * \param d_cell_vel Cell velocity
+ * \param d_cell_energy Cell kinetic energy
+ * \param d_cell_temperature Cell temperature
+ * \param N_cells Number of cells
+ * \tparam need_energy If true, compute the cell-level energy properties.
+ *
+ * \b Implementation details:
+ * Using one thread per \a temporary cell, the cell properties are normalized
+ * in a way suitable for reduction of net properties, e.g. the cell velocities
+ * are converted to momentum. The temperature is set to the cell energy, and a
+ * flag is set to 1 or 0 to indicate whether this cell has an energy that should
+ * be used in averaging the total temperature.
+ */
+template<bool need_energy>
+__global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_thermo,
+                                      const unsigned int* d_cell_np,
+                                      const double4* d_cell_vel,
+                                      const double* d_cell_energy,
+                                      const double* d_cell_temp,
+                                      const unsigned int N_cells)
+    {
+    // one thread per cell
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N_cells)
+        return;
+
+    const double4 vel_cell = d_cell_vel[idx];
+    const double mass = vel_cell.w;
+
+    // add accumulated momentum to net momentum
+    mpcd::detail::cell_thermo_element thermo;
+    thermo.momentum = make_double3(vel_cell.x * mass, vel_cell.y * mass, vel_cell.z * mass);
+
+    if (need_energy)
+        {
+        if (d_cell_np[idx] > 1)
+            {
+            thermo.temperature = d_cell_temp[idx];
+            thermo.flag = 1;
+            }
+        else
+            {
+            thermo.temperature = 0.;
+            thermo.flag = 0;
+            }
+        thermo.energy = d_cell_energy[idx];
+        }
+    else
+        {
+        thermo.energy = 0.;
+        thermo.temperature = 0.;
+        thermo.flag = 0;
+        }
+
+    d_tmp_thermo[idx] = thermo;
     }
 
 /*!
@@ -217,48 +352,21 @@ __global__ void cell_check_migrate_embed(unsigned int* d_migrate_flag,
         atomicMax(d_migrate_flag, 1);
         }
     }
-
-__global__ void cell_apply_sort(unsigned int* d_cell_list,
-                                const unsigned int* d_rorder,
-                                const unsigned int* d_cell_np,
-                                const Index2D cli,
-                                const unsigned int N_mpcd,
-                                const unsigned int N_cli)
-    {
-    // one thread per cell-list entry
-    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= N_cli)
-        return;
-
-    // convert the entry 1D index into a 2D index
-    const unsigned int cell = idx / cli.getW();
-    const unsigned int offset = idx - (cell * cli.getW());
-
-    /* here comes some terrible execution divergence */
-    // check if the cell is filled
-    const unsigned int np = d_cell_np[cell];
-    if (offset < np)
-        {
-        // check if this is an MPCD particle
-        const unsigned int pid = d_cell_list[idx];
-        if (pid < N_mpcd)
-            {
-            d_cell_list[idx] = d_rorder[pid];
-            }
-        }
-    }
     } // end namespace kernel
     } // end namespace gpu
     } // end namespace mpcd
 
 /*!
  * \param d_cell_np Array of number of particles per cell
- * \param d_cell_list 2D array of MPCD particles in each cell
+ * \param d_cell_vel Array of center of mass velocity + cell mass per cell
+ * \param d_cell_energy Array of per cell kinetic energy, temperature, and dof
  * \param d_conditions Conditions flags for error reporting
  * \param d_vel MPCD particle velocities
+ * \param mpcd_mass MPCD particle mass
  * \param d_embed_cell_ids Cell indexes of embedded particles
  * \param d_pos MPCD particle positions
  * \param d_pos_embed Particle positions
+ * \param d_vel_embed Particle velocities
  * \param d_embed_member_idx Indexes of embedded particles in \a d_pos_embed
  * \param periodic Flags if local simulation is periodic
  * \param origin_idx Global origin index for the local box
@@ -266,22 +374,24 @@ __global__ void cell_apply_sort(unsigned int* d_cell_list,
  * \param global_box Global simulation box
  * \param n_global_cell Global dimensions of the cell list, including padding
  * \param global_cell_dim Global cell dimensions, no padding
- * \param cell_np_max Maximum number of particles per cell
  * \param cell_indexer 3D indexer for cell id
- * \param cell_list_indexer 2D indexer for particle position in cell
  * \param N_mpcd Number of MPCD particles
  * \param N_tot Total number of particle (MPCD + embedded)
+ * \param need_energy True if computing the energy
  * \param block_size Number of threads per block
  *
  * \returns cudaSuccess on completion, or an error on failure
  */
 cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
-                                         unsigned int* d_cell_list,
+                                         double4* d_cell_vel,
+                                         double* d_cell_energy,
                                          uint3* d_conditions,
                                          Scalar4* d_vel,
+                                         double mpcd_mass,
                                          unsigned int* d_embed_cell_ids,
                                          const Scalar4* d_pos,
                                          const Scalar4* d_pos_embed,
+                                         const Scalar4* d_vel_embed,
                                          const unsigned int* d_embed_member_idx,
                                          const uchar3& periodic,
                                          const int3& origin_idx,
@@ -289,11 +399,10 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
                                          const BoxDim& global_box,
                                          const uint3& n_global_cell,
                                          const uint3& global_cell_dim,
-                                         const unsigned int cell_np_max,
                                          const Index3D& cell_indexer,
-                                         const Index2D& cell_list_indexer,
                                          const unsigned int N_mpcd,
                                          const unsigned int N_tot,
+                                         const bool need_energy,
                                          const unsigned int block_size)
     {
     // set the number of particles in each cell to zero
@@ -301,6 +410,17 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
         = cudaMemset(d_cell_np, 0, sizeof(unsigned int) * cell_indexer.getNumElements());
     if (error != cudaSuccess)
         return error;
+    cudaError_t error_vel
+        = cudaMemset(d_cell_vel, 0, sizeof(double4) * cell_indexer.getNumElements());
+    if (error_vel != cudaSuccess)
+        return error_vel;
+    if (need_energy)
+        {
+        cudaError_t error_energy
+            = cudaMemset(d_cell_energy, 0, sizeof(double) * cell_indexer.getNumElements());
+        if (error_energy != cudaSuccess)
+            return error_energy;
+        }
 
     unsigned int max_block_size;
     cudaFuncAttributes attr;
@@ -310,12 +430,15 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N_tot / run_block_size + 1);
     mpcd::gpu::kernel::compute_cell_list<<<grid, run_block_size>>>(d_cell_np,
-                                                                   d_cell_list,
+                                                                   d_cell_vel,
+                                                                   d_cell_energy,
                                                                    d_conditions,
                                                                    d_vel,
+                                                                   mpcd_mass,
                                                                    d_embed_cell_ids,
                                                                    d_pos,
                                                                    d_pos_embed,
+                                                                   d_vel_embed,
                                                                    d_embed_member_idx,
                                                                    periodic,
                                                                    origin_idx,
@@ -323,12 +446,144 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
                                                                    global_box,
                                                                    n_global_cell,
                                                                    global_cell_dim,
-                                                                   cell_np_max,
                                                                    cell_indexer,
-                                                                   cell_list_indexer,
                                                                    N_mpcd,
-                                                                   N_tot);
+                                                                   N_tot,
+                                                                   need_energy);
 
+    return cudaSuccess;
+    }
+
+/*!
+ * \param d_cell_np Number of particles in cells
+ * \param d_cell_vel Cell velocity to reduce
+ * \param d_cell_energy Cell kinetic energy
+ * \param d_cell_temp Cell temperature to finish computing
+ * \param N_cells Number of total cells
+ * \param N_dim Number of dimensions
+ * \param need_energy If true, compute the cell-level energy properties
+ * \param block_size Number of threads per block
+ *
+ * \returns cudaSuccess on completion
+ *
+ * \sa mpcd::gpu::kernel::finish_cell_properties
+ */
+cudaError_t mpcd::gpu::finish_cell_properties(const unsigned int* d_cell_np,
+                                              double4* d_cell_vel,
+                                              const double* d_cell_energy,
+                                              double* d_cell_temp,
+                                              const unsigned int N_cells,
+                                              const unsigned int N_dim,
+                                              const bool need_energy,
+                                              const unsigned int block_size)
+    {
+    // set all temperatures to zero
+    if (need_energy)
+        {
+        cudaError_t error_temp = cudaMemset(d_cell_temp, 0, sizeof(double) * N_cells);
+        if (error_temp != cudaSuccess)
+            return error_temp;
+        }
+
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::finish_cell_properties);
+    max_block_size = attr.maxThreadsPerBlock;
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(N_cells / run_block_size + 1);
+    mpcd::gpu::kernel::finish_cell_properties<<<grid, run_block_size>>>(d_cell_np,
+                                                                        d_cell_vel,
+                                                                        d_cell_energy,
+                                                                        d_cell_temp,
+                                                                        N_cells,
+                                                                        N_dim,
+                                                                        need_energy);
+
+    return cudaSuccess;
+    }
+
+/*!
+ * \param d_tmp_thermo Temporary cell packed thermo element
+ * \param d_cell_np Number of particles per cell
+ * \param d_cell_vel Cell velocity
+ * \param d_cell_energy Cell kinetic energy
+ * \param d_cell_temp Cell temperature
+ * \param N_cells Number of total cells
+ * \param need_energy If true, compute the cell-level energy properties
+ * \param block_size Number of threads per block
+ *
+ * \returns cudaSuccess on completion
+ *
+ * \sa mpcd::gpu::kernel::stage_net_cell_thermo
+ */
+cudaError_t mpcd::gpu::stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_thermo,
+                                             const unsigned int* d_cell_np,
+                                             const double4* d_cell_vel,
+                                             const double* d_cell_energy,
+                                             const double* d_cell_temp,
+                                             const unsigned int N_cells,
+                                             const bool need_energy,
+                                             const unsigned int block_size)
+    {
+    if (need_energy)
+        {
+        unsigned int max_block_size_energy;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
+        max_block_size_energy = attr.maxThreadsPerBlock;
+
+        unsigned int run_block_size = min(block_size, max_block_size_energy);
+        dim3 grid(N_cells / run_block_size + 1);
+        mpcd::gpu::kernel::stage_net_cell_thermo<true><<<grid, run_block_size>>>(d_tmp_thermo,
+                                                                                 d_cell_np,
+                                                                                 d_cell_vel,
+                                                                                 d_cell_energy,
+                                                                                 d_cell_temp,
+                                                                                 N_cells);
+        }
+    else
+        {
+        unsigned int max_block_size_noenergy;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
+        max_block_size_noenergy = attr.maxThreadsPerBlock;
+
+        unsigned int run_block_size = min(block_size, max_block_size_noenergy);
+        dim3 grid(N_cells / run_block_size + 1);
+        mpcd::gpu::kernel::stage_net_cell_thermo<false><<<grid, run_block_size>>>(d_tmp_thermo,
+                                                                                  d_cell_np,
+                                                                                  d_cell_vel,
+                                                                                  d_cell_energy,
+                                                                                  d_cell_temp,
+                                                                                  N_cells);
+        }
+    return cudaSuccess;
+    }
+
+/*!
+ * \param d_reduced Cell thermo properties reduced across all cells (output on second call)
+ * \param d_tmp Temporary storage for reduction (output on first call)
+ * \param tmp_bytes Number of bytes allocated for temporary storage (output on first call)
+ * \param d_tmp_thermo Cell thermo properties to reduce
+ * \param N_cells The number of cells to reduce across
+ *
+ * \returns cudaSuccess on completion
+ *
+ * \b Implementation details:
+ * CUB DeviceReduce is used to perform the reduction. Hence, this function requires
+ * two calls to perform the reduction. The first call sizes the temporary storage,
+ * which is returned in \a d_tmp and \a tmp_bytes. The caller must then allocate
+ * the required bytes, and call the function a second time. This performs the
+ * reduction and returns the result in \a d_reduced.
+ */
+cudaError_t mpcd::gpu::reduce_net_cell_thermo(mpcd::detail::cell_thermo_element* d_reduced,
+                                              void* d_tmp,
+                                              size_t& tmp_bytes,
+                                              const mpcd::detail::cell_thermo_element* d_tmp_thermo,
+                                              const size_t N_cells)
+    {
+    cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, (unsigned int)N_cells);
     return cudaSuccess;
     }
 
@@ -366,32 +621,6 @@ cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int* d_migrate_flag,
                                                                           box,
                                                                           num_dim,
                                                                           N);
-
-    return cudaSuccess;
-    }
-
-cudaError_t mpcd::gpu::cell_apply_sort(unsigned int* d_cell_list,
-                                       const unsigned int* d_rorder,
-                                       const unsigned int* d_cell_np,
-                                       const Index2D& cli,
-                                       const unsigned int N_mpcd,
-                                       const unsigned int block_size)
-    {
-    unsigned int max_block_size;
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_apply_sort);
-    max_block_size = attr.maxThreadsPerBlock;
-
-    const unsigned int N_cli = cli.getNumElements();
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid(N_cli / run_block_size + 1);
-    mpcd::gpu::kernel::cell_apply_sort<<<grid, run_block_size>>>(d_cell_list,
-                                                                 d_rorder,
-                                                                 d_cell_np,
-                                                                 cli,
-                                                                 N_mpcd,
-                                                                 N_cli);
 
     return cudaSuccess;
     }

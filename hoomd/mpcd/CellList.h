@@ -13,6 +13,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "CellThermoTypes.h"
 #include "CommunicatorUtilities.h"
 #include "ParticleData.h"
 
@@ -43,21 +44,39 @@ class PYBIND11_EXPORT CellList : public Compute
     virtual ~CellList();
 
     //! Build the cell list
-    virtual void compute(uint64_t timestep);
+    void compute(uint64_t timestep) override;
 
     //! Sizes the cell list based on the box
     void computeDimensions();
 
-    //! Get the cell list data
-    const GPUArray<unsigned int>& getCellList() const
-        {
-        return m_cell_list;
-        }
+    //! Start autotuning kernel launch parameters
+    void startAutotuning() override;
+
+    //! Check if kernel autotuning is complete
+    bool isAutotuningComplete() override;
 
     //! Get the number of particles per cell
     const GPUArray<unsigned int>& getCellSizeArray() const
         {
         return m_cell_np;
+        }
+
+    //! Get the cell velocities from the last call to compute
+    const GPUArray<double4>& getCellVelocities() const
+        {
+        return m_cell_vel;
+        }
+
+    //! Get the cell energies from the last call to compute
+    const GPUArray<double>& getCellEnergies() const
+        {
+        return m_cell_energy;
+        }
+
+    //! Get the cell temperature from the last call to compute
+    const GPUArray<double>& getCellTemperature() const
+        {
+        return m_cell_temp;
         }
 
     //! Get the total number of cells in the list
@@ -76,12 +95,6 @@ class PYBIND11_EXPORT CellList : public Compute
     const Index3D& getGlobalCellIndexer() const
         {
         return m_global_cell_indexer;
-        }
-
-    //! Get the cell list indexer
-    const Index2D& getCellListIndexer() const
-        {
-        return m_cell_list_indexer;
         }
 
     //! Get the number of cells in each dimension
@@ -111,12 +124,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
     //! Wrap a cell into a global cell
     const int3 wrapGlobalCell(const int3& cell);
-
-    //! Get the maximum number of particles in a cell
-    const unsigned int getNmax() const
-        {
-        return m_cell_np_max;
-        }
 
     //! Get the MPCD cell size (deprecated)
     Scalar3 getCellSize();
@@ -242,6 +249,71 @@ class PYBIND11_EXPORT CellList : public Compute
         {
         return m_dim_signal;
         }
+    //! Get the net momentum of the particles from the last call to compute
+    Scalar3 getNetMomentum()
+        {
+        if (m_needs_net_reduce)
+            computeNetProperties();
+        ArrayHandle<double> h_net_properties(m_net_properties,
+                                             access_location::host,
+                                             access_mode::read);
+        const Scalar3 net_momentum
+            = make_scalar3(h_net_properties.data[mpcd::detail::thermo_index::momentum_x],
+                           h_net_properties.data[mpcd::detail::thermo_index::momentum_y],
+                           h_net_properties.data[mpcd::detail::thermo_index::momentum_z]);
+        return net_momentum;
+        }
+
+    //! Get the net energy of the particles from the last call to compute
+    Scalar getNetEnergy()
+        {
+        if (!m_flags[mpcd::detail::thermo_options::energy])
+            {
+            m_exec_conf->msg->error()
+                << "Energy requested from CellList, but was not computed." << std::endl;
+            throw std::runtime_error("Net cell energy not available");
+            }
+        if (m_needs_net_reduce)
+            computeNetProperties();
+        ArrayHandle<double> h_net_properties(m_net_properties,
+                                             access_location::host,
+                                             access_mode::read);
+        return h_net_properties.data[mpcd::detail::thermo_index::energy];
+        }
+
+    //! Get the average cell temperature from the last call to compute
+    Scalar getTemperature()
+        {
+        if (!m_flags[mpcd::detail::thermo_options::energy])
+            {
+            m_exec_conf->msg->error()
+                << "Temperature requested from CellList, but was not computed." << std::endl;
+            throw std::runtime_error("Net cell temperature not available");
+            }
+        if (m_needs_net_reduce)
+            computeNetProperties();
+        ArrayHandle<double> h_net_properties(m_net_properties,
+                                             access_location::host,
+                                             access_mode::read);
+        return h_net_properties.data[mpcd::detail::thermo_index::temperature];
+        }
+
+    //! Get the signal for requested thermo flags
+    /*!
+     * \returns A signal that subscribers can attach a callback to in order
+     *          to request certain data.
+     *
+     * For performance reasons, the CellList should be able to
+     * supply many related cell-level quantities from a single kernel launch.
+     * However, sometimes these quantities are not needed, and it is better
+     * to skip calculating them. Subscribing classes can optionally request
+     * some of these quantities via a callback return mpcd::detail::ThermoFlags
+     * with the appropriate bits set.
+     */
+    Nano::Signal<mpcd::detail::ThermoFlags()>& getFlagsSignal()
+        {
+        return m_flag_signal;
+        }
 
     protected:
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata; //!< MPCD particle data
@@ -259,14 +331,20 @@ class PYBIND11_EXPORT CellList : public Compute
     Scalar3 m_global_cell_dim_inv; //!< Inverse of number of cells in each direction of global box
     Index3D m_cell_indexer;        //!< Indexer from 3D into cell list 1D
     Index3D m_global_cell_indexer; //!< Indexer from 3D into 1D for global cell indexes
-    Index2D m_cell_list_indexer;   //!< Indexer into cell list members
-    unsigned int m_cell_np_max;    //!< Maximum number of particles per cell
     GPUVector<unsigned int> m_cell_np;        //!< Number of particles per cell
-    GPUVector<unsigned int> m_cell_list;      //!< Cell list of particles
     GPUVector<unsigned int> m_embed_cell_ids; //!< Cell ids of the embedded particles
     GPUFlags<uint3> m_conditions; //!< Detect conditions that might fail building cell list
 
     int3 m_origin_idx; //!< Origin as a global index
+
+    GPUVector<double4> m_cell_vel;     //!< Average velocity of a cell + cell mass
+    GPUVector<double> m_cell_energy;   //!< Kinetic energy
+    GPUVector<double> m_cell_temp;     //!< Unscaled temperature
+    GPUArray<double> m_net_properties; //!< Scalar properties of the system
+    bool m_needs_net_reduce;           //!< Flag if a net reduction is necessary
+
+    Nano::Signal<mpcd::detail::ThermoFlags()> m_flag_signal; //!< Signal for requested flags
+    mpcd::detail::ThermoFlags m_flags;                       //!< Requested thermo flags
 
 #ifdef ENABLE_MPI
     unsigned int m_num_extra;               //!< Number of extra cells to communicate over
@@ -277,6 +355,9 @@ class PYBIND11_EXPORT CellList : public Compute
     virtual bool needsEmbedMigrate(uint64_t timestep);
 #endif // ENABLE_MPI
 
+    //! Updates the requested optional flags
+    void updateFlags();
+
     //! Check the condition flags
     bool checkConditions();
 
@@ -286,10 +367,11 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Builds the cell list and handles cell list memory
     virtual void buildCellList();
 
-    //! Callback to sort cell list when particle data is sorted
-    virtual void sort(uint64_t timestep,
-                      const GPUArray<unsigned int>& order,
-                      const GPUArray<unsigned int>& rorder);
+    //! Do final cell property calculation
+    virtual void finishComputeProperties();
+
+    //! Compute the net properties of all the cells
+    virtual void computeNetProperties();
 
     private:
     bool m_needs_compute_dim; //!< True if the dimensions need to be (re-)computed

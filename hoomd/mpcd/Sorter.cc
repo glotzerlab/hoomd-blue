@@ -14,8 +14,7 @@ namespace hoomd
  * \param sysdef System definition
  */
 mpcd::Sorter::Sorter(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger)
-    : Tuner(sysdef, trigger), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_order(m_exec_conf),
-      m_rorder(m_exec_conf)
+    : Tuner(sysdef, trigger), m_mpcd_pdata(m_sysdef->getMPCDParticleData()), m_order(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD Sorter" << std::endl;
     }
@@ -36,17 +35,18 @@ void mpcd::Sorter::update(uint64_t timestep)
         {
         throw std::runtime_error("Cell list has not been set");
         }
+    // ensure that the cell list is built
+    m_cl->compute(timestep);
 
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
-    m_rorder.resize(m_mpcd_pdata->getN());
 
     // generate and apply the sorted order
     computeOrder(timestep);
     applyOrder();
 
     // trigger the sort signal for ParticleData callbacks using the current sortings
-    m_mpcd_pdata->notifySort(timestep, m_order, m_rorder);
+    m_mpcd_pdata->notifySort(timestep);
     }
 
 /*!
@@ -58,37 +58,18 @@ void mpcd::Sorter::update(uint64_t timestep)
  */
 void mpcd::Sorter::computeOrder(uint64_t timestep)
     {
-    // compute the cell list at current timestep, guarantees owned particles are on rank
-    m_cl->compute(timestep);
-
-    ArrayHandle<unsigned int> h_cell_list(m_cl->getCellList(),
-                                          access_location::host,
-                                          access_mode::read);
-    ArrayHandle<unsigned int> h_cell_np(m_cl->getCellSizeArray(),
-                                        access_location::host,
-                                        access_mode::read);
-    const Index2D& cli = m_cl->getCellListIndexer();
-
-    // loop through the cell list to generate the sorting order for MPCD particles
     ArrayHandle<unsigned int> h_order(m_order, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_rorder(m_rorder, access_location::host, access_mode::overwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
-    unsigned int cur_p = 0;
-    for (unsigned int idx = 0; idx < m_cl->getNCells(); ++idx)
-        {
-        const unsigned int np = h_cell_np.data[idx];
-        for (unsigned int offset = 0; offset < np; ++offset)
-            {
-            const unsigned int pid = h_cell_list.data[cli(offset, idx)];
-            // only count MPCD particles, and skip embedded particles
-            if (pid < N_mpcd)
-                {
-                h_order.data[cur_p] = pid;
-                h_rorder.data[pid] = cur_p;
-                ++cur_p;
-                }
-            }
-        }
+    ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::read);
+    unsigned int mpcd_N = m_mpcd_pdata->getN();
+    // sort indices
+    std::iota(h_order.data, h_order.data + mpcd_N, 0);
+
+    std::sort(h_order.data,
+              h_order.data + mpcd_N,
+              [&h_vel](unsigned int i, unsigned int j)
+              { return __scalar_as_int(h_vel.data[i].w) < __scalar_as_int(h_vel.data[j].w); });
     }
 
 /*!

@@ -56,10 +56,7 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
     auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 2, 1, 130.);
     collide->setCellList(cl);
-
-    // create a thermo, and use it to check the current
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
-    AllThermoRequest thermo_req(thermo);
+    AllThermoRequest thermo_req(cl);
 
     UP_ASSERT(!collide->peekCollide(0));
     collide->collide(0);
@@ -77,16 +74,16 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
 
         {
         // check net properties of cells, which should match our inputs
-        thermo->compute(0);
-        const Scalar3 mom = thermo->getNetMomentum();
+        cl->compute(0);
+        const Scalar3 mom = cl->getNetMomentum();
         CHECK_CLOSE(mom.x, orig_mom.x, tol_small);
         CHECK_CLOSE(mom.y, orig_mom.y, tol_small);
         CHECK_CLOSE(mom.z, orig_mom.z, tol_small);
 
-        const Scalar energy = thermo->getNetEnergy();
+        const Scalar energy = cl->getNetEnergy();
         CHECK_CLOSE(energy, orig_energy, tol_small);
 
-        const Scalar temp = thermo->getTemperature();
+        const Scalar temp = cl->getTemperature();
         CHECK_CLOSE(temp, orig_temp, tol_small);
         }
 
@@ -151,16 +148,16 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
         }
 
     // recompute net properties, and make sure they are still the same
-    thermo->compute(2);
-    const Scalar3 mom = thermo->getNetMomentum();
+    cl->compute(2);
+    const Scalar3 mom = cl->getNetMomentum();
     CHECK_CLOSE(mom.x, orig_mom.x, tol_small);
     CHECK_CLOSE(mom.y, orig_mom.y, tol_small);
     CHECK_CLOSE(mom.z, orig_mom.z, tol_small);
 
-    const Scalar energy = thermo->getNetEnergy();
+    const Scalar energy = cl->getNetEnergy();
     CHECK_CLOSE(energy, orig_energy, tol_small);
 
-    const Scalar temp = thermo->getTemperature();
+    const Scalar temp = cl->getTemperature();
     CHECK_CLOSE(temp, orig_temp, tol_small);
     }
 
@@ -284,10 +281,7 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     std::shared_ptr<mpcd::SRDCollisionMethod> collide
         = std::make_shared<CM>(sysdef, 0, 1, -1, 130.);
     collide->setCellList(cl);
-
-    // create a thermo, and use it to check the current
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
-    AllThermoRequest thermo_req(thermo);
+    AllThermoRequest thermo_req(cl);
 
     // embed the particle group into the mpcd system
     std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterAll());
@@ -295,10 +289,10 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     collide->setEmbeddedGroup(group_all);
 
     // Save original momentum for comparison as well
-    thermo->compute(0);
-    const Scalar orig_energy = thermo->getNetEnergy();
-    const Scalar orig_temp = thermo->getTemperature();
-    const Scalar3 orig_mom = thermo->getNetMomentum();
+    cl->compute(0);
+    const Scalar orig_energy = cl->getNetEnergy();
+    const Scalar orig_temp = cl->getTemperature();
+    const Scalar3 orig_mom = cl->getNetMomentum();
     collide->collide(0);
         {
         // velocity should be different now, but the mass should stay the same
@@ -312,10 +306,10 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
         }
 
     // compute properties after rotation
-    thermo->compute(1);
-    Scalar energy = thermo->getNetEnergy();
-    Scalar temp = thermo->getTemperature();
-    Scalar3 mom = thermo->getNetMomentum();
+    cl->compute(1);
+    Scalar energy = cl->getNetEnergy();
+    Scalar temp = cl->getTemperature();
+    Scalar3 mom = cl->getNetMomentum();
 
     // energy (temperature) and momentum should be conserved after a collision
     CHECK_CLOSE(orig_energy, energy, tol_small);
@@ -337,8 +331,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
     std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(sysdef, 0, 1, -1, 827);
     collide->setCellList(cl);
-    auto thermo = std::make_shared<mpcd::CellThermoCompute>(sysdef, cl);
-    AllThermoRequest thermo_req(thermo);
+    AllThermoRequest thermo_req(cl);
 
     // timestep counter and number of samples to make
     uint64_t timestep = 0;
@@ -351,8 +344,8 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
         double mean(0.0);
         for (unsigned int i = 0; i < N; ++i)
             {
-            thermo->compute(timestep);
-            mean += thermo->getTemperature();
+            cl->compute(timestep);
+            mean += cl->getTemperature();
             collide->collide(timestep++);
             }
         mean /= N;
@@ -366,8 +359,8 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
         double mean(0.0);
         for (unsigned int i = 0; i < N; ++i)
             {
-            thermo->compute(timestep);
-            mean += thermo->getTemperature();
+            cl->compute(timestep);
+            mean += cl->getTemperature();
             collide->collide(timestep++);
             }
         mean /= N;

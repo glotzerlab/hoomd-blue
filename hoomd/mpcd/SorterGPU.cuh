@@ -31,24 +31,22 @@ cudaError_t sort_apply(Scalar4* d_pos_alt,
                        const unsigned int N,
                        const unsigned int block_size);
 
-//! Kernel driver to fill empty cell list entries with sentinel
-cudaError_t sort_set_sentinel(unsigned int* d_cell_list,
-                              const unsigned int* d_cell_np,
-                              const Index2D& cli,
-                              const unsigned int sentinel,
-                              const unsigned int block_size);
+//! Kernel driver to sort order
+cudaError_t set_order(unsigned int* d_order,
+                      unsigned int* d_cell_id,
+                      const Scalar4* d_vel,
+                      const unsigned int N_mpcd,
+                      const unsigned int block_size);
+
+cudaError_t
+compute_order(unsigned int* d_order, unsigned int* d_cell_id, const unsigned int N_mpcd);
 
 //! Driver for thrust to perform cell-list stream compaction
 unsigned int sort_cell_compact(unsigned int* d_order,
                                const unsigned int* d_cell_list,
                                const unsigned int num_items,
-                               const unsigned int N_mpcd);
+                               const unsigned int N);
 
-//! Kernel driver to reverse map the particle ordering
-cudaError_t sort_gen_reverse(unsigned int* d_rorder,
-                             const unsigned int* d_order,
-                             const unsigned int N,
-                             const unsigned int block_size);
     } // end namespace gpu
     } // end namespace mpcd
     } // end namespace hoomd

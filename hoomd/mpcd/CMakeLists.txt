@@ -5,9 +5,6 @@ endif()
 
 set(_mpcd_cc_sources
     module.cc
-    ATCollisionMethod.cc
-    CellCommunicator.cc
-    CellThermoCompute.cc
     CellList.cc
     CollisionMethod.cc
     Communicator.cc
@@ -23,12 +20,9 @@ set(_mpcd_cc_sources
     )
 
 set(_mpcd_headers
-    ATCollisionMethod.h
     BounceBackNVE.h
     BulkGeometry.h
     BulkStreamingMethod.h
-    CellCommunicator.h
-    CellThermoCompute.h
     CellList.h
     CollisionMethod.h
     BounceBackStreamingMethod.h
@@ -70,8 +64,6 @@ set(_geometries
 
 if(ENABLE_HIP)
     list(APPEND _mpcd_cc_sources
-        ATCollisionMethodGPU.cc
-        CellThermoComputeGPU.cc
         CellListGPU.cc
         CommunicatorGPU.cc
         ParallelPlateGeometryFillerGPU.cc
@@ -81,16 +73,11 @@ if(ENABLE_HIP)
         SRDCollisionMethodGPU.cc
         )
     list(APPEND _mpcd_headers
-        ATCollisionMethodGPU.cuh
-        ATCollisionMethodGPU.h
         BounceBackNVEGPU.cuh
         BounceBackNVEGPU.h
         BounceBackStreamingMethodGPU.cuh
         BounceBackStreamingMethodGPU.h
         BulkStreamingMethodGPU.h
-        CellCommunicator.cuh
-        CellThermoComputeGPU.cuh
-        CellThermoComputeGPU.h
         CellListGPU.cuh
         CellListGPU.h
         CollisionMethod.cuh
@@ -111,9 +98,7 @@ if(ENABLE_HIP)
         SRDCollisionMethodGPU.h
         )
     set(_mpcd_cu_sources
-        ATCollisionMethodGPU.cu
         BounceBackNVEGPU.cu
-        CellThermoComputeGPU.cu
         CellListGPU.cu
         CollisionMethod.cu
         CommunicatorGPU.cu

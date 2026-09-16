@@ -87,13 +87,14 @@ void mpcd::Integrator::update(uint64_t timestep)
             }
         }
 
+    // perform the core MPCD steps of collision and streaming
+    if (m_collide)
+        m_collide->collide(timestep);
+
     // optionally sort for performance
     if (m_sorter && (*m_sorter->getTrigger())(timestep))
         m_sorter->update(timestep);
 
-    // perform the core MPCD steps of collision and streaming
-    if (m_collide)
-        m_collide->collide(timestep);
     if (m_stream)
         m_stream->stream(timestep);
 

@@ -50,17 +50,6 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
     CHECK_EQUAL_UINT(cell_indexer.getNumElements(), 6 * 8 * 10);
     UP_ASSERT(cl->getCellSizeArray().getNumElements() >= 6 * 8 * 10); // Each cell has one number
 
-    unsigned int Nmax = cl->getNmax();
-    CHECK_EQUAL_UINT(Nmax,
-                     4); // Default is 4 particles per cell, ensure this happens if there's only one
-
-    Index2D cli = cl->getCellListIndexer();
-    CHECK_EQUAL_UINT(cli.getNumElements(),
-                     6 * 8 * 10 * Nmax); // Cell list indexer has Nmax entries per cell
-
-    // Cell list uses amortized sizing, so must only be at least this big
-    UP_ASSERT(cl->getCellList().getNumElements() >= 6 * 8 * 10 * Nmax);
-
     /*******************/
     // Change the cell size, and ensure everything stays up to date
     cl->setGlobalDim(make_uint3(3, 4, 5));
@@ -75,13 +64,6 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
     cell_indexer = cl->getCellIndexer();
     CHECK_EQUAL_UINT(cell_indexer.getNumElements(), 3 * 4 * 5);
     UP_ASSERT(cl->getCellSizeArray().getNumElements() >= 3 * 4 * 5); // Each cell has one number
-
-    cli = cl->getCellListIndexer();
-    CHECK_EQUAL_UINT(cli.getNumElements(),
-                     3 * 4 * 5 * Nmax); // Cell list indexer has Nmax entries per cell
-
-    // Cell list uses amortized sizing, so must only be at least this big
-    UP_ASSERT(cl->getCellList().getNumElements() >= 3 * 4 * 5 * Nmax);
     }
 
 //! Test for correct cell listing of a small system
@@ -121,9 +103,6 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
 
         // validate that each cell has the right number
         Index3D ci = cl->getCellIndexer();
@@ -135,19 +114,6 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 0, 1)], 1);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 0)], 1);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 1)], 1);
-
-        // check the particle ids in each cell
-        Index2D cli = cl->getCellListIndexer();
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 0))], 0);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(1, ci(0, 0, 0))], 8);
-
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 1))], 4);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 0))], 2);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 1))], 6);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 0, 0))], 1);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 0, 1))], 5);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 1, 0))], 3);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 1, 1))], 7);
 
         ArrayHandle<Scalar4> h_vel(pdata_9->getVelocities(),
                                    access_location::host,
@@ -185,9 +151,6 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
 
         // validate that each cell has the right number
         Index3D ci = cl->getCellIndexer();
@@ -200,29 +163,6 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 0, 0)], 0);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 0, 1)], 0);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 0)], 0);
-
-        // check the particle ids in each cell
-        Index2D cli = cl->getCellListIndexer();
-            {
-            std::vector<unsigned int> pids(5, 0);
-            for (unsigned int i = 0; i < 5; ++i)
-                {
-                pids[i] = h_cell_list.data[cli(i, ci(0, 0, 0))];
-                }
-            sort(pids.begin(), pids.end());
-            unsigned int check_pids[] = {0, 2, 4, 6, 8};
-            UP_ASSERT_EQUAL(pids, check_pids);
-            }
-            {
-            std::vector<unsigned int> pids(4, 0);
-            for (unsigned int i = 0; i < 4; ++i)
-                {
-                pids[i] = h_cell_list.data[cli(i, ci(1, 1, 1))];
-                }
-            sort(pids.begin(), pids.end());
-            unsigned int check_pids[] = {1, 3, 5, 7};
-            UP_ASSERT_EQUAL(pids, check_pids);
-            }
         }
 
         // bring all particles into one box, which triggers a resize, and check that all particles
@@ -425,9 +365,6 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
 
         // validate that each cell has the right number
         Index3D ci = cl->getCellIndexer();
@@ -439,17 +376,6 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 0, 1)], 1);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 0)], 1);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 1)], 1);
-
-        // check the particle ids in each cell
-        Index2D cli = cl->getCellListIndexer();
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 0))], 0);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 1))], 4);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 0))], 2);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 1))], 6);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 0, 0))], 1);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 0, 1))], 5);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 1, 0))], 3);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 1, 1))], 7);
 
         ArrayHandle<Scalar4> h_vel(pdata_8->getVelocities(),
                                    access_location::host,
@@ -477,9 +403,6 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
 
         // validate that each cell has the right number
         Index3D ci = cl->getCellIndexer();
@@ -491,45 +414,6 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 0, 1)], 2);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 0)], 2);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 1)], 2);
-
-        // check the particle ids in each cell
-        Index2D cli = cl->getCellListIndexer();
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 0))], 0);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 1))], 4);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 0))], 2);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 1))], 6);
-            // check two particles in cell (1,0,0)
-            {
-            std::vector<unsigned int> result(2);
-            result[0] = h_cell_list.data[cli(0, ci(1, 0, 0))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 0, 0))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {1, 8});
-            }
-            // check two particles in cell (1,0,1)
-            {
-            std::vector<unsigned int> result(2);
-            result[0] = h_cell_list.data[cli(0, ci(1, 0, 1))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 0, 1))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {5, 10});
-            }
-            // check two particles in cell (1,1,0)
-            {
-            std::vector<unsigned int> result(2);
-            result[0] = h_cell_list.data[cli(0, ci(1, 1, 0))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 1, 0))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {3, 9});
-            }
-            // check two particles in cell (1,1,1)
-            {
-            std::vector<unsigned int> result(2);
-            result[0] = h_cell_list.data[cli(0, ci(1, 1, 1))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 1, 1))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {7, 11});
-            }
 
         ArrayHandle<Scalar4> h_vel(pdata_8->getVelocities(),
                                    access_location::host,
@@ -579,9 +463,6 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
                                             access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
-                                              access_location::host,
-                                              access_mode::read);
 
         // validate that each cell has the right number
         Index3D ci = cl->getCellIndexer();
@@ -593,39 +474,6 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 0, 1)], 2);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 0)], 3);
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 1)], 2);
-
-        // check the particle ids in each cell
-        Index2D cli = cl->getCellListIndexer();
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 0))], 0);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 1))], 4);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 0))], 2);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 0, 0))], 1);
-        CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 1))], 6);
-            // check two particles in cell (1,0,1)
-            {
-            std::vector<unsigned int> result(2);
-            result[0] = h_cell_list.data[cli(0, ci(1, 0, 1))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 0, 1))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {5, 10});
-            }
-            // check two particles in cell (1,1,0)
-            {
-            std::vector<unsigned int> result(3);
-            result[0] = h_cell_list.data[cli(0, ci(1, 1, 0))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 1, 0))];
-            result[2] = h_cell_list.data[cli(2, ci(1, 1, 0))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {3, 8, 9});
-            }
-            // check two particles in cell (1,1,1)
-            {
-            std::vector<unsigned int> result(2);
-            result[0] = h_cell_list.data[cli(0, ci(1, 1, 1))];
-            result[1] = h_cell_list.data[cli(1, ci(1, 1, 1))];
-            sort(result.begin(), result.end());
-            UP_ASSERT_EQUAL(result, std::vector<unsigned int> {7, 11});
-            }
 
         ArrayHandle<Scalar4> h_vel(pdata_8->getVelocities(),
                                    access_location::host,
@@ -660,6 +508,347 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         CHECK_CLOSE(h_embed_vel.data[6].w, 1.0, tol);
         CHECK_CLOSE(h_embed_vel.data[7].w, 1.0, tol);
         }
+    }
+
+//! Test for correct calculation of cell thermo properties for MPCD particles
+template<class CL>
+void celllist_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                const Scalar3& L,
+                                const Scalar3& tilt)
+    {
+    auto ref_box = std::make_shared<BoxDim>(2.0);
+    auto box = std::make_shared<BoxDim>(L);
+    box->setTiltFactors(tilt.x, tilt.y, tilt.z);
+
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
+    snap->global_box = box;
+    snap->particle_data.type_mapping.push_back("A");
+    // place each particle in a different cell, doubling the first cell
+    snap->mpcd_data.resize(5);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+    snap->mpcd_data.position[4] = vec3<Scalar>(-0.5, 0.5, 0.5);
+
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
+    snap->mpcd_data.velocity[4] = vec3<Scalar>(1.0, -1.0, 4.0);
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+
+    std::shared_ptr<mpcd::ParticleData> pdata_5 = sysdef->getMPCDParticleData();
+
+    std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, make_uint3(2, 2, 2), false));
+    AllThermoRequest thermo_req(cl);
+    cl->compute(0);
+        {
+        const Index3D ci = cl->getCellIndexer();
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<double4> h_avg_vel(cl->getCellVelocities(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<double> h_cell_energy(cl->getCellEnergies(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<double> h_cell_temp(cl->getCellTemperature(),
+                                        access_location::host,
+                                        access_mode::read);
+        // Two particle cell (0,0,0)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].x, 1.5, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].y, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].z, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].w, 2.0, tol);
+        // energy, temperature (relative to COM), np
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 0, 0)], 2.5, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 0, 0)], 2.0 * 0.5 * 0.5 / 3.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 2);
+
+        // Two particle cell (1,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].x, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].y, -1.5, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].z, -2.5, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].w, 2.0, tol);
+        // energy, temperature (relative to COM), np
+        CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 1)], 17.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(1, 1, 1)], 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 2);
+
+        // One particle cell (0,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].x, 1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].y, -1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].z, 4.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].w, 1.0, tol);
+        // Has kinetic energy, but temperature should be zero
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)], 9.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 1, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 1)], 1);
+        }
+
+    // Check the net stats of the system
+    CHECK_CLOSE(cl->getNetMomentum().x, 4.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().y, -4.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().z, -1.0, tol);
+    CHECK_CLOSE(cl->getNetEnergy(), 28.5, tol);
+    CHECK_CLOSE(cl->getTemperature(),
+                0.5 * (2.0 * 0.5 * 0.5 / 3.0 + 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0),
+                tol);
+
+    // increase the mass and make sure that energies depend on mass, but velocities don't
+    pdata_5->setMass(4.0);
+    cl->compute(1);
+        {
+        const Index3D ci = cl->getCellIndexer();
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<double4> h_avg_vel(cl->getCellVelocities(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<double> h_cell_energy(cl->getCellEnergies(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<double> h_cell_temp(cl->getCellTemperature(),
+                                        access_location::host,
+                                        access_mode::read);
+
+        // Two particle cell (0,0,0)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].x, 1.5, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].y, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].z, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].w, 8.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 0, 0)], 4.0 * 2.5, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 0, 0)], 4.0 * 2.0 * 0.5 * 0.5 / 3.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 2);
+
+        // Two particle cell (1,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].x, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].y, -1.5, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].z, -2.5, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].w, 8.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 1)], 4.0 * 17.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(1, 1, 1)], 4.0 * 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 2);
+
+        // One particle cell (0,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].x, 1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].y, -1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].z, 4.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].w, 4.0, tol);
+        // Has kinetic energy, but temperature should be zero
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)], 4.0 * 9.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 1, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 1)], 1);
+        }
+
+    // Check the net stats of the system
+    CHECK_CLOSE(cl->getNetMomentum().x, 4.0 * 4.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().y, 4.0 * -4.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().z, 4.0 * -1.0, tol);
+    CHECK_CLOSE(cl->getNetEnergy(), 4.0 * 28.5, tol);
+    CHECK_CLOSE(cl->getTemperature(),
+                4.0 * 0.5 * (2.0 * 0.5 * 0.5 / 3.0 + 2.0 * (1.5 * 1.5 + 2.5 * 2.5) / 3.0),
+                tol);
+
+    // switch a particle into a different cell, and make sure the DOF are reduced accordingly
+    pdata_5->setMass(1.0);
+        {
+        ArrayHandle<Scalar4> h_pos(pdata_5->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        h_pos.data[2] = make_scalar4(-0.5, -0.5, -0.5, 0.0);
+        }
+    cl->compute(2);
+        {
+        const Index3D ci = cl->getCellIndexer();
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<double4> h_avg_vel(cl->getCellVelocities(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<double> h_cell_energy(cl->getCellEnergies(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<double> h_cell_temp(cl->getCellTemperature(),
+                                        access_location::host,
+                                        access_mode::read);
+
+        // Three particle cell (0,0,0)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].x, 1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].y, -1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].z, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].w, 3.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 0, 0)], 7.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 0, 0)],
+                    (2 * 1.0 * 1.0 + 2 * 1.0 * 1.0 + 2.0 * 2.0) / 6.0,
+                    tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 3);
+
+        // One particle cell (1,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].x, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].y, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].z, -5.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].w, 1.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 1)], 12.5, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(1, 1, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 1);
+
+        // One particle cell (0,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].x, 1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].y, -1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].z, 4.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 1, 1)].w, 1.0, tol);
+        // Has kinetic energy, but temperature should be zero
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 1, 1)], 9.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 1, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 1)], 1);
+        }
+
+    // Check the net stats of the system, only average temperature should change now
+    CHECK_CLOSE(cl->getNetMomentum().x, 4.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().y, -4.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().z, -1.0, tol);
+    CHECK_CLOSE(cl->getNetEnergy(), 28.5, tol);
+    CHECK_CLOSE(cl->getTemperature(), (2 * 1.0 * 1.0 + 2 * 1.0 * 1.0 + 2.0 * 2.0) / 6.0, tol);
+    }
+
+//! Test for correct calculation of cell thermo properties with embedded particles
+template<class CL>
+void celllist_thermo_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                const Scalar3& L,
+                                const Scalar3& tilt)
+    {
+    auto ref_box = std::make_shared<BoxDim>(2.0);
+    auto box = std::make_shared<BoxDim>(L);
+    box->setTiltFactors(tilt.x, tilt.y, tilt.z);
+
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
+    snap->global_box = box;
+        {
+        SnapshotParticleData<Scalar>& pdata_snap = snap->particle_data;
+        pdata_snap.type_mapping.push_back("A");
+        pdata_snap.resize(4);
+
+        pdata_snap.pos[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        pdata_snap.pos[1] = vec3<Scalar>(-0.5, -0.5, 0.5);
+        pdata_snap.pos[2] = vec3<Scalar>(0.5, -0.5, 0.5);
+        pdata_snap.pos[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+
+        pdata_snap.mass[0] = 3.0;
+        pdata_snap.mass[1] = 2.0;
+        pdata_snap.mass[2] = 4.0;
+        pdata_snap.mass[3] = 5.0;
+
+        pdata_snap.vel[0] = vec3<Scalar>(-2.0, 0.0, 0.0);
+        pdata_snap.vel[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+        pdata_snap.vel[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+        pdata_snap.vel[3] = vec3<Scalar>(0.0, 0.0, -5.0);
+        }
+    snap->mpcd_data.resize(4);
+    snap->mpcd_data.type_mapping.push_back("A");
+    snap->mpcd_data.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+    snap->mpcd_data.position[1] = vec3<Scalar>(-0.5, -0.5, 0.5);
+    snap->mpcd_data.position[2] = vec3<Scalar>(0.5, -0.5, 0.5);
+    snap->mpcd_data.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+
+    snap->mpcd_data.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    snap->mpcd_data.velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+    snap->mpcd_data.velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+
+    std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll());
+    std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
+
+    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
+    cl->setEmbeddedGroup(group);
+    AllThermoRequest thermo_req(cl);
+    cl->compute(0);
+        {
+        const Index3D ci = cl->getCellIndexer();
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<double4> h_avg_vel(cl->getCellVelocities(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<double> h_cell_energy(cl->getCellEnergies(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<double> h_cell_temp(cl->getCellTemperature(),
+                                        access_location::host,
+                                        access_mode::read);
+
+        // Cell (0,0,0)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].x, -1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].y, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].z, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 0)].w, 4.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 0, 0)], 8.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 0, 0)], 4.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 2);
+
+        // Cell (0,0,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 1)].x, 1.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 1)].y, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 1)].z, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(0, 0, 1)].w, 3.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(0, 0, 1)], 1.5, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(0, 0, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 1)], 2);
+
+        // Cell (1,0,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 0, 1)].x, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 0, 1)].y, -3.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 0, 1)].z, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 0, 1)].w, 5.0, tol);
+        // Has kinetic energy, but temperature should be zero
+        CHECK_CLOSE(h_cell_energy.data[ci(1, 0, 1)], 22.5, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(1, 0, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 0, 1)], 2);
+
+        // Cell (1,1,1)
+        // Average velocity, mass
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].x, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].y, 0.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].z, -5.0, tol);
+        CHECK_CLOSE(h_avg_vel.data[ci(1, 1, 1)].w, 6.0, tol);
+        // energy, temperature (relative to COM), np, flag
+        CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 1)], 75.0, tol);
+        CHECK_CLOSE(h_cell_temp.data[ci(1, 1, 1)], 0.0, tol);
+        UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 2);
+        }
+
+    // Check the net stats of the system
+    CHECK_CLOSE(cl->getNetMomentum().x, -1.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().y, -15.0, tol);
+    CHECK_CLOSE(cl->getNetMomentum().z, -30.0, tol);
+    CHECK_CLOSE(cl->getNetEnergy(), 107.0, tol);
+    CHECK_CLOSE(cl->getTemperature(), (4.0 + 0.0 + 0.0 + 0.0) / 4., tol);
     }
 
 //! dimension test case for MPCD CellList class
@@ -770,6 +959,22 @@ UP_TEST(mpcd_cell_list_embed_test_triclinic)
         make_scalar3(0.5, -0.75, 1.0));
     }
 
+//! test case for cell list velocity and energy
+UP_TEST(mpcd_cell_list_thermo_basic)
+    {
+    celllist_thermo_basic_test<mpcd::CellList>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU),
+        make_scalar3(2.0, 2.0, 2.0),
+        make_scalar3(0, 0, 0));
+    }
+UP_TEST(mpcd_cell_list_thermo_embed)
+    {
+    celllist_thermo_embed_test<mpcd::CellList>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU),
+        make_scalar3(2.0, 2.0, 2.0),
+        make_scalar3(0, 0, 0));
+    }
+
 #ifdef ENABLE_HIP
 //! dimension test case for MPCD CellListGPU class
 UP_TEST(mpcd_cell_list_gpu_dimensions)
@@ -877,5 +1082,21 @@ UP_TEST(mpcd_cell_list_gpu_embed_test_triclinic)
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU),
         make_scalar3(2.0, 2.0, 2.0),
         make_scalar3(0.5, -0.75, 1.0));
+    }
+
+//! test case for cell list velocity and energy
+UP_TEST(mpcd_cell_list_thermo_basic_gpu)
+    {
+    celllist_thermo_basic_test<mpcd::CellListGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU),
+        make_scalar3(2.0, 2.0, 2.0),
+        make_scalar3(0, 0, 0));
+    }
+UP_TEST(mpcd_cell_list_thermo_embed_gpu)
+    {
+    celllist_thermo_embed_test<mpcd::CellListGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU),
+        make_scalar3(2.0, 2.0, 2.0),
+        make_scalar3(0, 0, 0));
     }
 #endif // ENABLE_HIP

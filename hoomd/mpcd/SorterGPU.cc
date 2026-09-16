@@ -16,18 +16,15 @@ namespace hoomd
  */
 mpcd::SorterGPU::SorterGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Trigger> trigger)
-    : mpcd::Sorter(sysdef, trigger)
+    : mpcd::Sorter(sysdef, trigger), m_cell_id(m_exec_conf)
     {
-    m_sentinel_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                            m_exec_conf,
-                                            "mpcd_sort_sentinel"));
-    m_reverse_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                           m_exec_conf,
-                                           "mpcd_sort_reverse"));
+    m_compute_order_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                                 m_exec_conf,
+                                                 "mpcd_sort_sentinel"));
     m_apply_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                          m_exec_conf,
                                          "mpcd_sort_apply"));
-    m_autotuners.insert(m_autotuners.end(), {m_sentinel_tuner, m_reverse_tuner, m_apply_tuner});
+    m_autotuners.insert(m_autotuners.end(), {m_compute_order_tuner, m_apply_tuner});
     }
 
 /*!
@@ -39,64 +36,38 @@ mpcd::SorterGPU::SorterGPU(std::shared_ptr<SystemDefinition> sysdef,
  */
 void mpcd::SorterGPU::computeOrder(uint64_t timestep)
     {
-    // compute the cell list at current timestep, guarantees owned particles are on rank
-    m_cl->compute(timestep);
-
-        // fill the empty cell list entries with a sentinel larger than number of MPCD particles
+    // ensure auxiliary array is correct size
+    const unsigned int mpcd_N = m_mpcd_pdata->getN();
+    if (mpcd_N > m_cell_id.getNumElements())
         {
-        ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
-                                              access_location::device,
-                                              access_mode::readwrite);
-        ArrayHandle<unsigned int> d_cell_np(m_cl->getCellSizeArray(),
-                                            access_location::device,
-                                            access_mode::read);
-
-        m_sentinel_tuner->begin();
-        mpcd::gpu::sort_set_sentinel(d_cell_list.data,
-                                     d_cell_np.data,
-                                     m_cl->getCellListIndexer(),
-                                     0xffffffff,
-                                     m_sentinel_tuner->getParam()[0]);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_sentinel_tuner->end();
+        GPUArray<unsigned int> cell_id(mpcd_N, m_exec_conf);
+        m_cell_id.swap(cell_id);
         }
 
-        // use thrust to select out the indexes of MPCD particles
+        // compute the cell list at current timestep, guarantees owned particles are on rank
+        // create an order to sort the particle indices by their cell
         {
-        ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
-                                              access_location::device,
-                                              access_mode::read);
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::overwrite);
-        const unsigned int num_select
-            = mpcd::gpu::sort_cell_compact(d_order.data,
-                                           d_cell_list.data,
-                                           m_cl->getCellListIndexer().getNumElements(),
-                                           m_mpcd_pdata->getN());
+        ArrayHandle<unsigned int> d_cell_id(m_cell_id,
+                                            access_location::device,
+                                            access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(),
+                                   access_location::device,
+                                   access_mode::read);
+        m_compute_order_tuner->begin();
+        mpcd::gpu::set_order(d_order.data,
+                             d_cell_id.data,
+                             d_vel.data,
+                             mpcd_N,
+                             m_compute_order_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        if (num_select != m_mpcd_pdata->getN())
-            {
-            m_exec_conf->msg->error()
-                << "Error compacting cell list for sorting, lost particles." << std::endl;
-            }
-        }
+        m_compute_order_tuner->end();
 
-        // fill out the reverse ordering map
-        {
-        ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rorder(m_rorder,
-                                           access_location::device,
-                                           access_mode::overwrite);
-
-        m_reverse_tuner->begin();
-        mpcd::gpu::sort_gen_reverse(d_rorder.data,
-                                    d_order.data,
-                                    m_mpcd_pdata->getN(),
-                                    m_reverse_tuner->getParam()[0]);
+        // perform sorting
+        mpcd::gpu::compute_order(d_order.data, d_cell_id.data, mpcd_N);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        m_reverse_tuner->end();
         }
     }
 
