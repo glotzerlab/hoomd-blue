@@ -9,6 +9,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairYLZ.cc
+                   AnisoPotentialPairOriQuench.cc
                    AnisoPotentialPairGB.cc
                    AlchemyData.cc
                    BendingRigidityMeshForceCompute.cc
@@ -114,6 +115,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairFrictionLJBase.h
                 EvaluatorPairFrictionLJVariants.h
                 EvaluatorPairYLZ.h
+                EvaluatorPairOriQuench.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
                 EvaluatorPairDPDThermoDPD.h

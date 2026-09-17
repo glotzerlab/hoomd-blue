@@ -280,6 +280,102 @@ class YLZ(AnisotropicPair):
         self._extend_typeparam((params, mu))
 
 
+class OriQuench(AnisotropicPair):
+    r"""Gay-Berne anisotropic pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    `GayBerne` computes the Gay-Berne anisotropic pair force on every particle
+    in the simulation state. This version of the Gay-Berne force supports
+    identical pairs of uniaxial ellipsoids, with orientation-independent
+    energy-well depth. The potential comes from the following paper `Allen et.
+    al. 2006`_.
+
+    .. _Allen et. al. 2006: https://dx.doi.org/10.1080/00268970601075238
+
+    .. math::
+        U(\vec r, \vec e_i, \vec e_j) =
+        \begin{cases}
+        4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right]
+        & \zeta < \zeta_{\mathrm{cut}} \\
+        0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+        \end{cases}
+
+    where
+
+    .. math::
+
+        \begin{split}
+        \zeta &= \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}
+                           {\sigma_{\mathrm{min}}}\right), \\
+        \sigma^{-2} &= \frac{1}{2} \hat{\vec{r}}
+            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}}, \\
+        \vec{H} &= 2 \ell_\perp^2 \vec{1}
+            + (\ell_\parallel^2 - \ell_\perp^2)
+              (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j}),
+        \end{split}
+
+    and :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
+    The parallel direction is aligned with *z* axis in the particle's
+    reference frame.
+
+    The cut-off parameter :math:`r_{\mathrm{cut}}` is defined for two particles
+    oriented parallel along the **long** axis, i.e.
+    :math:`\zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}}
+    + \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)`
+    where :math:`\sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel)` .
+
+    The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the
+    semi-axis lengths parallel and perpendicular to particle orientation.
+
+    Example::
+
+        nl = nlist.Cell()
+        gay_berne = md.pair.aniso.GayBerne(nlist=nl, default_r_cut=2.5)
+        gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
+        gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
+
+    {inherited}
+
+
+    **Members defined in** `GayBerne`:
+
+    .. py:attribute:: params
+
+        The Gay-Berne potential parameters. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
+        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp`
+          :math:`[\mathrm{length}]`
+        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel`
+          :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    _cpp_class_name = "AnisoPotentialPairOriQuench"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None, mode="none"):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(A=float, tau=float, d=float, len_keys=2),
+        )
+        mu = TypeParameter(
+            "mu", "particle_types", TypeParameterDict((float, float, float), len_keys=1)
+        )
+        self._extend_typeparam((params, mu))
+
 class GayBerne(AnisotropicPair):
     r"""Gay-Berne anisotropic pair force.
 
@@ -1370,6 +1466,7 @@ __all__ = [
     "ALJ",
     "YLZ",
     "AnisotropicPair",
+    "OriQuench",
     "Dipole",
     "GayBerne",
     "Patchy",

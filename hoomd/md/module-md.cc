@@ -81,6 +81,7 @@ void export_AnisoPotentialPairALJ2D(pybind11::module& m);
 void export_AnisoPotentialPairALJ3D(pybind11::module& m);
 void export_AnisoPotentialPairDipole(pybind11::module& m);
 void export_AnisoPotentialPairYLZ(pybind11::module& m);
+void export_AnisoPotentialPairOriQuench(pybind11::module& m);
 void export_AnisoPotentialPairGB(pybind11::module& m);
 void export_AnisoPotentialPairPatchyExpandedGaussian(pybind11::module& m);
 ;
@@ -422,6 +423,7 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairALJ3D(m);
     export_AnisoPotentialPairDipole(m);
     export_AnisoPotentialPairYLZ(m);
+    export_AnisoPotentialPairOriQuench(m);
     export_AnisoPotentialPairGB(m);
     export_AnisoPotentialPairPatchyExpandedGaussian(m);
     export_AnisoPotentialPairPatchyExpandedLJ(m);
