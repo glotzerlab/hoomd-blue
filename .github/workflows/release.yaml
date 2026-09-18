@@ -27,7 +27,7 @@ defaults:
 jobs:
   release:
     name: Build release tarball
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
     - name: Checkout
@@ -80,7 +80,7 @@ jobs:
   check:
     name: Check [GitHub]
     needs: [release]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
     - name: Download artifacts
@@ -94,7 +94,7 @@ jobs:
   publish:
     name: Publish [GitHub]
     needs: [release]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: startsWith(github.ref, 'refs/tags/v')
     environment: release
     permissions:
