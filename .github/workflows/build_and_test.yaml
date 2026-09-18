@@ -45,7 +45,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       image: ${{ steps.set.outputs.image }}
       test_runner: ${{ steps.set.outputs.test_runner }}
