@@ -37,6 +37,7 @@ nbconvert = "*"
 nbsphinx = "*"
 pandoc = "*"
 tornado = "*"
+sphinx-inline-tabs = "*"
 [feature.docs.pypi-dependencies]
 sphinxcontrib-katex = "*"
 sphinx-copybutton = "*"

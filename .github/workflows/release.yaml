@@ -38,7 +38,7 @@ jobs:
         path: code
 
     - name: Install tools
-      run: sudo apt-get install pcregrep pandoc
+      run: sudo apt-get install pcre2-utils pandoc
 
     - name: Determine last tag via git describe
       if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}

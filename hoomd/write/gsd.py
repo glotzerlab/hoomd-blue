@@ -52,7 +52,7 @@ class GSD(Writer):
         logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
             to `None`.
         precision (str): Write precision for floating-point data. One of
-        ``'single'`` or ``'double'``. Defaults to ``'single'``.
+            ``'single'`` or ``'double'``. Defaults to ``'single'``.
 
     `GSD` writes the simulation trajectory to the specified file in the GSD
     format. `GSD` can store all particle, bond, angle, dihedral, improper,
@@ -202,7 +202,7 @@ class GSD(Writer):
 
                 truncate = gsd.truncate
 
-        dynamic (list[str]): Field names and/or field categores to save in
+        dynamic (list[str]): Field names and/or field categories to save in
             all frames.
 
             .. rubric:: Examples:
@@ -288,7 +288,7 @@ class GSD(Writer):
 
     .. py:attribute:: dynamic
 
-        Field names and/or field categores to save in all frames.
+        Field names and/or field categories to save in all frames.
         `Read more... <hoomd.write.GSD.dynamic>`
 
     .. py:attribute:: write_diameter
