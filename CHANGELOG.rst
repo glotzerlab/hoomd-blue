@@ -4,7 +4,7 @@ Change Log
 7.x
 ---
 
-Next release
+7.2.0 (2026-09-22)
 ^^^^^^^^^^^^^^^^^^^^
 
 *Added*

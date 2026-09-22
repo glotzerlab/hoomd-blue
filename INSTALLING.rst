@@ -24,19 +24,19 @@ channel:
 
     .. code-block:: bash
 
-        pixi add hoomd=7.1.2
+        pixi add hoomd=7.2.0
 
 .. tab:: Micromamba
 
     .. code-block:: bash
 
-        micromamba install hoomd=7.1.2
+        micromamba install hoomd=7.2.0
 
 .. tab:: Mamba
 
     .. code-block:: bash
 
-        mamba install hoomd=7.1.2
+        mamba install hoomd=7.2.0
 
 .. _conda-forge: https://conda-forge.org/docs/user/introduction.html
 
@@ -56,7 +56,7 @@ appropriate package. Override this and force the GPU enabled package installatio
 
     .. code-block:: bash
 
-        pixi add "hoomd=7.1.2=*gpu*"
+        pixi add "hoomd=7.2.0=*gpu*"
 
 
 .. tab:: Micromamba
@@ -64,14 +64,14 @@ appropriate package. Override this and force the GPU enabled package installatio
     .. code-block:: bash
 
         export CONDA_OVERRIDE_CUDA="12.9"
-        micromamba install "hoomd=7.1.2=*gpu*" "cuda-version=12.9"
+        micromamba install "hoomd=7.2.0=*gpu*" "cuda-version=12.9"
 
 .. tab:: Mamba
 
     .. code-block:: bash
 
         export CONDA_OVERRIDE_CUDA="12.9"
-        mamba install "hoomd=7.1.2=*gpu*" "cuda-version=12.9"
+        mamba install "hoomd=7.2.0=*gpu*" "cuda-version=12.9"
 
 .. note::
 
@@ -85,16 +85,16 @@ Similarly, you can force CPU-only package installation with:
 
     .. code-block:: bash
 
-        pixi add "hoomd=7.1.2=*cpu*"
+        pixi add "hoomd=7.2.0=*cpu*"
 
 .. tab:: Micromamba
 
     .. code-block:: bash
 
-        micromamba install "hoomd=7.1.2=*cpu*"
+        micromamba install "hoomd=7.2.0=*cpu*"
 
 .. tab:: Mamba
 
     .. code-block:: bash
 
-        mamba install "hoomd=7.1.2=*cpu*"
+        mamba install "hoomd=7.2.0=*cpu*"
