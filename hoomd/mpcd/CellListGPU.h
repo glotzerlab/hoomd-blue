@@ -49,9 +49,6 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     void computeNetProperties() override;
 
 #ifdef ENABLE_MPI
-    //! Determine if embedded particles require migration on the gpu
-    virtual bool needsEmbedMigrate(uint64_t timestep);
-
     //! Fills ghost buffer arrays and determine where to send them
     virtual void fillGhostBuffers();
 

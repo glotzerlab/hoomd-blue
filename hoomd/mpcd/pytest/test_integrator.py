@@ -152,6 +152,18 @@ def test_mpcd_particle_sorter(make_simulation):
     assert ig.mpcd_particle_sorter is sorter
 
 
+def test_mpcd_migrate_delay(make_simulation):
+    sim = make_simulation()
+    ig = hoomd.mpcd.Integrator(dt=0.1)
+    sim.operations.integrator = ig
+
+    assert ig.mpcd_migrate_delay == 0
+    ig.mpcd_migrate_delay = 2
+    assert ig.mpcd_migrate_delay == 2
+    sim.run(0)
+    assert ig.mpcd_migrate_delay == 2
+
+
 def test_attach_and_detach(make_simulation):
     sim = make_simulation()
     ig = hoomd.mpcd.Integrator(dt=0.1)

@@ -27,7 +27,6 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/SystemDefinition.h"
 
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <vector>
@@ -85,13 +84,6 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     //! \name communication methods
     //@{
 
-    //! Interface to the communication methods
-    /*!
-     * This method is supposed to be called every time step and automatically performs all necessary
-     * communication steps.
-     */
-    void communicate(uint64_t timestep);
-
     //! Migrate particle data to local domain
     /*!
      * This methods finds all the particles that are no longer inside the domain
@@ -106,55 +98,32 @@ class PYBIND11_EXPORT Communicator : public Autotuned
      */
     virtual void migrateParticles(uint64_t timestep);
 
-    //! Migration signal type
-    typedef Nano::Signal<bool(uint64_t timestep)> MigrateSignal;
-
-    //! Get the migrate request signal
-    /*!
-     * \returns A signal that subscribers can attach a callback to request particle migration
-     *          at the current timestep.
-     */
-    MigrateSignal& getMigrateRequestSignal()
+    //! Get number of timesteps to wait to try migration
+    uint64_t getMigrateDelay() const
         {
-        return m_migrate_requests;
+        return m_migrate_delay;
         }
 
-    //! Force a particle migration to occur on the next call to communicate()
+    //! Set number of timesteps to wait to try migration
+    void setMigrateDelay(uint64_t migrate_delay)
+        {
+        m_migrate_delay = migrate_delay;
+        }
+
+    //! Force a particle migration to occur on the next call
     void forceMigrate()
         {
         m_force_migrate = true;
         }
+
+    //! Check if migration should be attempted
+    bool shouldMigrate(uint64_t timestep) const;
+
     //@}
-
-    //! Get the cell list used for determining when communication is needed
-    std::shared_ptr<mpcd::CellList> getCellList() const
-        {
-        return m_cl;
-        }
-
-    //! Set the cell list used for determining when communication is needed
-    virtual void setCellList(std::shared_ptr<mpcd::CellList> cl)
-        {
-        if (cl != m_cl)
-            {
-            detachCallbacks();
-            m_cl = cl;
-            if (m_cl)
-                {
-                attachCallbacks();
-                }
-            }
-        }
 
     protected:
     //! Set the communication flags for the particle data
-    virtual void setCommFlags(const BoxDim& box);
-
-    //! Checks for overdecomposition
-    void checkDecomposition();
-
-    //! Get the wrapping box for this rank
-    BoxDim getWrapBox(const BoxDim& box);
+    virtual void setCommFlags();
 
     //! Returns true if we are communicating particles along a given direction
     /*!
@@ -179,12 +148,14 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
-    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
 
-    bool m_is_communicating;    //!< Whether we are currently communicating
-    bool m_check_decomposition; //!< Flag to check the simulation box decomposition
+    bool m_configure_decomposition; //!< Flag to configure the simulation box decomposition
+
+    uint64_t m_migrate_delay; //!< Number of timesteps to wait before
+    uint64_t m_last_migrate;  //!< Last timestep that migration occurred
+    bool m_force_migrate;     //!< If true, force particle migration
 
     const static unsigned int neigh_max;       //!< Maximum number of neighbor ranks
     GPUArray<unsigned int> m_neighbors;        //!< Neighbor ranks
@@ -202,21 +173,12 @@ class PYBIND11_EXPORT Communicator : public Autotuned
     GPUVector<mpcd::detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
     std::vector<MPI_Request> m_reqs;                  //!< MPI requests
 
-    //! Attach callback signals
-    void attachCallbacks();
-
-    //! Detach callback signals
-    void detachCallbacks();
-
     private:
     //! Notify communicator that box has changed and so decomposition needs to be checked
     void slotBoxChanged()
         {
-        m_check_decomposition = true;
+        m_configure_decomposition = true;
         }
-
-    MigrateSignal m_migrate_requests; //!< Signal to request migration
-    bool m_force_migrate;             //!< If true, force particle migration
     };
     } // end namespace mpcd
     } // end namespace hoomd

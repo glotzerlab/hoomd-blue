@@ -40,7 +40,6 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef, Scalar cell_s
 
 #ifdef ENABLE_MPI
     m_decomposition = m_pdata->getDomainDecomposition();
-    m_cover_box = m_pdata->getBox();
     m_mpi_comm = m_exec_conf->getMPICommunicator();
     initializeCommunicationSetup();
 #endif // ENABLE_MPI
@@ -76,7 +75,6 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
 
 #ifdef ENABLE_MPI
     m_decomposition = m_pdata->getDomainDecomposition();
-    m_cover_box = m_pdata->getBox();
     m_mpi_comm = m_exec_conf->getMPICommunicator();
     initializeCommunicationSetup();
 #endif // ENABLE_MPI
@@ -125,20 +123,6 @@ void mpcd::CellList::compute(uint64_t timestep)
         {
         // ensure grid is shifted
         drawGridShift(timestep);
-
-#ifdef ENABLE_MPI
-        // exchange embedded particles if necessary
-        if (m_sysdef->isDomainDecomposed() && needsEmbedMigrate(timestep))
-            {
-            auto comm = m_sysdef->getCommunicator().lock();
-            if (!comm)
-                {
-                throw std::runtime_error("Embedded particle communicator needed but not set");
-                }
-            comm->forceMigrate();
-            comm->communicate(timestep);
-            }
-#endif // ENABLE_MPI
 
         // resize to be able to hold the number of embedded particles
         if (m_embed_group)
@@ -210,76 +194,34 @@ void mpcd::CellList::computeDimensions()
                          static_cast<uint>(std::round(fractional_lo.y * m_global_cell_dim.y)),
                          static_cast<uint>(std::round(fractional_lo.z * m_global_cell_dim.z)));
 
-        const Scalar3 fractional_lo_shifted_down = fractional_lo - m_max_grid_shift;
-        int3 cover_lo_bin
-            = make_int3((int)std::floor(fractional_lo_shifted_down.x * m_global_cell_dim.x),
-                        (int)std::floor(fractional_lo_shifted_down.y * m_global_cell_dim.y),
-                        (int)std::floor(fractional_lo_shifted_down.z * m_global_cell_dim.z));
-
         // setup hi bin
         uint3 my_hi_bin
             = make_uint3(static_cast<uint>(std::round(fractional_hi.x * m_global_cell_dim.x)),
                          static_cast<uint>(std::round(fractional_hi.y * m_global_cell_dim.y)),
                          static_cast<uint>(std::round(fractional_hi.z * m_global_cell_dim.z)));
 
-        const Scalar3 fractional_hi_shifted_up = fractional_hi + m_max_grid_shift;
-        int3 cover_hi_bin
-            = make_int3((int)std::ceil(fractional_hi_shifted_up.x * m_global_cell_dim.x),
-                        (int)std::ceil(fractional_hi_shifted_up.y * m_global_cell_dim.y),
-                        (int)std::ceil(fractional_hi_shifted_up.z * m_global_cell_dim.z));
         // initially size the grid assuming one rank in each direction, and then resize based on
         // communication
         m_cell_dim = m_global_cell_dim;
         m_origin_idx = make_uint3(0, 0, 0);
-
-        // Compute size of the box with diffusion layer
-        const BoxDim& global_box = m_pdata->getGlobalBox();
-        uchar3 cover_periodic = global_box.getPeriodic();
-        Scalar3 fractional_cover_lo = fractional_lo;
-        Scalar3 fractional_cover_hi = fractional_hi;
-
         if (communicating.x)
             {
             // number of cells and cell origin
             m_cell_dim.x = my_hi_bin.x - my_lo_bin.x;
             m_origin_idx.x = my_lo_bin.x;
-
-            // "safe" size of the diffusion layer
-            fractional_cover_lo.x = m_global_cell_dim_inv.x * cover_lo_bin.x + m_max_grid_shift.x;
-            fractional_cover_hi.x = m_global_cell_dim_inv.x * (cover_hi_bin.x) - m_max_grid_shift.x;
-            cover_periodic.x = 0;
             }
 
         if (communicating.y)
             {
             m_cell_dim.y = my_hi_bin.y - my_lo_bin.y;
             m_origin_idx.y = my_lo_bin.y;
-
-            fractional_cover_lo.y = m_global_cell_dim_inv.y * cover_lo_bin.y + m_max_grid_shift.y;
-            fractional_cover_hi.y = m_global_cell_dim_inv.y * (cover_hi_bin.y) - m_max_grid_shift.y;
-            cover_periodic.y = 0;
             }
 
         if (m_sysdef->getNDimensions() == 3 && communicating.z)
             {
             m_cell_dim.z = my_hi_bin.z - my_lo_bin.z;
             m_origin_idx.z = my_lo_bin.z;
-
-            fractional_cover_lo.z = m_global_cell_dim_inv.z * cover_lo_bin.z + m_max_grid_shift.z;
-            fractional_cover_hi.z = m_global_cell_dim_inv.z * (cover_hi_bin.z) - m_max_grid_shift.z;
-            cover_periodic.z = 0;
             }
-
-        // set the box covered by this cell list
-        // this requires us to reduce the box back to equivalent cube lengths
-        const Scalar3 global_lo = global_box.getLo();
-        const Scalar3 global_L = global_box.getL();
-        m_cover_box = BoxDim(global_lo + fractional_cover_lo * global_L,
-                             global_lo + fractional_cover_hi * global_L,
-                             cover_periodic);
-        m_cover_box.setTiltFactors(global_box.getTiltFactorXY(),
-                                   global_box.getTiltFactorXZ(),
-                                   global_box.getTiltFactorYZ());
         }
     else
 #endif // ENABLE_MPI
@@ -812,49 +754,6 @@ void mpcd::CellList::initializeCommunicationSetup()
         // sort neighbors according to how directions will be sorted
         sort(m_adj_dir.begin(), m_adj_dir.end(), std::less<uint>());
         }
-    }
-
-bool mpcd::CellList::needsEmbedMigrate(uint64_t timestep)
-    {
-    // no migrate needed if no embedded particles
-    if (!m_embed_group)
-        return false;
-
-    // ensure that the cell list has been sized first
-    computeDimensions();
-
-    // coverage box dimensions
-    const uchar3 periodic = m_cover_box.getPeriodic();
-    const unsigned int ndim = m_sysdef->getNDimensions();
-
-    // particle data
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_group(m_embed_group->getIndexArray(),
-                                      access_location::host,
-                                      access_mode::read);
-    const unsigned int N = m_embed_group->getNumMembers();
-
-    // check if any particle lies outside of the box on this rank
-    char migrate = 0;
-    for (unsigned int i = 0; i < N && !migrate; ++i)
-        {
-        const unsigned int idx = h_group.data[i];
-        const Scalar4 postype = h_pos.data[idx];
-        const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        const Scalar3 fractional_pos = m_cover_box.makeFraction(pos);
-        if ((!periodic.x && (fractional_pos.x >= Scalar(1.0) || fractional_pos.x < Scalar(0.0)))
-            || (!periodic.y && (fractional_pos.y >= Scalar(1.0) || fractional_pos.y < Scalar(0.0)))
-            || (!periodic.z && ndim == 3
-                && (fractional_pos.z >= Scalar(1.0) || fractional_pos.z < Scalar(0.0))))
-            {
-            migrate = 1;
-            }
-        }
-
-    // reduce across all ranks
-    MPI_Allreduce(MPI_IN_PLACE, &migrate, 1, MPI_CHAR, MPI_MAX, m_exec_conf->getMPICommunicator());
-
-    return static_cast<bool>(migrate);
     }
 
 void mpcd::CellList::fillGhostBuffers()

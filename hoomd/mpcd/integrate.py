@@ -79,6 +79,14 @@ class Integrator(_MDIntegrator):
     The MD particles can be read at any time step because their positions
     are updated every step.
 
+    In multiprocessor (MPI) simulations, MPCD particles are migrated between
+    ranks at regular intervals. The domain decomposition strategy used allows
+    them to migrate nearly the entire size of a neighboring domain before
+    communication is required, but more frequent migration will likely lead to
+    improved performance. It is recommended to tune this parameter for your
+    simulation. See `mpcd_migrate_delay` for a description of how the
+    default value of this parameter is deduced at run time.
+
     .. rubric:: Examples:
 
     .. invisible-code-block: python
@@ -164,6 +172,32 @@ class Integrator(_MDIntegrator):
 
         streaming_method (hoomd.mpcd.stream.StreamingMethod): Streaming method
             for the MPCD particles.
+
+        mpcd_migrate_delay (int): How many timesteps to wait before migrating
+            MPCD particles to new ranks.
+
+            .. note::
+                This attribute is only available if `hoomd.version.mpi_enabled`
+                is `True`.
+
+            The value of `mpcd_migrate_delay` must be small enough that
+            particles do not cross beyond neighbor ranks during this time.
+            Making it too large may also reduce performance because more
+            particles must be communicated by the `collision_method`. It should
+            typically not be smaller than the number of steps between
+            collisions.
+
+            If you do not set a value, the default is chosen for the run based
+            on the following priority:
+
+            * The number of steps between collisions
+              (`hoomd.mpcd.collide.CollisionMethod.period`), if
+              `collision_method` is not `None`.
+            * The number of steps between streaming
+              (`hoomd.mpcd.stream.StreamingMethod.period`), if
+              `streaming_method` is not `None`.
+            * Every step (1).
+
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -218,6 +252,9 @@ class Integrator(_MDIntegrator):
             )
         )
         self._param_dict.update(param_dict)
+
+        if hoomd.version.mpi_enabled:
+            self._param_dict["mpcd_migrate_delay"] = 0
 
     @property
     def cell_list(self):

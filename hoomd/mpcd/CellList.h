@@ -134,21 +134,6 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Set the MPCD cell size (deprecated)
     void setCellSize(Scalar cell_size);
 
-    //! Get the box that is covered by the cell list
-    /*!
-     * In MPI simulations, this results in a calculation of the cell list
-     * dimension. In non-MPI simulations, the box is returned.
-     */
-    const BoxDim getCoverageBox()
-        {
-#ifdef ENABLE_MPI
-        computeDimensions();
-        return m_cover_box;
-#else
-        return m_pdata->getBox();
-#endif // ENABLE_MPI
-        }
-
 #ifdef ENABLE_MPI
 
     //! Get the number of ghost particles
@@ -363,7 +348,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
 #ifdef ENABLE_MPI
     std::shared_ptr<DomainDecomposition> m_decomposition;
-    BoxDim m_cover_box; //!< Box covered by the cell list
 
     GPUVector<uint2> m_mpcd_comm_key;               //!< directions to send MPCD ghosts
     GPUVector<Scalar4> m_mpcd_ghost_vel;            //!< velocity of MPCD ghost particles received
@@ -386,9 +370,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
     //! Generate a mapping of unique neighbors for ghost communication
     void initializeCommunicationSetup();
-
-    //! Determine if embedded particles require migration
-    virtual bool needsEmbedMigrate(uint64_t timestep);
 
     //! Fills ghost buffer arrays and determine where to send them
     virtual void fillGhostBuffers();

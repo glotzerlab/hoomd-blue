@@ -370,47 +370,6 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_t
 
 #ifdef ENABLE_MPI
 /*!
- * \param d_migrate_flag Flag signaling migration is required (output)
- * \param d_pos Embedded particle positions
- * \param d_group Indexes into \a d_pos for particles in embedded group
- * \param box Box covered by this domain
- * \param num_dim Dimensionality of system
- * \param N Number of particles in group
- *
- * \b Implementation
- * Using one thread per particle, each particle position is compared to the
- * bounds of the simulation box. If a particle lies outside the box, \a d_migrate_flag
- * has its bits set using an atomicMax transaction. The caller should then trigger
- * a communication step to migrate particles to their appropriate ranks.
- */
-__global__ void cell_check_migrate_embed(unsigned int* d_migrate_flag,
-                                         const Scalar4* d_pos,
-                                         const unsigned int* d_group,
-                                         const BoxDim box,
-                                         const unsigned int num_dim,
-                                         const unsigned int N)
-    {
-    // one thread per particle in group
-    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= N)
-        return;
-
-    const unsigned int idx = d_group[tid];
-    const Scalar4 postype = d_pos[idx];
-    const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-
-    const uchar3 periodic = box.getPeriodic();
-    const Scalar3 fractional_pos = box.makeFraction(pos);
-    if ((!periodic.x && (fractional_pos.x >= Scalar(1.0) || fractional_pos.x < Scalar(0.0)))
-        || (!periodic.y && (fractional_pos.y >= Scalar(1.0) || fractional_pos.y < Scalar(0.0)))
-        || (!periodic.z && num_dim == 3
-            && (fractional_pos.z >= Scalar(1.0) || fractional_pos.z < Scalar(0.0))))
-        {
-        atomicMax(d_migrate_flag, 1);
-        }
-    }
-
-/*!
  * \param d_ghost_dir_filter Filtered list of directions to send ghost
  * \param d_ghost_idx_filter Filtered list of ghost particle indexes
  * \param d_num_ghost_scan Total number of ghosts
@@ -900,44 +859,6 @@ cudaError_t mpcd::gpu::reduce_net_cell_thermo(mpcd::detail::cell_thermo_element*
     }
 
 #ifdef ENABLE_MPI
-/*!
- * \param d_migrate_flag Flag signaling migration is required (output)
- * \param d_pos Embedded particle positions
- * \param d_group Indexes into \a d_pos for particles in embedded group
- * \param box Box covered by this domain
- * \param N Number of particles in group
- * \param block_size Number of threads per block
- *
- * \sa mpcd::gpu::kernel::cell_check_migrate_embed
- */
-cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int* d_migrate_flag,
-                                                const Scalar4* d_pos,
-                                                const unsigned int* d_group,
-                                                const BoxDim& box,
-                                                const unsigned int num_dim,
-                                                const unsigned int N,
-                                                const unsigned int block_size)
-    {
-    // ensure that the flag is always zeroed even if the caller forgets
-    cudaMemset(d_migrate_flag, 0, sizeof(unsigned int));
-
-    unsigned int max_block_size;
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_check_migrate_embed);
-    max_block_size = attr.maxThreadsPerBlock;
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid(N / run_block_size + 1);
-    mpcd::gpu::kernel::cell_check_migrate_embed<<<grid, run_block_size>>>(d_migrate_flag,
-                                                                          d_pos,
-                                                                          d_group,
-                                                                          box,
-                                                                          num_dim,
-                                                                          N);
-
-    return cudaSuccess;
-    }
-
 /*!
  * \param d_tmp Temporary memory for sorting.
  * \param tmp_bytes Number of temporary bytes for sorting.
