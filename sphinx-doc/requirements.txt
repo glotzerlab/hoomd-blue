@@ -200,7 +200,7 @@ typing-extensions==4.16.0
     # via
     #   beautifulsoup4
     #   jupyter-client
-urllib3==2.7.0
+urllib3==2.8.0
     # via requests
 wcwidth==0.8.2
     # via prompt-toolkit
