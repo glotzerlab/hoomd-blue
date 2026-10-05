@@ -22,7 +22,7 @@ jobs:
     - name: prek
       uses: j178/prek-action@1382ad72dea72f9d53832f2bcb65b3e87a947204 # v3.0.1
       with:
-        prek-version: 'v0.5.4'
+        prek-version: 'v0.5.5'
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
