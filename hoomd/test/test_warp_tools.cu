@@ -113,18 +113,13 @@ template<int tpp> void warp_reduce_launcher(const reduce_params& params)
     {
     if (tpp == params.tpp)
         {
-        dim3 grid((params.N * tpp + BLOCK_SIZE - 1) / BLOCK_SIZE);
-        hipLaunchKernelGGL((warp_reduce_kernel<tpp>),
-                           dim3(grid),
-                           dim3(BLOCK_SIZE),
-                           0,
-                           0,
-                           params.data,
-                           params.reduce,
-                           params.sum,
-                           params.N,
-                           params.width,
-                           params.reduce_idx);
+        warp_reduce_kernel<tpp>
+            <<<(params.N * tpp + BLOCK_SIZE - 1) / BLOCK_SIZE, BLOCK_SIZE>>>(params.data,
+                                                                             params.reduce,
+                                                                             params.sum,
+                                                                             params.N,
+                                                                             params.width,
+                                                                             params.reduce_idx);
         }
     else
         {
@@ -241,18 +236,13 @@ template<int tpp> void warp_scan_launcher(const scan_params& params)
     {
     if (tpp == params.tpp)
         {
-        dim3 grid((params.N * tpp + BLOCK_SIZE - 1) / BLOCK_SIZE);
-        hipLaunchKernelGGL((warp_scan_kernel<tpp>),
-                           dim3(grid),
-                           dim3(BLOCK_SIZE),
-                           0,
-                           0,
-                           params.data,
-                           params.scan,
-                           params.sum,
-                           params.N,
-                           params.width,
-                           params.scan_idx);
+        warp_scan_kernel<tpp>
+            <<<(params.N * tpp + BLOCK_SIZE - 1) / BLOCK_SIZE, BLOCK_SIZE>>>(params.data,
+                                                                             params.scan,
+                                                                             params.sum,
+                                                                             params.N,
+                                                                             params.width,
+                                                                             params.scan_idx);
         }
     else
         {

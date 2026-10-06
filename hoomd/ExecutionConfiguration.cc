@@ -49,7 +49,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg)
-    : msg(_msg), m_hip_error_checking(false), m_mpi_config(mpi_config)
+    : msg(_msg), m_gpu_error_checking(false), m_mpi_config(mpi_config)
     {
     if (!m_mpi_config)
         {
@@ -277,7 +277,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
-std::string ExecutionConfiguration::describeGPU(int id, cudaDeviceProp_t prop)
+std::string ExecutionConfiguration::describeGPU(int id, cudaDeviceProp prop)
     {
     ostringstream s;
     s << "[" << id << "]";
@@ -330,7 +330,7 @@ void ExecutionConfiguration::scanGPUs()
     for (int dev = 0; dev < dev_count; dev++)
         {
         // get the device properties
-        cudaDeviceProp_t prop;
+        cudaDeviceProp prop;
         cudaError_t error = cudaGetDeviceProperties(&prop, dev);
 
         if (error != cudaSuccess)
@@ -341,21 +341,6 @@ void ExecutionConfiguration::scanGPUs()
             s_gpu_scan_messages.push_back(message);
             continue;
             }
-
-// TODO: decide if this code should still be here or not
-#if 0
-        // exclude a GPU if it's compute version is not high enough
-        int compoundComputeVer = prop.minor + prop.major * 10;
-
-        if (compoundComputeVer < CUDA_ARCH)
-            {
-            ostringstream s;
-            s << "The device " << prop.name << " with compute capability " << prop.major << "."
-              << prop.minor << " does not support HOOMD-blue.";
-            s_gpu_scan_messages.push_back(s.str());
-            continue;
-            }
-#endif
 
         // exclude a gpu if it is compute-prohibited
         if (prop.computeMode == cudaComputeModeProhibited)

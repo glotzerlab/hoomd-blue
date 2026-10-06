@@ -234,7 +234,6 @@ Other option changes take effect at any time:
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
-- ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``HOOMD_SHORTREAL_SIZE`` - Size in bits of the ``ShortReal`` type (default: ``32``).
 
   - When set to ``32``, perform HPMC overlap checks in single precision.
@@ -259,7 +258,7 @@ Other option changes take effect at any time:
 
 These options control CUDA compilation via ``nvcc``:
 
-- ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to compile.
+- ``CMAKE_CUDA_ARCHITECTURES`` - A semicolon-separated list of GPU architectures to compile.
 
 .. tip::
 

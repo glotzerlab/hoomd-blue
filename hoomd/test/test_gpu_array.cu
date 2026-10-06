@@ -32,13 +32,11 @@ __global__ void gpu_add_one_kernel(int* d_data, size_t num)
 */
 cudaError_t gpu_add_one(int* d_data, size_t num)
     {
-    unsigned int block_size = 256;
-
     // setup the grid to run the kernel
-    dim3 grid((int)ceil((double)num / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    unsigned int block_size = 256;
+    unsigned int n_blocks = (unsigned int)ceil((double)num / (double)block_size);
 
-    hipLaunchKernelGGL((gpu_add_one_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
+    gpu_add_one_kernel<<<n_blocks, block_size>>>(d_data, num);
 
     cudaDeviceSynchronize();
     return cudaPeekAtLastError();
@@ -64,19 +62,11 @@ __global__ void gpu_fill_test_pattern_kernel(int* d_data, size_t num)
 */
 cudaError_t gpu_fill_test_pattern(int* d_data, size_t num)
     {
-    unsigned int block_size = 256;
-
     // setup the grid to run the kernel
-    dim3 grid((int)ceil((double)num / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    unsigned int block_size = 256;
+    unsigned int n_blocks = (unsigned int)ceil((double)num / (double)block_size);
 
-    hipLaunchKernelGGL((gpu_fill_test_pattern_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_data,
-                       num);
+    gpu_fill_test_pattern_kernel<<<n_blocks, block_size>>>(d_data, num);
 
     cudaDeviceSynchronize();
     return cudaPeekAtLastError();

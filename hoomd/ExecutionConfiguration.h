@@ -18,6 +18,7 @@
 #include <vector>
 
 #ifdef ENABLE_GPU
+#include <cuda_profiler_api.h>
 #include <cuda_runtime.h>
 #endif
 
@@ -114,13 +115,13 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Returns true if CUDA error checking is enabled
     bool isCUDAErrorCheckingEnabled() const
         {
-        return m_hip_error_checking;
+        return m_gpu_error_checking;
         }
 
     //! Sets the hip error checking mode
     void setCUDAErrorChecking(bool hip_error_checking)
         {
-        m_hip_error_checking = hip_error_checking;
+        m_gpu_error_checking = hip_error_checking;
         }
 
     /// Select the active GPU
@@ -163,7 +164,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         }
 
 #ifdef ENABLE_GPU
-    cudaDeviceProp_t dev_prop; //!< Cached device properties of the first GPU
+    cudaDeviceProp dev_prop; //!< Cached device properties of the first GPU
 
     /// Compute capability of the GPU formatted as a tuple (major, minor)
     std::pair<unsigned int, unsigned int> getComputeCapability() const;
@@ -273,7 +274,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     void initializeGPU(int gpu_id);
 
     /// Provide a string that describes a GPU device
-    static std::string describeGPU(int id, cudaDeviceProp_t prop);
+    static std::string describeGPU(int id, cudaDeviceProp prop);
 
     /** Scans through all GPUs reported by CUDA and marks if they are available
 
@@ -288,14 +289,14 @@ class PYBIND11_EXPORT ExecutionConfiguration
     unsigned int m_gpu_id;
 
     /// Device configuration of active GPU
-    cudaDeviceProp_t m_dev_prop;
+    cudaDeviceProp m_dev_prop;
 #endif
 
     /// Execution mode
     executionMode exec_mode;
 
     /// True when GPU error checking is enabled
-    bool m_hip_error_checking;
+    bool m_gpu_error_checking;
 
     /// The MPI configuration
     std::shared_ptr<MPIConfiguration> m_mpi_config;
