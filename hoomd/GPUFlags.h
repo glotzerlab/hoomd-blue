@@ -231,7 +231,7 @@ template<class T> void GPUFlags<T>::allocate()
             h_data = (T*)ptr;
             cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
 #else
-            cudaHostMalloc(&h_data, sizeof(T), cudaHostAllocMapped);
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
 #endif
             CHECK_CUDA_ERROR();
             cudaHostGetDevicePointer((void**)&d_data, h_data, 0);
@@ -249,7 +249,7 @@ template<class T> void GPUFlags<T>::allocate()
             h_data = (T*)ptr;
             cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
 #else
-            cudaHostMalloc(&h_data, sizeof(T), cudaHostAllocDefault);
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocDefault);
 #endif
             CHECK_CUDA_ERROR();
             cudaMalloc(&d_data, sizeof(T));
@@ -282,7 +282,7 @@ template<class T> void GPUFlags<T>::deallocate()
         cudaHostUnregister(h_data);
         free(h_data);
 #else
-        cudaHostFree(h_data);
+        cudaFreeHost(h_data);
 #endif
         if (!m_mapped)
             {
