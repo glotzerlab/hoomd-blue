@@ -18,20 +18,20 @@
 #include <stdexcept>
 
 //! Need to define an error checking macro that can be used in .cu files
-#define CHECK_CUDA()                                                         \
-        {                                                                    \
-        hipError_t err = hipDeviceSynchronize();                             \
-        if (err != hipSuccess)                                               \
-            {                                                                \
-            throw std::runtime_error("CUDA Error in CachedAllocator "        \
-                                     + std::string(hipGetErrorString(err))); \
-            }                                                                \
-        err = hipGetLastError();                                             \
-        if (err != hipSuccess)                                               \
-            {                                                                \
-            throw std::runtime_error("CUDA Error in CachedAllocator "        \
-                                     + std::string(hipGetErrorString(err))); \
-            }                                                                \
+#define CHECK_CUDA()                                                          \
+        {                                                                     \
+        cudaError_t err = cudaDeviceSynchronize();                            \
+        if (err != cudaSuccess)                                               \
+            {                                                                 \
+            throw std::runtime_error("CUDA Error in CachedAllocator "         \
+                                     + std::string(cudaGetErrorString(err))); \
+            }                                                                 \
+        err = cudaGetLastError();                                             \
+        if (err != cudaSuccess)                                               \
+            {                                                                 \
+            throw std::runtime_error("CUDA Error in CachedAllocator "         \
+                                     + std::string(cudaGetErrorString(err))); \
+            }                                                                 \
         }
 
 namespace hoomd
@@ -124,14 +124,14 @@ class __attribute__((visibility("default"))) CachedAllocator
         // deallocate all outstanding blocks in both lists
         for (free_blocks_type::iterator i = m_free_blocks.begin(); i != m_free_blocks.end(); ++i)
             {
-            hipFree((void*)i->second);
+            cudaFree((void*)i->second);
             }
 
         for (allocated_blocks_type::iterator i = m_allocated_blocks.begin();
              i != m_allocated_blocks.end();
              ++i)
             {
-            hipFree((void*)i->first);
+            cudaFree((void*)i->first);
             }
         }
     };
@@ -200,9 +200,9 @@ template<typename T> T* CachedAllocator::getTemporaryBuffer(size_t num_elements)
         //            << " allocating " << float(num_bytes)/1024.0f/1024.0f << " MB" << std::endl;
 
         if (m_managed)
-            hipMallocManaged((void**)&result, num_bytes);
+            cudaMallocManaged((void**)&result, num_bytes);
         else
-            hipMalloc((void**)&result, num_bytes);
+            cudaMalloc((void**)&result, num_bytes);
         CHECK_CUDA();
 
         m_num_bytes_tot += num_bytes;
@@ -216,7 +216,7 @@ template<typename T> T* CachedAllocator::getTemporaryBuffer(size_t num_elements)
             //                << "reached; removing unused block ("
             //                << float(i->first)/1024.0f/1024.0f << " MB)" << std::endl;
 
-            hipFree((void*)i->second);
+            cudaFree((void*)i->second);
 
             CHECK_CUDA();
             m_num_bytes_tot -= i->first;

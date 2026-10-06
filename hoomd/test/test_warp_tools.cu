@@ -141,8 +141,8 @@ template<> void warp_reduce_launcher<0>(const reduce_params& params) { }
  */
 void warp_reduce(const reduce_params& params)
     {
-    hipMemset(params.reduce, 0, params.reduce_idx.getNumElements() * sizeof(int));
-    hipMemset(params.sum, 0, params.N * sizeof(int));
+    cudaMemset(params.reduce, 0, params.reduce_idx.getNumElements() * sizeof(int));
+    cudaMemset(params.sum, 0, params.N * sizeof(int));
     warp_reduce_launcher<MAX_TPP>(params);
     }
 
@@ -269,8 +269,8 @@ template<> void warp_scan_launcher<0>(const scan_params& params) { }
  */
 void warp_scan(const scan_params& params)
     {
-    hipMemset(params.scan, 0, params.scan_idx.getNumElements() * sizeof(int));
-    hipMemset(params.sum, 0, params.N * sizeof(int));
+    cudaMemset(params.scan, 0, params.scan_idx.getNumElements() * sizeof(int));
+    cudaMemset(params.sum, 0, params.N * sizeof(int));
     warp_scan_launcher<MAX_TPP>(params);
     }
 

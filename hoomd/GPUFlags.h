@@ -229,12 +229,12 @@ template<class T> void GPUFlags<T>::allocate()
                 throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
-            hipHostRegister(h_data, sizeof(T), hipHostRegisterMapped);
+            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
 #else
-            hipHostMalloc(&h_data, sizeof(T), hipHostMallocMapped);
+            cudaHostMalloc(&h_data, sizeof(T), cudaHostMallocMapped);
 #endif
             CHECK_CUDA_ERROR();
-            hipHostGetDevicePointer((void**)&d_data, h_data, 0);
+            cudaHostGetDevicePointer((void**)&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
@@ -247,12 +247,12 @@ template<class T> void GPUFlags<T>::allocate()
                 throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
-            hipHostRegister(h_data, sizeof(T), hipHostRegisterDefault);
+            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
 #else
-            hipHostMalloc(&h_data, sizeof(T), hipHostMallocDefault);
+            cudaHostMalloc(&h_data, sizeof(T), cudaHostMallocDefault);
 #endif
             CHECK_CUDA_ERROR();
-            hipMalloc(&d_data, sizeof(T));
+            cudaMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
         }
@@ -279,14 +279,14 @@ template<class T> void GPUFlags<T>::deallocate()
         {
         assert(d_data);
 #ifdef ENABLE_MPI
-        hipHostUnregister(h_data);
+        cudaHostUnregister(h_data);
         free(h_data);
 #else
-        hipHostFree(h_data);
+        cudaHostFree(h_data);
 #endif
         if (!m_mapped)
             {
-            hipFree(d_data);
+            cudaFree(d_data);
             }
         }
     else
@@ -319,7 +319,7 @@ template<class T> void GPUFlags<T>::memclear()
     // wait for the device to catch up
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_mapped)
         {
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         }
 #endif
 
@@ -329,7 +329,7 @@ template<class T> void GPUFlags<T>::memclear()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && !m_mapped)
         {
         assert(d_data);
-        hipMemset(d_data, 0, sizeof(T));
+        cudaMemset(d_data, 0, sizeof(T));
         }
 #endif
     }
@@ -345,14 +345,14 @@ template<class T> const T GPUFlags<T>::readFlags()
     if (m_mapped)
         {
         // synch to wait for kernels
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         }
     else
         {
         if (m_exec_conf->isCUDAEnabled())
             {
             // memcpy the results to the host
-            hipMemcpy(h_data, d_data, sizeof(T), hipMemcpyDeviceToHost);
+            cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
             }
         }
 #endif
@@ -372,7 +372,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         {
 #ifdef ENABLE_GPU
         // synch to wait for kernels
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
 #endif
         // set the flags
         *h_data = flags;
@@ -385,7 +385,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         if (m_exec_conf->isCUDAEnabled())
             {
             // copy to the device
-            hipMemcpy(d_data, h_data, sizeof(T), hipMemcpyHostToDevice);
+            cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
             }
 #endif
         }

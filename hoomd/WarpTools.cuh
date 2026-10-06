@@ -139,7 +139,7 @@ class WarpReduce
  * size (32 threads) and (2) a power of 2. For additional details about any operator, refer to the
  * CUB documentation.
  *
- * This class is a thin wrapper around hipcub::WarpScan. The CUB scan classes nominally request
+ * This class is a thin wrapper around cub::WarpScan. The CUB scan classes nominally request
  * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based scan
  * does not use any shared memory, and so this temporary variable is put unused into a register. The
  * compiler can then optimize this out. Care must be taken to monitor the CUB implementation in
@@ -195,7 +195,7 @@ class WarpScan
      * \param output Result of scan for this thread.
      * \param scan_op Binary scan operator.
      *
-     * This operator is equivalent to InclusiveSum if \a scan_op were hipcub::Sum().
+     * This operator is equivalent to InclusiveSum if \a scan_op were cub::Sum().
      *
      * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
      */
@@ -214,7 +214,7 @@ class WarpScan
      * \param scan_op Binary scan operator.
      * \param aggregate Total scan of all threads.
      *
-     * This operator is equivalent to InclusiveSum if \a scan_op were hipcub::Sum().
+     * This operator is equivalent to InclusiveSum if \a scan_op were cub::Sum().
      *
      * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
      */
@@ -262,7 +262,7 @@ class WarpScan
      * \param output Result of scan for this thread.
      * \param scan_op Binary scan operator.
      *
-     * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum().
+     * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum().
      *
      * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
      */
@@ -282,7 +282,7 @@ class WarpScan
      * \param initial Initial value for exclusive sum within logical warp.
      * \param scan_op Binary scan operator.
      *
-     * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum() and \a initial
+     * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum() and \a initial
      * were zero.
      *
      * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
@@ -304,7 +304,7 @@ class WarpScan
      * \param scan_op Binary scan operator.
      * \param aggregate Total scan of all threads.
      *
-     * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum().
+     * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum().
      *
      * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
      */
@@ -326,7 +326,7 @@ class WarpScan
      * \param scan_op Binary scan operator.
      * \param aggregate Total scan of all threads.
      *
-     * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum() and \a initial
+     * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum() and \a initial
      * were zero.
      *
      * \tparam ScanOpT <b>inferred</b> Binary scan operator type.

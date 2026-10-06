@@ -184,8 +184,8 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
         {
         m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << std::endl;
 #ifdef ENABLE_GPU
-        hipEventDestroy(m_start);
-        hipEventDestroy(m_stop);
+        cudaEventDestroy(m_start);
+        cudaEventDestroy(m_stop);
 #endif
         }
 
@@ -219,7 +219,7 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
         // if we are scanning, record a cuda event - otherwise do nothing
         if (m_state == SCANNING)
             {
-            hipEventRecord(m_start, 0);
+            cudaEventRecord(m_start, 0);
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -377,8 +377,8 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
 
 #ifdef ENABLE_GPU
-    hipEvent_t m_start; //!< CUDA event for recording start times
-    hipEvent_t m_stop;  //!< CUDA event for recording end times
+    cudaEvent_t m_start; //!< CUDA event for recording start times
+    cudaEvent_t m_stop;  //!< CUDA event for recording end times
 #endif
 
     /// Synchronize results over MPI when true.
@@ -492,8 +492,8 @@ Autotuner<n_dimensions>::Autotuner(
 
 // create CUDA events
 #ifdef ENABLE_GPU
-    hipEventCreate(&m_start);
-    hipEventCreate(&m_stop);
+    cudaEventCreate(&m_start);
+    cudaEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
 #endif
 
@@ -506,9 +506,9 @@ template<size_t n_dimensions> void Autotuner<n_dimensions>::end()
     // handle timing updates if scanning
     if (m_state == SCANNING)
         {
-        hipEventRecord(m_stop, 0);
-        hipEventSynchronize(m_stop);
-        hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+        cudaEventRecord(m_stop, 0);
+        cudaEventSynchronize(m_stop);
+        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
 
         m_exec_conf->msg->notice(9)
             << "Autotuner " << m_name << ": t[" << formatParam(m_current_param) << ","

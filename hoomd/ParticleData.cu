@@ -11,7 +11,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -258,10 +258,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     unsigned int* d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
     assert(d_scan);
 
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of sent particles
@@ -269,11 +269,11 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     temp_storage_bytes = 0;
     unsigned int* d_n_out = (unsigned int*)alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_out);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
     alloc.deallocate((char*)d_temp_storage);
-    hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_out, d_n_out, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_n_out);
 
     // Don't write past end of buffer

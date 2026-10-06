@@ -6,7 +6,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
@@ -58,10 +58,10 @@ __global__ void gpu_scatter_member_indices(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-hipError_t gpu_rebuild_index_list(unsigned int N,
-                                  unsigned int* d_is_member_tag,
-                                  unsigned int* d_is_member,
-                                  unsigned int* d_tag)
+cudaError_t gpu_rebuild_index_list(unsigned int N,
+                                   unsigned int* d_is_member_tag,
+                                   unsigned int* d_is_member,
+                                   unsigned int* d_tag)
     {
     assert(d_is_member);
     assert(d_is_member_tag);
@@ -71,7 +71,7 @@ hipError_t gpu_rebuild_index_list(unsigned int N,
     unsigned int n_blocks = N / block_size + 1;
 
     gpu_rebuild_index_list_kernel<<<n_blocks, block_size>>>(N, d_tag, d_is_member_tag, d_is_member);
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! GPU method for compacting the group member indices
@@ -82,12 +82,12 @@ hipError_t gpu_rebuild_index_list(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-hipError_t gpu_compact_index_list(unsigned int N,
-                                  unsigned int* d_is_member,
-                                  unsigned int* d_member_idx,
-                                  unsigned int& num_local_members,
-                                  unsigned int* d_tmp,
-                                  CachedAllocator& alloc)
+cudaError_t gpu_compact_index_list(unsigned int N,
+                                   unsigned int* d_is_member,
+                                   unsigned int* d_member_idx,
+                                   unsigned int& num_local_members,
+                                   unsigned int* d_tmp,
+                                   CachedAllocator& alloc)
     {
     assert(d_is_member);
     assert(d_member_idx);
@@ -97,10 +97,10 @@ hipError_t gpu_compact_index_list(unsigned int N,
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
     alloc.deallocate((char*)d_temp_storage);
 
     thrust::device_ptr<unsigned int> is_member(d_is_member);
@@ -112,7 +112,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
 
     gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

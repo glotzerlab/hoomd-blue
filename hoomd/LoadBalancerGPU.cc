@@ -99,10 +99,10 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         // copy just the subset of particles that are off rank on the device into host memory
         // this can save substantially on the memcpy if there are many particles on a rank
         off_rank.resize(n_off_rank);
-        hipMemcpy(&off_rank[0],
-                  d_off_ranks.data,
-                  sizeof(unsigned int) * n_off_rank,
-                  hipMemcpyDeviceToHost);
+        cudaMemcpy(&off_rank[0],
+                   d_off_ranks.data,
+                   sizeof(unsigned int) * n_off_rank,
+                   cudaMemcpyDeviceToHost);
         }
 
     // perform the counting on the host

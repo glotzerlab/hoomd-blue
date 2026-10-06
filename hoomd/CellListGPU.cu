@@ -191,8 +191,8 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
                            const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int nwork = N + n_ghost;
@@ -309,19 +309,19 @@ __global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
    \param ci Cell indexer
    \param cli Cell list indexer
  */
-hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
-                              Scalar4* d_xyzf,
-                              Scalar4* d_xyzf_new,
-                              uint2* d_type_body,
-                              uint2* d_type_body_new,
-                              Scalar4* d_cell_orientation,
-                              Scalar4* d_cell_orientation_new,
-                              unsigned int* d_cell_idx,
-                              unsigned int* d_cell_idx_new,
-                              uint2* d_sort_idx,
-                              unsigned int* d_sort_permutation,
-                              const Index3D ci,
-                              const Index2D cli)
+cudaError_t gpu_sort_cell_list(unsigned int* d_cell_size,
+                               Scalar4* d_xyzf,
+                               Scalar4* d_xyzf_new,
+                               uint2* d_type_body,
+                               uint2* d_type_body_new,
+                               Scalar4* d_cell_orientation,
+                               Scalar4* d_cell_orientation_new,
+                               unsigned int* d_cell_idx,
+                               unsigned int* d_cell_idx_new,
+                               uint2* d_sort_idx,
+                               unsigned int* d_sort_permutation,
+                               const Index3D ci,
+                               const Index2D cli)
     {
     unsigned int block_size = 256;
 
@@ -360,32 +360,32 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
 
     // copy back permuted arrays to original ones
     if (d_xyzf)
-        hipMemcpy(d_xyzf,
-                  d_xyzf_new,
-                  sizeof(Scalar4) * cli.getNumElements(),
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_xyzf,
+                   d_xyzf_new,
+                   sizeof(Scalar4) * cli.getNumElements(),
+                   cudaMemcpyDeviceToDevice);
 
-    hipMemcpy(d_cell_idx,
-              d_cell_idx_new,
-              sizeof(unsigned int) * cli.getNumElements(),
-              hipMemcpyDeviceToDevice);
+    cudaMemcpy(d_cell_idx,
+               d_cell_idx_new,
+               sizeof(unsigned int) * cli.getNumElements(),
+               cudaMemcpyDeviceToDevice);
 
     if (d_type_body)
         {
-        hipMemcpy(d_type_body,
-                  d_type_body_new,
-                  sizeof(uint2) * cli.getNumElements(),
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_type_body,
+                   d_type_body_new,
+                   sizeof(uint2) * cli.getNumElements(),
+                   cudaMemcpyDeviceToDevice);
         }
     if (d_cell_orientation)
         {
-        hipMemcpy(d_cell_orientation,
-                  d_cell_orientation_new,
-                  sizeof(Scalar4) * cli.getNumElements(),
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_cell_orientation,
+                   d_cell_orientation_new,
+                   sizeof(Scalar4) * cli.getNumElements(),
+                   cudaMemcpyDeviceToDevice);
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace hoomd

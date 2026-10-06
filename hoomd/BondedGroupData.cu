@@ -147,7 +147,7 @@ void gpu_update_group_table(const unsigned int n_groups,
     unsigned n_blocks = n_groups / block_size + 1;
 
     // reset number of groups
-    hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
+    cudaMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
 
     gpu_count_groups_kernel<group_size><<<n_blocks, block_size>>>(n_groups,
                                                                   d_group_table,
@@ -160,7 +160,7 @@ void gpu_update_group_table(const unsigned int n_groups,
                                                                   next_flag);
 
     // read back flag
-    hipMemcpy(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
     if (!(flag >= next_flag) && n_groups)
         {

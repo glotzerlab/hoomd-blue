@@ -44,9 +44,9 @@ namespace hoomd
     {
 #ifndef ENABLE_GPU
 //! Define complex type
-typedef float2 hipfftComplex;
+typedef float2 cufftComplex;
 //! Double complex type
-typedef double2 hipfftDoubleComplex;
+typedef double2 cufftDoubleComplex;
 #endif
 
 #if HOOMD_LONGREAL_SIZE == 32

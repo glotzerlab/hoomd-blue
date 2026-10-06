@@ -108,7 +108,7 @@ template<class T> class device_deleter
                 << "Freeing " << m_N * sizeof(T) << " bytes of CUDA memory." << std::endl;
 
 #ifdef ENABLE_GPU
-            hipFree(ptr);
+            cudaFree(ptr);
 #endif
             }
         }
@@ -155,7 +155,7 @@ template<class T> class host_deleter
 
 // unregister host memory from CUDA driver
 #if (ENABLE_GPU)
-            hipHostUnregister(ptr);
+            cudaHostUnregister(ptr);
 #endif
             }
 
@@ -839,9 +839,9 @@ template<class T> void GPUArray<T>::allocate()
         {
 // register pointer for DMA
 #ifdef ENABLE_GPU
-        hipHostRegister(host_ptr,
-                        m_num_elements * sizeof(T),
-                        m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
+        cudaHostRegister(host_ptr,
+                         m_num_elements * sizeof(T),
+                         m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
 #endif
         CHECK_CUDA_ERROR();
         }
@@ -862,28 +862,28 @@ template<class T> void GPUArray<T>::allocate()
         if (m_mapped)
             {
 #ifdef ENABLE_GPU
-            hipError_t error = hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
-            if (error == hipErrorMemoryAllocation)
+            cudaError_t error = cudaHostGetDevicePointer(&device_ptr, h_data.get(), 0);
+            if (error == cudaErrorMemoryAllocation)
                 {
                 throw std::bad_alloc();
                 }
-            else if (error != hipSuccess)
+            else if (error != cudaSuccess)
                 {
-                throw std::runtime_error(hipGetErrorString(error));
+                throw std::runtime_error(cudaGetErrorString(error));
                 }
 #endif
             }
         else
             {
 #ifdef ENABLE_GPU
-            hipError_t error = hipMalloc(&device_ptr, m_num_elements * sizeof(T));
-            if (error == hipErrorMemoryAllocation)
+            cudaError_t error = cudaMalloc(&device_ptr, m_num_elements * sizeof(T));
+            if (error == cudaErrorMemoryAllocation)
                 {
                 throw std::bad_alloc();
                 }
-            else if (error != hipSuccess)
+            else if (error != cudaSuccess)
                 {
-                throw std::runtime_error(hipGetErrorString(error));
+                throw std::runtime_error(cudaGetErrorString(error));
                 }
 #endif
             }
@@ -913,7 +913,7 @@ template<class T> void GPUArray<T>::zeroFill() const
         }
     if (m_data_location == data_location::device || m_data_location == data_location::hostdevice)
         {
-        hipMemsetAsync(d_data.get(), 0, sizeof(T) * m_num_elements);
+        cudaMemsetAsync(d_data.get(), 0, sizeof(T) * m_num_elements);
         }
 
 #else
@@ -944,7 +944,7 @@ template<class T> void GPUArray<T>::memclear(size_t first)
         assert(d_data);
         if (!m_mapped)
 #ifdef ENABLE_GPU
-            hipMemset(d_data.get() + first, 0, (m_num_elements - first) * sizeof(T));
+            cudaMemset(d_data.get() + first, 0, (m_num_elements - first) * sizeof(T));
 #endif
         }
 #endif
@@ -964,7 +964,7 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
 // if we are using mapped pinned memory, no need to copy, only synchronize
 #ifdef ENABLE_GPU
         if (!async)
-            hipDeviceSynchronize();
+            cudaDeviceSynchronize();
 #endif
         return;
         }
@@ -976,14 +976,14 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
 #ifdef ENABLE_GPU
     if (async)
         {
-        hipMemcpyAsync(h_data.get(),
-                       d_data.get(),
-                       sizeof(T) * m_num_elements,
-                       hipMemcpyDeviceToHost);
+        cudaMemcpyAsync(h_data.get(),
+                        d_data.get(),
+                        sizeof(T) * m_num_elements,
+                        cudaMemcpyDeviceToHost);
         }
     else
         {
-        hipMemcpy(h_data.get(), d_data.get(), sizeof(T) * m_num_elements, hipMemcpyDeviceToHost);
+        cudaMemcpy(h_data.get(), d_data.get(), sizeof(T) * m_num_elements, cudaMemcpyDeviceToHost);
         }
 #endif
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1011,14 +1011,14 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
             << " MB host->device " << (async ? std::string("async") : std::string()) << std::endl;
     if (async)
 #ifdef ENABLE_GPU
-        hipMemcpyAsync(d_data.get(),
-                       h_data.get(),
-                       sizeof(T) * m_num_elements,
-                       hipMemcpyHostToDevice);
+        cudaMemcpyAsync(d_data.get(),
+                        h_data.get(),
+                        sizeof(T) * m_num_elements,
+                        cudaMemcpyHostToDevice);
 #endif
     else
 #ifdef ENABLE_GPU
-        hipMemcpy(d_data.get(), h_data.get(), sizeof(T) * m_num_elements, hipMemcpyHostToDevice);
+        cudaMemcpy(d_data.get(), h_data.get(), sizeof(T) * m_num_elements, cudaMemcpyHostToDevice);
 #endif
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -1226,9 +1226,9 @@ template<class T> T* GPUArray<T>::resizeHostArray(size_t num_elements)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
 #ifdef ENABLE_GPU
-        hipHostRegister(h_tmp,
-                        num_elements * sizeof(T),
-                        m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
+        cudaHostRegister(h_tmp,
+                         num_elements * sizeof(T),
+                         m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
 #endif
         CHECK_CUDA_ERROR();
         }
@@ -1251,7 +1251,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(size_t num_elements)
         {
         void* dev_ptr = nullptr;
 #ifdef ENABLE_GPU
-        hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
+        cudaHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
 #endif
 
         // no-op deleter
@@ -1290,7 +1290,7 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
 #ifdef ENABLE_GPU
-        hipHostRegister(h_tmp, size, m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
+        cudaHostRegister(h_tmp, size, m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
 #endif
         CHECK_CUDA_ERROR();
         }
@@ -1319,7 +1319,7 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
         {
         void* dev_ptr = nullptr;
 #ifdef ENABLE_GPU
-        hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
+        cudaHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
 #endif
 
         // no-op deleter
@@ -1352,14 +1352,14 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(size_t num_elements)
     // allocate resized array
     T* d_tmp;
 #ifdef ENABLE_GPU
-    hipError_t error = hipMalloc(&d_tmp, num_elements * sizeof(T));
-    if (error == hipErrorMemoryAllocation)
+    cudaError_t error = cudaMalloc(&d_tmp, num_elements * sizeof(T));
+    if (error == cudaErrorMemoryAllocation)
         {
         throw std::bad_alloc();
         }
-    else if (error != hipSuccess)
+    else if (error != cudaSuccess)
         {
-        throw std::runtime_error(hipGetErrorString(error));
+        throw std::runtime_error(cudaGetErrorString(error));
         }
 #endif
 
@@ -1367,14 +1367,14 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(size_t num_elements)
 
 // clear memory
 #ifdef ENABLE_GPU
-    hipMemset(d_tmp, 0, num_elements * sizeof(T));
+    cudaMemset(d_tmp, 0, num_elements * sizeof(T));
 #endif
     CHECK_CUDA_ERROR();
 
     // copy over data
     size_t num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
 #ifdef ENABLE_GPU
-    hipMemcpy(d_tmp, d_data.get(), sizeof(T) * num_copy_elements, hipMemcpyDeviceToDevice);
+    cudaMemcpy(d_tmp, d_data.get(), sizeof(T) * num_copy_elements, cudaMemcpyDeviceToDevice);
 #endif
     CHECK_CUDA_ERROR();
 
@@ -1411,21 +1411,21 @@ T* GPUArray<T>::resize2DDeviceArray(size_t pitch,
     // allocate resized array
     T* d_tmp;
 #ifdef ENABLE_GPU
-    hipError_t error = hipMalloc(&d_tmp, new_pitch * new_height * sizeof(T));
-    if (error == hipErrorMemoryAllocation)
+    cudaError_t error = cudaMalloc(&d_tmp, new_pitch * new_height * sizeof(T));
+    if (error == cudaErrorMemoryAllocation)
         {
         throw std::bad_alloc();
         }
-    else if (error != hipSuccess)
+    else if (error != cudaSuccess)
         {
-        throw std::runtime_error(hipGetErrorString(error));
+        throw std::runtime_error(cudaGetErrorString(error));
         }
 #endif
     assert(d_tmp);
 
 // clear memory
 #ifdef ENABLE_GPU
-    hipMemset(d_tmp, 0, new_pitch * new_height * sizeof(T));
+    cudaMemset(d_tmp, 0, new_pitch * new_height * sizeof(T));
 #endif
     CHECK_CUDA_ERROR();
 
@@ -1437,10 +1437,10 @@ T* GPUArray<T>::resize2DDeviceArray(size_t pitch,
     for (size_t i = 0; i < num_copy_rows; i++)
         {
 #ifdef ENABLE_GPU
-        hipMemcpy(d_tmp + i * new_pitch,
-                  d_data.get() + i * pitch,
-                  sizeof(T) * num_copy_columns,
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_tmp + i * new_pitch,
+                   d_data.get() + i * pitch,
+                   sizeof(T) * num_copy_columns,
+                   cudaMemcpyDeviceToDevice);
 #endif
         CHECK_CUDA_ERROR();
         }

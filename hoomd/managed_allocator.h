@@ -61,22 +61,22 @@ template<class T> class managed_allocator
         if (m_use_device)
             {
             // Check for pending errors.
-            hipError_t error = hipGetLastError();
-            if (error != hipSuccess)
+            cudaError_t error = cudaGetLastError();
+            if (error != cudaSuccess)
                 {
-                throw std::runtime_error(hipGetErrorString(error));
+                throw std::runtime_error(cudaGetErrorString(error));
                 }
 
             size_t allocation_bytes = n * sizeof(T);
 
-            error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
-            if (error == hipErrorMemoryAllocation)
+            error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
+            if (error == cudaErrorMemoryAllocation)
                 {
                 throw std::bad_alloc();
                 }
-            else if (error != hipSuccess)
+            else if (error != cudaSuccess)
                 {
-                throw std::runtime_error(hipGetErrorString(error));
+                throw std::runtime_error(cudaGetErrorString(error));
                 }
             }
         else
@@ -111,10 +111,10 @@ template<class T> class managed_allocator
         if (use_device)
             {
             // Check for pending errors.
-            hipError_t error = hipGetLastError();
-            if (error != hipSuccess)
+            cudaError_t error = cudaGetLastError();
+            if (error != cudaSuccess)
                 {
-                throw std::runtime_error(hipGetErrorString(error));
+                throw std::runtime_error(cudaGetErrorString(error));
                 }
 
             allocation_bytes = n * sizeof(T);
@@ -122,14 +122,14 @@ template<class T> class managed_allocator
             if (align_size)
                 allocation_bytes = ((n * sizeof(T)) / align_size + 1) * align_size;
 
-            error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
-            if (error == hipErrorMemoryAllocation)
+            error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
+            if (error == cudaErrorMemoryAllocation)
                 {
                 throw std::bad_alloc();
                 }
-            else if (error != hipSuccess)
+            else if (error != cudaSuccess)
                 {
-                throw std::runtime_error(hipGetErrorString(error));
+                throw std::runtime_error(cudaGetErrorString(error));
                 }
 
             allocation_ptr = result;
@@ -173,7 +173,7 @@ template<class T> class managed_allocator
 #ifdef ENABLE_GPU
         if (use_device)
             {
-            hipDeviceSynchronize();
+            cudaDeviceSynchronize();
             }
 #endif
 
@@ -189,10 +189,10 @@ template<class T> class managed_allocator
 #ifdef ENABLE_GPU
         if (m_use_device)
             {
-            hipError_t error = hipFree(ptr);
-            if (error != hipSuccess)
+            cudaError_t error = cudaFree(ptr);
+            if (error != cudaSuccess)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
+                std::cerr << cudaGetErrorString(error) << std::endl;
                 }
             }
         else
@@ -216,10 +216,10 @@ template<class T> class managed_allocator
 #ifdef ENABLE_GPU
         if (use_device)
             {
-            hipError_t error = hipDeviceSynchronize();
-            if (error != hipSuccess)
+            cudaError_t error = cudaDeviceSynchronize();
+            if (error != cudaSuccess)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
+                std::cerr << cudaGetErrorString(error) << std::endl;
                 }
             }
 #endif
@@ -233,10 +233,10 @@ template<class T> class managed_allocator
 #ifdef ENABLE_GPU
         if (use_device)
             {
-            hipError_t error = hipFree(allocation_ptr);
-            if (error != hipSuccess)
+            cudaError_t error = cudaFree(allocation_ptr);
+            if (error != cudaSuccess)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
+                std::cerr << cudaGetErrorString(error) << std::endl;
                 }
             }
         else

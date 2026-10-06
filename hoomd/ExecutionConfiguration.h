@@ -127,7 +127,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     const void setDevice() const
         {
 #ifdef ENABLE_GPU
-        hipSetDevice(m_gpu_id);
+        cudaSetDevice(m_gpu_id);
 #endif
         }
 
@@ -144,16 +144,16 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #ifdef ENABLE_GPU
     void hipProfileStart() const
         {
-        hipSetDevice(m_gpu_id);
-        hipDeviceSynchronize();
-        hipProfilerStart();
+        cudaSetDevice(m_gpu_id);
+        cudaDeviceSynchronize();
+        cudaProfilerStart();
         }
 
     void hipProfileStop() const
         {
-        hipSetDevice(m_gpu_id);
-        hipDeviceSynchronize();
-        hipProfilerStop();
+        cudaSetDevice(m_gpu_id);
+        cudaDeviceSynchronize();
+        cudaProfilerStop();
         }
 #endif
 
@@ -163,13 +163,13 @@ class PYBIND11_EXPORT ExecutionConfiguration
         }
 
 #ifdef ENABLE_GPU
-    hipDeviceProp_t dev_prop; //!< Cached device properties of the first GPU
+    cudaDeviceProp_t dev_prop; //!< Cached device properties of the first GPU
 
     /// Compute capability of the GPU formatted as a tuple (major, minor)
     std::pair<unsigned int, unsigned int> getComputeCapability() const;
 
     //! Handle hip error message
-    void handleHIPError(hipError_t err, const char* file, unsigned int line) const;
+    void handleHIPError(cudaError_t err, const char* file, unsigned int line) const;
 #endif
 
     /*
@@ -273,7 +273,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     void initializeGPU(int gpu_id);
 
     /// Provide a string that describes a GPU device
-    static std::string describeGPU(int id, hipDeviceProp_t prop);
+    static std::string describeGPU(int id, cudaDeviceProp_t prop);
 
     /** Scans through all GPUs reported by CUDA and marks if they are available
 
@@ -288,7 +288,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     unsigned int m_gpu_id;
 
     /// Device configuration of active GPU
-    hipDeviceProp_t m_dev_prop;
+    cudaDeviceProp_t m_dev_prop;
 #endif
 
     /// Execution mode
@@ -330,10 +330,10 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #ifdef ENABLE_GPU
 #define CHECK_CUDA_ERROR()                                                \
         {                                                                 \
-        hipError_t err_sync = hipPeekAtLastError();                       \
+        cudaError_t err_sync = cudaPeekAtLastError();                     \
         this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);  \
         this->m_exec_conf->setDevice();                                   \
-        hipError_t err_async = hipDeviceSynchronize();                    \
+        cudaError_t err_async = cudaDeviceSynchronize();                  \
         this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__); \
         }
 #else

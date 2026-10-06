@@ -267,7 +267,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
     std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
-    hipEvent_t m_event; //!< CUDA event for synchronization
+    cudaEvent_t m_event; //!< CUDA event for synchronization
 
     //! Helper function to allocate various buffers
     void allocateBuffers();

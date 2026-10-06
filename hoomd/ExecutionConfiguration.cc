@@ -43,7 +43,7 @@ std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
     \param _msg Messenger to use for status message printing
 
     Explicitly force the use of either CPU or GPU execution. If GPU execution is selected, then a
-   default GPU choice is made by not calling hipSetDevice.
+   default GPU choice is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
@@ -196,12 +196,12 @@ std::pair<unsigned int, unsigned int> ExecutionConfiguration::getComputeCapabili
     return result;
     }
 
-void ExecutionConfiguration::handleHIPError(hipError_t err,
+void ExecutionConfiguration::handleHIPError(cudaError_t err,
                                             const char* file,
                                             unsigned int line) const
     {
     // if there was an error
-    if (err != hipSuccess)
+    if (err != cudaSuccess)
         {
         // remove HOOMD_SOURCE_DIR from the front of the file
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
@@ -256,28 +256,28 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     if (gpu_id != -1)
         {
         cudaSetValidDevices(&s_capable_gpu_ids[gpu_id], 1);
-        hipSetDeviceFlags(hipDeviceMapHost);
-        hipSetDevice(s_capable_gpu_ids[gpu_id]);
+        cudaSetDeviceFlags(cudaDeviceMapHost);
+        cudaSetDevice(s_capable_gpu_ids[gpu_id]);
         }
     else
         {
         // initialize the default CUDA context from one of the capable GPUs
         cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
-        hipSetDeviceFlags(hipDeviceMapHost);
-        hipFree(0);
+        cudaSetDeviceFlags(cudaDeviceMapHost);
+        cudaFree(0);
         }
 
     int hip_gpu_id;
-    hipGetDevice(&hip_gpu_id);
+    cudaGetDevice(&hip_gpu_id);
 
     // record the device
     m_gpu_id = hip_gpu_id;
 
-    hipError_t err_sync = hipPeekAtLastError();
+    cudaError_t err_sync = cudaPeekAtLastError();
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
-std::string ExecutionConfiguration::describeGPU(int id, hipDeviceProp_t prop)
+std::string ExecutionConfiguration::describeGPU(int id, cudaDeviceProp_t prop)
     {
     ostringstream s;
     s << "[" << id << "]";
@@ -311,8 +311,8 @@ void ExecutionConfiguration::scanGPUs()
 
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
-    hipError_t error = hipGetDeviceCount(&dev_count);
-    if (error != hipSuccess)
+    cudaError_t error = cudaGetDeviceCount(&dev_count);
+    if (error != cudaSuccess)
         {
         std::string message = "Failed to get GPU device count: ";
         cudaError_t cuda_error = cudaPeekAtLastError();
@@ -330,10 +330,10 @@ void ExecutionConfiguration::scanGPUs()
     for (int dev = 0; dev < dev_count; dev++)
         {
         // get the device properties
-        hipDeviceProp_t prop;
-        hipError_t error = hipGetDeviceProperties(&prop, dev);
+        cudaDeviceProp_t prop;
+        cudaError_t error = cudaGetDeviceProperties(&prop, dev);
 
-        if (error != hipSuccess)
+        if (error != cudaSuccess)
             {
             std::string message = "Failed to get device properties: ";
             cudaError_t cuda_error = cudaPeekAtLastError();
@@ -358,7 +358,7 @@ void ExecutionConfiguration::scanGPUs()
 #endif
 
         // exclude a gpu if it is compute-prohibited
-        if (prop.computeMode == hipComputeModeProhibited)
+        if (prop.computeMode == cudaComputeModeProhibited)
             {
             ostringstream s;
             s << "The device " << prop.name << " is in a compute prohibited mode.";
@@ -399,8 +399,8 @@ void ExecutionConfiguration::setupStats()
 #ifdef ENABLE_GPU
     if (exec_mode == GPU)
         {
-        hipSetDevice(m_gpu_id);
-        hipGetDeviceProperties(&m_dev_prop, m_gpu_id);
+        cudaSetDevice(m_gpu_id);
+        cudaGetDeviceProperties(&m_dev_prop, m_gpu_id);
 
         m_active_device_description = describeGPU(m_gpu_id, m_dev_prop);
 
