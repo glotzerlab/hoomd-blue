@@ -9,7 +9,7 @@
 #ifndef __GPU_ARRAY_TEST_CUH__
 #define __GPU_ARRAY_TEST_CUH__
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 namespace hoomd
     {

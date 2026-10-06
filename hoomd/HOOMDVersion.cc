@@ -6,9 +6,12 @@
 #include <sstream>
 #include <string>
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
+
+#define CUDA_VERSION_MAJOR (CUDA_VERSION / 1000)
+#define CUDA_VERSION_MINOR ((CUDA_VERSION % 1000) / 10)
 
 namespace hoomd
     {
@@ -16,17 +19,13 @@ std::string BuildInfo::getCompileFlags()
     {
     std::ostringstream o;
 
-#ifdef ENABLE_HIP
-    int hip_major = HIP_VERSION_MAJOR;
-    int hip_minor = HIP_VERSION_MINOR;
+#ifdef ENABLE_GPU
+    int major = CUDA_VERSION_MAJOR;
+    int minor = CUDA_VERSION_MINOR;
 
     o << "GPU [";
-#if defined(__HIP_PLATFORM_NVCC__)
     o << "CUDA";
-#elif defined(__HIP_PLATFORM_HCC__)
-    o << "ROCm";
-#endif
-    o << "] (" << hip_major << "." << hip_minor << ") ";
+    o << "] (" << major << "." << minor << ") ";
 #endif
 
 #if HOOMD_LONGREAL_SIZE == 32
@@ -83,7 +82,7 @@ std::string BuildInfo::getVersion()
 
 bool BuildInfo::getEnableGPU()
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     return true;
 #else
     return false;
@@ -92,9 +91,9 @@ bool BuildInfo::getEnableGPU()
 
 std::string BuildInfo::getGPUAPIVersion()
     {
-#ifdef ENABLE_HIP
-    int major = HIP_VERSION_MAJOR;
-    int minor = HIP_VERSION_MINOR;
+#ifdef ENABLE_GPU
+    int major = CUDA_VERSION_MAJOR;
+    int minor = CUDA_VERSION_MINOR;
     std::ostringstream s;
     s << major << "." << minor;
     return s.str();
@@ -105,10 +104,8 @@ std::string BuildInfo::getGPUAPIVersion()
 
 std::string BuildInfo::getGPUPlatform()
     {
-#if defined(__HIP_PLATFORM_NVCC__)
+#if ENABLE_GPU
     return std::string("CUDA");
-#elif defined(__HIP_PLATFORM_HCC__)
-    return std::string("ROCm");
 #else
     return "";
 #endif

@@ -17,7 +17,7 @@
 #include <set>
 #include <vector>
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 

@@ -6,7 +6,7 @@
 */
 
 #ifdef ENABLE_MPI
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "LoadBalancerGPU.cuh"
 

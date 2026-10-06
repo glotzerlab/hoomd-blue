@@ -208,9 +208,9 @@ if (BUILD_MPCD)
     # headers will be installed by MPCD itself so they go in the right subdirectory
 endif()
 
-if (ENABLE_HIP)
+if (ENABLE_GPU)
 set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE CUDA)
-endif (ENABLE_HIP)
+endif (ENABLE_GPU)
 
 #########################
 ## Build the module

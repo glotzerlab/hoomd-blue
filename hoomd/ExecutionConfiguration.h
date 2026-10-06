@@ -17,13 +17,8 @@
 #include <string>
 #include <vector>
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-#ifdef ENABLE_ROCTRACER
-#ifdef __HIP_PLATFORM_HCC__
-#include <roctracer/roctracer_ext.h>
-#endif
-#endif
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #include "Messenger.h"
@@ -32,7 +27,7 @@
     \brief Declares ExecutionConfiguration and related classes
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -41,7 +36,7 @@
 
 namespace hoomd
     {
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
 //! Forward declaration
 class CachedAllocator;
 #endif
@@ -131,7 +126,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Select the active GPU
     const void setDevice() const
         {
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
         hipSetDevice(m_gpu_id);
 #endif
         }
@@ -139,43 +134,26 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// get the device id
     const unsigned int getGPUId() const
         {
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
         return m_gpu_id;
 #else
         return 0;
 #endif
         }
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     void hipProfileStart() const
         {
         hipSetDevice(m_gpu_id);
         hipDeviceSynchronize();
-
-#ifdef __HIP_PLATFORM_NVCC__
         hipProfilerStart();
-#elif defined(__HIP_PLATFORM_HCC__)
-#ifdef ENABLE_ROCTRACER
-        roctracer_start();
-#else
-        msg->warning() << "ROCtracer not enabled, profile start/stop not available" << std::endl;
-#endif
-#endif
         }
 
     void hipProfileStop() const
         {
         hipSetDevice(m_gpu_id);
         hipDeviceSynchronize();
-#ifdef __HIP_PLATFORM_NVCC__
         hipProfilerStop();
-#elif defined(__HIP_PLATFORM_HCC__)
-#ifdef ENABLE_ROCTRACER
-        roctracer_stop();
-#else
-        msg->warning() << "ROCtracer not enabled, profile start/stop not available" << std::endl;
-#endif
-#endif
         }
 #endif
 
@@ -184,7 +162,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return false;
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     hipDeviceProp_t dev_prop; //!< Cached device properties of the first GPU
 
     /// Compute capability of the GPU formatted as a tuple (major, minor)
@@ -234,7 +212,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return m_mpi_config->isRoot();
         }
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     //! Returns the cached allocator for temporary allocations
     CachedAllocator& getCachedAllocator() const
         {
@@ -262,7 +240,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Get a list of the capable devices
     static std::vector<std::string> getCapableDevices()
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         scanGPUs();
 #endif
         return s_capable_gpu_descriptions;
@@ -271,7 +249,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Get a list of the capable devices
     static std::vector<std::string> getScanMessages()
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         scanGPUs();
 #endif
         return s_gpu_scan_messages;
@@ -290,7 +268,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
      */
     int guessLocalRank();
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     //! Initialize the GPU with the given id (where gpu_id is an index into s_capable_gpu_ids)
     void initializeGPU(int gpu_id);
 
@@ -337,7 +315,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Description of the active device
     std::string m_active_device_description;
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     std::unique_ptr<CachedAllocator> m_cached_alloc; //!< Cached allocator for temporary allocations
     std::unique_ptr<CachedAllocator>
         m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
@@ -349,7 +327,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     bool m_memory_tracing = false;
     };
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
 #define CHECK_CUDA_ERROR()                                                \
         {                                                                 \
         hipError_t err_sync = hipPeekAtLastError();                       \
@@ -365,7 +343,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 namespace detail
     {
 //! Exports ExecutionConfiguration to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 void export_ExecutionConfiguration(pybind11::module& m);
 #endif
     } // end namespace detail

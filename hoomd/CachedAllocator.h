@@ -10,8 +10,8 @@
 #ifndef __CACHED_ALLOCATOR_H__
 #define __CACHED_ALLOCATOR_H__
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 
 #include <cassert>
 #include <map>
@@ -247,5 +247,5 @@ template<typename T> ScopedAllocation<T>::~ScopedAllocation()
     } // end namespace hoomd
 
 #undef CHECK_CUDA
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // __CACHED_ALLOCATOR_H__

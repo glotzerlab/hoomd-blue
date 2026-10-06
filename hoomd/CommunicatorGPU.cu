@@ -226,14 +226,7 @@ void gpu_sort_migrating_particles(const size_t nsend,
                  thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-#ifdef __HIP_PLATFORM_HCC__
-    thrust::sort_by_key(thrust::hip::par(alloc),
-#else
-    thrust::sort_by_key(thrust::cuda::par(alloc),
-#endif
-                        keys_ptr,
-                        keys_ptr + nsend,
-                        tmp_ptr);
+    thrust::sort_by_key(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend, tmp_ptr);
 
     // reorder send buf
     thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
@@ -688,32 +681,17 @@ void gpu_exchange_ghosts_make_indices(unsigned int N,
         assert(d_output_indices);
 
         thrust::device_ptr<unsigned int> output_indices(d_output_indices);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::fill(thrust::hip::par(alloc),
-#else
-        thrust::fill(thrust::cuda::par(alloc),
-#endif
-                     output_indices,
-                     output_indices + n_out,
-                     0);
+        thrust::fill(thrust::cuda::par(alloc), output_indices, output_indices + n_out, 0);
 
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::scatter_if(thrust::hip::par(alloc),
-#else
         thrust::scatter_if(thrust::cuda::par(alloc),
-#endif
                            thrust::counting_iterator<unsigned int>(0),
                            thrust::counting_iterator<unsigned int>(N),
                            scan,
                            counts,
                            output_indices);
 
-// compute max-scan over the output indices, filling in the holes
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::inclusive_scan(thrust::hip::par(alloc),
-#else
+        // compute max-scan over the output indices, filling in the holes
         thrust::inclusive_scan(thrust::cuda::par(alloc),
-#endif
                                output_indices,
                                output_indices + n_out,
                                output_indices,
@@ -743,11 +721,7 @@ void gpu_exchange_ghosts_make_indices(unsigned int N,
         // sort by neighbor
         thrust::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
         thrust::device_ptr<uint2> ghost_idx_adj(d_ghost_idx_adj);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::sort_by_key(thrust::hip::par(alloc),
-#else
         thrust::sort_by_key(thrust::cuda::par(alloc),
-#endif
                             ghost_neigh,
                             ghost_neigh + n_out,
                             ghost_idx_adj);

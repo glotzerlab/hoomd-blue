@@ -2,7 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.cuh"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include <assert.h>
 

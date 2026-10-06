@@ -4,7 +4,7 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <algorithm>
 #endif
 
@@ -20,13 +20,13 @@
 // compiler
 #undef DEVICE
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE __attribute__((always_inline))
 #endif
 
-#if !defined(__HIPCC__) && defined(__SSE__)
+#if !defined(__NVCC__) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 
@@ -34,7 +34,7 @@ namespace hoomd
     {
 namespace detail
     {
-#if defined(__SSE__) && !defined(__HIPCC__)
+#if defined(__SSE__) && !defined(__NVCC__)
 inline __m128 sse_load_vec3_float(const vec3<float>& value)
     {
     float in[4];
@@ -53,7 +53,7 @@ inline vec3<float> sse_unload_vec3_float(const __m128& v)
     }
 #endif
 
-#if defined(__AVX__) && !defined(__HIPCC__)
+#if defined(__AVX__) && !defined(__NVCC__)
 inline __m256d sse_load_vec3_double(const vec3<double>& value)
     {
     double in[4];
@@ -88,16 +88,16 @@ inline vec3<double> sse_unload_vec3_double(const __m256d& v)
     - contains()
 */
 struct
-#ifndef __HIPCC__
+#ifndef __NVCC__
     __attribute__((visibility("default")))
 #endif
     AABB
     {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
     __m256d lower_v; //!< Lower left corner (AVX data type)
     __m256d upper_v; //!< Upper left corner (AVX data type)
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
     __m128 lower_v; //!< Lower left corner (SSE data type)
     __m128 upper_v; //!< Upper left corner (SSE data type)
 
@@ -112,12 +112,12 @@ struct
     //! Default construct a 0 AABB
     DEVICE AABB() : tag(0)
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         double in = 0.0f;
         lower_v = _mm256_broadcast_sd(&in);
         upper_v = _mm256_broadcast_sd(&in);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         float in = 0.0f;
         lower_v = _mm_load_ps1(&in);
         upper_v = _mm_load_ps1(&in);
@@ -132,11 +132,11 @@ struct
     */
     DEVICE AABB(const vec3<Scalar>& _lower, const vec3<Scalar>& _upper) : tag(0)
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         lower_v = sse_load_vec3_double(_lower);
         upper_v = sse_load_vec3_double(_upper);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         lower_v = sse_load_vec3_float(_lower);
         upper_v = sse_load_vec3_float(_upper);
 
@@ -153,12 +153,12 @@ struct
     */
     DEVICE inline bool overlaps(const AABB& other) const
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         int r0 = _mm256_movemask_pd(_mm256_cmp_pd(other.upper_v, lower_v, 0x11)); // 0x11=lt
         int r1 = _mm256_movemask_pd(_mm256_cmp_pd(other.lower_v, upper_v, 0x1e)); // 0x1e=gt
         return !(r0 || r1);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         int r0 = _mm_movemask_ps(_mm_cmplt_ps(other.upper_v, lower_v));
         int r1 = _mm_movemask_ps(_mm_cmpgt_ps(other.lower_v, upper_v));
         return !(r0 || r1);
@@ -184,11 +184,11 @@ struct
         new_upper.y = _position.y + radius;
         new_upper.z = _position.z + radius;
 
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         lower_v = sse_load_vec3_double(new_lower);
         upper_v = sse_load_vec3_double(new_upper);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         lower_v = sse_load_vec3_float(new_lower);
         upper_v = sse_load_vec3_float(new_upper);
 
@@ -205,11 +205,11 @@ struct
     */
     DEVICE AABB(const vec3<Scalar>& _position, unsigned int _tag) : tag(_tag)
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         lower_v = sse_load_vec3_double(_position);
         upper_v = sse_load_vec3_double(_position);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         lower_v = sse_load_vec3_float(_position);
         upper_v = sse_load_vec3_float(_position);
 
@@ -223,13 +223,13 @@ struct
     //! Get the AABB's position
     DEVICE vec3<Scalar> getPosition() const
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         double half = 0.5;
         __m256d half_v = _mm256_broadcast_sd(&half);
         __m256d pos_v = _mm256_mul_pd(half_v, _mm256_add_pd(lower_v, upper_v));
         return sse_unload_vec3_double(pos_v);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         float half = 0.5f;
         __m128 half_v = _mm_load_ps1(&half);
         __m128 pos_v = _mm_mul_ps(half_v, _mm_add_ps(lower_v, upper_v));
@@ -244,10 +244,10 @@ struct
     //! Get the AABB's lower point
     DEVICE vec3<Scalar> getLower() const
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         return sse_unload_vec3_double(lower_v);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         return sse_unload_vec3_float(lower_v);
 
 #else
@@ -259,10 +259,10 @@ struct
     //! Get the AABB's upper point
     DEVICE vec3<Scalar> getUpper() const
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         return sse_unload_vec3_double(upper_v);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         return sse_unload_vec3_float(upper_v);
 
 #else
@@ -274,12 +274,12 @@ struct
     //! Translate the AABB by the given vector
     DEVICE void translate(const vec3<Scalar>& v)
         {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
         __m256d v_v = sse_load_vec3_double(v);
         lower_v = _mm256_add_pd(lower_v, v_v);
         upper_v = _mm256_add_pd(upper_v, v_v);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
         __m128 v_v = sse_load_vec3_float(v);
         lower_v = _mm_add_ps(lower_v, v_v);
         upper_v = _mm_add_ps(upper_v, v_v);
@@ -299,12 +299,12 @@ struct
 */
 DEVICE inline bool contains(const AABB& a, const AABB& b)
     {
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
     int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v, a.lower_v, 0x1d)); // 0x1d=ge
     int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v, a.upper_v, 0x12)); // 0x12=le
     return ((r0 & r1) == 0xF);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
     int r0 = _mm_movemask_ps(_mm_cmpge_ps(b.lower_v, a.lower_v));
     int r1 = _mm_movemask_ps(_mm_cmple_ps(b.upper_v, a.upper_v));
     return ((r0 & r1) == 0xF);
@@ -316,7 +316,7 @@ DEVICE inline bool contains(const AABB& a, const AABB& b)
 #endif
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 //! Merge two AABBs
 /*! \param a First AABB
     \param b Second AABB
@@ -325,11 +325,11 @@ DEVICE inline bool contains(const AABB& a, const AABB& b)
 DEVICE inline AABB merge(const AABB& a, const AABB& b)
     {
     AABB new_aabb;
-#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && HOOMD_LONGREAL_SIZE == 64 && !defined(__NVCC__) && 0
     new_aabb.lower_v = _mm256_min_pd(a.lower_v, b.lower_v);
     new_aabb.upper_v = _mm256_max_pd(a.upper_v, b.upper_v);
 
-#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__HIPCC__)
+#elif defined(__SSE__) && HOOMD_LONGREAL_SIZE == 32 && !defined(__NVCC__)
     new_aabb.lower_v = _mm_min_ps(a.lower_v, b.lower_v);
     new_aabb.upper_v = _mm_max_ps(a.upper_v, b.upper_v);
 

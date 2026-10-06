@@ -6,7 +6,7 @@
 */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "CommunicatorGPU.h"
 #include "System.h"
@@ -3880,5 +3880,5 @@ void export_CommunicatorGPU(pybind11::module& m)
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI

@@ -11,7 +11,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "test_gpu_array.cuh"
 using namespace hoomd::test;
 #endif
@@ -91,7 +91,7 @@ UP_TEST(GPUArray_basic_tests)
         }
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for testing device to/from host transfers
 UP_TEST(GPUArray_transfer_tests)
     {

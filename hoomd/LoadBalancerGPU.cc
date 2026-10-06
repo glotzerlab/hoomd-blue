@@ -5,10 +5,10 @@
     \brief Defines the LoadBalancerGPU class
 */
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "LoadBalancerGPU.h"
 #include "LoadBalancerGPU.cuh"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "CachedAllocator.h"
 
@@ -127,4 +127,4 @@ void export_LoadBalancerGPU(pybind11::module& m)
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

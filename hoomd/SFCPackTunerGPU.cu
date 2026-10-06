@@ -6,7 +6,7 @@
    Used by SFCPackTunerGPU.
 */
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
@@ -134,11 +134,7 @@ void gpu_generate_sorted_order(unsigned int N,
         {
         thrust::device_ptr<unsigned int> particle_bins(d_particle_bins);
         thrust::device_ptr<unsigned int> sorted_order(d_sorted_order);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::sort_by_key(thrust::hip::par(alloc),
-#else
         thrust::sort_by_key(thrust::cuda::par(alloc),
-#endif
                             particle_bins,
                             particle_bins + N,
                             sorted_order);

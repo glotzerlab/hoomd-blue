@@ -8,9 +8,7 @@
 
 #pragma once
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-#endif
+#include <cuda_runtime.h>
 
 #include <type_traits>
 
@@ -19,13 +17,9 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #endif
 
-#if defined(__HIP_PLATFORM_HCC__)
-#include <hipcub/hipcub.hpp>
-#else
 #include <cub/warp/warp_reduce.cuh>
 #include <cub/warp/warp_scan.cuh>
 #include <cuda/std/type_traits>
-#endif
 
 #ifndef __CUDACC_RTC__
 #pragma GCC diagnostic pop
@@ -37,44 +31,32 @@ namespace hoomd
     {
 namespace detail
     {
-    //! Computes warp-level reduction using shuffle instructions
-    /*!
-     * Reduction operations are performed at the warp or sub-warp level using shuffle instructions.
-     * The sub-warp is defined as a consecutive group of threads that is (1) smaller than the
-     * hardware warp size (32 threads) and (2) a power of 2. For additional details about any
-     * operator, refer to the CUB documentation.
-     *
-     * This class is a thin wrapper around cub::WarpReduce. The CUB scan classes nominally request
-     * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based
-     * scan does not use any shared memory, and so this temporary variable is put unused into a
-     * register. The compiler can then optimize this out. We explicitly ensure that the storage type
-     * is an empty date type.
-     *
-     * \tparam T data type to scan
-     * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
-     * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
-     */
-
-#ifdef __HIP_PLATFORM_HCC__
-template<typename T,
-         int LOGICAL_WARP_THREADS = HIPCUB_DEVICE_WARP_THREADS,
-         int PTX_ARCH = HIPCUB_ARCH>
-#else
+//! Computes warp-level reduction using shuffle instructions
+/*!
+ * Reduction operations are performed at the warp or sub-warp level using shuffle instructions.
+ * The sub-warp is defined as a consecutive group of threads that is (1) smaller than the
+ * hardware warp size (32 threads) and (2) a power of 2. For additional details about any
+ * operator, refer to the CUB documentation.
+ *
+ * This class is a thin wrapper around cub::WarpReduce. The CUB scan classes nominally request
+ * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based
+ * scan does not use any shared memory, and so this temporary variable is put unused into a
+ * register. The compiler can then optimize this out. We explicitly ensure that the storage type
+ * is an empty date type.
+ *
+ * \tparam T data type to scan
+ * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
+ * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
+ */
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
-#endif
 class WarpReduce
     {
     public:
     DEVICE WarpReduce()
         {
-#ifdef __HIP_PLATFORM_NVCC__
         static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
-#else
-        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_DEVICE_WARP_THREADS,
-                      "Logical warp size cannot exceed hardware warp size");
-#endif
         static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS - 1)),
                       "Logical warp size must be a power of 2");
         }
@@ -89,11 +71,7 @@ class WarpReduce
      */
     DEVICE T Sum(T input)
         {
-#ifdef __HIP_PLATFORM_HCC__
-        return Reduce(input, hipcub::Sum());
-#else
         return Reduce(input, ::cuda::std::plus<> {});
-#endif
         }
 
     //! Sum reduction over valid items.
@@ -108,11 +86,7 @@ class WarpReduce
      */
     DEVICE T Sum(T input, int valid_items)
         {
-#ifdef __HIP_PLATFORM_HCC__
-        return Reduce(input, hipcub::Sum(), valid_items);
-#else
         return Reduce(input, ::cuda::std::plus<> {}, valid_items);
-#endif
         }
 
     //! Custom reduction.
@@ -153,22 +127,9 @@ class WarpReduce
         }
 
     private:
-#ifdef __HIP_PLATFORM_HCC__
-    typedef hipcub::WarpReduce<T, LOGICAL_WARP_THREADS, PTX_ARCH>
-        MyWarpReduce; //!< CUB shuffle-based reduce
-#else
     typedef cub::WarpReduce<T, LOGICAL_WARP_THREADS> MyWarpReduce; //!< CUB shuffle-based reduce
-#endif
     typedef typename MyWarpReduce::TempStorage
         TempStorage; //!< Nominal data type for CUB temporary storage
-
-#ifdef __HIP_PLATFORM_HCC__
-    static_assert(std::is_empty<TempStorage>::value, "WarpReduce requires temp storage ");
-#else
-// we would like to make a similar guarantee with NVIDA CUB too, but TempStorage is not an empty
-// type even if it internally uses WarpReduceShfl
-// static_assert(std::is_empty<TempStorage>::value, "WarpReduce requires temp storage ");
-#endif
     };
 
 //! Computes warp-level scan (prefix sum) using shuffle instructions
@@ -188,26 +149,15 @@ class WarpReduce
  * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
  * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
  */
-#ifdef __HIP_PLATFORM_HCC__
-template<typename T,
-         int LOGICAL_WARP_THREADS = HIPCUB_DEVICE_WARP_THREADS,
-         int PTX_ARCH = HIPCUB_ARCH>
-#else
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
-#endif
 class WarpScan
     {
     public:
     DEVICE WarpScan()
         {
-#ifdef __HIP_PLATFORM_NVCC__
         static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
-#else
-        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_DEVICE_WARP_THREADS,
-                      "Logical warp size cannot exceed hardware warp size");
-#endif
         static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS - 1)),
                       "Logical warp size must be a power of 2");
         }
@@ -222,11 +172,7 @@ class WarpScan
      */
     DEVICE void InclusiveSum(T input, T& output)
         {
-#ifdef __HIP_PLATFORM_HCC__
-        InclusiveScan(input, output, hipcub::Sum());
-#else
         InclusiveScan(input, output, ::cuda::std::plus<> {});
-#endif
         }
 
     //! Inclusive sum for each thread in logical warp, plus accumulation for all.
@@ -240,11 +186,7 @@ class WarpScan
      */
     DEVICE void InclusiveSum(T input, T& output, T& aggregate)
         {
-#ifdef __HIP_PLATFORM_HCC__
-        InclusiveScan(input, output, hipcub::Sum(), aggregate);
-#else
         InclusiveScan(input, output, ::cuda::std::plus<> {}, aggregate);
-#endif
         }
 
     //! Inclusive scan with a custom scan operator.
@@ -296,11 +238,7 @@ class WarpScan
     DEVICE void ExclusiveSum(T input, T& output)
         {
         T initial = 0;
-#ifdef __HIP_PLATFORM_HCC__
-        ExclusiveScan(input, output, initial, hipcub::Sum());
-#else
         ExclusiveScan(input, output, initial, ::cuda::std::plus<> {});
-#endif
         }
 
     //! Exclusive sum for each thread in logical warp, plus accumulation for all.
@@ -315,11 +253,7 @@ class WarpScan
     DEVICE void ExclusiveSum(T input, T& output, T& aggregate)
         {
         T initial = 0;
-#ifdef __HIP_PLATFORM_HCC__
-        ExclusiveScan(input, output, initial, hipcub::Sum(), aggregate);
-#else
         ExclusiveScan(input, output, initial, ::cuda::std::plus<> {}, aggregate);
-#endif
         }
 
     //! Exclusive scan with a custom scan operator.
@@ -424,22 +358,9 @@ class WarpScan
         }
 
     private:
-#ifdef __HIP_PLATFORM_HCC__
-    typedef hipcub::WarpScan<T, LOGICAL_WARP_THREADS, PTX_ARCH>
-        MyWarpScan; //!< CUB shuffle-based scan
-#else
     typedef cub::WarpScan<T, LOGICAL_WARP_THREADS> MyWarpScan; //!< CUB shuffle-based scan
-#endif
     typedef typename MyWarpScan::TempStorage
         TempStorage; //!< Nominal data type for CUB temporary storage
-
-#ifdef __HIP_PLATFORM_HCC__
-    static_assert(std::is_empty<TempStorage>::value, "WarpScan requires temp storage ");
-#else
-// we would like to make a similar guarantee with NVIDA CUB too, but TempStorage is not an empty
-// type even if it internally uses WarpScanShfl
-// static_assert(std::is_empty<TempStorage>::value, "WarpScan requires temp storage ");
-#endif
     };
 
     } // end namespace detail

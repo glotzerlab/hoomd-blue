@@ -9,8 +9,8 @@
 */
 
 // for vector types
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #else
 
 // for builds on systems where CUDA is not available, include copies of the CUDA header
@@ -19,7 +19,7 @@
 #include "hoomd/extern/cudacpu_vector_types.h"
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 // include python.h first to silence _XOPEN_SOURCE redefinition warnings
 #include <Python.h>
 #include <pybind11/pybind11.h>
@@ -32,7 +32,7 @@
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
 // HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
@@ -42,7 +42,7 @@
 
 namespace hoomd
     {
-#ifndef ENABLE_HIP
+#ifndef ENABLE_GPU
 //! Define complex type
 typedef float2 hipfftComplex;
 //! Double complex type
@@ -127,7 +127,7 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     return retval;
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 //! Stuff an integer inside a float
 HOSTDEVICE inline float __int_as_float(int a)
     {
@@ -140,7 +140,7 @@ HOSTDEVICE inline float __int_as_float(int a)
 
     return u.b;
     }
-#endif // __HIPCC__
+#endif // __NVCC__
 
 //! Stuff an integer inside a double
 HOSTDEVICE inline double __int_as_double(int a)
@@ -172,7 +172,7 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
     return u.b;
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 //! Extract an integer from a float stuffed by __int_as_float()
 HOSTDEVICE inline int __float_as_int(float b)
     {
@@ -185,7 +185,7 @@ HOSTDEVICE inline int __float_as_int(float b)
 
     return u.a;
     }
-#endif // __HIPCC__
+#endif // __NVCC__
 
 //! Extract an integer from a double stuffed by __int_as_double()
 HOSTDEVICE inline int __double_as_int(double b)
@@ -214,7 +214,7 @@ HOSTDEVICE inline int __scalar_as_int(Scalar b)
     }
 
 //! Export relevant hoomd math functions to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 namespace detail
     {
 void export_hoomd_math_functions(pybind11::module& m);
@@ -232,14 +232,8 @@ namespace fast
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __CUDA_ARCH__
     return ::rsqrtf(x);
-#elif defined(__HIP_PLATFORM_HCC__)
-    return ::__frsqrt_rn(x);
-#elif defined(__HIP_PLATFORM_AMD__)
-    return ::__frsqrt_rn(x);
-#endif
 #else
     return 1.0f / ::sqrtf(x);
 #endif
@@ -248,7 +242,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_NVCC__)
+#ifdef __CUDA_ARCH__
     return ::rsqrt(x);
 #else
     return 1.0 / ::sqrt(x);
@@ -258,7 +252,7 @@ inline HOSTDEVICE double rsqrt(double x)
 //! Compute the sin of x
 inline HOSTDEVICE float sin(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return __sinf(x);
 #else
     return ::sinf(x);
@@ -274,7 +268,7 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-#if __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return __cosf(x);
 #else
     return ::cosf(x);
@@ -290,7 +284,7 @@ inline HOSTDEVICE double cos(double x)
 //! Compute both of sin of x and cos of x with float precision
 inline HOSTDEVICE void sincos(float x, float& s, float& c)
     {
-#if defined(__HIP_DEVICE_COMPILE__) || defined(__APPLE__)
+#if defined(__CUDA_ARCH__) || defined(__APPLE__)
     __sincosf(x, &s, &c);
 #else
     ::sincosf(x, &s, &c);
@@ -300,7 +294,7 @@ inline HOSTDEVICE void sincos(float x, float& s, float& c)
 //! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincos(double x, double& s, double& c)
     {
-#if defined(__HIP_DEVICE_COMPILE__)
+#ifdef __CUDA_ARCH__
     ::sincos(x, &s, &c);
 #elif defined(__APPLE__)
     ::__sincos(x, &s, &c);
@@ -312,7 +306,7 @@ inline HOSTDEVICE void sincos(double x, double& s, double& c)
 //! Compute both of sin of x and cos of PI * x with float precision
 inline HOSTDEVICE void sincospi(float x, float& s, float& c)
     {
-#if defined(__HIP_DEVICE_COMPILE__)
+#ifdef __CUDA_ARCH__
     ::sincospif(x, &s, &c);
 #elif defined(__APPLE__)
     __sincospif(x, &s, &c);
@@ -324,7 +318,7 @@ inline HOSTDEVICE void sincospi(float x, float& s, float& c)
 //! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     {
-#if defined(__HIP_DEVICE_COMPILE__)
+#ifdef __CUDA_ARCH__
     ::sincospi(x, &s, &c);
 #elif defined(__APPLE__)
     ::__sincospi(x, &s, &c);
@@ -337,7 +331,7 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
 //! NEGATIVE BASES
 inline HOSTDEVICE float pow(float x, float y)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return __expf(y * __logf(x));
 #else
     return ::expf(y * logf(x));
@@ -404,7 +398,7 @@ inline HOSTDEVICE float pow(float x, int y)
 //! Compute the exp of x
 inline HOSTDEVICE float exp(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return __expf(x);
 #else
     return ::expf(x);
@@ -420,7 +414,7 @@ inline HOSTDEVICE double exp(double x)
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return __logf(x);
 #else
     return ::logf(x);
@@ -436,11 +430,7 @@ inline HOSTDEVICE double log(double x)
 //! Compute the sqrt of x
 inline HOSTDEVICE float sqrt(float x)
     {
-#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_HCC__)
-    return ::__fsqrt_rn(x);
-#else
     return ::sqrtf(x);
-#endif
     }
 
 //! Compute the sqrt of x
@@ -487,7 +477,7 @@ namespace slow
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return ::rsqrtf(x);
 #else
     return 1.0f / ::sqrtf(x);
@@ -497,7 +487,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return ::rsqrt(x);
 #else
     return 1.0 / ::sqrt(x);
@@ -507,7 +497,7 @@ inline HOSTDEVICE double rsqrt(double x)
 //! Compute the sin of x
 inline HOSTDEVICE float sin(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return sinf(x);
 #else
     return ::sinf(x);
@@ -523,7 +513,7 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return cosf(x);
 #else
     return ::cosf(x);
@@ -551,7 +541,7 @@ inline HOSTDEVICE double tan(double x)
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return powf(x, y);
 #else
     return ::powf(x, y);
@@ -567,7 +557,7 @@ inline HOSTDEVICE double pow(double x, double y)
 //! Compute the exp of x
 inline HOSTDEVICE float exp(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return expf(x);
 #else
     return ::expf(x);
@@ -583,7 +573,7 @@ inline HOSTDEVICE double exp(double x)
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return logf(x);
 #else
     return ::logf(x);
@@ -720,7 +710,6 @@ HOSTDEVICE inline hoomd::Scalar3 operator+(const hoomd::Scalar3& a, const hoomd:
     return hoomd::make_scalar3(a.x + b.x, a.y + b.y, a.z + b.z);
     }
 
-#if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVCC__)
 //! Vector addition
 HOSTDEVICE inline hoomd::Scalar3& operator+=(hoomd::Scalar3& a, const hoomd::Scalar3& b)
     {
@@ -741,8 +730,6 @@ HOSTDEVICE inline hoomd::Scalar3 operator/(const hoomd::Scalar3& a, const hoomd:
     {
     return hoomd::make_scalar3(a.x / b.x, a.y / b.y, a.z / b.z);
     }
-
-#endif
 
 //! Vector subtraction
 HOSTDEVICE inline hoomd::Scalar3 operator-(const hoomd::Scalar3& a, const hoomd::Scalar3& b)

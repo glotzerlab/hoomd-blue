@@ -5,11 +5,11 @@
     \brief Declares the SFCPackTunerGPU class
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "Tuner.h"
 
 #include "GPUArray.h"
@@ -70,4 +70,4 @@ void export_SFCPackTunerGPU(pybind11::module& m);
 
 #endif // __SFC_PACK_UPDATER_GPU_H_
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

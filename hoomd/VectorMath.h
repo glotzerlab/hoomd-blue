@@ -14,7 +14,7 @@
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
 #undef DEVICE
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __host__ __device__
 #else
 #define DEVICE
@@ -78,7 +78,7 @@ template<class Real> struct vec3
             return z;
         default:
 // Just return x on GPU as exceptions are disabled on GPU.
-#if defined(__HIPCC__)
+#if defined(__NVCC__)
             // This branch should not be reached, but must include something to avoid
             // compiler warnings on the GPU and it must be something that can be returned by
             // reference, so x is as good a choice as any.
@@ -104,7 +104,7 @@ template<class Real> struct vec3
             return z;
         default:
 // Just return x on GPU as exceptions are disabled on GPU
-#if defined(__HIPCC__)
+#if defined(__NVCC__)
             // This branch should not be reached, but must include something to avoid
             // compiler warnings on the GPU and returning x matches the non-const version of the
             // operator.

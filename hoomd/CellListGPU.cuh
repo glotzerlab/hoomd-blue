@@ -4,8 +4,8 @@
 #ifndef __CELLLISTGPU_CUH__
 #define __CELLLISTGPU_CUH__
 
-#if defined(ENABLE_HIP)
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #include "HOOMDMath.h"

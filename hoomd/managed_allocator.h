@@ -6,8 +6,8 @@
 
 #pragma once
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #include <iostream>
@@ -57,7 +57,7 @@ template<class T> class managed_allocator
         {
         void* result = nullptr;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_use_device)
             {
             // Check for pending errors.
@@ -107,7 +107,7 @@ template<class T> class managed_allocator
         {
         void* result = nullptr;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (use_device)
             {
             // Check for pending errors.
@@ -170,7 +170,7 @@ template<class T> class managed_allocator
             allocation_ptr = result;
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (use_device)
             {
             hipDeviceSynchronize();
@@ -186,7 +186,7 @@ template<class T> class managed_allocator
 
     void deallocate(value_type* ptr, std::size_t N)
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_use_device)
             {
             hipError_t error = hipFree(ptr);
@@ -213,7 +213,7 @@ template<class T> class managed_allocator
                                            bool use_device,
                                            void* allocation_ptr)
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (use_device)
             {
             hipError_t error = hipDeviceSynchronize();
@@ -230,7 +230,7 @@ template<class T> class managed_allocator
             ptr[i].~value_type();
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (use_device)
             {
             hipError_t error = hipFree(allocation_ptr);
