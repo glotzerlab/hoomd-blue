@@ -70,15 +70,7 @@ hipError_t gpu_rebuild_index_list(unsigned int N,
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_rebuild_index_list_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_tag,
-                       d_is_member_tag,
-                       d_is_member);
+    gpu_rebuild_index_list_kernel<<<n_blocks, block_size>>>(N, d_tag, d_is_member_tag, d_is_member);
     return hipSuccess;
     }
 
@@ -118,15 +110,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_scatter_member_indices,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_tmp,
-                       d_is_member,
-                       d_member_idx);
+    gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
 
     return hipSuccess;
     }

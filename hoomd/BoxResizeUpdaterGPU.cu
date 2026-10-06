@@ -58,19 +58,13 @@ hipError_t gpu_box_resize_scale(Scalar4* d_pos,
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid((group_size / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_box_resize_scale_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       d_pos,
-                       cur_box,
-                       new_box,
-                       d_group_members,
-                       group_size);
+    gpu_box_resize_scale_kernel<<<(group_size / run_block_size) + 1, run_block_size>>>(
+        d_pos,
+        cur_box,
+        new_box,
+        d_group_members,
+        group_size);
 
     return hipSuccess;
     }
@@ -88,19 +82,12 @@ hipError_t gpu_box_resize_wrap(const unsigned int N,
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid((N / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_box_resize_wrap_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       N,
-                       d_pos,
-                       d_vel,
-                       d_image,
-                       new_box);
+    gpu_box_resize_wrap_kernel<<<(N / run_block_size) + 1, run_block_size>>>(N,
+                                                                             d_pos,
+                                                                             d_vel,
+                                                                             d_image,
+                                                                             new_box);
 
     return hipSuccess;
     }

@@ -149,20 +149,15 @@ void gpu_update_group_table(const unsigned int n_groups,
     // reset number of groups
     hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_count_groups_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_group_table,
-                       d_rtag,
-                       d_scratch_idx,
-                       d_scratch_g,
-                       d_n_groups,
-                       max_n_groups,
-                       d_condition,
-                       next_flag);
+    gpu_count_groups_kernel<group_size><<<n_blocks, block_size>>>(n_groups,
+                                                                  d_group_table,
+                                                                  d_rtag,
+                                                                  d_scratch_idx,
+                                                                  d_scratch_g,
+                                                                  d_n_groups,
+                                                                  max_n_groups,
+                                                                  d_condition,
+                                                                  next_flag);
 
     // read back flag
     hipMemcpy(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -191,22 +186,17 @@ void gpu_update_group_table(const unsigned int n_groups,
         block_size = 256;
         n_blocks = (group_size * n_groups) / block_size + 1;
 
-        hipLaunchKernelGGL(gpu_group_scatter_kernel<group_size>,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_groups * group_size,
-                           d_scratch_g,
-                           d_scratch_idx,
-                           d_offsets,
-                           d_group_table,
-                           d_group_typeval,
-                           d_rtag,
-                           d_pidx_group_table,
-                           d_pidx_gpos_table,
-                           pidx_group_table_pitch,
-                           has_type_mapping);
+        gpu_group_scatter_kernel<group_size><<<n_blocks, block_size>>>(n_groups * group_size,
+                                                                       d_scratch_g,
+                                                                       d_scratch_idx,
+                                                                       d_offsets,
+                                                                       d_group_table,
+                                                                       d_group_typeval,
+                                                                       d_rtag,
+                                                                       d_pidx_group_table,
+                                                                       d_pidx_gpos_table,
+                                                                       pidx_group_table_pitch,
+                                                                       has_type_mapping);
         }
     }
 

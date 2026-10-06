@@ -200,32 +200,27 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
     unsigned int run_block_size = min(block_size, max_block_size);
     int n_blocks = nwork / run_block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_compute_cell_list_kernel),
-                       dim3(n_blocks),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       d_cell_size,
-                       d_xyzf,
-                       d_type_body,
-                       d_cell_orientation,
-                       d_cell_idx,
-                       d_conditions,
-                       d_pos,
-                       d_orientation,
-                       d_charge,
-                       d_diameter,
-                       d_body,
-                       N,
-                       n_ghost,
-                       Nmax,
-                       flag_charge,
-                       flag_type,
-                       box,
-                       ci,
-                       cli,
-                       ghost_width,
-                       nwork);
+    gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size,
+                                                               d_xyzf,
+                                                               d_type_body,
+                                                               d_cell_orientation,
+                                                               d_cell_idx,
+                                                               d_conditions,
+                                                               d_pos,
+                                                               d_orientation,
+                                                               d_charge,
+                                                               d_diameter,
+                                                               d_body,
+                                                               N,
+                                                               n_ghost,
+                                                               Nmax,
+                                                               flag_charge,
+                                                               flag_type,
+                                                               box,
+                                                               ci,
+                                                               cli,
+                                                               ghost_width,
+                                                               nwork);
     }
 
 __global__ void gpu_fill_indices_kernel(unsigned int cl_size,
@@ -334,18 +329,13 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
     dim3 threads(block_size);
     dim3 grid(cli.getNumElements() / block_size + 1);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_fill_indices_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       cli.getNumElements(),
-                       d_sort_idx,
-                       d_sort_permutation,
-                       d_cell_idx,
-                       d_cell_size,
-                       ci,
-                       cli);
+    gpu_fill_indices_kernel<<<grid, threads>>>(cli.getNumElements(),
+                                               d_sort_idx,
+                                               d_sort_permutation,
+                                               d_cell_idx,
+                                               d_cell_size,
+                                               ci,
+                                               cli);
 
     // locality sort on those pairs
     thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
@@ -356,22 +346,17 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                         comp_less_uint2());
 
     // apply sorted order
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_apply_sorted_cell_list_order),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       cli.getNumElements(),
-                       d_cell_idx,
-                       d_cell_idx_new,
-                       d_xyzf,
-                       d_xyzf_new,
-                       d_type_body,
-                       d_type_body_new,
-                       d_cell_orientation,
-                       d_cell_orientation_new,
-                       d_sort_permutation,
-                       cli);
+    gpu_apply_sorted_cell_list_order<<<grid, threads>>>(cli.getNumElements(),
+                                                        d_cell_idx,
+                                                        d_cell_idx_new,
+                                                        d_xyzf,
+                                                        d_xyzf_new,
+                                                        d_type_body,
+                                                        d_type_body_new,
+                                                        d_cell_orientation,
+                                                        d_cell_orientation_new,
+                                                        d_sort_permutation,
+                                                        cli);
 
     // copy back permuted arrays to original ones
     if (d_xyzf)

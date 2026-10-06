@@ -185,33 +185,25 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
 
     if (compute_virial)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<1>),
-                           dim3(nwork / block_size + 1),
-                           dim3(block_size),
-                           0,
-                           0,
-                           d_net_force,
-                           d_net_virial,
-                           net_virial_pitch,
-                           d_net_torque,
-                           force_list,
-                           nwork,
-                           clear);
+        gpu_integrator_sum_net_force_kernel<1>
+            <<<nwork / block_size + 1, block_size>>>(d_net_force,
+                                                     d_net_virial,
+                                                     net_virial_pitch,
+                                                     d_net_torque,
+                                                     force_list,
+                                                     nwork,
+                                                     clear);
         }
     else
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<0>),
-                           dim3(nwork / block_size + 1),
-                           dim3(block_size),
-                           0,
-                           0,
-                           d_net_force,
-                           d_net_virial,
-                           net_virial_pitch,
-                           d_net_torque,
-                           force_list,
-                           nwork,
-                           clear);
+        gpu_integrator_sum_net_force_kernel<0>
+            <<<nwork / block_size + 1, block_size>>>(d_net_force,
+                                                     d_net_virial,
+                                                     net_virial_pitch,
+                                                     d_net_torque,
+                                                     force_list,
+                                                     nwork,
+                                                     clear);
         }
 
     return hipSuccess;
