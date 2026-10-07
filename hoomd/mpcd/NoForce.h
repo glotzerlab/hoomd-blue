@@ -11,7 +11,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define INLINE inline
 #else
@@ -41,13 +41,13 @@ class NoForce
         return make_scalar3(0, 0, 0);
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the unique name of this force
     static std::string getName()
         {
         return std::string("NoForce");
         }
-#endif // __HIPCC__
+#endif // __NVCC__
     };
     } // end namespace mpcd
     } // end namespace hoomd

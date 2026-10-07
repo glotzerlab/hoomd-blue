@@ -6,7 +6,7 @@
  * \brief Definition of CUDA kernels for mpcd::RejectionVirtualParticleFillerGPU
  */
 
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 #include <thrust/iterator/counting_iterator.h>
 
 #include "RejectionVirtualParticleFillerGPU.cuh"

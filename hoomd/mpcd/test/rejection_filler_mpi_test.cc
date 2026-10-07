@@ -3,9 +3,9 @@
 
 #include "hoomd/Communicator.h"
 #include "hoomd/mpcd/RejectionVirtualParticleFiller.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/RejectionVirtualParticleFillerGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #include "hoomd/mpcd/SphereGeometry.h"
 
 #include "hoomd/SnapshotSystemData.h"
@@ -113,10 +113,10 @@ UP_TEST(sphere_rejection_fill_mpi)
     sphere_rejection_fill_mpi_test<mpcd::RejectionVirtualParticleFiller<mpcd::SphereGeometry>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(sphere_rejection_fill_mpi_gpu)
     {
     sphere_rejection_fill_mpi_test<mpcd::RejectionVirtualParticleFillerGPU<mpcd::SphereGeometry>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

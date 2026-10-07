@@ -53,7 +53,7 @@ cudaError_t rnes_swap_particles(Scalar4* d_vel,
                                 const unsigned int num_staged,
                                 const unsigned int block_size);
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 
 #endif
 

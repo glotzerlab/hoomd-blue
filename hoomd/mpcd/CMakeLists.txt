@@ -68,7 +68,7 @@ set(_geometries
     SphereGeometry
     )
 
-if(ENABLE_HIP)
+if(ENABLE_GPU)
     list(APPEND _mpcd_cc_sources
         ATCollisionMethodGPU.cc
         CellThermoComputeGPU.cc
@@ -149,7 +149,7 @@ foreach(_force ${_forces})
         @ONLY
         )
     list(APPEND _mpcd_cc_sources BulkStreamingMethod${_force}.cc)
-    if(ENABLE_HIP)
+    if(ENABLE_GPU)
         configure_file(
             BulkStreamingMethodGPU.cc.inc
             BulkStreamingMethod${_force}GPU.cc
@@ -172,7 +172,7 @@ foreach(_force ${_forces})
             @ONLY
             )
         list(APPEND _mpcd_cc_sources BounceBackStreamingMethod${_geometry}${_force}.cc)
-        if(ENABLE_HIP)
+        if(ENABLE_GPU)
             configure_file(
                 BounceBackStreamingMethodGPU.cc.inc
                 BounceBackStreamingMethod${_geometry}${_force}GPU.cc
@@ -197,7 +197,7 @@ foreach(_geometry ${_geometries})
         @ONLY
         )
     list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}.cc)
-    if(ENABLE_HIP)
+    if(ENABLE_GPU)
         configure_file(
             BounceBackNVEGPU.cc.inc
             BounceBackNVE${_geometry}GPU.cc
@@ -226,7 +226,7 @@ foreach(_geometry ${_geometries})
         @ONLY
         )
     list(APPEND _mpcd_cc_sources RejectionVirtualParticleFiller${_geometry}.cc)
-    if(ENABLE_HIP)
+    if(ENABLE_GPU)
         configure_file(
             RejectionVirtualParticleFillerGPU.cc.inc
             RejectionVirtualParticleFiller${_geometry}GPU.cc
@@ -242,9 +242,9 @@ foreach(_geometry ${_geometries})
     endif()
 endforeach()
 
-if(ENABLE_HIP)
-    set_source_files_properties(${_mpcd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
-endif (ENABLE_HIP)
+if(ENABLE_GPU)
+    set_source_files_properties(${_mpcd_cu_sources} PROPERTIES LANGUAGE CUDA)
+endif (ENABLE_GPU)
 
 hoomd_add_module(_mpcd SHARED ${_mpcd_cc_sources} ${_mpcd_cu_sources} ${_mpcd_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
