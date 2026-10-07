@@ -8,7 +8,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -50,12 +50,12 @@ struct EllipsoidParams : ShapeParams
     /// True when move statistics should not be counted
     unsigned int ignore;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     /// Set CUDA memory hints
     void set_memory_hint() const { }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     /// Default constructor
     EllipsoidParams() { }
 
@@ -479,7 +479,7 @@ DEVICE inline bool test_overlap<ShapeEllipsoid, ShapeEllipsoid>(const vec3<Scala
     return ret_val == ELLIPSOID_OVERLAP_TRUE;
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 template<> inline std::string getShapeSpec(const ShapeEllipsoid& ellipsoid)
     {
     std::ostringstream shapedef;

@@ -124,7 +124,7 @@ set(_hpmc_kernel_templates kernel_free_volume
                            kernel_cluster_overlaps
                            kernel_cluster_transform)
 
-if(ENABLE_HIP)
+if(ENABLE_GPU)
     # expand the shape x GPU kernel matrix of template instantiations
     foreach(KERNEL ${_hpmc_kernel_templates})
         foreach(SHAPE ${_hpmc_gpu_shapes})
@@ -143,12 +143,12 @@ if(ENABLE_HIP)
             set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
         endforeach()
     endforeach()
-endif(ENABLE_HIP)
+endif(ENABLE_GPU)
 
-if (ENABLE_HIP)
+if (ENABLE_GPU)
 set(_cuda_sources ${_hpmc_cu_sources})
-set_source_files_properties(${_hpmc_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
-endif (ENABLE_HIP)
+set_source_files_properties(${_hpmc_cu_sources} PROPERTIES LANGUAGE CUDA)
+endif (ENABLE_GPU)
 
 hoomd_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
@@ -159,7 +159,7 @@ else()
 set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
-if(ENABLE_HIP)
+if(ENABLE_GPU)
     # enable out-of-source build
     target_include_directories(_hpmc PRIVATE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 endif()
@@ -167,7 +167,7 @@ endif()
 # link the library to its dependencies
 target_link_libraries(_hpmc PUBLIC _hoomd)
 
-if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
+if (ENABLE_GPU)
 target_link_libraries(_hpmc PUBLIC CUDA::cusparse )
 endif()
 

@@ -13,7 +13,7 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/HPMCCounters.h"
 #include "hoomd/hpmc/Moves.h"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "GPUHelpers.cuh"
 
@@ -26,7 +26,7 @@ namespace hpmc
     {
 namespace gpu
     {
-#ifdef __HIPCC__
+#ifdef __NVCC__
 namespace kernel
     {
 //! Propose trial moves
@@ -58,7 +58,7 @@ __global__ void hpmc_gen_moves(const Scalar4* d_postype,
                                const typename Shape::param_type* d_params)
     {
     // load the per type pair parameters into shared memory
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
 
     typename Shape::param_type* s_params = (typename Shape::param_type*)(&s_data[0]);
     Scalar* s_d = (Scalar*)(s_params + num_types);
@@ -269,9 +269,9 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         {
         // determine the maximum block size and clamp the input block size down
         int max_block_size;
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr,
+                              reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
         max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
@@ -283,48 +283,40 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
 
-        // setup the grid to run the kernel
-        dim3 threads(block_size, 1, 1);
-        dim3 grid(args.N / block_size + 1, 1, 1);
-
-        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape, 2>),
-                           grid,
-                           threads,
-                           shared_bytes,
-                           0,
-                           args.d_postype,
-                           args.d_orientation,
-                           args.d_vel,
-                           args.N,
-                           args.ci,
-                           args.cell_dim,
-                           args.ghost_width,
-                           args.num_types,
-                           args.seed,
-                           args.rank,
-                           args.d_d,
-                           args.d_a,
-                           args.move_ratio,
-                           args.timestep,
-                           args.translate_dim,
-                           args.box,
-                           args.select,
-                           args.ghost_fraction,
-                           args.domain_decomposition,
-                           args.d_trial_postype,
-                           args.d_trial_orientation,
-                           args.d_trial_vel,
-                           args.d_trial_move_type,
-                           args.d_reject_out_of_cell,
-                           params);
+        kernel::hpmc_gen_moves<Shape, 2>
+            <<<args.N / block_size + 1, block_size, shared_bytes>>>(args.d_postype,
+                                                                    args.d_orientation,
+                                                                    args.d_vel,
+                                                                    args.N,
+                                                                    args.ci,
+                                                                    args.cell_dim,
+                                                                    args.ghost_width,
+                                                                    args.num_types,
+                                                                    args.seed,
+                                                                    args.rank,
+                                                                    args.d_d,
+                                                                    args.d_a,
+                                                                    args.move_ratio,
+                                                                    args.timestep,
+                                                                    args.translate_dim,
+                                                                    args.box,
+                                                                    args.select,
+                                                                    args.ghost_fraction,
+                                                                    args.domain_decomposition,
+                                                                    args.d_trial_postype,
+                                                                    args.d_trial_orientation,
+                                                                    args.d_trial_vel,
+                                                                    args.d_trial_move_type,
+                                                                    args.d_reject_out_of_cell,
+                                                                    params);
         }
     else
         {
         // determine the maximum block size and clamp the input block size down
         int max_block_size;
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr,
+                              reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
         max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
@@ -336,40 +328,32 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
 
-        // setup the grid to run the kernel
-        dim3 threads(block_size, 1, 1);
-        dim3 grid(args.N / block_size + 1, 1, 1);
-
-        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape, 3>),
-                           grid,
-                           threads,
-                           shared_bytes,
-                           0,
-                           args.d_postype,
-                           args.d_orientation,
-                           args.d_vel,
-                           args.N,
-                           args.ci,
-                           args.cell_dim,
-                           args.ghost_width,
-                           args.num_types,
-                           args.seed,
-                           args.rank,
-                           args.d_d,
-                           args.d_a,
-                           args.move_ratio,
-                           args.timestep,
-                           args.translate_dim,
-                           args.box,
-                           args.select,
-                           args.ghost_fraction,
-                           args.domain_decomposition,
-                           args.d_trial_postype,
-                           args.d_trial_orientation,
-                           args.d_trial_vel,
-                           args.d_trial_move_type,
-                           args.d_reject_out_of_cell,
-                           params);
+        kernel::hpmc_gen_moves<Shape, 3>
+            <<<args.N / block_size + 1, block_size, shared_bytes>>>(args.d_postype,
+                                                                    args.d_orientation,
+                                                                    args.d_vel,
+                                                                    args.N,
+                                                                    args.ci,
+                                                                    args.cell_dim,
+                                                                    args.ghost_width,
+                                                                    args.num_types,
+                                                                    args.seed,
+                                                                    args.rank,
+                                                                    args.d_d,
+                                                                    args.d_a,
+                                                                    args.move_ratio,
+                                                                    args.timestep,
+                                                                    args.translate_dim,
+                                                                    args.box,
+                                                                    args.select,
+                                                                    args.ghost_fraction,
+                                                                    args.domain_decomposition,
+                                                                    args.d_trial_postype,
+                                                                    args.d_trial_orientation,
+                                                                    args.d_trial_vel,
+                                                                    args.d_trial_move_type,
+                                                                    args.d_reject_out_of_cell,
+                                                                    params);
         }
     }
 
@@ -379,8 +363,8 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
@@ -388,22 +372,17 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     unsigned int nwork = args.N;
     const unsigned int num_blocks = nwork / block_size + 1;
 
-    hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>),
-                       dim3(num_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       args.d_postype,
-                       args.d_orientation,
-                       args.d_vel,
-                       args.d_counters,
-                       nwork,
-                       args.d_trial_postype,
-                       args.d_trial_orientation,
-                       args.d_trial_vel,
-                       args.d_trial_move_type,
-                       args.d_reject,
-                       params);
+    kernel::hpmc_update_pdata<Shape><<<num_blocks, block_size>>>(args.d_postype,
+                                                                 args.d_orientation,
+                                                                 args.d_vel,
+                                                                 args.d_counters,
+                                                                 nwork,
+                                                                 args.d_trial_postype,
+                                                                 args.d_trial_orientation,
+                                                                 args.d_trial_vel,
+                                                                 args.d_trial_move_type,
+                                                                 args.d_reject,
+                                                                 params);
     }
 #endif
 

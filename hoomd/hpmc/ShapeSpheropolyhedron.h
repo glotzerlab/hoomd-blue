@@ -17,7 +17,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -26,7 +26,7 @@
 #include <iostream>
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <vector>
 #endif
 
@@ -161,7 +161,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 template<> inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
     {
     std::ostringstream shapedef;
