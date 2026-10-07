@@ -4,7 +4,7 @@
 #ifndef __POTENTIAL_TERSOFF_GPU_H__
 #define __POTENTIAL_TERSOFF_GPU_H__
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include <memory>
 
@@ -17,7 +17,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -174,5 +174,5 @@ template<class T> void export_PotentialTersoffGPU(pybind11::module& m, const std
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif

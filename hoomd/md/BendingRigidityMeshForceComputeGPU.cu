@@ -2,8 +2,8 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BendingRigidityMeshForceComputeGPU.cuh"
-#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
+#include <cuda_runtime.h>
 
 /*! \file BendingRigidityMeshForceComputeGPU.cu
     \brief Defines GPU kernel code for calculating the bending rigidity forces. Used by
@@ -212,55 +212,46 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
     \param block_size Block size to use when performing calculations
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
-hipError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
-                                              Scalar* d_virial,
-                                              const size_t virial_pitch,
-                                              const unsigned int N,
-                                              const Scalar4* d_pos,
-                                              const unsigned int* d_rtag,
-                                              const BoxDim& box,
-                                              const group_storage<4>* blist,
-                                              const Index2D blist_idx,
-                                              const unsigned int* bpos_list,
-                                              const unsigned int* n_bonds_list,
-                                              Scalar* d_params,
-                                              const unsigned int n_bond_type,
-                                              int block_size)
+cudaError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
+                                               Scalar* d_virial,
+                                               const size_t virial_pitch,
+                                               const unsigned int N,
+                                               const Scalar4* d_pos,
+                                               const unsigned int* d_rtag,
+                                               const BoxDim& box,
+                                               const group_storage<4>* blist,
+                                               const Index2D blist_idx,
+                                               const unsigned int* bpos_list,
+                                               const unsigned int* n_bonds_list,
+                                               Scalar* d_params,
+                                               const unsigned int n_bond_type,
+                                               int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_bending_rigidity_force_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_bending_rigidity_force_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_compute_bending_rigidity_force_kernel<<<N / run_block_size + 1, run_block_size>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        d_pos,
+        d_rtag,
+        box,
+        blist,
+        blist_idx,
+        bpos_list,
+        n_bonds_list,
+        d_params,
+        n_bond_type);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_bending_rigidity_force_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       d_pos,
-                       d_rtag,
-                       box,
-                       blist,
-                       blist_idx,
-                       bpos_list,
-                       n_bonds_list,
-                       d_params,
-                       n_bond_type);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

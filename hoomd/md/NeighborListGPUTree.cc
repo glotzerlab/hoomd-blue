@@ -57,7 +57,7 @@ NeighborListGPUTree::~NeighborListGPUTree()
     // destroy all of the created streams
     for (auto stream = m_streams.begin(); stream != m_streams.end(); ++stream)
         {
-        hipStreamDestroy(*stream);
+        cudaStreamDestroy(*stream);
         }
     }
 
@@ -114,7 +114,7 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
                 {
                 m_lbvhs[i].reset(new kernel::LBVHWrapper());
                 m_traversers[i].reset(new kernel::LBVHTraverserWrapper());
-                hipStreamCreate(&m_streams[i]);
+                cudaStreamCreate(&m_streams[i]);
                 }
 
             m_max_types = m_pdata->getNTypes();
@@ -376,7 +376,7 @@ void NeighborListGPUTree::buildTree()
             }
 
         // then, launch all of the builds in their own streams
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         m_build_tuner->begin();
         const unsigned int block_size = m_build_tuner->getParam()[0];
 
@@ -409,7 +409,7 @@ void NeighborListGPUTree::buildTree()
             }
         m_build_tuner->end();
         // wait for all builds to finish
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         }
 
         // put particles in primitive order for traversal and compress the lbvhs so that the data is
@@ -446,7 +446,7 @@ void NeighborListGPUTree::buildTree()
 
         // loops are not fused to avoid streams or syncing in kernel loop above, but could be done
         // if necessary
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
             {
             if (m_lbvhs[i]->getN() == 0)
@@ -455,7 +455,7 @@ void NeighborListGPUTree::buildTree()
                                    *(m_lbvhs[i]->get()),
                                    m_streams[i]);
             }
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         }
     }
 
@@ -505,7 +505,7 @@ void NeighborListGPUTree::traverseTree()
     const BoxDim& box = m_pdata->getBox();
 
     // traverse all pairs in (now-transposed) streams
-    hipDeviceSynchronize();
+    cudaDeviceSynchronize();
     m_traverse_tuner->begin();
     const unsigned int block_size = m_traverse_tuner->getParam()[0];
     for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
@@ -571,7 +571,7 @@ void NeighborListGPUTree::traverseTree()
         }
     m_traverse_tuner->end();
     // wait for all traversals to finish
-    hipDeviceSynchronize();
+    cudaDeviceSynchronize();
     }
 
 /*!

@@ -8,9 +8,9 @@
            GPU accelerated version.
 */
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 // Above this line shared constructs can be declared.
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include "MuellerPlatheFlow.h"
 #include "hoomd/Autotuner.h"
 #include "hoomd/ParticleGroup.h"
@@ -67,6 +67,6 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     } // end namespace md
     } // end namespace hoomd
 
-#endif // __HIPCC__
+#endif // __NVCC__
 #endif //__MUELLER_PLATHE_FLOW_GPU_H__
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

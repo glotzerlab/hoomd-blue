@@ -7,7 +7,7 @@
 
 #include "BoxDeformer.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "BoxDeformerGPU.cuh"
 #endif
 
@@ -23,7 +23,7 @@ BoxDeformer::BoxDeformer(std::shared_ptr<SystemDefinition> sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing BoxDeformer" << std::endl;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         m_tuner_wrap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
@@ -75,7 +75,7 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& n
     if (old_box == new_box)
         return;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         // GPU path

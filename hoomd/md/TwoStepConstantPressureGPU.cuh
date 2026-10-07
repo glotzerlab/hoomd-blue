@@ -4,7 +4,7 @@
 #ifndef __TWOSTEP_NPT_MTK_GPU_CUH__
 #define __TWOSTEP_NPT_MTK_GPU_CUH__
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -21,39 +21,39 @@ namespace md
 namespace kernel
     {
 //! Kernel driver for the the first step of the computation
-hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
-                                    Scalar4* d_vel,
-                                    const Scalar3* d_accel,
-                                    unsigned int* d_group_members,
-                                    const unsigned int group_size,
-                                    Scalar thermo_rescale,
-                                    Scalar* mat_exp_v,
-                                    Scalar* mat_exp_r,
-                                    Scalar* mat_exp_r_int,
-                                    Scalar deltaT,
-                                    bool rescale_all,
-                                    const unsigned int block_size,
-                                    unsigned int n_dimensions);
+cudaError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
+                                     Scalar4* d_vel,
+                                     const Scalar3* d_accel,
+                                     unsigned int* d_group_members,
+                                     const unsigned int group_size,
+                                     Scalar thermo_rescale,
+                                     Scalar* mat_exp_v,
+                                     Scalar* mat_exp_r,
+                                     Scalar* mat_exp_r_int,
+                                     Scalar deltaT,
+                                     bool rescale_all,
+                                     const unsigned int block_size,
+                                     unsigned int n_dimensions);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
-hipError_t gpu_npt_rescale_wrap(const unsigned int N,
-                                Scalar4* d_pos,
-                                Scalar4* d_vel,
-                                int3* d_image,
-                                const BoxDim& box,
-                                const unsigned int block_size);
+cudaError_t gpu_npt_rescale_wrap(const unsigned int N,
+                                 Scalar4* d_pos,
+                                 Scalar4* d_vel,
+                                 int3* d_image,
+                                 const BoxDim& box,
+                                 const unsigned int block_size);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
-                                    Scalar3* d_accel,
-                                    unsigned int* d_group_members,
-                                    const unsigned int group_size,
-                                    Scalar4* d_net_force,
-                                    Scalar* mat_exp_v,
-                                    Scalar deltaT,
-                                    Scalar thermo_rescale,
-                                    const unsigned int block_size,
-                                    unsigned int n_dimensions);
+cudaError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
+                                     Scalar3* d_accel,
+                                     unsigned int* d_group_members,
+                                     const unsigned int group_size,
+                                     Scalar4* d_net_force,
+                                     Scalar* mat_exp_v,
+                                     Scalar deltaT,
+                                     Scalar thermo_rescale,
+                                     const unsigned int block_size,
+                                     unsigned int n_dimensions);
 
 //! Rescale all positions
 void gpu_npt_rescale_rescale(const unsigned int N,

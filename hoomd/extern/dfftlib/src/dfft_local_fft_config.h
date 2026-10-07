@@ -22,8 +22,8 @@
 #endif /* ENABLE_HOST */
 #endif /* NVCC */
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 /* CUFFT is the default library */
 #include "cufft_single_interface.h"
-#endif /* ENABLE_HIP */
+#endif /* ENABLE_GPU */
 

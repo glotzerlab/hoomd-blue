@@ -20,7 +20,7 @@ namespace md
     {
 namespace kernel
     {
-template hipError_t
+template cudaError_t
 gpu_rattle_brownian_step_one<MANIFOLD_CLASS>(Scalar4* d_pos,
                                              int3* d_image,
                                              Scalar4* d_vel,
@@ -42,7 +42,7 @@ gpu_rattle_brownian_step_one<MANIFOLD_CLASS>(Scalar4* d_pos,
                                              const bool d_noiseless_t,
                                              const bool d_noiseless_r);
 
-template hipError_t
+template cudaError_t
 gpu_include_rattle_force_bd<MANIFOLD_CLASS>(const Scalar4* d_pos,
                                             Scalar4* d_net_force,
                                             Scalar* d_net_virial,
@@ -55,7 +55,7 @@ gpu_include_rattle_force_bd<MANIFOLD_CLASS>(const Scalar4* d_pos,
                                             const Scalar deltaT,
                                             const bool d_noiseless_t);
 
-template hipError_t gpu_rattle_langevin_step_two<MANIFOLD_CLASS>(
+template cudaError_t gpu_rattle_langevin_step_two<MANIFOLD_CLASS>(
     const Scalar4* d_pos,
     Scalar4* d_vel,
     Scalar3* d_accel,
@@ -68,33 +68,33 @@ template hipError_t gpu_rattle_langevin_step_two<MANIFOLD_CLASS>(
     Scalar deltaT,
     unsigned int D);
 
-template hipError_t gpu_rattle_nve_step_two<MANIFOLD_CLASS>(Scalar4* d_pos,
-                                                            Scalar4* d_vel,
-                                                            Scalar3* d_accel,
-                                                            unsigned int* d_group_members,
-                                                            const unsigned int group_size,
-                                                            Scalar4* d_net_force,
-                                                            MANIFOLD_CLASS manifold,
-                                                            Scalar eta,
-                                                            Scalar deltaT,
-                                                            bool limit,
-                                                            Scalar limit_val,
-                                                            bool zero_force,
-                                                            unsigned int block_size);
+template cudaError_t gpu_rattle_nve_step_two<MANIFOLD_CLASS>(Scalar4* d_pos,
+                                                             Scalar4* d_vel,
+                                                             Scalar3* d_accel,
+                                                             unsigned int* d_group_members,
+                                                             const unsigned int group_size,
+                                                             Scalar4* d_net_force,
+                                                             MANIFOLD_CLASS manifold,
+                                                             Scalar eta,
+                                                             Scalar deltaT,
+                                                             bool limit,
+                                                             Scalar limit_val,
+                                                             bool zero_force,
+                                                             unsigned int block_size);
 
-template hipError_t gpu_include_rattle_force_nve<MANIFOLD_CLASS>(const Scalar4* d_pos,
-                                                                 const Scalar4* d_vel,
-                                                                 Scalar3* d_accel,
-                                                                 Scalar4* d_net_force,
-                                                                 Scalar* d_net_virial,
-                                                                 unsigned int* d_group_members,
-                                                                 const unsigned int group_size,
-                                                                 size_t net_virial_pitch,
-                                                                 MANIFOLD_CLASS manifold,
-                                                                 Scalar eta,
-                                                                 Scalar deltaT,
-                                                                 bool zero_force,
-                                                                 unsigned int block_size);
+template cudaError_t gpu_include_rattle_force_nve<MANIFOLD_CLASS>(const Scalar4* d_pos,
+                                                                  const Scalar4* d_vel,
+                                                                  Scalar3* d_accel,
+                                                                  Scalar4* d_net_force,
+                                                                  Scalar* d_net_virial,
+                                                                  unsigned int* d_group_members,
+                                                                  const unsigned int group_size,
+                                                                  size_t net_virial_pitch,
+                                                                  MANIFOLD_CLASS manifold,
+                                                                  Scalar eta,
+                                                                  Scalar deltaT,
+                                                                  bool zero_force,
+                                                                  unsigned int block_size);
 
     } // end namespace kernel
     } // end namespace md

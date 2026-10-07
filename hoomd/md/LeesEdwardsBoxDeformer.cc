@@ -7,7 +7,7 @@
 
 #include "LeesEdwardsBoxDeformer.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "LeesEdwardsBoxDeformerGPU.cuh"
 #endif
 
@@ -26,7 +26,7 @@ LeesEdwardsBoxDeformer::LeesEdwardsBoxDeformer(std::shared_ptr<SystemDefinition>
     {
     m_exec_conf->msg->notice(5) << "Constructing LeesEdwardsBoxDeformer" << std::endl;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         m_tuner_remap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
@@ -79,7 +79,7 @@ void LeesEdwardsBoxDeformer::processAfterDeformation(const BoxDim& old_box, cons
         flipped_box.setTiltFactors(xy_flip, new_box.getTiltFactorXZ(), new_box.getTiltFactorYZ());
 
         // Remap particles by adjusting positions and images
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_exec_conf->isCUDAEnabled())
             {
             // GPU path

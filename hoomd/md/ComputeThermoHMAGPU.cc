@@ -70,7 +70,7 @@ void ComputeThermoHMAGPU::computeProperties()
         // reset to zero
         ArrayHandle<Scalar3> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
-        hipMemset(d_scratch.data, 0, sizeof(Scalar3) * m_scratch.size());
+        cudaMemset(d_scratch.data, 0, sizeof(Scalar3) * m_scratch.size());
         }
 
     // access the particle data

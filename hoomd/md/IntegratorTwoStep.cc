@@ -97,7 +97,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
         }
 
     // compute the net force on all particles
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep + 1);
     else
@@ -263,7 +263,7 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         }
 
     // compute the net force on all particles
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep);
     else
@@ -344,7 +344,7 @@ void IntegratorTwoStep::computeNetForce(uint64_t timestep)
         }
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 /// helper function to compute net force/virial on the GPU
 void IntegratorTwoStep::computeNetForceGPU(uint64_t timestep)
     {

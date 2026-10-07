@@ -1,12 +1,12 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/TextureTools.h"
+#include <cuda_runtime.h>
 
 /*! \file ActiveForceComputeGPU.cuh
     \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by
@@ -23,28 +23,28 @@ namespace md
 namespace kernel
     {
 template<class Manifold>
-hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
-                                                    unsigned int* d_index_array,
-                                                    const Scalar4* d_pos,
-                                                    Scalar4* d_orientation,
-                                                    const Scalar4* d_f_act,
-                                                    Manifold manifold,
-                                                    unsigned int block_size);
+cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
+                                                     unsigned int* d_index_array,
+                                                     const Scalar4* d_pos,
+                                                     Scalar4* d_orientation,
+                                                     const Scalar4* d_f_act,
+                                                     Manifold manifold,
+                                                     unsigned int block_size);
 
 template<class Manifold>
-hipError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsigned int group_size,
-                                                                    unsigned int* d_tag,
-                                                                    unsigned int* d_index_array,
-                                                                    const Scalar4* d_pos,
-                                                                    Scalar4* d_orientation,
-                                                                    Manifold manifold,
-                                                                    bool is2D,
-                                                                    const Scalar rotationDiff,
-                                                                    const uint64_t timestep,
-                                                                    const uint16_t seed,
-                                                                    unsigned int block_size);
+cudaError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsigned int group_size,
+                                                                     unsigned int* d_tag,
+                                                                     unsigned int* d_index_array,
+                                                                     const Scalar4* d_pos,
+                                                                     Scalar4* d_orientation,
+                                                                     Manifold manifold,
+                                                                     bool is2D,
+                                                                     const Scalar rotationDiff,
+                                                                     const uint64_t timestep,
+                                                                     const uint16_t seed,
+                                                                     unsigned int block_size);
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 
 //! Kernel for adjusting active force vectors to align parallel to an
 //  manifold surface constraint on the GPU
@@ -156,67 +156,49 @@ gpu_compute_active_force_constraint_rotational_diffusion_kernel(const unsigned i
     }
 
 template<class Manifold>
-hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
-                                                    unsigned int* d_index_array,
-                                                    const Scalar4* d_pos,
-                                                    Scalar4* d_orientation,
-                                                    const Scalar4* d_f_act,
-                                                    Manifold manifold,
-                                                    unsigned int block_size)
+cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
+                                                     unsigned int* d_index_array,
+                                                     const Scalar4* d_pos,
+                                                     Scalar4* d_orientation,
+                                                     const Scalar4* d_f_act,
+                                                     Manifold manifold,
+                                                     unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    dim3 grid(group_size / block_size + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_set_constraints_kernel<Manifold>),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       group_size,
-                       d_index_array,
-                       d_pos,
-                       d_orientation,
-                       d_f_act,
-                       manifold);
-    return hipSuccess;
+    gpu_compute_active_force_set_constraints_kernel<Manifold>
+        <<<group_size / block_size + 1, block_size>>>(group_size,
+                                                      d_index_array,
+                                                      d_pos,
+                                                      d_orientation,
+                                                      d_f_act,
+                                                      manifold);
+    return cudaSuccess;
     }
 
 template<class Manifold>
-hipError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsigned int group_size,
-                                                                    unsigned int* d_tag,
-                                                                    unsigned int* d_index_array,
-                                                                    const Scalar4* d_pos,
-                                                                    Scalar4* d_orientation,
-                                                                    Manifold manifold,
-                                                                    bool is2D,
-                                                                    const Scalar rotationConst,
-                                                                    const uint64_t timestep,
-                                                                    const uint16_t seed,
-                                                                    unsigned int block_size)
+cudaError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsigned int group_size,
+                                                                     unsigned int* d_tag,
+                                                                     unsigned int* d_index_array,
+                                                                     const Scalar4* d_pos,
+                                                                     Scalar4* d_orientation,
+                                                                     Manifold manifold,
+                                                                     bool is2D,
+                                                                     const Scalar rotationConst,
+                                                                     const uint64_t timestep,
+                                                                     const uint16_t seed,
+                                                                     unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    dim3 grid(group_size / block_size + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_constraint_rotational_diffusion_kernel<Manifold>),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       group_size,
-                       d_tag,
-                       d_index_array,
-                       d_pos,
-                       d_orientation,
-                       manifold,
-                       is2D,
-                       rotationConst,
-                       timestep,
-                       seed);
-    return hipSuccess;
+    gpu_compute_active_force_constraint_rotational_diffusion_kernel<Manifold>
+        <<<group_size / block_size + 1, block_size>>>(group_size,
+                                                      d_tag,
+                                                      d_index_array,
+                                                      d_pos,
+                                                      d_orientation,
+                                                      manifold,
+                                                      is2D,
+                                                      rotationConst,
+                                                      timestep,
+                                                      seed);
+    return cudaSuccess;
     }
 
 #endif

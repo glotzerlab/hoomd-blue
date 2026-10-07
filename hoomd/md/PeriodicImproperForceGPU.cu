@@ -306,61 +306,52 @@ gpu_compute_periodic_improper_forces_kernel(Scalar4* d_force,
     \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 
     \a d_params should include one Scalar4 element per improper type. The x component contains K the
    spring constant and the y component contains sign, and the z component the multiplicity.
 */
-hipError_t gpu_compute_periodic_improper_forces(Scalar4* d_force,
-                                                Scalar* d_virial,
-                                                const size_t virial_pitch,
-                                                const unsigned int N,
-                                                const Scalar4* d_pos,
-                                                const BoxDim& box,
-                                                const group_storage<4>* tlist,
-                                                const unsigned int* improper_ABCD,
-                                                const unsigned int pitch,
-                                                const unsigned int* n_impropers_list,
-                                                periodic_improper_params* d_params,
-                                                unsigned int n_improper_types,
-                                                int block_size,
-                                                int warp_size)
+cudaError_t gpu_compute_periodic_improper_forces(Scalar4* d_force,
+                                                 Scalar* d_virial,
+                                                 const size_t virial_pitch,
+                                                 const unsigned int N,
+                                                 const Scalar4* d_pos,
+                                                 const BoxDim& box,
+                                                 const group_storage<4>* tlist,
+                                                 const unsigned int* improper_ABCD,
+                                                 const unsigned int pitch,
+                                                 const unsigned int* n_impropers_list,
+                                                 periodic_improper_params* d_params,
+                                                 unsigned int n_improper_types,
+                                                 int block_size,
+                                                 int warp_size)
     {
     assert(d_params);
 
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_periodic_improper_forces_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_periodic_improper_forces_kernel);
     max_block_size = attr.maxThreadsPerBlock;
     if (max_block_size % warp_size)
-        // handle non-sensical return values from hipFuncGetAttributes
+        // handle non-sensical return values from cudaFuncGetAttributes
         max_block_size = (max_block_size / warp_size - 1) * warp_size;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_compute_periodic_improper_forces_kernel<<<N / run_block_size + 1, run_block_size>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        d_pos,
+        d_params,
+        box,
+        tlist,
+        improper_ABCD,
+        pitch,
+        n_impropers_list);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_periodic_improper_forces_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       d_pos,
-                       d_params,
-                       box,
-                       tlist,
-                       improper_ABCD,
-                       pitch,
-                       n_impropers_list);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

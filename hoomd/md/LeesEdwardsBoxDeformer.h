@@ -5,7 +5,7 @@
     \brief Declaration of Lees–Edwards box deformer for triclinic boxes
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -69,7 +69,7 @@ class PYBIND11_EXPORT LeesEdwardsBoxDeformer : public BoxDeformer
     /// Box flip and particle remapping (called after default PBC wrapping)
     void processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box) override;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     private:
     std::shared_ptr<Autotuner<1>> m_tuner_remap; //!< Autotuner for block size
 #endif

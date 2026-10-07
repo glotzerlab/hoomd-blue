@@ -266,9 +266,6 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SI
 if (ENABLE_GPU)
     target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     target_compile_definitions(_hoomd PUBLIC ENABLE_GPU)
-    if (TARGET CUDA::cusolver)
-        target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
-    endif()
 endif()
 
 # Libraries and compile definitions for MPI enabled builds

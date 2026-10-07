@@ -15,7 +15,7 @@
 #include "hoomd/md/NeighborListStencil.h"
 #include "hoomd/md/NeighborListTree.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/md/NeighborListGPU.h"
 #include "hoomd/md/NeighborListGPUBinned.h"
 #include "hoomd/md/NeighborListGPUStencil.h"
@@ -1680,7 +1680,7 @@ UP_TEST(NeighborListTree_comparison)
             new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 ///////////////
 // BINNED GPU
 ///////////////

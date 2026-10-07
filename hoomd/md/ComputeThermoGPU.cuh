@@ -45,28 +45,28 @@ struct compute_thermo_args
     };
 
 //! Computes the partial sums of thermodynamic properties for ComputeThermo
-hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
-                                      Scalar4* d_vel,
-                                      unsigned int* d_body,
-                                      unsigned int* d_tag,
-                                      unsigned int* d_group_members,
-                                      unsigned int group_size,
-                                      const BoxDim& box,
-                                      const compute_thermo_args& args,
-                                      bool compute_pressure_tensor,
-                                      bool compute_rotational_energy);
+cudaError_t gpu_compute_thermo_partial(Scalar* d_properties,
+                                       Scalar4* d_vel,
+                                       unsigned int* d_body,
+                                       unsigned int* d_tag,
+                                       unsigned int* d_group_members,
+                                       unsigned int group_size,
+                                       const BoxDim& box,
+                                       const compute_thermo_args& args,
+                                       bool compute_pressure_tensor,
+                                       bool compute_rotational_energy);
 
 //! Computes the final sums of thermodynamic properties for ComputeThermo
-hipError_t gpu_compute_thermo_final(Scalar* d_properties,
-                                    Scalar4* d_vel,
-                                    unsigned int* d_body,
-                                    unsigned int* d_tag,
-                                    unsigned int* d_group_members,
-                                    unsigned int group_size,
-                                    const BoxDim& box,
-                                    const compute_thermo_args& args,
-                                    bool compute_pressure_tensor,
-                                    bool compute_rotational_energy);
+cudaError_t gpu_compute_thermo_final(Scalar* d_properties,
+                                     Scalar4* d_vel,
+                                     unsigned int* d_body,
+                                     unsigned int* d_tag,
+                                     unsigned int* d_group_members,
+                                     unsigned int group_size,
+                                     const BoxDim& box,
+                                     const compute_thermo_args& args,
+                                     bool compute_pressure_tensor,
+                                     bool compute_rotational_energy);
 
     } // end namespace kernel
     } // end namespace md

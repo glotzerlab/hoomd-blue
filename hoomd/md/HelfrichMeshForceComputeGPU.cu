@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -180,49 +180,40 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     \param compute_capability Device compute capability (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
-hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
-                                      Scalar3* d_sigma_dash,
-                                      const unsigned int N,
-                                      const Scalar4* d_pos,
-                                      const unsigned int* d_rtag,
-                                      const BoxDim& box,
-                                      const group_storage<4>* blist,
-                                      const Index2D blist_idx,
-                                      const unsigned int* bpos_list,
-                                      const unsigned int* n_bonds_list,
-                                      int block_size)
+cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
+                                       Scalar3* d_sigma_dash,
+                                       const unsigned int N,
+                                       const Scalar4* d_pos,
+                                       const unsigned int* d_rtag,
+                                       const BoxDim& box,
+                                       const group_storage<4>* blist,
+                                       const Index2D blist_idx,
+                                       const unsigned int* bpos_list,
+                                       const unsigned int* n_bonds_list,
+                                       int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_sigma_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_sigma_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_helfrich_sigma_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_sigma,
-                       d_sigma_dash,
-                       N,
-                       d_pos,
-                       d_rtag,
-                       box,
-                       blist,
-                       blist_idx,
-                       bpos_list,
-                       n_bonds_list);
+    gpu_compute_helfrich_sigma_kernel<<<N / run_block_size + 1, run_block_size>>>(d_sigma,
+                                                                                  d_sigma_dash,
+                                                                                  N,
+                                                                                  d_pos,
+                                                                                  d_rtag,
+                                                                                  box,
+                                                                                  blist,
+                                                                                  blist_idx,
+                                                                                  bpos_list,
+                                                                                  n_bonds_list);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel for calculating helfrich sigmas on the GPU
@@ -520,59 +511,50 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \param block_size Block size to use when performing calculations
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
-hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
-                                      Scalar* d_virial,
-                                      const size_t virial_pitch,
-                                      const unsigned int N,
-                                      const Scalar4* d_pos,
-                                      const unsigned int* d_rtag,
-                                      const BoxDim& box,
-                                      const Scalar* d_sigma,
-                                      const Scalar3* d_sigma_dash,
-                                      const group_storage<4>* blist,
-                                      const Index2D blist_idx,
-                                      const unsigned int* bpos_list,
-                                      const unsigned int* n_bonds_list,
-                                      Scalar* d_params,
-                                      const unsigned int n_bond_type,
-                                      int block_size)
+cudaError_t gpu_compute_helfrich_force(Scalar4* d_force,
+                                       Scalar* d_virial,
+                                       const size_t virial_pitch,
+                                       const unsigned int N,
+                                       const Scalar4* d_pos,
+                                       const unsigned int* d_rtag,
+                                       const BoxDim& box,
+                                       const Scalar* d_sigma,
+                                       const Scalar3* d_sigma_dash,
+                                       const group_storage<4>* blist,
+                                       const Index2D blist_idx,
+                                       const unsigned int* bpos_list,
+                                       const unsigned int* n_bonds_list,
+                                       Scalar* d_params,
+                                       const unsigned int n_bond_type,
+                                       int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_force_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_force_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_helfrich_force_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       d_pos,
-                       d_rtag,
-                       box,
-                       d_sigma,
-                       d_sigma_dash,
-                       blist,
-                       blist_idx,
-                       bpos_list,
-                       n_bonds_list,
-                       d_params,
-                       n_bond_type);
+    gpu_compute_helfrich_force_kernel<<<N / run_block_size + 1, run_block_size>>>(d_force,
+                                                                                  d_virial,
+                                                                                  virial_pitch,
+                                                                                  N,
+                                                                                  d_pos,
+                                                                                  d_rtag,
+                                                                                  box,
+                                                                                  d_sigma,
+                                                                                  d_sigma_dash,
+                                                                                  blist,
+                                                                                  blist_idx,
+                                                                                  bpos_list,
+                                                                                  n_bonds_list,
+                                                                                  d_params,
+                                                                                  n_bond_type);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

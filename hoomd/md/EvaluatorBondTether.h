@@ -4,7 +4,7 @@
 #ifndef __BOND_EVALUATOR_TETHER_H__
 #define __BOND_EVALUATOR_TETHER_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -17,7 +17,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -35,7 +35,7 @@ struct tether_params
     Scalar l_c0;
     Scalar l_max;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     tether_params()
         {
         k_b = 10;
@@ -162,7 +162,7 @@ class EvaluatorBondTether
         return true;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

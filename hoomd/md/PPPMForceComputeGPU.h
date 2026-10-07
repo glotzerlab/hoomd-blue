@@ -6,35 +6,20 @@
 #ifndef __PPPM_FORCE_COMPUTE_GPU_H__
 #define __PPPM_FORCE_COMPUTE_GPU_H__
 
-#ifdef ENABLE_HIP
-
-#if __HIP_PLATFORM_HCC__
-#include <hipfft.h>
-#elif __HIP_PLATFORM_NVCC__
 #include <cufft.h>
-typedef cufftComplex hipfftComplex;
-typedef cufftHandle hipfftHandle;
-#endif
 
 #include <sstream>
-
-// #define USE_HOST_DFFT
 
 #include "hoomd/Autotuner.h"
 
 #ifdef ENABLE_MPI
 #include "CommunicatorGridGPU.h"
-
-#ifndef USE_HOST_DFFT
 #include "hoomd/extern/dfftlib/src/dfft_cuda.h"
-#else
-#include "hoomd/extern/dfftlib/src/dfft_host.h"
-#endif
 #endif
 
-#define CHECK_HIPFFT_ERROR(status)                      \
-        {                                               \
-        handleHIPFFTResult(status, __FILE__, __LINE__); \
+#define CHECK_CUFFT_ERROR(status)                      \
+        {                                              \
+        handlecuFFTResult(status, __FILE__, __LINE__); \
         }
 
 namespace hoomd
@@ -77,21 +62,13 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     //! Helper function to correct forces on excluded particles
     virtual void fixExclusions();
 
-//! Check for HIPFFT errors
-#ifdef __HIP_PLATFORM_HCC__
-    inline void handleHIPFFTResult(hipfftResult result, const char* file, unsigned int line) const
-#else
-    inline void handleHIPFFTResult(cufftResult result, const char* file, unsigned int line) const
-#endif
+    //! Check for cuFFT errors
+    inline void handlecuFFTResult(cufftResult result, const char* file, unsigned int line) const
         {
-#ifdef __HIP_PLATFORM_HCC__
-        if (result != HIPFFT_SUCCESS)
-#else
         if (result != CUFFT_SUCCESS)
-#endif
             {
             std::ostringstream oss;
-            oss << "HIPFFT returned error " << result << " in file " << file << " line " << line
+            oss << "cuFFT returned error " << result << " in file " << file << " line " << line
                 << std::endl;
             throw std::runtime_error(oss.str());
             }
@@ -107,13 +84,13 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     /// Autotuner for computing the influence function
     std::shared_ptr<Autotuner<1>> m_tuner_influence;
 
-    hipfftHandle m_hipfft_plan;   //!< The FFT plan
+    cufftHandle m_hipfft_plan;    //!< The FFT plan
     bool m_local_fft;             //!< True if we are only doing local FFTs (not distributed)
     bool m_cufft_initialized;     //!< True if CUFFT has been initialized
     bool m_cuda_dfft_initialized; //!< True if dfft has been initialized
 
 #ifdef ENABLE_MPI
-    typedef CommunicatorGridGPU<hipfftComplex> CommunicatorGridGPUComplex;
+    typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
     std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
     std::shared_ptr<CommunicatorGridGPUComplex>
         m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
@@ -122,11 +99,11 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     dfft_plan m_dfft_plan_inverse; //!< Forward distributed FFT
 #endif
 
-    GPUArray<hipfftComplex> m_mesh;         //!< The particle density mesh
-    GPUArray<hipfftComplex> m_mesh_scratch; //!< The particle density mesh per GPU, staging array
-    GPUArray<hipfftComplex> m_inv_fourier_mesh_x; //!< The inverse-fourier transformed force mesh
-    GPUArray<hipfftComplex> m_inv_fourier_mesh_y; //!< The inverse-fourier transformed force mesh
-    GPUArray<hipfftComplex> m_inv_fourier_mesh_z; //!< The inverse-fourier transformed force mesh
+    GPUArray<cufftComplex> m_mesh;         //!< The particle density mesh
+    GPUArray<cufftComplex> m_mesh_scratch; //!< The particle density mesh per GPU, staging array
+    GPUArray<cufftComplex> m_inv_fourier_mesh_x; //!< The inverse-fourier transformed force mesh
+    GPUArray<cufftComplex> m_inv_fourier_mesh_y; //!< The inverse-fourier transformed force mesh
+    GPUArray<cufftComplex> m_inv_fourier_mesh_z; //!< The inverse-fourier transformed force mesh
 
     GPUFlags<Scalar> m_sum;                //!< Sum over fourier mesh values
     GPUArray<Scalar> m_sum_partial;        //!< Partial sums over fourier mesh values
@@ -138,5 +115,4 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
 #endif // __PPPM_FORCE_COMPUTE_GPU_H__

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -32,69 +32,69 @@ namespace md
     {
 namespace kernel
     {
-hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
-                                   Scalar4* d_vel,
-                                   const Scalar3* d_accel,
-                                   int3* d_image,
-                                   unsigned int* d_group_members,
-                                   const unsigned int group_size,
-                                   const BoxDim& box,
-                                   Scalar deltaT,
-                                   bool limit,
-                                   Scalar limit_val,
-                                   unsigned int block_size);
+cudaError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    const Scalar3* d_accel,
+                                    int3* d_image,
+                                    unsigned int* d_group_members,
+                                    const unsigned int group_size,
+                                    const BoxDim& box,
+                                    Scalar deltaT,
+                                    bool limit,
+                                    Scalar limit_val,
+                                    unsigned int block_size);
 
-hipError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
-                                           Scalar4* d_angmom,
-                                           const Scalar3* d_inertia,
-                                           const Scalar4* d_net_torque,
-                                           unsigned int* d_group_members,
-                                           const unsigned int group_size,
-                                           Scalar deltaT,
-                                           Scalar scale,
-                                           const unsigned int block_size);
-
-template<class Manifold>
-hipError_t gpu_rattle_nve_step_two(Scalar4* d_pos,
-                                   Scalar4* d_vel,
-                                   Scalar3* d_accel,
-                                   unsigned int* d_group_members,
-                                   const unsigned int group_size,
-                                   Scalar4* d_net_force,
-                                   Manifold manifold,
-                                   Scalar tolerance,
-                                   Scalar deltaT,
-                                   bool limit,
-                                   Scalar limit_val,
-                                   bool zero_force,
-                                   unsigned int block_size);
-
-hipError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
-                                           Scalar4* d_angmom,
-                                           const Scalar3* d_inertia,
-                                           const Scalar4* d_net_torque,
-                                           unsigned int* d_group_members,
-                                           const unsigned int group_size,
-                                           Scalar deltaT,
-                                           Scalar scale,
-                                           const unsigned int block_size);
+cudaError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
+                                            Scalar4* d_angmom,
+                                            const Scalar3* d_inertia,
+                                            const Scalar4* d_net_torque,
+                                            unsigned int* d_group_members,
+                                            const unsigned int group_size,
+                                            Scalar deltaT,
+                                            Scalar scale,
+                                            const unsigned int block_size);
 
 template<class Manifold>
-hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
-                                        const Scalar4* d_vel,
-                                        Scalar3* d_accel,
-                                        Scalar4* d_net_force,
-                                        Scalar* d_net_virial,
-                                        unsigned int* d_group_members,
-                                        const unsigned int group_size,
-                                        size_t net_virial_pitch,
-                                        Manifold manifold,
-                                        Scalar tolerance,
-                                        Scalar deltaT,
-                                        bool zero_force,
-                                        unsigned int block_size);
+cudaError_t gpu_rattle_nve_step_two(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    Scalar3* d_accel,
+                                    unsigned int* d_group_members,
+                                    const unsigned int group_size,
+                                    Scalar4* d_net_force,
+                                    Manifold manifold,
+                                    Scalar tolerance,
+                                    Scalar deltaT,
+                                    bool limit,
+                                    Scalar limit_val,
+                                    bool zero_force,
+                                    unsigned int block_size);
 
-#ifdef __HIPCC__
+cudaError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
+                                            Scalar4* d_angmom,
+                                            const Scalar3* d_inertia,
+                                            const Scalar4* d_net_torque,
+                                            unsigned int* d_group_members,
+                                            const unsigned int group_size,
+                                            Scalar deltaT,
+                                            Scalar scale,
+                                            const unsigned int block_size);
+
+template<class Manifold>
+cudaError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
+                                         const Scalar4* d_vel,
+                                         Scalar3* d_accel,
+                                         Scalar4* d_net_force,
+                                         Scalar* d_net_virial,
+                                         unsigned int* d_group_members,
+                                         const unsigned int group_size,
+                                         size_t net_virial_pitch,
+                                         Manifold manifold,
+                                         Scalar tolerance,
+                                         Scalar deltaT,
+                                         bool zero_force,
+                                         unsigned int block_size);
+
+#ifdef __NVCC__
 
 /*! \file TwoStepNVEGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
@@ -240,53 +240,44 @@ __global__ void gpu_rattle_nve_step_two_kernel(Scalar4* d_pos,
    details.
 */
 template<class Manifold>
-hipError_t gpu_rattle_nve_step_two(Scalar4* d_pos,
-                                   Scalar4* d_vel,
-                                   Scalar3* d_accel,
-                                   unsigned int* d_group_members,
-                                   const unsigned int group_size,
-                                   Scalar4* d_net_force,
-                                   Manifold manifold,
-                                   Scalar tolerance,
-                                   Scalar deltaT,
-                                   bool limit,
-                                   Scalar limit_val,
-                                   bool zero_force,
-                                   unsigned int block_size)
+cudaError_t gpu_rattle_nve_step_two(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    Scalar3* d_accel,
+                                    unsigned int* d_group_members,
+                                    const unsigned int group_size,
+                                    Scalar4* d_net_force,
+                                    Manifold manifold,
+                                    Scalar tolerance,
+                                    Scalar deltaT,
+                                    bool limit,
+                                    Scalar limit_val,
+                                    bool zero_force,
+                                    unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_two_kernel<Manifold>);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_two_kernel<Manifold>);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_rattle_nve_step_two_kernel<Manifold>
+        <<<(nwork / run_block_size) + 1, run_block_size>>>(d_pos,
+                                                           d_vel,
+                                                           d_accel,
+                                                           d_group_members,
+                                                           nwork,
+                                                           d_net_force,
+                                                           manifold,
+                                                           tolerance,
+                                                           deltaT,
+                                                           limit,
+                                                           limit_val,
+                                                           zero_force);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_rattle_nve_step_two_kernel<Manifold>),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_group_members,
-                       nwork,
-                       d_net_force,
-                       manifold,
-                       tolerance,
-                       deltaT,
-                       limit,
-                       limit_val,
-                       zero_force);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 template<class Manifold>
@@ -400,53 +391,44 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4* d_pos,
     }
 
 template<class Manifold>
-hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
-                                        const Scalar4* d_vel,
-                                        Scalar3* d_accel,
-                                        Scalar4* d_net_force,
-                                        Scalar* d_net_virial,
-                                        unsigned int* d_group_members,
-                                        const unsigned int group_size,
-                                        size_t net_virial_pitch,
-                                        Manifold manifold,
-                                        Scalar tolerance,
-                                        Scalar deltaT,
-                                        bool zero_force,
-                                        unsigned int block_size)
+cudaError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
+                                         const Scalar4* d_vel,
+                                         Scalar3* d_accel,
+                                         Scalar4* d_net_force,
+                                         Scalar* d_net_virial,
+                                         unsigned int* d_group_members,
+                                         const unsigned int group_size,
+                                         size_t net_virial_pitch,
+                                         Manifold manifold,
+                                         Scalar tolerance,
+                                         Scalar deltaT,
+                                         bool zero_force,
+                                         unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_include_rattle_force_nve_kernel<Manifold>);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_include_rattle_force_nve_kernel<Manifold>);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_include_rattle_force_nve_kernel<Manifold>
+        <<<(nwork / run_block_size) + 1, run_block_size>>>(d_pos,
+                                                           d_vel,
+                                                           d_accel,
+                                                           d_net_force,
+                                                           d_net_virial,
+                                                           d_group_members,
+                                                           nwork,
+                                                           net_virial_pitch,
+                                                           manifold,
+                                                           tolerance,
+                                                           deltaT,
+                                                           zero_force);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_include_rattle_force_nve_kernel<Manifold>),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_net_force,
-                       d_net_virial,
-                       d_group_members,
-                       nwork,
-                       net_virial_pitch,
-                       manifold,
-                       tolerance,
-                       deltaT,
-                       zero_force);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 #endif

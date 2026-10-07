@@ -17,7 +17,7 @@ namespace md
     {
 namespace kernel
     {
-template __attribute__((visibility("default"))) hipError_t
+template __attribute__((visibility("default"))) cudaError_t
 gpu_compute_bond_forces<EVALUATOR_CLASS, 4>(const kernel::bond_args_t<4>& bond_args,
                                             const typename EVALUATOR_CLASS::param_type* d_params,
                                             unsigned int* d_flags);

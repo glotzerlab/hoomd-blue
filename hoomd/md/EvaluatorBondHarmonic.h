@@ -4,7 +4,7 @@
 #ifndef __BOND_EVALUATOR_HARMONIC_H__
 #define __BOND_EVALUATOR_HARMONIC_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -17,7 +17,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -32,7 +32,7 @@ struct harmonic_params
     Scalar k;
     Scalar r_0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     harmonic_params()
         {
         k = 0;
@@ -109,7 +109,7 @@ class EvaluatorBondHarmonic
 
 // if the result is not finite, it is likely because of a division by 0, setting force_divr to 0
 // will correctly result in a 0 force in this case
-#ifdef __HIPCC__
+#ifdef __NVCC__
         if (!isfinite(force_divr))
 #else
         if (!std::isfinite(force_divr))
@@ -122,7 +122,7 @@ class EvaluatorBondHarmonic
         return true;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

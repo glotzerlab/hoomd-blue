@@ -142,10 +142,10 @@ void NeighborListGPUStencil::sortTypes()
 
         if (swap)
             {
-            hipMemcpy(d_pids.data,
-                      d_pids_alt(),
-                      sizeof(unsigned int) * m_pdata->getN(),
-                      hipMemcpyDeviceToDevice);
+            cudaMemcpy(d_pids.data,
+                       d_pids_alt(),
+                       sizeof(unsigned int) * m_pdata->getN(),
+                       cudaMemcpyDeviceToDevice);
             }
         }
     }

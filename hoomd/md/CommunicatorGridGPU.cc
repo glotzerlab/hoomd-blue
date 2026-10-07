@@ -4,16 +4,9 @@
 #ifdef ENABLE_MPI
 
 #include "CommunicatorGridGPU.h"
-
-#ifdef ENABLE_HIP
 #include "CommunicatorGridGPU.cuh"
 
-#if __HIP_PLATFORM_HCC__
-#include <hipfft.h>
-#elif __HIP_PLATFORM_NVCC__
 #include <cufft.h>
-typedef cufftComplex hipfftComplex;
-#endif
 
 namespace hoomd
     {
@@ -205,8 +198,7 @@ template<typename T> void CommunicatorGridGPU<T>::communicate(const GPUArray<T>&
 //! Explicit template instantiations
 template class PYBIND11_EXPORT CommunicatorGridGPU<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
-template class PYBIND11_EXPORT CommunicatorGridGPU<hipfftComplex>;
-#endif // ENABLE_HIP
+template class PYBIND11_EXPORT CommunicatorGridGPU<cufftComplex>;
 
     } // end namespace md
     } // end namespace hoomd
